@@ -80,16 +80,14 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting }: Meetu
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
           <Text
-            className="text-lg font-semibold text-foreground mb-4"
-            style={{ textAlign: isRtl ? "right" : "left" }}
+            style={{ fontSize: 18, fontWeight: "600", marginBottom: 16, textAlign: isRtl ? "right" : "left" }}
           >
             {t("chat.meetup.title")}
           </Text>
 
           {/* Place field */}
           <Text
-            className="text-sm font-medium text-foreground mb-1"
-            style={{ textAlign: isRtl ? "right" : "left" }}
+            style={{ fontSize: 14, fontWeight: "500", marginBottom: 4, textAlign: isRtl ? "right" : "left" }}
           >
             {t("chat.meetup.place")}
           </Text>
@@ -101,15 +99,14 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting }: Meetu
             editable={!isSubmitting}
           />
           {placeError ? (
-            <Text className="text-xs text-destructive mt-1">{placeError}</Text>
+            <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4 }}>{placeError}</Text>
           ) : null}
 
           <View style={{ height: 12 }} />
 
           {/* Time field */}
           <Text
-            className="text-sm font-medium text-foreground mb-1"
-            style={{ textAlign: isRtl ? "right" : "left" }}
+            style={{ fontSize: 14, fontWeight: "500", marginBottom: 4, textAlign: isRtl ? "right" : "left" }}
           >
             {t("chat.meetup.time")}
           </Text>
@@ -121,7 +118,7 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting }: Meetu
             editable={!isSubmitting}
           />
           {timeError ? (
-            <Text className="text-xs text-destructive mt-1">{timeError}</Text>
+            <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4 }}>{timeError}</Text>
           ) : null}
 
           <View style={{ height: 20 }} />
@@ -131,7 +128,7 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting }: Meetu
             disabled={isSubmitting}
             style={{ width: "100%" }}
           >
-            <Text className="text-primary-foreground font-semibold">
+            <Text style={{ fontWeight: "600" }}>
               {isSubmitting ? t("chat.thread.sending") : t("chat.meetup.propose")}
             </Text>
           </Button>
@@ -144,9 +141,7 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting }: Meetu
             disabled={isSubmitting}
             style={{ width: "100%" }}
           >
-            <Text className="text-foreground">
-              {t("common.cancel")}
-            </Text>
+            <Text>{t("common.cancel")}</Text>
           </Button>
         </View>
       </KeyboardAvoidingView>

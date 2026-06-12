@@ -1,9 +1,12 @@
-import { View, TouchableOpacity, Text } from "react-native";
+import { View, TouchableOpacity } from "react-native";
+import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
+import { useColors } from "@/hooks/useColors";
 import { SUPPORTED_LANGUAGES, setLanguage, type LanguageCode } from "@/i18n";
 
 export default function LanguageSwitcher() {
   const { i18n } = useTranslation();
+  const colors = useColors();
   const current = i18n.language;
 
   return (
@@ -19,11 +22,11 @@ export default function LanguageSwitcher() {
               paddingHorizontal: 16,
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: active ? "#2563EB" : "#ddd",
-              backgroundColor: active ? "#2563EB" : "transparent",
+              borderColor: active ? colors.primary : colors.border,
+              backgroundColor: active ? colors.primary : "transparent",
             }}
           >
-            <Text style={{ color: active ? "white" : "#333", fontWeight: active ? "bold" : "normal" }}>
+            <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontWeight: active ? "700" : "400" }}>
               {lang.label}
             </Text>
           </TouchableOpacity>

@@ -1,15 +1,19 @@
-import { View, TextInput, TouchableOpacity, ScrollView } from "react-native";
-import { Text } from "react-native";
+import { View, ScrollView } from "react-native";
+import { Text } from "@/components/reusables/text";
+import { Input } from "@/components/reusables/input";
+import { Button } from "@/components/reusables/button";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { useLocalization } from "@/hooks/useLocalization";
+import { useColors } from "@/hooks/useColors";
 
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
+  const colors = useColors();
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
 
@@ -41,53 +45,40 @@ export default function RegisterScreen() {
     }
   };
 
-  const inputStyle = {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    textAlign: (isRtl ? "right" : "left") as "right" | "left",
-  };
+  const inputStyle = { marginBottom: 12, textAlign: (isRtl ? "right" : "left") as "right" | "left" };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 48 }}>
-      <Text style={{ fontSize: 28, fontWeight: "bold", textAlign: isRtl ? "right" : "left", marginBottom: 8 }}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={{ padding: 24, paddingTop: 48 }}
+    >
+      <Text style={{ fontSize: 28, fontWeight: "700", textAlign: isRtl ? "right" : "left", marginBottom: 8, color: colors.foreground }}>
         {t("auth.createAccount")}
       </Text>
-      <Text style={{ color: "#666", textAlign: isRtl ? "right" : "left", marginBottom: 32 }}>
+      <Text style={{ color: colors.mutedForeground, textAlign: isRtl ? "right" : "left", marginBottom: 32 }}>
         {t("auth.subtitle")}
       </Text>
 
       {error && (
-        <Text style={{ color: "red", marginBottom: 16, textAlign: isRtl ? "right" : "left" }}>
+        <Text style={{ color: colors.destructive, marginBottom: 16, textAlign: isRtl ? "right" : "left" }}>
           {error}
         </Text>
       )}
 
-      <TextInput placeholder={t("auth.firstName")} value={form.firstname} onChangeText={(v) => update("firstname", v)} style={inputStyle} />
-      <TextInput placeholder={t("auth.lastName")} value={form.lastname} onChangeText={(v) => update("lastname", v)} style={inputStyle} />
-      <TextInput placeholder={t("auth.phone")} value={form.phone} onChangeText={(v) => update("phone", v)} keyboardType="phone-pad" style={inputStyle} />
-      <TextInput placeholder={t("auth.email")} value={form.email} onChangeText={(v) => update("email", v)} keyboardType="email-address" autoCapitalize="none" style={inputStyle} />
-      <TextInput placeholder={t("auth.password")} value={form.password} onChangeText={(v) => update("password", v)} secureTextEntry style={inputStyle} />
-      <TextInput placeholder={t("auth.confirmPassword")} value={form.passwordConfirmation} onChangeText={(v) => update("passwordConfirmation", v)} secureTextEntry style={inputStyle} />
+      <Input placeholder={t("auth.firstName")} value={form.firstname} onChangeText={(v) => update("firstname", v)} style={inputStyle} />
+      <Input placeholder={t("auth.lastName")} value={form.lastname} onChangeText={(v) => update("lastname", v)} style={inputStyle} />
+      <Input placeholder={t("auth.phone")} value={form.phone} onChangeText={(v) => update("phone", v)} keyboardType="phone-pad" style={inputStyle} />
+      <Input placeholder={t("auth.email")} value={form.email} onChangeText={(v) => update("email", v)} keyboardType="email-address" autoCapitalize="none" style={inputStyle} />
+      <Input placeholder={t("auth.password")} value={form.password} onChangeText={(v) => update("password", v)} secureTextEntry style={inputStyle} />
+      <Input placeholder={t("auth.confirmPassword")} value={form.passwordConfirmation} onChangeText={(v) => update("passwordConfirmation", v)} secureTextEntry style={{ marginBottom: 24, textAlign: isRtl ? "right" : "left" }} />
 
-      <TouchableOpacity
-        onPress={handleRegister}
-        disabled={loading}
-        style={{ backgroundColor: "#2563EB", borderRadius: 8, padding: 16, alignItems: "center", marginTop: 8 }}
-      >
-        <Text style={{ color: "white", fontWeight: "bold" }}>
-          {loading ? t("common.loading") : t("auth.registerButton")}
-        </Text>
-      </TouchableOpacity>
+      <Button onPress={handleRegister} disabled={loading} style={{ marginBottom: 16 }}>
+        <Text>{loading ? t("common.loading") : t("auth.registerButton")}</Text>
+      </Button>
 
-      <TouchableOpacity
-        onPress={() => router.push("/(auth)/login")}
-        style={{ marginTop: 16, alignItems: "center" }}
-      >
-        <Text style={{ color: "#2563EB" }}>{t("auth.haveAccount")} {t("auth.loginButton")}</Text>
-      </TouchableOpacity>
+      <Button variant="ghost" onPress={() => router.push("/(auth)/login")}>
+        <Text style={{ color: colors.primary }}>{t("auth.haveAccount")} {t("auth.loginButton")}</Text>
+      </Button>
     </ScrollView>
   );
 }
