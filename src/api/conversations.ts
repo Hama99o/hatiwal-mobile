@@ -107,4 +107,8 @@ export const conversationsAPI = {
     );
     return convertKeysToCamel(response.data.message) as Message;
   },
+
+  markMessagesRead: async (conversationId: number): Promise<void> => {
+    await http.put(`/conversations/${conversationId}/messages/mark_read`);
+  },
 };
