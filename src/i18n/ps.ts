@@ -5,6 +5,7 @@ import ps_listing from "./locales/ps/listing.json";
 import ps_chat    from "./locales/ps/chat.json";
 import ps_profile from "./locales/ps/profile.json";
 import ps_sidebar from "./locales/ps/sidebar.json";
+import ps_report  from "./locales/ps/report.json";
 
 export const psTranslations = {
   common:  ps_common,
@@ -14,4 +15,5 @@ export const psTranslations = {
   chat:    ps_chat,
   profile: ps_profile,
   sidebar: ps_sidebar,
+  report:  ps_report,
 };

@@ -1,38 +1,57 @@
-import { useColorScheme } from "react-native";
+import { useColorScheme } from "nativewind";
 
 /**
- * Returns a token-keyed color map that matches the NativeWind CSS variable
- * tokens defined in tailwind.config.js.  Use these ONLY when you need an
- * inline style / StyleSheet value and className isn't an option.
+ * Returns inline-style color values that match the CSS custom properties in
+ * src/styles/global.css (which drives NativeWind className tokens).
  *
- * For JSX layout always prefer `className="bg-background …"` instead.
+ * Use these ONLY when you need a StyleSheet / inline style value.
+ * For JSX layout always prefer `className="bg-primary …"` instead.
  */
 export function useColors() {
-  const scheme = useColorScheme();
-  const dark = scheme === "dark";
+  const { colorScheme } = useColorScheme();
+  const dark = colorScheme === "dark";
 
   return {
-    background: dark ? "hsl(240 10% 3.9%)" : "hsl(0 0% 100%)",
-    foreground: dark ? "hsl(0 0% 98%)" : "hsl(240 10% 3.9%)",
-    card: dark ? "hsl(240 10% 3.9%)" : "hsl(0 0% 100%)",
-    cardForeground: dark ? "hsl(0 0% 98%)" : "hsl(240 10% 3.9%)",
-    primary: dark ? "hsl(0 0% 98%)" : "hsl(240 5.9% 10%)",
-    primaryForeground: dark ? "hsl(240 5.9% 10%)" : "hsl(0 0% 98%)",
-    secondary: dark ? "hsl(240 3.7% 15.9%)" : "hsl(240 4.8% 95.9%)",
-    secondaryForeground: dark ? "hsl(0 0% 98%)" : "hsl(240 5.9% 10%)",
-    muted: dark ? "hsl(240 3.7% 15.9%)" : "hsl(240 4.8% 95.9%)",
-    mutedForeground: dark ? "hsl(240 5% 64.9%)" : "hsl(240 3.8% 46.1%)",
-    accent: dark ? "hsl(240 3.7% 15.9%)" : "hsl(240 4.8% 95.9%)",
-    accentForeground: dark ? "hsl(0 0% 98%)" : "hsl(240 5.9% 10%)",
-    destructive: dark ? "hsl(0 62.8% 30.6%)" : "hsl(0 72.2% 50.6%)",
-    destructiveForeground: dark ? "hsl(0 85.7% 97.3%)" : "hsl(0 0% 98%)",
-    border: dark ? "hsl(240 3.7% 15.9%)" : "hsl(240 5.9% 90%)",
-    input: dark ? "hsl(240 3.7% 15.9%)" : "hsl(240 5.9% 90%)",
-    ring: dark ? "hsl(240 4.9% 83.9%)" : "hsl(240 5.9% 10%)",
-    // Extra semantic tokens for marketplace
-    success: dark ? "hsl(142 71% 45%)" : "hsl(142 76% 36%)",
-    successForeground: "hsl(0 0% 98%)",
-    warning: dark ? "hsl(38 92% 50%)" : "hsl(38 92% 40%)",
-    warningForeground: "hsl(0 0% 98%)",
+    // Page
+    background:            dark ? "hsl(222 84% 5%)"   : "hsl(0 0% 98%)",
+    foreground:            dark ? "hsl(210 40% 98%)"  : "hsl(222 47% 11%)",
+
+    // Card
+    card:                  dark ? "hsl(222 47% 8%)"   : "hsl(0 0% 100%)",
+    cardForeground:        dark ? "hsl(210 40% 98%)"  : "hsl(222 47% 11%)",
+
+    // Primary — blue
+    primary:               dark ? "hsl(217 91% 60%)"  : "hsl(221 83% 53%)",
+    primaryForeground:     dark ? "hsl(222 47% 11%)"  : "hsl(0 0% 100%)",
+
+    // Secondary — soft neutral
+    secondary:             dark ? "hsl(217 33% 17%)"  : "hsl(214 32% 91%)",
+    secondaryForeground:   dark ? "hsl(210 40% 98%)"  : "hsl(222 47% 11%)",
+
+    // Muted
+    muted:                 dark ? "hsl(217 33% 17%)"  : "hsl(210 40% 96%)",
+    mutedForeground:       dark ? "hsl(215 20% 65%)"  : "hsl(215 16% 47%)",
+
+    // Accent
+    accent:                dark ? "hsl(217 33% 17%)"  : "hsl(210 40% 96%)",
+    accentForeground:      dark ? "hsl(210 40% 98%)"  : "hsl(222 47% 11%)",
+
+    // Destructive
+    destructive:           dark ? "hsl(0 63% 31%)"    : "hsl(0 84% 60%)",
+    destructiveForeground: dark ? "hsl(0 86% 97%)"    : "hsl(0 0% 98%)",
+
+    // Form / border
+    border:                dark ? "hsl(217 33% 17%)"  : "hsl(214 32% 91%)",
+    input:                 dark ? "hsl(217 33% 17%)"  : "hsl(214 32% 91%)",
+    ring:                  dark ? "hsl(224 76% 48%)"  : "hsl(221 83% 53%)",
+
+    // Semantic extras
+    success:               dark ? "hsl(142 71% 45%)"  : "hsl(142 76% 36%)",
+    successForeground:     "hsl(0 0% 98%)",
+    warning:               dark ? "hsl(38 92% 50%)"   : "hsl(38 92% 40%)",
+    warningForeground:     "hsl(0 0% 98%)",
+
+    // Photo placeholder (neutral grey — shown when image is loading or missing)
+    imagePlaceholder:      dark ? "hsl(217 33% 17%)"  : "hsl(210 40% 94%)",
   } as const;
 }

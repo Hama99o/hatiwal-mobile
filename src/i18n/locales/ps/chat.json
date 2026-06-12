@@ -13,5 +13,40 @@
   "openListing": "اعلان وګورئ",
   "noConversations": "لاهم هیڅ خبرې نشته",
   "unknownUser": "نامعلوم کارونکی",
-  "noMessages": "لاهم هیڅ پیغام نشته"
+  "noMessages": "لاهم هیڅ پیغام نشته",
+  "thread": {
+    "closedNotice": "دا خبرې بندې دي.",
+    "closedInput": "خبرې بندې شوې — ځوابونه غیر فعال دي.",
+    "sendFailed": "پیغام ونه لیږل شو. بیا هڅه وکړئ.",
+    "loadFailed": "پیغامونه ونه موندل شول.",
+    "meetupSent": "د لیدنې وړاندیز ولیږل شو!",
+    "meetupFailed": "د لیدنې وړاندیز ونه لیږل شو.",
+    "startFailed": "خبرې پیل نه شوې.",
+    "duplicateConversation": "تاسو دمخه د دې اعلان سره خبرې لرئ.",
+    "inactiveListing": "دا اعلان نور فعال نه دی.",
+    "selfConversation": "تاسو خپل اعلان ته پیغام نه شئ لیږلای.",
+    "sending": "لیږل کیږي...",
+    "you": "تاسو",
+    "read": "لوستل شو",
+    "delivered": "رسیدلی",
+    "emptyTitle": "لاهم هیڅ پیغام نشته",
+    "emptyDescription": "د خبرو پیل لپاره پیغام ولیږئ."
+  },
+  "meetup": {
+    "title": "د لیدنې وړاندیز",
+    "placePlaceholder": "چیرته؟ (لکه: شهر نو بازار)",
+    "timePlaceholder": "کله؟ (لکه: سبا بعد له ماسپښینه ۳ بجه)",
+    "place": "ځای",
+    "time": "وخت",
+    "propose": "د لیدنې وړاندیز",
+    "proposed": "د لیدنې وړاندیز",
+    "placeRequired": "مهرباني وکړئ د لیدنې ځای ولیکئ.",
+    "timeRequired": "مهرباني وکړئ د لیدنې وخت ولیکئ."
+  },
+  "startConversation": {
+    "title": "پلورونکي ته پیغام",
+    "placeholder": "د دې توکي پوښتنه وکړئ...",
+    "send": "پیغام ولیږئ",
+    "sending": "لیږل کیږي..."
+  }
 }

@@ -36,6 +36,31 @@
   "unsave": "Remove from saved",
   "postedAgo": "posted {{date}}",
   "viewsCount": "{{count}} views",
+  "conversationsCount": "{{count}} chats",
+  "publishSuccess": "Listing published!",
+  "reserveSuccess": "Listing marked as reserved",
+  "markSoldSuccess": "Listing marked as sold",
+  "deleteSuccess": "Listing deleted",
+  "confirmPublish": "Publish this listing?",
+  "confirmPublishDescription": "Your listing will be visible to all buyers.",
+  "confirmReserve": "Mark as reserved?",
+  "confirmReserveDescription": "This marks the item as reserved for a buyer.",
+  "filter": {
+    "all": "All",
+    "draft": "Draft",
+    "active": "Active",
+    "reserved": "Reserved",
+    "sold": "Sold"
+  },
+  "emptyFiltered": {
+    "title": "No {{status}} listings",
+    "description": "You have no listings with this status."
+  },
+  "emptyAll": {
+    "title": "You haven't posted anything yet",
+    "description": "Post your first listing to start selling."
+  },
+  "postListing": "Post a listing",
   "form": {
     "photos": "Photos",
     "photosHint": "Add at least one photo to attract buyers.",

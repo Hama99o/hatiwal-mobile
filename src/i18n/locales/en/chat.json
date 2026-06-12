@@ -13,5 +13,40 @@
   "openListing": "View Listing",
   "noConversations": "No conversations yet",
   "unknownUser": "Unknown User",
-  "noMessages": "No messages yet"
+  "noMessages": "No messages yet",
+  "thread": {
+    "closedNotice": "This conversation is closed.",
+    "closedInput": "Conversation closed — replies disabled.",
+    "sendFailed": "Failed to send message. Please try again.",
+    "loadFailed": "Could not load messages.",
+    "meetupSent": "Meetup proposal sent!",
+    "meetupFailed": "Failed to send meetup proposal.",
+    "startFailed": "Could not start conversation.",
+    "duplicateConversation": "You already have a conversation about this listing.",
+    "inactiveListing": "This listing is no longer active.",
+    "selfConversation": "You cannot message your own listing.",
+    "sending": "Sending...",
+    "you": "You",
+    "read": "Read",
+    "delivered": "Delivered",
+    "emptyTitle": "No messages yet",
+    "emptyDescription": "Send a message to start the conversation."
+  },
+  "meetup": {
+    "title": "Propose a Meetup",
+    "placePlaceholder": "Where? (e.g. Shahr-e-Naw market)",
+    "timePlaceholder": "When? (e.g. Tomorrow 3pm)",
+    "place": "Place",
+    "time": "Time",
+    "propose": "Propose Meetup",
+    "proposed": "Meetup Proposal",
+    "placeRequired": "Please enter a meeting place.",
+    "timeRequired": "Please enter a meeting time."
+  },
+  "startConversation": {
+    "title": "Message Seller",
+    "placeholder": "Ask about this item...",
+    "send": "Send Message",
+    "sending": "Sending..."
+  }
 }

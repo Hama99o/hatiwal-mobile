@@ -1,0 +1,24 @@
+{
+  "title": "Report",
+  "subtitle": "Why are you reporting this?",
+  "reasonLabel": "Select a reason",
+  "noteLabel": "Additional details (optional)",
+  "notePlaceholder": "Describe the issue in more detail...",
+  "submit": "Submit Report",
+  "submitting": "Submitting...",
+  "reasons": {
+    "spam": "Spam",
+    "inappropriate": "Inappropriate content",
+    "fraud": "Fraud or scam",
+    "wrong_category": "Wrong category",
+    "prohibited_item": "Prohibited item",
+    "other": "Other"
+  },
+  "success": "Report submitted. Thank you.",
+  "errors": {
+    "selfReport": "You cannot report your own content.",
+    "duplicate": "You have already reported this.",
+    "generic": "Could not submit report. Please try again."
+  },
+  "reasonRequired": "Please select a reason."
+}

@@ -5,6 +5,7 @@ import en_listing from "./locales/en/listing.json";
 import en_chat    from "./locales/en/chat.json";
 import en_profile from "./locales/en/profile.json";
 import en_sidebar from "./locales/en/sidebar.json";
+import en_report  from "./locales/en/report.json";
 
 export const enTranslations = {
   common:  en_common,
@@ -14,4 +15,5 @@ export const enTranslations = {
   chat:    en_chat,
   profile: en_profile,
   sidebar: en_sidebar,
+  report:  en_report,
 };

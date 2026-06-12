@@ -36,6 +36,31 @@
   "unsave": "حذف از ذخیره‌شده‌ها",
   "postedAgo": "ارسال شده {{date}}",
   "viewsCount": "{{count}} بازدید",
+  "conversationsCount": "{{count}} گفتگو",
+  "publishSuccess": "آگهی منتشر شد!",
+  "reserveSuccess": "آگهی به عنوان رزرو شده علامت‌گذاری شد",
+  "markSoldSuccess": "آگهی به عنوان فروخته شده علامت‌گذاری شد",
+  "deleteSuccess": "آگهی حذف شد",
+  "confirmPublish": "این آگهی منتشر شود؟",
+  "confirmPublishDescription": "آگهی شما برای همه خریداران قابل مشاهده خواهد بود.",
+  "confirmReserve": "به عنوان رزرو شده علامت‌گذاری شود؟",
+  "confirmReserveDescription": "این کالا را برای یک خریدار رزرو می‌کند.",
+  "filter": {
+    "all": "همه",
+    "draft": "پیش‌نویس",
+    "active": "فعال",
+    "reserved": "رزرو شده",
+    "sold": "فروخته شده"
+  },
+  "emptyFiltered": {
+    "title": "آگهی {{status}} ندارید",
+    "description": "هیچ آگهی با این وضعیت ندارید."
+  },
+  "emptyAll": {
+    "title": "هنوز هیچ چیزی پست نکرده‌اید",
+    "description": "اولین آگهی خود را برای شروع فروش ثبت کنید."
+  },
+  "postListing": "ثبت آگهی",
   "form": {
     "photos": "عکس‌ها",
     "photosHint": "برای جذب خریداران حداقل یک عکس اضافه کنید.",

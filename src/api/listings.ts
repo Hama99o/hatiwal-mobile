@@ -14,6 +14,7 @@ export interface Listing {
   longitude: number | null;
   thumbnailUrl: string | null;
   viewsCount: number;
+  conversationsCount?: number;
   createdAt: string;
   updatedAt: string;
   seller: {

@@ -36,6 +36,31 @@
   "unsave": "د خوندي شویو څخه لرې کول",
   "postedAgo": "خپور شو {{date}}",
   "viewsCount": "{{count}} لیدنې",
+  "conversationsCount": "{{count}} خبرې",
+  "publishSuccess": "اعلان خپور شو!",
+  "reserveSuccess": "اعلان خوندي شوی ښودل شو",
+  "markSoldSuccess": "اعلان خرڅ شوی ښودل شو",
+  "deleteSuccess": "اعلان ړنګ شو",
+  "confirmPublish": "دا اعلان خپور شي؟",
+  "confirmPublishDescription": "ستاسو اعلان به د ټولو پیرودونکو لپاره لیدل کیدی شي.",
+  "confirmReserve": "خوندي شوی ښودل؟",
+  "confirmReserveDescription": "دا توکی د پیرودونکي لپاره خوندي ښیي.",
+  "filter": {
+    "all": "ټول",
+    "draft": "مسوده",
+    "active": "فعال",
+    "reserved": "خوندي شوی",
+    "sold": "خرڅ شوی"
+  },
+  "emptyFiltered": {
+    "title": "{{status}} اعلانونه نشته",
+    "description": "ستاسو دا ډول اعلانونه نشته."
+  },
+  "emptyAll": {
+    "title": "تاسو لاهم هیڅ اعلان نه دی خپور کړی",
+    "description": "د خرڅلاو لپاره خپل لومړی اعلان خپور کړئ."
+  },
+  "postListing": "اعلان خپرول",
   "form": {
     "photos": "انځورونه",
     "photosHint": "د پیرودونکو د جذبولو لپاره لږ تر لږه یو انځور اضافه کړئ.",

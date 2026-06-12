@@ -5,6 +5,7 @@ import fa_listing from "./locales/fa/listing.json";
 import fa_chat    from "./locales/fa/chat.json";
 import fa_profile from "./locales/fa/profile.json";
 import fa_sidebar from "./locales/fa/sidebar.json";
+import fa_report  from "./locales/fa/report.json";
 
 export const faTranslations = {
   common:  fa_common,
@@ -14,4 +15,5 @@ export const faTranslations = {
   chat:    fa_chat,
   profile: fa_profile,
   sidebar: fa_sidebar,
+  report:  fa_report,
 };

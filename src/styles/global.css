@@ -1,0 +1,97 @@
+/*
+ * Hatiwal — Global CSS custom properties (design token source of truth)
+ *
+ * NativeWind v4 `darkMode:"class"` reads these values via tailwind.config.js:
+ *   colors: { primary: { DEFAULT: "hsl(var(--primary))", ... } }
+ *
+ * Light  → :root
+ * Dark   → .dark  (applied to <html> by DarkModeManager in app/_layout.tsx)
+ */
+
+:root {
+  /* Page */
+  --background:              0 0% 98%;
+  --foreground:              222 47% 11%;
+
+  /* Card surface */
+  --card:                    0 0% 100%;
+  --card-foreground:         222 47% 11%;
+
+  /* Popover */
+  --popover:                 0 0% 100%;
+  --popover-foreground:      222 47% 11%;
+
+  /* Primary — bright blue (trust, marketplace clarity) */
+  --primary:                 221 83% 53%;
+  --primary-foreground:      0 0% 100%;
+
+  /* Secondary — soft neutral */
+  --secondary:               214 32% 91%;
+  --secondary-foreground:    222 47% 11%;
+
+  /* Muted — light grey surfaces */
+  --muted:                   210 40% 96%;
+  --muted-foreground:        215 16% 47%;
+
+  /* Accent */
+  --accent:                  210 40% 96%;
+  --accent-foreground:       222 47% 11%;
+
+  /* Danger */
+  --destructive:             0 84% 60%;
+  --destructive-foreground:  0 0% 98%;
+
+  /* Form / border */
+  --border:                  214 32% 91%;
+  --input:                   214 32% 91%;
+  --ring:                    221 83% 53%;
+
+  /* Border radius base */
+  --radius:                  0.5rem;
+}
+
+.dark {
+  /* Page */
+  --background:              222 84% 5%;
+  --foreground:              210 40% 98%;
+
+  /* Card surface */
+  --card:                    222 47% 8%;
+  --card-foreground:         210 40% 98%;
+
+  /* Popover */
+  --popover:                 222 84% 5%;
+  --popover-foreground:      210 40% 98%;
+
+  /* Primary — slightly lighter blue for dark mode */
+  --primary:                 217 91% 60%;
+  --primary-foreground:      222 47% 11%;
+
+  /* Secondary */
+  --secondary:               217 33% 17%;
+  --secondary-foreground:    210 40% 98%;
+
+  /* Muted */
+  --muted:                   217 33% 17%;
+  --muted-foreground:        215 20% 65%;
+
+  /* Accent */
+  --accent:                  217 33% 17%;
+  --accent-foreground:       210 40% 98%;
+
+  /* Danger */
+  --destructive:             0 63% 31%;
+  --destructive-foreground:  0 86% 97%;
+
+  /* Form / border */
+  --border:                  217 33% 17%;
+  --input:                   217 33% 17%;
+  --ring:                    224 76% 48%;
+}
+
+/* Smooth color transitions when switching theme */
+*,
+*::before,
+*::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}

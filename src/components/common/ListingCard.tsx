@@ -113,7 +113,7 @@ export function ListingCard({
         style={styles.card}
       >
         {/* ── Photo ──────────────────────────────────────────────────── */}
-        <View style={styles.imageContainer}>
+        <View style={[styles.imageContainer, { backgroundColor: colors.imagePlaceholder }]}>
           <Image
             source={
               listing.thumbnailUrl
@@ -220,7 +220,6 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: "100%",
     aspectRatio: 4 / 3,
-    backgroundColor: "transparent",
     position: "relative",
   },
   image: {
