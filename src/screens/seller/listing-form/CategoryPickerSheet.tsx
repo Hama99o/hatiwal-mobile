@@ -85,7 +85,7 @@ export function CategoryPickerSheet({ visible, selectedId, onSelect, onClose }: 
       <View style={[styles.sheet, { backgroundColor: colors.card }]}>
         {/* Header */}
         <View style={[styles.header, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
-          <Text className="text-lg font-semibold text-foreground flex-1">
+          <Text style={{ fontSize: 18, fontWeight: "600", flex: 1 }}>
             {t("listing.form.selectCategory")}
           </Text>
           <Pressable onPress={handleClose} hitSlop={8}>
@@ -114,11 +114,11 @@ export function CategoryPickerSheet({ visible, selectedId, onSelect, onClose }: 
           keyboardShouldPersistTaps="handled"
         >
           {isLoading ? (
-            <Text className="text-sm text-muted-foreground text-center py-8">
+            <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center", paddingVertical: 32 }}>
               {t("common.loading")}
             </Text>
           ) : filtered.length === 0 ? (
-            <Text className="text-sm text-muted-foreground text-center py-8">
+            <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center", paddingVertical: 32 }}>
               {t("common.noResults")}
             </Text>
           ) : (
@@ -136,8 +136,7 @@ export function CategoryPickerSheet({ visible, selectedId, onSelect, onClose }: 
                   android_ripple={{ color: colors.muted }}
                 >
                   <Text
-                    className={`flex-1 text-sm ${isSelected ? "font-semibold text-foreground" : "text-foreground"}`}
-                    style={{ textAlign: isRtl ? "right" : "left" }}
+                    style={{ flex: 1, fontSize: 14, fontWeight: isSelected ? "600" : "400", textAlign: isRtl ? "right" : "left" }}
                   >
                     {getCategoryName(cat)}
                   </Text>

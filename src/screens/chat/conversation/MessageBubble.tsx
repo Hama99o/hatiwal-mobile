@@ -44,10 +44,7 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
   if (message.kind === "system") {
     return (
       <View style={{ alignItems: "center", paddingVertical: 4, paddingHorizontal: 24 }}>
-        <Text
-          className="text-xs text-muted-foreground text-center"
-          style={{ lineHeight: 18 }}
-        >
+        <Text style={{ fontSize: 12, color: colors.mutedForeground, lineHeight: 18, textAlign: "center" }}>
           {message.body}
         </Text>
       </View>
@@ -74,8 +71,9 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
           }}
         >
           <Text
-            className="text-xs font-semibold"
             style={{
+              fontSize: 12,
+              fontWeight: "600",
               color: isMine ? colors.primary : colors.mutedForeground,
               textAlign: isRtl ? "right" : "left",
             }}
@@ -92,8 +90,7 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
           >
             <MapPin size={14} color={isMine ? colors.primary : colors.mutedForeground} />
             <Text
-              className="text-sm text-foreground"
-              style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}
+              style={{ flex: 1, textAlign: isRtl ? "right" : "left", fontSize: 14 }}
             >
               {place}
             </Text>
@@ -109,8 +106,7 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
             >
               <Clock size={14} color={isMine ? colors.primary : colors.mutedForeground} />
               <Text
-                className="text-sm text-foreground"
-                style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}
+                style={{ flex: 1, textAlign: isRtl ? "right" : "left", fontSize: 14 }}
               >
                 {time}
               </Text>

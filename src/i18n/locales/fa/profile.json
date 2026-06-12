@@ -8,11 +8,15 @@
   "buyerMode": "حالت خریدار",
   "sellerMode": "حالت فروشنده",
   "language": "زبان",
-  "theme": "پوسته",
+  "theme": "ظاهر",
+  "themeLight": "روشن",
+  "themeDark": "تاریک",
+  "themeSystem": "سیستم",
   "logout": "خروج",
   "memberSince": "عضو از: {{date}}",
   "logoutConfirm": "آیا مطمئن هستید که می‌خواهید خارج شوید؟",
   "bio": "بیوگرافی",
   "city": "شهر",
-  "info": "اطلاعات شخصی"
+  "info": "اطلاعات شخصی",
+  "noInfo": "هنوز اطلاعاتی اضافه نشده"
 }

@@ -6,6 +6,7 @@ import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useColorScheme } from "nativewind";
+import { useThemeStore, loadSavedTheme } from "@/stores/theme.store";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,10 +14,23 @@ const queryClient = new QueryClient({
   },
 });
 
-/** Syncs the OS color scheme → `dark` class on <html> so NativeWind className dark: variants work on web. */
-function DarkModeManager() {
-  const { colorScheme } = useColorScheme();
+// Kick off loading saved theme from AsyncStorage as early as possible
+loadSavedTheme();
 
+/**
+ * Reads the stored theme preference and applies it via nativewind's
+ * setColorScheme. Also syncs the `dark` CSS class on <html> for web.
+ */
+function ThemeManager() {
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const theme = useThemeStore((s) => s.theme);
+
+  // Apply stored preference to NativeWind's color scheme engine
+  useEffect(() => {
+    setColorScheme(theme);
+  }, [theme, setColorScheme]);
+
+  // Sync `dark` class on <html> for CSS custom property cascade on web
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
     if (colorScheme === "dark") {
@@ -32,7 +46,7 @@ function DarkModeManager() {
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <DarkModeManager />
+      <ThemeManager />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(main)" />

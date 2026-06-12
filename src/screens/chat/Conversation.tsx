@@ -237,7 +237,7 @@ export function ConversationScreen() {
       {/* Closed notice */}
       {isClosed && (
         <View style={[styles.closedBanner, { backgroundColor: colors.muted }]}>
-          <Text className="text-sm text-muted-foreground text-center">
+          <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center" }}>
             {t("chat.thread.closedNotice")}
           </Text>
         </View>
@@ -262,10 +262,10 @@ export function ConversationScreen() {
           contentContainerStyle={styles.messageList}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text className="text-base font-semibold text-foreground text-center">
+              <Text style={{ fontSize: 16, fontWeight: "600", textAlign: "center" }}>
                 {t("chat.thread.emptyTitle")}
               </Text>
-              <Text className="text-sm text-muted-foreground text-center mt-1">
+              <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center", marginTop: 4 }}>
                 {t("chat.thread.emptyDescription")}
               </Text>
             </View>
@@ -362,7 +362,7 @@ export function ConversationScreen() {
               { borderTopColor: colors.border, backgroundColor: colors.muted },
             ]}
           >
-            <Text className="text-sm text-muted-foreground text-center">
+            <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center" }}>
               {t("chat.thread.closedInput")}
             </Text>
           </View>

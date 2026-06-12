@@ -141,7 +141,7 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
             onPress={handlePublish}
             disabled={isLoading}
           >
-            <Text className="text-primary-foreground text-xs font-semibold">
+            <Text style={{ fontSize: 12, fontWeight: "600" }}>
               {t("listing.publish")}
             </Text>
           </Button>
@@ -155,7 +155,7 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
             onPress={handleReserve}
             disabled={isLoading}
           >
-            <Text className="text-secondary-foreground text-xs font-semibold">
+            <Text style={{ fontSize: 12, fontWeight: "600" }}>
               {t("listing.markReserved")}
             </Text>
           </Button>
@@ -169,7 +169,7 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
             onPress={handleMarkSold}
             disabled={isLoading}
           >
-            <Text className="text-primary-foreground text-xs font-semibold">
+            <Text style={{ fontSize: 12, fontWeight: "600" }}>
               {t("listing.markSold")}
             </Text>
           </Button>
@@ -181,7 +181,9 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
 
   return (
     <View
-      className={cn("bg-card rounded-lg border border-border overflow-hidden mb-3", className)}
+      style={[
+        { backgroundColor: colors.card, borderRadius: 8, borderWidth: 1, borderColor: colors.border, overflow: "hidden", marginBottom: 12 },
+      ]}
     >
       <Pressable
         onPress={handleEdit}
@@ -211,9 +213,8 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
           <PriceTag price={listing.price} currency={listing.currency} size="md" />
 
           <Text
-            className="text-sm font-medium text-foreground"
+            style={{ fontSize: 14, fontWeight: "500", textAlign: isRtl ? "right" : "left" }}
             numberOfLines={2}
-            style={{ textAlign: isRtl ? "right" : "left" }}
           >
             {listing.title}
           </Text>
@@ -221,14 +222,14 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
           <View style={{ flexDirection: rowDirection, gap: 12, alignItems: "center" }}>
             <View style={{ flexDirection: rowDirection, alignItems: "center", gap: 4 }}>
               <Eye size={12} color={colors.mutedForeground} />
-              <Text className="text-xs text-muted-foreground">
+              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
                 {t("listing.viewsCount", { count: formatNumber(listing.viewsCount ?? 0) })}
               </Text>
             </View>
             {listing.conversationsCount != null && (
               <View style={{ flexDirection: rowDirection, alignItems: "center", gap: 4 }}>
                 <MessageCircle size={12} color={colors.mutedForeground} />
-                <Text className="text-xs text-muted-foreground">
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
                   {t("listing.conversationsCount", {
                     count: formatNumber(listing.conversationsCount),
                   })}

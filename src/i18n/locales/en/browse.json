@@ -13,5 +13,6 @@
   "postedOn": "Posted",
   "viewsCount": "{{count}} views",
   "all": "All",
-  "noResults": "No listings found"
+  "noResults": "No listings found",
+  "noResultsDescription": "Try changing your search or filter."
 }

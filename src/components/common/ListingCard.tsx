@@ -177,9 +177,8 @@ export function ListingCard({
 
           {/* Title */}
           <Text
-            className="text-sm font-medium text-foreground"
+            style={{ fontSize: 14, fontWeight: "500", textAlign: isRtl ? "right" : "left" }}
             numberOfLines={2}
-            style={{ textAlign: isRtl ? "right" : "left" }}
           >
             {listing.title}
           </Text>
@@ -190,7 +189,7 @@ export function ListingCard({
               <View style={{ flexDirection: metaRowDirection, alignItems: "center", gap: 2 }}>
                 <MapPin size={11} color={colors.mutedForeground} />
                 <Text
-                  className="text-xs text-muted-foreground"
+                  style={{ fontSize: 12, color: colors.mutedForeground }}
                   numberOfLines={1}
                 >
                   {sellerCity}
@@ -199,7 +198,7 @@ export function ListingCard({
             ) : null}
             {postedAgo ? (
               <Text
-                className="text-xs text-muted-foreground"
+                style={{ fontSize: 12, color: colors.mutedForeground }}
                 numberOfLines={1}
               >
                 {postedAgo}

@@ -1,7 +1,8 @@
 import { View } from "react-native";
 import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { useColors } from "@/hooks/useColors";
+import { useColorScheme } from "nativewind";
 
 export type ListingStatus = "draft" | "active" | "reserved" | "sold";
 
@@ -10,56 +11,42 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-/**
- * Maps listing status to the correct badge color as per DESIGN_SYSTEM.md:
- *   draft    → muted (grey)
- *   active   → success (green)
- *   reserved → warning (amber)
- *   sold     → secondary/grey dimmed
- */
-const statusStyles: Record<
-  ListingStatus,
-  { container: string; text: string }
-> = {
-  draft: {
-    container: "bg-muted",
-    text: "text-muted-foreground",
-  },
-  active: {
-    container: "bg-green-100 dark:bg-green-900",
-    text: "text-green-700 dark:text-green-300",
-  },
-  reserved: {
-    container: "bg-amber-100 dark:bg-amber-900",
-    text: "text-amber-700 dark:text-amber-300",
-  },
-  sold: {
-    container: "bg-secondary",
-    text: "text-secondary-foreground opacity-70",
-  },
-};
-
-export function StatusBadge({ status, className }: StatusBadgeProps) {
+export function StatusBadge({ status }: StatusBadgeProps) {
   const { t } = useTranslation();
+  const colors = useColors();
+  const { colorScheme } = useColorScheme();
+  const dark = colorScheme === "dark";
 
-  const translationKey = `listing.status.${status}` as const;
-  const styles = statusStyles[status];
+  const bg = {
+    draft: colors.muted,
+    active: dark ? "rgba(20,83,45,0.9)" : "rgba(220,252,231,0.9)",
+    reserved: dark ? "rgba(120,53,15,0.9)" : "rgba(254,243,199,0.9)",
+    sold: colors.secondary,
+  }[status];
+
+  const textColor = {
+    draft: colors.mutedForeground,
+    active: dark ? "#86efac" : "#15803d",
+    reserved: dark ? "#fcd34d" : "#92400e",
+    sold: colors.secondaryForeground,
+  }[status];
 
   return (
     <View
-      className={cn(
-        "rounded-full px-2 py-0.5 self-start",
-        styles.container,
-        className
-      )}
+      style={{
+        backgroundColor: bg,
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        alignSelf: "flex-start",
+      }}
       accessibilityRole="text"
-      accessibilityLabel={t(translationKey)}
     >
       <Text
-        className={cn("text-xs font-medium", styles.text)}
+        style={{ color: textColor, fontSize: 11, fontWeight: "600" }}
         numberOfLines={1}
       >
-        {t(translationKey)}
+        {t(`listing.status.${status}`)}
       </Text>
     </View>
   );

@@ -205,7 +205,7 @@ export default function ListingFormScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Screen title */}
-        <Text className="text-2xl font-bold text-foreground mb-6">
+        <Text style={{ fontSize: 24, fontWeight: "700", marginBottom: 24 }}>
           {isEdit ? t("listing.edit") : t("listing.create")}
         </Text>
 
@@ -222,7 +222,7 @@ export default function ListingFormScreen() {
         <View style={styles.field}>
           <Label nativeID="title-label" className="mb-1">
             {t("listing.title")}
-            <Text className="text-destructive"> *</Text>
+            <Text style={{ color: colors.destructive }}> *</Text>
           </Label>
           <Controller
             control={control}
@@ -240,11 +240,11 @@ export default function ListingFormScreen() {
             )}
           />
           {errors.title && (
-            <Text className="text-xs text-destructive mt-1">
+            <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4 }}>
               {t("listing.form.titleRequired")}
             </Text>
           )}
-          <Text className="text-xs text-muted-foreground text-right mt-1">
+          <Text style={{ fontSize: 12, color: colors.mutedForeground, textAlign: "right", marginTop: 4 }}>
             {`${watch("title")?.length ?? 0}/150`}
           </Text>
         </View>
@@ -287,7 +287,7 @@ export default function ListingFormScreen() {
                   ]}
                 >
                   <Text
-                    className={`text-sm font-semibold ${currency === curr ? "text-primary-foreground" : "text-muted-foreground"}`}
+                    style={{ fontSize: 14, fontWeight: "600", color: currency === curr ? colors.primaryForeground : colors.mutedForeground }}
                   >
                     {curr}
                   </Text>
@@ -296,7 +296,7 @@ export default function ListingFormScreen() {
             </View>
           </View>
           {errors.price && (
-            <Text className="text-xs text-destructive mt-1">
+            <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4 }}>
               {t("listing.form.priceRequired")}
             </Text>
           )}
@@ -325,8 +325,7 @@ export default function ListingFormScreen() {
                 onPress={() => setCategoryPickerVisible(true)}
               >
                 <Text
-                  className={selectedCategory ? "text-foreground text-sm" : "text-muted-foreground text-sm"}
-                  style={{ textAlign: isRtl ? "right" : "left" }}
+                  style={{ fontSize: 14, color: selectedCategory ? colors.foreground : colors.mutedForeground, textAlign: isRtl ? "right" : "left" }}
                 >
                   {selectedCategory
                     ? getLocalizedCategoryName(selectedCategory, i18n.language)
@@ -336,7 +335,7 @@ export default function ListingFormScreen() {
             )}
           />
           {errors.categoryId && (
-            <Text className="text-xs text-destructive mt-1">
+            <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4 }}>
               {t("listing.form.categoryRequired")}
             </Text>
           )}

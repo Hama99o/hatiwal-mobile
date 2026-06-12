@@ -13,5 +13,6 @@
   "postedOn": "نیټه",
   "viewsCount": "{{count}} کتنې",
   "all": "ټول",
-  "noResults": "هیڅ توکي ونه موندل شول"
+  "noResults": "هیڅ توکي ونه موندل شول",
+  "noResultsDescription": "د لټون یا فلټر بدلولو هڅه وکړئ."
 }

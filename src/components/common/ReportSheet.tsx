@@ -166,7 +166,7 @@ export function ReportSheet({
             ]}
           >
             <Flag size={18} color={colors.destructive} style={styles.headerIcon} />
-            <Text className="text-lg font-semibold text-foreground">
+            <Text style={{ fontSize: 18, fontWeight: "600" }}>
               {t("report.title")}
             </Text>
           </View>
@@ -179,7 +179,7 @@ export function ReportSheet({
           </Pressable>
         </View>
 
-        <Text className="text-sm text-muted-foreground mb-4" style={{ textAlign: isRtl ? "right" : "left" }}>
+        <Text style={{ fontSize: 14, color: colors.mutedForeground, marginBottom: 16, textAlign: isRtl ? "right" : "left" }}>
           {t("report.subtitle")}
         </Text>
 
@@ -242,8 +242,7 @@ export function ReportSheet({
                   </View>
 
                   <Text
-                    className="text-sm text-foreground flex-1"
-                    style={{ textAlign: isRtl ? "right" : "left" }}
+                    style={{ fontSize: 14, flex: 1, textAlign: isRtl ? "right" : "left" }}
                   >
                     {t(`report.reasons.${reason}`)}
                   </Text>
@@ -254,7 +253,7 @@ export function ReportSheet({
 
           {/* reason validation error */}
           {reasonError && (
-            <Text className="text-xs text-destructive mt-1 mb-2" style={{ textAlign: isRtl ? "right" : "left" }}>
+            <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4, marginBottom: 8, textAlign: isRtl ? "right" : "left" }}>
               {t("report.reasonRequired")}
             </Text>
           )}
@@ -282,9 +281,9 @@ export function ReportSheet({
             variant="destructive"
             onPress={handleSubmit}
             disabled={mutation.isPending}
-            className="mt-4 mb-2"
+            style={{ marginTop: 16, marginBottom: 8 }}
           >
-            <Text className="text-primary-foreground font-semibold">
+            <Text style={{ fontWeight: "600" }}>
               {mutation.isPending
                 ? t("report.submitting")
                 : t("report.submit")}
@@ -292,7 +291,7 @@ export function ReportSheet({
           </Button>
 
           <Button variant="ghost" onPress={handleClose} disabled={mutation.isPending}>
-            <Text className="text-muted-foreground">
+            <Text style={{ color: colors.mutedForeground }}>
               {t("common.cancel")}
             </Text>
           </Button>

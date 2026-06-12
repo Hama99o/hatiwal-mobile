@@ -13,5 +13,6 @@
   "postedOn": "تاریخ",
   "viewsCount": "{{count}} بازدید",
   "all": "همه",
-  "noResults": "آگهی‌ای یافت نشد"
+  "noResults": "آگهی‌ای یافت نشد",
+  "noResultsDescription": "جستجو یا فیلتر را تغییر دهید."
 }

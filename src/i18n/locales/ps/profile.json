@@ -8,11 +8,15 @@
   "buyerMode": "د اخیستونکي حالت",
   "sellerMode": "د پلورونکي حالت",
   "language": "ژبه",
-  "theme": "رنګ سکیم",
+  "theme": "ښکارندوی",
+  "themeLight": "رڼا",
+  "themeDark": "تور",
+  "themeSystem": "سیستم",
   "logout": "وتل",
   "memberSince": "غړیتوب: {{date}}",
   "logoutConfirm": "ایا ډاډه یاست چې وتل غواړئ؟",
   "bio": "پیژندنه",
   "city": "ښار",
-  "info": "شخصي معلومات"
+  "info": "شخصي معلومات",
+  "noInfo": "لا هیڅ معلومات نه دي اضافه شوي"
 }

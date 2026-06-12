@@ -68,9 +68,8 @@ export function ListingHeader({ listing, onPress }: ListingHeaderProps) {
       {/* Info */}
       <View style={{ flex: 1, gap: 2 }}>
         <Text
-          className="text-sm font-semibold text-foreground"
+          style={{ fontSize: 14, fontWeight: "600", textAlign: isRtl ? "right" : "left" }}
           numberOfLines={1}
-          style={{ textAlign: isRtl ? "right" : "left" }}
         >
           {listing.title}
         </Text>
@@ -90,9 +89,8 @@ export function ListingHeader({ listing, onPress }: ListingHeaderProps) {
         </View>
         {listing.location ? (
           <Text
-            className="text-xs text-muted-foreground"
+            style={{ fontSize: 12, color: colors.mutedForeground, textAlign: isRtl ? "right" : "left" }}
             numberOfLines={1}
-            style={{ textAlign: isRtl ? "right" : "left" }}
           >
             {listing.location}
           </Text>

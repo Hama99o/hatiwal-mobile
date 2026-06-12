@@ -82,10 +82,9 @@ export default function MyListingsScreen() {
   // ─── Header ────────────────────────────────────────────────────────────────
   const header = (
     <View
-      className="bg-card border-b border-border px-4 pt-4 pb-3"
-      style={{ flexDirection: isRtl ? "row-reverse" : "row", justifyContent: "space-between", alignItems: "center" }}
+      style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, flexDirection: isRtl ? "row-reverse" : "row", justifyContent: "space-between", alignItems: "center" }}
     >
-      <Text className="text-xl font-bold text-foreground">
+      <Text style={{ fontSize: 20, fontWeight: "700" }}>
         {t("listing.myListings")}
       </Text>
       <Button
@@ -96,7 +95,7 @@ export default function MyListingsScreen() {
       >
         <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 4 }}>
           <Plus size={15} color={colors.primaryForeground} />
-          <Text className="text-primary-foreground text-xs font-semibold">
+          <Text style={{ fontSize: 12, fontWeight: "600" }}>
             {t("listing.postListing")}
           </Text>
         </View>
@@ -115,7 +114,7 @@ export default function MyListingsScreen() {
         gap: 8,
         flexDirection: isRtl ? "row-reverse" : "row",
       }}
-      className="bg-card border-b border-border"
+      style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}
     >
       {STATUS_TABS.map((tab) => {
         const isActive = activeTab === tab;
@@ -124,22 +123,19 @@ export default function MyListingsScreen() {
             key={tab}
             onPress={() => setActiveTab(tab)}
             android_ripple={{ color: colors.muted }}
-            className={cn(
-              "rounded-full px-4 py-1.5 border",
-              isActive
-                ? "bg-primary border-primary"
-                : "bg-card border-border"
-            )}
+            style={{
+              borderRadius: 999,
+              paddingHorizontal: 16,
+              paddingVertical: 6,
+              borderWidth: 1,
+              backgroundColor: isActive ? colors.primary : colors.card,
+              borderColor: isActive ? colors.primary : colors.border,
+            }}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
             accessibilityLabel={t(`listing.filter.${tab}`)}
           >
-            <Text
-              className={cn(
-                "text-xs font-semibold",
-                isActive ? "text-primary-foreground" : "text-muted-foreground"
-              )}
-            >
+            <Text style={{ fontSize: 12, fontWeight: "600", color: isActive ? colors.primaryForeground : colors.mutedForeground }}>
               {t(`listing.filter.${tab}`)}
             </Text>
           </Pressable>
@@ -168,7 +164,7 @@ export default function MyListingsScreen() {
     );
 
   return (
-    <View className="flex-1 bg-background">
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {header}
       {filterTabs}
 

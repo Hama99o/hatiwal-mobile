@@ -1,8 +1,4 @@
-/**
- * RNR Button — NativeWind-aware pressable button.
- * Variants: default (filled), outline, ghost, destructive, secondary.
- */
-import React from "react";
+import React, { createContext, useContext } from "react";
 import { Pressable, type PressableProps, type ViewStyle, StyleSheet } from "react-native";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/hooks/useColors";
@@ -16,6 +12,12 @@ interface ButtonProps extends PressableProps {
   className?: string;
   style?: ViewStyle;
   children: React.ReactNode;
+}
+
+export const ButtonTextColorContext = createContext<string | undefined>(undefined);
+
+export function useButtonTextColor(): string | undefined {
+  return useContext(ButtonTextColorContext);
 }
 
 export function Button({
@@ -39,39 +41,39 @@ export function Button({
     ...getVariantStyle(variant, colors),
   };
 
+  const textColor = getVariantTextColor(variant, colors);
+
   return (
-    <Pressable
-      style={({ pressed }) => [
-        baseStyle,
-        pressed && { opacity: disabled ? 0.5 : 0.75 },
-        style,
-      ]}
-      disabled={disabled}
-      android_ripple={{ color: colors.muted }}
-      {...props}
-    >
-      {children}
-    </Pressable>
+    <ButtonTextColorContext.Provider value={textColor}>
+      <Pressable
+        style={({ pressed }) => [
+          baseStyle,
+          pressed && { opacity: disabled ? 0.5 : 0.75 },
+          style,
+        ]}
+        disabled={disabled}
+        android_ripple={{ color: colors.muted }}
+        {...props}
+      >
+        {children}
+      </Pressable>
+    </ButtonTextColorContext.Provider>
   );
 }
 
 function getSizeStyle(size: Size): ViewStyle {
   switch (size) {
-    case "sm":  return { paddingHorizontal: 12, paddingVertical: 6, minHeight: 36 };
-    case "lg":  return { paddingHorizontal: 24, paddingVertical: 14, minHeight: 52 };
+    case "sm":   return { paddingHorizontal: 12, paddingVertical: 6, minHeight: 36 };
+    case "lg":   return { paddingHorizontal: 24, paddingVertical: 14, minHeight: 52 };
     case "icon": return { width: 40, height: 40 };
-    default:    return { paddingHorizontal: 16, paddingVertical: 10, minHeight: 44 };
+    default:     return { paddingHorizontal: 16, paddingVertical: 10, minHeight: 44 };
   }
 }
 
 function getVariantStyle(variant: Variant, colors: ReturnType<typeof useColors>): ViewStyle {
   switch (variant) {
     case "outline":
-      return {
-        borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: "transparent",
-      };
+      return { borderWidth: 1, borderColor: colors.border, backgroundColor: "transparent" };
     case "ghost":
       return { backgroundColor: "transparent" };
     case "destructive":
@@ -80,5 +82,19 @@ function getVariantStyle(variant: Variant, colors: ReturnType<typeof useColors>)
       return { backgroundColor: colors.secondary };
     default:
       return { backgroundColor: colors.primary };
+  }
+}
+
+function getVariantTextColor(variant: Variant, colors: ReturnType<typeof useColors>): string {
+  switch (variant) {
+    case "outline":
+    case "ghost":
+      return colors.foreground;
+    case "destructive":
+      return colors.destructiveForeground;
+    case "secondary":
+      return colors.secondaryForeground;
+    default:
+      return colors.primaryForeground;
   }
 }

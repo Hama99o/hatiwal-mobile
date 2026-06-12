@@ -96,10 +96,10 @@ export function PhotosSection({ photos, onChange, maxPhotos = MAX_DEFAULT }: Pro
   return (
     <View style={styles.container}>
       <View style={[styles.labelRow, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
-        <Text className="text-base font-semibold text-foreground">
+        <Text style={{ fontSize: 16, fontWeight: "600" }}>
           {t("listing.form.photos")}
         </Text>
-        <Text className="text-xs text-muted-foreground ml-2">
+        <Text style={{ fontSize: 12, color: colors.mutedForeground, marginLeft: 8 }}>
           {`${photos.length}/${maxPhotos}`}
         </Text>
       </View>
@@ -156,7 +156,7 @@ export function PhotosSection({ photos, onChange, maxPhotos = MAX_DEFAULT }: Pro
               onPress={pickFromLibrary}
             >
               <ImageIcon size={22} color={colors.mutedForeground} />
-              <Text className="text-xs text-muted-foreground mt-1">
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 4 }}>
                 {t("listing.form.gallery")}
               </Text>
             </Pressable>
@@ -165,7 +165,7 @@ export function PhotosSection({ photos, onChange, maxPhotos = MAX_DEFAULT }: Pro
               onPress={pickFromCamera}
             >
               <Camera size={22} color={colors.mutedForeground} />
-              <Text className="text-xs text-muted-foreground mt-1">
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 4 }}>
                 {t("listing.form.camera")}
               </Text>
             </Pressable>
@@ -174,7 +174,7 @@ export function PhotosSection({ photos, onChange, maxPhotos = MAX_DEFAULT }: Pro
       </ScrollView>
 
       {photos.length === 0 && (
-        <Text className="text-xs text-muted-foreground mt-2">
+        <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 8 }}>
           {t("listing.form.photosHint")}
         </Text>
       )}

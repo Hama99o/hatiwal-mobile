@@ -1,6 +1,6 @@
 import { Text } from "@/components/reusables/text";
 import { useLocalization } from "@/hooks/useLocalization";
-import { cn } from "@/lib/utils";
+import { useColors } from "@/hooks/useColors";
 
 export type PriceTagSize = "lg" | "md" | "sm";
 
@@ -11,30 +11,18 @@ interface PriceTagProps {
   className?: string;
 }
 
-const sizeClass: Record<PriceTagSize, string> = {
-  lg: "text-xl font-bold",
-  md: "text-base font-bold",
-  sm: "text-sm font-semibold",
-};
+const fontSize: Record<PriceTagSize, number> = { lg: 20, md: 16, sm: 14 };
+const fontWeight: Record<PriceTagSize, "700" | "600"> = { lg: "700", md: "700", sm: "600" };
 
-/**
- * PriceTag — locale-aware currency display.
- * Sizes: lg (detail hero), md (card), sm (compact inline).
- * Always text-foreground and bold — never muted.
- */
-export function PriceTag({
-  price,
-  currency = "AFN",
-  size = "md",
-  className,
-}: PriceTagProps) {
+export function PriceTag({ price, currency = "AFN", size = "md" }: PriceTagProps) {
   const { formatCurrency } = useLocalization();
+  const colors = useColors();
 
   if (price == null) return null;
 
   return (
     <Text
-      className={cn("text-foreground", sizeClass[size], className)}
+      style={{ color: colors.foreground, fontSize: fontSize[size], fontWeight: fontWeight[size] }}
       numberOfLines={1}
       accessibilityRole="text"
     >
