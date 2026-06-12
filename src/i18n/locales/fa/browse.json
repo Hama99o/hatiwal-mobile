@@ -1,0 +1,17 @@
+{
+  "title": "مرور",
+  "searchPlaceholder": "جستجوی آگهی‌ها...",
+  "allCategories": "همه دسته‌بندی‌ها",
+  "empty": {
+    "title": "آگهی‌ای یافت نشد",
+    "description": "جستجو یا فیلتر خود را تغییر دهید."
+  },
+  "saved": "ذخیره شد",
+  "startChat": "تماس با فروشنده",
+  "viewDetails": "مشاهده جزئیات",
+  "postedBy": "توسط",
+  "postedOn": "تاریخ",
+  "viewsCount": "{{count}} بازدید",
+  "all": "همه",
+  "noResults": "آگهی‌ای یافت نشد"
+}

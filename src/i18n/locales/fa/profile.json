@@ -1,0 +1,18 @@
+{
+  "title": "پروفایل",
+  "editProfile": "ویرایش پروفایل",
+  "myListings": "آگهی‌های من",
+  "savedListings": "آگهی‌های ذخیره شده",
+  "switchToBuyer": "رفتن به حالت خریدار",
+  "switchToSeller": "رفتن به حالت فروشنده",
+  "buyerMode": "حالت خریدار",
+  "sellerMode": "حالت فروشنده",
+  "language": "زبان",
+  "theme": "پوسته",
+  "logout": "خروج",
+  "memberSince": "عضو از: {{date}}",
+  "logoutConfirm": "آیا مطمئن هستید که می‌خواهید خارج شوید؟",
+  "bio": "بیوگرافی",
+  "city": "شهر",
+  "info": "اطلاعات شخصی"
+}

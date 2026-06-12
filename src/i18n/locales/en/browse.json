@@ -1,0 +1,17 @@
+{
+  "title": "Browse",
+  "searchPlaceholder": "Search listings...",
+  "allCategories": "All Categories",
+  "empty": {
+    "title": "No listings found",
+    "description": "Try changing your search or filter."
+  },
+  "saved": "Saved",
+  "startChat": "Contact Seller",
+  "viewDetails": "View Details",
+  "postedBy": "Posted by",
+  "postedOn": "Posted",
+  "viewsCount": "{{count}} views",
+  "all": "All",
+  "noResults": "No listings found"
+}

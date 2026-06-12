@@ -1,0 +1,18 @@
+{
+  "title": "پروفایل",
+  "editProfile": "پروفایل سمول",
+  "myListings": "زما اعلانونه",
+  "savedListings": "خوندي اعلانونه",
+  "switchToBuyer": "د اخیستونکي حالت ته لاړ شئ",
+  "switchToSeller": "د پلورونکي حالت ته لاړ شئ",
+  "buyerMode": "د اخیستونکي حالت",
+  "sellerMode": "د پلورونکي حالت",
+  "language": "ژبه",
+  "theme": "رنګ سکیم",
+  "logout": "وتل",
+  "memberSince": "غړیتوب: {{date}}",
+  "logoutConfirm": "ایا ډاډه یاست چې وتل غواړئ؟",
+  "bio": "پیژندنه",
+  "city": "ښار",
+  "info": "شخصي معلومات"
+}

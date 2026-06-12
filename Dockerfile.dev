@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+# Development only — supports both Expo web and Expo Go (mobile)
+
+ARG NODE_VERSION=22
+FROM node:${NODE_VERSION}-slim AS base
+
+WORKDIR /app
+
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+      git \
+      python3 \
+      make \
+      g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json* ./
+RUN npm install --force
+
+COPY . .
+
+# Metro dev server: 3008
+# Expo Go dev tools: 19000 19001 19002
+EXPOSE 3008 19000 19001 19002
+
+CMD ["npx", "expo", "start", "--web", "--port", "3008"]

@@ -1,0 +1,17 @@
+{
+  "title": "پیام‌ها",
+  "searchPlaceholder": "جستجوی گفتگوها...",
+  "messagePlaceholder": "پیام بنویسید...",
+  "send": "ارسال",
+  "empty": {
+    "title": "هیچ گفتگویی وجود ندارد",
+    "description": "برای چانه‌زنی و ترتیب ملاقات با فروشندگان گفتگو کنید."
+  },
+  "about": "درباره: {{title}}",
+  "proposeMeetup": "پیشنهاد ملاقات",
+  "meetupProposal": "ملاقات پیشنهاد شد",
+  "openListing": "مشاهده آگهی",
+  "noConversations": "هنوز گفتگویی وجود ندارد",
+  "unknownUser": "کاربر ناشناس",
+  "noMessages": "هنوز پیامی وجود ندارد"
+}

@@ -1,0 +1,17 @@
+{
+  "title": "Messages",
+  "searchPlaceholder": "Search conversations...",
+  "messagePlaceholder": "Type a message...",
+  "send": "Send",
+  "empty": {
+    "title": "No conversations",
+    "description": "Start chatting with sellers to negotiate and arrange meetups."
+  },
+  "about": "About: {{title}}",
+  "proposeMeetup": "Propose Meetup",
+  "meetupProposal": "Meetup proposed",
+  "openListing": "View Listing",
+  "noConversations": "No conversations yet",
+  "unknownUser": "Unknown User",
+  "noMessages": "No messages yet"
+}

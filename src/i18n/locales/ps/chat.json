@@ -1,0 +1,17 @@
+{
+  "title": "پیغامونه",
+  "searchPlaceholder": "خبرې لټوئ...",
+  "messagePlaceholder": "پیغام ولیکئ...",
+  "send": "لیږل",
+  "empty": {
+    "title": "هیڅ خبرې نشته",
+    "description": "د قیمت او لیدنې تنظیم لپاره د پلورونکو سره خبرې پیل کړئ."
+  },
+  "about": "د: {{title}} په اړه",
+  "proposeMeetup": "د لیدنې وړاندیز",
+  "meetupProposal": "د لیدنې وړاندیز شو",
+  "openListing": "اعلان وګورئ",
+  "noConversations": "لاهم هیڅ خبرې نشته",
+  "unknownUser": "نامعلوم کارونکی",
+  "noMessages": "لاهم هیڅ پیغام نشته"
+}

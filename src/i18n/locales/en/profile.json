@@ -1,0 +1,18 @@
+{
+  "title": "Profile",
+  "editProfile": "Edit Profile",
+  "myListings": "My Listings",
+  "savedListings": "Saved Listings",
+  "switchToBuyer": "Switch to Buyer Mode",
+  "switchToSeller": "Switch to Seller Mode",
+  "buyerMode": "Buyer Mode",
+  "sellerMode": "Seller Mode",
+  "language": "Language",
+  "theme": "Theme",
+  "logout": "Sign Out",
+  "memberSince": "Member since {{date}}",
+  "logoutConfirm": "Are you sure you want to sign out?",
+  "bio": "Bio",
+  "city": "City",
+  "info": "Personal Info"
+}

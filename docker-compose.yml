@@ -1,0 +1,68 @@
+# =============================================================================
+# hatiwal-mobile — Development
+#
+# WEB  (Chrome on same machine, works OFFLINE — no WiFi needed):
+#   docker compose up web
+#   → open http://localhost:3008
+#
+# MOBILE (Expo Go on phone — requires WiFi, same network as your machine):
+#   HOST_IP=192.168.1.xx docker compose up mobile
+#   → scan QR code with Expo Go
+#   (find your machine's IP: ip addr show | grep 'inet ' | grep -v 127)
+#
+# Make sure the Rails backend (hatiwal-api) is running on port 3007.
+# =============================================================================
+
+x-base: &base
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+  volumes:
+    - .:/app
+    - /app/node_modules
+  restart: unless-stopped
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+  # ── Web ──────────────────────────────────────────────────────────────────
+  # Opens at http://localhost:3008 in your browser.
+  # Works fully OFFLINE — no WiFi required.
+  #
+  # EXPO_PUBLIC_API_URL=localhost:3007 because the JS bundle runs in the
+  # BROWSER on your host machine — not inside Docker. The browser can reach
+  # Rails at localhost:3007 (host port-mapped by hatiwal-api docker-compose).
+  web:
+    <<: *base
+    environment:
+      - EXPO_PUBLIC_API_URL=http://localhost:3007/api/v1
+      - EXPO_PUBLIC_APP_NAME=Hatiwal
+      - EXPO_PUBLIC_DEFAULT_LANG=en
+      - EXPO_PUBLIC_DEFAULT_THEME=system
+      - EXPO_NO_TELEMETRY=1
+      - EXPO_NO_DOCTOR=1
+    ports:
+      - "3008:3008"
+    command: ["npx", "expo", "start", "--web", "--port", "3008", "--offline"]
+
+  # ── Mobile (Expo Go on phone) ─────────────────────────────────────────────
+  # Requires HOST_IP set to your machine's LAN/hotspot IP so the phone can reach it.
+  # Example: HOST_IP=192.168.1.23 docker compose up mobile
+  mobile:
+    <<: *base
+    stdin_open: true
+    tty: true
+    environment:
+      - REACT_NATIVE_PACKAGER_HOSTNAME=${HOST_IP:-localhost}
+      # Phone calls Rails directly — must be a real LAN IP, not localhost
+      - EXPO_PUBLIC_API_URL=http://${HOST_IP:-localhost}:3007/api/v1
+      - EXPO_PUBLIC_APP_NAME=Hatiwal
+      - EXPO_PUBLIC_DEFAULT_LANG=en
+      - EXPO_PUBLIC_DEFAULT_THEME=system
+      - EXPO_NO_TELEMETRY=1
+    ports:
+      - "3008:3008"
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
+    command: ["npx", "expo", "start", "--port", "3008"]
