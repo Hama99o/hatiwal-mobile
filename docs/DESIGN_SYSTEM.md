@@ -27,18 +27,36 @@ Every design decision serves one of three jobs:
 
 ## 2. Color Tokens
 
-Never hardcode hex. Use NativeWind `className` tokens (preferred) or `useColors()` for inline styles. Tokens flip automatically in dark mode.
+> **Critical — NativeWind v4 dark mode limitation:** NativeWind bakes light-mode `rgba()` values at build time. Color className tokens (`bg-background`, `text-foreground`, `border-border`, etc.) do **not** flip in dark mode — they always render their light-mode value. **Always use `useColors()` inline styles for colors.**
 
-| Token | Use |
+```tsx
+// ❌ WRONG — bg-card is always light-mode rgba, broken in dark mode
+<View className="bg-card border border-border">
+  <Text className="text-foreground">Title</Text>
+</View>
+
+// ✅ CORRECT — reads actual scheme at runtime
+const colors = useColors();
+<View style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+  <Text style={{ color: colors.foreground }}>Title</Text>
+</View>
+```
+
+`className` is safe **only for layout**: `flex-1`, `p-4`, `gap-2`, `rounded-lg`, `overflow-hidden`, etc.
+
+**Available color values via `useColors()`:**
+
+| `colors.*` | Semantic use |
 |---|---|
-| `bg-background` / `text-foreground` | Page background / primary text |
-| `bg-card` / `text-card-foreground` | Cards, sheets, surfaces |
-| `text-muted-foreground` | Secondary/meta text (city, timestamps, labels) |
-| `border-border` | Hairlines, dividers, card borders |
-| `bg-primary` / `text-primary-foreground` | Primary actions (Message, Publish), active states |
-| `bg-secondary` / `text-secondary-foreground` | Secondary actions |
-| `bg-destructive` / `text-destructive-foreground` | Delete, report, errors |
-| `bg-muted` | Subtle fills, skeleton base, pressed ripple |
+| `background` | Page background |
+| `foreground` | Primary text |
+| `card` | Cards, sheets, surfaces |
+| `border` | Hairlines, dividers, card borders |
+| `muted` | Subtle fills, skeleton base, pressed ripple |
+| `mutedForeground` | Secondary/meta text (city, timestamps, labels) |
+| `primary` / `primaryForeground` | Primary actions (Message, Publish), active states |
+| `secondary` / `secondaryForeground` | Secondary actions |
+| `destructive` / `destructiveForeground` | Delete, report, errors |
 
 ### Listing status → badge color (use everywhere a status appears)
 
@@ -146,7 +164,7 @@ A screen ships only when:
 - [ ] Primary action is unmistakable and reachable; destructive actions use `confirmAlert`.
 - [ ] Loading = skeleton, empty = `EmptyState` with a primary action, error handled.
 - [ ] No hex, no raw `Text`, no `Alert.alert`, no hand-rolled carousel/picker/sheet/chat.
-- [ ] All strings in en/ps/fa; layout correct in RTL; correct in light **and** dark mode.
+- [ ] All strings in en/ps/fa; layout correct in RTL; correct in light **and** dark mode. All colors via `useColors()` — no className color tokens.
 - [ ] Smooth on mid-range Android (FlashList for big lists, no layout jank).
 
 Run the **marketplace-designer** agent for a deep review before shipping a new screen.

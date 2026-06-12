@@ -9,11 +9,11 @@ These rules are **mandatory**. Follow them strictly for consistency, accessibili
 - **Framework**: React Native + Expo SDK 54
 - **Routing**: Expo Router 6 (file-based routing under `app/`)
 - **UI library**: react-native-reusables (RNR) in `src/components/reusables/` — the ONLY UI library, strict rule (see §5). Custom components must be compositions of RNR.
-- **Styling**: NativeWind v4 (Tailwind in RN) — use `className` with theme tokens (`bg-background`, `text-foreground`, ...); fall back to `StyleSheet` only for dynamic/computed styles
+- **Styling**: NativeWind v4 (Tailwind in RN) — use `className` for **layout only** (flex, padding, margin, gap, rounded, overflow). For **all colors**, use `useColors()` inline styles — see §5 Theming for the mandatory rule.
 - **State**: Zustand stores in `src/stores/`
 - **i18n**: `i18next` + `react-i18next`. 3 locales: `en`, `ps`, `fa` (RTL: `ps`, `fa`)
 - **HTTP**: Axios instance at `src/api/http.ts` — auth headers auto-attached
-- **Theme**: never hardcode hex values — `className` tokens first; `useColors()` hook for inline-style/dynamic cases
+- **Theme**: never hardcode hex values — ALWAYS use `useColors()` for any color. `className` is layout-only (spacing, sizing, rounded). See §5 Theming.
 
 ---
 
@@ -386,8 +386,9 @@ import { Input } from '@/components/reusables/input';
 
 **Rules:**
 - Button/Badge children must be wrapped in RNR `<Text>`.
-- Style with NativeWind `className` and theme tokens — they flip automatically with dark mode.
-- Use `cn()` from `@/lib/utils` to merge classes.
+- Use `className` for **layout only** (flex, padding, gap, rounded). All colors via `useColors()` inline styles.
+- `Text` inside a `Button` auto-inherits correct color via `ButtonTextColorContext` — no manual color needed.
+- Use `cn()` from `@/lib/utils` to merge layout classes.
 
 ### Modals
 
@@ -397,20 +398,59 @@ import { Input } from '@/components/reusables/input';
 
 Do not force a bottom sheet into `Dialog` — it would center it and break the UX.
 
-### Theming
+### Theming — CRITICAL RULE (NativeWind v4 dark mode limitation)
 
-Never hardcode hex values. Two sanctioned ways:
+> **NativeWind v4 bakes light-mode `rgba()` values at build time. It generates ZERO `.dark` CSS rules.**
+> Color className tokens (`text-foreground`, `bg-card`, `border-border`, etc.) always resolve to their
+> **light-mode value** — even in dark mode. This makes text invisible on dark backgrounds.
 
-1. **NativeWind `className`** — preferred for new UI:
-   `bg-background`, `bg-card`, `bg-primary`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-destructive`, ...
-
-2. **`useColors()`** — for `StyleSheet`/inline-style code:
+**The ONLY correct approach for colors: `useColors()` inline styles.**
 
 ```tsx
 import { useColors } from '@/hooks/useColors';
-const colors = useColors();
-<View style={{ backgroundColor: colors.card }} />
+
+export function MyComponent() {
+  const colors = useColors();   // reads useColorScheme() at runtime — always correct
+
+  return (
+    <View style={{ backgroundColor: colors.card, borderColor: colors.border }}>
+      <Text style={{ color: colors.foreground }}>Title</Text>
+      <Text style={{ color: colors.mutedForeground }}>Subtitle</Text>
+    </View>
+  );
+}
 ```
+
+**`className` is ONLY for layout** — never for color:
+- ✅ Safe: `className="flex-1 p-4 gap-2 rounded-lg overflow-hidden"` (layout)
+- ❌ Broken: `className="bg-card text-foreground border-border"` (colors — ignored in dark mode)
+
+**Quick reference — common colors:**
+
+```tsx
+const colors = useColors();
+
+colors.background        // page background
+colors.foreground        // primary text
+colors.card              // card/sheet surface
+colors.border            // hairlines, dividers
+colors.muted             // subtle fill, skeleton base
+colors.mutedForeground   // secondary/meta text (city, timestamps)
+colors.primary           // primary action fill
+colors.primaryForeground // text ON primary button
+colors.destructive       // delete/error
+colors.destructiveForeground
+colors.secondary
+colors.secondaryForeground
+```
+
+**Button text color is automatic.** `Text` inside a `Button` auto-inherits the correct foreground via `ButtonTextColorContext` — no manual color needed on the Text.
+
+**Theme system:**
+- `src/stores/theme.store.ts` — Zustand store, persists `"light" | "dark" | "system"` to AsyncStorage
+- `app/_layout.tsx` → `ThemeManager` — reads store, calls `setColorScheme` from `useColorScheme()` hook, syncs `.dark` class on `<html>` for web
+- `loadSavedTheme()` — called at module level in `_layout.tsx` for early AsyncStorage load
+- `setColorScheme` is only available as a method from `useColorScheme()` hook — NOT a standalone import
 
 ---
 
@@ -744,8 +784,13 @@ useFocusEffect(useCallback(() => {
 ```tsx
 // ❌ Hardcoded colors
 <View style={{ backgroundColor: '#ffffff' }} />
-// ✅ Theme tokens
-<View className="bg-background" />
+// ❌ NativeWind color className — baked to light-mode rgba at build time, broken in dark mode
+<View className="bg-background text-foreground" />
+// ✅ useColors() inline style — reads colorScheme at runtime, always correct
+const colors = useColors();
+<View style={{ backgroundColor: colors.background }}>
+  <Text style={{ color: colors.foreground }}>...</Text>
+</View>
 
 // ❌ Raw date formatting
 <Text>{new Date(listing.createdAt).toLocaleDateString()}</Text>
