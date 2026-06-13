@@ -1,10 +1,13 @@
 /**
- * CategoryPickerSheet — searchable category picker in a slide-up modal.
+ * CategoryPickerSheet — two-step hierarchical category picker in a slide-up modal.
  *
- * Uses raw RN <Modal animationType="slide"> because @gorhom/bottom-sheet
- * requires native build setup. All inner UI is from RNR.
+ * Step 1: shows top-level categories (icon + localised name).
+ *   - Tapping a category that HAS subcategories → advances to step 2.
+ *   - Tapping a category with NO subcategories → selects it immediately and closes.
+ * Step 2: shows subcategories of the selected parent, with a back button.
+ *   - Tapping a subcategory → selects it and closes.
  *
- * Fetches categories from GET /categories on mount, caches via react-query.
+ * Uses raw RN <Modal animationType="slide"> — content is all RNR.
  */
 
 import React, { useState, useMemo } from "react";
@@ -23,7 +26,7 @@ import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
 import { Button } from "@/components/reusables/button";
 import { Separator } from "@/components/reusables/separator";
-import { Check, Search, X } from "lucide-react-native";
+import { Check, Search, X, ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 
 interface Props {
@@ -37,6 +40,9 @@ export function CategoryPickerSheet({ visible, selectedId, onSelect, onClose }: 
   const { t, i18n } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+
+  const [step, setStep] = useState<"parent" | "sub">("parent");
+  const [activeParent, setActiveParent] = useState<Category | null>(null);
   const [search, setSearch] = useState("");
 
   const { data: categories = [], isLoading } = useQuery({
@@ -53,26 +59,55 @@ export function CategoryPickerSheet({ visible, selectedId, onSelect, onClose }: 
     return cat.nameEn;
   }
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return categories;
+  const currentList = useMemo<Category[]>(() => {
+    const base = step === "sub" && activeParent
+      ? (activeParent.subcategories ?? [])
+      : categories;
+
+    if (!search.trim()) return base;
     const q = search.toLowerCase();
-    return categories.filter(
+    return base.filter(
       (c) =>
         c.nameEn.toLowerCase().includes(q) ||
         c.namePs.includes(q) ||
         c.nameFa.includes(q)
     );
-  }, [categories, search]);
+  }, [categories, step, activeParent, search]);
 
   function handleClose() {
     setSearch("");
+    setStep("parent");
+    setActiveParent(null);
     onClose();
   }
 
-  function handleSelect(cat: Category) {
+  function handleSelectParent(cat: Category) {
+    const hasSubs = (cat.subcategories?.length ?? 0) > 0;
+    if (hasSubs) {
+      setSearch("");
+      setActiveParent(cat);
+      setStep("sub");
+    } else {
+      handlePick(cat);
+    }
+  }
+
+  function handlePick(cat: Category) {
     setSearch("");
+    setStep("parent");
+    setActiveParent(null);
     onSelect(cat);
   }
+
+  function handleBack() {
+    setSearch("");
+    setStep("parent");
+    setActiveParent(null);
+  }
+
+  const headerTitle = step === "sub" && activeParent
+    ? getCategoryName(activeParent)
+    : t("listing.form.selectCategory");
 
   return (
     <Modal
@@ -85,15 +120,47 @@ export function CategoryPickerSheet({ visible, selectedId, onSelect, onClose }: 
       <View style={[styles.sheet, { backgroundColor: colors.card }]}>
         {/* Header */}
         <View style={[styles.header, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
-          <Text style={{ fontSize: 18, fontWeight: "600", flex: 1 }}>
-            {t("listing.form.selectCategory")}
+          {step === "sub" ? (
+            <Pressable
+              onPress={handleBack}
+              hitSlop={8}
+              style={[styles.backButton, { marginEnd: 8 }]}
+            >
+              {isRtl
+                ? <ChevronRight size={22} color={colors.primary} />
+                : <ChevronLeft size={22} color={colors.primary} />
+              }
+            </Pressable>
+          ) : null}
+
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: colors.foreground, flex: 1, textAlign: isRtl ? "right" : "left" },
+            ]}
+          >
+            {headerTitle}
           </Text>
-          <Pressable onPress={handleClose} hitSlop={8}>
-            <X size={20} color={colors.mutedForeground} />
-          </Pressable>
+
+          {step === "parent" && (
+            <Pressable onPress={handleClose} hitSlop={8}>
+              <X size={20} color={colors.mutedForeground} />
+            </Pressable>
+          )}
         </View>
 
-        <Separator className="mb-3" />
+        {step === "sub" && activeParent && (
+          <Text
+            style={[
+              styles.backToCategories,
+              { color: colors.mutedForeground, textAlign: isRtl ? "right" : "left" },
+            ]}
+          >
+            {t("listing.form.backToCategories")}
+          </Text>
+        )}
+
+        <Separator style={{ marginBottom: 12 }} />
 
         {/* Search */}
         <View style={[styles.searchRow, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
@@ -114,16 +181,22 @@ export function CategoryPickerSheet({ visible, selectedId, onSelect, onClose }: 
           keyboardShouldPersistTaps="handled"
         >
           {isLoading ? (
-            <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center", paddingVertical: 32 }}>
+            <Text
+              style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center", paddingVertical: 32 }}
+            >
               {t("common.loading")}
             </Text>
-          ) : filtered.length === 0 ? (
-            <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center", paddingVertical: 32 }}>
+          ) : currentList.length === 0 ? (
+            <Text
+              style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center", paddingVertical: 32 }}
+            >
               {t("common.noResults")}
             </Text>
           ) : (
-            filtered.map((cat) => {
+            currentList.map((cat) => {
               const isSelected = cat.id === selectedId;
+              const hasSubs = step === "parent" && (cat.subcategories?.length ?? 0) > 0;
+
               return (
                 <Pressable
                   key={cat.id}
@@ -132,16 +205,35 @@ export function CategoryPickerSheet({ visible, selectedId, onSelect, onClose }: 
                     { flexDirection: isRtl ? "row-reverse" : "row" },
                     isSelected && { backgroundColor: colors.muted },
                   ]}
-                  onPress={() => handleSelect(cat)}
+                  onPress={() => step === "parent" ? handleSelectParent(cat) : handlePick(cat)}
                   android_ripple={{ color: colors.muted }}
                 >
+                  {/* Icon */}
+                  <Text style={[styles.rowIcon, { marginEnd: isRtl ? 0 : 10, marginStart: isRtl ? 10 : 0 }]}>
+                    {cat.icon}
+                  </Text>
+
+                  {/* Name */}
                   <Text
-                    style={{ flex: 1, fontSize: 14, fontWeight: isSelected ? "600" : "400", textAlign: isRtl ? "right" : "left" }}
+                    style={{
+                      flex: 1,
+                      fontSize: 14,
+                      fontWeight: isSelected ? "600" : "400",
+                      color: colors.foreground,
+                      textAlign: isRtl ? "right" : "left",
+                    }}
                   >
                     {getCategoryName(cat)}
                   </Text>
+
+                  {/* Right indicator: checkmark if selected, chevron if has subcategories */}
                   {isSelected && (
                     <Check size={16} color={colors.primary} />
+                  )}
+                  {!isSelected && hasSubs && (
+                    isRtl
+                      ? <ChevronLeft size={16} color={colors.mutedForeground} />
+                      : <ChevronRight size={16} color={colors.mutedForeground} />
                   )}
                 </Pressable>
               );
@@ -169,11 +261,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 32,
-    maxHeight: "80%",
+    maxHeight: "90%",
   },
   header: {
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  backButton: {
+    flexShrink: 0,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  backToCategories: {
+    fontSize: 12,
+    marginBottom: 8,
+    paddingHorizontal: 2,
   },
   searchRow: {
     alignItems: "center",
@@ -192,5 +296,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "rgba(128,128,128,0.15)",
+  },
+  rowIcon: {
+    fontSize: 20,
+    flexShrink: 0,
   },
 });

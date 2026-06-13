@@ -9,6 +9,8 @@ export interface Category {
   nameFa: string;
   icon: string;
   position: number;
+  parentId?: number | null;
+  subcategories?: Category[];
 }
 
 export const categoriesAPI = {

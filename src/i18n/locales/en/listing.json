@@ -113,5 +113,6 @@
     "published": "Listing published!",
     "saveError": "Failed to save — please try again.",
     "publishError": "Failed to publish — please try again.",
+    "backToCategories": "Back to categories"
   }
 }
