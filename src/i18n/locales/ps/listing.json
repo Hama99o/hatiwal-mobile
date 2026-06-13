@@ -61,6 +61,26 @@
     "description": "د خرڅلاو لپاره خپل لومړی اعلان خپور کړئ."
   },
   "postListing": "اعلان خپرول",
+  "detail": {
+    "contactSeller": "پلورونکي سره اړیکه",
+    "makeOffer": "وړاندیز وکړئ",
+    "description": "تفصیل",
+    "seller": "پلورونکی",
+    "similarListings": "ورته توکي",
+    "askSeller": "پلورونکي پوښتنه",
+    "share": "شریکول",
+    "report": "راپور ورکول",
+    "offerTitle": "وړاندیز وکړئ",
+    "listedPrice": "لیست شوی نرخ: {{price}}",
+    "yourOffer": "ستاسو وړاندیز",
+    "sendOffer": "وړاندیز واستوئ",
+    "noPaymentNote": "هیڅ تادیه اړین نده — دا یوازې پلورونکي ته پیغام دی.",
+    "offerInvalid": "سمه اندازه دننه کړئ",
+    "offerMessage": "💬 وړاندیز: {{amount}} د '{{title}}' لپاره",
+    "defaultMessage": "سلام، ایا دا لاهم شتون لري؟",
+    "reportSent": "راپور وسپارل شو — مننه",
+    "notFound": "اعلان ونه موندل شو"
+  },
   "form": {
     "photos": "انځورونه",
     "photosHint": "د پیرودونکو د جذبولو لپاره لږ تر لږه یو انځور اضافه کړئ.",

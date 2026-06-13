@@ -33,6 +33,7 @@ export interface Listing {
   thumbnailUrl: string | null;
   viewsCount: number;
   conversationsCount?: number;
+  isSaved?: boolean;
   createdAt: string;
   updatedAt: string;
   seller: {
@@ -91,7 +92,9 @@ export const listingsAPI = {
 
   getListing: async (id: number): Promise<Listing> => {
     const response = await http.get(`/listings/${id}`);
-    return convertKeysToCamel(response.data.listing) as Listing;
+    const raw = convertKeysToCamel(response.data.listing) as Listing;
+    // is_saved comes from backend as boolean; camelCase converts it correctly
+    return raw;
   },
 
   getMyListing: async (id: number): Promise<Listing> => {

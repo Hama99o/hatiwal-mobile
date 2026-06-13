@@ -61,6 +61,26 @@
     "description": "اولین آگهی خود را برای شروع فروش ثبت کنید."
   },
   "postListing": "ثبت آگهی",
+  "detail": {
+    "contactSeller": "تماس با فروشنده",
+    "makeOffer": "پیشنهاد قیمت",
+    "description": "توضیحات",
+    "seller": "فروشنده",
+    "similarListings": "آگهی‌های مشابه",
+    "askSeller": "سوال از فروشنده",
+    "share": "اشتراک‌گذاری",
+    "report": "گزارش",
+    "offerTitle": "پیشنهاد قیمت",
+    "listedPrice": "قیمت ثبت‌شده: {{price}}",
+    "yourOffer": "پیشنهاد شما",
+    "sendOffer": "ارسال پیشنهاد",
+    "noPaymentNote": "پرداخت لازم نیست — این فقط یک پیام به فروشنده است.",
+    "offerInvalid": "مقدار معتبر وارد کنید",
+    "offerMessage": "💬 پیشنهاد: {{amount}} برای '{{title}}'",
+    "defaultMessage": "سلام، آیا این هنوز موجود است؟",
+    "reportSent": "گزارش ارسال شد — ممنون",
+    "notFound": "آگهی یافت نشد"
+  },
   "form": {
     "photos": "عکس‌ها",
     "photosHint": "برای جذب خریداران حداقل یک عکس اضافه کنید.",

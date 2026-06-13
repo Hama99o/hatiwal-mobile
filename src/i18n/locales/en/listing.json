@@ -61,6 +61,26 @@
     "description": "Post your first listing to start selling."
   },
   "postListing": "Post a listing",
+  "detail": {
+    "contactSeller": "Contact Seller",
+    "makeOffer": "Make an Offer",
+    "description": "Description",
+    "seller": "Seller",
+    "similarListings": "Similar Listings",
+    "askSeller": "Ask Seller",
+    "share": "Share",
+    "report": "Report",
+    "offerTitle": "Make an Offer",
+    "listedPrice": "Listed price: {{price}}",
+    "yourOffer": "Your offer",
+    "sendOffer": "Send Offer",
+    "noPaymentNote": "No payment required — this is just a message to the seller.",
+    "offerInvalid": "Enter a valid amount",
+    "offerMessage": "💬 Offer: {{amount}} for '{{title}}'",
+    "defaultMessage": "Hi, is this still available?",
+    "reportSent": "Report submitted — thank you",
+    "notFound": "Listing not found"
+  },
   "form": {
     "photos": "Photos",
     "photosHint": "Add at least one photo to attract buyers.",

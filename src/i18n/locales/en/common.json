@@ -34,6 +34,7 @@
   "chat": "Chat",
   "confirm": "Confirm",
   "language": "Language",
+  "notFound": "Not found",
   "splash": {
     "validating": "Loading…"
   }
