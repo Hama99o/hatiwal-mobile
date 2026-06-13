@@ -6,6 +6,7 @@ import { Platform, View } from "react-native";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useColorScheme } from "nativewind";
+import { Toaster } from "sonner-native";
 import { useThemeStore, loadSavedTheme } from "@/stores/theme.store";
 
 const queryClient = new QueryClient({
@@ -62,6 +63,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(main)" />
         </Stack>
+        <Toaster />
       </View>
     </QueryClientProvider>
   );

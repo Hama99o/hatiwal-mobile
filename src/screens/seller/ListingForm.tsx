@@ -162,8 +162,12 @@ export default function ListingFormScreen() {
       } else {
         listing = await listingsAPI.createListingWithImages(values, imageUris);
       }
-      // Then publish the draft
-      return listingsAPI.publishListing(listing.id);
+      // Only publish if the listing is still a draft — already-active listings
+      // cannot be published again (backend policy: publish? = owner? && draft?)
+      if (listing.status === "draft") {
+        return listingsAPI.publishListing(listing.id);
+      }
+      return listing;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-listings"] });
