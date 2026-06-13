@@ -36,6 +36,9 @@ services:
     <<: *base
     environment:
       - EXPO_PUBLIC_API_URL=http://localhost:3007/api/v1
+      # Dedicated ActionCable server (hatiwal-api `cable` service on host port 3098).
+      # Browser runs on the host, so localhost reaches the mapped host port.
+      - EXPO_PUBLIC_CABLE_URL=ws://localhost:3098/hatiwal-cable
       - EXPO_PUBLIC_APP_NAME=Hatiwal
       - EXPO_PUBLIC_DEFAULT_LANG=en
       - EXPO_PUBLIC_DEFAULT_THEME=system
@@ -56,6 +59,8 @@ services:
       - REACT_NATIVE_PACKAGER_HOSTNAME=${HOST_IP:-localhost}
       # Phone calls Rails directly — must be a real LAN IP, not localhost
       - EXPO_PUBLIC_API_URL=http://${HOST_IP:-localhost}:3007/api/v1
+      # Phone reaches the cable server over the LAN too — same HOST_IP, port 3098
+      - EXPO_PUBLIC_CABLE_URL=ws://${HOST_IP:-localhost}:3098/hatiwal-cable
       - EXPO_PUBLIC_APP_NAME=Hatiwal
       - EXPO_PUBLIC_DEFAULT_LANG=en
       - EXPO_PUBLIC_DEFAULT_THEME=system

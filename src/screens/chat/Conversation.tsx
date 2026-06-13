@@ -317,12 +317,17 @@ export function ConversationScreen() {
 
   // ── Live updates via ActionCable ─────────────────────────────────────────
   useConversationCable(currentConversationId, useCallback((incoming: Message) => {
+    // Skip messages from the current user — they're already handled by
+    // the optimistic update + HTTP response. Without this check the cable
+    // broadcast (which goes to ALL participants including the sender) would
+    // race with the HTTP response and produce a duplicate.
+    if (currentUser && Number(incoming.sender.id) === Number(currentUser.id)) return;
+
     setMessages((prev) => {
-      // Deduplicate: ignore if we already have this id (from optimistic update)
       if (prev.some((m) => m.id === incoming.id)) return prev;
       return [...prev, incoming];
     });
-  }, []));
+  }, [currentUser]));
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const isClosed = conversation?.status === "closed";

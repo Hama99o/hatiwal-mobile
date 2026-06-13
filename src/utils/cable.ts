@@ -1,28 +1,26 @@
 /**
  * CableClient — singleton ActionCable client for Hatiwal.
  *
- * Design goals
- * ────────────
- * • ONE WebSocket per app session regardless of how many channels are active.
- *   ActionCable multiplexes all subscriptions over a single connection.
- * • Zero external packages — built on React Native's native WebSocket.
- * • Auto-reconnect with capped back-off (1s → 2s → 4s → 8s max).
- * • Ping every 20 s to survive mobile NAT keepalive timeouts.
- * • Fully decoupled from React — any module can subscribe; hooks are a thin wrapper.
- * • Handles logout/login by disconnecting and reconnecting with fresh tokens.
+ * ONE WebSocket per session, multiplexes all channel subscriptions.
+ * Auto-reconnects with exponential back-off (1 s → 2 s → 4 s → 8 s max).
+ * Fully decoupled from React — any module can subscribe; hooks are thin wrappers.
  *
- * ActionCable wire protocol
- * ─────────────────────────
- * server → { type: "welcome" }
- * client → { command: "subscribe",   identifier: '{"channel":"X",...}' }
- * server → { type: "confirm_subscription", identifier }
- * server → { identifier, message: <payload> }
- * server → { type: "ping" }      (ignored)
- * client → { command: "unsubscribe", identifier }
+ * ActionCable wire protocol (server → client)
+ * ───────────────────────────────────────────
+ * { type: "welcome" }
+ * { type: "ping", message: <epoch> }          ← server keepalive, client ignores
+ * { type: "confirm_subscription", identifier }
+ * { type: "reject_subscription",  identifier }
+ * { identifier, message: <payload> }           ← data frame
+ *
+ * ActionCable wire protocol (client → server)
+ * ───────────────────────────────────────────
+ * { command: "subscribe",   identifier: '{"channel":"X",...}' }
+ * { command: "unsubscribe", identifier }
+ * { command: "message",     identifier, data }
  */
 
 import { secureStorage } from "@/utils/secure-storage";
-import { BASE_URL } from "@/api/http";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -32,17 +30,19 @@ export type MessageHandler = (payload: CablePayload) => void;
 interface Subscription {
   identifier: string;
   handlers: Set<MessageHandler>;
+  confirmed: boolean;
 }
 
 type ConnectionState = "disconnected" | "connecting" | "connected";
 
 // ─── URL helper ──────────────────────────────────────────────────────────────
 
+const CABLE_BASE =
+  process.env.EXPO_PUBLIC_CABLE_URL ?? "ws://localhost:3098/hatiwal-cable";
+
 function buildCableUrl(accessToken: string, client: string, uid: string): string {
-  // Strip /api/v1 suffix to get the Rails root, then switch http→ws
-  const root = BASE_URL.replace(/\/api\/v1\/?$/, "").replace(/^http/, "ws");
   return (
-    `${root}/hatiwal-cable` +
+    `${CABLE_BASE}` +
     `?access_token=${encodeURIComponent(accessToken)}` +
     `&client=${encodeURIComponent(client)}` +
     `&uid=${encodeURIComponent(uid)}`
@@ -54,37 +54,20 @@ function buildCableUrl(accessToken: string, client: string, uid: string): string
 class CableClient {
   private ws: WebSocket | null = null;
   private state: ConnectionState = "disconnected";
-
-  // Map of identifier → subscription (handlers set)
   private subscriptions = new Map<string, Subscription>();
-
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private pingTimer: ReturnType<typeof setTimeout> | null = null;
-  private reconnectDelay = 1000; // ms, doubles on each failure, capped at 8000
+  private reconnectDelay = 1000;
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
-  /**
-   * Subscribe to a channel. Returns a cleanup function — call it to unsubscribe.
-   * Safe to call before the connection is established; subscription is queued.
-   *
-   * @example
-   * const unsub = cableClient.subscribe(
-   *   { channel: "ConversationChannel", conversation_id: 42 },
-   *   (payload) => console.log(payload.message)
-   * );
-   * // later:
-   * unsub();
-   */
   subscribe(channelParams: Record<string, unknown>, handler: MessageHandler): () => void {
     const identifier = JSON.stringify(channelParams);
 
     if (!this.subscriptions.has(identifier)) {
-      this.subscriptions.set(identifier, { identifier, handlers: new Set() });
+      this.subscriptions.set(identifier, { identifier, handlers: new Set(), confirmed: false });
     }
     this.subscriptions.get(identifier)!.handlers.add(handler);
 
-    // Send subscribe command if we're already connected
     if (this.state === "connected") {
       this.sendSubscribe(identifier);
     } else {
@@ -94,17 +77,14 @@ class CableClient {
     return () => this.unsubscribe(identifier, handler);
   }
 
-  /**
-   * Call on logout so the connection is torn down and tokens are discarded.
-   * On the next subscribe() call the client will reconnect with fresh tokens.
-   */
   disconnect() {
     this.state = "disconnected";
-    this.clearTimers();
+    this.clearReconnect();
     this.subscriptions.clear();
     if (this.ws) {
-      try { this.ws.close(); } catch { /* ignore */ }
+      const ws = this.ws;
       this.ws = null;
+      try { ws.close(); } catch { /* ignore */ }
     }
   }
 
@@ -121,8 +101,10 @@ class CableClient {
     const client = await secureStorage.getItem("client");
     const uid = await secureStorage.getItem("uid");
 
+    // Guard: disconnect() may have been called while we were awaiting
+    if (this.state === "disconnected") return;
+
     if (!accessToken || !client || !uid) {
-      // No credentials — wait; subscribe() will be retried by the caller
       this.state = "disconnected";
       return;
     }
@@ -132,22 +114,26 @@ class CableClient {
     this.ws = ws;
 
     ws.onopen = () => {
-      // Do nothing here — wait for the "welcome" frame before subscribing
+      // Nothing — wait for server "welcome" frame before doing anything
     };
 
     ws.onmessage = (event) => {
       this.handleFrame(event.data as string);
     };
 
-    ws.onerror = () => {
-      ws.close();
+    ws.onerror = (err) => {
+      console.warn("[CableClient] WebSocket error", err);
+      // Let onclose handle cleanup and reconnect
     };
 
-    ws.onclose = () => {
-      this.ws = null;
-      this.clearPing();
+    ws.onclose = (event) => {
+      if (this.ws === ws) this.ws = null;
       if (this.state !== "disconnected") {
         this.state = "disconnected";
+        // Mark all subscriptions as unconfirmed so they'll re-subscribe on reconnect
+        for (const sub of this.subscriptions.values()) {
+          sub.confirmed = false;
+        }
         this.scheduleReconnect();
       }
     };
@@ -159,29 +145,45 @@ class CableClient {
 
     const type = frame.type as string | undefined;
 
+    // Server keepalive — ignore at message level (WebSocket handles ping/pong at protocol level)
     if (type === "ping") return;
 
     if (type === "welcome") {
       this.state = "connected";
-      this.reconnectDelay = 1000; // reset back-off on successful connect
-      this.schedulePing();
-      // Re-subscribe all existing subscriptions
+      this.reconnectDelay = 1000;
       for (const sub of this.subscriptions.values()) {
         this.sendSubscribe(sub.identifier);
       }
       return;
     }
 
-    if (type === "confirm_subscription" || type === "reject_subscription") return;
+    if (type === "confirm_subscription") {
+      const identifier = frame.identifier as string | undefined;
+      if (identifier) {
+        const sub = this.subscriptions.get(identifier);
+        if (sub) sub.confirmed = true;
+      }
+      return;
+    }
 
-    // Data frame — route to the right handlers
+    if (type === "reject_subscription") {
+      const identifier = frame.identifier as string | undefined;
+      console.warn("[CableClient] Subscription rejected:", identifier);
+      if (identifier) {
+        // Remove from map so it doesn't keep retrying silently
+        this.subscriptions.delete(identifier);
+      }
+      return;
+    }
+
+    // Data frame
     const identifier = frame.identifier as string | undefined;
     const message = frame.message as CablePayload | undefined;
     if (identifier && message) {
       const sub = this.subscriptions.get(identifier);
       if (sub) {
         sub.handlers.forEach((h) => {
-          try { h(message); } catch { /* handler errors must not break the loop */ }
+          try { h(message); } catch { /* handler errors must not crash the loop */ }
         });
       }
     }
@@ -201,7 +203,6 @@ class CableClient {
 
     if (sub.handlers.size === 0) {
       this.subscriptions.delete(identifier);
-      // Only send unsubscribe if connected — otherwise the server already cleaned up
       if (this.state === "connected") {
         this.send({ command: "unsubscribe", identifier });
       }
@@ -222,37 +223,13 @@ class CableClient {
       this.state = "connecting";
       this.openSocket();
     }, this.reconnectDelay);
-    // Double delay, cap at 8 s
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, 8000);
-  }
-
-  private schedulePing() {
-    this.clearPing();
-    this.pingTimer = setTimeout(() => {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        // ActionCable expects a ping echo but we just send a no-op message
-        this.ws.send(JSON.stringify({ type: "ping" }));
-      }
-      this.schedulePing();
-    }, 20_000);
-  }
-
-  private clearTimers() {
-    this.clearReconnect();
-    this.clearPing();
   }
 
   private clearReconnect() {
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
-    }
-  }
-
-  private clearPing() {
-    if (this.pingTimer !== null) {
-      clearTimeout(this.pingTimer);
-      this.pingTimer = null;
     }
   }
 }
