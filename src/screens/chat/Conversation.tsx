@@ -41,6 +41,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { ListingHeader } from "./conversation/ListingHeader";
 import { MessageBubble } from "./conversation/MessageBubble";
 import { MeetupSheet } from "./conversation/MeetupSheet";
+import { useConversationCable } from "@/hooks/useConversationCable";
 
 // ── Inline skeleton (no NativeWind className) ─────────────────────────────────
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
@@ -313,6 +314,15 @@ export function ConversationScreen() {
       );
     }
   }, [otherParticipant, isBlocked, blockMutation, unblockMutation, t]);
+
+  // ── Live updates via ActionCable ─────────────────────────────────────────
+  useConversationCable(currentConversationId, useCallback((incoming: Message) => {
+    setMessages((prev) => {
+      // Deduplicate: ignore if we already have this id (from optimistic update)
+      if (prev.some((m) => m.id === incoming.id)) return prev;
+      return [...prev, incoming];
+    });
+  }, []));
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const isClosed = conversation?.status === "closed";
