@@ -65,7 +65,7 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
             borderRadius: 12,
             borderWidth: 1.5,
             borderColor: isMine ? colors.primary : colors.border,
-            backgroundColor: isMine ? colors.primary + "1A" : colors.card,
+            backgroundColor: isMine ? colors.primaryAlpha : colors.card,
             padding: 12,
             gap: 6,
           }}

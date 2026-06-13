@@ -1,10 +1,11 @@
 import { View, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
 import { Text } from "@/components/reusables/text";
+import { Button } from "@/components/reusables/button";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { Sun, Moon, Smartphone, Globe, LogOut, Edit3, Check } from "lucide-react-native";
+import { Sun, Moon, Smartphone, Globe, LogOut, Edit3, Check, ChevronRight, Store, ShoppingBag } from "lucide-react-native";
 import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore } from "@/stores/mode.store";
@@ -13,7 +14,33 @@ import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { confirmAlert } from "@/utils/alert";
 import { setLanguage, SUPPORTED_LANGUAGES, LanguageCode } from "@/i18n";
-import { Separator } from "@/components/reusables/separator";
+
+const THEME_OPTIONS: { value: ThemePreference; Icon: typeof Sun; labelKey: string }[] = [
+  { value: "light", Icon: Sun, labelKey: "profile.themeLight" },
+  { value: "dark",  Icon: Moon, labelKey: "profile.themeDark" },
+  { value: "system", Icon: Smartphone, labelKey: "profile.themeSystem" },
+];
+
+function SectionCard({ children }: { children: React.ReactNode }) {
+  const colors = useColors();
+  return (
+    <View style={{ backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, overflow: "hidden", marginBottom: 12 }}>
+      {children}
+    </View>
+  );
+}
+
+function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode }) {
+  const colors = useColors();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+      {icon}
+      <Text style={{ fontSize: 14, fontWeight: "600", color: colors.mutedForeground, letterSpacing: 0.3 }}>
+        {title}
+      </Text>
+    </View>
+  );
+}
 
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -68,68 +95,83 @@ export default function ProfileScreen() {
   const inputStyle = {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     marginBottom: 10,
     color: colors.foreground,
     backgroundColor: colors.background,
+    fontSize: 15,
     textAlign: (isRtl ? "right" : "left") as "right" | "left",
   };
 
-  const THEME_OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
-    { value: "light", label: t("profile.themeLight"), Icon: Sun },
-    { value: "dark", label: t("profile.themeDark"), Icon: Moon },
-    { value: "system", label: t("profile.themeSystem"), Icon: Smartphone },
-  ];
-
-  if (isLoading) return <ActivityIndicator style={{ flex: 1 }} color={colors.primary} />;
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const initials = user?.firstname?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "?";
+  const displayName = user?.fullName ?? user?.email ?? "";
+  const isSeller = mode === "seller";
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* ─── Avatar + Name + Mode toggle ─────────────────────────────── */}
-      <View style={{ backgroundColor: colors.card, padding: 24, alignItems: "center", borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primary + "22", alignItems: "center", justifyContent: "center", marginBottom: 12, borderWidth: 2, borderColor: colors.primary }}>
-          <Text style={{ fontSize: 28, fontWeight: "700", color: colors.primary }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+
+      {/* ── Hero ─────────────────────────────────────────────────────── */}
+      <View style={{ backgroundColor: colors.card, paddingTop: 32, paddingBottom: 24, paddingHorizontal: 24, alignItems: "center", borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        {/* Avatar */}
+        <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primaryAlpha, alignItems: "center", justifyContent: "center", marginBottom: 14, borderWidth: 2, borderColor: colors.primary }}>
+          <Text style={{ fontSize: 30, fontWeight: "700", color: colors.primary }}>
             {initials}
           </Text>
         </View>
-        <Text style={{ fontSize: 18, fontWeight: "700", marginBottom: 2 }}>
-          {user?.fullName ?? user?.email}
+
+        <Text style={{ fontSize: 20, fontWeight: "700", color: colors.foreground, marginBottom: 3 }}>
+          {displayName}
         </Text>
-        <Text style={{ fontSize: 14, color: colors.mutedForeground, marginBottom: 16 }}>
+        <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 20 }}>
           {user?.email}
         </Text>
 
+        {/* Mode toggle */}
         <TouchableOpacity
           onPress={toggleMode}
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
             alignItems: "center",
-            backgroundColor: mode === "seller" ? colors.warning + "22" : colors.primary + "18",
-            borderRadius: 20,
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            borderWidth: 1,
-            borderColor: mode === "seller" ? colors.warning : colors.primary,
+            gap: 8,
+            paddingHorizontal: 20,
+            paddingVertical: 10,
+            borderRadius: 24,
+            borderWidth: 1.5,
+            borderColor: isSeller ? colors.warning : colors.primary,
+            backgroundColor: isSeller ? colors.warningAlpha : colors.primaryAlpha,
           }}
         >
-          <Text style={{ fontWeight: "600", fontSize: 13, color: mode === "seller" ? colors.warning : colors.primary }}>
-            {mode === "seller" ? t("profile.switchToBuyer") : t("profile.switchToSeller")}
+          {isSeller
+            ? <Store size={16} color={colors.warning} />
+            : <ShoppingBag size={16} color={colors.primary} />}
+          <Text style={{ fontSize: 14, fontWeight: "600", color: isSeller ? colors.warning : colors.primary }}>
+            {isSeller ? t("profile.switchToBuyer") : t("profile.switchToSeller")}
           </Text>
         </TouchableOpacity>
       </View>
 
-      <View style={{ padding: 16, gap: 12 }}>
-        {/* ─── Personal Info ────────────────────────────────────────── */}
-        <View style={{ backgroundColor: colors.card, borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
-          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: editing ? 1 : 0, borderBottomColor: colors.border }}>
-            <Text style={{ fontWeight: "600", fontSize: 16 }}>{t("profile.info")}</Text>
+      <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+
+        {/* ── Personal Info ─────────────────────────────────────────── */}
+        <SectionCard>
+          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: editing ? 1 : 0, borderBottomColor: colors.border }}>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.mutedForeground }}>
+              {t("profile.info").toUpperCase()}
+            </Text>
             {!editing && (
-              <TouchableOpacity onPress={startEdit} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Edit3 size={14} color={colors.primary} />
-                <Text style={{ color: colors.primary, fontSize: 13 }}>{t("common.edit")}</Text>
+              <TouchableOpacity onPress={startEdit} style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 4 }}>
+                <Edit3 size={13} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "500" }}>{t("common.edit")}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -139,39 +181,42 @@ export default function ProfileScreen() {
               <TextInput placeholder={t("auth.firstName")} placeholderTextColor={colors.mutedForeground} value={form.firstname} onChangeText={(v) => setForm((f) => ({ ...f, firstname: v }))} style={inputStyle} />
               <TextInput placeholder={t("auth.lastName")} placeholderTextColor={colors.mutedForeground} value={form.lastname} onChangeText={(v) => setForm((f) => ({ ...f, lastname: v }))} style={inputStyle} />
               <TextInput placeholder={t("auth.phone")} placeholderTextColor={colors.mutedForeground} value={form.phone} onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))} keyboardType="phone-pad" style={inputStyle} />
-              <TextInput placeholder={t("profile.bio")} placeholderTextColor={colors.mutedForeground} value={form.bio} onChangeText={(v) => setForm((f) => ({ ...f, bio: v }))} multiline numberOfLines={3} style={[inputStyle, { height: 80 }]} />
+              <TextInput placeholder={t("profile.bio")} placeholderTextColor={colors.mutedForeground} value={form.bio} onChangeText={(v) => setForm((f) => ({ ...f, bio: v }))} multiline numberOfLines={3} style={[inputStyle, { height: 90, textAlignVertical: "top" }]} />
               <TextInput placeholder={t("profile.city")} placeholderTextColor={colors.mutedForeground} value={form.city} onChangeText={(v) => setForm((f) => ({ ...f, city: v }))} style={inputStyle} />
-
               <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 10, marginTop: 4 }}>
-                <TouchableOpacity onPress={() => setEditing(false)} style={{ flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, alignItems: "center" }}>
-                  <Text style={{ color: colors.foreground }}>{t("common.cancel")}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => update.mutate(form)} disabled={update.isPending} style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 8, padding: 12, alignItems: "center" }}>
-                  <Text style={{ color: colors.primaryForeground, fontWeight: "600" }}>
-                    {update.isPending ? t("common.loading") : t("common.save")}
-                  </Text>
-                </TouchableOpacity>
+                <Button variant="outline" onPress={() => setEditing(false)} style={{ flex: 1 }}>
+                  <Text>{t("common.cancel")}</Text>
+                </Button>
+                <Button onPress={() => update.mutate(form)} disabled={update.isPending} style={{ flex: 1 }}>
+                  <Text>{update.isPending ? t("common.loading") : t("common.save")}</Text>
+                </Button>
               </View>
             </View>
           ) : (
-            <View style={{ padding: 16, gap: 6 }}>
-              {user?.phone && <Text style={{ color: colors.foreground }}>{user.phone}</Text>}
-              {user?.bio && <Text style={{ color: colors.mutedForeground }}>{user.bio}</Text>}
-              {user?.city && <Text style={{ color: colors.mutedForeground }}>{user.city}</Text>}
+            <View style={{ padding: 16, gap: 8 }}>
+              {user?.phone ? (
+                <Text style={{ fontSize: 15, color: colors.foreground }}>{user.phone}</Text>
+              ) : null}
+              {user?.bio ? (
+                <Text style={{ fontSize: 14, color: colors.mutedForeground, lineHeight: 20 }}>{user.bio}</Text>
+              ) : null}
+              {user?.city ? (
+                <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 4 }}>
+                  <Text style={{ fontSize: 14, color: colors.mutedForeground }}>{user.city}</Text>
+                </View>
+              ) : null}
               {!user?.phone && !user?.bio && !user?.city && (
-                <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>{t("profile.noInfo")}</Text>
+                <Text style={{ fontSize: 14, color: colors.mutedForeground }}>{t("profile.noInfo")}</Text>
               )}
             </View>
           )}
-        </View>
+        </SectionCard>
 
-        {/* ─── Theme ───────────────────────────────────────────────── */}
-        <View style={{ backgroundColor: colors.card, borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
-          <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-            <Text style={{ fontWeight: "600", fontSize: 16 }}>{t("profile.theme")}</Text>
-          </View>
+        {/* ── Appearance ────────────────────────────────────────────── */}
+        <SectionCard>
+          <SectionHeader title={t("profile.theme").toUpperCase()} />
           <View style={{ flexDirection: isRtl ? "row-reverse" : "row", padding: 12, gap: 8 }}>
-            {THEME_OPTIONS.map(({ value, label, Icon }) => {
+            {THEME_OPTIONS.map(({ value, Icon, labelKey }) => {
               const isActive = theme === value;
               return (
                 <TouchableOpacity
@@ -180,33 +225,31 @@ export default function ProfileScreen() {
                   style={{
                     flex: 1,
                     alignItems: "center",
-                    paddingVertical: 12,
-                    borderRadius: 10,
-                    borderWidth: 2,
-                    borderColor: isActive ? colors.primary : colors.border,
-                    backgroundColor: isActive ? colors.primary + "12" : "transparent",
+                    paddingVertical: 14,
+                    borderRadius: 12,
                     gap: 6,
+                    borderWidth: 1.5,
+                    borderColor: isActive ? colors.primary : colors.border,
+                    backgroundColor: isActive ? colors.primaryAlpha : "transparent",
                   }}
                 >
                   <Icon size={20} color={isActive ? colors.primary : colors.mutedForeground} />
-                  <Text style={{ fontSize: 12, fontWeight: "600", color: isActive ? colors.primary : colors.mutedForeground }}>
-                    {label}
+                  <Text style={{ fontSize: 12, fontWeight: isActive ? "700" : "500", color: isActive ? colors.primary : colors.mutedForeground }}>
+                    {t(labelKey)}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-        </View>
+        </SectionCard>
 
-        {/* ─── Language ─────────────────────────────────────────────── */}
-        <View style={{ backgroundColor: colors.card, borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
-          <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 8 }}>
-            <Globe size={18} color={colors.foreground} />
-            <Text style={{ fontWeight: "600", fontSize: 16 }}>{t("profile.language")}</Text>
-          </View>
-          <View style={{ padding: 8, gap: 4 }}>
-            {SUPPORTED_LANGUAGES.map(({ code, label }) => {
+        {/* ── Language ──────────────────────────────────────────────── */}
+        <SectionCard>
+          <SectionHeader title={t("profile.language").toUpperCase()} icon={<Globe size={15} color={colors.mutedForeground} />} />
+          <View style={{ paddingVertical: 4 }}>
+            {SUPPORTED_LANGUAGES.map(({ code, label }, index) => {
               const isActive = i18n.language === code;
+              const isLast = index === SUPPORTED_LANGUAGES.length - 1;
               return (
                 <TouchableOpacity
                   key={code}
@@ -215,10 +258,11 @@ export default function ProfileScreen() {
                     flexDirection: isRtl ? "row-reverse" : "row",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    paddingHorizontal: 12,
-                    paddingVertical: 12,
-                    borderRadius: 8,
-                    backgroundColor: isActive ? colors.primary + "12" : "transparent",
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    borderBottomWidth: isLast ? 0 : 1,
+                    borderBottomColor: colors.border,
+                    backgroundColor: isActive ? colors.primaryAlpha : "transparent",
                   }}
                 >
                   <Text style={{ fontSize: 15, fontWeight: isActive ? "600" : "400", color: isActive ? colors.primary : colors.foreground }}>
@@ -229,31 +273,31 @@ export default function ProfileScreen() {
               );
             })}
           </View>
-        </View>
+        </SectionCard>
 
-        {/* ─── Sign out ─────────────────────────────────────────────── */}
+        {/* ── Sign Out ──────────────────────────────────────────────── */}
         <TouchableOpacity
           onPress={handleLogout}
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: 8,
-            marginTop: 8,
-            borderWidth: 1,
-            borderColor: colors.destructive + "60",
-            borderRadius: 10,
-            padding: 14,
-            backgroundColor: colors.destructive + "0C",
+            gap: 10,
+            marginTop: 4,
+            marginBottom: 8,
+            borderWidth: 1.5,
+            borderColor: colors.destructive,
+            borderRadius: 14,
+            paddingVertical: 14,
+            backgroundColor: colors.destructiveAlpha,
           }}
         >
-          <LogOut size={16} color={colors.destructive} />
+          <LogOut size={18} color={colors.destructive} />
           <Text style={{ color: colors.destructive, fontWeight: "600", fontSize: 15 }}>
             {t("profile.logout")}
           </Text>
         </TouchableOpacity>
 
-        <View style={{ height: 32 }} />
       </View>
     </ScrollView>
   );
