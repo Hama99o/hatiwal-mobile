@@ -8,6 +8,8 @@ import { useRouter } from "expo-router";
 import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore } from "@/stores/mode.store";
+import { applyThemeFromUser } from "@/stores/theme.store";
+import { applyLanguageFromUser, type LanguageCode } from "@/i18n";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 
@@ -58,6 +60,8 @@ export default function RegisterScreen() {
       const user = await authAPI.register(form);
       setUser(user);
       hydrateFromUser(user.sellerMode);
+      applyThemeFromUser(user.preferredTheme);
+      await applyLanguageFromUser(user.preferredLanguage as LanguageCode);
       router.replace("/(main)/(tabs)/browse");
     } catch (err: any) {
       // devise_token_auth returns { errors: { full_messages: [...] } } on 422

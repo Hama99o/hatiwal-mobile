@@ -1,8 +1,18 @@
 import { Stack } from "expo-router";
 import { useTranslation } from "react-i18next";
+import { useColors } from "@/hooks/useColors";
 
 export default function MainLayout() {
   const { t } = useTranslation();
+  const colors = useColors();
+
+  const themedHeader = {
+    headerStyle: { backgroundColor: colors.card },
+    headerTintColor: colors.primary,
+    headerTitleStyle: { color: colors.foreground },
+    headerShadowVisible: false,
+    headerBackTitle: t("common.back"),
+  };
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -14,14 +24,14 @@ export default function MainLayout() {
         options={{
           headerShown: true,
           headerTitle: t("chat.title"),
-          headerBackTitle: t("common.back"),
+          ...themedHeader,
         }}
       />
       <Stack.Screen
         name="listing-conversations/[id]"
         options={{
           headerShown: true,
-          headerBackTitle: t("common.back"),
+          ...themedHeader,
         }}
       />
       <Stack.Screen
@@ -29,7 +39,7 @@ export default function MainLayout() {
         options={{
           headerShown: true,
           headerTitle: t("profile.sellerProfile.title"),
-          headerBackTitle: t("common.back"),
+          ...themedHeader,
         }}
       />
     </Stack>

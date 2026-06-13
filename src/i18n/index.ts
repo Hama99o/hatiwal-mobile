@@ -75,4 +75,18 @@ export async function setLanguage(lang: LanguageCode): Promise<void> {
   authAPI.updateMe({ preferredLanguage: lang }).catch(() => null);
 }
 
+/** Apply a language from the backend user object (no API sync — backend is the source). */
+export async function applyLanguageFromUser(lang: LanguageCode): Promise<void> {
+  await i18n.changeLanguage(lang);
+  applyDirection(lang);
+  AsyncStorage.setItem(STORAGE_KEY, lang).catch(() => {});
+}
+
+/** Reset language to English and clear storage — call on logout. */
+export async function resetLanguage(): Promise<void> {
+  await i18n.changeLanguage("en");
+  applyDirection("en");
+  await AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
+}
+
 export default i18n;

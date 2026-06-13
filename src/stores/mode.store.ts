@@ -41,3 +41,9 @@ AsyncStorage.getItem(STORAGE_KEY)
     }
   })
   .catch(() => null);
+
+/** Reset mode to buyer and clear storage — call on logout. */
+export async function resetMode(): Promise<void> {
+  useModeStore.setState({ mode: "buyer" });
+  await AsyncStorage.removeItem(STORAGE_KEY).catch(() => null);
+}

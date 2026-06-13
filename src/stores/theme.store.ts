@@ -28,3 +28,15 @@ export async function loadSavedTheme(): Promise<void> {
     }
   } catch {}
 }
+
+/** Apply a theme from the backend user object (no API sync — backend is the source). */
+export function applyThemeFromUser(theme: ThemePreference): void {
+  useThemeStore.setState({ theme });
+  AsyncStorage.setItem(STORAGE_KEY, theme).catch(() => {});
+}
+
+/** Reset theme to system default and clear storage — call on logout. */
+export async function resetTheme(): Promise<void> {
+  useThemeStore.setState({ theme: "system" });
+  await AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
+}

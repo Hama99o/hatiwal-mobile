@@ -10,12 +10,12 @@ import { Sun, Moon, Smartphone, Globe, LogOut, Edit3, Check, Store, ShoppingBag,
 import * as ImagePicker from "expo-image-picker";
 import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
-import { useModeStore } from "@/stores/mode.store";
-import { useThemeStore, ThemePreference } from "@/stores/theme.store";
+import { useModeStore, resetMode } from "@/stores/mode.store";
+import { useThemeStore, ThemePreference, resetTheme } from "@/stores/theme.store";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { confirmAlert } from "@/utils/alert";
-import { setLanguage, SUPPORTED_LANGUAGES, LanguageCode } from "@/i18n";
+import { setLanguage, resetLanguage, SUPPORTED_LANGUAGES, LanguageCode } from "@/i18n";
 
 const THEME_OPTIONS: { value: ThemePreference; Icon: typeof Sun; labelKey: string }[] = [
   { value: "light", Icon: Sun, labelKey: "profile.themeLight" },
@@ -113,6 +113,7 @@ export default function ProfileScreen() {
           try { await authAPI.logout(); } catch {}
           qc.clear();
           clearUser();
+          await Promise.all([resetTheme(), resetMode(), resetLanguage()]);
           router.replace("/(auth)/login");
         },
       },

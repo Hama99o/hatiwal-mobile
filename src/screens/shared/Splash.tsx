@@ -12,6 +12,8 @@ import { authAPI } from "@/api/auth";
 import { secureStorage } from "@/utils/secure-storage";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore } from "@/stores/mode.store";
+import { applyThemeFromUser } from "@/stores/theme.store";
+import { applyLanguageFromUser } from "@/i18n";
 import { useColors } from "@/hooks/useColors";
 
 export default function SplashScreen() {
@@ -45,6 +47,8 @@ export default function SplashScreen() {
         if (!cancelled) {
           setUser(user);
           hydrateFromUser(user.sellerMode);
+          applyThemeFromUser(user.preferredTheme);
+          await applyLanguageFromUser(user.preferredLanguage);
           router.replace("/(main)/(tabs)/browse");
         }
       } catch {
