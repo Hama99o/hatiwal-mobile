@@ -10,7 +10,7 @@ export function useColors() {
     foreground:            dark ? "hsl(210, 40%, 98%)"  : "hsl(222, 47%, 11%)",
 
     // Card
-    card:                  dark ? "hsl(222, 47%, 8%)"   : "hsl(0, 0%, 100%)",
+    card:                  dark ? "hsl(222, 47%, 13%)"  : "hsl(0, 0%, 100%)",
     cardForeground:        dark ? "hsl(210, 40%, 98%)"  : "hsl(222, 47%, 11%)",
 
     // Primary — blue
@@ -36,7 +36,7 @@ export function useColors() {
     destructiveAlpha:      dark ? "rgba(220,38,38,0.12)" : "rgba(220,38,38,0.08)",
 
     // Form / border
-    border:                dark ? "hsl(217, 33%, 17%)"  : "hsl(214, 32%, 91%)",
+    border:                dark ? "hsl(217, 33%, 22%)"  : "hsl(214, 32%, 91%)",
     input:                 dark ? "hsl(217, 33%, 17%)"  : "hsl(214, 32%, 91%)",
     ring:                  dark ? "hsl(224, 76%, 48%)"  : "hsl(221, 83%, 53%)",
 

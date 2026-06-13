@@ -15,6 +15,7 @@ export interface User {
   bio: string | null;
   avatarUrl: string | null;
   preferredLanguage: "en" | "ps" | "fa";
+  preferredTheme: "light" | "dark" | "system";
   sellerMode: boolean;
   status: string;
   createdAt: string;

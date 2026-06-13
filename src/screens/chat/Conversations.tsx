@@ -1,4 +1,5 @@
-import { View, FlatList, TouchableOpacity, RefreshControl } from "react-native";
+import { View, FlatList, TouchableOpacity, RefreshControl, ScrollView } from "react-native";
+import { Image } from "expo-image";
 import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
 import { useCallback, useState } from "react";
@@ -11,7 +12,9 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton";
 import { confirmAlert } from "@/utils/alert";
-import { MessageCircle } from "lucide-react-native";
+import { MessageCircle, Camera, CheckCheck } from "lucide-react-native";
+
+const PHOTO_BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 
 function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id: number) => void }) {
   const router = useRouter();
@@ -20,7 +23,9 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
   const colors = useColors();
 
   const other = item.otherParticipant;
+  const otherName = other?.name ?? other?.fullName;
   const unread = item.unreadCount ?? 0;
+  const PHOTO_SIZE = 68;
 
   const handleLongPress = useCallback(() => {
     confirmAlert(
@@ -35,84 +40,84 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/(main)/conversation/${item.id}`)}
+      onPress={() => router.push(`/(main)/conversation/${item.id}` as never)}
       onLongPress={handleLongPress}
       activeOpacity={0.7}
       style={{
         flexDirection: isRtl ? "row-reverse" : "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
         backgroundColor: unread > 0 ? colors.primaryAlpha : colors.card,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
+        gap: 12,
       }}
     >
-      {/* Thumbnail */}
-      <View style={{ marginRight: isRtl ? 0 : 12, marginLeft: isRtl ? 12 : 0 }}>
-        <UserAvatar
-          name={other?.fullName ?? other?.name ?? "?"}
-          avatarUrl={other?.avatarUrl}
-          size={48}
-        />
+      {/* Listing photo */}
+      <View
+        style={{
+          width: PHOTO_SIZE,
+          height: PHOTO_SIZE,
+          borderRadius: 10,
+          overflow: "hidden",
+          backgroundColor: colors.muted,
+          flexShrink: 0,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {item.listing?.thumbnailUrl ? (
+          <Image
+            source={{ uri: item.listing.thumbnailUrl }}
+            style={{ width: PHOTO_SIZE, height: PHOTO_SIZE }}
+            contentFit="cover"
+            placeholder={{ blurhash: PHOTO_BLURHASH }}
+            transition={150}
+          />
+        ) : (
+          <Camera size={24} color={colors.mutedForeground} />
+        )}
       </View>
 
+      {/* Content */}
       <View style={{ flex: 1, minWidth: 0 }}>
-        {/* Name + time */}
-        <View style={{ flexDirection: isRtl ? "row-reverse" : "row", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+        {/* Title + time */}
+        <View style={{ flexDirection: isRtl ? "row-reverse" : "row", justifyContent: "space-between", alignItems: "flex-start", gap: 6, marginBottom: 3 }}>
           <Text
-            style={{
-              fontWeight: unread > 0 ? "700" : "600",
-              fontSize: 15,
-              color: colors.foreground,
-              flex: 1,
-            }}
-            numberOfLines={1}
+            style={{ fontWeight: "700", fontSize: 14, color: colors.foreground, flex: 1, lineHeight: 19 }}
+            numberOfLines={2}
           >
-            {other?.fullName ?? t("chat.unknownUser")}
+            {item.listing?.title ?? t("chat.title")}
           </Text>
           {item.lastMessageAt && (
-            <Text style={{ color: colors.mutedForeground, fontSize: 12, marginLeft: isRtl ? 0 : 8, marginRight: isRtl ? 8 : 0, flexShrink: 0 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, flexShrink: 0, marginTop: 1 }}>
               {formatDateTime(item.lastMessageAt)}
             </Text>
           )}
         </View>
 
-        {/* Listing title */}
-        {item.listing?.title && (
-          <Text style={{ fontSize: 12, color: colors.primary, marginBottom: 2 }} numberOfLines={1}>
-            {item.listing.title}
-          </Text>
+        {/* User name row */}
+        {otherName && (
+          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 5, marginBottom: 4 }}>
+            <UserAvatar name={otherName} avatarUrl={other?.avatarUrl} size={16} />
+            <Text style={{ fontSize: 12, color: colors.mutedForeground }} numberOfLines={1}>
+              {otherName}
+            </Text>
+          </View>
         )}
 
-        {/* Last message + unread badge row */}
+        {/* Last message + unread badge */}
         <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text
-            style={{
-              color: unread > 0 ? colors.foreground : colors.mutedForeground,
-              fontSize: 13,
-              fontWeight: unread > 0 ? "500" : "400",
-              flex: 1,
-            }}
+            style={{ color: unread > 0 ? colors.foreground : colors.mutedForeground, fontSize: 12, fontWeight: unread > 0 ? "500" : "400", flex: 1 }}
             numberOfLines={1}
           >
             {item.lastMessageBody ?? t("chat.noMessages")}
           </Text>
           {unread > 0 && (
-            <View style={{
-              backgroundColor: colors.primary,
-              borderRadius: 10,
-              minWidth: 20,
-              height: 20,
-              alignItems: "center",
-              justifyContent: "center",
-              marginLeft: isRtl ? 0 : 8,
-              marginRight: isRtl ? 8 : 0,
-              paddingHorizontal: 5,
-            }}>
-              <Text style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: "700" }}>
-                {unread}
-              </Text>
+            <View style={{ backgroundColor: colors.primary, borderRadius: 10, minWidth: 20, height: 20, alignItems: "center", justifyContent: "center", marginLeft: isRtl ? 0 : 6, marginRight: isRtl ? 6 : 0, paddingHorizontal: 5 }}>
+              <Text style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: "700" }}>{unread}</Text>
             </View>
           )}
         </View>
@@ -129,11 +134,21 @@ function SkeletonList() {
   );
 }
 
+type FilterMode = "all" | "unread" | "read";
+
+const FILTER_OPTIONS: { key: FilterMode; labelKey: string }[] = [
+  { key: "all", labelKey: "chat.filter.all" },
+  { key: "unread", labelKey: "chat.filter.unread" },
+  { key: "read", labelKey: "chat.filter.read" },
+];
+
 export default function ConversationsScreen() {
   const { t } = useTranslation();
   const colors = useColors();
+  const { isRtl } = useLocalization();
   const qc = useQueryClient();
   const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set());
+  const [filter, setFilter] = useState<FilterMode>("all");
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["conversations"],
@@ -153,14 +168,75 @@ export default function ConversationsScreen() {
     deleteMutation.mutate(id);
   }, [deleteMutation]);
 
-  const items = (data?.items ?? []).filter((c) => !deletedIds.has(c.id));
+  const allItems = (data?.items ?? []).filter((c) => !deletedIds.has(c.id));
+
+  const items = allItems.filter((c) => {
+    const unread = c.unreadCount ?? 0;
+    if (filter === "unread") return unread > 0;
+    if (filter === "read") return unread === 0;
+    return true;
+  });
+
+  const unreadCount = allItems.filter((c) => (c.unreadCount ?? 0) > 0).length;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ padding: 16, paddingTop: 20, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground }}>
-          {t("chat.title")}
-        </Text>
+      {/* Header */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 12, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground }}>
+            {t("chat.title")}
+          </Text>
+          {unreadCount > 0 && (
+            <View style={{ backgroundColor: colors.primary, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 }}>
+              <Text style={{ color: colors.primaryForeground, fontSize: 12, fontWeight: "700" }}>
+                {unreadCount}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Filter chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            gap: 8,
+            paddingTop: 12,
+          }}
+        >
+          {FILTER_OPTIONS.map(({ key, labelKey }) => {
+            const isActive = filter === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                onPress={() => setFilter(key)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: 20,
+                  borderWidth: 1.5,
+                  backgroundColor: isActive ? colors.primary : "transparent",
+                  borderColor: isActive ? colors.primary : colors.border,
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                {key === "unread" && (
+                  <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: isActive ? colors.primaryForeground : colors.primary }} />
+                )}
+                {key === "read" && (
+                  <CheckCheck size={12} color={isActive ? colors.primaryForeground : colors.mutedForeground} />
+                )}
+                <Text style={{ fontSize: 13, fontWeight: "600", color: isActive ? colors.primaryForeground : colors.foreground }}>
+                  {t(labelKey)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {isLoading ? (
@@ -179,9 +255,9 @@ export default function ConversationsScreen() {
           }
           ListEmptyComponent={
             <EmptyState
-              icon={MessageCircle}
-              title={t("chat.noConversations")}
-              description={t("chat.noConversationsDescription")}
+              icon={filter === "unread" ? CheckCheck : MessageCircle}
+              title={filter === "unread" ? t("chat.filter.noUnread") : t("chat.noConversations")}
+              description={filter === "unread" ? t("chat.filter.noUnreadDescription") : t("chat.noConversationsDescription")}
             />
           }
           showsVerticalScrollIndicator={false}

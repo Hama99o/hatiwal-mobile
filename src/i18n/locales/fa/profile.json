@@ -18,5 +18,16 @@
   "bio": "بیوگرافی",
   "city": "شهر",
   "info": "اطلاعات شخصی",
-  "noInfo": "هنوز اطلاعاتی اضافه نشده"
+  "noInfo": "هنوز اطلاعاتی اضافه نشده",
+  "sellerProfile": {
+    "title": "پروفایل فروشنده",
+    "soldCount": "{{count}} فروخته شده",
+    "soldCountZero": "هنوز فروشی نداشته",
+    "activeListings": "{{count}} آگهی فعال",
+    "memberSince": "عضو از: {{date}}",
+    "trustScore": "اعتبار فروشنده",
+    "viewListings": "مشاهده آگهی‌ها",
+    "noListings": "آگهی فعالی وجود ندارد",
+    "loadFailed": "بارگذاری پروفایل ناموفق بود."
+  }
 }

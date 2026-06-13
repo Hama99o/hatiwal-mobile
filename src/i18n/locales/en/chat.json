@@ -33,7 +33,8 @@
     "read": "Read",
     "delivered": "Delivered",
     "emptyTitle": "No messages yet",
-    "emptyDescription": "Send a message to start the conversation."
+    "emptyDescription": "Send a message to start the conversation.",
+    "filePickerNotAvailable": "File picker not available. Run: npm install expo-document-picker"
   },
   "meetup": {
     "title": "Propose a Meetup",
@@ -51,5 +52,33 @@
     "placeholder": "Ask about this item...",
     "send": "Send Message",
     "sending": "Sending..."
+  },
+  "attachFile": "Attach file",
+  "document": {
+    "tap": "Tap to open"
+  },
+  "filter": {
+    "all": "All",
+    "unread": "Unread",
+    "read": "Read",
+    "noUnread": "All caught up!",
+    "noUnreadDescription": "No unread messages right now."
+  },
+  "offer": {
+    "label": "Price Offer",
+    "yourOffer": "Your Offer",
+    "listedAt": "Listed at {{price}}",
+    "noPayment": "No payment — this is just a message to the seller."
+  },
+  "block": {
+    "blockUser": "Block User",
+    "unblockUser": "Unblock User",
+    "blockConfirmTitle": "Block this user?",
+    "blockConfirmDescription": "They won't be able to message you and you won't see their listings.",
+    "blocked": "You have blocked this user.",
+    "blockSuccess": "User blocked.",
+    "unblockSuccess": "User unblocked.",
+    "blockFailed": "Could not block user. Try again.",
+    "unblockFailed": "Could not unblock user. Try again."
   }
 }

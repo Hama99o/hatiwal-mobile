@@ -17,6 +17,21 @@ export default function MainLayout() {
           headerBackTitle: t("common.back"),
         }}
       />
+      <Stack.Screen
+        name="listing-conversations/[id]"
+        options={{
+          headerShown: true,
+          headerBackTitle: t("common.back"),
+        }}
+      />
+      <Stack.Screen
+        name="seller/[userId]"
+        options={{
+          headerShown: true,
+          headerTitle: t("profile.sellerProfile.title"),
+          headerBackTitle: t("common.back"),
+        }}
+      />
     </Stack>
   );
 }

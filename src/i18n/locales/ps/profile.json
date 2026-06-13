@@ -18,5 +18,16 @@
   "bio": "پیژندنه",
   "city": "ښار",
   "info": "شخصي معلومات",
-  "noInfo": "لا هیڅ معلومات نه دي اضافه شوي"
+  "noInfo": "لا هیڅ معلومات نه دي اضافه شوي",
+  "sellerProfile": {
+    "title": "د پلورونکي پروفایل",
+    "soldCount": "{{count}} پلورل شوي",
+    "soldCountZero": "لا هیڅ پلور نه دی",
+    "activeListings": "{{count}} فعال اعلانونه",
+    "memberSince": "غړیتوب: {{date}}",
+    "trustScore": "د پلورونکي اعتبار",
+    "viewListings": "اعلانونه وګورئ",
+    "noListings": "هیڅ فعال اعلان نشته",
+    "loadFailed": "پروفایل ونه موندل شو."
+  }
 }

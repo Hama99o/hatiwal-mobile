@@ -4,10 +4,11 @@ import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
 export interface Message {
   id: number;
   body: string;
-  kind: "text" | "meetup_proposal" | "system";
+  kind: "text" | "meetup_proposal" | "system" | "offer" | "document" | "image_message";
   readAt: string | null;
   createdAt: string;
   sender: { id: number; name: string };
+  attachmentUrl?: string | null;
 }
 
 export interface Conversation {
@@ -46,10 +47,12 @@ export const conversationsAPI = {
   getConversations: async (params?: {
     pageNumber?: number;
     pageSize?: number;
+    listingId?: number;
   }): Promise<ConversationsResponse> => {
     const query = new URLSearchParams();
     if (params?.pageNumber) query.append("page[number]", String(params.pageNumber));
     if (params?.pageSize)   query.append("page[size]",   String(params.pageSize));
+    if (params?.listingId)  query.append("listing_id",   String(params.listingId));
 
     const response = await http.get(`/conversations?${query}`);
     return {
@@ -99,7 +102,7 @@ export const conversationsAPI = {
   sendMessage: async (
     conversationId: number,
     body: string,
-    kind: "text" | "meetup_proposal" = "text"
+    kind: "text" | "meetup_proposal" | "offer" = "text"
   ): Promise<Message> => {
     const response = await http.post(
       `/conversations/${conversationId}/messages`,
@@ -114,5 +117,38 @@ export const conversationsAPI = {
 
   deleteConversation: async (id: number): Promise<void> => {
     await http.delete(`/conversations/${id}`);
+  },
+
+  sendFile: async (
+    conversationId: number,
+    fileUri: string,
+    fileName: string,
+    mimeType: string
+  ): Promise<Message> => {
+    const form = new FormData();
+    form.append("kind", "document");
+    form.append("body", fileName);
+    (form as any).append("attachment", { uri: fileUri, name: fileName, type: mimeType });
+
+    const { secureStorage } = await import("@/utils/secure-storage");
+    const accessToken = await secureStorage.getItem("access-token");
+    const client      = await secureStorage.getItem("client");
+    const uid         = await secureStorage.getItem("uid");
+    const { BASE_URL } = await import("./http");
+
+    const res = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
+      method: "POST",
+      body: form,
+      headers: {
+        "access-token": accessToken ?? "",
+        client:         client ?? "",
+        uid:            uid ?? "",
+        "token-type":   "Bearer",
+      },
+    });
+    if (!res.ok) throw new Error("Upload failed");
+    const json = await res.json();
+    const { convertKeysToCamel } = await import("@/utils/case-styles");
+    return convertKeysToCamel(json.message) as Message;
   },
 };

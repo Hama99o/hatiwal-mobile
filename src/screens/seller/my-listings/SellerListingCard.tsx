@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, StyleSheet, Pressable, FlatList, Dimensions } from "react-native";
+import { View, StyleSheet, Pressable, TouchableOpacity, FlatList, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import Animated, {
   useSharedValue,
@@ -314,12 +314,19 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
               </Text>
             </View>
             {listing.conversationsCount != null && (
-              <View style={[styles.metaItem, { flexDirection: rowDirection }]}>
-                <MessageCircle size={12} color={colors.mutedForeground} />
-                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+              <TouchableOpacity
+                onPress={() => router.push({
+                  pathname: "/(main)/listing-conversations/[id]" as never,
+                  params: { id: String(listing.id), listingTitle: listing.title },
+                } as never)}
+                hitSlop={8}
+                style={[styles.metaItem, { flexDirection: rowDirection }]}
+              >
+                <MessageCircle size={12} color={colors.primary} />
+                <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>
                   {t("listing.conversationsCount", { count: formatNumber(listing.conversationsCount) })}
                 </Text>
-              </View>
+              </TouchableOpacity>
             )}
           </View>
         </View>

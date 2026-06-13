@@ -19,19 +19,24 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
+  Alert,
+  TouchableOpacity,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Send, Calendar } from "lucide-react-native";
+import { Send, Calendar, Paperclip, ShieldBan, User } from "lucide-react-native";
 import { toast } from "sonner-native";
 
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { Input } from "@/components/reusables/input";
 import { conversationsAPI, type Conversation, type Message } from "@/api/conversations";
+import { usersAPI } from "@/api/users";
+import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
+import { useQuery, useMutation } from "@tanstack/react-query";
 
 import { ListingHeader } from "./conversation/ListingHeader";
 import { MessageBubble } from "./conversation/MessageBubble";
@@ -81,7 +86,21 @@ export function ConversationScreen() {
   const router = useRouter();
   const colors = useColors();
   const { isRtl } = useLocalization();
-  const currentUser = useAuthStore((s) => s.user);
+  const storeUser = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  // Fallback: if the store is empty (e.g. web page refresh before Splash hydrates),
+  // fetch the current user directly so isMine detection never breaks.
+  const { data: fetchedUser } = useQuery({
+    queryKey: ["me"],
+    queryFn: authAPI.me,
+    enabled: !storeUser,
+    staleTime: 1000 * 60 * 10,
+  });
+  // Hydrate store if we had to fetch
+  useEffect(() => {
+    if (fetchedUser && !storeUser) setUser(fetchedUser);
+  }, [fetchedUser, storeUser, setUser]);
+  const currentUser = storeUser ?? fetchedUser ?? null;
 
   const { id: rawId, listingId: rawListingId, initialMessage: rawInitial } =
     useLocalSearchParams<Params>();
@@ -99,6 +118,7 @@ export function ConversationScreen() {
   const [messageText, setMessageText] = useState(initialMessage);
   const [meetupSheetVisible, setMeetupSheetVisible] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(conversationId);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -228,6 +248,72 @@ export function ConversationScreen() {
     }
   }, [currentConversationId, t]);
 
+  // ── Send file attachment ─────────────────────────────────────────────────
+  const handleAttachment = useCallback(async () => {
+    const convId = currentConversationId;
+    if (!convId) return;
+    try {
+      // Dynamic import so the app still works if expo-document-picker is not installed
+      const DocumentPicker = await import("expo-document-picker");
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const file = result.assets[0];
+      const sent = await conversationsAPI.sendFile(convId, file.uri, file.name ?? "file", file.mimeType ?? "application/octet-stream");
+      setMessages((prev) => [...prev, sent]);
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message ?? "";
+      if (msg.includes("Cannot find module")) {
+        toast.error(t("chat.thread.filePickerNotAvailable"));
+      } else {
+        toast.error(t("chat.thread.sendFailed"));
+      }
+    }
+  }, [currentConversationId, t]);
+
+  // ── Block / unblock the other participant ────────────────────────────────
+  const otherParticipant = conversation?.otherParticipant;
+
+  const blockMutation = useMutation({
+    mutationFn: (userId: number) => usersAPI.blockUser(userId),
+    onSuccess: () => {
+      setIsBlocked(true);
+      toast.success(t("chat.block.blockSuccess"));
+    },
+    onError: () => toast.error(t("chat.block.blockFailed")),
+  });
+
+  const unblockMutation = useMutation({
+    mutationFn: (userId: number) => usersAPI.unblockUser(userId),
+    onSuccess: () => {
+      setIsBlocked(false);
+      toast.success(t("chat.block.unblockSuccess"));
+    },
+    onError: () => toast.error(t("chat.block.unblockFailed")),
+  });
+
+  const handleBlockToggle = useCallback(() => {
+    if (!otherParticipant) return;
+    if (isBlocked) {
+      unblockMutation.mutate(otherParticipant.id);
+    } else {
+      Alert.alert(
+        t("chat.block.blockConfirmTitle"),
+        t("chat.block.blockConfirmDescription"),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("chat.block.blockUser"),
+            style: "destructive",
+            onPress: () => blockMutation.mutate(otherParticipant.id),
+          },
+        ]
+      );
+    }
+  }, [otherParticipant, isBlocked, blockMutation, unblockMutation, t]);
+
   // ── Derived ──────────────────────────────────────────────────────────────
   const isClosed = conversation?.status === "closed";
   const canSend = !isClosed && !!currentConversationId;
@@ -253,6 +339,41 @@ export function ConversationScreen() {
         />
       )}
 
+      {/* Other participant bar with block action */}
+      {otherParticipant && (
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            backgroundColor: colors.card,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+            gap: 8,
+          }}
+        >
+          <TouchableOpacity
+            onPress={() => router.push(`/(main)/seller/${otherParticipant.id}` as never)}
+            style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 6, flex: 1 }}
+            activeOpacity={0.7}
+          >
+            <User size={14} color={colors.mutedForeground} />
+            <Text style={{ fontSize: 13, color: colors.mutedForeground, fontWeight: "500" }}>
+              {otherParticipant.name}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleBlockToggle}
+            disabled={blockMutation.isPending || unblockMutation.isPending}
+            hitSlop={8}
+            style={{ padding: 4 }}
+          >
+            <ShieldBan size={18} color={isBlocked ? colors.destructive : colors.mutedForeground} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Closed notice */}
       {isClosed && (
         <View style={[styles.closedBanner, { backgroundColor: colors.muted }]}>
@@ -275,7 +396,7 @@ export function ConversationScreen() {
           renderItem={({ item }) => (
             <MessageBubble
               message={item}
-              isMine={item.sender.id === currentUser?.id}
+              isMine={!!currentUser && Number(item.sender.id) === Number(currentUser.id)}
             />
           )}
           contentContainerStyle={styles.messageList}
@@ -344,6 +465,14 @@ export function ConversationScreen() {
               accessibilityLabel={t("chat.proposeMeetup")}
             >
               <Calendar size={22} color={colors.primary} />
+            </Pressable>
+            <Pressable
+              onPress={handleAttachment}
+              style={styles.meetupButton}
+              hitSlop={8}
+              accessibilityLabel={t("chat.attachFile")}
+            >
+              <Paperclip size={20} color={colors.mutedForeground} />
             </Pressable>
             <Input
               value={messageText}

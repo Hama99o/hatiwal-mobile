@@ -187,6 +187,23 @@ export default function ListingDetailScreen() {
     onError: () => toast.error(t("common.error")),
   });
 
+  // Offer mutation: always sends the offer as an explicit message so it's
+  // never dropped when a conversation already exists (StartService returns
+  // the existing conversation without creating a new message).
+  // Body format: "amount|currency|listedPrice" — parsed by OfferBubble in MessageBubble.
+  const offerMutation = useMutation({
+    mutationFn: async (offerBody: string) => {
+      const defaultMsg = t("listing.detail.defaultMessage");
+      const conversation = await conversationsAPI.startConversation(Number(id), defaultMsg);
+      await conversationsAPI.sendMessage(conversation.id, offerBody, "offer");
+      return conversation;
+    },
+    onSuccess: (conversation) => {
+      router.push(`/(main)/conversation/${conversation.id}` as never);
+    },
+    onError: () => toast.error(t("common.error")),
+  });
+
   const handleContactSeller = useCallback(() => {
     contactMutation.mutate(t("listing.detail.defaultMessage"));
   }, [contactMutation, t]);
@@ -198,15 +215,13 @@ export default function ListingDetailScreen() {
       return;
     }
     const currency = listing?.currency ?? "AFN";
-    const formattedAmount = `${currency} ${amount.toLocaleString()}`;
-    const message = t("listing.detail.offerMessage", {
-      amount: formattedAmount,
-      title: listing?.title ?? "",
-    });
-    contactMutation.mutate(message);
+    const listedPrice = listing?.price ?? 0;
+    // Structured body: "amount|currency|listedPrice" — parsed by OfferBubble
+    const offerBody = `${amount}|${currency}|${listedPrice}`;
     setShowOfferSheet(false);
     setOfferAmount("");
-  }, [offerAmount, contactMutation, listing, t]);
+    offerMutation.mutate(offerBody);
+  }, [offerAmount, offerMutation, listing, t]);
 
   const handleShare = useCallback(async () => {
     setShowMoreSheet(false);
@@ -238,7 +253,7 @@ export default function ListingDetailScreen() {
 
   const photos = listing.images?.length ? listing.images : [];
   const hasPhotos = photos.length > 0;
-  const isBusy = contactMutation.isPending;
+  const isBusy = contactMutation.isPending || offerMutation.isPending;
 
   const categoryName =
     i18n.language === "ps"

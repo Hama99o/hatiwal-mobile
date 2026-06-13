@@ -18,5 +18,16 @@
   "bio": "Bio",
   "city": "City",
   "info": "Personal Info",
-  "noInfo": "No info added yet"
+  "noInfo": "No info added yet",
+  "sellerProfile": {
+    "title": "Seller Profile",
+    "soldCount": "{{count}} sold",
+    "soldCountZero": "No sales yet",
+    "activeListings": "{{count}} active listings",
+    "memberSince": "Member since {{date}}",
+    "trustScore": "Seller Reputation",
+    "viewListings": "View Listings",
+    "noListings": "No active listings",
+    "loadFailed": "Could not load profile."
+  }
 }
