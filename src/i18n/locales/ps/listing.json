@@ -61,6 +61,7 @@
     "description": "د خرڅلاو لپاره خپل لومړی اعلان خپور کړئ."
   },
   "postListing": "اعلان خپرول",
+  "noPhoto": "انځور نشته",
   "detail": {
     "contactSeller": "پلورونکي سره اړیکه",
     "makeOffer": "وړاندیز وکړئ",
@@ -83,7 +84,9 @@
   },
   "form": {
     "photos": "انځورونه",
+    "addPhotos": "انځورونه اضافه کول",
     "photosHint": "د پیرودونکو د جذبولو لپاره لږ تر لږه یو انځور اضافه کړئ.",
+    "coverLabel": "پوښ",
     "gallery": "ګالري",
     "camera": "کیمره",
     "permissionRequired": "اجازه اړینه ده",
@@ -92,6 +95,16 @@
     "selectCategory": "ډله غوره کړئ",
     "searchCategories": "ډلې لټوئ...",
     "selectCategoryPlaceholder": "د ډلې غوره کولو لپاره کلیک وکړئ",
+    "selectCurrency": "اسعار غوره کړئ",
+    "currencyAFN": "افغاني",
+    "currencyUSD": "امریکايي ډالر",
+    "currencyEUR": "یورو",
+    "selectProvince": "ولایت غوره کړئ",
+    "searchProvinces": "ولایتونه وپلټئ...",
+    "reorderHint": "د ځایونو بدلولو لپاره بل انځور کلیک کړئ",
+    "addressLabel": "د ملاقات ځای",
+    "addressPlaceholder": "لکه: د نیلي جومات سره، شار-ی-ناو",
+    "addressHint": "پیرودونکو ته ووایئ چیرته راشي چې توکی واخلي.",
     "titleRequired": "سرلیک اړین دی (زیاتره ۱۵۰ توري)",
     "priceRequired": "له ۰ ډیر سم قیمت ولیکئ",
     "categoryRequired": "مهرباني وکړئ یوه ډله وټاکئ",
@@ -100,6 +113,5 @@
     "published": "اعلان خپور شو!",
     "saveError": "خوندي کول ناکام شو — بیا هڅه وکړئ.",
     "publishError": "خپرول ناکام شو — بیا هڅه وکړئ.",
-  "noPhoto": "انځور نشته"
-  }
+    }
 }

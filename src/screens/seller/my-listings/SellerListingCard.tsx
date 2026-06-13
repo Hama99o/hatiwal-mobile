@@ -1,6 +1,5 @@
-// SellerListingCard — seller variant: photo, price, views/chats, per-state action, edit, delete
-import React, { useCallback } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import React, { useCallback, useRef, useState } from "react";
+import { View, StyleSheet, Pressable, FlatList, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { Eye, MessageCircle, Pencil, Trash2, Camera } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
@@ -16,25 +15,33 @@ import { listingsAPI, type Listing } from "@/api/listings";
 import { confirmAlert } from "@/utils/alert";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
-import { cn } from "@/lib/utils";
 
 const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
-
 const MY_LISTINGS_QK = "my-listings";
 
 interface SellerListingCardProps {
   listing: Listing;
-  className?: string;
 }
 
-export function SellerListingCard({ listing, className }: SellerListingCardProps) {
+export function SellerListingCard({ listing }: SellerListingCardProps) {
   const { t } = useTranslation();
   const { isRtl, formatNumber } = useLocalization();
   const colors = useColors();
   const router = useRouter();
   const qc = useQueryClient();
+  const flatListRef = useRef<FlatList>(null);
+  const [activeSlide, setActiveSlide] = useState(0);
 
   const rowDirection = isRtl ? "row-reverse" : "row";
+  const photos: string[] = listing.imageUrls?.length
+    ? listing.imageUrls
+    : listing.thumbnailUrl
+    ? [listing.thumbnailUrl]
+    : [];
+
+  const cardWidth = Dimensions.get("window").width - 32; // screen - horizontal padding
+
+  // ── Mutations ───────────────────────────────────────────────────────────────
 
   const publish = useMutation({
     mutationFn: () => listingsAPI.publishListing(listing.id),
@@ -71,6 +78,8 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
     },
     onError: () => toast.error(t("common.error")),
   });
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handlePublish = useCallback(() => {
     confirmAlert(
@@ -130,48 +139,26 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
     markSold.isPending ||
     deleteListing.isPending;
 
+  // ── Primary action button per status ────────────────────────────────────────
+
   const primaryAction = (() => {
     switch (listing.status) {
       case "draft":
         return (
-          <Button
-            variant="default"
-            size="sm"
-            style={styles.actionBtn}
-            onPress={handlePublish}
-            disabled={isLoading}
-          >
-            <Text style={{ fontSize: 12, fontWeight: "600" }}>
-              {t("listing.publish")}
-            </Text>
+          <Button variant="default" size="sm" style={styles.actionBtn} onPress={handlePublish} disabled={isLoading}>
+            <Text style={{ fontSize: 12, fontWeight: "600" }}>{t("listing.publish")}</Text>
           </Button>
         );
       case "active":
         return (
-          <Button
-            variant="secondary"
-            size="sm"
-            style={styles.actionBtn}
-            onPress={handleReserve}
-            disabled={isLoading}
-          >
-            <Text style={{ fontSize: 12, fontWeight: "600" }}>
-              {t("listing.markReserved")}
-            </Text>
+          <Button variant="secondary" size="sm" style={styles.actionBtn} onPress={handleReserve} disabled={isLoading}>
+            <Text style={{ fontSize: 12, fontWeight: "600" }}>{t("listing.markReserved")}</Text>
           </Button>
         );
       case "reserved":
         return (
-          <Button
-            variant="default"
-            size="sm"
-            style={styles.actionBtn}
-            onPress={handleMarkSold}
-            disabled={isLoading}
-          >
-            <Text style={{ fontSize: 12, fontWeight: "600" }}>
-              {t("listing.markSold")}
-            </Text>
+          <Button variant="default" size="sm" style={styles.actionBtn} onPress={handleMarkSold} disabled={isLoading}>
+            <Text style={{ fontSize: 12, fontWeight: "600" }}>{t("listing.markSold")}</Text>
           </Button>
         );
       default:
@@ -179,67 +166,121 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
     }
   })();
 
+  // ── Render ──────────────────────────────────────────────────────────────────
+
   return (
     <View
       style={[
-        { backgroundColor: colors.card, borderRadius: 8, borderWidth: 1, borderColor: colors.border, overflow: "hidden", marginBottom: 12 },
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border },
       ]}
     >
-      <Pressable
-        onPress={handleEdit}
-        accessibilityRole="button"
-        accessibilityLabel={listing.title}
-        android_ripple={{ color: colors.muted }}
-      >
-        <View style={[styles.imageContainer, { backgroundColor: colors.imagePlaceholder }]}>
-          {listing.thumbnailUrl ? (
-            <Image
-              source={{ uri: listing.thumbnailUrl }}
-              placeholder={BLURHASH}
-              contentFit="cover"
-              transition={200}
-              style={styles.image}
+      {/* Photo gallery */}
+      <Pressable onPress={handleEdit} accessibilityRole="button" accessibilityLabel={listing.title}>
+        {photos.length > 0 ? (
+          <View style={styles.galleryWrapper}>
+            <FlatList
+              ref={flatListRef}
+              data={photos}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, i) => `${item}-${i}`}
+              getItemLayout={(_, index) => ({
+                length: cardWidth,
+                offset: cardWidth * index,
+                index,
+              })}
+              onMomentumScrollEnd={(e) => {
+                const slide = Math.round(e.nativeEvent.contentOffset.x / cardWidth);
+                setActiveSlide(slide);
+              }}
+              renderItem={({ item }) => (
+                <Image
+                  source={{ uri: item }}
+                  style={[styles.galleryImage, { width: cardWidth }]}
+                  placeholder={{ blurhash: BLURHASH }}
+                  contentFit="cover"
+                  transition={200}
+                />
+              )}
             />
-          ) : (
-            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 6 }}>
-              <Camera size={28} color={colors.mutedForeground} />
-              <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{t("listing.noPhoto")}</Text>
+
+            {/* Status badge */}
+            <View
+              style={[
+                styles.statusBadge,
+                isRtl ? styles.statusBadgeRtl : styles.statusBadgeLtr,
+              ]}
+            >
+              <StatusBadge status={listing.status} />
             </View>
-          )}
+
+            {/* Dot indicators — only shown when > 1 photo */}
+            {photos.length > 1 && (
+              <View style={styles.dotsRow}>
+                {photos.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dot,
+                      {
+                        backgroundColor:
+                          i === activeSlide
+                            ? "#fff"
+                            : "rgba(255,255,255,0.45)",
+                        width: i === activeSlide ? 8 : 6,
+                        height: i === activeSlide ? 8 : 6,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        ) : (
           <View
             style={[
-              styles.statusOverlay,
-              isRtl ? styles.statusOverlayRtl : styles.statusOverlayLtr,
+              styles.noPhotoBox,
+              { backgroundColor: colors.muted },
             ]}
           >
-            <StatusBadge status={listing.status} />
+            <Camera size={28} color={colors.mutedForeground} />
+            <Text style={{ fontSize: 11, color: colors.mutedForeground, marginTop: 6 }}>
+              {t("listing.noPhoto")}
+            </Text>
           </View>
-        </View>
+        )}
 
-        <View className="p-3 gap-1.5">
+        {/* Text info */}
+        <View style={styles.info}>
           <PriceTag price={listing.price} currency={listing.currency} size="md" />
 
           <Text
-            style={{ fontSize: 14, fontWeight: "500", textAlign: isRtl ? "right" : "left" }}
+            style={{
+              fontSize: 14,
+              fontWeight: "500",
+              color: colors.foreground,
+              textAlign: isRtl ? "right" : "left",
+              marginTop: 4,
+            }}
             numberOfLines={2}
           >
             {listing.title}
           </Text>
 
-          <View style={{ flexDirection: rowDirection, gap: 12, alignItems: "center" }}>
-            <View style={{ flexDirection: rowDirection, alignItems: "center", gap: 4 }}>
+          <View style={[styles.metaRow, { flexDirection: rowDirection }]}>
+            <View style={[styles.metaItem, { flexDirection: rowDirection }]}>
               <Eye size={12} color={colors.mutedForeground} />
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
                 {t("listing.viewsCount", { count: formatNumber(listing.viewsCount ?? 0) })}
               </Text>
             </View>
             {listing.conversationsCount != null && (
-              <View style={{ flexDirection: rowDirection, alignItems: "center", gap: 4 }}>
+              <View style={[styles.metaItem, { flexDirection: rowDirection }]}>
                 <MessageCircle size={12} color={colors.mutedForeground} />
                 <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                  {t("listing.conversationsCount", {
-                    count: formatNumber(listing.conversationsCount),
-                  })}
+                  {t("listing.conversationsCount", { count: formatNumber(listing.conversationsCount) })}
                 </Text>
               </View>
             )}
@@ -247,12 +288,27 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
         </View>
       </Pressable>
 
-      <View className="px-3 pb-3" style={{ flexDirection: rowDirection, gap: 8 }}>
+      {/* Action buttons */}
+      <View style={[styles.actions, { flexDirection: rowDirection, borderTopColor: colors.border }]}>
         {primaryAction}
-        <Button variant="outline" size="sm" style={styles.iconBtn} onPress={handleEdit} disabled={isLoading} accessibilityLabel={t("common.edit")}>
+        <Button
+          variant="outline"
+          size="sm"
+          style={styles.iconBtn}
+          onPress={handleEdit}
+          disabled={isLoading}
+          accessibilityLabel={t("common.edit")}
+        >
           <Pencil size={15} color={colors.foreground} />
         </Button>
-        <Button variant="outline" size="sm" style={styles.iconBtn} onPress={handleDelete} disabled={isLoading} accessibilityLabel={t("common.delete")}>
+        <Button
+          variant="outline"
+          size="sm"
+          style={styles.iconBtn}
+          onPress={handleDelete}
+          disabled={isLoading}
+          accessibilityLabel={t("common.delete")}
+        >
           <Trash2 size={15} color={colors.destructive} />
         </Button>
       </View>
@@ -261,33 +317,79 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
 }
 
 const styles = StyleSheet.create({
-  imageContainer: {
+  card: {
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+    marginBottom: 16,
+  },
+  galleryWrapper: {
     width: "100%",
     aspectRatio: 4 / 3,
     position: "relative",
+    backgroundColor: "#000",
   },
-  image: {
+  galleryImage: {
+    aspectRatio: 4 / 3,
+  },
+  noPhotoBox: {
     width: "100%",
-    height: "100%",
+    aspectRatio: 4 / 3,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  statusOverlay: {
+  statusBadge: {
     position: "absolute",
-    top: 8,
+    top: 10,
   },
-  statusOverlayLtr: {
-    left: 8,
+  statusBadgeLtr: {
+    left: 10,
   },
-  statusOverlayRtl: {
-    right: 8,
+  statusBadgeRtl: {
+    right: 10,
+  },
+  dotsRow: {
+    position: "absolute",
+    bottom: 10,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 5,
+  },
+  dot: {
+    borderRadius: 99,
+  },
+  info: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+  },
+  metaRow: {
+    marginTop: 8,
+    gap: 14,
+    alignItems: "center",
+  },
+  metaItem: {
+    alignItems: "center",
+    gap: 4,
+  },
+  actions: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 10,
+    alignItems: "center",
   },
   actionBtn: {
     flex: 1,
   },
   iconBtn: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     paddingHorizontal: 0,
     paddingVertical: 0,
-    minHeight: 36,
+    minHeight: 38,
   },
 });

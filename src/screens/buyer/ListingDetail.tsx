@@ -351,7 +351,7 @@ export default function ListingDetailScreen() {
             </View>
           </View>
 
-          {/* Location */}
+          {/* Location (province) */}
           {listing.location ? (
             <View
               style={[styles.row, { flexDirection: isRtl ? "row-reverse" : "row" }]}
@@ -359,6 +359,18 @@ export default function ListingDetailScreen() {
               <MapPin size={13} color={colors.mutedForeground} />
               <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
                 {listing.location}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Address (meeting point) */}
+          {listing.address ? (
+            <View
+              style={[styles.row, { flexDirection: isRtl ? "row-reverse" : "row" }]}
+            >
+              <MapPin size={13} color={colors.primary} />
+              <Text style={{ fontSize: 13, color: colors.foreground, flex: 1 }}>
+                {listing.address}
               </Text>
             </View>
           ) : null}

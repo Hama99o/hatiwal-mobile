@@ -24,13 +24,16 @@ export interface Listing {
   title: string;
   description: string | null;
   price: number;
-  currency: "AFN" | "USD";
+  currency: "AFN" | "USD" | "EUR";
   status: "draft" | "active" | "reserved" | "sold";
   categoryId: number;
   location: string | null;
+  address: string | null;
   latitude: number | null;
   longitude: number | null;
   thumbnailUrl: string | null;
+  imageUrls?: string[];
+  images?: string[];
   viewsCount: number;
   conversationsCount?: number;
   isSaved?: boolean;
@@ -49,7 +52,6 @@ export interface Listing {
     nameFa: string;
     slug: string;
   };
-  images?: string[];
 }
 
 export interface ListingsResponse {
@@ -140,9 +142,10 @@ export const listingsAPI = {
       title: string;
       description?: string;
       price: number;
-      currency: "AFN" | "USD";
+      currency: "AFN" | "USD" | "EUR";
       categoryId: number;
       location?: string;
+      address?: string;
       latitude?: number;
       longitude?: number;
     },
@@ -155,6 +158,7 @@ export const listingsAPI = {
     form.append("listing[currency]", data.currency);
     form.append("listing[category_id]", String(data.categoryId));
     if (data.location) form.append("listing[location]", data.location);
+    if (data.address) form.append("listing[address]", data.address);
     if (data.latitude != null) form.append("listing[latitude]", String(data.latitude));
     if (data.longitude != null) form.append("listing[longitude]", String(data.longitude));
 
@@ -172,9 +176,10 @@ export const listingsAPI = {
       title: string;
       description?: string;
       price: number;
-      currency: "AFN" | "USD";
+      currency: "AFN" | "USD" | "EUR";
       categoryId: number;
       location?: string;
+      address?: string;
       latitude?: number;
       longitude?: number;
     },
@@ -187,6 +192,7 @@ export const listingsAPI = {
     form.append("listing[currency]", data.currency);
     form.append("listing[category_id]", String(data.categoryId));
     if (data.location) form.append("listing[location]", data.location);
+    if (data.address) form.append("listing[address]", data.address);
     if (data.latitude != null) form.append("listing[latitude]", String(data.latitude));
     if (data.longitude != null) form.append("listing[longitude]", String(data.longitude));
 

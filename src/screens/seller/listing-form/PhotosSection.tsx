@@ -1,15 +1,14 @@
 /**
- * PhotosSection — multi-photo picker strip.
+ * PhotosSection — multi-photo picker with reorder support.
  *
- * Uses expo-image-picker for camera + library access.
- * Uses expo-image for display (disk-cached, placeholders).
- * Supports reorder (drag via long-press swap), cover indicator (first photo),
- * and per-photo remove.
- *
- * Props are intentionally simple: the parent ListingForm owns the photos array.
+ * Empty state:   full-width dashed card, tap to open source picker.
+ * With photos:   horizontal strip of 104×104 thumbnails + single "+" tile at end.
+ * First photo:   "Cover" badge — always displayed first.
+ * Reorder:       long-press any thumb to enter select mode, then tap another to swap.
+ * Source picker: bottom sheet (Photo Library | Take Photo | Cancel).
  */
 
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   ScrollView,
@@ -17,19 +16,19 @@ import {
   StyleSheet,
   Alert,
   Modal,
+  Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
 import { Text } from "@/components/reusables/text";
-import { Button } from "@/components/reusables/button";
-import { X, Camera, ImageIcon, Star } from "lucide-react-native";
+import { Camera, ImageIcon, Plus, Star, X, ArrowLeftRight } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 
 export interface PhotoItem {
   uri: string;
-  /** true if this is an already-uploaded URL (edit mode) */
+  /** true if this is an already-uploaded remote URL (edit mode) */
   isRemote?: boolean;
 }
 
@@ -40,24 +39,39 @@ interface Props {
 }
 
 const MAX_DEFAULT = 8;
+const THUMB = 104;
+const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 
-export function PhotosSection({ photos, onChange, maxPhotos = MAX_DEFAULT }: Props) {
+export function PhotosSection({
+  photos,
+  onChange,
+  maxPhotos = MAX_DEFAULT,
+}: Props) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  const [pickerVisible, setPickerVisible] = useState(false);
+  // reorder: index of the photo currently "picked up" for swapping (-1 = none)
+  const [selectedIdx, setSelectedIdx] = useState(-1);
 
   const canAddMore = photos.length < maxPhotos;
 
+  // ── Source picker ─────────────────────────────────────────────────────────
+
   async function pickFromLibrary() {
+    setPickerVisible(false);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(t("listing.form.permissionRequired"), t("listing.form.galleryPermission"));
+      Alert.alert(
+        t("listing.form.permissionRequired"),
+        t("listing.form.galleryPermission")
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 0.8,
+      quality: 0.85,
       selectionLimit: maxPhotos - photos.length,
     });
     if (!result.canceled) {
@@ -67,43 +81,137 @@ export function PhotosSection({ photos, onChange, maxPhotos = MAX_DEFAULT }: Pro
   }
 
   async function pickFromCamera() {
+    setPickerVisible(false);
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(t("listing.form.permissionRequired"), t("listing.form.cameraPermission"));
+      Alert.alert(
+        t("listing.form.permissionRequired"),
+        t("listing.form.cameraPermission")
+      );
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 0.8,
-    });
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.85 });
     if (!result.canceled && result.assets[0]) {
       onChange([...photos, { uri: result.assets[0].uri }]);
     }
   }
 
+  // ── Photo management ──────────────────────────────────────────────────────
+
   function removePhoto(index: number) {
-    const next = photos.filter((_, i) => i !== index);
-    onChange(next);
+    setSelectedIdx(-1);
+    onChange(photos.filter((_, i) => i !== index));
   }
 
-  function moveToFront(index: number) {
+  function promoteToFirst(index: number) {
     if (index === 0) return;
     const next = [...photos];
     const [item] = next.splice(index, 1);
     next.unshift(item);
+    setSelectedIdx(-1);
     onChange(next);
   }
 
+  function handleThumbPress(index: number) {
+    if (selectedIdx === -1) {
+      // Nothing selected — enter select mode
+      setSelectedIdx(index);
+      return;
+    }
+    if (selectedIdx === index) {
+      // Tapped same photo — deselect
+      setSelectedIdx(-1);
+      return;
+    }
+    // Swap selectedIdx ↔ index
+    const next = [...photos];
+    [next[selectedIdx], next[index]] = [next[index], next[selectedIdx]];
+    setSelectedIdx(-1);
+    onChange(next);
+  }
+
+  // ── Empty state ───────────────────────────────────────────────────────────
+
+  if (photos.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View
+          style={[
+            styles.labelRow,
+            { flexDirection: isRtl ? "row-reverse" : "row" },
+          ]}
+        >
+          <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>
+            {t("listing.form.photos")}
+          </Text>
+        </View>
+
+        <Pressable
+          style={[
+            styles.emptyCard,
+            { borderColor: colors.border, backgroundColor: colors.card },
+          ]}
+          onPress={() => setPickerVisible(true)}
+        >
+          <Camera size={32} color={colors.mutedForeground} />
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: "500",
+              color: colors.foreground,
+              marginTop: 10,
+            }}
+          >
+            {t("listing.form.addPhotos")}
+          </Text>
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.mutedForeground,
+              marginTop: 4,
+              textAlign: "center",
+            }}
+          >
+            {t("listing.form.photosHint")}
+          </Text>
+        </Pressable>
+
+        <SourcePickerSheet
+          visible={pickerVisible}
+          onLibrary={pickFromLibrary}
+          onCamera={pickFromCamera}
+          onClose={() => setPickerVisible(false)}
+        />
+      </View>
+    );
+  }
+
+  // ── Strip with photos ─────────────────────────────────────────────────────
+
   return (
     <View style={styles.container}>
-      <View style={[styles.labelRow, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
-        <Text style={{ fontSize: 16, fontWeight: "600" }}>
+      {/* Label + count + hint */}
+      <View
+        style={[
+          styles.labelRow,
+          { flexDirection: isRtl ? "row-reverse" : "row" },
+        ]}
+      >
+        <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>
           {t("listing.form.photos")}
         </Text>
-        <Text style={{ fontSize: 12, color: colors.mutedForeground, marginLeft: 8 }}>
+        <Text style={{ fontSize: 12, color: colors.mutedForeground, marginLeft: 6 }}>
           {`${photos.length}/${maxPhotos}`}
         </Text>
       </View>
 
+      {selectedIdx !== -1 && (
+        <Text style={{ fontSize: 12, color: colors.primary, marginBottom: 4 }}>
+          {t("listing.form.reorderHint")}
+        </Text>
+      )}
+
+      {/* Horizontal strip */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -112,147 +220,281 @@ export function PhotosSection({ photos, onChange, maxPhotos = MAX_DEFAULT }: Pro
           { flexDirection: isRtl ? "row-reverse" : "row" },
         ]}
       >
-        {photos.map((photo, index) => (
-          <View key={photo.uri + index} style={styles.thumb}>
-            <Image
-              source={{ uri: photo.uri }}
-              style={styles.thumbImage}
-              contentFit="cover"
-              placeholder={{ blurhash: "L6PZfSi_.AyE_3t7t7R**0o#DgR4" }}
-              transition={200}
-            />
-            {/* Cover badge on first photo */}
-            {index === 0 && (
-              <View style={[styles.coverBadge, { backgroundColor: colors.primary }]}>
-                <Star size={10} color={colors.primaryForeground} fill={colors.primaryForeground} />
-              </View>
-            )}
-            {/* Remove button */}
+        {photos.map((photo, index) => {
+          const isSelected = index === selectedIdx;
+          return (
             <Pressable
-              style={[styles.removeBtn, { backgroundColor: colors.destructive }]}
-              onPress={() => removePhoto(index)}
-              hitSlop={8}
+              key={photo.uri + index}
+              onPress={() => handleThumbPress(index)}
+              onLongPress={() => setSelectedIdx(index)}
+              delayLongPress={300}
+              style={[
+                styles.thumb,
+                isSelected && {
+                  borderWidth: 2.5,
+                  borderColor: colors.primary,
+                  borderRadius: 10,
+                },
+              ]}
             >
-              <X size={10} color={colors.destructiveForeground} strokeWidth={3} />
-            </Pressable>
-            {/* Tap to set as cover (not index 0) */}
-            {index !== 0 && (
-              <Pressable
-                style={styles.setCoverBtn}
-                onPress={() => moveToFront(index)}
-                hitSlop={4}
-              >
-                <Star size={12} color="#fff" />
-              </Pressable>
-            )}
-          </View>
-        ))}
+              <Image
+                source={{ uri: photo.uri }}
+                style={styles.thumbImg}
+                contentFit="cover"
+                placeholder={{ blurhash: BLURHASH }}
+                transition={200}
+              />
 
-        {/* Add photo button */}
-        {canAddMore && (
-          <View style={[styles.addGroup, { flexDirection: isRtl ? "row-reverse" : "column" }]}>
-            <Pressable
-              style={[styles.addBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-              onPress={pickFromLibrary}
-            >
-              <ImageIcon size={22} color={colors.mutedForeground} />
-              <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 4 }}>
-                {t("listing.form.gallery")}
-              </Text>
+              {/* Cover badge — first photo only */}
+              {index === 0 && (
+                <View
+                  style={[styles.coverBadge, { backgroundColor: colors.primary }]}
+                >
+                  <Text
+                    style={{
+                      fontSize: 9,
+                      fontWeight: "700",
+                      color: colors.primaryForeground,
+                    }}
+                  >
+                    {t("listing.form.coverLabel")}
+                  </Text>
+                </View>
+              )}
+
+              {/* Swap indicator when selected */}
+              {isSelected && (
+                <View style={styles.swapOverlay}>
+                  <ArrowLeftRight size={16} color="#fff" />
+                </View>
+              )}
+
+              {/* Remove × (only when not in reorder mode) */}
+              {selectedIdx === -1 && (
+                <Pressable
+                  style={[styles.removeBtn, { backgroundColor: colors.destructive }]}
+                  onPress={() => removePhoto(index)}
+                  hitSlop={8}
+                >
+                  <X size={9} color="#fff" strokeWidth={3} />
+                </Pressable>
+              )}
+
+              {/* Set as cover ★ (non-first only, when not in reorder mode) */}
+              {index !== 0 && selectedIdx === -1 && (
+                <Pressable
+                  style={styles.coverBtn}
+                  onPress={() => promoteToFirst(index)}
+                  hitSlop={6}
+                >
+                  <Star size={11} color="#fff" />
+                </Pressable>
+              )}
             </Pressable>
-            <Pressable
-              style={[styles.addBtn, { borderColor: colors.border, backgroundColor: colors.card }, styles.addBtnCamera]}
-              onPress={pickFromCamera}
-            >
-              <Camera size={22} color={colors.mutedForeground} />
-              <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 4 }}>
-                {t("listing.form.camera")}
-              </Text>
-            </Pressable>
-          </View>
+          );
+        })}
+
+        {/* Single + add tile */}
+        {canAddMore && selectedIdx === -1 && (
+          <Pressable
+            style={[
+              styles.addTile,
+              { borderColor: colors.border, backgroundColor: colors.card },
+            ]}
+            onPress={() => setPickerVisible(true)}
+          >
+            <Plus size={22} color={colors.mutedForeground} />
+          </Pressable>
         )}
       </ScrollView>
 
-      {photos.length === 0 && (
-        <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 8 }}>
-          {t("listing.form.photosHint")}
-        </Text>
-      )}
+      <SourcePickerSheet
+        visible={pickerVisible}
+        onLibrary={pickFromLibrary}
+        onCamera={pickFromCamera}
+        onClose={() => setPickerVisible(false)}
+      />
     </View>
   );
 }
 
-const THUMB_SIZE = 90;
+// ── Internal source picker bottom sheet ──────────────────────────────────────
+
+interface SourcePickerProps {
+  visible: boolean;
+  onLibrary: () => void;
+  onCamera: () => void;
+  onClose: () => void;
+}
+
+function SourcePickerSheet({
+  visible,
+  onLibrary,
+  onCamera,
+  onClose,
+}: SourcePickerProps) {
+  const { t } = useTranslation();
+  const { isRtl } = useLocalization();
+  const colors = useColors();
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.backdrop} onPress={onClose} />
+      <View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
+          },
+        ]}
+      >
+        <Pressable
+          style={[
+            styles.sheetRow,
+            {
+              flexDirection: isRtl ? "row-reverse" : "row",
+              borderBottomColor: colors.border,
+            },
+          ]}
+          onPress={onLibrary}
+        >
+          <ImageIcon size={18} color={colors.foreground} />
+          <Text style={{ fontSize: 16, color: colors.foreground, marginLeft: 12 }}>
+            {t("listing.form.gallery")}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.sheetRow,
+            {
+              flexDirection: isRtl ? "row-reverse" : "row",
+              borderBottomColor: colors.border,
+            },
+          ]}
+          onPress={onCamera}
+        >
+          <Camera size={18} color={colors.foreground} />
+          <Text style={{ fontSize: 16, color: colors.foreground, marginLeft: 12 }}>
+            {t("listing.form.camera")}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.sheetRow,
+            { flexDirection: isRtl ? "row-reverse" : "row" },
+          ]}
+          onPress={onClose}
+        >
+          <Text
+            style={{ fontSize: 16, color: colors.mutedForeground, textAlign: "center", flex: 1 }}
+          >
+            {t("common.cancel")}
+          </Text>
+        </Pressable>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 8,
-  },
-  labelRow: {
+  container: { gap: 10 },
+  labelRow: { alignItems: "center", gap: 4 },
+  emptyCard: {
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderRadius: 12,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
     alignItems: "center",
-    gap: 4,
+    justifyContent: "center",
   },
   strip: {
     gap: 10,
     paddingVertical: 4,
   },
   thumb: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: 8,
+    width: THUMB,
+    height: THUMB,
+    borderRadius: 10,
     overflow: "hidden",
     position: "relative",
   },
-  thumbImage: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: 8,
+  thumbImg: {
+    width: THUMB,
+    height: THUMB,
   },
   coverBadge: {
     position: "absolute",
-    top: 4,
-    left: 4,
+    bottom: 5,
+    left: 5,
     borderRadius: 4,
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     paddingVertical: 2,
-    flexDirection: "row",
+  },
+  swapOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.35)",
     alignItems: "center",
-    gap: 2,
+    justifyContent: "center",
   },
   removeBtn: {
     position: "absolute",
-    top: 4,
-    right: 4,
+    top: 5,
+    right: 5,
     width: 18,
     height: 18,
     borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
   },
-  setCoverBtn: {
+  coverBtn: {
     position: "absolute",
-    bottom: 4,
-    left: 4,
+    top: 5,
+    left: 5,
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     alignItems: "center",
     justifyContent: "center",
   },
-  addGroup: {
-    gap: 8,
-  },
-  addBtn: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: 8,
+  addTile: {
+    width: THUMB,
+    height: THUMB,
+    borderRadius: 10,
     borderWidth: 1.5,
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
   },
-  addBtnCamera: {
-    marginTop: 0,
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  sheet: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderTopWidth: 1,
+    paddingBottom: Platform.OS === "ios" ? 34 : 16,
+  },
+  sheetRow: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
   },
 });

@@ -61,6 +61,7 @@
     "description": "Post your first listing to start selling."
   },
   "postListing": "Post a listing",
+  "noPhoto": "No photo",
   "detail": {
     "contactSeller": "Contact Seller",
     "makeOffer": "Make an Offer",
@@ -83,7 +84,9 @@
   },
   "form": {
     "photos": "Photos",
+    "addPhotos": "Add Photos",
     "photosHint": "Add at least one photo to attract buyers.",
+    "coverLabel": "Cover",
     "gallery": "Gallery",
     "camera": "Camera",
     "permissionRequired": "Permission Required",
@@ -92,6 +95,16 @@
     "selectCategory": "Select Category",
     "searchCategories": "Search categories...",
     "selectCategoryPlaceholder": "Tap to select category",
+    "selectCurrency": "Select Currency",
+    "currencyAFN": "AFN – Afghani",
+    "currencyUSD": "USD – US Dollar",
+    "currencyEUR": "EUR – Euro",
+    "selectProvince": "Select Province",
+    "searchProvinces": "Search provinces...",
+    "reorderHint": "Tap another photo to swap positions",
+    "addressLabel": "Meeting Address",
+    "addressPlaceholder": "e.g. Near Blue Mosque, Shar-e-Naw",
+    "addressHint": "Tell buyers where to meet you to collect the item.",
     "titleRequired": "Title is required (max 150 characters)",
     "priceRequired": "Enter a valid price greater than 0",
     "categoryRequired": "Please select a category",
@@ -100,6 +113,5 @@
     "published": "Listing published!",
     "saveError": "Failed to save — please try again.",
     "publishError": "Failed to publish — please try again.",
-  "noPhoto": "No photo"
   }
 }

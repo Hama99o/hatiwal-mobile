@@ -61,6 +61,7 @@
     "description": "اولین آگهی خود را برای شروع فروش ثبت کنید."
   },
   "postListing": "ثبت آگهی",
+  "noPhoto": "عکس ندارد",
   "detail": {
     "contactSeller": "تماس با فروشنده",
     "makeOffer": "پیشنهاد قیمت",
@@ -83,7 +84,9 @@
   },
   "form": {
     "photos": "عکس‌ها",
+    "addPhotos": "افزودن عکس",
     "photosHint": "برای جذب خریداران حداقل یک عکس اضافه کنید.",
+    "coverLabel": "جلد",
     "gallery": "گالری",
     "camera": "دوربین",
     "permissionRequired": "مجوز لازم است",
@@ -92,6 +95,16 @@
     "selectCategory": "انتخاب دسته‌بندی",
     "searchCategories": "جستجوی دسته‌بندی‌ها...",
     "selectCategoryPlaceholder": "برای انتخاب دسته‌بندی ضربه بزنید",
+    "selectCurrency": "انتخاب ارز",
+    "currencyAFN": "افغانی",
+    "currencyUSD": "دلار آمریکا",
+    "currencyEUR": "یورو",
+    "selectProvince": "انتخاب ولایت",
+    "searchProvinces": "جستجوی ولایت...",
+    "reorderHint": "روی عکس دیگری ضربه بزنید تا جا عوض شود",
+    "addressLabel": "آدرس ملاقات",
+    "addressPlaceholder": "مثلاً: نزدیک مسجد آبی، شهر نو",
+    "addressHint": "به خریداران بگویید کجا بیایند تا کالا را تحویل بگیرند.",
     "titleRequired": "عنوان الزامی است (حداکثر ۱۵۰ کاراکتر)",
     "priceRequired": "یک قیمت معتبر بیشتر از ۰ وارد کنید",
     "categoryRequired": "لطفاً یک دسته‌بندی انتخاب کنید",
@@ -100,6 +113,5 @@
     "published": "آگهی منتشر شد!",
     "saveError": "ذخیره ناموفق بود — دوباره تلاش کنید.",
     "publishError": "انتشار ناموفق بود — دوباره تلاش کنید.",
-  "noPhoto": "عکس ندارد"
-  }
+    }
 }
