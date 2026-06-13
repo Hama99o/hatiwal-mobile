@@ -127,6 +127,10 @@ export default function ListingFormScreen() {
         description: existingListing.description ?? "",
         location: existingListing.location ?? "",
       });
+      // Pre-fill the category picker display from the embedded category object
+      if (existingListing.category) {
+        setSelectedCategory(existingListing.category as any);
+      }
       if (existingListing.images) {
         setPhotos(existingListing.images.map((uri) => ({ uri, isRemote: true })));
       }
@@ -148,7 +152,7 @@ export default function ListingFormScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-listings"] });
       toast.success(t("listing.form.savedDraft"));
-      router.back();
+      router.replace("/(main)/(tabs)/my-listings" as never);
     },
     onError: () => {
       toast.error(t("listing.form.saveError"));
@@ -174,7 +178,7 @@ export default function ListingFormScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-listings"] });
       toast.success(t("listing.form.published"));
-      router.back();
+      router.replace("/(main)/(tabs)/my-listings" as never);
     },
     onError: () => {
       toast.error(t("listing.form.publishError"));

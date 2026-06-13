@@ -832,6 +832,20 @@ const config = { id: 'buyer-browse', ... };
 // ✅ refetchKey in id
 const config = { id: `buyer-browse-${refetchKey}`, ... };
 
+// ❌ router.back() after a mutation — crashes if there is no back stack
+//    (e.g. user opened the edit screen directly via URL / hard refresh)
+onSuccess: () => { router.back(); }
+// ✅ Always navigate to a named route after mutations
+onSuccess: () => { router.replace('/(main)/(tabs)/my-listings' as never); }
+
+// ❌ HSL color + hex suffix — creates invalid color strings on web
+//    React Native Web parses only the valid HSL prefix → solid background
+//    that matches text color → invisible text
+style={{ backgroundColor: colors.primary + '22' }}
+// ✅ Use the pre-computed alpha variants from useColors()
+style={{ backgroundColor: colors.primaryAlpha }}
+// Available: colors.primaryAlpha, colors.destructiveAlpha, colors.warningAlpha
+
 // ❌ Raw react-native Text
 import { Text } from 'react-native';
 // ✅ RNR Text
