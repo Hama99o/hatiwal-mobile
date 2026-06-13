@@ -312,22 +312,28 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
 
   // Regular text bubble
   return (
-    <View style={{ alignItems: bubbleAlign, marginVertical: 2, marginHorizontal: 16 }}>
+    <View style={{ alignItems: bubbleAlign, marginVertical: 4, marginHorizontal: 12 }}>
       <View
         style={{
           maxWidth: "78%",
-          borderRadius: 16,
-          borderBottomRightRadius: isMine && !isRtl ? 4 : 16,
-          borderBottomLeftRadius: !isMine && !isRtl ? 4 : 16,
+          borderRadius: 18,
+          borderBottomRightRadius: isMine && !isRtl ? 6 : 18,
+          borderBottomLeftRadius: !isMine && !isRtl ? 6 : 18,
           backgroundColor: bubbleBg,
-          paddingHorizontal: 12,
-          paddingVertical: 8,
-          ...(isMine ? {} : { borderWidth: 1, borderColor: colors.border }),
+          paddingHorizontal: 14,
+          paddingVertical: 10,
+          shadowColor: "#000",
+          shadowOpacity: isMine ? 0.15 : 0.08,
+          shadowRadius: 3,
+          shadowOffset: { width: 0, height: 1 },
+          elevation: isMine ? 2 : 1,
+          ...(isMine ? {} : { borderWidth: 0.5, borderColor: colors.border }),
         }}
       >
         <Text
           style={{
             fontSize: 15,
+            fontWeight: "400",
             color: bubbleText,
             lineHeight: 22,
             textAlign: isRtl ? "right" : "left",
@@ -342,18 +348,18 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
             flexDirection: "row",
             justifyContent: "flex-end",
             alignItems: "center",
-            gap: 3,
-            marginTop: 3,
+            gap: 4,
+            marginTop: 5,
           }}
         >
-          <Text style={{ fontSize: 11, color: metaColor }}>
+          <Text style={{ fontSize: 12, color: metaColor, fontWeight: "400" }}>
             {formatTime(message.createdAt)}
           </Text>
           {isMine ? (
             message.readAt ? (
               <ReadReceipt color={readColor} />
             ) : (
-              <Check size={11} color={metaColor} />
+              <Check size={12} color={metaColor} />
             )
           ) : null}
         </View>

@@ -145,8 +145,12 @@ export function ConversationScreen() {
       setMessages([...items].reverse());
       setPage(1);
       setTotalPages(pagination.totalPages);
-      // Snap to bottom on initial load (no animation — instant)
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 80);
+      isNearBottomRef.current = true;
+      // Snap to bottom on initial load with delay to ensure layout is ready
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100);
+      }, 100);
     } catch {
       toast.error(t("chat.thread.loadFailed"));
     } finally {
@@ -176,6 +180,25 @@ export function ConversationScreen() {
       isLoadingMoreRef.current = false;
     }
   }, [currentConversationId, page, totalPages]);
+
+  // ── Memoized scroll handler for infinite scroll ──────────────────────────
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent;
+      // Track whether user is near the bottom (latest messages)
+      isNearBottomRef.current =
+        contentSize.height - layoutMeasurement.height - contentOffset.y < 120;
+      // Trigger load of older messages when scrolled near the top
+      if (
+        contentOffset.y < 80 &&
+        !isLoadingMoreRef.current &&
+        page < totalPages
+      ) {
+        loadOlderMessages();
+      }
+    },
+    [loadOlderMessages, page, totalPages]
+  );
 
   // Mark messages as read silently
   const markRead = useCallback(async (convId: number) => {
@@ -253,7 +276,12 @@ export function ConversationScreen() {
     };
     setMessages((prev) => [...prev, optimistic]);
     isNearBottomRef.current = true;
-    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
+    // Wait for FlatList to render the new message before scrolling
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+      // Scroll again after a longer delay to ensure it reaches the bottom on slow devices
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 150);
+    }, 100);
 
     try {
       const sent = await conversationsAPI.sendMessage(convId, text, "text");
@@ -363,7 +391,7 @@ export function ConversationScreen() {
     });
     // Only auto-scroll if user is already reading the latest messages
     if (isNearBottomRef.current) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 120);
     }
   }, [currentUser]));
 
@@ -453,23 +481,9 @@ export function ConversationScreen() {
             />
           )}
           contentContainerStyle={styles.messageList}
-          // Prevents scroll jumping when older messages are prepended at the top
           maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
           scrollEventThrottle={200}
-          onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
-            const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent;
-            // Track whether user is near the bottom (latest messages)
-            isNearBottomRef.current =
-              contentSize.height - layoutMeasurement.height - contentOffset.y < 120;
-            // Trigger load of older messages when scrolled near the top
-            if (
-              contentOffset.y < 80 &&
-              !isLoadingMoreRef.current &&
-              page < totalPages
-            ) {
-              loadOlderMessages();
-            }
-          }}
+          onScroll={handleScroll}
           ListHeaderComponent={
             isLoadingMore ? (
               <View style={{ paddingVertical: 14, alignItems: "center" }}>

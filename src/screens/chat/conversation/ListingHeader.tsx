@@ -7,6 +7,7 @@ import React from "react";
 import { View, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { useTranslation } from "react-i18next";
+import { ChevronRight, ChevronLeft, MapPin } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -39,6 +40,8 @@ export function ListingHeader({ listing, onPress }: ListingHeaderProps) {
     ? (listing.status as ListingStatus)
     : "active";
 
+  const Chevron = isRtl ? ChevronLeft : ChevronRight;
+
   return (
     <Pressable
       onPress={onPress}
@@ -46,33 +49,45 @@ export function ListingHeader({ listing, onPress }: ListingHeaderProps) {
       style={{
         flexDirection: isRtl ? "row-reverse" : "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
         backgroundColor: colors.card,
-        gap: 12,
+        gap: 10,
       }}
       accessibilityRole="button"
       accessibilityLabel={t("chat.openListing")}
     >
-      {/* Thumbnail */}
+      {/* Thumbnail — compact */}
       <Image
         source={listing.thumbnailUrl ? { uri: listing.thumbnailUrl } : undefined}
-        style={{ width: 56, height: 56, borderRadius: 8 }}
+        style={{ width: 40, height: 40, borderRadius: 8 }}
         contentFit="cover"
         placeholder={{ blurhash: "L6PZfSi_.AyE_3t7t7R**0o#DgR4" }}
         transition={200}
       />
 
-      {/* Info */}
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text
-          style={{ fontSize: 14, fontWeight: "600", textAlign: isRtl ? "right" : "left" }}
-          numberOfLines={1}
+      {/* Info — single tight column */}
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        {/* Row 1: title + status */}
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            gap: 6,
+          }}
         >
-          {listing.title}
-        </Text>
+          <Text
+            style={{ fontSize: 13, fontWeight: "600", color: colors.foreground, flexShrink: 1, textAlign: isRtl ? "right" : "left" }}
+            numberOfLines={1}
+          >
+            {listing.title}
+          </Text>
+          <StatusBadge status={status} />
+        </View>
+
+        {/* Row 2: price + location, tight inline */}
         <View
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
@@ -80,22 +95,30 @@ export function ListingHeader({ listing, onPress }: ListingHeaderProps) {
             gap: 8,
           }}
         >
-          <PriceTag
-            price={listing.price}
-            currency={listing.currency}
-            size="sm"
-          />
-          <StatusBadge status={status} />
+          <PriceTag price={listing.price} currency={listing.currency} size="sm" />
+          {listing.location ? (
+            <View
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                alignItems: "center",
+                gap: 2,
+                flexShrink: 1,
+              }}
+            >
+              <MapPin size={11} color={colors.mutedForeground} />
+              <Text
+                style={{ fontSize: 11, color: colors.mutedForeground, flexShrink: 1, textAlign: isRtl ? "right" : "left" }}
+                numberOfLines={1}
+              >
+                {listing.location}
+              </Text>
+            </View>
+          ) : null}
         </View>
-        {listing.location ? (
-          <Text
-            style={{ fontSize: 12, color: colors.mutedForeground, textAlign: isRtl ? "right" : "left" }}
-            numberOfLines={1}
-          >
-            {listing.location}
-          </Text>
-        ) : null}
       </View>
+
+      {/* Affordance — tap to open listing */}
+      <Chevron size={18} color={colors.mutedForeground} />
     </Pressable>
   );
 }
