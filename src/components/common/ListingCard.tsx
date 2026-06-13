@@ -1,7 +1,7 @@
 import { View, Pressable, StyleSheet } from "react-native";
 import { Text } from "@/components/reusables/text";
 import { Image } from "expo-image";
-import { Heart, MapPin } from "lucide-react-native";
+import { Heart, MapPin, Camera } from "lucide-react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -114,18 +114,21 @@ export function ListingCard({
       >
         {/* ── Photo ──────────────────────────────────────────────────── */}
         <View style={[styles.imageContainer, { backgroundColor: colors.imagePlaceholder }]}>
-          <Image
-            source={
-              listing.thumbnailUrl
-                ? { uri: listing.thumbnailUrl }
-                : undefined
-            }
-            placeholder={PHOTO_BLURHASH}
-            contentFit="cover"
-            transition={200}
-            style={styles.image}
-            accessibilityLabel={listing.title}
-          />
+          {listing.thumbnailUrl ? (
+            <Image
+              source={{ uri: listing.thumbnailUrl }}
+              placeholder={PHOTO_BLURHASH}
+              contentFit="cover"
+              transition={300}
+              style={styles.image}
+              accessibilityLabel={listing.title}
+            />
+          ) : (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <Camera size={28} color={colors.mutedForeground} />
+              <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{t("listing.noPhoto")}</Text>
+            </View>
+          )}
 
           {/* StatusBadge overlay (top-left / top-right depending on RTL) */}
           {showStatus && (

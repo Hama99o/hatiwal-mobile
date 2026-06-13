@@ -1,5 +1,23 @@
+import { Platform } from "react-native";
 import { http } from "./http";
 import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
+
+// Appends a local image URI to a FormData object.
+// On web, the React Native `{ uri, name, type }` format serializes as "[object Object]".
+// We fetch the blob directly instead. On native the RN FormData format works.
+async function appendImageUri(form: FormData, uri: string, field: string): Promise<void> {
+  const filename = uri.split("/").pop()?.split("?")[0] ?? "photo.jpg";
+  const ext = (/\.(\w+)$/.exec(filename) ?? [])[1] ?? "jpg";
+  const type = `image/${ext === "jpg" ? "jpeg" : ext}`;
+
+  if (Platform.OS === "web") {
+    const res = await fetch(uri);
+    const blob = await res.blob();
+    form.append(field, blob, filename);
+  } else {
+    form.append(field, { uri, name: filename, type } as unknown as Blob);
+  }
+}
 
 export interface Listing {
   id: number;
@@ -137,12 +155,7 @@ export const listingsAPI = {
     if (data.latitude != null) form.append("listing[latitude]", String(data.latitude));
     if (data.longitude != null) form.append("listing[longitude]", String(data.longitude));
 
-    imageUris.forEach((uri) => {
-      const filename = uri.split("/").pop() ?? "photo.jpg";
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : "image/jpeg";
-      form.append("listing[images][]", { uri, name: filename, type } as unknown as Blob);
-    });
+    await Promise.all(imageUris.map((uri) => appendImageUri(form, uri, "listing[images][]")));
 
     const response = await http.post("/my/listings", form, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -174,12 +187,7 @@ export const listingsAPI = {
     if (data.latitude != null) form.append("listing[latitude]", String(data.latitude));
     if (data.longitude != null) form.append("listing[longitude]", String(data.longitude));
 
-    imageUris.forEach((uri) => {
-      const filename = uri.split("/").pop() ?? "photo.jpg";
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : "image/jpeg";
-      form.append("listing[images][]", { uri, name: filename, type } as unknown as Blob);
-    });
+    await Promise.all(imageUris.map((uri) => appendImageUri(form, uri, "listing[images][]")));
 
     const response = await http.put(`/my/listings/${id}`, form, {
       headers: { "Content-Type": "multipart/form-data" },

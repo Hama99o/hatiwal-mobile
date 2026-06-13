@@ -2,7 +2,7 @@
 import React, { useCallback } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import { Image } from "expo-image";
-import { Eye, MessageCircle, Pencil, Trash2 } from "lucide-react-native";
+import { Eye, MessageCircle, Pencil, Trash2, Camera } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -192,13 +192,20 @@ export function SellerListingCard({ listing, className }: SellerListingCardProps
         android_ripple={{ color: colors.muted }}
       >
         <View style={[styles.imageContainer, { backgroundColor: colors.imagePlaceholder }]}>
-          <Image
-            source={listing.thumbnailUrl ? { uri: listing.thumbnailUrl } : undefined}
-            placeholder={BLURHASH}
-            contentFit="cover"
-            transition={200}
-            style={styles.image}
-          />
+          {listing.thumbnailUrl ? (
+            <Image
+              source={{ uri: listing.thumbnailUrl }}
+              placeholder={BLURHASH}
+              contentFit="cover"
+              transition={200}
+              style={styles.image}
+            />
+          ) : (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <Camera size={28} color={colors.mutedForeground} />
+              <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{t("listing.noPhoto")}</Text>
+            </View>
+          )}
           <View
             style={[
               styles.statusOverlay,
