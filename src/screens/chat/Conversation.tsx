@@ -21,6 +21,8 @@ import {
   ActivityIndicator,
   Alert,
   TouchableOpacity,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -120,24 +122,60 @@ export function ConversationScreen() {
   const [meetupSheetVisible, setMeetupSheetVisible] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(conversationId);
   const [isBlocked, setIsBlocked] = useState(false);
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
+  const isNearBottomRef = useRef(true);
+  const isLoadingMoreRef = useRef(false);
 
-  // ── Load conversation + messages ─────────────────────────────────────────
+  const PAGE_SIZE = 30;
+
+  // ── Load conversation + messages (page 1 = newest, backend returns DESC) ─
   const load = useCallback(async (convId: number) => {
     try {
-      const [conv, msgs] = await Promise.all([
+      const [conv, { items, pagination }] = await Promise.all([
         conversationsAPI.getConversation(convId),
-        conversationsAPI.getMessages(convId, { pageSize: 100 }),
+        conversationsAPI.getMessages(convId, { pageSize: PAGE_SIZE }),
       ]);
       setConversation(conv);
-      setMessages(msgs.items);
+      // Backend returns newest-first → reverse so FlatList shows oldest→newest
+      setMessages([...items].reverse());
+      setPage(1);
+      setTotalPages(pagination.totalPages);
+      // Snap to bottom on initial load (no animation — instant)
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 80);
     } catch {
       toast.error(t("chat.thread.loadFailed"));
     } finally {
       setIsLoading(false);
     }
   }, [t]);
+
+  // ── Load older messages when user scrolls to top ─────────────────────────
+  const loadOlderMessages = useCallback(async () => {
+    const convId = currentConversationId;
+    if (!convId || isLoadingMoreRef.current || page >= totalPages) return;
+    isLoadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    try {
+      const { items } = await conversationsAPI.getMessages(convId, {
+        pageSize: PAGE_SIZE,
+        pageNumber: page + 1,
+      });
+      // Reverse DESC→ASC then prepend (older goes on top)
+      const older = [...items].reverse();
+      setMessages((prev) => [...older, ...prev]);
+      setPage((p) => p + 1);
+    } catch {
+      // silent — user can retry by scrolling
+    } finally {
+      setIsLoadingMore(false);
+      isLoadingMoreRef.current = false;
+    }
+  }, [currentConversationId, page, totalPages]);
 
   // Mark messages as read silently
   const markRead = useCallback(async (convId: number) => {
@@ -160,12 +198,6 @@ export function ConversationScreen() {
     }, [currentConversationId, load, markRead])
   );
 
-  // Scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    }
-  }, [messages.length]);
 
   // ── Start conversation (first message, listing detail flow) ──────────────
   const handleStartConversation = useCallback(async () => {
@@ -210,7 +242,7 @@ export function ConversationScreen() {
     setMessageText("");
     setIsSending(true);
 
-    // Optimistic append
+    // Optimistic append — always scroll to bottom when user sends
     const optimistic: Message = {
       id: -Date.now(),
       body: text,
@@ -220,6 +252,8 @@ export function ConversationScreen() {
       sender: { id: currentUser?.id ?? 0, name: currentUser?.fullName ?? "" },
     };
     setMessages((prev) => [...prev, optimistic]);
+    isNearBottomRef.current = true;
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
 
     try {
       const sent = await conversationsAPI.sendMessage(convId, text, "text");
@@ -327,6 +361,10 @@ export function ConversationScreen() {
       if (prev.some((m) => m.id === incoming.id)) return prev;
       return [...prev, incoming];
     });
+    // Only auto-scroll if user is already reading the latest messages
+    if (isNearBottomRef.current) {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 80);
+    }
   }, [currentUser]));
 
   // ── Derived ──────────────────────────────────────────────────────────────
@@ -415,6 +453,30 @@ export function ConversationScreen() {
             />
           )}
           contentContainerStyle={styles.messageList}
+          // Prevents scroll jumping when older messages are prepended at the top
+          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+          scrollEventThrottle={200}
+          onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+            const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent;
+            // Track whether user is near the bottom (latest messages)
+            isNearBottomRef.current =
+              contentSize.height - layoutMeasurement.height - contentOffset.y < 120;
+            // Trigger load of older messages when scrolled near the top
+            if (
+              contentOffset.y < 80 &&
+              !isLoadingMoreRef.current &&
+              page < totalPages
+            ) {
+              loadOlderMessages();
+            }
+          }}
+          ListHeaderComponent={
+            isLoadingMore ? (
+              <View style={{ paddingVertical: 14, alignItems: "center" }}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={{ fontSize: 16, fontWeight: "600", textAlign: "center" }}>
