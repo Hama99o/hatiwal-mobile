@@ -2,6 +2,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { I18nManager, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { authAPI } from "@/api/auth";
 import { enTranslations } from "./en";
 import { psTranslations } from "./ps";
 import { faTranslations } from "./fa";
@@ -71,6 +72,7 @@ export async function setLanguage(lang: LanguageCode): Promise<void> {
   } catch {
     // ignore persistence errors
   }
+  authAPI.updateMe({ preferredLanguage: lang }).catch(() => null);
 }
 
 export default i18n;

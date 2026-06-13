@@ -14,7 +14,7 @@
  * Both actions call conversationsAPI.startConversation → navigate to chat.
  */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -44,6 +44,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withRepeat,
+  withTiming,
 } from "react-native-reanimated";
 
 import { Text } from "@/components/reusables/text";
@@ -57,9 +59,53 @@ import { conversationsAPI } from "@/api/conversations";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ListingCard } from "@/components/common/ListingCard";
+import { UserAvatar } from "@/components/common/UserAvatar";
 
 const { width: SW } = Dimensions.get("window");
 const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
+
+// ── Skeleton (shown while listing loads) ─────────────────────────────────────
+function PulseBlock({ w, h, style, c }: { w?: number | string; h: number; style?: object; c: string }) {
+  const opacity = useSharedValue(1);
+  useEffect(() => { opacity.value = withRepeat(withTiming(0.35, { duration: 850 }), -1, true); }, [opacity]);
+  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return (
+    <Animated.View style={[{ backgroundColor: c, borderRadius: 8, height: h, width: w ?? "100%" }, style, anim]} />
+  );
+}
+
+function ListingDetailSkeleton({ colors }: { colors: ReturnType<typeof useColors> }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Photo */}
+      <PulseBlock h={SW} c={colors.muted} style={{ borderRadius: 0 }} />
+      <View style={{ padding: 16, gap: 12 }}>
+        {/* Price */}
+        <PulseBlock w={120} h={28} c={colors.muted} />
+        {/* Title */}
+        <PulseBlock h={18} c={colors.muted} />
+        <PulseBlock w="70%" h={18} c={colors.muted} />
+        {/* Meta */}
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <PulseBlock w={80} h={14} c={colors.muted} />
+          <PulseBlock w={60} h={14} c={colors.muted} />
+        </View>
+        {/* Description */}
+        <PulseBlock h={14} c={colors.muted} />
+        <PulseBlock h={14} c={colors.muted} />
+        <PulseBlock w="80%" h={14} c={colors.muted} />
+        {/* Seller */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 }}>
+          <PulseBlock w={44} h={44} c={colors.muted} style={{ borderRadius: 22, flexShrink: 0 }} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <PulseBlock w={120} h={14} c={colors.muted} />
+            <PulseBlock w={80} h={12} c={colors.muted} />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -69,6 +115,16 @@ export default function ListingDetailScreen() {
   const colors = useColors();
 
   const [photoIndex, setPhotoIndex] = useState(0);
+
+  // FlatList requires these to be stable references — inline functions cause
+  // "Changing onViewableItemsChanged on the fly is not supported" invariant.
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: any[] }) => {
+      if (viewableItems[0]) setPhotoIndex(viewableItems[0].index ?? 0);
+    },
+    []
+  );
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
   const [isSaved, setIsSaved] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [showOfferSheet, setShowOfferSheet] = useState(false);
@@ -169,11 +225,7 @@ export default function ListingDetailScreen() {
 
   // ── Loading state ────────────────────────────────────────────────────────
   if (isLoading) {
-    return (
-      <View style={[styles.flex, styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.mutedForeground }}>{t("common.loading")}</Text>
-      </View>
-    );
+    return <ListingDetailSkeleton colors={colors} />;
   }
 
   if (!listing) {
@@ -213,16 +265,12 @@ export default function ListingDetailScreen() {
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               keyExtractor={(_, i) => String(i)}
-              onViewableItemsChanged={({ viewableItems }) => {
-                if (viewableItems[0]) {
-                  setPhotoIndex(viewableItems[0].index ?? 0);
-                }
-              }}
-              viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={viewabilityConfig}
               renderItem={({ item: uri }) => (
                 <Image
                   source={{ uri }}
-                  placeholder={BLURHASH}
+                  placeholder={{ blurhash: BLURHASH }}
                   contentFit="cover"
                   transition={200}
                   style={{ width: SW, aspectRatio: 1 }}
@@ -436,18 +484,11 @@ export default function ListingDetailScreen() {
               { flexDirection: isRtl ? "row-reverse" : "row" },
             ]}
           >
-            {/* Initial avatar */}
-            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: colors.primaryForeground,
-                }}
-              >
-                {listing.seller.name.charAt(0).toUpperCase()}
-              </Text>
-            </View>
+            <UserAvatar
+              name={listing.seller.name}
+              avatarUrl={listing.seller.avatarUrl}
+              size={48}
+            />
 
             <View style={{ flex: 1, gap: 2 }}>
               <Text

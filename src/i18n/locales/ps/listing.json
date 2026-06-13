@@ -113,6 +113,10 @@
     "published": "اعلان خپور شو!",
     "saveError": "خوندي کول ناکام شو — بیا هڅه وکړئ.",
     "publishError": "خپرول ناکام شو — بیا هڅه وکړئ.",
-    "backToCategories": "ډلو ته ستنیدل"
+    "backToCategories": "ډلو ته ستنیدل",
+    "discard": "لغوه کول",
+    "discardTitle": "بدلونونه لغوه شي؟",
+    "discardMessage": "ستاسو ناخوندي شوي بدلونونه به له لاسه لاړ شي.",
+    "discardConfirm": "لغوه کول"
     }
 }

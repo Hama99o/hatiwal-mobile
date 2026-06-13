@@ -38,6 +38,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner-native";
 
+import { confirmAlert } from "@/utils/alert";
 import { listingsAPI } from "@/api/listings";
 import { Category } from "@/api/categories";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -119,7 +120,7 @@ export default function ListingFormScreen() {
     setValue,
     watch,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<ListingFormValues>({
     resolver: zodResolver(listingSchema),
     defaultValues: {
@@ -218,6 +219,25 @@ export default function ListingFormScreen() {
   });
 
   const isLoading = saveMutation.isPending || publishMutation.isPending;
+
+  const onCancel = () => {
+    if (!isDirty && photos.every((p) => p.isRemote)) {
+      router.replace("/(main)/(tabs)/my-listings" as never);
+      return;
+    }
+    confirmAlert(
+      t("listing.form.discardTitle"),
+      t("listing.form.discardMessage"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("listing.form.discardConfirm"),
+          style: "destructive",
+          onPress: () => router.replace("/(main)/(tabs)/my-listings" as never),
+        },
+      ]
+    );
+  };
 
   // ---------------------------------------------------------------------------
   // Render
@@ -458,6 +478,14 @@ export default function ListingFormScreen() {
           },
         ]}
       >
+        <Button
+          variant="ghost"
+          onPress={onCancel}
+          disabled={isLoading}
+          style={styles.submitBtn}
+        >
+          <Text style={{ color: colors.destructive }}>{t("listing.form.discard")}</Text>
+        </Button>
         <Button
           variant="outline"
           onPress={onSaveDraft}

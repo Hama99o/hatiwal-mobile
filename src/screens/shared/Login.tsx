@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
 import { Button } from "@/components/reusables/button";
@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
+import { useModeStore } from "@/stores/mode.store";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher";
@@ -17,6 +18,7 @@ export default function LoginScreen() {
   const colors = useColors();
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
+  const hydrateFromUser = useModeStore((s) => s.hydrateFromUser);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,9 +31,12 @@ export default function LoginScreen() {
     try {
       const user = await authAPI.login({ email, password });
       setUser(user);
+      hydrateFromUser(user.sellerMode);
       router.replace("/(main)/(tabs)/browse");
-    } catch {
-      setError(t("common.error"));
+    } catch (err: any) {
+      // devise_token_auth returns { errors: ["Invalid login credentials..."] }
+      const apiErrors: string[] = err?.response?.data?.errors ?? [];
+      setError(apiErrors.length > 0 ? apiErrors.join(" ") : t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -47,9 +52,11 @@ export default function LoginScreen() {
       </Text>
 
       {error && (
-        <Text style={{ color: colors.destructive, marginBottom: 16, textAlign: isRtl ? "right" : "left" }}>
-          {error}
-        </Text>
+        <View style={{ backgroundColor: colors.destructiveAlpha, borderRadius: 8, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: colors.destructive }}>
+          <Text style={{ color: colors.destructive, fontSize: 13, textAlign: isRtl ? "right" : "left" }}>
+            {error}
+          </Text>
+        </View>
       )}
 
       <Input

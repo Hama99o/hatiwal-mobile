@@ -24,9 +24,9 @@ export interface Conversation {
     currency?: string;
     location?: string;
   };
-  buyer?: { id: number; name: string; city: string | null };
-  seller?: { id: number; name: string; city: string | null };
-  otherParticipant?: { id: number; name: string; city: string | null };
+  buyer?: { id: number; name: string; city: string | null; avatarUrl?: string | null };
+  seller?: { id: number; name: string; city: string | null; avatarUrl?: string | null };
+  otherParticipant?: { id: number; name: string; city: string | null; avatarUrl?: string | null };
   lastMessageBody?: string | null;
   unreadCount?: number;
 }
@@ -110,5 +110,9 @@ export const conversationsAPI = {
 
   markMessagesRead: async (conversationId: number): Promise<void> => {
     await http.put(`/conversations/${conversationId}/messages/mark_read`);
+  },
+
+  deleteConversation: async (id: number): Promise<void> => {
+    await http.delete(`/conversations/${id}`);
   },
 };

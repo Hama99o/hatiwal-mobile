@@ -13,6 +13,8 @@
   "openListing": "مشاهده آگهی",
   "noConversations": "هنوز گفتگویی وجود ندارد",
   "noConversationsDescription": "برای چانه‌زنی و ترتیب ملاقات با فروشندگان گفتگو کنید.",
+  "deleteConversation": "حذف گفتگو",
+  "deleteConversationDescription": "این گفتگو و تمام پیام‌ها برای همیشه حذف می‌شوند.",
   "unknownUser": "کاربر ناشناس",
   "noMessages": "هنوز پیامی وجود ندارد",
   "thread": {

@@ -13,6 +13,8 @@
   "openListing": "View Listing",
   "noConversations": "No conversations yet",
   "noConversationsDescription": "Start chatting with sellers to negotiate and arrange meetups.",
+  "deleteConversation": "Delete Conversation",
+  "deleteConversationDescription": "This will permanently remove the conversation and all messages.",
   "unknownUser": "Unknown User",
   "noMessages": "No messages yet",
   "thread": {

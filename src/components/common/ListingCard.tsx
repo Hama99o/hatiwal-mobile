@@ -1,4 +1,4 @@
-import { View, Pressable, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet, ViewStyle } from "react-native";
 import { Text } from "@/components/reusables/text";
 import { Image } from "expo-image";
 import { Heart, MapPin, Camera } from "lucide-react-native";
@@ -17,7 +17,6 @@ import { PriceTag } from "./PriceTag";
 import { StatusBadge } from "./StatusBadge";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
-import { cn } from "@/lib/utils";
 
 // ─── Blurhash placeholder used while listing photo loads ──────────────────────
 const PHOTO_BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
@@ -30,7 +29,7 @@ export interface ListingCardProps {
   isSaved?: boolean;
   onSaveToggle?: (listingId: number, newValue: boolean) => void;
   onPress?: () => void;
-  className?: string;
+  style?: ViewStyle;
 }
 
 /**
@@ -51,7 +50,7 @@ export function ListingCard({
   isSaved,
   onSaveToggle,
   onPress,
-  className,
+  style,
 }: ListingCardProps) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -102,7 +101,7 @@ export function ListingCard({
   const metaRowDirection = isRtl ? "row-reverse" : "row";
 
   return (
-    <Animated.View style={[cardAnimStyle]} className={cn("overflow-hidden", className)}>
+    <Animated.View style={[{ overflow: "hidden", borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card }, cardAnimStyle, style]}>
       <Pressable
         onPress={handlePress}
         onPressIn={handlePressIn}
@@ -117,7 +116,7 @@ export function ListingCard({
           {listing.thumbnailUrl ? (
             <Image
               source={{ uri: listing.thumbnailUrl }}
-              placeholder={PHOTO_BLURHASH}
+              placeholder={{ blurhash: PHOTO_BLURHASH }}
               contentFit="cover"
               transition={300}
               style={styles.image}
@@ -170,7 +169,7 @@ export function ListingCard({
         </View>
 
         {/* ── Card body ──────────────────────────────────────────────── */}
-        <View className="p-3 gap-1.5">
+        <View style={{ padding: 12, gap: 6 }}>
           {/* Price — hero element */}
           <PriceTag
             price={listing.price}
@@ -216,7 +215,6 @@ export function ListingCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 8,
     overflow: "hidden",
   },
   imageContainer: {

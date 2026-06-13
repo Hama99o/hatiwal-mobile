@@ -44,6 +44,7 @@ export interface Listing {
     name: string;
     city: string | null;
     phone?: string | null;
+    avatarUrl?: string | null;
   };
   category: {
     id: number;
@@ -209,6 +210,16 @@ export const listingsAPI = {
       listing: convertKeysToSnake(data),
     });
     return convertKeysToCamel(response.data.listing) as Listing;
+  },
+
+  getSavedListings: async (): Promise<{ items: Listing[]; totalCount: number }> => {
+    const response = await http.get("/my/saved_listings");
+    return {
+      items: (response.data.listings ?? []).map(
+        (l: Record<string, unknown>) => convertKeysToCamel(l) as Listing
+      ),
+      totalCount: response.data.meta?.total_count ?? 0,
+    };
   },
 
   deleteListing: async (id: number): Promise<void> => {

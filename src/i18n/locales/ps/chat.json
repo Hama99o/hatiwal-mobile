@@ -13,6 +13,8 @@
   "openListing": "اعلان وګورئ",
   "noConversations": "لاهم هیڅ خبرې نشته",
   "noConversationsDescription": "د قیمت او لیدنې تنظیم لپاره د پلورونکو سره خبرې پیل کړئ.",
+  "deleteConversation": "خبرې حذف کړئ",
+  "deleteConversationDescription": "دا به خبرې او ټول پیغامونه تل لپاره لرې کړي.",
   "unknownUser": "نامعلوم کارونکی",
   "noMessages": "لاهم هیڅ پیغام نشته",
   "thread": {

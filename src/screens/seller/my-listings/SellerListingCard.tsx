@@ -1,7 +1,13 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Pressable, FlatList, Dimensions } from "react-native";
 import { Image } from "expo-image";
-import { Eye, MessageCircle, Pencil, Trash2, Camera } from "lucide-react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
+import { Eye, MessageCircle, Trash2, Camera } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -18,6 +24,43 @@ import { useColors } from "@/hooks/useColors";
 
 const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 const MY_LISTINGS_QK = "my-listings";
+
+/** Animated shimmer shown behind each photo until it finishes loading */
+function PhotoSkeleton({ width }: { width: number }) {
+  const opacity = useSharedValue(1);
+  useEffect(() => {
+    opacity.value = withRepeat(withTiming(0.4, { duration: 750 }), -1, true);
+  }, [opacity]);
+  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return (
+    <Animated.View
+      style={[animStyle, { position: "absolute", top: 0, left: 0, width, aspectRatio: 4 / 3 }]}
+    />
+  );
+}
+
+interface PhotoSlideProps {
+  uri: string;
+  width: number;
+  bgColor: string;
+}
+
+function PhotoSlide({ uri, width, bgColor }: PhotoSlideProps) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <View style={{ width, aspectRatio: 4 / 3, backgroundColor: bgColor }}>
+      {!loaded && <PhotoSkeleton width={width} />}
+      <Image
+        source={{ uri }}
+        style={[styles.galleryImage, { width }]}
+        placeholder={{ blurhash: BLURHASH }}
+        contentFit="cover"
+        transition={200}
+        onLoad={() => setLoaded(true)}
+      />
+    </View>
+  );
+}
 
 interface SellerListingCardProps {
   listing: Listing;
@@ -175,10 +218,10 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
         { backgroundColor: colors.card, borderColor: colors.border },
       ]}
     >
-      {/* Photo gallery */}
+      {/* Photo gallery — tap anywhere on the card to edit */}
       <Pressable onPress={handleEdit} accessibilityRole="button" accessibilityLabel={listing.title}>
         {photos.length > 0 ? (
-          <View style={styles.galleryWrapper}>
+          <View style={[styles.galleryWrapper, { backgroundColor: colors.muted }]}>
             <FlatList
               ref={flatListRef}
               data={photos}
@@ -196,13 +239,7 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
                 setActiveSlide(slide);
               }}
               renderItem={({ item }) => (
-                <Image
-                  source={{ uri: item }}
-                  style={[styles.galleryImage, { width: cardWidth }]}
-                  placeholder={{ blurhash: BLURHASH }}
-                  contentFit="cover"
-                  transition={200}
-                />
+                <PhotoSlide uri={item} width={cardWidth} bgColor={colors.muted} />
               )}
             />
 
@@ -295,16 +332,6 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
           variant="outline"
           size="sm"
           style={styles.iconBtn}
-          onPress={handleEdit}
-          disabled={isLoading}
-          accessibilityLabel={t("common.edit")}
-        >
-          <Pencil size={15} color={colors.foreground} />
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          style={styles.iconBtn}
           onPress={handleDelete}
           disabled={isLoading}
           accessibilityLabel={t("common.delete")}
@@ -327,7 +354,6 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 4 / 3,
     position: "relative",
-    backgroundColor: "#000",
   },
   galleryImage: {
     aspectRatio: 4 / 3,

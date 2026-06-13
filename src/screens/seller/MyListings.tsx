@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, FlatList, Pressable, Platform, ScrollView } from "react-native";
+import { View, FlatList, Pressable, Platform, ScrollView, RefreshControl } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -28,7 +28,7 @@ export default function MyListingsScreen() {
 
   useFocusEffect(useCallback(() => { setRefetchKey((k) => k + 1); }, []));
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["my-listings", activeTab, refetchKey],
     queryFn: () => listingsAPI.getMyListings(activeTab !== "all" ? { status: activeTab } : undefined),
   });
@@ -100,6 +100,13 @@ export default function MyListingsScreen() {
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={{ padding: 16, paddingBottom: 48, flexGrow: 1 }}
           renderItem={({ item }) => <SellerListingCard listing={item} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching && !isLoading}
+              onRefresh={refetch}
+              tintColor={colors.primary}
+            />
+          }
           ListEmptyComponent={
             <View style={{ flex: 1, justifyContent: "center" }}>
               <EmptyState

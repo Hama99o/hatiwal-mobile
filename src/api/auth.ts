@@ -1,4 +1,5 @@
-import { http } from "./http";
+import { Platform } from "react-native";
+import { http, BASE_URL } from "./http";
 import { secureStorage } from "@/utils/secure-storage";
 import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
 
@@ -12,7 +13,9 @@ export interface User {
   province: string | null;
   phone: string | null;
   bio: string | null;
+  avatarUrl: string | null;
   preferredLanguage: "en" | "ps" | "fa";
+  sellerMode: boolean;
   status: string;
   createdAt: string;
 }
@@ -70,6 +73,58 @@ export const authAPI = {
   updateMe: async (data: Partial<User>): Promise<User> => {
     const response = await http.put("/users/me", { user: convertKeysToSnake(data) });
     return convertKeysToCamel(response.data.user) as User;
+  },
+
+  updateAvatar: async (uri: string): Promise<User> => {
+    // Use native fetch — axios's default Content-Type: application/json causes
+    // its transformRequest to JSON-serialize FormData, turning Blob into {}.
+    // Native fetch passes FormData straight through and sets the correct
+    // multipart/form-data boundary automatically.
+    const form = new FormData();
+
+    if (Platform.OS === "web") {
+      const res = await fetch(uri);
+      const blob = await res.blob();
+      form.append("user[avatar]", blob, "avatar.jpg");
+    } else {
+      (form as any).append("user[avatar]", {
+        uri,
+        name: "avatar.jpg",
+        type: "image/jpeg",
+      });
+    }
+
+    const accessToken = await secureStorage.getItem("access-token");
+    const client      = await secureStorage.getItem("client");
+    const uid         = await secureStorage.getItem("uid");
+
+    const res = await fetch(`${BASE_URL}/users/me`, {
+      method: "PUT",
+      body: form,
+      headers: {
+        "access-token": accessToken ?? "",
+        client:         client ?? "",
+        uid:            uid ?? "",
+        "token-type":   "Bearer",
+        // No Content-Type — fetch sets it with the correct boundary
+      },
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw Object.assign(new Error("avatar upload failed"), { response: { data: err } });
+    }
+
+    // Rotate auth tokens from response headers (DeviseTokenAuth)
+    const newToken = res.headers.get("access-token");
+    const newClient = res.headers.get("client");
+    const newUid = res.headers.get("uid");
+    if (newToken) await secureStorage.setItem("access-token", newToken);
+    if (newClient) await secureStorage.setItem("client", newClient);
+    if (newUid) await secureStorage.setItem("uid", newUid);
+
+    const data = await res.json();
+    return convertKeysToCamel(data.user) as User;
   },
 
   /**

@@ -35,6 +35,7 @@
   "confirm": "Confirm",
   "language": "Language",
   "notFound": "Not found",
+  "required": "is required",
   "splash": {
     "validating": "Loading…"
   }

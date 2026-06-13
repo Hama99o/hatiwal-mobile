@@ -35,6 +35,7 @@
   "confirm": "تأیید",
   "language": "زبان",
   "notFound": "یافت نشد",
+  "required": "الزامی است",
   "splash": {
     "validating": "در حال بارگذاری…"
   }

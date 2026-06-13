@@ -1,11 +1,13 @@
-import { View, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
+import { View, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from "react-native";
+import { Image } from "expo-image";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { Sun, Moon, Smartphone, Globe, LogOut, Edit3, Check, ChevronRight, Store, ShoppingBag } from "lucide-react-native";
+import { Sun, Moon, Smartphone, Globe, LogOut, Edit3, Check, Store, ShoppingBag, Camera } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
 import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore } from "@/stores/mode.store";
@@ -50,8 +52,9 @@ export default function ProfileScreen() {
   const clearUser = useAuthStore((s) => s.clearUser);
   const { mode, toggleMode } = useModeStore();
   const { theme, setTheme } = useThemeStore();
+  const qc = useQueryClient();
 
-  const { data: user, isLoading, refetch } = useQuery({
+  const { data: user, isLoading } = useQuery({
     queryKey: ["me"],
     queryFn: authAPI.me,
   });
@@ -61,9 +64,32 @@ export default function ProfileScreen() {
 
   const update = useMutation({
     mutationFn: authAPI.updateMe,
-    onSuccess: () => { setEditing(false); refetch(); },
+    onSuccess: () => { setEditing(false); qc.invalidateQueries({ queryKey: ["me"] }); },
     onError: () => confirmAlert(t("common.error")),
   });
+
+  const avatarMutation = useMutation({
+    mutationFn: authAPI.updateAvatar,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["me"] }),
+    onError: () => confirmAlert(t("common.error")),
+  });
+
+  const pickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      confirmAlert(t("listing.form.permissionRequired"), t("listing.form.galleryPermission"));
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      avatarMutation.mutate(result.assets[0].uri);
+    }
+  };
 
   const startEdit = () => {
     if (!user) return;
@@ -85,6 +111,7 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: async () => {
           try { await authAPI.logout(); } catch {}
+          qc.clear();
           clearUser();
           router.replace("/(auth)/login");
         },
@@ -122,12 +149,30 @@ export default function ProfileScreen() {
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <View style={{ backgroundColor: colors.card, paddingTop: 32, paddingBottom: 24, paddingHorizontal: 24, alignItems: "center", borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        {/* Avatar */}
-        <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primaryAlpha, alignItems: "center", justifyContent: "center", marginBottom: 14, borderWidth: 2, borderColor: colors.primary }}>
-          <Text style={{ fontSize: 30, fontWeight: "700", color: colors.primary }}>
-            {initials}
-          </Text>
-        </View>
+        {/* Avatar — tap to change */}
+        <TouchableOpacity onPress={pickAvatar} style={{ marginBottom: 14 }} activeOpacity={0.8}>
+          <View style={{ width: 84, height: 84, borderRadius: 42, overflow: "hidden", borderWidth: 2, borderColor: colors.primary }}>
+            {user?.avatarUrl ? (
+              <Image
+                source={{ uri: user.avatarUrl }}
+                style={{ width: 84, height: 84 }}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={{ flex: 1, backgroundColor: colors.primaryAlpha, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 30, fontWeight: "700", color: colors.primary }}>
+                  {initials}
+                </Text>
+              </View>
+            )}
+          </View>
+          {/* Camera badge */}
+          <View style={{ position: "absolute", bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.background }}>
+            {avatarMutation.isPending
+              ? <ActivityIndicator size={10} color={colors.primaryForeground} />
+              : <Camera size={12} color={colors.primaryForeground} />}
+          </View>
+        </TouchableOpacity>
 
         <Text style={{ fontSize: 20, fontWeight: "700", color: colors.foreground, marginBottom: 3 }}>
           {displayName}

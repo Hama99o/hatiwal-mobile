@@ -28,7 +28,6 @@ import { toast } from "sonner-native";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { Input } from "@/components/reusables/input";
-import { Skeleton } from "@/components/reusables/skeleton";
 import { conversationsAPI, type Conversation, type Message } from "@/api/conversations";
 import { useAuthStore } from "@/stores/auth.store";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -37,6 +36,39 @@ import { useColors } from "@/hooks/useColors";
 import { ListingHeader } from "./conversation/ListingHeader";
 import { MessageBubble } from "./conversation/MessageBubble";
 import { MeetupSheet } from "./conversation/MeetupSheet";
+
+// ── Inline skeleton (no NativeWind className) ─────────────────────────────────
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
+
+function PulseLine({ w, h = 14, colors }: { w: number | string; h?: number; colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
+  const opacity = useSharedValue(1);
+  useEffect(() => { opacity.value = withRepeat(withTiming(0.35, { duration: 850 }), -1, true); }, [opacity]);
+  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View style={[{ backgroundColor: colors.muted, borderRadius: 8, height: h, width: w }, anim]} />;
+}
+
+function ChatSkeleton({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
+  return (
+    <>
+      {/* Header skeleton */}
+      <View style={{ flexDirection: "row", alignItems: "center", padding: 16, gap: 12, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <PulseLine w={56} h={56} colors={colors} />
+        <View style={{ flex: 1, gap: 8 }}>
+          <PulseLine w="60%" colors={colors} />
+          <PulseLine w="40%" h={12} colors={colors} />
+        </View>
+      </View>
+      {/* Bubble skeletons */}
+      <View style={{ flex: 1, padding: 16, gap: 14 }}>
+        {["60%","45%","70%","50%","65%"].map((w, i) => (
+          <View key={i} style={{ alignItems: i % 2 === 0 ? "flex-end" : "flex-start" }}>
+            <PulseLine w={w} h={40} colors={colors} />
+          </View>
+        ))}
+      </View>
+    </>
+  );
+}
 
 type Params = {
   id?: string;         // existing conversation id
@@ -206,20 +238,7 @@ export function ConversationScreen() {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header skeleton */}
-        <Skeleton className="h-20 w-full rounded-none" />
-        <View style={styles.skeletonBody}>
-          {[...Array(5)].map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.skeletonRow,
-                { justifyContent: i % 2 === 0 ? "flex-end" : "flex-start" },
-              ]}
-            >
-              <Skeleton className={`h-10 rounded-2xl ${i % 2 === 0 ? "w-2/3" : "w-1/2"}`} />
-            </View>
-          ))}
-        </View>
+        <ChatSkeleton colors={colors} />
       </View>
     );
   }
@@ -382,14 +401,6 @@ export function ConversationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  skeletonBody: {
-    flex: 1,
-    padding: 16,
-    gap: 12,
-  },
-  skeletonRow: {
-    flexDirection: "row",
   },
   messageList: {
     paddingVertical: 12,

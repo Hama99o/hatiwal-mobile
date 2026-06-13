@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { authAPI } from "@/api/auth";
 import { secureStorage } from "@/utils/secure-storage";
 import { useAuthStore } from "@/stores/auth.store";
+import { useModeStore } from "@/stores/mode.store";
 import { useColors } from "@/hooks/useColors";
 
 export default function SplashScreen() {
@@ -18,6 +19,7 @@ export default function SplashScreen() {
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
   const clearUser = useAuthStore((s) => s.clearUser);
+  const hydrateFromUser = useModeStore((s) => s.hydrateFromUser);
   const colors = useColors();
 
   useEffect(() => {
@@ -42,6 +44,7 @@ export default function SplashScreen() {
         const user = await authAPI.validateToken();
         if (!cancelled) {
           setUser(user);
+          hydrateFromUser(user.sellerMode);
           router.replace("/(main)/(tabs)/browse");
         }
       } catch {
