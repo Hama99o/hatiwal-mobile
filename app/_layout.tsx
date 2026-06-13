@@ -63,7 +63,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(main)" />
         </Stack>
-        <Toaster />
+        <Toaster position="top-center" richColors />
       </View>
     </QueryClientProvider>
   );

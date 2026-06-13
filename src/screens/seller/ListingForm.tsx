@@ -56,9 +56,11 @@ import { CategoryPickerSheet } from "./listing-form/CategoryPickerSheet";
 
 const listingSchema = z.object({
   title: z.string().min(1).max(150),
-  price: z.number({ invalid_type_error: "Price is required" }).positive(),
+  // coerce handles both number and string inputs (API may return "500.0" as string)
+  price: z.coerce.number().positive({ message: "Enter a valid price greater than 0" }),
   currency: z.enum(["AFN", "USD"]),
-  categoryId: z.number({ invalid_type_error: "Category is required" }).positive(),
+  // coerce handles categoryId coming back as string from some API responses
+  categoryId: z.coerce.number().positive({ message: "Category is required" }),
   description: z.string().optional(),
   location: z.string().optional(),
 });
@@ -119,9 +121,9 @@ export default function ListingFormScreen() {
     if (existingListing && isEdit) {
       reset({
         title: existingListing.title,
-        price: existingListing.price,
+        price: Number(existingListing.price),
         currency: existingListing.currency,
-        categoryId: existingListing.categoryId,
+        categoryId: Number(existingListing.categoryId),
         description: existingListing.description ?? "",
         location: existingListing.location ?? "",
       });
