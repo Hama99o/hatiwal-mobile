@@ -63,7 +63,7 @@ import { conversationsAPI } from "@/api/conversations";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ListingCard } from "@/components/common/ListingCard";
-import { UserAvatar } from "@/components/common/UserAvatar";
+import { UserIdentity } from "@/components/common/UserIdentity";
 
 const { width: SW } = Dimensions.get("window");
 const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
@@ -613,30 +613,16 @@ export default function ListingDetailScreen() {
               { flexDirection: isRtl ? "row-reverse" : "row" },
             ]}
           >
-            <Pressable
-              onPress={() => router.push(`/(main)/seller/${listing.seller.id}`)}
-              style={{ flex: 1, flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 12 }}
-              hitSlop={8}
-            >
-              <UserAvatar
+            <View style={{ flex: 1 }}>
+              <UserIdentity
                 name={listing.seller.name}
                 avatarUrl={listing.seller.avatarUrl}
+                verified={listing.seller.verified}
+                subtitle={listing.seller.city}
                 size={48}
+                onPress={() => router.push(`/(main)/seller/${listing.seller.id}`)}
               />
-
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text
-                  style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}
-                >
-                  {listing.seller.name}
-                </Text>
-                {listing.seller.city ? (
-                  <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
-                    {listing.seller.city}
-                  </Text>
-                ) : null}
-              </View>
-            </Pressable>
+            </View>
 
             <Button
               variant="outline"

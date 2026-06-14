@@ -20,6 +20,12 @@ export interface User {
   preferredTheme: "light" | "dark" | "system";
   sellerMode: boolean;
   status: string;
+  verified?: boolean;
+  itemsActiveCount?: number;
+  itemsSoldCount?: number;
+  unreadMessageCount?: number;
+  savedItemsCount?: number;
+  itemsBoughtCount?: number;
   createdAt: string;
 }
 

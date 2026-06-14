@@ -35,6 +35,10 @@ interface MessageBubbleProps {
   onMeetupRespond?: (accepted: boolean) => void;
   /** Outcome of this proposal, if it has been answered (shown on the bubble). */
   meetupOutcome?: "accepted" | "declined" | null;
+  /** Called when the seller taps Accept (true) / Decline (false) on an offer. */
+  onOfferRespond?: (accepted: boolean) => void;
+  /** Outcome of this offer, if it has been answered. */
+  offerOutcome?: "accepted" | "declined" | null;
 }
 
 /** Two-tick read indicator rendered as overlapping Check icons */
@@ -47,14 +51,19 @@ function ReadReceipt({ color }: { color: string }) {
   );
 }
 
-export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, onOfferRespond, offerOutcome }: MessageBubbleProps) {
   const { t } = useTranslation();
   const { isRtl, formatTime } = useLocalization();
   const colors = useColors();
 
-  // Accept/decline responses are not shown as their own bubble — the outcome is
-  // rendered directly on the original proposal bubble (visible to both sides).
-  if (message.kind === "meetup_accepted" || message.kind === "meetup_declined") {
+  // Accept/decline responses (meetup + offer) are not shown as their own bubble —
+  // the outcome is rendered on the original proposal/offer bubble (both sides).
+  if (
+    message.kind === "meetup_accepted" ||
+    message.kind === "meetup_declined" ||
+    message.kind === "offer_accepted" ||
+    message.kind === "offer_declined"
+  ) {
     return null;
   }
 
@@ -180,6 +189,51 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome 
                 {t("chat.offer.noPayment")}
               </Text>
             </View>
+
+            {/* Outcome — shown to both sides once the seller responds */}
+            {offerOutcome ? (
+              <View
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 8,
+                  paddingVertical: 7,
+                  paddingHorizontal: 10,
+                  borderRadius: 8,
+                  backgroundColor: offerOutcome === "accepted" ? colors.successAlpha : colors.destructiveAlpha,
+                }}
+              >
+                {offerOutcome === "accepted" ? (
+                  <CalendarCheck size={14} color={colors.success} />
+                ) : (
+                  <CalendarX size={14} color={colors.destructive} />
+                )}
+                <Text style={{ fontSize: 12, fontWeight: "700", color: offerOutcome === "accepted" ? colors.success : colors.destructive }}>
+                  {offerOutcome === "accepted" ? t("chat.offer.accepted") : t("chat.offer.declined")}
+                </Text>
+              </View>
+            ) : !isMine && onOfferRespond ? (
+              /* Accept / Decline — only for the seller (recipient), before responding */
+              <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8, marginTop: 8 }}>
+                <TouchableOpacity
+                  onPress={() => onOfferRespond(true)}
+                  style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, backgroundColor: colors.success }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.successForeground }}>
+                    {t("chat.offer.accept")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => onOfferRespond(false)}
+                  style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
+                    {t("chat.offer.decline")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
             {/* Timestamp */}
             <View

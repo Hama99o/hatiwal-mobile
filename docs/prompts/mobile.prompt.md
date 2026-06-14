@@ -344,6 +344,14 @@ const { formatDate, formatCurrency } = useLocalization();
 3. **App-specific composition** (`common/`, `shared/`) — must be composed of RNR.
 4. If RNR doesn't have it, add it: `npx @react-native-reusables/cli@latest add <name> -y`
 
+### Reuse the shared composites — never re-assemble them inline (STRICT)
+
+There is **one** component for each recurring concept; use it everywhere instead of rebuilding the pieces:
+
+- **Showing a person (avatar + name + verified tag):** ALWAYS use **`UserIdentity`** (`@/components/common/UserIdentity`). It composes the single avatar impl `UserAvatar` + `VerifiedBadge`. Props: `name`, `avatarUrl`, `verified`, `subtitle`, `size`, `nameSize`, `layout="row"|"stacked"`, `onPress`. Use it on the listing-detail seller card, seller/own profile headers, conversation rows — anywhere a user/seller appears.
+- **Avatar alone:** use **`UserAvatar`** (photo-or-initial circle). Never render an avatar with a raw `Image`/initials block — that's a duplicate.
+- Likewise reuse `PriceTag`, `StatusBadge`, `ListingCard`, `EmptyState` (see DESIGN_SYSTEM §5). **Do not hand-roll avatar/name/verified, price, or status UI** — if a composite is missing a variant, extend the shared component, don't fork it.
+
 ### RNR Components (`src/components/reusables/`)
 
 | Component | Import | Replaces |

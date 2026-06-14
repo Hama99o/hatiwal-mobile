@@ -131,6 +131,15 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
     onError: () => toast.error(t("common.error")),
   });
 
+  const renew = useMutation({
+    mutationFn: () => listingsAPI.renewListing(listing.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      toast.success(t("listing.renewSuccess"));
+    },
+    onError: () => toast.error(t("common.error")),
+  });
+
   const deleteListing = useMutation({
     mutationFn: () => listingsAPI.deleteListing(listing.id),
     onSuccess: () => {
@@ -212,6 +221,17 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
     );
   }, [t, activate]);
 
+  const handleRenew = useCallback(() => {
+    confirmAlert(
+      t("listing.confirmRenew"),
+      t("listing.confirmRenewDescription"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("listing.renew"), onPress: () => renew.mutate() },
+      ]
+    );
+  }, [t, renew]);
+
   const handleEdit = useCallback(() => {
     router.push(`/(main)/listing/edit/${listing.id}` as never);
   }, [router, listing.id]);
@@ -222,12 +242,17 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
     markSold.isPending ||
     unpublish.isPending ||
     activate.isPending ||
+    renew.isPending ||
     deleteListing.isPending;
 
   // ── Primary action button per status ────────────────────────────────────────
 
+  const isExpired = !!listing.expired;
+
   // The single most likely next step — a prominent, clearly-labeled button.
+  // An expired listing's most useful action is Renew.
   const primaryButton = (() => {
+    if (isExpired) return { label: t("listing.renew"), onPress: handleRenew };
     switch (listing.status) {
       case "draft":
         return { label: t("listing.publish"), onPress: handlePublish };
@@ -242,6 +267,9 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
   // Other transitions for this status — always clear TEXT labels, never icons.
   const secondaryActions: { key: string; label: string; onPress: () => void; danger?: boolean }[] = [];
   if (listing.status === "active") {
+    if (isExpired) {
+      secondaryActions.push({ key: "sold", label: t("listing.markSold"), onPress: handleMarkSold });
+    }
     secondaryActions.push({ key: "reserve", label: t("listing.markReserved"), onPress: handleReserve });
     secondaryActions.push({ key: "unpublish", label: t("listing.unpublish"), onPress: handleUnpublish });
   }
@@ -285,14 +313,22 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
               )}
             />
 
-            {/* Status badge */}
+            {/* Status badge — show "Expired" instead of "Active" when expired */}
             <View
               style={[
                 styles.statusBadge,
                 isRtl ? styles.statusBadgeRtl : styles.statusBadgeLtr,
               ]}
             >
-              <StatusBadge status={listing.status} />
+              {isExpired ? (
+                <View style={{ backgroundColor: colors.warning, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: colors.warningForeground }}>
+                    {t("listing.expiredBadge")}
+                  </Text>
+                </View>
+              ) : (
+                <StatusBadge status={listing.status} />
+              )}
             </View>
 
             {/* Dot indicators — only shown when > 1 photo */}

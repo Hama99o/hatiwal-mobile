@@ -11,7 +11,7 @@
 > **Owner / taken by:** `_unassigned_` · `feature-builder` · `marketplace-designer` · `feature-builder → marketplace-designer`
 > **Normal pipeline:** `feature-builder` builds → `marketplace-designer` polishes → product-owner marks `✅`.
 >
-> _Last reconciled: 2026-06-14 by claude (marked "Similar listings on detail" ✅ shipped — already built in `ListingDetail.tsx`, the Ideas row was stale). Most pages are now built; statuses below reflect the real code._
+> _Last reconciled: 2026-06-14 by claude (autonomous build loop). Recently shipped: offer accept/decline, verified seller badge, draft autosave, listing expiry+renew, **UserIdentity refactor** (one avatar+name+verified component everywhere; fixed empty-name bug on public profile; rule documented in CLAUDE.md + mobile/design prompts). NEXT: listing condition (new/used) field. Then drop unused ProvincePickerSheet/afghan_provinces. Reviews deferred per user. Statuses reflect real code._
 
 ---
 
@@ -21,7 +21,7 @@
 | ------ | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ---------------- | -------- | ----------------------------------- |
 | A1     | Login                                                                                                                  | ✅ Done                                  | —                | P0       | `/(auth)/login`                     |
 | A2     | Register                                                                                                               | ✅ Done                                  | —                | P0       | `/(auth)/register`                  |
-| A3     | App bootstrap / splash redirect                                                                                        | 🟡 In progress                           | _unassigned_     | P1       | `app/index.tsx`                     |
+| A3     | App bootstrap / splash redirect                                                                                        | ✅ Done (validates token in Splash)      | —                | P1       | `app/index.tsx`                     |
 | **S0** | **Shared components** (`ListingCard`, `PriceTag`, `StatusBadge`, `EmptyState`, skeletons)                              | ✅ Done                                  | —                | P0       | `src/components/common/`            |
 | B1     | Browse feed                                                                                                            | ✅ Done (design system + filters)        | —                | P0       | `/(main)/(tabs)/browse`             |
 | B2     | Listing detail                                                                                                         | ✅ Done                                  | —                | P0       | `/(main)/listing/[id]`              |
@@ -30,9 +30,10 @@
 | **B5** | **Map location & distance search** (province coords + Nominatim geocoding + Haversine radius)                          | ✅ Done                                  | —                | P1       | `LocationRangePicker`               |
 | **B6** | **"Seen / already viewed" indicator** (per-user `ListingView`; dim + badge on card) — _was the "Recently viewed" idea_ | ✅ Done                                  | —                | P2       | within B1/B2                        |
 | C1     | Create / Edit listing                                                                                                  | ✅ Done (map location, photos, category) | —                | P0       | `/(main)/listing/new`, `/edit/[id]` |
-| C2     | My Listings + lifecycle                                                                                                | 🟡 In progress                           | _unassigned_     | P0       | `/(main)/(tabs)/my-listings`        |
-| D1     | Conversations list                                                                                                     | ✅ Done                                  | —                | P1       | `/(main)/(tabs)/chat`               |
+| C2     | My Listings + lifecycle (publish/unpublish/reserve/activate/sold + clear text actions) | ✅ Done | — | P0 | `/(main)/(tabs)/my-listings` |
+| D1     | Conversations list (+ friendly previews, sold dimming)                                                                 | ✅ Done                                  | —                | P1       | `/(main)/(tabs)/chat`               |
 | D2     | Conversation thread                                                                                                    | ✅ Done                                  | —                | P1       | `/(main)/conversation/[id]`         |
+| **D3** | **Chat deal actions** — meetup propose + accept/decline, **offer accept/decline** (`responds_to` link, outcome on card) | ✅ Done | — | P1 | within D2 |
 | E1     | Saved / Favorites                                                                                                      | ✅ Done                                  | —                | P1       | `/(main)/(tabs)/saved`              |
 | F1     | Profile (mine)                                                                                                         | 🟡 In progress                           | _unassigned_     | P1       | `/(main)/(tabs)/profile`            |
 | F2     | Edit profile (inline + **map location**)                                                                               | ✅ Done                                  | claude           | P2       | within F1                           |
@@ -227,9 +228,13 @@
 | -------------------------------- | --------------------- | ------------------------------------------------------------------------- |
 | ~~Recently viewed~~ ✅ shipped   | re-engagement         | done as **B6** — per-user `ListingView`, card shows dimmed + "Seen" badge |
 | ~~Similar listings on detail~~ ✅ shipped | discovery    | done — horizontal "Similar Listings" rail under B2 (`ListingDetail.tsx`): same-category, excludes current, capped at 6, `ListingCard`s, 3-locale + RTL |
-| Share listing (deep link)        | growth                | `expo-linking` share → opens B2                                           |
-| Draft autosave                   | fewer lost posts      | persist C1 form locally                                                   |
+| ~~Share listing (deep link)~~ ✅ shipped | growth         | done — `Share.share` in `ListingDetail` (More menu)                       |
+| ~~Draft autosave~~ ✅ shipped     | fewer lost posts      | done — new-listing form autosaves to AsyncStorage; restore/discard banner on reopen; cleared on submit |
 | ~~In-chat meetup scheduler~~ ✅ shipped | core deal mechanic | propose (place+time) + **accept/decline** with confirmed/declined bubbles — `meetup_accepted`/`meetup_declined` kinds |
+| ~~Offer accept/decline~~ ✅ shipped | negotiation | seller Accept/Decline on the offer card; `offer_accepted`/`offer_declined` + `responds_to` link; outcome on card |
+| ~~Verified seller badge~~ ✅ shipped | trust | `users.verified` flag; `BadgeCheck` badge on seller profile (with label) + ListingDetail seller card; serializers + tests. _Verification set manually (console) until an admin tool exists._ |
+| ~~Draft autosave~~ ✅ shipped | fewer lost posts | new-listing form autosaves to AsyncStorage + restore/discard banner |
+| ~~Listing expiry + renew~~ ✅ shipped | fresh feed | `listings.expires_at` (30d, set on publish); browse hides expired; seller sees Expired badge + Renew action (`PUT /my/listings/:id/renew`) |
 | Seller ratings / reviews         | trust                 | **needs backend** — post-MVP per CLAUDE.md                                |
 | Price-drop / saved-search alerts | retention             | **needs push (post-MVP)**                                                 |
 | Listing boost / bump             | (future monetization) | **needs backend**                                                         |

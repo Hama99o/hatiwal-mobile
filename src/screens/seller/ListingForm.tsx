@@ -19,7 +19,7 @@
  * sonner-native toasts for success/error feedback.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -54,6 +54,7 @@ import { Separator } from "@/components/reusables/separator";
 import { PhotosSection, PhotoItem } from "./listing-form/PhotosSection";
 import { CategoryPickerSheet } from "./listing-form/CategoryPickerSheet";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -75,6 +76,16 @@ const listingSchema = z.object({
 });
 
 type ListingFormValues = z.infer<typeof listingSchema>;
+
+// Local autosave of an in-progress NEW listing (text fields only — not photos,
+// whose local URIs may not survive an app restart). Restored on next open.
+const DRAFT_KEY = "hatiwal:listing-draft";
+interface DraftSnapshot {
+  values: Partial<ListingFormValues>;
+  mapLabel: string | null;
+  category: Category | null;
+  savedAt: number;
+}
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -118,6 +129,7 @@ export default function ListingFormScreen() {
     setValue,
     watch,
     reset,
+    getValues,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<ListingFormValues>({
     resolver: zodResolver(listingSchema),
@@ -125,6 +137,9 @@ export default function ListingFormScreen() {
       currency: "AFN",
     },
   });
+
+  // Draft autosave (new listings only) — so a half-written post survives leaving the screen.
+  const [restorableDraft, setRestorableDraft] = useState<DraftSnapshot | null>(null);
 
   const currency = watch("currency");
   const latitude = watch("latitude");
@@ -159,6 +174,66 @@ export default function ListingFormScreen() {
     }
   }, [existingListing, isEdit, reset]);
 
+  // ── Draft autosave (new listings only) ─────────────────────────────────────
+  // Offer to restore a previously saved draft on first open.
+  useEffect(() => {
+    if (isEdit) return;
+    let active = true;
+    AsyncStorage.getItem(DRAFT_KEY).then((raw) => {
+      if (!active || !raw) return;
+      try {
+        const snap = JSON.parse(raw) as DraftSnapshot;
+        const v = snap?.values ?? {};
+        if (v.title || v.description || v.price || snap?.category) {
+          setRestorableDraft(snap);
+        }
+      } catch {
+        /* corrupt draft — ignore */
+      }
+    });
+    return () => { active = false; };
+  }, [isEdit]);
+
+  // Persist the form (debounced) as the user types.
+  useEffect(() => {
+    if (isEdit) return;
+    let handle: ReturnType<typeof setTimeout> | null = null;
+    const sub = watch((values) => {
+      if (handle) clearTimeout(handle);
+      handle = setTimeout(() => {
+        if (!values.title && !values.description && !values.price && !selectedCategory) return;
+        const snap: DraftSnapshot = {
+          values,
+          mapLabel,
+          category: selectedCategory,
+          savedAt: Date.now(),
+        };
+        AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(snap)).catch(() => {});
+      }, 800);
+    });
+    return () => {
+      sub.unsubscribe();
+      if (handle) clearTimeout(handle);
+    };
+  }, [isEdit, watch, mapLabel, selectedCategory]);
+
+  const clearDraft = useCallback(() => {
+    AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
+  }, []);
+
+  const handleRestoreDraft = useCallback(() => {
+    if (!restorableDraft) return;
+    reset({ currency: "AFN", ...restorableDraft.values });
+    setMapLabel(restorableDraft.mapLabel ?? null);
+    if (restorableDraft.category) setSelectedCategory(restorableDraft.category);
+    setRestorableDraft(null);
+  }, [restorableDraft, reset]);
+
+  const handleDiscardDraft = useCallback(() => {
+    clearDraft();
+    setRestorableDraft(null);
+  }, [clearDraft]);
+
   // ---------------------------------------------------------------------------
   // Mutations
   // ---------------------------------------------------------------------------
@@ -173,6 +248,8 @@ export default function ListingFormScreen() {
     if (isEdit && listingId) {
       qc.invalidateQueries({ queryKey: ["listing", String(listingId)] });
     }
+    // The listing was saved — drop any autosaved draft.
+    clearDraft();
   };
 
   const saveMutation = useMutation({
@@ -272,6 +349,40 @@ export default function ListingFormScreen() {
         <Text style={{ fontSize: 24, fontWeight: "700", marginBottom: 24 }}>
           {isEdit ? t("listing.edit") : t("listing.create")}
         </Text>
+
+        {/* Restore unsaved draft */}
+        {restorableDraft && (
+          <View
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              gap: 10,
+              backgroundColor: colors.primaryAlpha,
+              borderWidth: 1,
+              borderColor: colors.primary,
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 20,
+            }}
+          >
+            <Text style={{ flex: 1, fontSize: 13, color: colors.foreground, textAlign: isRtl ? "right" : "left" }}>
+              {t("listing.form.draftFound")}
+            </Text>
+            <Pressable onPress={handleDiscardDraft} hitSlop={8} style={{ paddingHorizontal: 8, paddingVertical: 6 }}>
+              <Text style={{ fontSize: 13, fontWeight: "600", color: colors.mutedForeground }}>
+                {t("listing.form.draftDiscard")}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={handleRestoreDraft}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.primary }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primaryForeground }}>
+                {t("listing.form.draftRestore")}
+              </Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* ------------------------------------------------------------------ */}
         {/* 1. Photos                                                           */}

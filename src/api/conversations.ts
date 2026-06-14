@@ -11,6 +11,8 @@ export interface Message {
     | "meetup_declined"
     | "system"
     | "offer"
+    | "offer_accepted"
+    | "offer_declined"
     | "document"
     | "image_message";
   readAt: string | null;
@@ -35,9 +37,9 @@ export interface Conversation {
     currency?: string;
     location?: string;
   };
-  buyer?: { id: number; name: string; city: string | null; avatarUrl?: string | null };
-  seller?: { id: number; name: string; city: string | null; avatarUrl?: string | null };
-  otherParticipant?: { id: number; name: string; city: string | null; avatarUrl?: string | null };
+  buyer?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
+  seller?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
+  otherParticipant?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
   lastMessageBody?: string | null;
   lastMessageKind?: Message["kind"] | null;
   unreadCount?: number;
@@ -113,7 +115,14 @@ export const conversationsAPI = {
   sendMessage: async (
     conversationId: number,
     body: string,
-    kind: "text" | "meetup_proposal" | "meetup_accepted" | "meetup_declined" | "offer" = "text",
+    kind:
+      | "text"
+      | "meetup_proposal"
+      | "meetup_accepted"
+      | "meetup_declined"
+      | "offer"
+      | "offer_accepted"
+      | "offer_declined" = "text",
     respondsToId?: number
   ): Promise<Message> => {
     const response = await http.post(

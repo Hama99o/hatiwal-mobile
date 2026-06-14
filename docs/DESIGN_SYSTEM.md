@@ -115,7 +115,9 @@ Build these once in `src/components/common/` (compositions of RNR + the librarie
 | `PriceTag` | RNR `Text` + `useLocalization().formatCurrency` | Cards, detail, chat header |
 | `StatusBadge` | RNR `Badge` + status→token map | Anywhere a listing status shows |
 | `ListingGallery` | `react-native-reanimated-carousel` + `expo-image` + page dots | Listing detail hero |
-| `SellerCard` | RNR `Avatar` + `Text` + city/member-since | Listing detail, conversation header |
+| **`UserAvatar`** | `expo-image` photo **or** colored initial circle | The ONE avatar impl — used *inside* `UserIdentity`; never render an avatar any other way |
+| **`UserIdentity`** | `UserAvatar` + name + `VerifiedBadge` (+ optional subtitle); `layout="row"\|"stacked"` | **Every place a person is shown** — listing-detail seller card, seller profile header, own profile, conversation rows. Do NOT re-assemble avatar+name+verified inline. |
+| `VerifiedBadge` | `BadgeCheck` (lucide) + `useColors().primary` | Inside `UserIdentity`; `withLabel` for a "Verified" pill |
 | `CategoryPicker` | `@gorhom/bottom-sheet` + searchable list | Create/edit form, browse filter |
 | `ReportSheet` | `@gorhom/bottom-sheet` + RNR `RadioGroup` + `Textarea` | Listing detail, profile |
 | `EmptyState` | RNR `Icon` + `Text` + `Button` (primary action) | Every list/empty surface |

@@ -22,6 +22,8 @@
     "meetupAccepted": "لیدنه ومنل شوه",
     "meetupDeclined": "لیدنه رد شوه",
     "offer": "وړاندیز: {{amount}} {{currency}}",
+    "offerAccepted": "وړاندیز ومنل شو",
+    "offerDeclined": "وړاندیز رد شو",
     "photo": "انځور",
     "file": "فایل"
   },
@@ -82,7 +84,13 @@
     "label": "د قیمت وړاندیز",
     "yourOffer": "ستاسو وړاندیز",
     "listedAt": "اصلي قیمت: {{price}}",
-    "noPayment": "هیڅ تادیه نشته — دا یوازې پلورونکي ته پیغام دی."
+    "noPayment": "هیڅ تادیه نشته — دا یوازې پلورونکي ته پیغام دی.",
+    "accept": "وړاندیز ومنئ",
+    "decline": "ردول",
+    "accepted": "وړاندیز ومنل شو",
+    "declined": "وړاندیز رد شو",
+    "acceptedToast": "تاسو وړاندیز ومانه",
+    "declinedToast": "تاسو وړاندیز رد کړ"
   },
   "block": {
     "blockUser": "کارونکی بند کړئ",

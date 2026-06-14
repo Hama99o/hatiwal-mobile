@@ -38,6 +38,8 @@ export interface Listing {
   conversationsCount?: number;
   isSaved?: boolean;
   isViewed?: boolean;
+  expiresAt?: string | null;
+  expired?: boolean;
   createdAt: string;
   updatedAt: string;
   seller: {
@@ -45,6 +47,7 @@ export interface Listing {
     name: string;
     city: string | null;
     phone?: string | null;
+    verified?: boolean;
     avatarUrl?: string | null;
   };
   category: {
@@ -269,6 +272,12 @@ export const listingsAPI = {
 
   markSold: async (id: number): Promise<Listing> => {
     const response = await http.put(`/my/listings/${id}/sold`);
+    return convertKeysToCamel(response.data.listing) as Listing;
+  },
+
+  // Restart the 30-day expiry clock on an active (possibly expired) listing.
+  renewListing: async (id: number): Promise<Listing> => {
+    const response = await http.put(`/my/listings/${id}/renew`);
     return convertKeysToCamel(response.data.listing) as Listing;
   },
 };

@@ -22,6 +22,8 @@
     "meetupAccepted": "ملاقات پذیرفته شد",
     "meetupDeclined": "ملاقات رد شد",
     "offer": "پیشنهاد: {{amount}} {{currency}}",
+    "offerAccepted": "پیشنهاد پذیرفته شد",
+    "offerDeclined": "پیشنهاد رد شد",
     "photo": "عکس",
     "file": "فایل"
   },
@@ -82,7 +84,13 @@
     "label": "پیشنهاد قیمت",
     "yourOffer": "پیشنهاد شما",
     "listedAt": "قیمت اصلی: {{price}}",
-    "noPayment": "بدون پرداخت — این فقط یک پیام به فروشنده است."
+    "noPayment": "بدون پرداخت — این فقط یک پیام به فروشنده است.",
+    "accept": "پذیرفتن پیشنهاد",
+    "decline": "رد کردن",
+    "accepted": "پیشنهاد پذیرفته شد",
+    "declined": "پیشنهاد رد شد",
+    "acceptedToast": "شما پیشنهاد را پذیرفتید",
+    "declinedToast": "شما پیشنهاد را رد کردید"
   },
   "block": {
     "blockUser": "مسدود کردن کاربر",

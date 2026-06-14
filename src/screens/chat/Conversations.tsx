@@ -9,7 +9,7 @@ import { conversationsAPI, Conversation } from "@/api/conversations";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { EmptyState } from "@/components/common/EmptyState";
-import { UserAvatar } from "@/components/common/UserAvatar";
+import { UserIdentity } from "@/components/common/UserIdentity";
 import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton";
 import { confirmAlert } from "@/utils/alert";
 import { MessageCircle, Camera, CheckCheck, MapPin, Tag, FileText } from "lucide-react-native";
@@ -56,6 +56,14 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
         previewText = t("chat.preview.offer", { amount: amount ?? "", currency: currency ?? "" });
         break;
       }
+      case "offer_accepted":
+        PreviewIcon = Tag;
+        previewText = t("chat.preview.offerAccepted");
+        break;
+      case "offer_declined":
+        PreviewIcon = Tag;
+        previewText = t("chat.preview.offerDeclined");
+        break;
       case "image_message":
         PreviewIcon = Camera;
         previewText = t("chat.preview.photo");
@@ -159,11 +167,14 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
 
         {/* User name row */}
         {otherName && (
-          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 5, marginBottom: 4 }}>
-            <UserAvatar name={otherName} avatarUrl={other?.avatarUrl} size={16} />
-            <Text style={{ fontSize: 12, color: colors.mutedForeground }} numberOfLines={1}>
-              {otherName}
-            </Text>
+          <View style={{ marginBottom: 4 }}>
+            <UserIdentity
+              name={otherName}
+              avatarUrl={other?.avatarUrl}
+              verified={other?.verified}
+              size={18}
+              nameSize={12}
+            />
           </View>
         )}
 

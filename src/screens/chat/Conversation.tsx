@@ -330,6 +330,28 @@ export function ConversationScreen() {
     [currentConversationId, t]
   );
 
+  // ── Respond to a price offer (accept / decline) ──────────────────────────
+  const handleOfferRespond = useCallback(
+    async (offer: Message, accepted: boolean) => {
+      const convId = currentConversationId;
+      if (!convId) return;
+      try {
+        const sent = await conversationsAPI.sendMessage(
+          convId,
+          offer.body,
+          accepted ? "offer_accepted" : "offer_declined",
+          offer.id
+        );
+        isNearBottomRef.current = true;
+        setMessages((prev) => [...prev, sent]);
+        toast.success(accepted ? t("chat.offer.acceptedToast") : t("chat.offer.declinedToast"));
+      } catch {
+        toast.error(t("chat.thread.sendFailed"));
+      }
+    },
+    [currentConversationId, t]
+  );
+
   // ── Send file attachment ─────────────────────────────────────────────────
   const handleAttachment = useCallback(async () => {
     const convId = currentConversationId;
@@ -492,18 +514,24 @@ export function ConversationScreen() {
           data={messages}
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item, index }) => {
-            // Outcome for THIS proposal only — matched by the response's link
-            // (responds_to_id), so declining one proposal never affects another.
+            // Outcome for THIS proposal/offer only — matched by the response's
+            // link (responds_to_id), so one response never affects another.
             let meetupOutcome: "accepted" | "declined" | null = null;
+            let offerOutcome: "accepted" | "declined" | null = null;
             if (item.kind === "meetup_proposal") {
-              const response = messages.find(
+              const r = messages.find(
                 (m) =>
                   (m.kind === "meetup_accepted" || m.kind === "meetup_declined") &&
                   m.respondsToId === item.id
               );
-              if (response) {
-                meetupOutcome = response.kind === "meetup_accepted" ? "accepted" : "declined";
-              }
+              if (r) meetupOutcome = r.kind === "meetup_accepted" ? "accepted" : "declined";
+            } else if (item.kind === "offer") {
+              const r = messages.find(
+                (m) =>
+                  (m.kind === "offer_accepted" || m.kind === "offer_declined") &&
+                  m.respondsToId === item.id
+              );
+              if (r) offerOutcome = r.kind === "offer_accepted" ? "accepted" : "declined";
             }
             return (
               <MessageBubble
@@ -514,6 +542,10 @@ export function ConversationScreen() {
                   item.kind === "meetup_proposal"
                     ? (accepted) => handleMeetupRespond(item, accepted)
                     : undefined
+                }
+                offerOutcome={offerOutcome}
+                onOfferRespond={
+                  item.kind === "offer" ? (accepted) => handleOfferRespond(item, accepted) : undefined
                 }
               />
             );

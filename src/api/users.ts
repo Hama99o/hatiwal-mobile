@@ -10,12 +10,15 @@ export interface PublicProfile {
   memberSince: string;
   soldCount: number;
   listingsCount: number;
+  verified?: boolean;
 }
 
 export const usersAPI = {
   getPublicProfile: async (userId: number): Promise<PublicProfile> => {
     const response = await http.get(`/users/${userId}/public_profile`);
-    return convertKeysToCamel(response.data.user) as PublicProfile;
+    const raw = convertKeysToCamel(response.data.user) as PublicProfile & { fullName?: string };
+    // The serializer sends `full_name` → `fullName`; expose it as `name`.
+    return { ...raw, name: raw.name ?? raw.fullName ?? "" };
   },
 
   blockUser: async (userId: number): Promise<void> => {

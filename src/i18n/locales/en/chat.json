@@ -22,6 +22,8 @@
     "meetupAccepted": "Meetup accepted",
     "meetupDeclined": "Meetup declined",
     "offer": "Offer: {{amount}} {{currency}}",
+    "offerAccepted": "Offer accepted",
+    "offerDeclined": "Offer declined",
     "photo": "Photo",
     "file": "File"
   },
@@ -82,7 +84,13 @@
     "label": "Price Offer",
     "yourOffer": "Your Offer",
     "listedAt": "Listed at {{price}}",
-    "noPayment": "No payment — this is just a message to the seller."
+    "noPayment": "No payment — this is just a message to the seller.",
+    "accept": "Accept offer",
+    "decline": "Decline",
+    "accepted": "Offer accepted",
+    "declined": "Offer declined",
+    "acceptedToast": "You accepted the offer",
+    "declinedToast": "You declined the offer"
   },
   "block": {
     "blockUser": "Block User",

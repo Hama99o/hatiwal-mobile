@@ -1,5 +1,4 @@
 import { View, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Pressable } from "react-native";
-import { Image } from "expo-image";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { useTranslation } from "react-i18next";
@@ -10,6 +9,8 @@ import { Sun, Moon, Smartphone, Globe, LogOut, Edit3, Check, Store, ShoppingBag,
 import * as ImagePicker from "expo-image-picker";
 import { authAPI } from "@/api/auth";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
+import { VerifiedBadge } from "@/components/common/VerifiedBadge";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore, resetMode } from "@/stores/mode.store";
 import { useThemeStore, ThemePreference, resetTheme } from "@/stores/theme.store";
@@ -49,18 +50,19 @@ function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode 
 
 function SellerStatsGrid({ user }: { user: any }) {
   const colors = useColors();
-  const { formatCurrency } = useLocalization();
   const { t } = useTranslation();
+
+  // Counts only — no money total (currencies can't be summed; see commit notes).
+  const stats = [
+    { label: t("profile.stats.sold"), value: String(user?.itemsSoldCount ?? 0) },
+    { label: t("profile.stats.active"), value: String(user?.itemsActiveCount ?? 0) },
+  ];
 
   return (
     <SectionCard>
       <View style={{ flexDirection: "row", paddingVertical: 16 }}>
-        {[
-          { label: t("profile.stats.sold"), value: user?.items_sold_count ?? 0 },
-          { label: t("profile.stats.active"), value: user?.items_active_count ?? 0 },
-          { label: t("profile.stats.sales"), value: formatCurrency(user?.total_sales_amount ?? 0, "AFN") }
-        ].map((stat, i) => (
-          <View key={i} style={{ flex: 1, alignItems: "center", paddingHorizontal: 12, borderRightWidth: i < 2 ? 1 : 0, borderRightColor: colors.border }}>
+        {stats.map((stat, i) => (
+          <View key={i} style={{ flex: 1, alignItems: "center", paddingHorizontal: 12, borderRightWidth: i < stats.length - 1 ? 1 : 0, borderRightColor: colors.border }}>
             <Text style={{ fontSize: 20, fontWeight: "700", color: colors.primary, marginBottom: 4 }}>
               {stat.value}
             </Text>
@@ -128,7 +130,7 @@ function BuyerProfileContent({ user, editing, handleEdit }: any) {
           <View style={{ flexDirection: "row", gap: 16 }}>
             <View style={{ flex: 1, alignItems: "center" }}>
               <Text style={{ fontSize: 18, fontWeight: "700", color: colors.primary }}>
-                {user?.items_bought_count ?? 0}
+                {user?.itemsBoughtCount ?? 0}
               </Text>
               <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 4 }}>
                 {t("profile.itemsBought")}
@@ -136,7 +138,7 @@ function BuyerProfileContent({ user, editing, handleEdit }: any) {
             </View>
             <View style={{ flex: 1, alignItems: "center" }}>
               <Text style={{ fontSize: 18, fontWeight: "700", color: colors.primary }}>
-                {user?.saved_items_count ?? 0}
+                {user?.savedItemsCount ?? 0}
               </Text>
               <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 4 }}>
                 {t("profile.itemsSaved")}
@@ -163,7 +165,7 @@ function BuyerProfileContent({ user, editing, handleEdit }: any) {
             icon={MessageCircle}
             label={t("profile.quickActions.messages")}
             onPress={() => router.push("/(main)/(tabs)/chat")}
-            badge={0}
+            badge={user?.unreadMessageCount ?? 0}
           />
         </View>
       </SectionCard>
@@ -218,14 +220,14 @@ function SellerDashboardContent({ user, editing, handleEdit }: any) {
           <View style={{ flexDirection: "row", gap: 10 }}>
             <QuickActionCard
               icon={Store}
-              label={`${t("profile.quickActions.myListings")} (${user?.items_active_count ?? 0})`}
+              label={`${t("profile.quickActions.myListings")} (${user?.itemsActiveCount ?? 0})`}
               onPress={() => router.push("/(main)/(tabs)/my-listings")}
             />
             <QuickActionCard
               icon={MessageCircle}
               label={t("profile.quickActions.messages")}
               onPress={() => router.push("/(main)/(tabs)/chat")}
-              badge={user?.unread_message_count ?? 0}
+              badge={user?.unreadMessageCount ?? 0}
             />
           </View>
           <QuickActionCard
@@ -372,7 +374,6 @@ export default function ProfileScreen() {
     );
   }
 
-  const initials = user?.firstname?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? "?";
   const displayName = user?.fullName ?? user?.email ?? "";
   const isSeller = mode === "seller";
 
@@ -381,23 +382,9 @@ export default function ProfileScreen() {
 
       {/* ── Hero Header ─────────────────────────────────────────────── */}
       <View style={{ backgroundColor: colors.card, paddingTop: 32, paddingBottom: 24, paddingHorizontal: 24, alignItems: "center", borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        {/* Avatar */}
+        {/* Avatar — shared UserAvatar + an edit (camera) overlay */}
         <TouchableOpacity onPress={pickAvatar} style={{ marginBottom: 14 }} activeOpacity={0.8}>
-          <View style={{ width: 84, height: 84, borderRadius: 42, overflow: "hidden", borderWidth: 2, borderColor: colors.primary }}>
-            {user?.avatarUrl ? (
-              <Image
-                source={{ uri: user.avatarUrl }}
-                style={{ width: 84, height: 84 }}
-                contentFit="cover"
-              />
-            ) : (
-              <View style={{ flex: 1, backgroundColor: colors.primaryAlpha, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontSize: 30, fontWeight: "700", color: colors.primary }}>
-                  {initials}
-                </Text>
-              </View>
-            )}
-          </View>
+          <UserAvatar name={displayName} avatarUrl={user?.avatarUrl} size={84} />
           <View style={{ position: "absolute", bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: colors.background }}>
             {avatarMutation.isPending
               ? <ActivityIndicator size={10} color={colors.primaryForeground} />
@@ -405,9 +392,12 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
 
-        <Text style={{ fontSize: 20, fontWeight: "700", color: colors.foreground, marginBottom: 3 }}>
-          {displayName}
-        </Text>
+        <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 6, marginBottom: 3 }}>
+          <Text style={{ fontSize: 20, fontWeight: "700", color: colors.foreground }}>
+            {displayName}
+          </Text>
+          {user?.verified && <VerifiedBadge size={18} />}
+        </View>
         <Text style={{ fontSize: 13, color: colors.mutedForeground, marginBottom: 20 }}>
           {user?.email}
         </Text>

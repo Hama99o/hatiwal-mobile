@@ -3,13 +3,13 @@ import { View, FlatList, Text as RNText, Alert, Pressable, ActivityIndicator, Te
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ChevronLeft, MapPin, MoreVertical, Search, X, Flag, ShieldBan } from "lucide-react-native";
+import { ChevronLeft, MoreVertical, Search, X, Flag, ShieldBan } from "lucide-react-native";
 import { toast } from "sonner-native";
 
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
-import { UserAvatar } from "@/components/common/UserAvatar";
 import { ListingCard } from "@/components/common/ListingCard";
+import { UserIdentity } from "@/components/common/UserIdentity";
 import { Separator } from "@/components/reusables/separator";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -247,18 +247,15 @@ export function SellerProfileScreen() {
           <View>
             {/* Seller Header Card */}
             <View style={{ alignItems: "center", gap: 12, marginBottom: 24, marginTop: 20 }}>
-              <UserAvatar name={profile.name} avatarUrl={profile.avatarUrl} size={80} />
-              <RNText style={{ fontSize: 20, fontWeight: "700", color: colors.foreground }}>
-                {profile.name}
-              </RNText>
-              {profile.city && (
-                <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 4 }}>
-                  <MapPin size={14} color={colors.mutedForeground} />
-                  <RNText style={{ fontSize: 13, color: colors.mutedForeground }}>
-                    {profile.city}
-                  </RNText>
-                </View>
-              )}
+              <UserIdentity
+                name={profile.name}
+                avatarUrl={profile.avatarUrl}
+                verified={profile.verified}
+                subtitle={profile.city}
+                size={80}
+                nameSize={20}
+                layout="stacked"
+              />
             </View>
 
             {/* Stats Row */}
