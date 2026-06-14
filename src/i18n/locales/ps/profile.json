@@ -29,5 +29,26 @@
     "viewListings": "اعلانونه وګورئ",
     "noListings": "هیڅ فعال اعلان نشته",
     "loadFailed": "پروفایل ونه موندل شو."
-  }
+  },
+  "sellerDashboard": "د پلورونکي ډیش بورډ",
+  "buyerProfile": "د اخیستونکي پروفایل",
+  "stats": {
+    "sold": "پلورل شوي",
+    "active": "فعال",
+    "sales": "ټول پلور"
+  },
+  "quickActions": {
+    "postNew": "نوی اعلان پوسٹ کړئ",
+    "myListings": "زما اعلانونه",
+    "messages": "پیغامونه",
+    "reviews": "رتبې او نظرونه",
+    "browse": "اعلانونه لټول",
+    "saved": "خوندي اعلانونه"
+  },
+  "recentActivity": "تازه فعالیت",
+  "recentListings": "ستاسو فعال اعلانونه",
+  "viewAll": "ټول وګورئ",
+  "itemsBought": "اخیستل شوي شیان",
+  "itemsSaved": "خوندي شیان",
+  "purchaseActivity": "د اخیستنې فعالیت"
 }

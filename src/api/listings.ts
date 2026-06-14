@@ -37,6 +37,7 @@ export interface Listing {
   viewsCount: number;
   conversationsCount?: number;
   isSaved?: boolean;
+  isViewed?: boolean;
   createdAt: string;
   updatedAt: string;
   seller: {

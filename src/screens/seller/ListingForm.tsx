@@ -11,7 +11,7 @@
  *  3. Price    — numeric + currency picker (AFN / USD / EUR)
  *  4. Category — CategoryPickerSheet
  *  5. Description — optional Textarea
- *  6. Location — ProvincePickerSheet (34 Afghan provinces)
+ *  6. Location — exact point on the map (search a place or drop a pin)
  *  7. Address — free-text meeting point (street, landmark)
  *
  * Submit: "Save draft" | "Publish now"
@@ -53,12 +53,7 @@ import { Separator } from "@/components/reusables/separator";
 
 import { PhotosSection, PhotoItem } from "./listing-form/PhotosSection";
 import { CategoryPickerSheet } from "./listing-form/CategoryPickerSheet";
-import { ProvincePickerSheet } from "./listing-form/ProvincePickerSheet";
-import {
-  AFGHAN_PROVINCES,
-  getProvinceName,
-  type Province,
-} from "@/data/afghan_provinces";
+import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -74,6 +69,9 @@ const listingSchema = z.object({
   description: z.string().optional(),
   location: z.string().optional(),
   address: z.string().optional(),
+  // Coordinates derived from the selected province — used for map/distance search.
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
 });
 
 type ListingFormValues = z.infer<typeof listingSchema>;
@@ -98,8 +96,8 @@ export default function ListingFormScreen() {
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [currencyPickerVisible, setCurrencyPickerVisible] = useState(false);
-  const [provincePickerVisible, setProvincePickerVisible] = useState(false);
-  const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+  const [mapLabel, setMapLabel] = useState<string | null>(null);
   const [isSubmittingPublish, setIsSubmittingPublish] = useState(false);
 
   // ---------------------------------------------------------------------------
@@ -129,6 +127,9 @@ export default function ListingFormScreen() {
   });
 
   const currency = watch("currency");
+  const latitude = watch("latitude");
+  const longitude = watch("longitude");
+  const hasExactLocation = latitude != null && longitude != null;
 
   // Prefill form in edit mode once data is loaded
   useEffect(() => {
@@ -141,16 +142,14 @@ export default function ListingFormScreen() {
         description: existingListing.description ?? "",
         location: existingListing.location ?? "",
         address: existingListing.address ?? "",
+        latitude: existingListing.latitude ?? undefined,
+        longitude: existingListing.longitude ?? undefined,
       });
       if (existingListing.category) {
         setSelectedCategory(existingListing.category as any);
       }
-      if (existingListing.location) {
-        const found = AFGHAN_PROVINCES.find(
-          (p) => p.value === existingListing.location
-        );
-        if (found) setSelectedProvince(found);
-      }
+      // Show the saved place name on the location row.
+      setMapLabel(existingListing.location ?? null);
       if (existingListing.images) {
         setPhotos(existingListing.images.map((uri) => ({ uri, isRemote: true })));
       }
@@ -408,7 +407,7 @@ export default function ListingFormScreen() {
         </View>
 
         {/* ------------------------------------------------------------------ */}
-        {/* 6. Location                                                         */}
+        {/* 6. Location — exact point on the map (search or drop a pin)         */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field}>
           <Label className="mb-1">{t("common.location")}</Label>
@@ -416,26 +415,27 @@ export default function ListingFormScreen() {
             style={[
               styles.pickerRow,
               {
-                borderColor: colors.border,
+                borderColor: hasExactLocation ? colors.primary : colors.border,
                 backgroundColor: colors.card,
                 flexDirection: isRtl ? "row-reverse" : "row",
               },
             ]}
-            onPress={() => setProvincePickerVisible(true)}
+            onPress={() => setLocationPickerVisible(true)}
           >
-            <MapPin size={16} color={colors.mutedForeground} />
+            <MapPin size={16} color={hasExactLocation ? colors.primary : colors.mutedForeground} />
             <Text
               style={{
                 flex: 1,
                 fontSize: 14,
-                color: selectedProvince ? colors.foreground : colors.mutedForeground,
+                color: hasExactLocation ? colors.foreground : colors.mutedForeground,
                 marginHorizontal: 8,
                 textAlign: isRtl ? "right" : "left",
               }}
+              numberOfLines={1}
             >
-              {selectedProvince
-                ? getProvinceName(selectedProvince, i18n.language)
-                : t("listing.form.selectProvince")}
+              {hasExactLocation
+                ? mapLabel ?? t("listing.form.locationSet")
+                : t("listing.form.tapToSetLocation")}
             </Text>
             <ChevronRight size={16} color={colors.mutedForeground} />
           </Pressable>
@@ -582,17 +582,22 @@ export default function ListingFormScreen() {
       </Modal>
 
       {/* -------------------------------------------------------------------- */}
-      {/* Province picker sheet                                                  */}
+      {/* Location picker (map) — search a place or drop an exact pin           */}
       {/* -------------------------------------------------------------------- */}
-      <ProvincePickerSheet
-        visible={provincePickerVisible}
-        selectedValue={selectedProvince?.value ?? null}
-        onSelect={(province) => {
-          setSelectedProvince(province);
-          setValue("location", province.value, { shouldValidate: true });
-          setProvincePickerVisible(false);
+      <LocationRangePicker
+        visible={locationPickerVisible}
+        mode="point"
+        initialCoords={hasExactLocation ? { latitude: latitude!, longitude: longitude! } : null}
+        initialRadius={5}
+        initialLabel={mapLabel}
+        onClose={() => setLocationPickerVisible(false)}
+        onConfirm={({ coords, label }) => {
+          setValue("latitude", coords.latitude);
+          setValue("longitude", coords.longitude);
+          setMapLabel(label);
+          // The precise place name becomes the listing's location text.
+          setValue("location", label ?? "", { shouldValidate: true });
         }}
-        onClose={() => setProvincePickerVisible(false)}
       />
     </KeyboardAvoidingView>
   );

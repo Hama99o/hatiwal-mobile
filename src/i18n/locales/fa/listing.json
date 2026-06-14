@@ -62,6 +62,7 @@
   },
   "postListing": "ثبت آگهی",
   "noPhoto": "عکس ندارد",
+  "seen": "دیده‌شده",
   "detail": {
     "contactSeller": "تماس با فروشنده",
     "makeOffer": "پیشنهاد قیمت",
@@ -80,7 +81,8 @@
     "offerMessage": "💬 پیشنهاد: {{amount}} برای '{{title}}'",
     "defaultMessage": "سلام، آیا این هنوز موجود است؟",
     "reportSent": "گزارش ارسال شد — ممنون",
-    "notFound": "آگهی یافت نشد"
+    "notFound": "آگهی یافت نشد",
+    "moreOptions": "گزینه‌های بیشتر"
   },
   "form": {
     "photos": "عکس‌ها",
@@ -101,6 +103,9 @@
     "currencyEUR": "یورو",
     "selectProvince": "انتخاب ولایت",
     "searchProvinces": "جستجوی ولایت...",
+    "pickLocation": "انتخاب مکان روی نقشه",
+    "locationSet": "مکان تعیین شد",
+    "tapToSetLocation": "برای تعیین مکان دقیق روی نقشه ضربه بزنید",
     "reorderHint": "روی عکس دیگری ضربه بزنید تا جا عوض شود",
     "addressLabel": "آدرس ملاقات",
     "addressPlaceholder": "مثلاً: نزدیک مسجد آبی، شهر نو",

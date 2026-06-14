@@ -29,5 +29,26 @@
     "viewListings": "View Listings",
     "noListings": "No active listings",
     "loadFailed": "Could not load profile."
-  }
+  },
+  "sellerDashboard": "Seller Dashboard",
+  "buyerProfile": "Buyer Profile",
+  "stats": {
+    "sold": "Sold",
+    "active": "Active",
+    "sales": "Total Sales"
+  },
+  "quickActions": {
+    "postNew": "Post New Item",
+    "myListings": "My Listings",
+    "messages": "Messages",
+    "reviews": "Ratings & Reviews",
+    "browse": "Browse Listings",
+    "saved": "Saved Items"
+  },
+  "recentActivity": "Recent Activity",
+  "recentListings": "Your Active Listings",
+  "viewAll": "View All",
+  "itemsBought": "Items Bought",
+  "itemsSaved": "Saved Items",
+  "purchaseActivity": "Purchase Activity"
 }

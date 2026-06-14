@@ -25,6 +25,7 @@
   "priceMax": "حداکثر قیمت",
   "applyFilters": "برای ذخیره ترکیب جستجو فیلترها را اعمال کنید",
   "setLocationRange": "مکان و محدوده را تعیین کنید",
+  "searchLocation": "جستجوی استان…",
   "searchRadius": "شعاع جستجو",
   "confirmLocation": "تأیید مکان",
   "withinRadius": "در شعاع {{km}} کیلومتر",

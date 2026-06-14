@@ -25,6 +25,7 @@
   "priceMax": "Max Price",
   "applyFilters": "Apply filters to save search combinations",
   "setLocationRange": "Set location & range",
+  "searchLocation": "Search a province…",
   "searchRadius": "Search radius",
   "confirmLocation": "Confirm location",
   "withinRadius": "Within {{km}} km",

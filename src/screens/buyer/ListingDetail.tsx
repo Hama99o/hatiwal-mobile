@@ -17,7 +17,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
-  ScrollView,
   FlatList,
   Pressable,
   StyleSheet,
@@ -25,12 +24,10 @@ import {
   Platform,
   Modal,
   Share,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
 } from "react-native";
 import { Image } from "expo-image";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner-native";
 import {
@@ -41,22 +38,23 @@ import {
   Eye,
   Camera,
   X,
-  ChevronRight,
 } from "lucide-react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedScrollHandler,
   withSpring,
-  withRepeat,
   withTiming,
   interpolate,
   Extrapolate,
+  FadeInDown,
 } from "react-native-reanimated";
 
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { Input } from "@/components/reusables/input";
 import { Separator } from "@/components/reusables/separator";
+import { Skeleton } from "@/components/reusables/skeleton";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { listingsAPI } from "@/api/listings";
@@ -68,47 +66,137 @@ import { UserAvatar } from "@/components/common/UserAvatar";
 
 const { width: SW } = Dimensions.get("window");
 const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
+// Gallery shrinks to this fraction when scrolled to COLLAPSE_DISTANCE
+const GALLERY_COLLAPSE_RATIO = 0.65;
+const COLLAPSE_DISTANCE = 180;
 
-// ── Skeleton (shown while listing loads) ─────────────────────────────────────
-function PulseBlock({ w, h, style, c }: { w?: number | string; h: number; style?: object; c: string }) {
-  const opacity = useSharedValue(1);
-  useEffect(() => { opacity.value = withRepeat(withTiming(0.35, { duration: 850 }), -1, true); }, [opacity]);
-  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return (
-    <Animated.View style={[{ backgroundColor: c, borderRadius: 8, height: h, width: w ?? "100%" }, style, anim]} />
-  );
-}
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+// Uses the RNR Skeleton component (which already pulses) with staggered entrance
+// animations so the blocks fade in one after another rather than all at once.
 
 function ListingDetailSkeleton({ colors }: { colors: ReturnType<typeof useColors> }) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Photo */}
-      <PulseBlock h={SW} c={colors.muted} style={{ borderRadius: 0 }} />
-      <View style={{ padding: 16, gap: 12 }}>
-        {/* Price */}
-        <PulseBlock w={120} h={28} c={colors.muted} />
-        {/* Title */}
-        <PulseBlock h={18} c={colors.muted} />
-        <PulseBlock w="70%" h={18} c={colors.muted} />
-        {/* Meta */}
-        <View style={{ flexDirection: "row", gap: 12 }}>
-          <PulseBlock w={80} h={14} c={colors.muted} />
-          <PulseBlock w={60} h={14} c={colors.muted} />
-        </View>
-        {/* Description */}
-        <PulseBlock h={14} c={colors.muted} />
-        <PulseBlock h={14} c={colors.muted} />
-        <PulseBlock w="80%" h={14} c={colors.muted} />
-        {/* Seller */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 }}>
-          <PulseBlock w={44} h={44} c={colors.muted} style={{ borderRadius: 22, flexShrink: 0 }} />
+      {/* Photo area — 4:3 matches the gallery default ratio */}
+      <Skeleton
+        style={{
+          width: SW,
+          aspectRatio: 4 / 3,
+          borderRadius: 0,
+          backgroundColor: colors.muted,
+        }}
+      />
+
+      <View style={{ padding: 16, gap: 14 }}>
+        {/* Price block */}
+        <Animated.View entering={FadeInDown.delay(60).duration(300)}>
+          <Skeleton
+            style={{ width: 140, height: 30, backgroundColor: colors.muted, borderRadius: 8 }}
+          />
+        </Animated.View>
+
+        {/* Title lines */}
+        <Animated.View entering={FadeInDown.delay(120).duration(300)} style={{ gap: 8 }}>
+          <Skeleton
+            style={{ width: "100%", height: 18, backgroundColor: colors.muted, borderRadius: 6 }}
+          />
+          <Skeleton
+            style={{ width: "72%", height: 18, backgroundColor: colors.muted, borderRadius: 6 }}
+          />
+        </Animated.View>
+
+        {/* Meta row */}
+        <Animated.View
+          entering={FadeInDown.delay(180).duration(300)}
+          style={{ flexDirection: "row", gap: 12 }}
+        >
+          <Skeleton
+            style={{ width: 80, height: 14, backgroundColor: colors.muted, borderRadius: 4 }}
+          />
+          <Skeleton
+            style={{ width: 64, height: 14, backgroundColor: colors.muted, borderRadius: 4 }}
+          />
+        </Animated.View>
+
+        {/* Description lines */}
+        <Animated.View entering={FadeInDown.delay(240).duration(300)} style={{ gap: 8, marginTop: 4 }}>
+          <Skeleton
+            style={{ width: "100%", height: 14, backgroundColor: colors.muted, borderRadius: 4 }}
+          />
+          <Skeleton
+            style={{ width: "100%", height: 14, backgroundColor: colors.muted, borderRadius: 4 }}
+          />
+          <Skeleton
+            style={{ width: "80%", height: 14, backgroundColor: colors.muted, borderRadius: 4 }}
+          />
+        </Animated.View>
+
+        {/* Seller row */}
+        <Animated.View
+          entering={FadeInDown.delay(320).duration(300)}
+          style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 }}
+        >
+          <Skeleton
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              flexShrink: 0,
+              backgroundColor: colors.muted,
+            }}
+          />
           <View style={{ flex: 1, gap: 8 }}>
-            <PulseBlock w={120} h={14} c={colors.muted} />
-            <PulseBlock w={80} h={12} c={colors.muted} />
+            <Skeleton
+              style={{ width: 120, height: 14, backgroundColor: colors.muted, borderRadius: 4 }}
+            />
+            <Skeleton
+              style={{ width: 80, height: 12, backgroundColor: colors.muted, borderRadius: 4 }}
+            />
           </View>
-        </View>
+          <Skeleton
+            style={{ width: 72, height: 34, borderRadius: 8, backgroundColor: colors.muted }}
+          />
+        </Animated.View>
       </View>
     </View>
+  );
+}
+
+// ── Animated dot — width spring-animates between active (16px) and idle (6px) ─
+function GalleryDot({ active }: { active: boolean }) {
+  const width = useSharedValue(active ? 16 : 6);
+  const opacity = useSharedValue(active ? 1 : 0.4);
+
+  useEffect(() => {
+    width.value = withSpring(active ? 16 : 6, { damping: 12, stiffness: 220 });
+    opacity.value = withTiming(active ? 1 : 0.4, { duration: 200 });
+  }, [active, width, opacity]);
+
+  const style = useAnimatedStyle(() => ({
+    width: width.value,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#fff",
+    opacity: opacity.value,
+  }));
+
+  return <Animated.View style={style} />;
+}
+
+// ── Content section wrapper that fades + slides in ────────────────────────────
+function AnimatedSection({
+  children,
+  delay = 0,
+  style,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  style?: object;
+}) {
+  return (
+    <Animated.View entering={FadeInDown.delay(delay).duration(380).springify()} style={style}>
+      {children}
+    </Animated.View>
   );
 }
 
@@ -118,12 +206,15 @@ export default function ListingDetailScreen() {
   const { t, i18n } = useTranslation();
   const { isRtl, formatDate } = useLocalization();
   const colors = useColors();
+  const qc = useQueryClient();
 
   const [photoIndex, setPhotoIndex] = useState(0);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [galleryPhotoIndex, setGalleryPhotoIndex] = useState(0);
-  const scrollY = useSharedValue(0);
   const galleryFlatListRef = useRef<FlatList>(null);
+
+  // scrollY lives on the UI thread — driven by the animated scroll handler below.
+  const scrollY = useSharedValue(0);
 
   // FlatList requires these to be stable references — inline functions cause
   // "Changing onViewableItemsChanged on the fly is not supported" invariant.
@@ -144,18 +235,48 @@ export default function ListingDetailScreen() {
     transform: [{ scale: heartScale.value }],
   }));
 
-  // Scroll-based gallery height animation (1 at top → 0.65 when scrolled 200px)
+  // ── Animated scroll handler (runs on UI thread — no JS jank) ────────────
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  // Gallery collapses from 4:3 ratio at top → GALLERY_COLLAPSE_RATIO * 4:3 when
+  // scrolled COLLAPSE_DISTANCE px down. All runs on the UI thread.
+  const GALLERY_H = SW * (3 / 4); // 4:3 aspect ratio
   const galleryHeightAnim = useAnimatedStyle(() => {
     const scale = interpolate(
       scrollY.value,
-      [0, 200],
-      [1, 0.65],
+      [0, COLLAPSE_DISTANCE],
+      [1, GALLERY_COLLAPSE_RATIO],
+      Extrapolate.CLAMP
+    );
+    const overlayOpacity = interpolate(
+      scrollY.value,
+      [0, COLLAPSE_DISTANCE * 0.6],
+      [1, 0.6],
       Extrapolate.CLAMP
     );
     return {
-      height: SW * scale,
-      opacity: interpolate(scrollY.value, [0, 100], [1, 1], Extrapolate.CLAMP),
+      height: GALLERY_H * scale,
+      opacity: overlayOpacity,
     };
+  });
+
+  // The overlay controls (back / heart / more) are fixed relative to the screen
+  // top — they must NOT be inside the ScrollView so they stay pinned as content
+  // scrolls underneath. They are rendered after the ScrollView in absolute position.
+  const overlayOpacityAnim = useAnimatedStyle(() => {
+    // Fade out just slightly as user scrolls deep, so they know controls are
+    // still tappable without obscuring content.
+    const opacity = interpolate(
+      scrollY.value,
+      [0, COLLAPSE_DISTANCE],
+      [1, 0.85],
+      Extrapolate.CLAMP
+    );
+    return { opacity };
   });
 
   // ── Fetch listing detail ─────────────────────────────────────────────────
@@ -164,6 +285,13 @@ export default function ListingDetailScreen() {
     queryFn: () => listingsAPI.getListing(Number(id)),
     enabled: !!id,
   });
+
+  // Re-fetch whenever the screen regains focus (e.g. returning from conversation)
+  useFocusEffect(
+    useCallback(() => {
+      if (id) qc.invalidateQueries({ queryKey: ["listing", id] });
+    }, [id, qc])
+  );
 
   // ── Fetch similar listings (same category, exclude current) ─────────────
   const { data: similar } = useQuery({
@@ -190,7 +318,7 @@ export default function ListingDetailScreen() {
         : listingsAPI.saveListing(Number(id)),
     onMutate: () => {
       setIsSaved((prev) => !prev);
-      heartScale.value = withSpring(1.4, { damping: 4, stiffness: 300 }, () => {
+      heartScale.value = withSpring(1.45, { damping: 4, stiffness: 320 }, () => {
         heartScale.value = withSpring(1, { damping: 6, stiffness: 200 });
       });
     },
@@ -277,6 +405,8 @@ export default function ListingDetailScreen() {
   const photos = listing.images?.length ? listing.images : [];
   const hasPhotos = photos.length > 0;
   const isBusy = contactMutation.isPending || offerMutation.isPending;
+  const screenHeight = Dimensions.get("window").height;
+  const galleryContentHeight = screenHeight - 120;
 
   const categoryName =
     i18n.language === "ps"
@@ -285,23 +415,19 @@ export default function ListingDetailScreen() {
       ? listing.category.nameFa
       : listing.category.nameEn;
 
-  const handleScrollEvent = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    scrollY.value = event.nativeEvent.contentOffset.y;
-  };
-
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       {/* ── Scrollable content ──────────────────────────────────────── */}
-      <ScrollView
+      <Animated.ScrollView
         style={styles.flex}
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         bounces={false}
-        onScroll={handleScrollEvent}
+        onScroll={scrollHandler}
         scrollEventThrottle={16}
       >
         {/* ── Photo gallery ─────────────────────────────────────────── */}
-        <Animated.View style={[galleryHeightAnim, { position: "relative" }]}>
+        <Animated.View style={galleryHeightAnim}>
           {hasPhotos ? (
             <View style={styles.galleryContainer}>
               <FlatList
@@ -312,24 +438,39 @@ export default function ListingDetailScreen() {
                 keyExtractor={(_, i) => String(i)}
                 onViewableItemsChanged={onViewableItemsChanged}
                 viewabilityConfig={viewabilityConfig}
-                renderItem={({ item: uri }) => (
-                  <Image
-                    source={{ uri }}
-                    placeholder={{ blurhash: BLURHASH }}
-                    contentFit="cover"
-                    transition={200}
-                    style={{ width: SW, aspectRatio: 1 }}
-                  />
+                renderItem={({ item: uri, index }) => (
+                  // Pressable wraps each photo so swipes pass through to the
+                  // FlatList's paging scroll while taps still open the fullscreen
+                  // modal. RN's touch system naturally prefers the parent
+                  // ScrollView/FlatList for directional drags and only fires
+                  // onPress when the finger lifts without significant movement.
+                  <Pressable
+                    onPress={() => {
+                      setGalleryPhotoIndex(index);
+                      setShowGalleryModal(true);
+                    }}
+                    style={{ width: SW, aspectRatio: 4 / 3 }}
+                    android_ripple={null}
+                  >
+                    <Image
+                      source={{ uri }}
+                      placeholder={{ blurhash: BLURHASH }}
+                      contentFit="cover"
+                      transition={300}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  </Pressable>
                 )}
               />
-              {/* Transparent overlay to capture tap for fullscreen modal */}
-              <Pressable
-                onPress={() => {
-                  setGalleryPhotoIndex(photoIndex);
-                  setShowGalleryModal(true);
-                }}
-                style={[StyleSheet.absoluteFill, { backgroundColor: "transparent" }]}
-              />
+
+              {/* Dot pagination — lives inside gallery so it collapses with it */}
+              {photos.length > 1 && (
+                <View style={styles.dotsRow}>
+                  {photos.map((_, i) => (
+                    <GalleryDot key={i} active={i === photoIndex} />
+                  ))}
+                </View>
+              )}
             </View>
           ) : (
             <View
@@ -345,75 +486,8 @@ export default function ListingDetailScreen() {
           )}
         </Animated.View>
 
-        {/* Overlay controls: back | heart + "..." (outside animated view) */}
-        <View
-          style={[
-            styles.overlayRow,
-            { flexDirection: isRtl ? "row-reverse" : "row" },
-          ]}
-        >
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.overlayBtn}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.back")}
-          >
-            <ChevronLeft size={22} color="#fff" strokeWidth={2.5} />
-          </Pressable>
-
-          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8 }}>
-            <Pressable
-              onPress={() => saveMutation.mutate()}
-              style={styles.overlayBtn}
-              hitSlop={12}
-              accessibilityRole="togglebutton"
-              accessibilityLabel={
-                isSaved ? t("listing.unsave") : t("listing.save")
-              }
-            >
-              <Animated.View style={heartAnimStyle}>
-                <Heart
-                  size={20}
-                  color={isSaved ? "#ef4444" : "#fff"}
-                  fill={isSaved ? "#ef4444" : "transparent"}
-                  strokeWidth={2}
-                />
-              </Animated.View>
-            </Pressable>
-            <Pressable
-              onPress={() => setShowMoreSheet(true)}
-              style={styles.overlayBtn}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel={t("listing.detail.moreOptions")}
-            >
-              <MoreHorizontal size={20} color="#fff" strokeWidth={2} />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Dot pagination */}
-        {photos.length > 1 && (
-          <View style={styles.dotsRow}>
-            {photos.map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor:
-                      i === photoIndex ? "#fff" : "rgba(255,255,255,0.4)",
-                    width: i === photoIndex ? 16 : 6,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        )}
-
         {/* ── Main info ─────────────────────────────────────────────── */}
-        <View style={styles.section}>
+        <AnimatedSection delay={40} style={styles.section}>
           {/* Non-active status badge */}
           {listing.status !== "active" && (
             <View style={{ marginBottom: 4 }}>
@@ -492,13 +566,13 @@ export default function ListingDetailScreen() {
               </Text>
             ) : null}
           </View>
-        </View>
+        </AnimatedSection>
 
         {/* ── Description ───────────────────────────────────────────── */}
         {listing.description ? (
           <>
             <Separator />
-            <View style={styles.section}>
+            <AnimatedSection delay={100} style={styles.section}>
               <Text
                 style={[
                   styles.sectionHead,
@@ -517,13 +591,13 @@ export default function ListingDetailScreen() {
               >
                 {listing.description}
               </Text>
-            </View>
+            </AnimatedSection>
           </>
         ) : null}
 
         {/* ── Seller section ────────────────────────────────────────── */}
         <Separator />
-        <View style={styles.section}>
+        <AnimatedSection delay={160} style={styles.section}>
           <Text
             style={[
               styles.sectionHead,
@@ -566,13 +640,13 @@ export default function ListingDetailScreen() {
               <Text style={{ fontSize: 13 }}>{t("listing.detail.askSeller")}</Text>
             </Button>
           </View>
-        </View>
+        </AnimatedSection>
 
         {/* ── Similar listings ──────────────────────────────────────── */}
         {similar && similar.length > 0 ? (
           <>
             <Separator />
-            <View style={{ paddingTop: 16 }}>
+            <AnimatedSection delay={220} style={{ paddingTop: 16 }}>
               <Text
                 style={[
                   styles.sectionHead,
@@ -606,10 +680,61 @@ export default function ListingDetailScreen() {
                   />
                 )}
               />
-            </View>
+            </AnimatedSection>
           </>
         ) : null}
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* ── Overlay controls: back | heart + "…"
+           Fixed to screen, NOT inside ScrollView, so they stay pinned ── */}
+      <Animated.View
+        style={[
+          styles.overlayRow,
+          { flexDirection: isRtl ? "row-reverse" : "row" },
+          overlayOpacityAnim,
+        ]}
+        pointerEvents="box-none"
+      >
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.overlayBtn}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.back")}
+        >
+          <ChevronLeft size={22} color="#fff" strokeWidth={2.5} />
+        </Pressable>
+
+        <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8 }}>
+          <Pressable
+            onPress={() => saveMutation.mutate()}
+            style={styles.overlayBtn}
+            hitSlop={12}
+            accessibilityRole="togglebutton"
+            accessibilityLabel={
+              isSaved ? t("listing.unsave") : t("listing.save")
+            }
+          >
+            <Animated.View style={heartAnimStyle}>
+              <Heart
+                size={20}
+                color={isSaved ? colors.destructive : "#fff"}
+                fill={isSaved ? colors.destructive : "transparent"}
+                strokeWidth={2}
+              />
+            </Animated.View>
+          </Pressable>
+          <Pressable
+            onPress={() => setShowMoreSheet(true)}
+            style={styles.overlayBtn}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t("listing.detail.moreOptions")}
+          >
+            <MoreHorizontal size={20} color="#fff" strokeWidth={2} />
+          </Pressable>
+        </View>
+      </Animated.View>
 
       {/* ── Sticky action bar ─────────────────────────────────────── */}
       <View
@@ -794,7 +919,7 @@ export default function ListingDetailScreen() {
         animationType="fade"
         onRequestClose={() => setShowGalleryModal(false)}
       >
-        <View style={[styles.fullscreenGallery, { backgroundColor: colors.background }]}>
+        <View style={[styles.fullscreenGallery, { backgroundColor: "#000" }]}>
           {/* Header with close button */}
           <View
             style={[
@@ -819,7 +944,7 @@ export default function ListingDetailScreen() {
           </View>
 
           {/* Photo carousel */}
-          <View style={styles.galleryContent}>
+          <View style={[styles.galleryContent, { backgroundColor: "#000" }]}>
             <FlatList
               ref={galleryFlatListRef}
               data={photos}
@@ -829,8 +954,9 @@ export default function ListingDetailScreen() {
               scrollEventThrottle={16}
               keyExtractor={(_, i) => String(i)}
               onMomentumScrollEnd={(e) => {
-                const contentOffsetX = e.nativeEvent.contentOffset.x;
-                const currentIndex = Math.round(contentOffsetX / SW);
+                const currentIndex = Math.round(
+                  e.nativeEvent.contentOffset.x / SW
+                );
                 setGalleryPhotoIndex(currentIndex);
               }}
               initialScrollIndex={galleryPhotoIndex}
@@ -839,15 +965,33 @@ export default function ListingDetailScreen() {
                 offset: SW * index,
                 index,
               })}
-              renderItem={({ item: uri }) => (
-                <View style={{ width: SW, height: "100%", justifyContent: "center" }}>
-                  <Image
-                    source={{ uri }}
-                    placeholder={{ blurhash: BLURHASH }}
-                    contentFit="contain"
-                    transition={200}
-                    style={{ width: "100%", height: "100%" }}
-                  />
+              renderItem={({ item: uri, index }) => (
+                <View
+                  style={{
+                    width: SW,
+                    height: galleryContentHeight,
+                    backgroundColor: "#000",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {uri ? (
+                    <Image
+                      source={{ uri }}
+                      placeholder={{ blurhash: BLURHASH }}
+                      contentFit="contain"
+                      transition={300}
+                      style={{ width: "100%", height: "100%" }}
+                      cachePolicy="memory-disk"
+                    />
+                  ) : (
+                    <View style={{ alignItems: "center", gap: 12 }}>
+                      <Camera size={40} color={colors.mutedForeground} />
+                      <Text style={{ color: colors.mutedForeground }}>
+                        {t("listing.noPhoto")} {index + 1}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               )}
             />
@@ -856,10 +1000,7 @@ export default function ListingDetailScreen() {
           {/* Bottom pagination dots */}
           {photos.length > 1 && (
             <View
-              style={[
-                styles.galleryDots,
-                { backgroundColor: `rgba(0,0,0,0.3)` },
-              ]}
+              style={[styles.galleryDots, { backgroundColor: "rgba(0,0,0,0.3)" }]}
             >
               {photos.map((_, i) => (
                 <Pressable
@@ -877,7 +1018,7 @@ export default function ListingDetailScreen() {
                       backgroundColor:
                         i === galleryPhotoIndex
                           ? colors.primary
-                          : `rgba(255,255,255,0.3)`,
+                          : "rgba(255,255,255,0.3)",
                     },
                   ]}
                 />
@@ -895,12 +1036,14 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", justifyContent: "center" },
   galleryContainer: {
     width: "100%",
-    aspectRatio: 1,
+    aspectRatio: 4 / 3,
     position: "relative",
     backgroundColor: "#111",
+    overflow: "hidden",
   },
   noPhotoBox: {
-    flex: 1,
+    width: "100%",
+    aspectRatio: 4 / 3,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -914,10 +1057,10 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   overlayBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.40)",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(0,0,0,0.45)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -930,11 +1073,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     alignItems: "center",
-    zIndex: 10,
-  },
-  dot: {
-    height: 6,
-    borderRadius: 3,
+    zIndex: 5,
   },
   fullscreenGallery: {
     flex: 1,
@@ -992,13 +1131,6 @@ const styles = StyleSheet.create({
   sellerRow: {
     gap: 12,
     alignItems: "center",
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
   },
   actionBar: {
     paddingHorizontal: 16,

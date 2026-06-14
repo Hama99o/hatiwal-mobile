@@ -1,7 +1,7 @@
 import { View, Pressable, StyleSheet, ViewStyle } from "react-native";
 import { Text } from "@/components/reusables/text";
 import { Image } from "expo-image";
-import { Heart, MapPin, Camera } from "lucide-react-native";
+import { Heart, MapPin, Camera, Eye } from "lucide-react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -95,8 +95,12 @@ export function ListingCard({
   }, [onPress, router, listing.id]);
 
   // ── Derived values ───────────────────────────────────────────────────────
-  const sellerCity = listing.seller?.city ?? null;
+  // Show the LISTING's own location — not the seller's profile city. An item
+  // can be listed in a different place than where the seller lives.
+  const listingLocation = listing.location ?? null;
   const postedAgo = listing.createdAt ? formatDate(listing.createdAt) : null;
+  // "Seen" state — the buyer has already opened this listing.
+  const isViewed = listing.isViewed ?? false;
 
   const metaRowDirection = isRtl ? "row-reverse" : "row";
 
@@ -119,13 +123,29 @@ export function ListingCard({
               placeholder={{ blurhash: PHOTO_BLURHASH }}
               contentFit="cover"
               transition={300}
-              style={styles.image}
+              style={[styles.image, isViewed && { opacity: 0.62 }]}
               accessibilityLabel={listing.title}
             />
           ) : (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 6 }}>
               <Camera size={28} color={colors.mutedForeground} />
               <Text style={{ fontSize: 11, color: colors.mutedForeground }}>{t("listing.noPhoto")}</Text>
+            </View>
+          )}
+
+          {/* "Seen" badge — shown when the buyer already opened this listing */}
+          {isViewed && (
+            <View
+              style={[
+                styles.seenBadge,
+                isRtl ? { right: 8 } : { left: 8 },
+                { backgroundColor: colors.overlay },
+              ]}
+            >
+              <Eye size={11} color="#fff" />
+              <Text style={{ fontSize: 11, fontWeight: "600", color: "#fff" }}>
+                {t("listing.seen")}
+              </Text>
             </View>
           )}
 
@@ -179,22 +199,27 @@ export function ListingCard({
 
           {/* Title */}
           <Text
-            style={{ fontSize: 14, fontWeight: "500", textAlign: isRtl ? "right" : "left" }}
+            style={{
+              fontSize: 14,
+              fontWeight: "500",
+              textAlign: isRtl ? "right" : "left",
+              color: isViewed ? colors.mutedForeground : colors.foreground,
+            }}
             numberOfLines={2}
           >
             {listing.title}
           </Text>
 
-          {/* Meta row: city + posted date */}
+          {/* Meta row: listing location + posted date */}
           <View style={{ flexDirection: metaRowDirection, gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            {sellerCity ? (
+            {listingLocation ? (
               <View style={{ flexDirection: metaRowDirection, alignItems: "center", gap: 2 }}>
                 <MapPin size={11} color={colors.mutedForeground} />
                 <Text
                   style={{ fontSize: 12, color: colors.mutedForeground }}
                   numberOfLines={1}
                 >
-                  {sellerCity}
+                  {listingLocation}
                 </Text>
               </View>
             ) : null}
@@ -235,6 +260,16 @@ const styles = StyleSheet.create({
   },
   statusOverlayRtl: {
     right: 8,
+  },
+  seenBadge: {
+    position: "absolute",
+    bottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
   },
   heartButton: {
     position: "absolute",

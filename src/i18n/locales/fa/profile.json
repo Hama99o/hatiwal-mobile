@@ -29,5 +29,26 @@
     "viewListings": "مشاهده آگهی‌ها",
     "noListings": "آگهی فعالی وجود ندارد",
     "loadFailed": "بارگذاری پروفایل ناموفق بود."
-  }
+  },
+  "sellerDashboard": "داشبورد فروشنده",
+  "buyerProfile": "پروفایل خریدار",
+  "stats": {
+    "sold": "فروخته شده",
+    "active": "فعال",
+    "sales": "کل فروش"
+  },
+  "quickActions": {
+    "postNew": "ارائه آگهی جدید",
+    "myListings": "آگهی‌های من",
+    "messages": "پیام‌ها",
+    "reviews": "امتیازات و نظرات",
+    "browse": "مرور آگهی‌ها",
+    "saved": "آگهی‌های ذخیره شده"
+  },
+  "recentActivity": "فعالیت اخیر",
+  "recentListings": "آگهی‌های فعال شما",
+  "viewAll": "مشاهده همه",
+  "itemsBought": "اشیای خریداری شده",
+  "itemsSaved": "اشیای ذخیره شده",
+  "purchaseActivity": "فعالیت خرید"
 }

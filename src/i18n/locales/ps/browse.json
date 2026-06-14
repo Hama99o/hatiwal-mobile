@@ -25,6 +25,7 @@
   "priceMax": "زیاتر نرخ",
   "applyFilters": "د لټون ترکیب خوندي کولو لپاره فلټرونه اعمال کړئ",
   "setLocationRange": "ځای او ساحه وټاکئ",
+  "searchLocation": "ولایت ولټوئ…",
   "searchRadius": "د لټون ساحه",
   "confirmLocation": "ځای تایید کړئ",
   "withinRadius": "په {{km}} کیلومترۍ کې",

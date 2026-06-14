@@ -62,6 +62,7 @@
   },
   "postListing": "Post a listing",
   "noPhoto": "No photo",
+  "seen": "Seen",
   "detail": {
     "contactSeller": "Contact Seller",
     "makeOffer": "Make an Offer",
@@ -80,7 +81,8 @@
     "offerMessage": "💬 Offer: {{amount}} for '{{title}}'",
     "defaultMessage": "Hi, is this still available?",
     "reportSent": "Report submitted — thank you",
-    "notFound": "Listing not found"
+    "notFound": "Listing not found",
+    "moreOptions": "More options"
   },
   "form": {
     "photos": "Photos",
@@ -101,6 +103,9 @@
     "currencyEUR": "EUR – Euro",
     "selectProvince": "Select Province",
     "searchProvinces": "Search provinces...",
+    "pickLocation": "Pick location on map",
+    "locationSet": "Location set",
+    "tapToSetLocation": "Tap to set exact location on map",
     "reorderHint": "Tap another photo to swap positions",
     "addressLabel": "Meeting Address",
     "addressPlaceholder": "e.g. Near Blue Mosque, Shar-e-Naw",

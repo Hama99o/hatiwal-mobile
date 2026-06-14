@@ -128,10 +128,10 @@ export default function BrowseScreen() {
 
   // Apply the location + range chosen in the map picker
   const handleConfirmLocation = useCallback(
-    ({ coords, radiusKm }: { coords: MapCanvasCoords; radiusKm: number }) => {
+    ({ coords, radiusKm, label }: { coords: MapCanvasCoords; radiusKm: number; label: string | null }) => {
       setCoordinates(coords);
       setDistance(radiusKm);
-      setLocation(`${coords.latitude.toFixed(3)}, ${coords.longitude.toFixed(3)}`);
+      setLocation(label ?? `${coords.latitude.toFixed(3)}, ${coords.longitude.toFixed(3)}`);
     },
     []
   );
@@ -160,7 +160,8 @@ export default function BrowseScreen() {
       setCoordinates(null);
       setDistance(5);
     }
-    setShowFilters(false);
+    // Reveal the filter panel so the applied location/price are visible.
+    setShowFilters(true);
   }, []);
 
   return (
@@ -225,11 +226,6 @@ export default function BrowseScreen() {
                   ) : (
                     <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: isRtl ? "right" : "left" }}>
                       {t("browse.setLocationRange")}
-                    </Text>
-                  )}
-                  {coordinates && (
-                    <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 2, textAlign: isRtl ? "right" : "left" }}>
-                      {location}
                     </Text>
                   )}
                 </View>

@@ -62,6 +62,7 @@
   },
   "postListing": "اعلان خپرول",
   "noPhoto": "انځور نشته",
+  "seen": "لیدل شوی",
   "detail": {
     "contactSeller": "پلورونکي سره اړیکه",
     "makeOffer": "وړاندیز وکړئ",
@@ -80,7 +81,8 @@
     "offerMessage": "💬 وړاندیز: {{amount}} د '{{title}}' لپاره",
     "defaultMessage": "سلام، ایا دا لاهم شتون لري؟",
     "reportSent": "راپور وسپارل شو — مننه",
-    "notFound": "اعلان ونه موندل شو"
+    "notFound": "اعلان ونه موندل شو",
+    "moreOptions": "نور اختیارونه"
   },
   "form": {
     "photos": "انځورونه",
@@ -101,6 +103,9 @@
     "currencyEUR": "یورو",
     "selectProvince": "ولایت غوره کړئ",
     "searchProvinces": "ولایتونه وپلټئ...",
+    "pickLocation": "په نقشه کې ځای وټاکئ",
+    "locationSet": "ځای وټاکل شو",
+    "tapToSetLocation": "په نقشه کې دقیق ځای ټاکلو لپاره کېکاږئ",
     "reorderHint": "د ځایونو بدلولو لپاره بل انځور کلیک کړئ",
     "addressLabel": "د ملاقات ځای",
     "addressPlaceholder": "لکه: د نیلي جومات سره، شار-ی-ناو",
