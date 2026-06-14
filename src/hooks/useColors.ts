@@ -43,6 +43,7 @@ export function useColors() {
     // Semantic extras
     success:               dark ? "hsl(142, 71%, 45%)"  : "hsl(142, 76%, 36%)",
     successForeground:     "hsl(0, 0%, 98%)" as string,
+    successAlpha:          dark ? "rgba(34,197,94,0.15)"  : "rgba(22,163,74,0.12)",
     warning:               dark ? "hsl(38, 92%, 50%)"   : "hsl(38, 92%, 40%)",
     warningForeground:     "hsl(0, 0%, 98%)" as string,
     warningAlpha:          dark ? "rgba(245,158,11,0.15)" : "rgba(180,83,9,0.10)",

@@ -11,7 +11,7 @@
 > **Owner / taken by:** `_unassigned_` · `feature-builder` · `marketplace-designer` · `feature-builder → marketplace-designer`
 > **Normal pipeline:** `feature-builder` builds → `marketplace-designer` polishes → product-owner marks `✅`.
 >
-> _Last reconciled: 2026-06-14 by claude (taken: F2 Edit Profile — map location). Most pages are now built; statuses below reflect the real code._
+> _Last reconciled: 2026-06-14 by claude (marked "Similar listings on detail" ✅ shipped — already built in `ListingDetail.tsx`, the Ideas row was stale). Most pages are now built; statuses below reflect the real code._
 
 ---
 
@@ -226,10 +226,10 @@
 | Idea                             | Value                 | Notes                                                                     |
 | -------------------------------- | --------------------- | ------------------------------------------------------------------------- |
 | ~~Recently viewed~~ ✅ shipped   | re-engagement         | done as **B6** — per-user `ListingView`, card shows dimmed + "Seen" badge |
-| Similar listings on detail       | discovery             | "more in this category" rail under B2                                     |
+| ~~Similar listings on detail~~ ✅ shipped | discovery    | done — horizontal "Similar Listings" rail under B2 (`ListingDetail.tsx`): same-category, excludes current, capped at 6, `ListingCard`s, 3-locale + RTL |
 | Share listing (deep link)        | growth                | `expo-linking` share → opens B2                                           |
 | Draft autosave                   | fewer lost posts      | persist C1 form locally                                                   |
-| In-chat meetup scheduler         | core deal mechanic    | structured `meetup_proposal` with accept/decline                          |
+| ~~In-chat meetup scheduler~~ ✅ shipped | core deal mechanic | propose (place+time) + **accept/decline** with confirmed/declined bubbles — `meetup_accepted`/`meetup_declined` kinds |
 | Seller ratings / reviews         | trust                 | **needs backend** — post-MVP per CLAUDE.md                                |
 | Price-drop / saved-search alerts | retention             | **needs push (post-MVP)**                                                 |
 | Listing boost / bump             | (future monetization) | **needs backend**                                                         |

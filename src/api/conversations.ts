@@ -4,11 +4,21 @@ import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
 export interface Message {
   id: number;
   body: string;
-  kind: "text" | "meetup_proposal" | "system" | "offer" | "document" | "image_message";
+  kind:
+    | "text"
+    | "meetup_proposal"
+    | "meetup_accepted"
+    | "meetup_declined"
+    | "system"
+    | "offer"
+    | "document"
+    | "image_message";
   readAt: string | null;
   createdAt: string;
   sender: { id: number; name: string };
   attachmentUrl?: string | null;
+  /** For a meetup accept/decline: the proposal message id it answers. */
+  respondsToId?: number | null;
 }
 
 export interface Conversation {
@@ -102,11 +112,12 @@ export const conversationsAPI = {
   sendMessage: async (
     conversationId: number,
     body: string,
-    kind: "text" | "meetup_proposal" | "offer" = "text"
+    kind: "text" | "meetup_proposal" | "meetup_accepted" | "meetup_declined" | "offer" = "text",
+    respondsToId?: number
   ): Promise<Message> => {
     const response = await http.post(
       `/conversations/${conversationId}/messages`,
-      convertKeysToSnake({ body, kind })
+      convertKeysToSnake({ body, kind, respondsToId })
     );
     return convertKeysToCamel(response.data.message) as Message;
   },

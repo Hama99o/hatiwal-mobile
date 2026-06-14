@@ -311,6 +311,27 @@ export function ConversationScreen() {
     }
   }, [currentConversationId, t]);
 
+  // ── Respond to a meetup proposal (accept / decline) ──────────────────────
+  const handleMeetupRespond = useCallback(
+    async (proposal: Message, accepted: boolean) => {
+      const convId = currentConversationId;
+      if (!convId) return;
+      try {
+        const sent = await conversationsAPI.sendMessage(
+          convId,
+          proposal.body,
+          accepted ? "meetup_accepted" : "meetup_declined",
+          proposal.id
+        );
+        setMessages((prev) => [...prev, sent]);
+        toast.success(accepted ? t("chat.meetup.acceptedToast") : t("chat.meetup.declinedToast"));
+      } catch {
+        toast.error(t("chat.thread.meetupFailed"));
+      }
+    },
+    [currentConversationId, t]
+  );
+
   // ── Send file attachment ─────────────────────────────────────────────────
   const handleAttachment = useCallback(async () => {
     const convId = currentConversationId;
@@ -474,12 +495,33 @@ export function ConversationScreen() {
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => (
-            <MessageBubble
-              message={item}
-              isMine={!!currentUser && Number(item.sender.id) === Number(currentUser.id)}
-            />
-          )}
+          renderItem={({ item, index }) => {
+            // Outcome for THIS proposal only — matched by the response's link
+            // (responds_to_id), so declining one proposal never affects another.
+            let meetupOutcome: "accepted" | "declined" | null = null;
+            if (item.kind === "meetup_proposal") {
+              const response = messages.find(
+                (m) =>
+                  (m.kind === "meetup_accepted" || m.kind === "meetup_declined") &&
+                  m.respondsToId === item.id
+              );
+              if (response) {
+                meetupOutcome = response.kind === "meetup_accepted" ? "accepted" : "declined";
+              }
+            }
+            return (
+              <MessageBubble
+                message={item}
+                isMine={!!currentUser && Number(item.sender.id) === Number(currentUser.id)}
+                meetupOutcome={meetupOutcome}
+                onMeetupRespond={
+                  item.kind === "meetup_proposal"
+                    ? (accepted) => handleMeetupRespond(item, accepted)
+                    : undefined
+                }
+              />
+            );
+          }}
           contentContainerStyle={styles.messageList}
           maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
           scrollEventThrottle={200}

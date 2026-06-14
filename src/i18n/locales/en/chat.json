@@ -45,7 +45,13 @@
     "propose": "Propose Meetup",
     "proposed": "Meetup Proposal",
     "placeRequired": "Please enter a meeting place.",
-    "timeRequired": "Please enter a meeting time."
+    "timeRequired": "Please enter a meeting time.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "accepted": "Meetup accepted",
+    "declined": "Meetup declined",
+    "acceptedToast": "You accepted the meetup",
+    "declinedToast": "You declined the meetup"
   },
   "startConversation": {
     "title": "Message Seller",

@@ -6,7 +6,7 @@
 import React from "react";
 import { View, Linking, TouchableOpacity, Platform, Alert } from "react-native";
 import { useTranslation } from "react-i18next";
-import { MapPin, Clock, Check, Tag, ExternalLink, FileText } from "lucide-react-native";
+import { MapPin, Clock, Check, Tag, ExternalLink, FileText, CalendarCheck, CalendarX } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
@@ -31,6 +31,10 @@ function openInMaps(place: string) {
 interface MessageBubbleProps {
   message: Message;
   isMine: boolean;
+  /** Called when the recipient taps Accept (true) / Decline (false) on a proposal. */
+  onMeetupRespond?: (accepted: boolean) => void;
+  /** Outcome of this proposal, if it has been answered (shown on the bubble). */
+  meetupOutcome?: "accepted" | "declined" | null;
 }
 
 /** Two-tick read indicator rendered as overlapping Check icons */
@@ -43,10 +47,16 @@ function ReadReceipt({ color }: { color: string }) {
   );
 }
 
-export function MessageBubble({ message, isMine }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome }: MessageBubbleProps) {
   const { t } = useTranslation();
   const { isRtl, formatTime } = useLocalization();
   const colors = useColors();
+
+  // Accept/decline responses are not shown as their own bubble — the outcome is
+  // rendered directly on the original proposal bubble (visible to both sides).
+  if (message.kind === "meetup_accepted" || message.kind === "meetup_declined") {
+    return null;
+  }
 
   // In RTL languages, "my" messages anchor to the left side (which is the end/right
   // of the visual reading direction). We keep isMine logic the same but flip direction.
@@ -245,6 +255,57 @@ export function MessageBubble({ message, isMine }: MessageBubbleProps) {
                 <Text style={{ flex: 1, textAlign: isRtl ? "right" : "left", fontSize: 14 }}>
                   {time}
                 </Text>
+              </View>
+            ) : null}
+
+            {/* Outcome — shown to BOTH sides once answered (so the proposer sees it too) */}
+            {meetupOutcome ? (
+              <View
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 6,
+                  paddingVertical: 7,
+                  paddingHorizontal: 10,
+                  borderRadius: 8,
+                  backgroundColor: meetupOutcome === "accepted" ? colors.successAlpha : colors.destructiveAlpha,
+                }}
+              >
+                {meetupOutcome === "accepted" ? (
+                  <CalendarCheck size={14} color={colors.success} />
+                ) : (
+                  <CalendarX size={14} color={colors.destructive} />
+                )}
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "700",
+                    color: meetupOutcome === "accepted" ? colors.success : colors.destructive,
+                  }}
+                >
+                  {meetupOutcome === "accepted" ? t("chat.meetup.accepted") : t("chat.meetup.declined")}
+                </Text>
+              </View>
+            ) : !isMine && onMeetupRespond ? (
+              /* Accept / Decline — only for the recipient, before they respond */
+              <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8, marginTop: 6 }}>
+                <TouchableOpacity
+                  onPress={() => onMeetupRespond(true)}
+                  style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, backgroundColor: colors.primary }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primaryForeground }}>
+                    {t("chat.meetup.accept")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => onMeetupRespond(false)}
+                  style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
+                    {t("chat.meetup.decline")}
+                  </Text>
+                </TouchableOpacity>
               </View>
             ) : null}
 

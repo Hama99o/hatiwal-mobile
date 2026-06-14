@@ -90,7 +90,10 @@
     "defaultMessage": "Hi, is this still available?",
     "reportSent": "Report submitted — thank you",
     "notFound": "Listing not found",
-    "moreOptions": "More options"
+    "moreOptions": "More options",
+    "soldNotice": "This item has been sold",
+    "reservedNotice": "This item is reserved",
+    "unavailableNotice": "This item is no longer available"
   },
   "form": {
     "photos": "Photos",

@@ -90,7 +90,10 @@
     "defaultMessage": "سلام، آیا این هنوز موجود است؟",
     "reportSent": "گزارش ارسال شد — ممنون",
     "notFound": "آگهی یافت نشد",
-    "moreOptions": "گزینه‌های بیشتر"
+    "moreOptions": "گزینه‌های بیشتر",
+    "soldNotice": "این کالا فروخته شده است",
+    "reservedNotice": "این کالا رزرو شده است",
+    "unavailableNotice": "این کالا دیگر موجود نیست"
   },
   "form": {
     "photos": "عکس‌ها",

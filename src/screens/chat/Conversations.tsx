@@ -26,6 +26,10 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
   const otherName = other?.name ?? other?.fullName;
   const unread = item.unreadCount ?? 0;
   const PHOTO_SIZE = 68;
+  // Listing no longer available → dim the row + show a "Sold/Reserved" tag.
+  const isSold = item.listing?.status === "sold";
+  const isReserved = item.listing?.status === "reserved";
+  const isInactive = isSold || isReserved;
 
   const handleLongPress = useCallback(() => {
     confirmAlert(
@@ -70,13 +74,31 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
         {item.listing?.thumbnailUrl ? (
           <Image
             source={{ uri: item.listing.thumbnailUrl }}
-            style={{ width: PHOTO_SIZE, height: PHOTO_SIZE }}
+            style={{ width: PHOTO_SIZE, height: PHOTO_SIZE, opacity: isInactive ? 0.5 : 1 }}
             contentFit="cover"
             placeholder={{ blurhash: PHOTO_BLURHASH }}
             transition={150}
           />
         ) : (
           <Camera size={24} color={colors.mutedForeground} />
+        )}
+        {/* Sold / reserved tag overlaid on the thumbnail */}
+        {isInactive && (
+          <View
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: isSold ? colors.overlay : "rgba(180,83,9,0.85)",
+              paddingVertical: 2,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontSize: 9, fontWeight: "800", color: "#fff", letterSpacing: 0.5 }}>
+              {(isSold ? t("common.sold") : t("common.reserved")).toUpperCase()}
+            </Text>
+          </View>
         )}
       </View>
 
@@ -85,7 +107,7 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
         {/* Title + time */}
         <View style={{ flexDirection: isRtl ? "row-reverse" : "row", justifyContent: "space-between", alignItems: "flex-start", gap: 6, marginBottom: 3 }}>
           <Text
-            style={{ fontWeight: "700", fontSize: 14, color: colors.foreground, flex: 1, lineHeight: 19 }}
+            style={{ fontWeight: "700", fontSize: 14, color: isInactive ? colors.mutedForeground : colors.foreground, flex: 1, lineHeight: 19 }}
             numberOfLines={2}
           >
             {item.listing?.title ?? t("chat.title")}

@@ -90,7 +90,10 @@
     "defaultMessage": "سلام، ایا دا لاهم شتون لري؟",
     "reportSent": "راپور وسپارل شو — مننه",
     "notFound": "اعلان ونه موندل شو",
-    "moreOptions": "نور اختیارونه"
+    "moreOptions": "نور اختیارونه",
+    "soldNotice": "دا توکی خرڅ شوی دی",
+    "reservedNotice": "دا توکی خوندي شوی دی",
+    "unavailableNotice": "دا توکی نور شتون نلري"
   },
   "form": {
     "photos": "انځورونه",

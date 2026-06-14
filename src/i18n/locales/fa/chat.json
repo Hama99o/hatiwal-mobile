@@ -45,7 +45,13 @@
     "propose": "پیشنهاد ملاقات",
     "proposed": "پیشنهاد ملاقات",
     "placeRequired": "لطفاً محل ملاقات را وارد کنید.",
-    "timeRequired": "لطفاً زمان ملاقات را وارد کنید."
+    "timeRequired": "لطفاً زمان ملاقات را وارد کنید.",
+    "accept": "پذیرفتن",
+    "decline": "رد کردن",
+    "accepted": "ملاقات پذیرفته شد",
+    "declined": "ملاقات رد شد",
+    "acceptedToast": "شما ملاقات را پذیرفتید",
+    "declinedToast": "شما ملاقات را رد کردید"
   },
   "startConversation": {
     "title": "پیام به فروشنده",

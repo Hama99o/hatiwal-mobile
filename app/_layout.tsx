@@ -1,6 +1,15 @@
 import "../src/styles/global.css";
 import "../src/i18n";
 
+// Polyfill for Expo Go - provide fallback for gesture handler module
+if (typeof global !== 'undefined' && !global.RNGestureHandlerModule) {
+  global.RNGestureHandlerModule = {
+    default: {
+      installUIRuntimeBindings: () => {}, // No-op for Expo Go
+    },
+  };
+}
+
 import { useEffect, useState } from "react";
 import { Platform, View } from "react-native";
 import { Stack } from "expo-router";
@@ -16,23 +25,22 @@ const queryClient = new QueryClient({
 });
 
 function ThemeManager({ onReady }: { onReady: () => void }) {
-  const { colorScheme, setColorScheme } = useColorScheme();
   const theme = useThemeStore((s) => s.theme);
   const [loaded, setLoaded] = useState(false);
+  const { colorScheme, setColorScheme } = Platform.OS === "web" ? useColorScheme() : { colorScheme: theme, setColorScheme: () => {} };
 
   // Load saved theme once on mount
   useEffect(() => {
     loadSavedTheme().finally(() => setLoaded(true));
   }, []);
 
-  // Apply stored preference to NativeWind's color scheme engine
+  // On web: Apply stored preference to NativeWind's color scheme engine
   useEffect(() => {
-    if (loaded) {
-      setColorScheme(theme);
-    }
+    if (Platform.OS !== "web" || !loaded) return;
+    setColorScheme(theme);
   }, [theme, setColorScheme, loaded]);
 
-  // Sync `dark` class on <html> for CSS custom property cascade on web
+  // On web: Sync `dark` class on <html> for CSS custom property cascade
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
     if (colorScheme === "dark") {
@@ -43,7 +51,7 @@ function ThemeManager({ onReady }: { onReady: () => void }) {
     if (loaded) onReady();
   }, [colorScheme, loaded]);
 
-  // On native, signal ready as soon as loaded
+  // On native, signal ready as soon as loaded (we use useColors() hook, not CSS classes)
   useEffect(() => {
     if (loaded && Platform.OS !== "web") onReady();
   }, [loaded]);

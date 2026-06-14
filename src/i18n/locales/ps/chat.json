@@ -45,7 +45,13 @@
     "propose": "د لیدنې وړاندیز",
     "proposed": "د لیدنې وړاندیز",
     "placeRequired": "مهرباني وکړئ د لیدنې ځای ولیکئ.",
-    "timeRequired": "مهرباني وکړئ د لیدنې وخت ولیکئ."
+    "timeRequired": "مهرباني وکړئ د لیدنې وخت ولیکئ.",
+    "accept": "منل",
+    "decline": "ردول",
+    "accepted": "لیدنه ومنل شوه",
+    "declined": "لیدنه رد شوه",
+    "acceptedToast": "تاسو لیدنه ومنله",
+    "declinedToast": "تاسو لیدنه رد کړه"
   },
   "startConversation": {
     "title": "پلورونکي ته پیغام",

@@ -38,6 +38,7 @@ import {
   Eye,
   Camera,
   X,
+  Ban,
 } from "lucide-react-native";
 import Animated, {
   useSharedValue,
@@ -753,22 +754,49 @@ export default function ListingDetailScreen() {
           },
         ]}
       >
-        <Button
-          variant="outline"
-          onPress={() => setShowOfferSheet(true)}
-          style={styles.actionBtn}
-          disabled={isBusy}
-        >
-          <Text>{t("listing.detail.makeOffer")}</Text>
-        </Button>
-        <Button
-          variant="default"
-          onPress={handleContactSeller}
-          disabled={isBusy}
-          style={styles.actionBtn}
-        >
-          <Text>{t("listing.detail.contactSeller")}</Text>
-        </Button>
+        {listing.status === "active" ? (
+          <>
+            <Button
+              variant="outline"
+              onPress={() => setShowOfferSheet(true)}
+              style={styles.actionBtn}
+              disabled={isBusy}
+            >
+              <Text>{t("listing.detail.makeOffer")}</Text>
+            </Button>
+            <Button
+              variant="default"
+              onPress={handleContactSeller}
+              disabled={isBusy}
+              style={styles.actionBtn}
+            >
+              <Text>{t("listing.detail.contactSeller")}</Text>
+            </Button>
+          </>
+        ) : (
+          /* Sold / reserved → no offer or contact; show why instead */
+          <View
+            style={{
+              flex: 1,
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              backgroundColor: colors.muted,
+              borderRadius: 12,
+              paddingVertical: 14,
+            }}
+          >
+            <Ban size={16} color={colors.mutedForeground} />
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.mutedForeground }}>
+              {listing.status === "sold"
+                ? t("listing.detail.soldNotice")
+                : listing.status === "reserved"
+                ? t("listing.detail.reservedNotice")
+                : t("listing.detail.unavailableNotice")}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* ── More options sheet ────────────────────────────────────── */}
