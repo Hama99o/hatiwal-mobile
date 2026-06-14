@@ -33,10 +33,11 @@ export default function SplashScreen() {
       const headers = await secureStorage.getAuthHeaders();
 
       if (!headers) {
-        // No stored token — go straight to login.
+        // No stored token — browse as a guest. Auth-gated actions (save,
+        // contact, offer, the Saved/Chat/Profile tabs) prompt login on demand.
         if (!cancelled) {
           clearUser();
-          router.replace("/(auth)/login");
+          router.replace("/(main)/(tabs)/browse");
         }
         return;
       }
@@ -52,11 +53,12 @@ export default function SplashScreen() {
           router.replace("/(main)/(tabs)/browse");
         }
       } catch {
-        // 401 (expired/revoked token) or network error — treat as unauthenticated.
+        // 401 (expired/revoked token) or network error — drop to guest browse
+        // rather than forcing a login wall; gated actions prompt login later.
         if (!cancelled) {
           clearUser();
           await secureStorage.clearAuthHeaders();
-          router.replace("/(auth)/login");
+          router.replace("/(main)/(tabs)/browse");
         }
       }
     }

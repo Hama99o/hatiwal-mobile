@@ -6,6 +6,7 @@
 import React from "react";
 import { View, Pressable } from "react-native";
 import { Image } from "expo-image";
+import { LISTING_BLURHASH } from "@/constants/images";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, ChevronLeft, MapPin } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
@@ -64,7 +65,7 @@ export function ListingHeader({ listing, onPress }: ListingHeaderProps) {
         source={listing.thumbnailUrl ? { uri: listing.thumbnailUrl } : undefined}
         style={{ width: 40, height: 40, borderRadius: 8 }}
         contentFit="cover"
-        placeholder={{ blurhash: "L6PZfSi_.AyE_3t7t7R**0o#DgR4" }}
+        placeholder={{ blurhash: LISTING_BLURHASH }}
         transition={200}
       />
 

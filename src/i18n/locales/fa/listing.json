@@ -36,6 +36,14 @@
     "reserved": "رزرو شده",
     "sold": "فروخته شده"
   },
+  "condition": {
+    "label": "وضعیت",
+    "any": "هر وضعیت",
+    "brand_new": "کاملاً نو",
+    "like_new": "در حد نو",
+    "good": "خوب",
+    "fair": "متوسط"
+  },
   "confirmDelete": "این آگهی حذف شود؟",
   "confirmDeleteDescription": "این عمل آگهی شما را برای همیشه حذف می‌کند.",
   "confirmMarkSold": "به عنوان فروخته شده علامت‌گذاری شود؟",

@@ -36,6 +36,14 @@
     "reserved": "Reserved",
     "sold": "Sold"
   },
+  "condition": {
+    "label": "Condition",
+    "any": "Any condition",
+    "brand_new": "Brand new",
+    "like_new": "Like new",
+    "good": "Good",
+    "fair": "Fair"
+  },
   "confirmDelete": "Delete this listing?",
   "confirmDeleteDescription": "This will permanently remove your listing.",
   "confirmMarkSold": "Mark as sold?",

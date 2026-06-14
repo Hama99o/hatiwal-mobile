@@ -4,7 +4,7 @@ import { Input } from "@/components/reusables/input";
 import { Button } from "@/components/reusables/button";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore } from "@/stores/mode.store";
@@ -19,6 +19,9 @@ export default function LoginScreen() {
   const { isRtl } = useLocalization();
   const colors = useColors();
   const router = useRouter();
+  // When a guest taps a gated action we send them here with `returnTo` so we
+  // can drop them back exactly where they were after a successful login.
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const setUser = useAuthStore((s) => s.setUser);
   const hydrateFromUser = useModeStore((s) => s.hydrateFromUser);
 
@@ -36,7 +39,7 @@ export default function LoginScreen() {
       hydrateFromUser(user.sellerMode);
       applyThemeFromUser(user.preferredTheme);
       await applyLanguageFromUser(user.preferredLanguage as LanguageCode);
-      router.replace("/(main)/(tabs)/browse");
+      router.replace((returnTo ?? "/(main)/(tabs)/browse") as never);
     } catch (err: any) {
       // devise_token_auth returns { errors: ["Invalid login credentials..."] }
       const apiErrors: string[] = err?.response?.data?.errors ?? [];
@@ -83,7 +86,7 @@ export default function LoginScreen() {
         <Text>{loading ? t("common.loading") : t("auth.loginButton")}</Text>
       </Button>
 
-      <Button variant="ghost" onPress={() => router.push("/(auth)/register")}>
+      <Button variant="ghost" onPress={() => router.push({ pathname: "/(auth)/register", params: returnTo ? { returnTo } : {} })}>
         <Text style={{ color: colors.primary }}>{t("auth.noAccount")} {t("auth.registerButton")}</Text>
       </Button>
 

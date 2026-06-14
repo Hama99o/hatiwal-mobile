@@ -7,7 +7,11 @@ import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useFocusEffect } from "expo-router";
 import { listingsAPI, Listing } from "@/api/listings";
-import { categoriesAPI } from "@/api/categories";
+import { useCategories } from "@/hooks/useCategories";
+import { useCategoryName } from "@/hooks/useCategoryName";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { ConditionChips } from "@/components/common/ConditionChips";
+import type { ListingCondition } from "@/api/listings";
 import { savedSearchesAPI, type SavedSearch } from "@/api/saved-searches";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import type { MapCanvasCoords } from "@/components/common/map/MapCanvas.types";
@@ -20,17 +24,14 @@ import { SavedSearches } from "@/components/common/SavedSearches";
 import { Search } from "lucide-react-native";
 
 export default function BrowseScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { isRtl } = useLocalization();
 
-  const getCategoryName = useCallback((cat: Category) => {
-    if (i18n.language === "ps") return cat.namePs ?? cat.nameEn;
-    if (i18n.language === "fa") return cat.nameFa ?? cat.nameEn;
-    return cat.nameEn;
-  }, [i18n.language]);
+  const getCategoryName = useCategoryName();
   const colors = useColors();
   const router = useRouter();
   const qc = useQueryClient();
+  const { requireAuth } = useRequireAuth();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -39,6 +40,7 @@ export default function BrowseScreen() {
   const [distance, setDistance] = useState<number>(5);
   const [priceMin, setPriceMin] = useState<number | null>(null);
   const [priceMax, setPriceMax] = useState<number | null>(null);
+  const [condition, setCondition] = useState<ListingCondition | null>(null);
   const [refetchKey, setRefetchKey] = useState(0);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   // Optimistic save state: listingId → boolean
@@ -53,21 +55,18 @@ export default function BrowseScreen() {
 
   useFocusEffect(useCallback(() => { setRefetchKey((k) => k + 1); }, []));
 
-  const { data: categories } = useQuery({
-    queryKey: ["categories"],
-    queryFn: categoriesAPI.getCategories,
-    staleTime: 1000 * 60 * 60,
-  });
+  const { data: categories } = useCategories();
 
   const { data: listings, isLoading, isFetching, refetch } = useQuery({
     queryKey: [
       "browse-listings",
-      { search: debouncedSearch, categoryId, priceMin, priceMax, coordinates, distance, location, refetchKey },
+      { search: debouncedSearch, categoryId, condition, priceMin, priceMax, coordinates, distance, location, refetchKey },
     ],
     queryFn: () =>
       listingsAPI.getListings({
         search: debouncedSearch || undefined,
         categoryId: categoryId ?? undefined,
+        condition: condition ?? undefined,
         priceMin: priceMin ?? undefined,
         priceMax: priceMax ?? undefined,
         location: coordinates ? undefined : location ?? undefined,
@@ -98,13 +97,16 @@ export default function BrowseScreen() {
   });
 
   const handleSaveToggle = useCallback((listingId: number, newValue: boolean) => {
-    setSavedMap((prev) => ({ ...prev, [listingId]: newValue }));
-    if (newValue) {
-      saveMutation.mutate(listingId);
-    } else {
-      unsaveMutation.mutate(listingId);
-    }
-  }, [saveMutation, unsaveMutation]);
+    // Saving requires an account — guests are sent to login and returned here.
+    requireAuth(() => {
+      setSavedMap((prev) => ({ ...prev, [listingId]: newValue }));
+      if (newValue) {
+        saveMutation.mutate(listingId);
+      } else {
+        unsaveMutation.mutate(listingId);
+      }
+    }, "/(main)/(tabs)/browse");
+  }, [requireAuth, saveMutation, unsaveMutation]);
 
   // Auto-save filter combination when user applies filters
   useEffect(() => {
@@ -289,6 +291,14 @@ export default function BrowseScreen() {
                   }}
                 />
               </View>
+            </View>
+
+            {/* Condition filter */}
+            <View style={{ gap: 6 }}>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.mutedForeground }}>
+                {t("listing.condition.label")}
+              </Text>
+              <ConditionChips value={condition} onChange={setCondition} allowClear />
             </View>
           </View>
         )}

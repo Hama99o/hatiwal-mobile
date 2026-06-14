@@ -18,10 +18,11 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
-import { categoriesAPI, Category } from "@/api/categories";
+import { Category } from "@/api/categories";
+import { useCategories } from "@/hooks/useCategories";
+import { useCategoryName } from "@/hooks/useCategoryName";
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
 import { Button } from "@/components/reusables/button";
@@ -37,7 +38,7 @@ interface Props {
 }
 
 export function CategoryPickerSheet({ visible, selectedId, onSelect, onClose }: Props) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
 
@@ -45,19 +46,9 @@ export function CategoryPickerSheet({ visible, selectedId, onSelect, onClose }: 
   const [activeParent, setActiveParent] = useState<Category | null>(null);
   const [search, setSearch] = useState("");
 
-  const { data: categories = [], isLoading } = useQuery({
-    queryKey: ["categories"],
-    queryFn: categoriesAPI.getCategories,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: categories = [], isLoading } = useCategories();
 
-  const lang = i18n.language as "en" | "ps" | "fa";
-
-  function getCategoryName(cat: Category): string {
-    if (lang === "ps") return cat.namePs;
-    if (lang === "fa") return cat.nameFa;
-    return cat.nameEn;
-  }
+  const getCategoryName = useCategoryName();
 
   const currentList = useMemo<Category[]>(() => {
     const base = step === "sub" && activeParent

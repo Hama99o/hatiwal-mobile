@@ -58,15 +58,18 @@ import { Separator } from "@/components/reusables/separator";
 import { Skeleton } from "@/components/reusables/skeleton";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
+import { useCategoryName } from "@/hooks/useCategoryName";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { LISTING_BLURHASH } from "@/constants/images";
 import { listingsAPI } from "@/api/listings";
 import { conversationsAPI } from "@/api/conversations";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { ConditionBadge } from "@/components/common/ConditionBadge";
 import { ListingCard } from "@/components/common/ListingCard";
 import { UserIdentity } from "@/components/common/UserIdentity";
 
 const { width: SW } = Dimensions.get("window");
-const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 // Gallery shrinks to this fraction when scrolled to COLLAPSE_DISTANCE
 const GALLERY_COLLAPSE_RATIO = 0.65;
 const COLLAPSE_DISTANCE = 180;
@@ -204,8 +207,12 @@ function AnimatedSection({
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { t, i18n } = useTranslation();
+  const { requireAuth } = useRequireAuth();
+  // Guests bounced to login from here return to this same listing.
+  const authReturnTo = `/(main)/listing/${id}`;
+  const { t } = useTranslation();
   const { isRtl, formatDate } = useLocalization();
+  const getCategoryName = useCategoryName();
   const colors = useColors();
   const qc = useQueryClient();
 
@@ -357,8 +364,19 @@ export default function ListingDetailScreen() {
   });
 
   const handleContactSeller = useCallback(() => {
-    contactMutation.mutate(t("listing.detail.defaultMessage"));
-  }, [contactMutation, t]);
+    requireAuth(
+      () => contactMutation.mutate(t("listing.detail.defaultMessage")),
+      authReturnTo
+    );
+  }, [requireAuth, authReturnTo, contactMutation, t]);
+
+  const handleSaveToggle = useCallback(() => {
+    requireAuth(() => saveMutation.mutate(), authReturnTo);
+  }, [requireAuth, authReturnTo, saveMutation]);
+
+  const handleOpenOffer = useCallback(() => {
+    requireAuth(() => setShowOfferSheet(true), authReturnTo);
+  }, [requireAuth, authReturnTo]);
 
   const handleSendOffer = useCallback(() => {
     const amount = Number(offerAmount);
@@ -409,12 +427,7 @@ export default function ListingDetailScreen() {
   const screenHeight = Dimensions.get("window").height;
   const galleryContentHeight = screenHeight - 120;
 
-  const categoryName =
-    i18n.language === "ps"
-      ? listing.category.namePs
-      : i18n.language === "fa"
-      ? listing.category.nameFa
-      : listing.category.nameEn;
+  const categoryName = getCategoryName(listing.category);
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
@@ -455,7 +468,7 @@ export default function ListingDetailScreen() {
                   >
                     <Image
                       source={{ uri }}
-                      placeholder={{ blurhash: BLURHASH }}
+                      placeholder={{ blurhash: LISTING_BLURHASH }}
                       contentFit="cover"
                       transition={300}
                       style={StyleSheet.absoluteFill}
@@ -526,6 +539,7 @@ export default function ListingDetailScreen() {
                 {categoryName}
               </Text>
             </View>
+            {listing.condition ? <ConditionBadge condition={listing.condition} /> : null}
           </View>
 
           {/* Location (province) */}
@@ -700,7 +714,7 @@ export default function ListingDetailScreen() {
 
         <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8 }}>
           <Pressable
-            onPress={() => saveMutation.mutate()}
+            onPress={handleSaveToggle}
             style={styles.overlayBtn}
             hitSlop={12}
             accessibilityRole="togglebutton"
@@ -744,7 +758,7 @@ export default function ListingDetailScreen() {
           <>
             <Button
               variant="outline"
-              onPress={() => setShowOfferSheet(true)}
+              onPress={handleOpenOffer}
               style={styles.actionBtn}
               disabled={isBusy}
             >
@@ -998,7 +1012,7 @@ export default function ListingDetailScreen() {
                   {uri ? (
                     <Image
                       source={{ uri }}
-                      placeholder={{ blurhash: BLURHASH }}
+                      placeholder={{ blurhash: LISTING_BLURHASH }}
                       contentFit="contain"
                       transition={300}
                       style={{ width: "100%", height: "100%" }}

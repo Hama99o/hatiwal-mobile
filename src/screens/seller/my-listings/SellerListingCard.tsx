@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Pressable, TouchableOpacity, FlatList, Dimensions } from "react-native";
 import { Image } from "expo-image";
+import { LISTING_BLURHASH } from "@/constants/images";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -22,7 +23,6 @@ import { confirmAlert } from "@/utils/alert";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 
-const BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 const MY_LISTINGS_QK = "my-listings";
 
 /** Animated shimmer shown behind each photo until it finishes loading */
@@ -53,7 +53,7 @@ function PhotoSlide({ uri, width, bgColor }: PhotoSlideProps) {
       <Image
         source={{ uri }}
         style={[styles.galleryImage, { width }]}
-        placeholder={{ blurhash: BLURHASH }}
+        placeholder={{ blurhash: LISTING_BLURHASH }}
         contentFit="cover"
         transition={200}
         onLoad={() => setLoaded(true)}

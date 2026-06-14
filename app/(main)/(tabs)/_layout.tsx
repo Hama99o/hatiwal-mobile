@@ -1,15 +1,29 @@
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { useModeStore } from "@/stores/mode.store";
+import { useAuthStore } from "@/stores/auth.store";
 import { ShoppingBag, MessageCircle, Package, User, Heart } from "lucide-react-native";
 
 export default function TabsLayout() {
   const { t } = useTranslation();
   const colors = useColors();
+  const router = useRouter();
   const { mode } = useModeStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const isSeller = mode === "seller";
+
+  // Guests can stay on Browse but the account-only tabs bounce them to login,
+  // remembering the tab so they return to it right after authenticating.
+  const guestGate = (returnTo: string) => ({
+    tabPress: (e: { preventDefault: () => void }) => {
+      if (!isAuthenticated) {
+        e.preventDefault();
+        router.push({ pathname: "/(auth)/login", params: { returnTo } });
+      }
+    },
+  });
 
   return (
     <Tabs
@@ -42,6 +56,7 @@ export default function TabsLayout() {
           title: t("sidebar.myListings"),
           tabBarIcon: ({ color, size }) => <Package size={size} color={color} />,
         }}
+        listeners={guestGate("/(main)/(tabs)/my-listings")}
       />
 
       {/* Saved — buyer mode only */}
@@ -54,6 +69,7 @@ export default function TabsLayout() {
             <Heart size={size} color={color} fill={focused ? color : "transparent"} />
           ),
         }}
+        listeners={guestGate("/(main)/(tabs)/saved")}
       />
 
       {/* Chat — always visible */}
@@ -63,6 +79,7 @@ export default function TabsLayout() {
           title: t("sidebar.chat"),
           tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
         }}
+        listeners={guestGate("/(main)/(tabs)/chat")}
       />
 
       {/* Profile — always visible */}
@@ -72,6 +89,7 @@ export default function TabsLayout() {
           title: t("sidebar.profile"),
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
+        listeners={guestGate("/(main)/(tabs)/profile")}
       />
     </Tabs>
   );

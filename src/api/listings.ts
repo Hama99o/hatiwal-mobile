@@ -19,12 +19,17 @@ async function appendImageUri(form: FormData, uri: string, field: string): Promi
   }
 }
 
+// Item condition — mirrors the backend `Listing#condition` enum (prefix :condition).
+export type ListingCondition = "brand_new" | "like_new" | "good" | "fair";
+export const LISTING_CONDITIONS: ListingCondition[] = ["brand_new", "like_new", "good", "fair"];
+
 export interface Listing {
   id: number;
   title: string;
   description: string | null;
   price: number;
   currency: "AFN" | "USD" | "EUR";
+  condition?: ListingCondition | null;
   status: "draft" | "active" | "reserved" | "sold";
   categoryId: number;
   location: string | null;
@@ -75,6 +80,7 @@ export interface ListingParams {
   pageSize?: number;
   search?: string;
   categoryId?: number;
+  condition?: ListingCondition;
   userId?: number;
   status?: string;
   priceMin?: number;
@@ -92,6 +98,7 @@ export const listingsAPI = {
     if (params?.pageSize)   query.append("page[size]",   String(params.pageSize));
     if (params?.search)     query.append("search",       params.search);
     if (params?.categoryId) query.append("category_id",  String(params.categoryId));
+    if (params?.condition)  query.append("condition",    params.condition);
     if (params?.userId)     query.append("user_id",      String(params.userId));
     if (params?.status)     query.append("status",       params.status);
     if (params?.priceMin != null) query.append("price_min", String(params.priceMin));
@@ -166,6 +173,7 @@ export const listingsAPI = {
       description?: string;
       price: number;
       currency: "AFN" | "USD" | "EUR";
+      condition?: ListingCondition;
       categoryId: number;
       location?: string;
       address?: string;
@@ -179,6 +187,7 @@ export const listingsAPI = {
     if (data.description) form.append("listing[description]", data.description);
     form.append("listing[price]", String(data.price));
     form.append("listing[currency]", data.currency);
+    if (data.condition) form.append("listing[condition]", data.condition);
     form.append("listing[category_id]", String(data.categoryId));
     if (data.location) form.append("listing[location]", data.location);
     if (data.address) form.append("listing[address]", data.address);
@@ -200,6 +209,7 @@ export const listingsAPI = {
       description?: string;
       price: number;
       currency: "AFN" | "USD" | "EUR";
+      condition?: ListingCondition;
       categoryId: number;
       location?: string;
       address?: string;
@@ -213,6 +223,7 @@ export const listingsAPI = {
     if (data.description) form.append("listing[description]", data.description);
     form.append("listing[price]", String(data.price));
     form.append("listing[currency]", data.currency);
+    if (data.condition) form.append("listing[condition]", data.condition);
     form.append("listing[category_id]", String(data.categoryId));
     if (data.location) form.append("listing[location]", data.location);
     if (data.address) form.append("listing[address]", data.address);

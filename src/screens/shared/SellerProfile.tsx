@@ -15,13 +15,15 @@ import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { usersAPI } from "@/api/users";
 import { listingsAPI } from "@/api/listings";
-import { categoriesAPI, Category } from "@/api/categories";
+import { Category } from "@/api/categories";
+import { useCategories } from "@/hooks/useCategories";
+import { useCategoryName } from "@/hooks/useCategoryName";
 import { useAuthStore } from "@/stores/auth.store";
 
 type Params = { userId: string };
 
 export function SellerProfileScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const router = useRouter();
   const colors = useColors();
   const { isRtl, formatDate } = useLocalization();
@@ -36,12 +38,7 @@ export function SellerProfileScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
 
   // Get category name in current language
-  const getCategoryName = (category: Category): string => {
-    const lang = i18n.language;
-    if (lang === "ps") return category.namePs;
-    if (lang === "fa") return category.nameFa;
-    return category.nameEn;
-  };
+  const getCategoryName = useCategoryName();
 
   // Fetch public seller profile
   const { data: profile, isLoading: profileLoading, error, refetch } = useQuery({
@@ -64,10 +61,7 @@ export function SellerProfileScreen() {
   });
 
   // Fetch categories
-  const { data: categoriesData } = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => categoriesAPI.getCategories(),
-  });
+  const { data: categoriesData } = useCategories();
 
   const allListings = listingsData?.items || [];
   const categories = categoriesData || [];

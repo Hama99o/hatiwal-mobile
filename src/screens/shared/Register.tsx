@@ -4,7 +4,7 @@ import { Input } from "@/components/reusables/input";
 import { Button } from "@/components/reusables/button";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore } from "@/stores/mode.store";
@@ -18,6 +18,7 @@ export default function RegisterScreen() {
   const { isRtl } = useLocalization();
   const colors = useColors();
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const setUser = useAuthStore((s) => s.setUser);
   const hydrateFromUser = useModeStore((s) => s.hydrateFromUser);
 
@@ -62,7 +63,7 @@ export default function RegisterScreen() {
       hydrateFromUser(user.sellerMode);
       applyThemeFromUser(user.preferredTheme);
       await applyLanguageFromUser(user.preferredLanguage as LanguageCode);
-      router.replace("/(main)/(tabs)/browse");
+      router.replace((returnTo ?? "/(main)/(tabs)/browse") as never);
     } catch (err: any) {
       // devise_token_auth returns { errors: { full_messages: [...] } } on 422
       const apiErrors: string[] = err?.response?.data?.errors?.full_messages ?? [];
@@ -156,7 +157,7 @@ export default function RegisterScreen() {
         <Text>{loading ? t("common.loading") : t("auth.registerButton")}</Text>
       </Button>
 
-      <Button variant="ghost" onPress={() => router.push("/(auth)/login")}>
+      <Button variant="ghost" onPress={() => router.push({ pathname: "/(auth)/login", params: returnTo ? { returnTo } : {} })}>
         <Text style={{ color: colors.primary }}>
           {t("auth.haveAccount")} {t("auth.loginButton")}
         </Text>

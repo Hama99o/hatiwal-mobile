@@ -1,5 +1,6 @@
 import { View, FlatList, TouchableOpacity, RefreshControl, ScrollView } from "react-native";
 import { Image } from "expo-image";
+import { LISTING_BLURHASH } from "@/constants/images";
 import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
 import { useCallback, useState } from "react";
@@ -13,8 +14,6 @@ import { UserIdentity } from "@/components/common/UserIdentity";
 import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton";
 import { confirmAlert } from "@/utils/alert";
 import { MessageCircle, Camera, CheckCheck, MapPin, Tag, FileText } from "lucide-react-native";
-
-const PHOTO_BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 
 function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id: number) => void }) {
   const router = useRouter();
@@ -122,7 +121,7 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
             source={{ uri: item.listing.thumbnailUrl }}
             style={{ width: PHOTO_SIZE, height: PHOTO_SIZE, opacity: isInactive ? 0.5 : 1 }}
             contentFit="cover"
-            placeholder={{ blurhash: PHOTO_BLURHASH }}
+            placeholder={{ blurhash: LISTING_BLURHASH }}
             transition={150}
           />
         ) : (

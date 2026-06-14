@@ -36,6 +36,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useCategoryName } from "@/hooks/useCategoryName";
 import { toast } from "sonner-native";
 
 import { confirmAlert } from "@/utils/alert";
@@ -53,6 +54,7 @@ import { Separator } from "@/components/reusables/separator";
 
 import { PhotosSection, PhotoItem } from "./listing-form/PhotosSection";
 import { CategoryPickerSheet } from "./listing-form/CategoryPickerSheet";
+import { ConditionChips } from "@/components/common/ConditionChips";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -65,6 +67,8 @@ const listingSchema = z.object({
   // coerce handles both number and string inputs (API may return "500.0" as string)
   price: z.coerce.number().positive({ message: "Enter a valid price greater than 0" }),
   currency: z.enum(["AFN", "USD", "EUR"]),
+  // Optional — sellers may leave it unset; mirrors the backend enum values.
+  condition: z.enum(["brand_new", "like_new", "good", "fair"]).optional(),
   // coerce handles categoryId coming back as string from some API responses
   categoryId: z.coerce.number().positive({ message: "Category is required" }),
   description: z.string().optional(),
@@ -92,7 +96,8 @@ interface DraftSnapshot {
 // ---------------------------------------------------------------------------
 
 export default function ListingFormScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const categoryName = useCategoryName();
   const { isRtl } = useLocalization();
   const colors = useColors();
   const router = useRouter();
@@ -156,6 +161,7 @@ export default function ListingFormScreen() {
         title: existingListing.title,
         price: Number(existingListing.price),
         currency: existingListing.currency,
+        condition: existingListing.condition ?? undefined,
         categoryId: Number(existingListing.categoryId),
         description: existingListing.description ?? "",
         location: existingListing.location ?? "",
@@ -499,7 +505,7 @@ export default function ListingFormScreen() {
                   style={{ fontSize: 14, color: selectedCategory ? colors.foreground : colors.mutedForeground, textAlign: isRtl ? "right" : "left" }}
                 >
                   {selectedCategory
-                    ? getLocalizedCategoryName(selectedCategory, i18n.language)
+                    ? categoryName(selectedCategory)
                     : t("listing.form.selectCategoryPlaceholder")}
                 </Text>
               </Pressable>
@@ -510,6 +516,23 @@ export default function ListingFormScreen() {
               {t("listing.form.categoryRequired")}
             </Text>
           )}
+        </View>
+
+        {/* ------------------------------------------------------------------ */}
+        {/* 4b. Condition                                                       */}
+        {/* ------------------------------------------------------------------ */}
+        <View style={styles.field}>
+          <Label className="mb-1">{t("listing.condition.label")}</Label>
+          <Controller
+            control={control}
+            name="condition"
+            render={({ field }) => (
+              <ConditionChips
+                value={field.value ?? null}
+                onChange={(c) => field.onChange(c ?? undefined)}
+              />
+            )}
+          />
         </View>
 
         {/* ------------------------------------------------------------------ */}
@@ -742,12 +765,6 @@ export default function ListingFormScreen() {
       />
     </KeyboardAvoidingView>
   );
-}
-
-function getLocalizedCategoryName(cat: Category, lang: string): string {
-  if (lang === "ps") return cat.namePs;
-  if (lang === "fa") return cat.nameFa;
-  return cat.nameEn;
 }
 
 const styles = StyleSheet.create({

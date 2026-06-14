@@ -1,6 +1,7 @@
 import { View, Pressable, StyleSheet, ViewStyle } from "react-native";
 import { Text } from "@/components/reusables/text";
 import { Image } from "expo-image";
+import { LISTING_BLURHASH } from "@/constants/images";
 import { Heart, MapPin, Camera, Eye } from "lucide-react-native";
 import Animated, {
   useSharedValue,
@@ -17,9 +18,6 @@ import { PriceTag } from "./PriceTag";
 import { StatusBadge } from "./StatusBadge";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
-
-// ─── Blurhash placeholder used while listing photo loads ──────────────────────
-const PHOTO_BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 
 export interface ListingCardProps {
   listing: Listing;
@@ -120,7 +118,7 @@ export function ListingCard({
           {listing.thumbnailUrl ? (
             <Image
               source={{ uri: listing.thumbnailUrl }}
-              placeholder={{ blurhash: PHOTO_BLURHASH }}
+              placeholder={{ blurhash: LISTING_BLURHASH }}
               contentFit="cover"
               transition={300}
               style={[styles.image, isViewed && { opacity: 0.62 }]}

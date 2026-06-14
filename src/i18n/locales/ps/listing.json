@@ -36,6 +36,14 @@
     "reserved": "خوندي شوی",
     "sold": "خرڅ شوی"
   },
+  "condition": {
+    "label": "حالت",
+    "any": "هر حالت",
+    "brand_new": "بالکل نوی",
+    "like_new": "د نوي په څېر",
+    "good": "ښه",
+    "fair": "منځنی"
+  },
   "confirmDelete": "دا اعلان ړنګ شي؟",
   "confirmDeleteDescription": "دا کار به ستاسو اعلان تل لره ړنګ کړي.",
   "confirmMarkSold": "خرڅ شوی ښودل؟",
