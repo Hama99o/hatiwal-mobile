@@ -17,6 +17,14 @@
   "deleteConversationDescription": "این گفتگو و تمام پیام‌ها برای همیشه حذف می‌شوند.",
   "unknownUser": "کاربر ناشناس",
   "noMessages": "هنوز پیامی وجود ندارد",
+  "preview": {
+    "meetup": "پیشنهاد ملاقات",
+    "meetupAccepted": "ملاقات پذیرفته شد",
+    "meetupDeclined": "ملاقات رد شد",
+    "offer": "پیشنهاد: {{amount}} {{currency}}",
+    "photo": "عکس",
+    "file": "فایل"
+  },
   "thread": {
     "closedNotice": "این گفتگو بسته شده است.",
     "closedInput": "گفتگو بسته شد — پاسخ‌دهی غیرفعال است.",

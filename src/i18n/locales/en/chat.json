@@ -17,6 +17,14 @@
   "deleteConversationDescription": "This will permanently remove the conversation and all messages.",
   "unknownUser": "Unknown User",
   "noMessages": "No messages yet",
+  "preview": {
+    "meetup": "Meetup proposal",
+    "meetupAccepted": "Meetup accepted",
+    "meetupDeclined": "Meetup declined",
+    "offer": "Offer: {{amount}} {{currency}}",
+    "photo": "Photo",
+    "file": "File"
+  },
   "thread": {
     "closedNotice": "This conversation is closed.",
     "closedInput": "Conversation closed — replies disabled.",

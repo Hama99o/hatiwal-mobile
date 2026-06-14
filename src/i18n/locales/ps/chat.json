@@ -17,6 +17,14 @@
   "deleteConversationDescription": "دا به خبرې او ټول پیغامونه تل لپاره لرې کړي.",
   "unknownUser": "نامعلوم کارونکی",
   "noMessages": "لاهم هیڅ پیغام نشته",
+  "preview": {
+    "meetup": "د لیدنې وړاندیز",
+    "meetupAccepted": "لیدنه ومنل شوه",
+    "meetupDeclined": "لیدنه رد شوه",
+    "offer": "وړاندیز: {{amount}} {{currency}}",
+    "photo": "انځور",
+    "file": "فایل"
+  },
   "thread": {
     "closedNotice": "دا خبرې بندې دي.",
     "closedInput": "خبرې بندې شوې — ځوابونه غیر فعال دي.",

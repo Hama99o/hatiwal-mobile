@@ -274,14 +274,10 @@ export function ConversationScreen() {
       createdAt: new Date().toISOString(),
       sender: { id: currentUser?.id ?? 0, name: currentUser?.fullName ?? "" },
     };
-    setMessages((prev) => [...prev, optimistic]);
+    // Mark "at bottom" so onContentSizeChange scrolls to the true bottom once
+    // the new bubble has rendered and the list re-measures.
     isNearBottomRef.current = true;
-    // Wait for FlatList to render the new message before scrolling
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-      // Scroll again after a longer delay to ensure it reaches the bottom on slow devices
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 150);
-    }, 100);
+    setMessages((prev) => [...prev, optimistic]);
 
     try {
       const sent = await conversationsAPI.sendMessage(convId, text, "text");
@@ -303,6 +299,7 @@ export function ConversationScreen() {
 
     try {
       const sent = await conversationsAPI.sendMessage(convId, body, "meetup_proposal");
+      isNearBottomRef.current = true;
       setMessages((prev) => [...prev, sent]);
       setMeetupSheetVisible(false);
       toast.success(t("chat.thread.meetupSent"));
@@ -323,6 +320,7 @@ export function ConversationScreen() {
           accepted ? "meetup_accepted" : "meetup_declined",
           proposal.id
         );
+        isNearBottomRef.current = true;
         setMessages((prev) => [...prev, sent]);
         toast.success(accepted ? t("chat.meetup.acceptedToast") : t("chat.meetup.declinedToast"));
       } catch {
@@ -410,10 +408,8 @@ export function ConversationScreen() {
       if (prev.some((m) => m.id === incoming.id)) return prev;
       return [...prev, incoming];
     });
-    // Only auto-scroll if user is already reading the latest messages
-    if (isNearBottomRef.current) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 120);
-    }
+    // Scrolling is handled by onContentSizeChange (guarded by isNearBottomRef),
+    // which fires after the new bubble has rendered.
   }, [currentUser]));
 
   // ── Derived ──────────────────────────────────────────────────────────────
@@ -526,6 +522,14 @@ export function ConversationScreen() {
           maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
           scrollEventThrottle={200}
           onScroll={handleScroll}
+          // Scroll to the true bottom AFTER the list re-measures (new bubble
+          // rendered), but only when the user was already at the bottom — so
+          // loading older messages at the top never yanks them down.
+          onContentSizeChange={() => {
+            if (isNearBottomRef.current) {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }
+          }}
           ListHeaderComponent={
             isLoadingMore ? (
               <View style={{ paddingVertical: 14, alignItems: "center" }}>

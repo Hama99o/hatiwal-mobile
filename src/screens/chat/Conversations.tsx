@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton";
 import { confirmAlert } from "@/utils/alert";
-import { MessageCircle, Camera, CheckCheck } from "lucide-react-native";
+import { MessageCircle, Camera, CheckCheck, MapPin, Tag, FileText } from "lucide-react-native";
 
 const PHOTO_BLURHASH = "L6PZfSi_.AyE_3t7t7R**0o#DgR4";
 
@@ -30,6 +30,44 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
   const isSold = item.listing?.status === "sold";
   const isReserved = item.listing?.status === "reserved";
   const isInactive = isSold || isReserved;
+
+  // Friendly last-message preview — structured kinds (meetup/offer/file) get a
+  // readable label + icon instead of their raw "a | b" / "amount|currency" body.
+  const previewIconColor = colors.mutedForeground;
+  let PreviewIcon: typeof MapPin | null = null;
+  let previewText = item.lastMessageBody ?? t("chat.noMessages");
+  if (item.lastMessageBody) {
+    switch (item.lastMessageKind) {
+      case "meetup_proposal":
+        PreviewIcon = MapPin;
+        previewText = t("chat.preview.meetup");
+        break;
+      case "meetup_accepted":
+        PreviewIcon = MapPin;
+        previewText = t("chat.preview.meetupAccepted");
+        break;
+      case "meetup_declined":
+        PreviewIcon = MapPin;
+        previewText = t("chat.preview.meetupDeclined");
+        break;
+      case "offer": {
+        const [amount, currency] = item.lastMessageBody.split("|");
+        PreviewIcon = Tag;
+        previewText = t("chat.preview.offer", { amount: amount ?? "", currency: currency ?? "" });
+        break;
+      }
+      case "image_message":
+        PreviewIcon = Camera;
+        previewText = t("chat.preview.photo");
+        break;
+      case "document":
+        PreviewIcon = FileText;
+        previewText = t("chat.preview.file");
+        break;
+      default:
+        break; // text → raw body
+    }
+  }
 
   const handleLongPress = useCallback(() => {
     confirmAlert(
@@ -131,12 +169,15 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
 
         {/* Last message + unread badge */}
         <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Text
-            style={{ color: unread > 0 ? colors.foreground : colors.mutedForeground, fontSize: 12, fontWeight: unread > 0 ? "500" : "400", flex: 1 }}
-            numberOfLines={1}
-          >
-            {item.lastMessageBody ?? t("chat.noMessages")}
-          </Text>
+          <View style={{ flex: 1, flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 4 }}>
+            {PreviewIcon && <PreviewIcon size={12} color={previewIconColor} />}
+            <Text
+              style={{ color: unread > 0 ? colors.foreground : colors.mutedForeground, fontSize: 12, fontWeight: unread > 0 ? "500" : "400", flex: 1 }}
+              numberOfLines={1}
+            >
+              {previewText}
+            </Text>
+          </View>
           {unread > 0 && (
             <View style={{ backgroundColor: colors.primary, borderRadius: 10, minWidth: 20, height: 20, alignItems: "center", justifyContent: "center", marginLeft: isRtl ? 0 : 6, marginRight: isRtl ? 6 : 0, paddingHorizontal: 5 }}>
               <Text style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: "700" }}>{unread}</Text>

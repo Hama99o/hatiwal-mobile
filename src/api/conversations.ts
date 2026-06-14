@@ -39,6 +39,7 @@ export interface Conversation {
   seller?: { id: number; name: string; city: string | null; avatarUrl?: string | null };
   otherParticipant?: { id: number; name: string; city: string | null; avatarUrl?: string | null };
   lastMessageBody?: string | null;
+  lastMessageKind?: Message["kind"] | null;
   unreadCount?: number;
 }
 
