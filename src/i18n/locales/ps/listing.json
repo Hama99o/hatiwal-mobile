@@ -12,6 +12,9 @@
   "confirmRenew": "دا اعلان نوی کړئ؟",
   "confirmRenewDescription": "دا به د نورو ۳۰ ورځو لپاره په فید کې فعال وي.",
   "expiredBadge": "نیټه تېره",
+  "expiresInDays": "په {{count}} ورځو کې پای ته رسیږي",
+  "expiresTomorrow": "سبا پای ته رسیږي",
+  "expiresToday": "نن پای ته رسیږي",
   "unpublishSuccess": "اعلان له خپرولو ووتل",
   "activateSuccess": "اعلان بیا فعال شو",
   "confirmUnpublish": "دا اعلان له خپرولو وباسئ؟",
@@ -70,6 +73,7 @@
     "all": "ټول",
     "draft": "مسوده",
     "active": "فعال",
+    "expired": "نیټه تېره",
     "reserved": "خوندي شوی",
     "sold": "خرڅ شوی"
   },

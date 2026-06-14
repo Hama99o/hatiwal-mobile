@@ -115,6 +115,7 @@ Build these once in `src/components/common/` (compositions of RNR + the librarie
 | `PriceTag` | RNR `Text` + `useLocalization().formatCurrency` | Cards, detail, chat header |
 | `StatusBadge` | RNR `Badge` + status→token map | Anywhere a listing status shows |
 | **`ConditionBadge`** | neutral pill + `listing.condition.<key>` | Anywhere a listing's condition shows (detail, card). Never inline a condition label. |
+| **`ExpiryBadge`** | Clock pill; muted → amber (≤3d) → destructive (expired); owns all day-count logic | Seller surfaces only (My Listings card, owner's listing detail). Renders null for draft/reserved/sold/buyer. Never re-implement the countdown. |
 | **`ConditionChips`** | selectable chip row over `LISTING_CONDITIONS`; `allowClear` for filters | The ONE condition selector — create/edit form (required pick) **and** Browse filter (clearable). Never hand-roll condition chips. |
 | `ListingGallery` | `react-native-reanimated-carousel` + `expo-image` + page dots | Listing detail hero |
 | **`UserAvatar`** | `expo-image` photo **or** colored initial circle | The ONE avatar impl — used *inside* `UserIdentity`; never render an avatar any other way |

@@ -1,7 +1,6 @@
 import { View, Pressable, StyleSheet, ViewStyle } from "react-native";
 import { Text } from "@/components/reusables/text";
-import { Image } from "expo-image";
-import { LISTING_BLURHASH } from "@/constants/images";
+import { RemoteImage } from "./RemoteImage";
 import { Heart, MapPin, Camera, Eye } from "lucide-react-native";
 import Animated, {
   useSharedValue,
@@ -116,10 +115,8 @@ export function ListingCard({
         {/* ── Photo ──────────────────────────────────────────────────── */}
         <View style={[styles.imageContainer, { backgroundColor: colors.imagePlaceholder }]}>
           {listing.thumbnailUrl ? (
-            <Image
-              source={{ uri: listing.thumbnailUrl }}
-              placeholder={{ blurhash: LISTING_BLURHASH }}
-              contentFit="cover"
+            <RemoteImage
+              uri={listing.thumbnailUrl}
               transition={300}
               style={[styles.image, isViewed && { opacity: 0.62 }]}
               accessibilityLabel={listing.title}

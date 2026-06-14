@@ -5,8 +5,7 @@
  */
 import React from "react";
 import { View, Pressable } from "react-native";
-import { Image } from "expo-image";
-import { LISTING_BLURHASH } from "@/constants/images";
+import { RemoteImage } from "@/components/common/RemoteImage";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, ChevronLeft, MapPin } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
@@ -61,11 +60,9 @@ export function ListingHeader({ listing, onPress }: ListingHeaderProps) {
       accessibilityLabel={t("chat.openListing")}
     >
       {/* Thumbnail — compact */}
-      <Image
-        source={listing.thumbnailUrl ? { uri: listing.thumbnailUrl } : undefined}
+      <RemoteImage
+        uri={listing.thumbnailUrl}
         style={{ width: 40, height: 40, borderRadius: 8 }}
-        contentFit="cover"
-        placeholder={{ blurhash: LISTING_BLURHASH }}
         transition={200}
       />
 

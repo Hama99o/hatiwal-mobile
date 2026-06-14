@@ -14,8 +14,10 @@ import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { SellerListingCard } from "./my-listings/SellerListingCard";
 
-type StatusFilter = "all" | Listing["status"];
-const STATUS_TABS: StatusFilter[] = ["all", "draft", "active", "reserved", "sold"];
+// "expired" is a virtual filter (active listings past their 30-day clock),
+// resolved server-side — not a real status enum value.
+type StatusFilter = "all" | Listing["status"] | "expired";
+const STATUS_TABS: StatusFilter[] = ["all", "draft", "active", "expired", "reserved", "sold"];
 
 export default function MyListingsScreen() {
   const { t } = useTranslation();

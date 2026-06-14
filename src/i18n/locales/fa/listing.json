@@ -12,6 +12,9 @@
   "confirmRenew": "این آگهی تمدید شود؟",
   "confirmRenewDescription": "برای ۳۰ روز دیگر در فهرست فعال خواهد بود.",
   "expiredBadge": "منقضی",
+  "expiresInDays": "تا {{count}} روز دیگر منقضی می‌شود",
+  "expiresTomorrow": "فردا منقضی می‌شود",
+  "expiresToday": "امروز منقضی می‌شود",
   "unpublishSuccess": "آگهی از انتشار خارج شد",
   "activateSuccess": "آگهی دوباره فعال شد",
   "confirmUnpublish": "این آگهی از انتشار خارج شود؟",
@@ -70,6 +73,7 @@
     "all": "همه",
     "draft": "پیش‌نویس",
     "active": "فعال",
+    "expired": "منقضی",
     "reserved": "رزرو شده",
     "sold": "فروخته شده"
   },

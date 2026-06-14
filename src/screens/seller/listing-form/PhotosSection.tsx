@@ -19,8 +19,7 @@ import {
   Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Image } from "expo-image";
-import { LISTING_BLURHASH } from "@/constants/images";
+import { RemoteImage } from "@/components/common/RemoteImage";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
 import { Text } from "@/components/reusables/text";
@@ -237,11 +236,9 @@ export function PhotosSection({
                 },
               ]}
             >
-              <Image
-                source={{ uri: photo.uri }}
+              <RemoteImage
+                uri={photo.uri}
                 style={styles.thumbImg}
-                contentFit="cover"
-                placeholder={{ blurhash: LISTING_BLURHASH }}
                 transition={200}
               />
 

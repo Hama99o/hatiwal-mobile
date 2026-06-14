@@ -25,7 +25,7 @@ import {
   Modal,
   Share,
 } from "react-native";
-import { Image } from "expo-image";
+import { RemoteImage } from "@/components/common/RemoteImage";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -60,12 +60,13 @@ import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useCategoryName } from "@/hooks/useCategoryName";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { LISTING_BLURHASH } from "@/constants/images";
 import { listingsAPI } from "@/api/listings";
 import { conversationsAPI } from "@/api/conversations";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConditionBadge } from "@/components/common/ConditionBadge";
+import { ExpiryBadge } from "@/components/common/ExpiryBadge";
+import { useAuthStore } from "@/stores/auth.store";
 import { ListingCard } from "@/components/common/ListingCard";
 import { UserIdentity } from "@/components/common/UserIdentity";
 
@@ -215,6 +216,7 @@ export default function ListingDetailScreen() {
   const getCategoryName = useCategoryName();
   const colors = useColors();
   const qc = useQueryClient();
+  const currentUser = useAuthStore((s) => s.user);
 
   const [photoIndex, setPhotoIndex] = useState(0);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
@@ -466,10 +468,8 @@ export default function ListingDetailScreen() {
                     style={{ width: SW, aspectRatio: 4 / 3 }}
                     android_ripple={null}
                   >
-                    <Image
-                      source={{ uri }}
-                      placeholder={{ blurhash: LISTING_BLURHASH }}
-                      contentFit="cover"
+                    <RemoteImage
+                      uri={uri}
                       transition={300}
                       style={StyleSheet.absoluteFill}
                     />
@@ -506,6 +506,17 @@ export default function ListingDetailScreen() {
           {listing.status !== "active" && (
             <View style={{ marginBottom: 4 }}>
               <StatusBadge status={listing.status} />
+            </View>
+          )}
+
+          {/* Expiry countdown — only the listing's owner sees it (buyers don't care) */}
+          {!!currentUser && currentUser.id === listing.seller?.id && (
+            <View style={{ marginBottom: 4, alignItems: isRtl ? "flex-end" : "flex-start" }}>
+              <ExpiryBadge
+                expiresAt={listing.expiresAt}
+                expired={listing.expired}
+                status={listing.status}
+              />
             </View>
           )}
 
@@ -1010,9 +1021,8 @@ export default function ListingDetailScreen() {
                   }}
                 >
                   {uri ? (
-                    <Image
-                      source={{ uri }}
-                      placeholder={{ blurhash: LISTING_BLURHASH }}
+                    <RemoteImage
+                      uri={uri}
                       contentFit="contain"
                       transition={300}
                       style={{ width: "100%", height: "100%" }}

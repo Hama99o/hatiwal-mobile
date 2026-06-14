@@ -1,6 +1,5 @@
 import { View, FlatList, TouchableOpacity, RefreshControl, ScrollView } from "react-native";
-import { Image } from "expo-image";
-import { LISTING_BLURHASH } from "@/constants/images";
+import { RemoteImage } from "@/components/common/RemoteImage";
 import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
 import { useCallback, useState } from "react";
@@ -117,11 +116,9 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
         }}
       >
         {item.listing?.thumbnailUrl ? (
-          <Image
-            source={{ uri: item.listing.thumbnailUrl }}
+          <RemoteImage
+            uri={item.listing.thumbnailUrl}
             style={{ width: PHOTO_SIZE, height: PHOTO_SIZE, opacity: isInactive ? 0.5 : 1 }}
-            contentFit="cover"
-            placeholder={{ blurhash: LISTING_BLURHASH }}
             transition={150}
           />
         ) : (

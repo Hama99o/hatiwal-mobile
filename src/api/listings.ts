@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
-import { http } from "./http";
+import { http, BASE_URL } from "./http";
 import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
+import { secureStorage } from "@/utils/secure-storage";
 
 // Appends a local image URI to a FormData object.
 // On web, the React Native `{ uri, name, type }` format serializes as "[object Object]".
@@ -17,6 +18,53 @@ async function appendImageUri(form: FormData, uri: string, field: string): Promi
   } else {
     form.append(field, { uri, name: filename, type } as unknown as Blob);
   }
+}
+
+// Multipart fetch helper — bypasses axios because axios's transformRequest
+// JSON-serialises FormData on web, stripping blobs. It also overwrites the
+// Content-Type header without the correct multipart boundary on native.
+// Native fetch passes FormData through correctly and sets the boundary itself.
+async function multipartFetch(
+  method: "POST" | "PUT" | "PATCH",
+  path: string,
+  form: FormData
+): Promise<Response> {
+  const accessToken = await secureStorage.getItem("access-token");
+  const client      = await secureStorage.getItem("client");
+  const uid         = await secureStorage.getItem("uid");
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    body: form,
+    headers: {
+      // Do NOT set Content-Type here — fetch auto-sets multipart/form-data
+      // with the correct boundary when FormData is the body.
+      "access-token": accessToken ?? "",
+      client:         client ?? "",
+      uid:            uid ?? "",
+      "token-type":   "Bearer",
+    },
+  });
+
+  // Rotate DeviseTokenAuth tokens from response headers
+  const newToken  = res.headers.get("access-token");
+  const newClient = res.headers.get("client");
+  const newUid    = res.headers.get("uid");
+  if (newToken)  await secureStorage.setItem("access-token", newToken);
+  if (newClient) await secureStorage.setItem("client", newClient);
+  if (newUid)    await secureStorage.setItem("uid", newUid);
+
+  if (!res.ok) {
+    let body: unknown;
+    try { body = await res.json(); } catch { body = null; }
+    console.error("[listings] multipartFetch error", { status: res.status, path, body });
+    const err = Object.assign(new Error(`API ${res.status} on ${path}`), {
+      response: { status: res.status, data: body },
+    });
+    throw err;
+  }
+
+  return res;
 }
 
 // Item condition — mirrors the backend `Listing#condition` enum (prefix :condition).
@@ -196,10 +244,12 @@ export const listingsAPI = {
 
     await Promise.all(imageUris.map((uri) => appendImageUri(form, uri, "listing[images][]")));
 
-    const response = await http.post("/my/listings", form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return convertKeysToCamel(response.data.listing) as Listing;
+    console.log("[listings] createListingWithImages — sending multipart to /my/listings, imageCount:", imageUris.length);
+    // Use multipartFetch (native fetch) — axios breaks multipart/FormData on web
+    const res = await multipartFetch("POST", "/my/listings", form);
+    const json = await res.json();
+    console.log("[listings] createListingWithImages — success, id:", json?.listing?.id);
+    return convertKeysToCamel(json.listing) as Listing;
   },
 
   updateListingWithImages: async (
@@ -232,10 +282,12 @@ export const listingsAPI = {
 
     await Promise.all(imageUris.map((uri) => appendImageUri(form, uri, "listing[images][]")));
 
-    const response = await http.put(`/my/listings/${id}`, form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return convertKeysToCamel(response.data.listing) as Listing;
+    console.log("[listings] updateListingWithImages — sending multipart to /my/listings/", id, "imageCount:", imageUris.length);
+    // Use multipartFetch (native fetch) — axios breaks multipart/FormData on web
+    const res = await multipartFetch("PUT", `/my/listings/${id}`, form);
+    const json = await res.json();
+    console.log("[listings] updateListingWithImages — success, id:", json?.listing?.id);
+    return convertKeysToCamel(json.listing) as Listing;
   },
 
   updateListing: async (id: number, data: Partial<Listing>): Promise<Listing> => {

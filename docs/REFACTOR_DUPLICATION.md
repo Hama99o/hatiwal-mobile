@@ -79,7 +79,7 @@ The blurhash string `"L6PZfSi_.AyE_3t7t7R**0o#DgR4"` is redeclared in 5+ files.
 - **Do:** export one `LISTING_BLURHASH` (e.g. `src/constants/images.ts`); import everywhere.
 - **Variants to preserve:** none — identical string.
 
-## R2 — `<RemoteImage>` wrapper around `expo-image` ⬜  *(needs R1)*
+## R2 — `<RemoteImage>` wrapper around `expo-image` ✅  *(needs R1)*
 **Impact:** 7 files · **Risk:** low
 Same `<Image source={{uri}} placeholder={{blurhash}} contentFit="cover" transition>` copy-pasted everywhere.
 - **Locations:** `ListingDetail.tsx:458,1001`, `PhotosSection.tsx:244`, `ListingCard.tsx:123`, `SellerListingCard.tsx:56`, `Conversations.tsx:125`, `ListingHeader.tsx:63-69`, `UserAvatar.tsx:38-44`.

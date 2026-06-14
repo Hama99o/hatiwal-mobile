@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Pressable, TouchableOpacity, FlatList, Dimensions } from "react-native";
-import { Image } from "expo-image";
-import { LISTING_BLURHASH } from "@/constants/images";
+import { RemoteImage } from "@/components/common/RemoteImage";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,6 +17,7 @@ import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { ExpiryBadge } from "@/components/common/ExpiryBadge";
 import { listingsAPI, type Listing } from "@/api/listings";
 import { confirmAlert } from "@/utils/alert";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -50,11 +50,9 @@ function PhotoSlide({ uri, width, bgColor }: PhotoSlideProps) {
   return (
     <View style={{ width, aspectRatio: 4 / 3, backgroundColor: bgColor }}>
       {!loaded && <PhotoSkeleton width={width} />}
-      <Image
-        source={{ uri }}
+      <RemoteImage
+        uri={uri}
         style={[styles.galleryImage, { width }]}
-        placeholder={{ blurhash: LISTING_BLURHASH }}
-        contentFit="cover"
         transition={200}
         onLoad={() => setLoaded(true)}
       />
@@ -383,6 +381,15 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
           >
             {listing.title}
           </Text>
+
+          {/* Proactive 30-day expiry countdown — sellers see it coming, not just after. */}
+          <View style={{ marginTop: 6, alignItems: isRtl ? "flex-end" : "flex-start" }}>
+            <ExpiryBadge
+              expiresAt={listing.expiresAt}
+              expired={listing.expired}
+              status={listing.status}
+            />
+          </View>
 
           <View style={[styles.metaRow, { flexDirection: rowDirection }]}>
             <View style={[styles.metaItem, { flexDirection: rowDirection }]}>

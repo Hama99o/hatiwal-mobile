@@ -12,6 +12,9 @@
   "confirmRenew": "Renew this listing?",
   "confirmRenewDescription": "It will be active in the feed for another 30 days.",
   "expiredBadge": "Expired",
+  "expiresInDays": "Expires in {{count}} days",
+  "expiresTomorrow": "Expires tomorrow",
+  "expiresToday": "Expires today",
   "unpublishSuccess": "Listing unpublished",
   "activateSuccess": "Listing is active again",
   "confirmUnpublish": "Unpublish this listing?",
@@ -70,6 +73,7 @@
     "all": "All",
     "draft": "Draft",
     "active": "Active",
+    "expired": "Expired",
     "reserved": "Reserved",
     "sold": "Sold"
   },

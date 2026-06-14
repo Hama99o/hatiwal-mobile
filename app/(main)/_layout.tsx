@@ -42,7 +42,10 @@ export default function MainLayout() {
       <Stack.Screen
         name="listing-conversations/[id]"
         options={{
-          headerShown: true,
+          // The screen renders its own header (listing title + back button),
+          // so hide the native one — otherwise it stacks a second, ugly header
+          // showing the raw route name "listing-conversations/[id]".
+          headerShown: false,
           ...themedHeader,
         }}
       />

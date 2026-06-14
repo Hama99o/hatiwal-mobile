@@ -33,6 +33,7 @@
 | **B7** | **Item condition** (enum brand_new/like_new/good/fair; form picker, detail badge, Browse filter chips, 3 locales)       | ✅ Done                                  | claude           | P2       | `ConditionChips`, `ConditionBadge`  |
 | C1     | Create / Edit listing                                                                                                  | ✅ Done (map location, photos, category) | —                | P0       | `/(main)/listing/new`, `/edit/[id]` |
 | C2     | My Listings + lifecycle (publish/unpublish/reserve/activate/sold + clear text actions) | ✅ Done | — | P0 | `/(main)/(tabs)/my-listings` |
+| **C3** | **Expiry visibility** (`ExpiryBadge` countdown on seller card + owner detail; **Expired tab** in My Listings; clock starts at publish) | ✅ Done | claude | P2 | `ExpiryBadge`, My Listings |
 | D1     | Conversations list (+ friendly previews, sold dimming)                                                                 | ✅ Done                                  | —                | P1       | `/(main)/(tabs)/chat`               |
 | D2     | Conversation thread                                                                                                    | ✅ Done                                  | —                | P1       | `/(main)/conversation/[id]`         |
 | **D3** | **Chat deal actions** — meetup propose + accept/decline, **offer accept/decline** (`responds_to` link, outcome on card) | ✅ Done | — | P1 | within D2 |
