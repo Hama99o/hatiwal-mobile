@@ -17,6 +17,8 @@
   "logoutConfirm": "Are you sure you want to sign out?",
   "bio": "Bio",
   "city": "City",
+  "setLocation": "Set your location on map",
+  "locationSet": "Location set",
   "info": "Personal Info",
   "noInfo": "No info added yet",
   "sellerProfile": {
@@ -52,3 +54,4 @@
   "itemsSaved": "Saved Items",
   "purchaseActivity": "Purchase Activity"
 }
+

@@ -612,24 +612,30 @@ export default function ListingDetailScreen() {
               { flexDirection: isRtl ? "row-reverse" : "row" },
             ]}
           >
-            <UserAvatar
-              name={listing.seller.name}
-              avatarUrl={listing.seller.avatarUrl}
-              size={48}
-            />
+            <Pressable
+              onPress={() => router.push(`/(main)/seller/${listing.seller.id}`)}
+              style={{ flex: 1, flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 12 }}
+              hitSlop={8}
+            >
+              <UserAvatar
+                name={listing.seller.name}
+                avatarUrl={listing.seller.avatarUrl}
+                size={48}
+              />
 
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text
-                style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}
-              >
-                {listing.seller.name}
-              </Text>
-              {listing.seller.city ? (
-                <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
-                  {listing.seller.city}
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text
+                  style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}
+                >
+                  {listing.seller.name}
                 </Text>
-              ) : null}
-            </View>
+                {listing.seller.city ? (
+                  <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
+                    {listing.seller.city}
+                  </Text>
+                ) : null}
+              </View>
+            </Pressable>
 
             <Button
               variant="outline"

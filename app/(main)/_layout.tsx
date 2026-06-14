@@ -49,8 +49,7 @@ export default function MainLayout() {
       <Stack.Screen
         name="seller/[userId]"
         options={{
-          headerShown: true,
-          headerTitle: t("profile.sellerProfile.title"),
+          headerShown: false,
           ...themedHeader,
         }}
       />

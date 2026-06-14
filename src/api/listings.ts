@@ -247,8 +247,20 @@ export const listingsAPI = {
     return convertKeysToCamel(response.data.listing) as Listing;
   },
 
+  // active → draft (take a published listing offline)
+  unpublishListing: async (id: number): Promise<Listing> => {
+    const response = await http.put(`/my/listings/${id}/unpublish`);
+    return convertKeysToCamel(response.data.listing) as Listing;
+  },
+
   reserveListing: async (id: number): Promise<Listing> => {
     const response = await http.put(`/my/listings/${id}/reserve`);
+    return convertKeysToCamel(response.data.listing) as Listing;
+  },
+
+  // reserved → active (undo a reservation)
+  activateListing: async (id: number): Promise<Listing> => {
+    const response = await http.put(`/my/listings/${id}/activate`);
     return convertKeysToCamel(response.data.listing) as Listing;
   },
 

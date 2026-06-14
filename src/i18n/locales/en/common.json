@@ -23,6 +23,8 @@
   "reserved": "Reserved",
   "active": "Active",
   "draft": "Draft",
+  "actions": "Actions",
+  "listings": "listings",
   "price": "Price",
   "location": "Location",
   "description": "Description",

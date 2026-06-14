@@ -6,9 +6,10 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { Sun, Moon, Smartphone, Globe, LogOut, Edit3, Check, Store, ShoppingBag, Camera, Plus, MessageCircle, Award, Heart } from "lucide-react-native";
+import { Sun, Moon, Smartphone, Globe, LogOut, Edit3, Check, Store, ShoppingBag, Camera, Plus, MessageCircle, Award, Heart, MapPin, ChevronRight, ChevronLeft } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { authAPI } from "@/api/auth";
+import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore, resetMode } from "@/stores/mode.store";
 import { useThemeStore, ThemePreference, resetTheme } from "@/stores/theme.store";
@@ -279,7 +280,16 @@ export default function ProfileScreen() {
   });
 
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ firstname: "", lastname: "", phone: "", bio: "", city: "" });
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+  const [form, setForm] = useState<{
+    firstname: string;
+    lastname: string;
+    phone: string;
+    bio: string;
+    city: string;
+    latitude: number | null;
+    longitude: number | null;
+  }>({ firstname: "", lastname: "", phone: "", bio: "", city: "", latitude: null, longitude: null });
 
   const update = useMutation({
     mutationFn: authAPI.updateMe,
@@ -318,6 +328,8 @@ export default function ProfileScreen() {
       phone: user.phone ?? "",
       bio: user.bio ?? "",
       city: user.city ?? "",
+      latitude: user.latitude ?? null,
+      longitude: user.longitude ?? null,
     });
     setEditing(true);
   };
@@ -434,6 +446,29 @@ export default function ProfileScreen() {
               <TextInput placeholder={t("auth.phone")} placeholderTextColor={colors.mutedForeground} value={form.phone} onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))} keyboardType="phone-pad" style={inputStyle} />
               <TextInput placeholder={t("profile.bio")} placeholderTextColor={colors.mutedForeground} value={form.bio} onChangeText={(v) => setForm((f) => ({ ...f, bio: v }))} multiline numberOfLines={3} style={[inputStyle, { height: 90, textAlignVertical: "top" }]} />
               <TextInput placeholder={t("profile.city")} placeholderTextColor={colors.mutedForeground} value={form.city} onChangeText={(v) => setForm((f) => ({ ...f, city: v }))} style={inputStyle} />
+
+              {/* Location on map — search a place or drop an exact pin */}
+              <TouchableOpacity
+                onPress={() => setLocationPickerVisible(true)}
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 10,
+                  borderWidth: 1,
+                  borderColor: form.latitude != null ? colors.primary : colors.border,
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <MapPin size={18} color={form.latitude != null ? colors.primary : colors.mutedForeground} />
+                <Text style={{ flex: 1, fontSize: 14, color: form.latitude != null ? colors.foreground : colors.mutedForeground, textAlign: isRtl ? "right" : "left" }} numberOfLines={1}>
+                  {form.latitude != null ? (form.city || t("profile.locationSet")) : t("profile.setLocation")}
+                </Text>
+                {isRtl ? <ChevronLeft size={18} color={colors.mutedForeground} /> : <ChevronRight size={18} color={colors.mutedForeground} />}
+              </TouchableOpacity>
+
               <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 10, marginTop: 4 }}>
                 <Button variant="outline" onPress={() => setEditing(false)} style={{ flex: 1 }}>
                   <Text>{t("common.cancel")}</Text>
@@ -544,6 +579,24 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Location picker (map) for profile editing */}
+      <LocationRangePicker
+        visible={locationPickerVisible}
+        mode="point"
+        initialCoords={form.latitude != null && form.longitude != null ? { latitude: form.latitude, longitude: form.longitude } : null}
+        initialRadius={5}
+        initialLabel={form.city || null}
+        onClose={() => setLocationPickerVisible(false)}
+        onConfirm={({ coords, label }) => {
+          setForm((f) => ({
+            ...f,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            city: label ?? f.city,
+          }));
+        }}
+      />
     </ScrollView>
   );
 }

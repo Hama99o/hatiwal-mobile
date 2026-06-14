@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Modal,
   View,
@@ -65,11 +65,18 @@ export function LocationRangePicker({
   const [searching, setSearching] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // When we seed the search box with the existing label on open, skip the
+  // auto-search for that seeded value so a dropdown doesn't pop up immediately.
+  const skipSearchRef = useRef(false);
 
   const onMapLayout = (e: LayoutChangeEvent) => setMapHeight(e.nativeEvent.layout.height);
 
   // Debounced free-text place search (any village/city/landmark) via geocoding.
   useEffect(() => {
+    if (skipSearchRef.current) {
+      skipSearchRef.current = false;
+      return;
+    }
     const q = query.trim();
     if (q.length < 2) {
       setResults([]);
@@ -118,7 +125,9 @@ export function LocationRangePicker({
       setCoords(initialCoords ?? DEFAULT_CENTER);
       setRadiusKm(initialRadius || 5);
       setGeoError(null);
-      setQuery("");
+      // Prefill the search box with the current place name (don't auto-search it).
+      skipSearchRef.current = !!initialLabel;
+      setQuery(initialLabel ?? "");
       setResults([]);
       setSelectedLabel(initialLabel);
     }

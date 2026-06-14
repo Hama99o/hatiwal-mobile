@@ -13,6 +13,8 @@ export interface User {
   province: string | null;
   phone: string | null;
   bio: string | null;
+  latitude: number | null;
+  longitude: number | null;
   avatarUrl: string | null;
   preferredLanguage: "en" | "ps" | "fa";
   preferredTheme: "light" | "dark" | "system";

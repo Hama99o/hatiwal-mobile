@@ -130,6 +130,9 @@ export default function ListingFormScreen() {
   const latitude = watch("latitude");
   const longitude = watch("longitude");
   const hasExactLocation = latitude != null && longitude != null;
+  // A published listing (active/reserved/sold) can't be "saved as draft" — only
+  // edited in place. Use Unpublish (on My Listings) to take it offline.
+  const isPublished = isEdit && !!existingListing && existingListing.status !== "draft";
 
   // Prefill form in edit mode once data is loaded
   useEffect(() => {
@@ -159,6 +162,19 @@ export default function ListingFormScreen() {
   // ---------------------------------------------------------------------------
   // Mutations
   // ---------------------------------------------------------------------------
+  // Refresh every cache that could show this listing's stale data: my-listings,
+  // the buyer browse feed, similar rails, and this listing's detail query — so
+  // an edit (e.g. a newly added location) shows immediately without a reload.
+  const invalidateListingCaches = () => {
+    qc.invalidateQueries({ queryKey: ["my-listings"] });
+    qc.invalidateQueries({ queryKey: ["browse-listings"] });
+    qc.invalidateQueries({ queryKey: ["listings-similar"] });
+    qc.invalidateQueries({ queryKey: ["listing"] });
+    if (isEdit && listingId) {
+      qc.invalidateQueries({ queryKey: ["listing", String(listingId)] });
+    }
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (values: ListingFormValues) => {
       const imageUris = photos.filter((p) => !p.isRemote).map((p) => p.uri);
@@ -169,8 +185,8 @@ export default function ListingFormScreen() {
       return listingsAPI.createListingWithImages(values, imageUris);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["my-listings"] });
-      toast.success(t("listing.form.savedDraft"));
+      invalidateListingCaches();
+      toast.success(isPublished ? t("listing.form.saved") : t("listing.form.savedDraft"));
       router.replace("/(main)/(tabs)/my-listings" as never);
     },
     onError: () => {
@@ -195,7 +211,7 @@ export default function ListingFormScreen() {
       return listing;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["my-listings"] });
+      invalidateListingCaches();
       toast.success(t("listing.form.published"));
       router.replace("/(main)/(tabs)/my-listings" as never);
     },
@@ -486,22 +502,36 @@ export default function ListingFormScreen() {
         >
           <Text style={{ color: colors.destructive }}>{t("listing.form.discard")}</Text>
         </Button>
-        <Button
-          variant="outline"
-          onPress={onSaveDraft}
-          disabled={isLoading}
-          style={styles.submitBtn}
-        >
-          <Text>{t("listing.form.saveDraft")}</Text>
-        </Button>
-        <Button
-          variant="default"
-          onPress={onPublish}
-          disabled={isLoading}
-          style={styles.submitBtn}
-        >
-          <Text>{isLoading && isSubmittingPublish ? t("common.loading") : t("listing.publish")}</Text>
-        </Button>
+        {isPublished ? (
+          // Editing a published listing → just save the changes (status unchanged)
+          <Button
+            variant="default"
+            onPress={onSaveDraft}
+            disabled={isLoading}
+            style={[styles.submitBtn, { flex: 2 }]}
+          >
+            <Text>{isLoading ? t("common.loading") : t("common.save")}</Text>
+          </Button>
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              onPress={onSaveDraft}
+              disabled={isLoading}
+              style={styles.submitBtn}
+            >
+              <Text>{t("listing.form.saveDraft")}</Text>
+            </Button>
+            <Button
+              variant="default"
+              onPress={onPublish}
+              disabled={isLoading}
+              style={styles.submitBtn}
+            >
+              <Text>{isLoading && isSubmittingPublish ? t("common.loading") : t("listing.publish")}</Text>
+            </Button>
+          </>
+        )}
       </View>
 
       {/* -------------------------------------------------------------------- */}

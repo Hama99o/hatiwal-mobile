@@ -7,7 +7,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { Eye, MessageCircle, Trash2, Camera } from "lucide-react-native";
+import { Eye, MessageCircle, Camera } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -113,6 +113,24 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
     onError: () => toast.error(t("common.error")),
   });
 
+  const unpublish = useMutation({
+    mutationFn: () => listingsAPI.unpublishListing(listing.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      toast.success(t("listing.unpublishSuccess"));
+    },
+    onError: () => toast.error(t("common.error")),
+  });
+
+  const activate = useMutation({
+    mutationFn: () => listingsAPI.activateListing(listing.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      toast.success(t("listing.activateSuccess"));
+    },
+    onError: () => toast.error(t("common.error")),
+  });
+
   const deleteListing = useMutation({
     mutationFn: () => listingsAPI.deleteListing(listing.id),
     onSuccess: () => {
@@ -172,6 +190,28 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
     );
   }, [t, deleteListing]);
 
+  const handleUnpublish = useCallback(() => {
+    confirmAlert(
+      t("listing.confirmUnpublish"),
+      t("listing.confirmUnpublishDescription"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("listing.unpublish"), onPress: () => unpublish.mutate() },
+      ]
+    );
+  }, [t, unpublish]);
+
+  const handleActivate = useCallback(() => {
+    confirmAlert(
+      t("listing.confirmActivate"),
+      t("listing.confirmActivateDescription"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("listing.activate"), onPress: () => activate.mutate() },
+      ]
+    );
+  }, [t, activate]);
+
   const handleEdit = useCallback(() => {
     router.push(`/(main)/listing/edit/${listing.id}` as never);
   }, [router, listing.id]);
@@ -180,34 +220,36 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
     publish.isPending ||
     reserve.isPending ||
     markSold.isPending ||
+    unpublish.isPending ||
+    activate.isPending ||
     deleteListing.isPending;
 
   // ── Primary action button per status ────────────────────────────────────────
 
-  const primaryAction = (() => {
+  // The single most likely next step — a prominent, clearly-labeled button.
+  const primaryButton = (() => {
     switch (listing.status) {
       case "draft":
-        return (
-          <Button variant="default" size="sm" style={styles.actionBtn} onPress={handlePublish} disabled={isLoading}>
-            <Text style={{ fontSize: 12, fontWeight: "600" }}>{t("listing.publish")}</Text>
-          </Button>
-        );
+        return { label: t("listing.publish"), onPress: handlePublish };
       case "active":
-        return (
-          <Button variant="secondary" size="sm" style={styles.actionBtn} onPress={handleReserve} disabled={isLoading}>
-            <Text style={{ fontSize: 12, fontWeight: "600" }}>{t("listing.markReserved")}</Text>
-          </Button>
-        );
       case "reserved":
-        return (
-          <Button variant="default" size="sm" style={styles.actionBtn} onPress={handleMarkSold} disabled={isLoading}>
-            <Text style={{ fontSize: 12, fontWeight: "600" }}>{t("listing.markSold")}</Text>
-          </Button>
-        );
+        return { label: t("listing.markSold"), onPress: handleMarkSold };
       default:
-        return null;
+        return null; // sold — terminal
     }
   })();
+
+  // Other transitions for this status — always clear TEXT labels, never icons.
+  const secondaryActions: { key: string; label: string; onPress: () => void; danger?: boolean }[] = [];
+  if (listing.status === "active") {
+    secondaryActions.push({ key: "reserve", label: t("listing.markReserved"), onPress: handleReserve });
+    secondaryActions.push({ key: "unpublish", label: t("listing.unpublish"), onPress: handleUnpublish });
+  }
+  if (listing.status === "reserved") {
+    secondaryActions.push({ key: "activate", label: t("listing.activate"), onPress: handleActivate });
+  }
+  secondaryActions.push({ key: "edit", label: t("common.edit"), onPress: handleEdit });
+  secondaryActions.push({ key: "delete", label: t("common.delete"), onPress: handleDelete, danger: true });
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -332,19 +374,37 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
         </View>
       </Pressable>
 
-      {/* Action buttons */}
-      <View style={[styles.actions, { flexDirection: rowDirection, borderTopColor: colors.border }]}>
-        {primaryAction}
-        <Button
-          variant="outline"
-          size="sm"
-          style={styles.iconBtn}
-          onPress={handleDelete}
-          disabled={isLoading}
-          accessibilityLabel={t("common.delete")}
-        >
-          <Trash2 size={15} color={colors.destructive} />
-        </Button>
+      {/* Action buttons — clear text labels (no cryptic icons) */}
+      <View style={[styles.actions, { borderTopColor: colors.border }]}>
+        {primaryButton && (
+          <Button
+            variant="default"
+            size="sm"
+            style={{ width: "100%" }}
+            onPress={primaryButton.onPress}
+            disabled={isLoading}
+          >
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primaryForeground }}>
+              {primaryButton.label}
+            </Text>
+          </Button>
+        )}
+        <View style={{ flexDirection: rowDirection, flexWrap: "wrap", gap: 8 }}>
+          {secondaryActions.map((a) => (
+            <Button
+              key={a.key}
+              variant="outline"
+              size="sm"
+              style={styles.secondaryBtn}
+              onPress={a.onPress}
+              disabled={isLoading}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "600", color: a.danger ? colors.destructive : colors.foreground }}>
+                {a.label}
+              </Text>
+            </Button>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -412,8 +472,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: "column",
+    alignItems: "stretch",
     gap: 10,
-    alignItems: "center",
+  },
+  secondaryBtn: {
+    flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 88,
   },
   actionBtn: {
     flex: 1,

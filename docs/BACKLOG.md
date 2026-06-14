@@ -11,7 +11,7 @@
 > **Owner / taken by:** `_unassigned_` · `feature-builder` · `marketplace-designer` · `feature-builder → marketplace-designer`
 > **Normal pipeline:** `feature-builder` builds → `marketplace-designer` polishes → product-owner marks `✅`.
 >
-> _Last reconciled: 2026-06-12 by product-owner._
+> _Last reconciled: 2026-06-14 by claude (taken: F2 Edit Profile — map location). Most pages are now built; statuses below reflect the real code._
 
 ---
 
@@ -22,19 +22,22 @@
 | A1 | Login | ✅ Done | — | P0 | `/(auth)/login` |
 | A2 | Register | ✅ Done | — | P0 | `/(auth)/register` |
 | A3 | App bootstrap / splash redirect | 🟡 In progress | _unassigned_ | P1 | `app/index.tsx` |
-| **S0** | **Shared components** (`ListingCard`, `PriceTag`, `StatusBadge`, `EmptyState`, skeletons) | ⬜ Not started | feature-builder | **P0 (blocks B1/B2/C1/D1)** | `src/components/common/` |
-| B1 | Browse feed | 🟡 In progress (raw RN, needs migration) | feature-builder | P0 | `/(main)/(tabs)/browse` |
-| B2 | Listing detail | ⬜ Not started | _unassigned_ | P0 | `/(main)/listing/[id]` |
-| B3 | Search & category filter | 🟡 In progress (basic) | feature-builder | P1 | within B1 |
-| C1 | Create / Edit listing | ⬜ Not started | _unassigned_ | P0 | `/(main)/listing/new`, `/edit/[id]` |
-| C2 | My Listings + lifecycle | 🟡 In progress (raw RN, has `Alert`) | feature-builder | P0 | `/(main)/(tabs)/my-listings` |
-| D1 | Conversations list | 🟡 In progress (raw RN) | feature-builder | P1 | `/(main)/(tabs)/chat` |
-| D2 | Conversation thread | ⬜ Not started | _unassigned_ | P1 | `/(main)/conversation/[id]` |
-| E1 | Saved / Favorites | ⬜ Not started | _unassigned_ | P1 | `/(main)/(tabs)/saved` |
+| **S0** | **Shared components** (`ListingCard`, `PriceTag`, `StatusBadge`, `EmptyState`, skeletons) | ✅ Done | — | P0 | `src/components/common/` |
+| B1 | Browse feed | ✅ Done (design system + filters) | — | P0 | `/(main)/(tabs)/browse` |
+| B2 | Listing detail | ✅ Done | — | P0 | `/(main)/listing/[id]` |
+| B3 | Search & category filter | ✅ Done | — | P1 | within B1 |
+| **B4** | **Saved searches / filter history** (auto-save, dedupe, last-4 chips) | ✅ Done | — | P1 | within B1 |
+| **B5** | **Map location & distance search** (province coords + Nominatim geocoding + Haversine radius) | ✅ Done | — | P1 | `LocationRangePicker` |
+| **B6** | **"Seen / already viewed" indicator** (per-user `ListingView`; dim + badge on card) — _was the "Recently viewed" idea_ | ✅ Done | — | P2 | within B1/B2 |
+| C1 | Create / Edit listing | ✅ Done (map location, photos, category) | — | P0 | `/(main)/listing/new`, `/edit/[id]` |
+| C2 | My Listings + lifecycle | 🟡 In progress | _unassigned_ | P0 | `/(main)/(tabs)/my-listings` |
+| D1 | Conversations list | ✅ Done | — | P1 | `/(main)/(tabs)/chat` |
+| D2 | Conversation thread | ✅ Done | — | P1 | `/(main)/conversation/[id]` |
+| E1 | Saved / Favorites | ✅ Done | — | P1 | `/(main)/(tabs)/saved` |
 | F1 | Profile (mine) | 🟡 In progress | _unassigned_ | P1 | `/(main)/(tabs)/profile` |
-| F2 | Edit profile | ⬜ Not started | _unassigned_ | P2 | `/(main)/profile/edit` |
-| F3 | Public seller profile | ⬜ Not started | _unassigned_ | P2 | `/(main)/user/[id]` |
-| G1 | Report listing / user | ⬜ Not started | _unassigned_ | P2 | sheet (no route) |
+| F2 | Edit profile (inline + **map location**) | ✅ Done | claude | P2 | within F1 |
+| F3 | Public seller profile | ✅ Done | — | P2 | `/(main)/seller/[userId]` |
+| G1 | Report listing / user | ✅ Done | — | P2 | `ReportSheet` |
 | — | 💡 Ideas backlog | 💡 Idea | _unassigned_ | post-MVP | see §Ideas |
 
 > "In progress (raw RN)" = the screen exists and works, but is built with raw `Text`/`FlatList`/`Alert`
@@ -182,9 +185,10 @@
 - **Options & detail:** avatar header; info (name, city, member-since); **buyer/seller mode toggle** (`useModeStore`); **language switcher**; link to Edit profile (F2); **Sign out** (`confirmAlert` — ✅ already fixed). _Current screen uses raw RN; migrate to RNR and polish hierarchy before handing to marketplace-designer._
 - **Acceptance:** sign-out works (✅); RNR + dark + RTL.
 
-### F2 — Edit profile ⬜
-- **Endpoint:** `PUT /users/me` (`user:{firstname,lastname,phone,bio,city,province,lat,long,preferred_language}`) · **File:** `src/screens/shared/EditProfile.tsx`
-- **Options & detail:** sectioned `react-hook-form`+`zod`: identity (first/last), contact (phone, bio), location (city/province/pin), language. Sticky save + toast.
+### F2 — Edit profile ✅ (taken by claude, 2026-06-14)
+- **Endpoint:** `PUT /users/me` (`user:{firstname,lastname,phone,bio,city,latitude,longitude,...}`) · **File:** implemented **inline in `src/screens/shared/Profile.tsx`** (edit mode), not a separate screen.
+- **What's built:** edit firstname, lastname, phone, bio, city, **avatar**, and **location on the map** — a "Set your location on map" row opens the shared `LocationRangePicker` (point mode: search any place via geocoding or drop a pin); confirming stores `latitude`/`longitude` and fills `city` with the readable place name. Save → `authAPI.updateMe` → invalidates `["me"]`. RTL + dark via `useColors`; strings in en/ps/fa.
+- **Still optional (P2):** dedicated `province` field + `preferred_language` inside the edit form (language is already switchable elsewhere in F1); migrate the raw `TextInput`s to RNR `Input` + `react-hook-form`/`zod` when marketplace-designer polishes F1.
 
 ### F3 — Public seller profile ⬜
 - **Endpoint:** `GET /users/:id` (`:public`: full_name, bio, province, listings_count) · **File:** `src/screens/shared/UserProfile.tsx`
@@ -205,7 +209,7 @@
 
 | Idea | Value | Notes |
 |---|---|---|
-| Recently viewed | re-engagement | local history of viewed listings |
+| ~~Recently viewed~~ ✅ shipped | re-engagement | done as **B6** — per-user `ListingView`, card shows dimmed + "Seen" badge |
 | Similar listings on detail | discovery | "more in this category" rail under B2 |
 | Share listing (deep link) | growth | `expo-linking` share → opens B2 |
 | Draft autosave | fewer lost posts | persist C1 form locally |

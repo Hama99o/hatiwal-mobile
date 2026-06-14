@@ -394,9 +394,65 @@ import { Input } from '@/components/reusables/input';
 
 - **Centered confirmation / small form** → RNR `Dialog` (`@/components/reusables/dialog`)
 - **Bottom sheet / full-screen form** → raw RN `<Modal>` (slide-up, `animationType="slide"`, `justify-end`) — **content must still be RNR**
+- **Action menu (three-dot, block/report, etc.)** → raw RN `<Modal>` with `animationType="slide"` — **must use `RNText` for menu labels** (custom Text component may have context issues)
 - **Destructive confirm** → `reusables/alert-dialog` or `confirmAlert` from `@/utils/alert`
 
 Do not force a bottom sheet into `Dialog` — it would center it and break the UX.
+
+#### Action Menu Pattern (Bottom-Slide Modal)
+
+For three-dot menus and action sheets, use a Modal that slides up from bottom with proper styling:
+
+```tsx
+const [menuVisible, setMenuVisible] = useState(false);
+
+<Modal
+  visible={menuVisible}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setMenuVisible(false)}
+>
+  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }} onTouchEnd={() => setMenuVisible(false)}>
+    <View
+      style={{
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: colors.card,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingTop: 12,
+        paddingBottom: 32,
+      }}
+      onTouchEnd={(e) => e.stopPropagation()}
+    >
+      {/* Handle bar */}
+      <View style={{ alignItems: "center", marginBottom: 16 }}>
+        <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+      </View>
+
+      {/* Menu items using RNText (NOT custom Text component) */}
+      <View style={{ paddingHorizontal: 16, gap: 12 }}>
+        <Pressable
+          onPress={() => {
+            setMenuVisible(false);
+            // action
+          }}
+          style={{ flexDirection: "row", alignItems: "center", paddingVertical: 14, gap: 12 }}
+        >
+          <Icon size={20} color={colors.destructive} />
+          <RNText style={{ fontSize: 15, color: colors.destructive, fontWeight: "600", flex: 1 }}>
+            Block User
+          </RNText>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+</Modal>
+```
+
+**Critical rule for menus**: use `RNText` (React Native's native Text) for menu labels, NOT the custom `Text` component — the custom Text applies ButtonTextColorContext which may cause text to become invisible in certain modal contexts.
 
 ### Theming — CRITICAL RULE (NativeWind v4 dark mode limitation)
 
