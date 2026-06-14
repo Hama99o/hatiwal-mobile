@@ -25,6 +25,8 @@ import {
   Platform,
   Modal,
   Share,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
 } from "react-native";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -39,6 +41,7 @@ import {
   Eye,
   Camera,
   X,
+  ChevronRight,
 } from "lucide-react-native";
 import Animated, {
   useSharedValue,
@@ -46,6 +49,8 @@ import Animated, {
   withSpring,
   withRepeat,
   withTiming,
+  interpolate,
+  Extrapolate,
 } from "react-native-reanimated";
 
 import { Text } from "@/components/reusables/text";
@@ -115,6 +120,10 @@ export default function ListingDetailScreen() {
   const colors = useColors();
 
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
+  const [galleryPhotoIndex, setGalleryPhotoIndex] = useState(0);
+  const scrollY = useSharedValue(0);
+  const galleryFlatListRef = useRef<FlatList>(null);
 
   // FlatList requires these to be stable references — inline functions cause
   // "Changing onViewableItemsChanged on the fly is not supported" invariant.
@@ -134,6 +143,20 @@ export default function ListingDetailScreen() {
   const heartAnimStyle = useAnimatedStyle(() => ({
     transform: [{ scale: heartScale.value }],
   }));
+
+  // Scroll-based gallery height animation (1 at top → 0.65 when scrolled 200px)
+  const galleryHeightAnim = useAnimatedStyle(() => {
+    const scale = interpolate(
+      scrollY.value,
+      [0, 200],
+      [1, 0.65],
+      Extrapolate.CLAMP
+    );
+    return {
+      height: SW * scale,
+      opacity: interpolate(scrollY.value, [0, 100], [1, 1], Extrapolate.CLAMP),
+    };
+  });
 
   // ── Fetch listing detail ─────────────────────────────────────────────────
   const { data: listing, isLoading } = useQuery({
@@ -262,6 +285,10 @@ export default function ListingDetailScreen() {
       ? listing.category.nameFa
       : listing.category.nameEn;
 
+  const handleScrollEvent = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollY.value = event.nativeEvent.contentOffset.y;
+  };
+
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       {/* ── Scrollable content ──────────────────────────────────────── */}
@@ -270,28 +297,40 @@ export default function ListingDetailScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         bounces={false}
+        onScroll={handleScrollEvent}
+        scrollEventThrottle={16}
       >
         {/* ── Photo gallery ─────────────────────────────────────────── */}
-        <View style={styles.galleryContainer}>
+        <Animated.View style={[galleryHeightAnim, { position: "relative" }]}>
           {hasPhotos ? (
-            <FlatList
-              data={photos}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(_, i) => String(i)}
-              onViewableItemsChanged={onViewableItemsChanged}
-              viewabilityConfig={viewabilityConfig}
-              renderItem={({ item: uri }) => (
-                <Image
-                  source={{ uri }}
-                  placeholder={{ blurhash: BLURHASH }}
-                  contentFit="cover"
-                  transition={200}
-                  style={{ width: SW, aspectRatio: 1 }}
-                />
-              )}
-            />
+            <View style={styles.galleryContainer}>
+              <FlatList
+                data={photos}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(_, i) => String(i)}
+                onViewableItemsChanged={onViewableItemsChanged}
+                viewabilityConfig={viewabilityConfig}
+                renderItem={({ item: uri }) => (
+                  <Image
+                    source={{ uri }}
+                    placeholder={{ blurhash: BLURHASH }}
+                    contentFit="cover"
+                    transition={200}
+                    style={{ width: SW, aspectRatio: 1 }}
+                  />
+                )}
+              />
+              {/* Transparent overlay to capture tap for fullscreen modal */}
+              <Pressable
+                onPress={() => {
+                  setGalleryPhotoIndex(photoIndex);
+                  setShowGalleryModal(true);
+                }}
+                style={[StyleSheet.absoluteFill, { backgroundColor: "transparent" }]}
+              />
+            </View>
           ) : (
             <View
               style={[styles.noPhotoBox, { backgroundColor: colors.imagePlaceholder }]}
@@ -304,74 +343,74 @@ export default function ListingDetailScreen() {
               </Text>
             </View>
           )}
+        </Animated.View>
 
-          {/* Overlay controls: back | heart + "..." */}
-          <View
-            style={[
-              styles.overlayRow,
-              { flexDirection: isRtl ? "row-reverse" : "row" },
-            ]}
+        {/* Overlay controls: back | heart + "..." (outside animated view) */}
+        <View
+          style={[
+            styles.overlayRow,
+            { flexDirection: isRtl ? "row-reverse" : "row" },
+          ]}
+        >
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.overlayBtn}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back")}
           >
+            <ChevronLeft size={22} color="#fff" strokeWidth={2.5} />
+          </Pressable>
+
+          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8 }}>
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => saveMutation.mutate()}
+              style={styles.overlayBtn}
+              hitSlop={12}
+              accessibilityRole="togglebutton"
+              accessibilityLabel={
+                isSaved ? t("listing.unsave") : t("listing.save")
+              }
+            >
+              <Animated.View style={heartAnimStyle}>
+                <Heart
+                  size={20}
+                  color={isSaved ? "#ef4444" : "#fff"}
+                  fill={isSaved ? "#ef4444" : "transparent"}
+                  strokeWidth={2}
+                />
+              </Animated.View>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowMoreSheet(true)}
               style={styles.overlayBtn}
               hitSlop={12}
               accessibilityRole="button"
-              accessibilityLabel={t("common.back")}
+              accessibilityLabel={t("listing.detail.moreOptions")}
             >
-              <ChevronLeft size={22} color="#fff" strokeWidth={2.5} />
+              <MoreHorizontal size={20} color="#fff" strokeWidth={2} />
             </Pressable>
-
-            <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8 }}>
-              <Pressable
-                onPress={() => saveMutation.mutate()}
-                style={styles.overlayBtn}
-                hitSlop={12}
-                accessibilityRole="togglebutton"
-                accessibilityLabel={
-                  isSaved ? t("listing.unsave") : t("listing.save")
-                }
-              >
-                <Animated.View style={heartAnimStyle}>
-                  <Heart
-                    size={20}
-                    color={isSaved ? "#ef4444" : "#fff"}
-                    fill={isSaved ? "#ef4444" : "transparent"}
-                    strokeWidth={2}
-                  />
-                </Animated.View>
-              </Pressable>
-              <Pressable
-                onPress={() => setShowMoreSheet(true)}
-                style={styles.overlayBtn}
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel={t("listing.detail.moreOptions")}
-              >
-                <MoreHorizontal size={20} color="#fff" strokeWidth={2} />
-              </Pressable>
-            </View>
           </View>
-
-          {/* Dot pagination */}
-          {photos.length > 1 && (
-            <View style={styles.dotsRow}>
-              {photos.map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    {
-                      backgroundColor:
-                        i === photoIndex ? "#fff" : "rgba(255,255,255,0.4)",
-                      width: i === photoIndex ? 16 : 6,
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-          )}
         </View>
+
+        {/* Dot pagination */}
+        {photos.length > 1 && (
+          <View style={styles.dotsRow}>
+            {photos.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor:
+                      i === photoIndex ? "#fff" : "rgba(255,255,255,0.4)",
+                    width: i === photoIndex ? 16 : 6,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        )}
 
         {/* ── Main info ─────────────────────────────────────────────── */}
         <View style={styles.section}>
@@ -747,6 +786,106 @@ export default function ListingDetailScreen() {
           </Button>
         </View>
       </Modal>
+
+      {/* ── Fullscreen photo gallery modal ────────────────────────── */}
+      <Modal
+        visible={showGalleryModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowGalleryModal(false)}
+      >
+        <View style={[styles.fullscreenGallery, { backgroundColor: colors.background }]}>
+          {/* Header with close button */}
+          <View
+            style={[
+              styles.galleryHeader,
+              {
+                backgroundColor: colors.card,
+                borderBottomColor: colors.border,
+                flexDirection: isRtl ? "row-reverse" : "row",
+              },
+            ]}
+          >
+            <Text style={{ fontSize: 14, color: colors.mutedForeground }}>
+              {galleryPhotoIndex + 1} / {photos.length}
+            </Text>
+            <Pressable
+              onPress={() => setShowGalleryModal(false)}
+              hitSlop={12}
+              style={{ marginLeft: isRtl ? 0 : "auto", marginRight: isRtl ? "auto" : 0 }}
+            >
+              <X size={24} color={colors.foreground} />
+            </Pressable>
+          </View>
+
+          {/* Photo carousel */}
+          <View style={styles.galleryContent}>
+            <FlatList
+              ref={galleryFlatListRef}
+              data={photos}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              scrollEventThrottle={16}
+              keyExtractor={(_, i) => String(i)}
+              onMomentumScrollEnd={(e) => {
+                const contentOffsetX = e.nativeEvent.contentOffset.x;
+                const currentIndex = Math.round(contentOffsetX / SW);
+                setGalleryPhotoIndex(currentIndex);
+              }}
+              initialScrollIndex={galleryPhotoIndex}
+              getItemLayout={(_, index) => ({
+                length: SW,
+                offset: SW * index,
+                index,
+              })}
+              renderItem={({ item: uri }) => (
+                <View style={{ width: SW, height: "100%", justifyContent: "center" }}>
+                  <Image
+                    source={{ uri }}
+                    placeholder={{ blurhash: BLURHASH }}
+                    contentFit="contain"
+                    transition={200}
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                </View>
+              )}
+            />
+          </View>
+
+          {/* Bottom pagination dots */}
+          {photos.length > 1 && (
+            <View
+              style={[
+                styles.galleryDots,
+                { backgroundColor: `rgba(0,0,0,0.3)` },
+              ]}
+            >
+              {photos.map((_, i) => (
+                <Pressable
+                  key={i}
+                  onPress={() => {
+                    setGalleryPhotoIndex(i);
+                    galleryFlatListRef.current?.scrollToIndex({
+                      index: i,
+                      animated: true,
+                    });
+                  }}
+                  style={[
+                    styles.galleryDot,
+                    {
+                      backgroundColor:
+                        i === galleryPhotoIndex
+                          ? colors.primary
+                          : `rgba(255,255,255,0.3)`,
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -772,6 +911,7 @@ const styles = StyleSheet.create({
     right: 12,
     justifyContent: "space-between",
     alignItems: "center",
+    zIndex: 10,
   },
   overlayBtn: {
     width: 36,
@@ -790,10 +930,40 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     alignItems: "center",
+    zIndex: 10,
   },
   dot: {
     height: 6,
     borderRadius: 3,
+  },
+  fullscreenGallery: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  galleryHeader: {
+    paddingTop: Platform.OS === "ios" ? 52 : 16,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  galleryContent: {
+    flex: 1,
+  },
+  galleryDots: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === "ios" ? 28 : 16,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+  },
+  galleryDot: {
+    height: 8,
+    width: 8,
+    borderRadius: 4,
   },
   section: {
     paddingHorizontal: 16,

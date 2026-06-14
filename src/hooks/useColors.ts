@@ -52,5 +52,8 @@ export function useColors() {
 
     // Overlay
     overlay:               "rgba(0,0,0,0.5)" as string,
+
+    // Shadow (cast by elevated surfaces — kept black in both themes)
+    shadow:                "#000" as string,
   } as const;
 }

@@ -72,6 +72,12 @@ export interface ListingParams {
   search?: string;
   categoryId?: number;
   status?: string;
+  priceMin?: number;
+  priceMax?: number;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
 }
 
 export const listingsAPI = {
@@ -81,6 +87,15 @@ export const listingsAPI = {
     if (params?.pageSize)   query.append("page[size]",   String(params.pageSize));
     if (params?.search)     query.append("search",       params.search);
     if (params?.categoryId) query.append("category_id",  String(params.categoryId));
+    if (params?.priceMin != null) query.append("price_min", String(params.priceMin));
+    if (params?.priceMax != null) query.append("price_max", String(params.priceMax));
+    if (params?.latitude != null && params?.longitude != null && params?.radius != null) {
+      query.append("latitude",  String(params.latitude));
+      query.append("longitude", String(params.longitude));
+      query.append("radius",    String(params.radius));
+    } else if (params?.location) {
+      query.append("location", params.location);
+    }
 
     const response = await http.get(`/listings?${query}`);
     return {
