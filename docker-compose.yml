@@ -66,8 +66,8 @@ services:
       - EXPO_PUBLIC_DEFAULT_THEME=system
       - EXPO_NO_TELEMETRY=1
     ports:
+      # Expo SDK 54 serves Metro + the manifest on a single port (3008).
+      # The legacy 19000-19002 ports (Expo SDK ≤48) are unused here and were
+      # colliding with other Expo projects on this machine — removed.
       - "3008:3008"
-      - "19000:19000"
-      - "19001:19001"
-      - "19002:19002"
     command: ["npx", "expo", "start", "--port", "3008"]

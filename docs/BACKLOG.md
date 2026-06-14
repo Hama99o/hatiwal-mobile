@@ -17,28 +17,28 @@
 
 ## Status Overview
 
-| ID | Page / Feature | Status | Owner (taken by) | Priority | Route |
-|---|---|---|---|---|---|
-| A1 | Login | ✅ Done | — | P0 | `/(auth)/login` |
-| A2 | Register | ✅ Done | — | P0 | `/(auth)/register` |
-| A3 | App bootstrap / splash redirect | 🟡 In progress | _unassigned_ | P1 | `app/index.tsx` |
-| **S0** | **Shared components** (`ListingCard`, `PriceTag`, `StatusBadge`, `EmptyState`, skeletons) | ✅ Done | — | P0 | `src/components/common/` |
-| B1 | Browse feed | ✅ Done (design system + filters) | — | P0 | `/(main)/(tabs)/browse` |
-| B2 | Listing detail | ✅ Done | — | P0 | `/(main)/listing/[id]` |
-| B3 | Search & category filter | ✅ Done | — | P1 | within B1 |
-| **B4** | **Saved searches / filter history** (auto-save, dedupe, last-4 chips) | ✅ Done | — | P1 | within B1 |
-| **B5** | **Map location & distance search** (province coords + Nominatim geocoding + Haversine radius) | ✅ Done | — | P1 | `LocationRangePicker` |
-| **B6** | **"Seen / already viewed" indicator** (per-user `ListingView`; dim + badge on card) — _was the "Recently viewed" idea_ | ✅ Done | — | P2 | within B1/B2 |
-| C1 | Create / Edit listing | ✅ Done (map location, photos, category) | — | P0 | `/(main)/listing/new`, `/edit/[id]` |
-| C2 | My Listings + lifecycle | 🟡 In progress | _unassigned_ | P0 | `/(main)/(tabs)/my-listings` |
-| D1 | Conversations list | ✅ Done | — | P1 | `/(main)/(tabs)/chat` |
-| D2 | Conversation thread | ✅ Done | — | P1 | `/(main)/conversation/[id]` |
-| E1 | Saved / Favorites | ✅ Done | — | P1 | `/(main)/(tabs)/saved` |
-| F1 | Profile (mine) | 🟡 In progress | _unassigned_ | P1 | `/(main)/(tabs)/profile` |
-| F2 | Edit profile (inline + **map location**) | ✅ Done | claude | P2 | within F1 |
-| F3 | Public seller profile | ✅ Done | — | P2 | `/(main)/seller/[userId]` |
-| G1 | Report listing / user | ✅ Done | — | P2 | `ReportSheet` |
-| — | 💡 Ideas backlog | 💡 Idea | _unassigned_ | post-MVP | see §Ideas |
+| ID     | Page / Feature                                                                                                         | Status                                   | Owner (taken by) | Priority | Route                               |
+| ------ | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ---------------- | -------- | ----------------------------------- |
+| A1     | Login                                                                                                                  | ✅ Done                                  | —                | P0       | `/(auth)/login`                     |
+| A2     | Register                                                                                                               | ✅ Done                                  | —                | P0       | `/(auth)/register`                  |
+| A3     | App bootstrap / splash redirect                                                                                        | 🟡 In progress                           | _unassigned_     | P1       | `app/index.tsx`                     |
+| **S0** | **Shared components** (`ListingCard`, `PriceTag`, `StatusBadge`, `EmptyState`, skeletons)                              | ✅ Done                                  | —                | P0       | `src/components/common/`            |
+| B1     | Browse feed                                                                                                            | ✅ Done (design system + filters)        | —                | P0       | `/(main)/(tabs)/browse`             |
+| B2     | Listing detail                                                                                                         | ✅ Done                                  | —                | P0       | `/(main)/listing/[id]`              |
+| B3     | Search & category filter                                                                                               | ✅ Done                                  | —                | P1       | within B1                           |
+| **B4** | **Saved searches / filter history** (auto-save, dedupe, last-4 chips)                                                  | ✅ Done                                  | —                | P1       | within B1                           |
+| **B5** | **Map location & distance search** (province coords + Nominatim geocoding + Haversine radius)                          | ✅ Done                                  | —                | P1       | `LocationRangePicker`               |
+| **B6** | **"Seen / already viewed" indicator** (per-user `ListingView`; dim + badge on card) — _was the "Recently viewed" idea_ | ✅ Done                                  | —                | P2       | within B1/B2                        |
+| C1     | Create / Edit listing                                                                                                  | ✅ Done (map location, photos, category) | —                | P0       | `/(main)/listing/new`, `/edit/[id]` |
+| C2     | My Listings + lifecycle                                                                                                | 🟡 In progress                           | _unassigned_     | P0       | `/(main)/(tabs)/my-listings`        |
+| D1     | Conversations list                                                                                                     | ✅ Done                                  | —                | P1       | `/(main)/(tabs)/chat`               |
+| D2     | Conversation thread                                                                                                    | ✅ Done                                  | —                | P1       | `/(main)/conversation/[id]`         |
+| E1     | Saved / Favorites                                                                                                      | ✅ Done                                  | —                | P1       | `/(main)/(tabs)/saved`              |
+| F1     | Profile (mine)                                                                                                         | 🟡 In progress                           | _unassigned_     | P1       | `/(main)/(tabs)/profile`            |
+| F2     | Edit profile (inline + **map location**)                                                                               | ✅ Done                                  | claude           | P2       | within F1                           |
+| F3     | Public seller profile                                                                                                  | ✅ Done                                  | —                | P2       | `/(main)/seller/[userId]`           |
+| G1     | Report listing / user                                                                                                  | ✅ Done                                  | —                | P2       | `ReportSheet`                       |
+| —      | 💡 Ideas backlog                                                                                                       | 💡 Idea                                  | _unassigned_     | post-MVP | see §Ideas                          |
 
 > "In progress (raw RN)" = the screen exists and works, but is built with raw `Text`/`FlatList`/`Alert`
 > and must be migrated to the design system (RNR + the shared components + the approved libraries) before it's `✅`.
@@ -48,15 +48,18 @@
 ## A — Authentication
 
 ### A1 — Login ✅
+
 - **Owner:** — · **Route:** `/(auth)/login` · **Endpoint:** `POST /auth/sign_in` · **File:** `src/screens/shared/Login.tsx`
 - **Options & detail:** email + password fields; submit; link to Register; **language switcher (en default, ps/fa)**; inline error; loading state on submit. Tokens persisted via `secureStorage` (web-safe).
 - **Acceptance:** ✅ logs in, persists token, lands in browse; works on web. _To polish later: migrate to RNR `Input`/`Button` + `react-hook-form`+`zod`._
 
 ### A2 — Register ✅
+
 - **Endpoint:** `POST /auth` · **File:** `src/screens/shared/Register.tsx`
 - **Detail:** firstname, lastname, email, password, password confirmation; persists auth headers on success → browse.
 
 ### A3 — App bootstrap / splash redirect 🟡
+
 - **File:** `app/index.tsx` · **Endpoint:** `GET /auth/validate_token`
 - **Detail / options:** on launch, validate stored token → route to `(main)` if valid, else `(auth)/login`. Splash while deciding. **TODO:** wire `validate_token`; currently redirects on local auth state only.
 - **Acceptance:** cold start lands on the right screen without a flash of the wrong one.
@@ -64,6 +67,7 @@
 ---
 
 ## S0 — Shared Components (build FIRST — blocks the feed pages) ⬜
+
 - **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Files:** `src/components/common/`
 - **Why first:** B1, B2, C2, E1, F3 all render listings; build the card once.
 - **Components & detail:**
@@ -80,6 +84,7 @@
 ## B — Buyer: Browse & Discover
 
 ### B1 — Browse feed 🟡 (migrate)
+
 - **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Route:** `/(main)/(tabs)/browse`
 - **Endpoint:** `GET /listings?search&category_id&page` → `listings[]` + `meta.pagination` (`:list`) · **File:** `src/screens/buyer/Browse.tsx` (exists, raw RN — replace)
 - **Options & detail:**
@@ -88,18 +93,19 @@
   - **Category filter** — horizontal chip row (RNR `Badge`) + "All"; tap filters by `category_id`; optional `CategoryPicker` sheet for full list.
   - **Pull-to-refresh** + **infinite scroll** (pagination).
   - **Save-heart** on each card (optimistic; see E1 endpoints).
-  - Grid (2-col) vs list toggle — *optional, P2*.
+  - Grid (2-col) vs list toggle — _optional, P2_.
   - **States:** skeleton grid (loading) · `EmptyState` "Nothing here yet" · no-results "Nothing matches '<q>'" + Reset · error + retry toast.
   - `useFocusEffect` refetch.
 - **Acceptance:** photo-first, price prominent, scrolls smoothly on mid-range Android; search + category work; RTL + dark correct.
 
 ### B2 — Listing detail ⬜
+
 - **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Route:** `/(main)/listing/[id]`
 - **Endpoint:** `GET /listings/:id` (`:detailed`: images[], description, location, lat/long, seller{name,city,phone}, category) — **increments `views_count`** · **File:** `src/screens/shared/ListingDetail.tsx` (+ `listing-detail/` subfolder if > 300 lines)
 - **Options & detail:**
-  - **`ListingGallery`** hero — `react-native-reanimated-carousel` + `expo-image` + page dots; tap → fullscreen viewer (*P2*).
-  - `PriceTag` (lg) → title → category + condition `Badge`s → description → **location** (city always; map snippet via `expo-location`/`react-native-maps` if lat/long — *P2*).
-  - **`SellerCard`** — avatar, name, city; tap → public profile (F3). Phone reveal (call/tap) — *gated, P2*.
+  - **`ListingGallery`** hero — `react-native-reanimated-carousel` + `expo-image` + page dots; tap → fullscreen viewer (_P2_).
+  - `PriceTag` (lg) → title → category + condition `Badge`s → description → **location** (city always; map snippet via `expo-location`/`react-native-maps` if lat/long — _P2_).
+  - **`SellerCard`** — avatar, name, city; tap → public profile (F3). Phone reveal (call/tap) — _gated, P2_.
   - **Sticky primary "Message seller"** button → opens first-message sheet (D2 start flow). Hidden/disabled if viewing own listing or listing not `active`.
   - **Save-heart** in header; **Report** affordance (quiet) → `ReportSheet` (G1).
   - Status badge; "posted X ago" + views count.
@@ -107,6 +113,7 @@
 - **Acceptance:** earns the message tap; gallery swipes; sticky CTA reachable; RTL + dark.
 
 ### B3 — Search & category filter 🟡
+
 - Folded into B1. Standalone search-results route optional. `CategoryPicker` (`@gorhom/bottom-sheet`) is the shared category selector (also used by C1).
 
 ---
@@ -114,6 +121,7 @@
 ## C — Seller: Listings & Lifecycle
 
 ### C1 — Create / Edit listing ⬜
+
 - **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Routes:** `/(main)/listing/new`, `/(main)/listing/edit/[id]`
 - **Endpoints:** `POST /my/listings` (multipart `listing:{title,description,price,currency,category_id,location,lat,long,images[]}` → starts **draft**); `PUT /my/listings/:id` (edit while draft) · **File:** `src/screens/seller/ListingForm.tsx`
 - **Options & detail (form sections, `react-hook-form` + `zod`):**
@@ -129,6 +137,7 @@
 - **Acceptance:** can post a listing with photos end-to-end; draft and publish both work; RTL + dark.
 
 ### C2 — My Listings + lifecycle 🟡 (migrate)
+
 - **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Route:** `/(main)/(tabs)/my-listings`
 - **Endpoints:** `GET /my/listings?status` (`:seller_list`: views_count, conversations_count, timestamps); `DELETE /my/listings/:id`; `PUT .../publish|reserve|sold` · **File:** `src/screens/seller/MyListings.tsx` (exists, raw RN + `Alert` — replace; **uses `Alert` = rule violation**)
 - **Options & detail:**
@@ -146,6 +155,7 @@
 ## D — Chat
 
 ### D1 — Conversations list 🟡 (migrate)
+
 - **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Route:** `/(main)/(tabs)/chat`
 - **Endpoint:** `GET /conversations` (`:list`: listing{title,thumbnail,status}, other_participant{name,city}, last_message_body, unread_count) · **File:** `src/screens/chat/Conversations.tsx` (exists, raw RN — replace)
 - **Options & detail:** rows = participant avatar + listing thumbnail (`expo-image`) + last message (truncated) + time (`formatDate`) + **unread badge**; ordered by `last_message_at`; tap → thread (D2). Unread total drives the chat **tab badge**.
@@ -153,6 +163,7 @@
 - **Acceptance:** unread counts correct; RTL bubbleless rows mirror; dark mode.
 
 ### D2 — Conversation thread ⬜
+
 - **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Route:** `/(main)/conversation/[id]`
 - **Endpoints:** `GET /conversations/:id` (`:detailed`); `GET /conversations/:id/messages` (paginated, asc); `POST /conversations/:id/messages` (`body`,`kind`; only if `open`); **start:** `POST /listings/:listing_id/conversations` (`message`) · **File:** `src/screens/chat/Conversation.tsx`
 - **Options & detail:**
@@ -169,6 +180,7 @@
 ## E — Saved / Favorites
 
 ### E1 — Saved list ⬜
+
 - **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Route:** `/(main)/(tabs)/saved`
 - **Endpoints:** `GET /my/saved_listings` (`:list`, no pagination); save `POST /listings/:id/save`; unsave `DELETE /listings/:id/unsave` · **File:** `src/screens/buyer/Saved.tsx`
 - **Options & detail:** `UniversalList` of `ListingCard`; the **save-heart** (shared on every card across B1/B2) toggles membership optimistically + toast; tap → detail.
@@ -180,17 +192,20 @@
 ## F — Profile & Account
 
 ### F1 — Profile (mine) 🟡
+
 - **Owner:** feature-builder · **Route:** `/(main)/(tabs)/profile`
 - **Endpoint:** `GET /users/me` (`:me`) · **File:** `src/screens/shared/Profile.tsx`
 - **Options & detail:** avatar header; info (name, city, member-since); **buyer/seller mode toggle** (`useModeStore`); **language switcher**; link to Edit profile (F2); **Sign out** (`confirmAlert` — ✅ already fixed). _Current screen uses raw RN; migrate to RNR and polish hierarchy before handing to marketplace-designer._
 - **Acceptance:** sign-out works (✅); RNR + dark + RTL.
 
 ### F2 — Edit profile ✅ (taken by claude, 2026-06-14)
+
 - **Endpoint:** `PUT /users/me` (`user:{firstname,lastname,phone,bio,city,latitude,longitude,...}`) · **File:** implemented **inline in `src/screens/shared/Profile.tsx`** (edit mode), not a separate screen.
 - **What's built:** edit firstname, lastname, phone, bio, city, **avatar**, and **location on the map** — a "Set your location on map" row opens the shared `LocationRangePicker` (point mode: search any place via geocoding or drop a pin); confirming stores `latitude`/`longitude` and fills `city` with the readable place name. Save → `authAPI.updateMe` → invalidates `["me"]`. RTL + dark via `useColors`; strings in en/ps/fa.
 - **Still optional (P2):** dedicated `province` field + `preferred_language` inside the edit form (language is already switchable elsewhere in F1); migrate the raw `TextInput`s to RNR `Input` + `react-hook-form`/`zod` when marketplace-designer polishes F1.
 
 ### F3 — Public seller profile ⬜
+
 - **Endpoint:** `GET /users/:id` (`:public`: full_name, bio, province, listings_count) · **File:** `src/screens/shared/UserProfile.tsx`
 - **Options & detail:** trust dossier — avatar, name, city, member-since, **active-listings count** + grid of their active listings (`ListingCard`); Report affordance (G1). Reached from `SellerCard`.
 
@@ -199,6 +214,7 @@
 ## G — Safety
 
 ### G1 — Report listing / user ⬜
+
 - **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Surface:** `ReportSheet` (no route)
 - **Endpoint:** `POST /reports` (`report:{reportable_type:"Listing"|"User", reportable_id, reason, description}`)
 - **Options & detail:** `@gorhom/bottom-sheet` + RNR `RadioGroup` with the 6 reasons (**spam · inappropriate · fraud · wrong_category · prohibited_item · other**) + optional `Textarea` note; submit + toast. Blocks self-report & duplicates (422 → toast). Triggered from B2 + F3.
@@ -207,16 +223,16 @@
 
 ## Ideas (💡 — product-owner grows this over time, post-MVP)
 
-| Idea | Value | Notes |
-|---|---|---|
-| ~~Recently viewed~~ ✅ shipped | re-engagement | done as **B6** — per-user `ListingView`, card shows dimmed + "Seen" badge |
-| Similar listings on detail | discovery | "more in this category" rail under B2 |
-| Share listing (deep link) | growth | `expo-linking` share → opens B2 |
-| Draft autosave | fewer lost posts | persist C1 form locally |
-| In-chat meetup scheduler | core deal mechanic | structured `meetup_proposal` with accept/decline |
-| Seller ratings / reviews | trust | **needs backend** — post-MVP per CLAUDE.md |
-| Price-drop / saved-search alerts | retention | **needs push (post-MVP)** |
-| Listing boost / bump | (future monetization) | **needs backend** |
+| Idea                             | Value                 | Notes                                                                     |
+| -------------------------------- | --------------------- | ------------------------------------------------------------------------- |
+| ~~Recently viewed~~ ✅ shipped   | re-engagement         | done as **B6** — per-user `ListingView`, card shows dimmed + "Seen" badge |
+| Similar listings on detail       | discovery             | "more in this category" rail under B2                                     |
+| Share listing (deep link)        | growth                | `expo-linking` share → opens B2                                           |
+| Draft autosave                   | fewer lost posts      | persist C1 form locally                                                   |
+| In-chat meetup scheduler         | core deal mechanic    | structured `meetup_proposal` with accept/decline                          |
+| Seller ratings / reviews         | trust                 | **needs backend** — post-MVP per CLAUDE.md                                |
+| Price-drop / saved-search alerts | retention             | **needs push (post-MVP)**                                                 |
+| Listing boost / bump             | (future monetization) | **needs backend**                                                         |
 
 **Never schedule (MVP boundaries):** online payment · delivery/shipping · web app · admin web · push delivery · voice/video.
 

@@ -72,6 +72,7 @@ export interface ListingParams {
   pageSize?: number;
   search?: string;
   categoryId?: number;
+  userId?: number;
   status?: string;
   priceMin?: number;
   priceMax?: number;
@@ -88,6 +89,8 @@ export const listingsAPI = {
     if (params?.pageSize)   query.append("page[size]",   String(params.pageSize));
     if (params?.search)     query.append("search",       params.search);
     if (params?.categoryId) query.append("category_id",  String(params.categoryId));
+    if (params?.userId)     query.append("user_id",      String(params.userId));
+    if (params?.status)     query.append("status",       params.status);
     if (params?.priceMin != null) query.append("price_min", String(params.priceMin));
     if (params?.priceMax != null) query.append("price_max", String(params.priceMax));
     if (params?.latitude != null && params?.longitude != null && params?.radius != null) {

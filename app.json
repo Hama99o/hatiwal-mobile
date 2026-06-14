@@ -15,14 +15,16 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hatiwal.app"
+      "bundleIdentifier": "com.hatiwal.app",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.hatiwal.app"
+      "package": "com.hatiwal.app",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
@@ -39,6 +41,19 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Hatiwal uses your location to show nearby listings and to set a listing's location on the map."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Hatiwal needs access to your photos so you can add pictures to your listings.",
+          "cameraPermission": "Hatiwal needs camera access so you can take photos for your listings."
         }
       ]
     ],
