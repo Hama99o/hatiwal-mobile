@@ -17,6 +17,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useColorScheme } from "nativewind";
 import { Toaster } from "sonner-native";
 import { useThemeStore, loadSavedTheme } from "@/stores/theme.store";
+import { bootstrapAuth } from "@/stores/auth.bootstrap";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,11 +61,21 @@ function ThemeManager({ onReady }: { onReady: () => void }) {
 }
 
 export default function RootLayout() {
-  const [ready, setReady] = useState(false);
+  const [themeReady, setThemeReady] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  const ready = themeReady && authReady;
+
+  // Restore the auth session on EVERY app load (any route) before showing the
+  // UI — so a logged-in user reloading on a deep route is never flashed the
+  // login screen. Resolves fast (optimistic); server validation continues in
+  // the background. See src/stores/auth.bootstrap.ts.
+  useEffect(() => {
+    bootstrapAuth().finally(() => setAuthReady(true));
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeManager onReady={() => setReady(true)} />
+      <ThemeManager onReady={() => setThemeReady(true)} />
       {/* Hide everything until theme is resolved to avoid flash of wrong colors */}
       <View style={{ flex: 1, opacity: ready ? 1 : 0 }}>
         <Stack screenOptions={{ headerShown: false }}>

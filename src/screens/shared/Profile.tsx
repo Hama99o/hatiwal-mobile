@@ -347,7 +347,9 @@ export default function ProfileScreen() {
           qc.clear();
           clearUser();
           await Promise.all([resetTheme(), resetMode(), resetLanguage()]);
-          router.replace("/(auth)/login");
+          // Guests can browse — drop to the feed, not a login wall. Account
+          // actions/tabs re-prompt login on demand via useRequireAuth.
+          router.replace("/(main)/(tabs)/browse");
         },
       },
     ]);

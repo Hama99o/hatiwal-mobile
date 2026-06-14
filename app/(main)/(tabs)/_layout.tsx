@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { useModeStore } from "@/stores/mode.store";
 import { useAuthStore } from "@/stores/auth.store";
-import { ShoppingBag, MessageCircle, Package, User, Heart } from "lucide-react-native";
+import { ShoppingBag, MessageCircle, Package, User, Heart, LogIn } from "lucide-react-native";
 
 export default function TabsLayout() {
   const { t } = useTranslation();
@@ -14,9 +14,11 @@ export default function TabsLayout() {
 
   const isSeller = mode === "seller";
 
-  // Guests can stay on Browse but the account-only tabs bounce them to login,
-  // remembering the tab so they return to it right after authenticating.
-  const guestGate = (returnTo: string) => ({
+  // A logged-out guest gets a deliberately minimal bar — just Browse + Login —
+  // instead of the full logged-in set (Saved/Messages/Profile) that would only
+  // bounce them to the login screen. The last tab flips between Profile (signed
+  // in) and a clear Login call-to-action (guest).
+  const goToLogin = (returnTo: string) => ({
     tabPress: (e: { preventDefault: () => void }) => {
       if (!isAuthenticated) {
         e.preventDefault();
@@ -38,7 +40,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.mutedForeground,
       }}
     >
-      {/* Browse — visible only in buyer mode */}
+      {/* Browse — the feed; visible to guests and to buyers (hidden in seller mode) */}
       <Tabs.Screen
         name="browse"
         options={{
@@ -48,48 +50,51 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* My Listings — visible only in seller mode */}
+      {/* My Listings — signed-in seller mode only */}
       <Tabs.Screen
         name="my-listings"
         options={{
-          href: isSeller ? undefined : null,
+          href: isAuthenticated && isSeller ? undefined : null,
           title: t("sidebar.myListings"),
           tabBarIcon: ({ color, size }) => <Package size={size} color={color} />,
         }}
-        listeners={guestGate("/(main)/(tabs)/my-listings")}
       />
 
-      {/* Saved — buyer mode only */}
+      {/* Saved — signed-in buyer mode only (hidden for guests) */}
       <Tabs.Screen
         name="saved"
         options={{
-          href: isSeller ? null : undefined,
+          href: isAuthenticated && !isSeller ? undefined : null,
           title: t("sidebar.saved"),
           tabBarIcon: ({ color, size, focused }) => (
             <Heart size={size} color={color} fill={focused ? color : "transparent"} />
           ),
         }}
-        listeners={guestGate("/(main)/(tabs)/saved")}
       />
 
-      {/* Chat — always visible */}
+      {/* Messages — signed-in only (hidden for guests) */}
       <Tabs.Screen
         name="chat"
         options={{
+          href: isAuthenticated ? undefined : null,
           title: t("sidebar.chat"),
           tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
         }}
-        listeners={guestGate("/(main)/(tabs)/chat")}
       />
 
-      {/* Profile — always visible */}
+      {/* Profile (signed in) ↔ Login (guest) — the second of the two guest tabs */}
       <Tabs.Screen
         name="profile"
         options={{
-          title: t("sidebar.profile"),
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+          title: isAuthenticated ? t("sidebar.profile") : t("auth.login"),
+          tabBarIcon: ({ color, size }) =>
+            isAuthenticated ? (
+              <User size={size} color={color} />
+            ) : (
+              <LogIn size={size} color={color} />
+            ),
         }}
-        listeners={guestGate("/(main)/(tabs)/profile")}
+        listeners={goToLogin("/(main)/(tabs)/profile")}
       />
     </Tabs>
   );

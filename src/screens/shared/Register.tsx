@@ -1,4 +1,5 @@
-import { View, ScrollView } from "react-native";
+import { View, ScrollView, TouchableOpacity } from "react-native";
+import { ShoppingBag } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
 import { Button } from "@/components/reusables/button";
@@ -85,6 +86,29 @@ export default function RegisterScreen() {
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={{ padding: 24, paddingTop: 48 }}
     >
+      {/* Escape hatch — let guests leave the form and just browse. */}
+      <TouchableOpacity
+        onPress={() => router.replace("/(main)/(tabs)/browse")}
+        accessibilityRole="button"
+        accessibilityLabel={t("auth.continueBrowsing")}
+        style={{
+          alignSelf: isRtl ? "flex-end" : "flex-start",
+          flexDirection: isRtl ? "row-reverse" : "row",
+          alignItems: "center",
+          gap: 6,
+          paddingVertical: 8,
+          paddingHorizontal: 14,
+          borderRadius: 999,
+          backgroundColor: colors.muted,
+          marginBottom: 20,
+        }}
+      >
+        <ShoppingBag size={16} color={colors.primary} />
+        <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary }}>
+          {t("auth.continueBrowsing")}
+        </Text>
+      </TouchableOpacity>
+
       <Text style={{ fontSize: 28, fontWeight: "700", textAlign, marginBottom: 8, color: colors.foreground }}>
         {t("auth.createAccount")}
       </Text>

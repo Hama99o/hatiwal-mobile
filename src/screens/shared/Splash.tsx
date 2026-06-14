@@ -1,70 +1,30 @@
 // src/screens/shared/Splash.tsx
-// Bootstrap / splash screen: validates the stored DeviseTokenAuth token
-// against GET /auth/validate_token, then routes to browse or login.
-// Never shows either destination screen — avoids any flash of the wrong route.
+// Bootstrap / splash: ensures the stored session is restored, then routes to
+// the feed. The auth hydration itself lives in src/stores/auth.bootstrap.ts
+// (shared with the root layout, so deep-route reloads hydrate too). Guests and
+// logged-in users both land on Browse; account-only actions prompt login on
+// demand. Never shows the wrong screen — avoids any flash.
 
 import { useEffect } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { authAPI } from "@/api/auth";
-import { secureStorage } from "@/utils/secure-storage";
-import { useAuthStore } from "@/stores/auth.store";
-import { useModeStore } from "@/stores/mode.store";
-import { applyThemeFromUser } from "@/stores/theme.store";
-import { applyLanguageFromUser } from "@/i18n";
+import { bootstrapAuth } from "@/stores/auth.bootstrap";
 import { useColors } from "@/hooks/useColors";
 
 export default function SplashScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const setUser = useAuthStore((s) => s.setUser);
-  const clearUser = useAuthStore((s) => s.clearUser);
-  const hydrateFromUser = useModeStore((s) => s.hydrateFromUser);
   const colors = useColors();
 
   useEffect(() => {
     let cancelled = false;
-
-    async function bootstrap() {
-      // Check whether we have stored credentials at all before hitting the
-      // network — saves a round-trip on a fresh install / after logout.
-      const headers = await secureStorage.getAuthHeaders();
-
-      if (!headers) {
-        // No stored token — browse as a guest. Auth-gated actions (save,
-        // contact, offer, the Saved/Chat/Profile tabs) prompt login on demand.
-        if (!cancelled) {
-          clearUser();
-          router.replace("/(main)/(tabs)/browse");
-        }
-        return;
-      }
-
-      try {
-        // Token exists locally; confirm it is still valid with the server.
-        const user = await authAPI.validateToken();
-        if (!cancelled) {
-          setUser(user);
-          hydrateFromUser(user.sellerMode);
-          applyThemeFromUser(user.preferredTheme);
-          await applyLanguageFromUser(user.preferredLanguage);
-          router.replace("/(main)/(tabs)/browse");
-        }
-      } catch {
-        // 401 (expired/revoked token) or network error — drop to guest browse
-        // rather than forcing a login wall; gated actions prompt login later.
-        if (!cancelled) {
-          clearUser();
-          await secureStorage.clearAuthHeaders();
-          router.replace("/(main)/(tabs)/browse");
-        }
-      }
-    }
-
-    bootstrap();
-
+    // bootstrapAuth is idempotent (the root layout also calls it) and resolves
+    // fast — it sets the optimistic auth state, then validates in the background.
+    bootstrapAuth().finally(() => {
+      if (!cancelled) router.replace("/(main)/(tabs)/browse");
+    });
     return () => {
       cancelled = true;
     };

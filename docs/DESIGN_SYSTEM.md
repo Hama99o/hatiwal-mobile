@@ -114,6 +114,8 @@ Build these once in `src/components/common/` (compositions of RNR + the librarie
 | `ListingCard` | `expo-image` + `PriceTag` + `StatusBadge` + RNR `Card`/`Text` + save-heart | Browse, Saved, My Listings, Profile listings |
 | `PriceTag` | RNR `Text` + `useLocalization().formatCurrency` | Cards, detail, chat header |
 | `StatusBadge` | RNR `Badge` + status→token map | Anywhere a listing status shows |
+| **`ConditionBadge`** | neutral pill + `listing.condition.<key>` | Anywhere a listing's condition shows (detail, card). Never inline a condition label. |
+| **`ConditionChips`** | selectable chip row over `LISTING_CONDITIONS`; `allowClear` for filters | The ONE condition selector — create/edit form (required pick) **and** Browse filter (clearable). Never hand-roll condition chips. |
 | `ListingGallery` | `react-native-reanimated-carousel` + `expo-image` + page dots | Listing detail hero |
 | **`UserAvatar`** | `expo-image` photo **or** colored initial circle | The ONE avatar impl — used *inside* `UserIdentity`; never render an avatar any other way |
 | **`UserIdentity`** | `UserAvatar` + name + `VerifiedBadge` (+ optional subtitle); `layout="row"\|"stacked"` | **Every place a person is shown** — listing-detail seller card, seller profile header, own profile, conversation rows. Do NOT re-assemble avatar+name+verified inline. |

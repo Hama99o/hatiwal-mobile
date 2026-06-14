@@ -1,4 +1,5 @@
 import { View, TouchableOpacity } from "react-native";
+import { ShoppingBag } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
 import { Button } from "@/components/reusables/button";
@@ -51,6 +52,30 @@ export default function LoginScreen() {
 
   return (
     <View style={{ flex: 1, padding: 24, justifyContent: "center", backgroundColor: colors.background }}>
+      {/* Escape hatch — login is never a dead-end now that guests can browse. */}
+      <TouchableOpacity
+        onPress={() => router.replace("/(main)/(tabs)/browse")}
+        accessibilityRole="button"
+        accessibilityLabel={t("auth.continueBrowsing")}
+        style={{
+          position: "absolute",
+          top: 52,
+          ...(isRtl ? { right: 20 } : { left: 20 }),
+          flexDirection: isRtl ? "row-reverse" : "row",
+          alignItems: "center",
+          gap: 6,
+          paddingVertical: 8,
+          paddingHorizontal: 14,
+          borderRadius: 999,
+          backgroundColor: colors.muted,
+        }}
+      >
+        <ShoppingBag size={16} color={colors.primary} />
+        <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary }}>
+          {t("auth.continueBrowsing")}
+        </Text>
+      </TouchableOpacity>
+
       <Text style={{ fontSize: 28, fontWeight: "700", textAlign: isRtl ? "right" : "left", marginBottom: 8, color: colors.foreground }}>
         {t("auth.welcome")}
       </Text>
