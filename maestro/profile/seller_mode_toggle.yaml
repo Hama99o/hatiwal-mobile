@@ -1,0 +1,20 @@
+appId: com.hatiwal.app
+---
+# Profile screen — switch to seller mode from the profile tab
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+# Tap "Switch to Seller Mode" option in profile
+- tapOn: "Switch to Seller Mode"
+- waitForAnimationToEnd
+# Mode changed — banner confirms seller mode
+- assertVisible: "Seller Mode"
+# Profile tab now shows seller-focused content
+- tapOn: "Profile"
+- waitForAnimationToEnd
+# Switch back
+- tapOn: "Switch to Buyer Mode"
+- waitForAnimationToEnd
+- assertVisible: "Buyer Mode"

@@ -1,0 +1,22 @@
+appId: com.hatiwal.app
+---
+# User's own profile page — verify stats, quick actions, listings section
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+# Profile header shows name and avatar
+- assertVisible: "Ahmad Karimi"
+# Stats row
+- assertVisible: "Saved Items"
+# Quick actions
+- assertVisible: "Saved Items"
+- assertVisible: "Browse Listings"
+# Tap My Listings shortcut
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Back to profile
+- back
+- waitForAnimationToEnd
+- assertVisible: "Profile"

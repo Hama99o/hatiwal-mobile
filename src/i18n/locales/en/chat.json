@@ -5,7 +5,8 @@
   "send": "Send",
   "empty": {
     "title": "No conversations",
-    "description": "Start chatting with sellers to negotiate and arrange meetups."
+    "description": "Start chatting with sellers to negotiate and arrange meetups.",
+    "browseAction": "Browse Listings"
   },
   "about": "About: {{title}}",
   "proposeMeetup": "Propose Meetup",
@@ -71,7 +72,8 @@
   },
   "attachFile": "Attach file",
   "document": {
-    "tap": "Tap to open"
+    "tap": "Tap to open",
+    "notAvailable": "File not available"
   },
   "filter": {
     "all": "All",
@@ -102,5 +104,11 @@
     "unblockSuccess": "User unblocked.",
     "blockFailed": "Could not block user. Try again.",
     "unblockFailed": "Could not unblock user. Try again."
+  },
+  "search": {
+    "placeholder": "Search messages...",
+    "matchCount": "{{current}} of {{total}}",
+    "partialResults": "Showing results in loaded messages only",
+    "noResults": "No messages match your search"
   }
 }

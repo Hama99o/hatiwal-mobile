@@ -1,0 +1,46 @@
+appId: com.hatiwal.app
+---
+# Full meetup cycle: buyer proposes → seller accepts → confirmed badge in both threads
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Message Seller"
+- waitForAnimationToEnd
+
+# Propose meetup
+- tapOn: "Propose Meetup"
+- waitForAnimationToEnd
+- assertVisible: "Propose a Meetup"
+
+# Fill in place and time
+- tapOn: "Location"
+- inputText: "Kabul City Center"
+- tapOn: "Date & Time"
+- waitForAnimationToEnd
+# Select tomorrow date (tap first available slot)
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+
+- tapOn: "Send Proposal"
+- waitForAnimationToEnd
+- assertVisible: "Meetup Proposed"
+
+# Switch to seller to respond
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Meetup Proposed"
+- tapOn: "Accept Meetup"
+- waitForAnimationToEnd
+- assertVisible: "Meetup Confirmed"

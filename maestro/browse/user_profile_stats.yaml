@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# Seller public profile: stats (listings count, joined date) visible to buyers
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn:
+    id: "seller-name"
+- waitForAnimationToEnd
+- assertVisible: "Seller Profile"
+
+# Stats section
+- assertVisible: "Listings"
+- assertVisible: "Joined"
+# Year present in joined date
+- assertVisible: "2024"
+
+# Message button visible (buyer can message from profile)
+- assertVisible: "Message"

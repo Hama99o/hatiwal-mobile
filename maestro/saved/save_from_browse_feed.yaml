@@ -1,0 +1,18 @@
+appId: com.hatiwal.app
+---
+# Save listing from browse feed: heart icon → listing appears in Saved tab
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+
+# Tap the heart/save icon on the first listing card
+- tapOn:
+    id: "save-button-0"
+- waitForAnimationToEnd
+
+# Go to Saved tab
+- tapOn: "Saved"
+- waitForAnimationToEnd
+# At least one listing now saved
+- assertNotVisible: "No saved listings"

@@ -1,5 +1,8 @@
 {
   "title": "Saved",
-  "empty": "No saved listings",
-  "emptyDescription": "Tap the heart on any listing to save it here"
+  "empty": "No saved items yet",
+  "emptyDescription": "Tap the heart on any listing to save it here",
+  "browseButton": "Browse listings",
+  "unsaveError": "Could not remove listing — please try again",
+  "saveError": "Could not save listing — please try again"
 }

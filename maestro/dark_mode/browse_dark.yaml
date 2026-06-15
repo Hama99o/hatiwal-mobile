@@ -1,0 +1,21 @@
+appId: com.hatiwal.app
+---
+# Dark mode: switch to Dark theme from Profile, verify Browse renders (no blank areas)
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- assertVisible: "APPEARANCE"
+- tapOn: "Dark"
+- waitForAnimationToEnd
+# Navigate to Browse — all elements should be visible in dark mode
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+# Scroll to verify cards render
+- scroll
+- waitForAnimationToEnd
+# Switch back to system to avoid affecting other tests
+- tapOn: "Profile"
+- tapOn: "System"

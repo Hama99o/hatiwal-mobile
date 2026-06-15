@@ -1,20 +1,27 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { View, FlatList, Text as RNText, Alert, Pressable, ActivityIndicator, TextInput, Modal } from "react-native";
+import { View, FlatList, Pressable, Modal } from "react-native";
+import Animated from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ChevronLeft, MoreVertical, Search, X, Flag, ShieldBan } from "lucide-react-native";
+import { ChevronLeft, MoreVertical, Search, X, Flag, ShieldBan, Store, Clock } from "lucide-react-native";
 import { toast } from "sonner-native";
 
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
+import { Input } from "@/components/reusables/input";
 import { ListingCard } from "@/components/common/ListingCard";
 import { UserIdentity } from "@/components/common/UserIdentity";
-import { Separator } from "@/components/reusables/separator";
+import { ReportSheet } from "@/components/common/ReportSheet";
+import { EmptyState } from "@/components/common/EmptyState";
+import { ProfileHeaderSkeleton } from "@/screens/shared/user-profile/ProfileHeaderSkeleton";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
+import { confirmAlert } from "@/utils/alert";
+import { useListItemEntering } from "@/lib/animation";
 import { usersAPI } from "@/api/users";
-import { listingsAPI } from "@/api/listings";
+import { listingsAPI, type Listing } from "@/api/listings";
 import { Category } from "@/api/categories";
 import { useCategories } from "@/hooks/useCategories";
 import { useCategoryName } from "@/hooks/useCategoryName";
@@ -26,16 +33,21 @@ export function SellerProfileScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const { isRtl, formatDate } = useLocalization();
   const currentUser = useAuthStore((s) => s.user);
 
   const { userId: rawId } = useLocalSearchParams<Params>();
   const userId = Number(rawId);
 
+  // Stagger entrance animation for the listings grid
+  const getEntering = useListItemEntering();
+
   const [isBlocked, setIsBlocked] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
 
   // Get category name in current language
   const getCategoryName = useCategoryName();
@@ -71,12 +83,12 @@ export function SellerProfileScreen() {
     let filtered = allListings;
 
     if (selectedCategoryId) {
-      filtered = filtered.filter((item) => item.categoryId === selectedCategoryId);
+      filtered = filtered.filter((item: Listing) => item.categoryId === selectedCategoryId);
     }
 
     if (searchText.trim()) {
       const query = searchText.toLowerCase();
-      filtered = filtered.filter((item) =>
+      filtered = filtered.filter((item: Listing) =>
         item.title.toLowerCase().includes(query) ||
         item.description?.toLowerCase().includes(query)
       );
@@ -114,7 +126,7 @@ export function SellerProfileScreen() {
   });
 
   const handleBlockPress = () => {
-    Alert.alert(
+    confirmAlert(
       t("chat.block.blockConfirmTitle"),
       t("chat.block.blockConfirmDescription"),
       [
@@ -130,29 +142,33 @@ export function SellerProfileScreen() {
 
   const handleReportPress = () => {
     setMenuVisible(false);
-    Alert.alert(
-      t("report.title") || "Report User",
-      t("report.subtitle") || "Why are you reporting this user?",
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("report.reasons.spam") || "Spam",
-          onPress: () => toast.success(t("report.success") || "Report submitted"),
-        },
-        {
-          text: t("report.reasons.inappropriate") || "Inappropriate",
-          onPress: () => toast.success(t("report.success") || "Report submitted"),
-        },
-      ]
-    );
+    setReportVisible(true);
   };
 
   const isMe = currentUser && currentUser.id === userId;
 
   if (isLoading && !profile) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
-        <ActivityIndicator color={colors.primary} size="large" />
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {/* Sticky header skeleton */}
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingTop: insets.top + 12,
+            paddingBottom: 12,
+            backgroundColor: colors.card,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+            gap: 8,
+          }}
+        >
+          <Pressable onPress={() => router.back()} hitSlop={16}>
+            <ChevronLeft size={24} color={colors.foreground} />
+          </Pressable>
+        </View>
+        <ProfileHeaderSkeleton />
       </View>
     );
   }
@@ -180,9 +196,9 @@ export function SellerProfileScreen() {
           </Text>
         </View>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 32 }}>
-          <RNText style={{ fontSize: 16, color: colors.mutedForeground, textAlign: "center", marginBottom: 16 }}>
+          <Text style={{ fontSize: 16, color: colors.mutedForeground, textAlign: "center", marginBottom: 16 }}>
             {t("profile.sellerProfile.loadFailed")}
-          </RNText>
+          </Text>
           <Button onPress={() => refetch()}>
             <Text>{t("common.retry")}</Text>
           </Button>
@@ -192,7 +208,7 @@ export function SellerProfileScreen() {
   }
 
   const categoryOptions = [
-    { id: null, name: t("common.all") || "All", nameEn: "", namePs: "", nameFa: "" },
+    { id: null, name: t("common.all"), nameEn: "", namePs: "", nameFa: "" },
     ...categories,
   ] as (Category & { id: null | number })[];
 
@@ -204,7 +220,8 @@ export function SellerProfileScreen() {
           flexDirection: isRtl ? "row-reverse" : "row",
           alignItems: "center",
           paddingHorizontal: 16,
-          paddingVertical: 12,
+          paddingTop: insets.top + 12,
+          paddingBottom: 12,
           backgroundColor: colors.card,
           borderBottomWidth: 1,
           borderBottomColor: colors.border,
@@ -240,7 +257,7 @@ export function SellerProfileScreen() {
         ListHeaderComponent={
           <View>
             {/* Seller Header Card */}
-            <View style={{ alignItems: "center", gap: 12, marginBottom: 24, marginTop: 20 }}>
+            <View style={{ alignItems: "center", gap: 8, marginBottom: 24, marginTop: 20 }}>
               <UserIdentity
                 name={profile.name}
                 avatarUrl={profile.avatarUrl}
@@ -250,6 +267,22 @@ export function SellerProfileScreen() {
                 nameSize={20}
                 layout="stacked"
               />
+              {/* Response time badge — only when threshold is met */}
+              {profile.responseTimeLabel != null && (
+                <View
+                  style={{
+                    flexDirection: isRtl ? "row-reverse" : "row",
+                    alignItems: "center",
+                    gap: 4,
+                    marginTop: 4,
+                  }}
+                >
+                  <Clock size={12} color={colors.mutedForeground} />
+                  <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                    {t(`profile.sellerProfile.responseTime.${profile.responseTimeLabel}`)}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Stats Row */}
@@ -261,28 +294,28 @@ export function SellerProfileScreen() {
               }}
             >
               <View style={{ flex: 1, alignItems: "center" }}>
-                <RNText style={{ fontSize: 18, fontWeight: "700", color: colors.primary, marginBottom: 4 }}>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: colors.primary, marginBottom: 4 }}>
                   {profile.soldCount}
-                </RNText>
-                <RNText style={{ fontSize: 12, color: colors.mutedForeground }}>
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
                   {t("profile.stats.sold")}
-                </RNText>
+                </Text>
               </View>
               <View style={{ flex: 1, alignItems: "center" }}>
-                <RNText style={{ fontSize: 18, fontWeight: "700", color: colors.primary, marginBottom: 4 }}>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: colors.primary, marginBottom: 4 }}>
                   {profile.listingsCount}
-                </RNText>
-                <RNText style={{ fontSize: 12, color: colors.mutedForeground }}>
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
                   {t("profile.stats.active")}
-                </RNText>
+                </Text>
               </View>
               <View style={{ flex: 1, alignItems: "center" }}>
-                <RNText style={{ fontSize: 11, color: colors.primary, marginBottom: 4, fontWeight: "700" }}>
+                <Text style={{ fontSize: 11, color: colors.primary, marginBottom: 4, fontWeight: "700" }}>
                   {profile.memberSince ? formatDate(new Date(profile.memberSince)) : "—"}
-                </RNText>
-                <RNText style={{ fontSize: 10, color: colors.mutedForeground }}>
-                  Joined
-                </RNText>
+                </Text>
+                <Text style={{ fontSize: 10, color: colors.mutedForeground }}>
+                  {t("profile.userProfile.joined")}
+                </Text>
               </View>
             </View>
 
@@ -298,9 +331,9 @@ export function SellerProfileScreen() {
                   marginBottom: 20,
                 }}
               >
-                <RNText style={{ fontSize: 13, color: colors.foreground, lineHeight: 20, textAlign: isRtl ? "right" : "left" }}>
+                <Text style={{ fontSize: 13, color: colors.foreground, lineHeight: 20, textAlign: isRtl ? "right" : "left" }}>
                   {profile.bio}
-                </RNText>
+                </Text>
               </View>
             )}
 
@@ -309,32 +342,34 @@ export function SellerProfileScreen() {
               style={{
                 flexDirection: isRtl ? "row-reverse" : "row",
                 alignItems: "center",
-                backgroundColor: colors.card,
+                backgroundColor: colors.muted,
                 borderRadius: 12,
-                borderWidth: 1,
-                borderColor: colors.border,
                 paddingHorizontal: 12,
                 marginBottom: 16,
-                height: 44,
+                minHeight: 44,
                 gap: 8,
               }}
             >
-              <Search size={18} color={colors.mutedForeground} />
-              <TextInput
-                placeholder={t("common.search") || "Search listings..."}
+              <Search size={16} color={colors.mutedForeground} />
+              <Input
+                placeholder={t("profile.userProfile.searchListings")}
                 placeholderTextColor={colors.mutedForeground}
                 value={searchText}
                 onChangeText={setSearchText}
                 style={{
                   flex: 1,
                   fontSize: 14,
-                  color: colors.foreground,
+                  borderWidth: 0,
+                  backgroundColor: "transparent",
+                  paddingHorizontal: 0,
+                  paddingVertical: 0,
+                  minHeight: 0,
                   textAlign: isRtl ? "right" : "left",
                 }}
               />
               {searchText ? (
                 <Pressable onPress={() => setSearchText("")} hitSlop={8}>
-                  <X size={18} color={colors.mutedForeground} />
+                  <X size={16} color={colors.mutedForeground} />
                 </Pressable>
               ) : null}
             </View>
@@ -363,16 +398,16 @@ export function SellerProfileScreen() {
                     borderColor: colors.border,
                   }}
                 >
-                  <RNText
+                  <Text
                     style={{
                       fontSize: 12,
                       fontWeight: "600",
-                      color: selectedCategoryId === category.id ? "white" : colors.foreground,
+                      color: selectedCategoryId === category.id ? colors.primaryForeground : colors.foreground,
                     }}
                     numberOfLines={1}
                   >
-                    {category.id === null ? t("common.all") || "All" : getCategoryName(category as Category)}
-                  </RNText>
+                    {category.id === null ? t("common.all") : getCategoryName(category as Category)}
+                  </Text>
                 </Pressable>
               ))}
             </View>
@@ -381,28 +416,45 @@ export function SellerProfileScreen() {
             {filteredListings.length > 0 && (
               <View style={{ marginBottom: 12 }}>
                 <Text style={{ fontSize: 14, fontWeight: "600", color: colors.mutedForeground }}>
-                  {filteredListings.length} {t("common.listings") || "listings"}
+                  {t("profile.userProfile.listingsCount", { count: filteredListings.length })}
                 </Text>
               </View>
             )}
           </View>
         }
-        renderItem={({ item }) => (
-          <View style={{ flex: 1 }}>
+        renderItem={({ item, index }) => (
+          <Animated.View entering={getEntering(index)} style={{ flex: 1 }}>
             <ListingCard
               listing={item}
+              index={index}
               onPress={() => router.push(`/(main)/listing/${item.id}`)}
             />
-          </View>
+          </Animated.View>
         )}
         keyExtractor={(item) => String(item.id)}
         ListEmptyComponent={
-          <View style={{ paddingTop: 40, alignItems: "center", width: "100%" }}>
-            <RNText style={{ color: colors.mutedForeground, fontSize: 14 }}>
-              {searchText ? t("common.noResults") || "No results found" : t("profile.sellerProfile.noListings") || "No listings"}
-            </RNText>
-          </View>
+          <EmptyState
+            icon={Store}
+            title={
+              searchText
+                ? t("common.noResults")
+                : t("profile.sellerProfile.noListings")
+            }
+            description={
+              searchText
+                ? undefined
+                : t("profile.userProfile.noListingsDescription")
+            }
+          />
         }
+      />
+
+      {/* Report Sheet — G1: full report flow for users */}
+      <ReportSheet
+        visible={reportVisible}
+        onClose={() => setReportVisible(false)}
+        reportableType="User"
+        reportableId={userId}
       />
 
       {/* Menu Modal - Slides up from bottom */}
@@ -412,7 +464,7 @@ export function SellerProfileScreen() {
         animationType="slide"
         onRequestClose={() => setMenuVisible(false)}
       >
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }} onTouchEnd={() => setMenuVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: colors.darkScrim }} onTouchEnd={() => setMenuVisible(false)}>
           {/* Menu Sheet */}
           <View
             style={{
@@ -458,9 +510,9 @@ export function SellerProfileScreen() {
                 }}
               >
                 <ShieldBan size={20} color={isBlocked ? colors.mutedForeground : colors.destructive} />
-                <RNText style={{ fontSize: 15, color: isBlocked ? colors.mutedForeground : colors.destructive, fontWeight: "600", flex: 1 }}>
+                <Text style={{ fontSize: 15, color: isBlocked ? colors.mutedForeground : colors.destructive, fontWeight: "600", flex: 1 }}>
                   {isBlocked ? t("chat.block.unblockUser") : t("chat.block.blockUser")}
-                </RNText>
+                </Text>
               </Pressable>
 
               {/* Report Option */}
@@ -479,9 +531,9 @@ export function SellerProfileScreen() {
                 }}
               >
                 <Flag size={20} color={colors.destructive} />
-                <RNText style={{ fontSize: 15, color: colors.destructive, fontWeight: "600", flex: 1 }}>
+                <Text style={{ fontSize: 15, color: colors.destructive, fontWeight: "600", flex: 1 }}>
                   {t("report.title") || "Report User"}
-                </RNText>
+                </Text>
               </Pressable>
 
               {/* Cancel Option */}
@@ -496,9 +548,9 @@ export function SellerProfileScreen() {
                   borderColor: colors.border,
                 }}
               >
-                <RNText style={{ fontSize: 15, color: colors.foreground, textAlign: "center", fontWeight: "600" }}>
+                <Text style={{ fontSize: 15, color: colors.foreground, textAlign: "center", fontWeight: "600" }}>
                   {t("common.cancel") || "Cancel"}
-                </RNText>
+                </Text>
               </Pressable>
             </View>
           </View>

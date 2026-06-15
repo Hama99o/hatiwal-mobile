@@ -1,4 +1,4 @@
-import { View, ScrollView, TouchableOpacity } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { ShoppingBag } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
@@ -13,6 +13,7 @@ import { applyThemeFromUser } from "@/stores/theme.store";
 import { applyLanguageFromUser, type LanguageCode } from "@/i18n";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
+import { registerPushToken } from "@/utils/push-token";
 
 export default function RegisterScreen() {
   const { t } = useTranslation();
@@ -64,6 +65,9 @@ export default function RegisterScreen() {
       hydrateFromUser(user.sellerMode);
       applyThemeFromUser(user.preferredTheme);
       await applyLanguageFromUser(user.preferredLanguage as LanguageCode);
+      // Fire-and-forget: register push token after registration. Any failure is
+      // swallowed inside registerPushToken — it must never block navigation.
+      registerPushToken().catch(() => undefined);
       router.replace((returnTo ?? "/(main)/(tabs)/browse") as never);
     } catch (err: any) {
       // devise_token_auth returns { errors: { full_messages: [...] } } on 422
@@ -87,11 +91,11 @@ export default function RegisterScreen() {
       contentContainerStyle={{ padding: 24, paddingTop: 48 }}
     >
       {/* Escape hatch — let guests leave the form and just browse. */}
-      <TouchableOpacity
+      <Pressable
         onPress={() => router.replace("/(main)/(tabs)/browse")}
         accessibilityRole="button"
         accessibilityLabel={t("auth.continueBrowsing")}
-        style={{
+        style={({ pressed }) => ({
           alignSelf: isRtl ? "flex-end" : "flex-start",
           flexDirection: isRtl ? "row-reverse" : "row",
           alignItems: "center",
@@ -101,13 +105,14 @@ export default function RegisterScreen() {
           borderRadius: 999,
           backgroundColor: colors.muted,
           marginBottom: 20,
-        }}
+          opacity: pressed ? 0.7 : 1,
+        })}
       >
         <ShoppingBag size={16} color={colors.primary} />
         <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary }}>
           {t("auth.continueBrowsing")}
         </Text>
-      </TouchableOpacity>
+      </Pressable>
 
       <Text style={{ fontSize: 28, fontWeight: "700", textAlign, marginBottom: 8, color: colors.foreground }}>
         {t("auth.createAccount")}

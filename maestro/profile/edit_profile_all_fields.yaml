@@ -1,0 +1,50 @@
+appId: com.hatiwal.app
+---
+# Edit profile: update first name, last name, bio, phone, province — all saved
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Edit Profile"
+- waitForAnimationToEnd
+- assertVisible: "Edit Profile"
+
+# Clear and update first name
+- tapOn: "First Name"
+- clearText
+- inputText: "UpdatedFirst"
+
+# Clear and update last name
+- tapOn: "Last Name"
+- clearText
+- inputText: "UpdatedLast"
+
+# Clear and update bio
+- tapOn: "Bio"
+- clearText
+- inputText: "I sell quality items in Kabul."
+
+# Clear and update phone
+- tapOn: "Phone"
+- clearText
+- inputText: "+93700000001"
+
+# Province picker
+- tapOn: "Province"
+- waitForAnimationToEnd
+- tapOn: "Kabul"
+- waitForAnimationToEnd
+
+# Save
+- tapOn: "Save"
+- waitForAnimationToEnd
+- assertVisible: "Profile updated"
+
+# Verify data persisted
+- tapOn: "Edit Profile"
+- waitForAnimationToEnd
+- assertVisible: "UpdatedFirst"
+- assertVisible: "UpdatedLast"
+- assertVisible: "I sell quality items in Kabul."
+- assertVisible: "+93700000001"
+- assertVisible: "Kabul"

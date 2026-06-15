@@ -15,6 +15,16 @@
   "logout": "Sign Out",
   "memberSince": "Member since {{date}}",
   "logoutConfirm": "Are you sure you want to sign out?",
+  "privacy": "Privacy",
+  "blockedUsers": "Blocked Users",
+  "blocked": {
+    "unblocked": "User unblocked",
+    "unblockTitle": "Unblock user?",
+    "unblockMessage": "{{name}} will be able to message you and contact you about your listings again.",
+    "unblockAction": "Unblock",
+    "emptyTitle": "No blocked users",
+    "emptyDescription": "People you block can't message you or contact you about your listings. You haven't blocked anyone yet."
+  },
   "bio": "Bio",
   "city": "City",
   "setLocation": "Set your location on map",
@@ -30,7 +40,32 @@
     "trustScore": "Seller Reputation",
     "viewListings": "View Listings",
     "noListings": "No active listings",
-    "loadFailed": "Could not load profile."
+    "loadFailed": "Could not load profile.",
+    "responseTime": {
+      "within_one_hour": "Usually responds within 1 hour",
+      "within_a_day": "Usually responds within a day",
+      "within_a_few_days": "Usually responds within a few days"
+    }
+  },
+  "userProfile": {
+    "title": "Seller Profile",
+    "activeListings": "Active Listings",
+    "soldItems": "Items Sold",
+    "joined": "Joined",
+    "noListings": "No active listings",
+    "noListingsDescription": "This seller has no active listings at the moment.",
+    "loadFailed": "Could not load profile. Please try again.",
+    "reportUser": "Report User",
+    "blockUser": "Block User",
+    "unblockUser": "Unblock User",
+    "blockConfirmTitle": "Block this user?",
+    "blockConfirmMessage": "Blocked users cannot contact you and their listings will be hidden.",
+    "blockSuccess": "User blocked",
+    "blockFailed": "Could not block user",
+    "unblockSuccess": "User unblocked",
+    "unblockFailed": "Could not unblock user",
+    "searchListings": "Search listings...",
+    "listingsCount": "{{count}} listings"
   },
   "sellerDashboard": "Seller Dashboard",
   "buyerProfile": "Buyer Profile",
@@ -52,6 +87,42 @@
   "viewAll": "View All",
   "itemsBought": "Items Bought",
   "itemsSaved": "Saved Items",
-  "purchaseActivity": "Purchase Activity"
+  "purchaseActivity": "Purchase Activity",
+  "edit": {
+    "title": "Edit Profile",
+    "saved": "Profile saved",
+    "saveError": "Failed to save profile",
+    "sections": {
+      "identity": "Identity",
+      "contact": "Contact",
+      "location": "Location",
+      "language": "Preferred Language"
+    },
+    "fields": {
+      "firstname": "First Name",
+      "lastname": "Last Name",
+      "phone": "Phone Number",
+      "bio": "Bio",
+      "bioPlaceholder": "Tell buyers a little about yourself…",
+      "city": "City",
+      "province": "Province",
+      "setLocation": "Set your location on map",
+      "locationSet": "Location set"
+    },
+    "validation": {
+      "firstnameRequired": "First name is required",
+      "lastnameRequired": "Last name is required",
+      "phoneTooLong": "Phone number is too long",
+      "bioTooLong": "Bio must be 500 characters or less"
+    },
+    "language": {
+      "en": "English",
+      "ps": "Pashto (پښتو)",
+      "fa": "Dari (دری)"
+    },
+    "saveButton": "Save Changes",
+    "saving": "Saving…",
+    "province": "Province"
+  }
 }
 

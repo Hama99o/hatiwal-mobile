@@ -1,0 +1,26 @@
+appId: com.hatiwal.app
+---
+# Conversations list — filter by All / Unread / Read tabs
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Messages"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+# Default shows All
+- assertVisible: "All"
+# Switch to Unread
+- tapOn: "Unread"
+- waitForAnimationToEnd
+# Either shows unread conversations or empty "All caught up!" state
+- assertVisible:
+    anyOf:
+      - "All caught up!"
+      - "No unread messages right now."
+      - "Messages"
+# Switch to Read
+- tapOn: "Read"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+# Back to All
+- tapOn: "All"
+- waitForAnimationToEnd

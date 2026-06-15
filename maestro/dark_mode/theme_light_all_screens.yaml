@@ -1,0 +1,51 @@
+appId: com.hatiwal.app
+---
+# Light mode: set explicit Light → verify on every tab, no dark backgrounds visible
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Appearance"
+- waitForAnimationToEnd
+- tapOn: "Light"
+- waitForAnimationToEnd
+
+# Browse — light mode
+- tapOn: "Browse"
+- waitForAnimationToEnd
+# Light background, cards visible
+- assertVisible: "Browse"
+
+# Saved
+- tapOn: "Saved"
+- waitForAnimationToEnd
+- assertVisible: "Saved"
+
+# Chat
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- assertVisible: "Chats"
+
+# Profile
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+
+# Listing detail
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+
+# Reset
+- back
+- waitForAnimationToEnd
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Appearance"
+- waitForAnimationToEnd
+- tapOn: "System"
+- waitForAnimationToEnd

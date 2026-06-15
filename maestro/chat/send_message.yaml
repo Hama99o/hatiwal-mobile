@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# Send a message in an existing conversation
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Messages"
+- waitForAnimationToEnd
+# Open first conversation
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Thread is open
+- assertVisible: "Type a message..."
+- tapOn: "Type a message..."
+- inputText: "Is the price negotiable?"
+- tapOn: "Send"
+- waitForAnimationToEnd
+# Message appears in thread
+- assertVisible: "Is the price negotiable?"

@@ -1,0 +1,20 @@
+appId: com.hatiwal.app
+---
+# Reusable seller login — logs in and switches to Seller Mode
+# Include with: - runFlow: ../_helpers/login_seller.yaml
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Email"
+- inputText: ${EMAIL:-"seller@hatiwal.test"}
+- tapOn: "Password"
+- inputText: ${PASSWORD:-"Password123!"}
+- tapOn: "Sign In"
+- assertVisible: "Browse"
+# Switch to seller mode via Profile tab
+- tapOn: "Profile"
+- assertVisible: "Switch to Seller Mode"
+- tapOn: "Switch to Seller Mode"
+- assertVisible: "Switch to Buyer Mode"
+- tapOn: "Browse"

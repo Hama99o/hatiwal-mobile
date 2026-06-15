@@ -1,0 +1,31 @@
+appId: com.hatiwal.app
+---
+# Dark mode: Saved tab renders correctly — cards visible, no text-on-dark issues
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Appearance"
+- waitForAnimationToEnd
+- tapOn: "Dark"
+- waitForAnimationToEnd
+
+# First save a listing so Saved tab is non-empty
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    id: "save-button-0"
+- waitForAnimationToEnd
+
+- tapOn: "Saved"
+- waitForAnimationToEnd
+# Cards render — listing visible in dark mode
+- assertNotVisible: "No saved listings"
+
+# Reset
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Appearance"
+- waitForAnimationToEnd
+- tapOn: "System"
+- waitForAnimationToEnd

@@ -1,0 +1,29 @@
+appId: com.hatiwal.app
+---
+# Guest taps save heart → redirected to login → logs in → listing is saved
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Continue browsing"
+- waitForAnimationToEnd
+- assertVisible: "Browse"
+# Tap a listing to open detail
+- tapOn:
+    index: 0
+    text: "Browse"
+- waitForAnimationToEnd
+# Tap the save heart as a guest — should redirect to login
+- tapOn:
+    id: "save-button"
+- waitForAnimationToEnd
+- assertVisible: "Sign In"
+# Complete login
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+# Back on listing — listing is now saved
+- assertVisible: "Saved"

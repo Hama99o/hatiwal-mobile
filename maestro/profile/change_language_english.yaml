@@ -1,0 +1,21 @@
+appId: com.hatiwal.app
+---
+# Switch back to English from an RTL language — LTR layout restored
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+# First switch to Pashto
+- scrollUntilVisible:
+    text: "LANGUAGE"
+- tapOn: "Pashto (پښتو)"
+- waitForAnimationToEnd
+# Now switch back to English — text may be in Pashto but English option exists
+- scrollUntilVisible:
+    text: "English"
+    optional: true
+- tapOn: "English"
+- waitForAnimationToEnd
+# Layout is LTR again
+- assertVisible: "Sign Out"
+- assertVisible: "Browse"

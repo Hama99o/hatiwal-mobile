@@ -66,7 +66,7 @@ export function ProvincePickerSheet({
       transparent
       onRequestClose={handleClose}
     >
-      <Pressable style={styles.backdrop} onPress={handleClose} />
+      <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={handleClose} />
       <View style={[styles.sheet, { backgroundColor: colors.card }]}>
         {/* Header */}
         <View
@@ -166,7 +166,7 @@ export function ProvincePickerSheet({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    // backgroundColor is applied inline via colors.darkScrim (useColors token)
   },
   sheet: {
     borderTopLeftRadius: 20,

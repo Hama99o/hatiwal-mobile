@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# Guest taps "Make an Offer" → redirected to login → completes offer after login
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Continue browsing"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+    text: "Browse"
+- waitForAnimationToEnd
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+# Redirected to login
+- assertVisible: "Sign In"
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+# Offer sheet should reopen after login
+- assertVisible: "Make an Offer"
+- tapOn: "Your offer price"
+- inputText: "1500"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+- assertVisible: "1,500"

@@ -1,0 +1,14 @@
+appId: com.hatiwal.app
+---
+# Conversations empty state — fresh account has no messages
+
+- runFlow: ../_helpers/login.yaml
+# Use newbuyer account which has no conversations
+- tapOn: "Messages"
+- waitForAnimationToEnd
+- assertVisible: "No conversations"
+- assertVisible: "Browse Listings"
+# Tap Browse Listings button in empty state
+- tapOn: "Browse Listings"
+- waitForAnimationToEnd
+- assertVisible: "Browse"

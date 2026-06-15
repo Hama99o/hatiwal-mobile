@@ -1,0 +1,48 @@
+appId: com.hatiwal.app
+---
+# Language switch: EN → PS (Pashto) — key strings appear in Pashto on Browse + Profile
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+
+# Open language settings
+- tapOn: "Language"
+- waitForAnimationToEnd
+- assertVisible: "English"
+- assertVisible: "پښتو"
+- assertVisible: "دری"
+
+# Switch to Pashto
+- tapOn: "پښتو"
+- waitForAnimationToEnd
+
+# Profile tab label in Pashto
+- assertVisible: "پروفایل"
+
+# Browse tab in Pashto
+- tapOn: "پروفایل"
+- waitForAnimationToEnd
+# Browse tab label Pashto
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+
+# Back to profile, switch to Dari
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- tapOn: "ژبه"
+- waitForAnimationToEnd
+- tapOn: "دری"
+- waitForAnimationToEnd
+- assertVisible: "پروفایل"
+
+# Switch back to English
+- tapOn: "پروفایل"
+- waitForAnimationToEnd
+- tapOn: "زبان"
+- waitForAnimationToEnd
+- tapOn: "English"
+- waitForAnimationToEnd
+- assertVisible: "Profile"

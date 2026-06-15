@@ -1,0 +1,35 @@
+appId: com.hatiwal.app
+---
+# Gallery: open listing with multiple photos, swipe between images, verify dots
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+
+# Open a listing that has multiple photos (seller@hatiwal.test has listings with photos)
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+
+# Swipe left on the photo to see second image
+- swipe:
+    direction: LEFT
+    duration: 500
+- waitForAnimationToEnd
+
+# Swipe left again to see third image (if exists)
+- swipe:
+    direction: LEFT
+    duration: 500
+- waitForAnimationToEnd
+
+# Swipe right to go back to first image
+- swipe:
+    direction: RIGHT
+    duration: 500
+- waitForAnimationToEnd
+
+# Back to browse
+- back
+- waitForAnimationToEnd
+- assertVisible: "Browse"

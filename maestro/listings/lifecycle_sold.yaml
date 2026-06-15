@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# Lifecycle: reserved → sold
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Find a reserved listing
+- tapOn: "Reserved"
+- waitForAnimationToEnd
+- tapOn: "Mark as Sold"
+- waitForAnimationToEnd
+# Confirm dialog
+- assertVisible: "Mark as sold?"
+- tapOn: "Confirm"
+- waitForAnimationToEnd
+# Status changed
+- assertVisible: "Listing marked as sold"
+- assertVisible: "Sold"

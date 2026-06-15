@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# Edit listing: tap second photo to reorder it as Cover
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+- assertVisible: "Photos"
+
+# Tap second photo thumbnail to make it Cover
+- tapOn:
+    index: 1
+- waitForAnimationToEnd
+# Cover label moves to tapped photo
+- assertVisible: "Cover"
+
+# Save
+- tapOn: "Save Changes"
+- waitForAnimationToEnd
+- assertVisible: "Changes saved"

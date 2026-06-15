@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# Block user: their listings disappear from browse feed
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+
+# Open a listing from seller@hatiwal.test
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Seller Name"
+- waitForAnimationToEnd
+- assertVisible: "Seller Profile"
+
+# Block user
+- tapOn:
+    id: "more-menu"
+- waitForAnimationToEnd
+- tapOn: "Block User"
+- waitForAnimationToEnd
+- assertVisible: "Are you sure you want to block"
+- tapOn: "Block"
+- waitForAnimationToEnd
+- assertVisible: "User blocked"
+
+# Back to browse — blocked user's listings gone
+- tapOn: "Browse"
+- waitForAnimationToEnd
+# Confirm by checking listing count changed (or just that browse loaded)
+- assertVisible: "Browse"

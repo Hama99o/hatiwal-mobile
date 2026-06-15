@@ -1,0 +1,12 @@
+appId: com.hatiwal.app
+---
+# Unsave from Saved tab — listing removed, empty state shown if last one
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Saved"
+- waitForAnimationToEnd
+# If saved listings exist, unsave one
+- tapOn: "Remove from saved"
+- waitForAnimationToEnd
+# Listing removed from list
+- assertVisible: "Saved"

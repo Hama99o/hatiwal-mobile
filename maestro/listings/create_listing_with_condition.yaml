@@ -1,0 +1,41 @@
+appId: com.hatiwal.app
+---
+# Create a listing with a condition set → publish → verify ConditionBadge on detail
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+# Fill required fields
+- tapOn: "Title"
+- inputText: "Condition Test Laptop"
+- tapOn: "Price"
+- inputText: "8000"
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+# Select condition: Like New
+- tapOn: "Like New"
+- waitForAnimationToEnd
+# Verify chip is selected (should be highlighted)
+- assertVisible: "Like New"
+# Publish directly
+- tapOn: "Publish"
+- waitForAnimationToEnd
+- assertVisible: "Listing posted"
+# Now switch to buyer and find the listing
+- launchApp:
+    clearState: false
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn: "Search listings..."
+- inputText: "Condition Test Laptop"
+- waitForAnimationToEnd
+- tapOn: "Condition Test Laptop"
+- waitForAnimationToEnd
+# ConditionBadge must show "Like New" on the detail screen
+- assertVisible: "Like New"

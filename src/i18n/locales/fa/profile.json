@@ -15,6 +15,16 @@
   "logout": "خروج",
   "memberSince": "عضو از: {{date}}",
   "logoutConfirm": "آیا مطمئن هستید که می‌خواهید خارج شوید؟",
+  "privacy": "حریم خصوصی",
+  "blockedUsers": "کاربران مسدود‌شده",
+  "blocked": {
+    "unblocked": "کاربر رفع مسدودیت شد",
+    "unblockTitle": "رفع مسدودیت کاربر؟",
+    "unblockMessage": "{{name}} دوباره می‌تواند به شما پیام دهد و درباره آگهی‌های شما تماس بگیرد.",
+    "unblockAction": "رفع مسدودیت",
+    "emptyTitle": "هیچ کاربر مسدودی نیست",
+    "emptyDescription": "افرادی که مسدود می‌کنید نمی‌توانند به شما پیام دهند یا درباره آگهی‌هایتان تماس بگیرند. هنوز کسی را مسدود نکرده‌اید."
+  },
   "bio": "بیوگرافی",
   "city": "شهر",
   "setLocation": "موقعیت خود را روی نقشه تعیین کنید",
@@ -30,7 +40,32 @@
     "trustScore": "اعتبار فروشنده",
     "viewListings": "مشاهده آگهی‌ها",
     "noListings": "آگهی فعالی وجود ندارد",
-    "loadFailed": "بارگذاری پروفایل ناموفق بود."
+    "loadFailed": "بارگذاری پروفایل ناموفق بود.",
+    "responseTime": {
+      "within_one_hour": "معمولاً در عرض ۱ ساعت پاسخ می‌دهد",
+      "within_a_day": "معمولاً در عرض یک روز پاسخ می‌دهد",
+      "within_a_few_days": "معمولاً در عرض چند روز پاسخ می‌دهد"
+    }
+  },
+  "userProfile": {
+    "title": "پروفایل فروشنده",
+    "activeListings": "آگهی‌های فعال",
+    "soldItems": "اشیای فروخته شده",
+    "joined": "عضویت",
+    "noListings": "آگهی فعالی وجود ندارد",
+    "noListingsDescription": "این فروشنده در حال حاضر آگهی فعالی ندارد.",
+    "loadFailed": "بارگذاری پروفایل ناموفق بود. لطفاً دوباره تلاش کنید.",
+    "reportUser": "گزارش کاربر",
+    "blockUser": "مسدود کردن",
+    "unblockUser": "رفع مسدودی",
+    "blockConfirmTitle": "این کاربر را مسدود کنید؟",
+    "blockConfirmMessage": "کاربران مسدود شده نمی‌توانند با شما تماس بگیرند و آگهی‌هایشان پنهان می‌شود.",
+    "blockSuccess": "کاربر مسدود شد",
+    "blockFailed": "مسدود کردن کاربر ناموفق بود",
+    "unblockSuccess": "مسدودیت کاربر برداشته شد",
+    "unblockFailed": "رفع مسدودیت کاربر ناموفق بود",
+    "searchListings": "جستجوی آگهی‌ها...",
+    "listingsCount": "{{count}} آگهی"
   },
   "sellerDashboard": "داشبورد فروشنده",
   "buyerProfile": "پروفایل خریدار",
@@ -52,5 +87,41 @@
   "viewAll": "مشاهده همه",
   "itemsBought": "اشیای خریداری شده",
   "itemsSaved": "اشیای ذخیره شده",
-  "purchaseActivity": "فعالیت خرید"
+  "purchaseActivity": "فعالیت خرید",
+  "edit": {
+    "title": "ویرایش پروفایل",
+    "saved": "پروفایل ذخیره شد",
+    "saveError": "ذخیره پروفایل ناموفق بود",
+    "sections": {
+      "identity": "هویت",
+      "contact": "تماس",
+      "location": "موقعیت",
+      "language": "زبان ترجیحی"
+    },
+    "fields": {
+      "firstname": "نام",
+      "lastname": "نام خانوادگی",
+      "phone": "شماره تلفن",
+      "bio": "بیوگرافی",
+      "bioPlaceholder": "کمی درباره خودتان برای خریداران بنویسید…",
+      "city": "شهر",
+      "province": "استان",
+      "setLocation": "موقعیت خود را روی نقشه تعیین کنید",
+      "locationSet": "موقعیت تعیین شد"
+    },
+    "validation": {
+      "firstnameRequired": "نام الزامی است",
+      "lastnameRequired": "نام خانوادگی الزامی است",
+      "phoneTooLong": "شماره تلفن خیلی طولانی است",
+      "bioTooLong": "بیوگرافی باید ۵۰۰ کاراکتر یا کمتر باشد"
+    },
+    "language": {
+      "en": "انگلیسی",
+      "ps": "پشتو (پښتو)",
+      "fa": "دری"
+    },
+    "saveButton": "ذخیره تغییرات",
+    "saving": "در حال ذخیره…",
+    "province": "استان"
+  }
 }

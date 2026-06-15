@@ -1,0 +1,24 @@
+appId: com.hatiwal.app
+---
+# Delete a conversation — confirm dialog, then removed from list
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Messages"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+# Long-press or swipe on a conversation to reveal delete, OR tap into it
+# and use the header menu — depends on implementation
+# Try tapping the conversation to open it
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Look for delete option in conversation thread header
+- tapOn: "Delete Conversation"
+- waitForAnimationToEnd
+# Confirm dialog appears
+- assertVisible: "Delete Conversation"
+- assertVisible: "This will permanently remove the conversation"
+- tapOn: "Delete Conversation"
+- waitForAnimationToEnd
+# Back to conversations list — conversation is gone
+- assertVisible: "Messages"

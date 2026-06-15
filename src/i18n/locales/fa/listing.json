@@ -88,6 +88,10 @@
   "postListing": "ثبت آگهی",
   "noPhoto": "عکس ندارد",
   "seen": "دیده‌شده",
+  "priceDrop": {
+    "badge": "{{percent}}٪ کاهش قیمت",
+    "badgeCardShort": "-{{percent}}٪"
+  },
   "detail": {
     "contactSeller": "تماس با فروشنده",
     "makeOffer": "پیشنهاد قیمت",
@@ -110,7 +114,30 @@
     "moreOptions": "گزینه‌های بیشتر",
     "soldNotice": "این کالا فروخته شده است",
     "reservedNotice": "این کالا رزرو شده است",
-    "unavailableNotice": "این کالا دیگر موجود نیست"
+    "unavailableNotice": "این کالا دیگر موجود نیست",
+    "location": "موقعیت",
+    "getDirections": "دریافت مسیر",
+    "showMyLocation": "موقعیت من",
+    "messageSeller": "پیام به فروشنده",
+    "yourMessage": "پیام شما",
+    "messageNote": "پرداخت لازم نیست — ترتیب ملاقات را در چت انجام می‌دهید.",
+    "sendMessage": "ارسال پیام",
+    "ownListingNotice": "این آگهی شما است",
+    "showPhone": "نمایش شماره تلفن",
+    "callSeller": "تماس با فروشنده",
+    "mapTapToInteract": "مشاهده نقشه کامل",
+    "mapDone": "بستن نقشه"
+  },
+  "ownerDetail": {
+    "notFound": "آگهی یافت نشد",
+    "views": "بازدیدها",
+    "conversations": "گفتگوها",
+    "actions": "مدیریت آگهی",
+    "viewConversations": "مشاهده گفتگوها",
+    "conversationsCount": "{{count}} گفتگو",
+    "posted": "ارسال شده {{date}}",
+    "dailyViews": "بازدیدها — ۷ روز گذشته",
+    "noViewsYet": "در ۷ روز گذشته هیچ بازدیدی نداشته‌اید"
   },
   "form": {
     "photos": "عکس‌ها",
@@ -121,6 +148,7 @@
     "camera": "دوربین",
     "permissionRequired": "مجوز لازم است",
     "galleryPermission": "لطفاً در تنظیمات به کتابخانه عکس خود دسترسی دهید.",
+    "galleryLimitedPermission": "شما دسترسی محدود به عکس‌ها داده‌اید. فقط عکس‌های انتخاب‌شده در دسترس هستند. برای انتخاب بیشتر، به تنظیمات رفته و دسترسی کامل بدهید.",
     "cameraPermission": "لطفاً در تنظیمات به دوربین دسترسی دهید.",
     "selectCategory": "انتخاب دسته‌بندی",
     "searchCategories": "جستجوی دسته‌بندی‌ها...",
@@ -154,6 +182,7 @@
     "discard": "انصراف",
     "discardTitle": "تغییرات نادیده گرفته شود؟",
     "discardMessage": "تغییرات ذخیره‌نشده شما از دست خواهد رفت.",
-    "discardConfirm": "انصراف"
-    }
+    "discardConfirm": "انصراف",
+    "locationRequired": "موقعیت الزامی است — خریداران بر اساس منطقه فیلتر می‌کنند"
+  }
 }

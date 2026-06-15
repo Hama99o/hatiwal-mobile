@@ -1,4 +1,5 @@
 {
+  "appName": "Hatiwal",
   "save": "خوندي کول",
   "cancel": "لغوه",
   "delete": "ړنګول",
@@ -7,6 +8,8 @@
   "back": "شاته",
   "loading": "بار کیږي...",
   "error": "تیروتنه",
+  "errorTitle": "یو شی غلط لاړ",
+  "errorDescription": "موږ معلومات پورته کولی نه شو. خپل انټرنیټ وګورئ او بیا هڅه وکړئ.",
   "success": "بریالیتوب",
   "confirmDelete": "د ړنګولو تایید",
   "confirmDeleteDescription": "دا کار بیرته نه شي اخیستل کیدای.",
@@ -41,7 +44,8 @@
   "retry": "بیا هڅه",
   "notFound": "ونه موندل شو",
   "required": "اړین دی",
+  "comingSoon": "ژر راځي",
   "splash": {
-    "validating": "بار کیږي…"
+    "validating": "ستاسو ناستې ازمایل کیږي…"
   }
 }

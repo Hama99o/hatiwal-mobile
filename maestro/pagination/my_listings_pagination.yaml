@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# My Listings: scroll to bottom loads next page, pull-to-refresh reloads
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- assertVisible: "My Listings"
+
+# Scroll through the list
+- scroll
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+
+# Pull-to-refresh
+- swipe:
+    direction: DOWN
+    duration: 800
+- waitForAnimationToEnd
+- assertVisible: "My Listings"

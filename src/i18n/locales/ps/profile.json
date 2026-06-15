@@ -15,6 +15,16 @@
   "logout": "وتل",
   "memberSince": "غړیتوب: {{date}}",
   "logoutConfirm": "ایا ډاډه یاست چې وتل غواړئ؟",
+  "privacy": "محرمیت",
+  "blockedUsers": "بلاک شوي کاروونکي",
+  "blocked": {
+    "unblocked": "کاروونکی خلاص شو",
+    "unblockTitle": "کاروونکی خلاص کړئ؟",
+    "unblockMessage": "{{name}} به بیا وکولی شي تاسو ته پیغام درکړي او ستاسو د لیست په اړه اړیکه ونیسي.",
+    "unblockAction": "خلاصول",
+    "emptyTitle": "هیڅ بلاک شوی کاروونکی نشته",
+    "emptyDescription": "هغه کسان چې تاسو یې بلاک کوئ نشي کولی تاسو ته پیغام درکړي یا ستاسو د لیستونو په اړه اړیکه ونیسي. تاسو تر اوسه څوک نه دي بلاک کړي."
+  },
   "bio": "پیژندنه",
   "city": "ښار",
   "setLocation": "خپل ځای په نقشه کې وټاکئ",
@@ -30,7 +40,32 @@
     "trustScore": "د پلورونکي اعتبار",
     "viewListings": "اعلانونه وګورئ",
     "noListings": "هیڅ فعال اعلان نشته",
-    "loadFailed": "پروفایل ونه موندل شو."
+    "loadFailed": "پروفایل ونه موندل شو.",
+    "responseTime": {
+      "within_one_hour": "معمولاً د یوې ساعت دننه ځواب ورکوي",
+      "within_a_day": "معمولاً د یوه ورځ دننه ځواب ورکوي",
+      "within_a_few_days": "معمولاً د څو ورځو دننه ځواب ورکوي"
+    }
+  },
+  "userProfile": {
+    "title": "د پلورونکي پروفایل",
+    "activeListings": "فعال اعلانونه",
+    "soldItems": "پلورل شوي توکي",
+    "joined": "غړیتوب",
+    "noListings": "هیڅ فعال اعلان نشته",
+    "noListingsDescription": "دا پلورونکی اوس مهال هیڅ فعال اعلان نلري.",
+    "loadFailed": "پروفایل ونه موندل شو. بیا هڅه وکړئ.",
+    "reportUser": "راپور ورکول",
+    "blockUser": "بند کول",
+    "unblockUser": "خلاصول",
+    "blockConfirmTitle": "دا کاروونکی بند کړئ؟",
+    "blockConfirmMessage": "بند شوي کاروونکي نشي کولای تاسو سره اړیکه ونیسي او د دوی اعلانونه پټ وي.",
+    "blockSuccess": "کاروونکی بند شو",
+    "blockFailed": "کاروونکی بندولو کې ستونزه وه",
+    "unblockSuccess": "کاروونکی خلاص شو",
+    "unblockFailed": "کاروونکی خلاصولو کې ستونزه وه",
+    "searchListings": "اعلانونه لټول...",
+    "listingsCount": "{{count}} اعلانونه"
   },
   "sellerDashboard": "د پلورونکي ډیش بورډ",
   "buyerProfile": "د اخیستونکي پروفایل",
@@ -52,5 +87,41 @@
   "viewAll": "ټول وګورئ",
   "itemsBought": "اخیستل شوي شیان",
   "itemsSaved": "خوندي شیان",
-  "purchaseActivity": "د اخیستنې فعالیت"
+  "purchaseActivity": "د اخیستنې فعالیت",
+  "edit": {
+    "title": "پروفایل سمول",
+    "saved": "پروفایل خوندي شو",
+    "saveError": "پروفایل خوندي کولو کې ستونزه وه",
+    "sections": {
+      "identity": "هویت",
+      "contact": "اړیکه",
+      "location": "ځای",
+      "language": "غوره ژبه"
+    },
+    "fields": {
+      "firstname": "نوم",
+      "lastname": "تخلص",
+      "phone": "د تیلفون شمیره",
+      "bio": "پیژندنه",
+      "bioPlaceholder": "د اخیستونکو سره لږ د ځان پیژندنه وکړئ…",
+      "city": "ښار",
+      "province": "ولایت",
+      "setLocation": "خپل ځای په نقشه کې وټاکئ",
+      "locationSet": "ځای وټاکل شو"
+    },
+    "validation": {
+      "firstnameRequired": "نوم اړین دی",
+      "lastnameRequired": "تخلص اړین دی",
+      "phoneTooLong": "د تیلفون شمیره ډیره اوږده ده",
+      "bioTooLong": "پیژندنه باید ۵۰۰ توري یا لږ وي"
+    },
+    "language": {
+      "en": "انګلیسي",
+      "ps": "پښتو",
+      "fa": "دري"
+    },
+    "saveButton": "بدلونونه خوندي کړئ",
+    "saving": "خوندي کیږي…",
+    "province": "ولایت"
+  }
 }

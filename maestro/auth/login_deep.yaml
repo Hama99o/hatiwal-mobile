@@ -1,0 +1,48 @@
+appId: com.hatiwal.app
+---
+# Deep login: verify session data on profile, logout, re-login, same data shown
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- assertVisible: "Browse"
+
+# Verify profile data populated
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+# User name shown (Ahmad Karimi from seed data)
+- assertVisible: "Ahmad"
+
+# Logout
+- tapOn: "Sign Out"
+- waitForAnimationToEnd
+- assertVisible: "Are you sure you want to sign out?"
+- tapOn: "Sign Out"
+- waitForAnimationToEnd
+- assertVisible: "Welcome to Hatiwal"
+
+# Re-login
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- assertVisible: "Browse"
+
+# Profile data still there on second login
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- assertVisible: "Ahmad"

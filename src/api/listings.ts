@@ -1,75 +1,39 @@
-import { Platform } from "react-native";
-import { http, BASE_URL } from "./http";
+import { http } from "./http";
 import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
-import { secureStorage } from "@/utils/secure-storage";
 
-// Appends a local image URI to a FormData object.
-// On web, the React Native `{ uri, name, type }` format serializes as "[object Object]".
-// We fetch the blob directly instead. On native the RN FormData format works.
-async function appendImageUri(form: FormData, uri: string, field: string): Promise<void> {
+// Analytics types
+export interface ListingAnalyticsEntry {
+  date: string;   // ISO date string, e.g. "2026-06-17"
+  count: number;  // distinct viewer count for that day
+}
+
+export interface ListingAnalyticsResponse {
+  entries: ListingAnalyticsEntry[]; // 7 entries, oldest → newest
+}
+
+function appendImageUri(form: FormData, uri: string, field: string): void {
   const filename = uri.split("/").pop()?.split("?")[0] ?? "photo.jpg";
   const ext = (/\.(\w+)$/.exec(filename) ?? [])[1] ?? "jpg";
   const type = `image/${ext === "jpg" ? "jpeg" : ext}`;
-
-  if (Platform.OS === "web") {
-    const res = await fetch(uri);
-    const blob = await res.blob();
-    form.append(field, blob, filename);
-  } else {
-    form.append(field, { uri, name: filename, type } as unknown as Blob);
-  }
+  form.append(field, { uri, name: filename, type } as unknown as Blob);
 }
 
-// Multipart fetch helper — bypasses axios because axios's transformRequest
-// JSON-serialises FormData on web, stripping blobs. It also overwrites the
-// Content-Type header without the correct multipart boundary on native.
-// Native fetch passes FormData through correctly and sets the boundary itself.
-async function multipartFetch(
-  method: "POST" | "PUT" | "PATCH",
+async function submitListingMultipart(
+  method: "POST" | "PUT",
   path: string,
   form: FormData
-): Promise<Response> {
-  const accessToken = await secureStorage.getItem("access-token");
-  const client      = await secureStorage.getItem("client");
-  const uid         = await secureStorage.getItem("uid");
-
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    body: form,
-    headers: {
-      // Do NOT set Content-Type here — fetch auto-sets multipart/form-data
-      // with the correct boundary when FormData is the body.
-      "access-token": accessToken ?? "",
-      client:         client ?? "",
-      uid:            uid ?? "",
-      "token-type":   "Bearer",
-    },
-  });
-
-  // Rotate DeviseTokenAuth tokens from response headers
-  const newToken  = res.headers.get("access-token");
-  const newClient = res.headers.get("client");
-  const newUid    = res.headers.get("uid");
-  if (newToken)  await secureStorage.setItem("access-token", newToken);
-  if (newClient) await secureStorage.setItem("client", newClient);
-  if (newUid)    await secureStorage.setItem("uid", newUid);
-
-  if (!res.ok) {
-    let body: unknown;
-    try { body = await res.json(); } catch { body = null; }
-    console.error("[listings] multipartFetch error", { status: res.status, path, body });
-    const err = Object.assign(new Error(`API ${res.status} on ${path}`), {
-      response: { status: res.status, data: body },
-    });
-    throw err;
-  }
-
-  return res;
+): Promise<{ listing: Record<string, unknown> }> {
+  const res =
+    method === "POST"
+      ? await http.post(path, form, { headers: { "Content-Type": "multipart/form-data" } })
+      : await http.put(path, form, { headers: { "Content-Type": "multipart/form-data" } });
+  return res.data;
 }
 
 // Item condition — mirrors the backend `Listing#condition` enum (prefix :condition).
 export type ListingCondition = "brand_new" | "like_new" | "good" | "fair";
 export const LISTING_CONDITIONS: ListingCondition[] = ["brand_new", "like_new", "good", "fair"];
+
 
 export interface Listing {
   id: number;
@@ -87,12 +51,18 @@ export interface Listing {
   thumbnailUrl: string | null;
   imageUrls?: string[];
   images?: string[];
+  // {id: blob signed_id, url} — detailed view only; lets the edit form remove
+  // specific photos via removed_image_ids without wiping the gallery.
+  imageAttachments?: { id: string; url: string }[];
   viewsCount: number;
   conversationsCount?: number;
   isSaved?: boolean;
   isViewed?: boolean;
   expiresAt?: string | null;
   expired?: boolean;
+  // Price-drop badge — only present on :detailed view; both null if no recent drop.
+  priceDroppedAt?: string | null;
+  priceDropPercent?: number | null;
   createdAt: string;
   updatedAt: string;
   seller: {
@@ -102,6 +72,10 @@ export interface Listing {
     phone?: string | null;
     verified?: boolean;
     avatarUrl?: string | null;
+    /** Percentage of conversations replied within 24h. null = threshold not met. */
+    responseRatePercent?: number | null;
+    /** One of: "within_one_hour" | "within_a_day" | "within_a_few_days" — or null. */
+    responseTimeLabel?: "within_one_hour" | "within_a_day" | "within_a_few_days" | null;
   };
   category: {
     id: number;
@@ -123,6 +97,8 @@ export interface ListingsResponse {
   };
 }
 
+export type ListingSort = "newest" | "oldest" | "price_asc" | "price_desc";
+
 export interface ListingParams {
   pageNumber?: number;
   pageSize?: number;
@@ -137,6 +113,7 @@ export interface ListingParams {
   latitude?: number;
   longitude?: number;
   radius?: number;
+  sort?: ListingSort;
 }
 
 export const listingsAPI = {
@@ -158,6 +135,7 @@ export const listingsAPI = {
     } else if (params?.location) {
       query.append("location", params.location);
     }
+    if (params?.sort && params.sort !== "newest") query.append("sort", params.sort);
 
     const response = await http.get(`/listings?${query}`);
     return {
@@ -196,6 +174,8 @@ export const listingsAPI = {
     if (params?.pageNumber) query.append("page[number]", String(params.pageNumber));
     if (params?.pageSize)   query.append("page[size]",   String(params.pageSize));
     if (params?.status)     query.append("status",        params.status);
+    if (params?.search)     query.append("search",        params.search);
+    if (params?.categoryId) query.append("category_id",   String(params.categoryId));
 
     const response = await http.get(`/my/listings?${query}`);
     return {
@@ -244,11 +224,7 @@ export const listingsAPI = {
 
     await Promise.all(imageUris.map((uri) => appendImageUri(form, uri, "listing[images][]")));
 
-    console.log("[listings] createListingWithImages — sending multipart to /my/listings, imageCount:", imageUris.length);
-    // Use multipartFetch (native fetch) — axios breaks multipart/FormData on web
-    const res = await multipartFetch("POST", "/my/listings", form);
-    const json = await res.json();
-    console.log("[listings] createListingWithImages — success, id:", json?.listing?.id);
+    const json = await submitListingMultipart("POST", "/my/listings", form);
     return convertKeysToCamel(json.listing) as Listing;
   },
 
@@ -266,7 +242,9 @@ export const listingsAPI = {
       latitude?: number;
       longitude?: number;
     },
-    imageUris: string[]
+    imageUris: string[],
+    // signed_ids of existing photos the user removed — purged server-side.
+    removedImageIds: string[] = []
   ): Promise<Listing> => {
     const form = new FormData();
     form.append("listing[title]", data.title);
@@ -281,12 +259,9 @@ export const listingsAPI = {
     if (data.longitude != null) form.append("listing[longitude]", String(data.longitude));
 
     await Promise.all(imageUris.map((uri) => appendImageUri(form, uri, "listing[images][]")));
+    removedImageIds.forEach((sid) => form.append("listing[removed_image_ids][]", sid));
 
-    console.log("[listings] updateListingWithImages — sending multipart to /my/listings/", id, "imageCount:", imageUris.length);
-    // Use multipartFetch (native fetch) — axios breaks multipart/FormData on web
-    const res = await multipartFetch("PUT", `/my/listings/${id}`, form);
-    const json = await res.json();
-    console.log("[listings] updateListingWithImages — success, id:", json?.listing?.id);
+    const json = await submitListingMultipart("PUT", `/my/listings/${id}`, form);
     return convertKeysToCamel(json.listing) as Listing;
   },
 
@@ -342,5 +317,15 @@ export const listingsAPI = {
   renewListing: async (id: number): Promise<Listing> => {
     const response = await http.put(`/my/listings/${id}/renew`);
     return convertKeysToCamel(response.data.listing) as Listing;
+  },
+
+  // GET /my/listings/:id/analytics
+  // Returns 7-day daily view counts for the listing (owner only).
+  getListingAnalytics: async (id: number): Promise<ListingAnalyticsResponse> => {
+    const response = await http.get(`/my/listings/${id}/analytics`);
+    const raw = (response.data.analytics ?? []) as Array<{ date: string; count: number }>;
+    return {
+      entries: raw.map((entry) => convertKeysToCamel(entry) as ListingAnalyticsEntry),
+    };
   },
 };

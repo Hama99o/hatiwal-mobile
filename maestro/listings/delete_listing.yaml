@@ -1,0 +1,21 @@
+appId: com.hatiwal.app
+---
+# Delete a listing — confirm dialog appears, listing removed, toast shown
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Open a listing
+- tapOn: "Draft"
+- waitForAnimationToEnd
+- tapOn: "Delete Listing"
+- waitForAnimationToEnd
+# Confirm dialog
+- assertVisible: "Delete this listing?"
+- assertVisible: "This will permanently remove your listing."
+- tapOn: "Delete"
+- waitForAnimationToEnd
+# Toast confirmation
+- assertVisible: "Listing deleted"
+# Listing no longer in list
+- assertNotVisible: "iPhone 12 Pro"

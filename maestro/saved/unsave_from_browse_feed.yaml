@@ -1,0 +1,22 @@
+appId: com.hatiwal.app
+---
+# Unsave listing from browse feed: tap saved (filled) heart → listing removed from Saved
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+
+# Save the first listing
+- tapOn:
+    id: "save-button-0"
+- waitForAnimationToEnd
+
+# Unsave immediately (tap same heart again)
+- tapOn:
+    id: "save-button-0"
+- waitForAnimationToEnd
+
+# Go to Saved — listing should be gone
+- tapOn: "Saved"
+- waitForAnimationToEnd
+- assertVisible: "No saved listings"

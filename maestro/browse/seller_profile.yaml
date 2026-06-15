@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# View a seller's public profile from a listing detail page
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+# Open any listing detail
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+# Tap the seller name/avatar in the Seller section
+- assertVisible: "Seller"
+- tapOn: "Seller"
+- waitForAnimationToEnd
+# Seller profile page opens
+- assertVisible: "Seller Profile"
+- assertVisible: "Active Listings"
+- assertVisible: "Items Sold"
+- assertVisible: "Joined"
+# Back to listing detail
+- back
+- waitForAnimationToEnd
+- assertVisible: "Contact Seller"

@@ -1,9 +1,10 @@
 /**
  * ReportSheet — slide-up modal for reporting a Listing or User.
  *
- * Uses raw RN <Modal animationType="slide"> because @gorhom/bottom-sheet
- * requires a native build setup that is not yet in this project. All inner
- * UI is RNR components.
+ * Uses raw RN <Modal animationType="slide"> — all sheets in this project use
+ * raw Modal because @gorhom/bottom-sheet has native-only platform splits
+ * that crash the web dev runner (Metro can't resolve .native.js files on web).
+ * All inner UI is RNR components.
  *
  * Props:
  *   visible         — controls visibility
@@ -26,6 +27,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 import { useMutation } from "@tanstack/react-query";
 import { X, Flag } from "lucide-react-native";
@@ -68,6 +70,7 @@ export function ReportSheet({
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
 
   const [selectedReason, setSelectedReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
@@ -143,10 +146,10 @@ export function ReportSheet({
       onShow={handleOpen}
     >
       {/* backdrop */}
-      <Pressable style={styles.backdrop} onPress={handleClose} />
+      <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={handleClose} />
 
       {/* sheet surface */}
-      <View style={[styles.sheet, { backgroundColor: colors.card }]}>
+      <View style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 16) }]}>
         {/* drag handle */}
         <View style={styles.handleContainer}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
@@ -166,7 +169,7 @@ export function ReportSheet({
             ]}
           >
             <Flag size={18} color={colors.destructive} style={styles.headerIcon} />
-            <Text style={{ fontSize: 18, fontWeight: "600" }}>
+            <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>
               {t("report.title")}
             </Text>
           </View>
@@ -174,12 +177,20 @@ export function ReportSheet({
             onPress={handleClose}
             hitSlop={10}
             style={styles.closeBtn}
+            android_ripple={{ color: colors.muted, borderless: true }}
           >
             <X size={20} color={colors.mutedForeground} />
           </Pressable>
         </View>
 
-        <Text style={{ fontSize: 14, color: colors.mutedForeground, marginBottom: 16, textAlign: isRtl ? "right" : "left" }}>
+        <Text
+          className="text-sm"
+          style={{
+            color: colors.mutedForeground,
+            marginBottom: 16,
+            textAlign: isRtl ? "right" : "left",
+          }}
+        >
           {t("report.subtitle")}
         </Text>
 
@@ -242,7 +253,8 @@ export function ReportSheet({
                   </View>
 
                   <Text
-                    style={{ fontSize: 14, flex: 1, textAlign: isRtl ? "right" : "left" }}
+                    className="text-sm"
+                    style={{ flex: 1, color: colors.foreground, textAlign: isRtl ? "right" : "left" }}
                   >
                     {t(`report.reasons.${reason}`)}
                   </Text>
@@ -253,7 +265,15 @@ export function ReportSheet({
 
           {/* reason validation error */}
           {reasonError && (
-            <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4, marginBottom: 8, textAlign: isRtl ? "right" : "left" }}>
+            <Text
+              className="text-xs"
+              style={{
+                color: colors.destructive,
+                marginTop: 4,
+                marginBottom: 8,
+                textAlign: isRtl ? "right" : "left",
+              }}
+            >
               {t("report.reasonRequired")}
             </Text>
           )}
@@ -283,7 +303,7 @@ export function ReportSheet({
             disabled={mutation.isPending}
             style={{ marginTop: 16, marginBottom: 8 }}
           >
-            <Text style={{ fontWeight: "600" }}>
+            <Text>
               {mutation.isPending
                 ? t("report.submitting")
                 : t("report.submit")}
@@ -309,7 +329,7 @@ export function ReportSheet({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    // backgroundColor is applied inline via colors.darkScrim (useColors token)
   },
   sheet: {
     borderTopLeftRadius: 20,
@@ -354,6 +374,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: 1,
     borderRadius: 8,
+    minHeight: 44,
   },
   radioOuter: {
     width: 20,

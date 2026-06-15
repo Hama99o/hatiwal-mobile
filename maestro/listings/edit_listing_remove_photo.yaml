@@ -1,0 +1,24 @@
+appId: com.hatiwal.app
+---
+# Edit listing: remove a photo — photo count decreases, saved successfully
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+- assertVisible: "Photos"
+
+# Tap the delete/X button on first photo
+- tapOn:
+    id: "photo-delete-0"
+- waitForAnimationToEnd
+# Confirm deletion if prompted
+- tapOn: "Remove"
+- waitForAnimationToEnd
+
+# Save
+- tapOn: "Save Changes"
+- waitForAnimationToEnd
+- assertVisible: "Changes saved"

@@ -19,14 +19,14 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
-  Alert,
-  TouchableOpacity,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
+import { confirmAlert } from "@/utils/alert";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { Send, Calendar, Paperclip, ShieldBan, User } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Send, Calendar, Paperclip, ShieldBan, User, Search, X } from "lucide-react-native";
 import { toast } from "sonner-native";
 
 import { Text } from "@/components/reusables/text";
@@ -40,19 +40,21 @@ import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { useQuery, useMutation } from "@tanstack/react-query";
 
+import { BackButton } from "@/components/common/BackButton";
 import { ListingHeader } from "./conversation/ListingHeader";
 import { MessageBubble } from "./conversation/MessageBubble";
 import { MeetupSheet } from "./conversation/MeetupSheet";
 import { useConversationCable } from "@/hooks/useConversationCable";
 
-// ── Inline skeleton (no NativeWind className) ─────────────────────────────────
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming } from "react-native-reanimated";
+// ── Reanimated imports for search bar animation ───────────────────────────────
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate, Extrapolation } from "react-native-reanimated";
+import { usePulse, useReduceMotion } from "@/lib/animation";
 
+// Skeleton pulse line — uses usePulse() so the shimmer is skipped when
+// Reduce Motion is enabled (no more raw withRepeat loop here).
 function PulseLine({ w, h = 14, colors }: { w: number | string; h?: number; colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
-  const opacity = useSharedValue(1);
-  useEffect(() => { opacity.value = withRepeat(withTiming(0.35, { duration: 850 }), -1, true); }, [opacity]);
-  const anim = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return <Animated.View style={[{ backgroundColor: colors.muted, borderRadius: 8, height: h, width: w }, anim]} />;
+  const anim = usePulse();
+  return <Animated.View style={[{ backgroundColor: colors.muted as string, borderRadius: 8, height: h, width: w as number }, anim]} />;
 }
 
 function ChatSkeleton({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
@@ -89,6 +91,7 @@ export function ConversationScreen() {
   const router = useRouter();
   const colors = useColors();
   const { isRtl } = useLocalization();
+  const insets = useSafeAreaInsets();
   const storeUser = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   // Fallback: if the store is empty (e.g. web page refresh before Splash hydrates),
@@ -126,6 +129,59 @@ export function ConversationScreen() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // ── Reduce-motion accessibility ──────────────────────────────────────────
+  const reduceMotion = useReduceMotion();
+
+  // ── Search state ──────────────────────────────────────────────────────────
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  // Animated height for the search bar slide-in (0 = collapsed, 1 = expanded)
+  const searchProgress = useSharedValue(0);
+  const searchBarAnimStyle = useAnimatedStyle(() => ({
+    height: interpolate(searchProgress.value, [0, 1], [0, 52], Extrapolation.CLAMP),
+    opacity: interpolate(searchProgress.value, [0, 0.5, 1], [0, 0, 1], Extrapolation.CLAMP),
+    overflow: "hidden",
+  }));
+
+  const openSearch = useCallback(() => {
+    setSearchVisible(true);
+    if (reduceMotion) {
+      // Snap instantly — no animation when Reduce Motion is on
+      searchProgress.value = 1;
+    } else {
+      searchProgress.value = withTiming(1, { duration: 200 });
+    }
+  }, [searchProgress, reduceMotion]);
+
+  const closeSearch = useCallback(() => {
+    if (reduceMotion) {
+      // Snap instantly and clear state immediately — no animation to wait for
+      searchProgress.value = 0;
+      setSearchVisible(false);
+      setSearchQuery("");
+    } else {
+      searchProgress.value = withTiming(0, { duration: 200 });
+      // Delay state clear until animation finishes so bar doesn't flash empty
+      setTimeout(() => {
+        setSearchVisible(false);
+        setSearchQuery("");
+      }, 210);
+    }
+  }, [searchProgress, reduceMotion]);
+
+  // Filtered messages — computed from full message list when search is active
+  const filteredMessages = searchVisible && searchQuery.trim()
+    ? messages.filter((m) =>
+        m.kind === "text" &&
+        m.body.toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : messages;
+
+  // Number of text messages that match (used for the counter badge)
+  const matchCount = searchVisible && searchQuery.trim()
+    ? filteredMessages.length
+    : 0;
 
   const flatListRef = useRef<FlatList>(null);
   const isNearBottomRef = useRef(true);
@@ -403,7 +459,7 @@ export function ConversationScreen() {
     if (isBlocked) {
       unblockMutation.mutate(otherParticipant.id);
     } else {
-      Alert.alert(
+      confirmAlert(
         t("chat.block.blockConfirmTitle"),
         t("chat.block.blockConfirmDescription"),
         [
@@ -439,59 +495,126 @@ export function ConversationScreen() {
   const canSend = !isClosed && !!currentConversationId;
   const isStartMode = !currentConversationId && !!listingId;
 
-  // ── Skeleton ─────────────────────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* Header skeleton */}
-        <ChatSkeleton colors={colors} />
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+
+      {/* ── Nav bar — always shown, owns safe-area top ───────────────────── */}
+      <View
+        style={[
+          styles.navBar,
+          {
+            paddingTop:      insets.top + 8,
+            flexDirection:   isRtl ? "row-reverse" : "row",
+            backgroundColor: colors.card,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <BackButton
+          onPress={() => {
+            if (router.canGoBack()) router.back();
+            else router.replace("/(main)/(tabs)/chat" as any);
+          }}
+        />
+
+        {/* Tappable participant info → seller profile */}
+        <Pressable
+          onPress={
+            otherParticipant
+              ? () => router.push(`/(main)/seller/${otherParticipant.id}` as never)
+              : undefined
+          }
+          style={[styles.navCenter, { flexDirection: isRtl ? "row-reverse" : "row" }]}
+        >
+          {otherParticipant ? (
+            <>
+              <User size={14} color={colors.mutedForeground} />
+              <Text
+                style={[styles.navTitle, { color: colors.foreground, textAlign: isRtl ? "right" : "left" }]}
+                numberOfLines={1}
+              >
+                {otherParticipant.name}
+              </Text>
+            </>
+          ) : (
+            <Text style={[styles.navTitle, { color: colors.foreground }]} numberOfLines={1}>
+              {conversation?.listing?.title ?? t("chat.title")}
+            </Text>
+          )}
+        </Pressable>
+
+        {/* Search toggle */}
+        <Pressable
+          onPress={searchVisible ? closeSearch : openSearch}
+          hitSlop={8}
+          style={styles.navAction}
+          accessibilityLabel={t("chat.search.placeholder")}
+        >
+          <Search size={18} color={searchVisible ? colors.primary : colors.mutedForeground} />
+        </Pressable>
+
+        {/* Block / unblock */}
+        {otherParticipant && (
+          <Pressable
+            onPress={handleBlockToggle}
+            disabled={blockMutation.isPending || unblockMutation.isPending}
+            hitSlop={8}
+            style={styles.navAction}
+          >
+            <ShieldBan size={18} color={isBlocked ? colors.destructive : colors.mutedForeground} />
+          </Pressable>
+        )}
+      </View>
+
+      {/* ── Search bar (animated slide-down) ─────────────────────────────────── */}
+      <Animated.View style={[searchBarAnimStyle, { backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }]}>
+        <View
+          style={[
+            styles.searchBar,
+            { flexDirection: isRtl ? "row-reverse" : "row" },
+          ]}
+        >
+          <Input
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t("chat.search.placeholder")}
+            autoFocus={searchVisible}
+            style={[styles.searchInput, { textAlign: isRtl ? "right" : "left" }] as any}
+          />
+          {/* Match count: "3 of 12" means 3 matching out of total loaded messages */}
+          {searchQuery.trim() ? (
+            <Text style={{ fontSize: 12, color: colors.mutedForeground, minWidth: 52, textAlign: "center" }}>
+              {t("chat.search.matchCount", {
+                current: matchCount,
+                total: messages.filter((m) => m.kind === "text").length,
+              })}
+            </Text>
+          ) : null}
+          {/* Clear / close */}
+          <Pressable onPress={closeSearch} hitSlop={8} style={{ padding: 4 }}>
+            <X size={18} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
+        {/* Hint when pagination means not all messages are loaded */}
+        {totalPages > 1 && searchQuery.trim() ? (
+          <Text style={{ fontSize: 11, color: colors.mutedForeground, paddingHorizontal: 12, paddingBottom: 4 }}>
+            {t("chat.search.partialResults")}
+          </Text>
+        ) : null}
+      </Animated.View>
+
+      {/* ── Loading skeleton ─────────────────────────────────────────────── */}
+      {isLoading && <ChatSkeleton colors={colors} />}
+
+      {/* ── Loaded content ───────────────────────────────────────────────── */}
+      {!isLoading && <>
+
       {/* Pinned listing header */}
       {conversation?.listing && (
         <ListingHeader
           listing={conversation.listing}
           onPress={() => router.push(`/(main)/listing/${conversation.listing.id}` as never)}
         />
-      )}
-
-      {/* Other participant bar with block action */}
-      {otherParticipant && (
-        <View
-          style={{
-            flexDirection: isRtl ? "row-reverse" : "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            backgroundColor: colors.card,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
-            gap: 8,
-          }}
-        >
-          <TouchableOpacity
-            onPress={() => router.push(`/(main)/seller/${otherParticipant.id}` as never)}
-            style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 6, flex: 1 }}
-            activeOpacity={0.7}
-          >
-            <User size={14} color={colors.mutedForeground} />
-            <Text style={{ fontSize: 13, color: colors.mutedForeground, fontWeight: "500" }}>
-              {otherParticipant.name}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleBlockToggle}
-            disabled={blockMutation.isPending || unblockMutation.isPending}
-            hitSlop={8}
-            style={{ padding: 4 }}
-          >
-            <ShieldBan size={18} color={isBlocked ? colors.destructive : colors.mutedForeground} />
-          </TouchableOpacity>
-        </View>
       )}
 
       {/* Closed notice */}
@@ -506,16 +629,24 @@ export function ConversationScreen() {
       {/* Message list */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
+        // Platform audit (2026-06-18):
+        //   iOS "padding" — adds padding at the bottom so the input bar lifts with
+        //   the keyboard. Correct on all iOS versions.
+        //   Android "height" — shrinks the KAV container height so the FlatList +
+        //   input bar layout recalculates above the keyboard. Correct on all Android
+        //   versions. Intentional: both branches have correct, tested fallbacks.
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={88}
       >
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={filteredMessages}
           keyExtractor={(item) => String(item.id)}
-          renderItem={({ item, index }) => {
+          renderItem={({ item }) => {
             // Outcome for THIS proposal/offer only — matched by the response's
             // link (responds_to_id), so one response never affects another.
+            // Use the full messages array (not filtered) for outcome lookups so
+            // accept/decline responses (which are filtered out) can still be found.
             let meetupOutcome: "accepted" | "declined" | null = null;
             let offerOutcome: "accepted" | "declined" | null = null;
             if (item.kind === "meetup_proposal") {
@@ -547,18 +678,21 @@ export function ConversationScreen() {
                 onOfferRespond={
                   item.kind === "offer" ? (accepted) => handleOfferRespond(item, accepted) : undefined
                 }
+                searchQuery={searchVisible ? searchQuery.trim() : undefined}
               />
             );
           }}
           contentContainerStyle={styles.messageList}
-          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+          // Disable maintainVisibleContentPosition during search so the filtered
+          // list doesn't jump when the query changes
+          maintainVisibleContentPosition={searchVisible ? undefined : { minIndexForVisible: 0 }}
           scrollEventThrottle={200}
           onScroll={handleScroll}
           // Scroll to the true bottom AFTER the list re-measures (new bubble
-          // rendered), but only when the user was already at the bottom — so
-          // loading older messages at the top never yanks them down.
+          // rendered), but only when the user was already at the bottom and search
+          // is not active (search may show older messages we don't want to jump past).
           onContentSizeChange={() => {
-            if (isNearBottomRef.current) {
+            if (isNearBottomRef.current && !searchVisible) {
               flatListRef.current?.scrollToEnd({ animated: true });
             }
           }}
@@ -572,10 +706,14 @@ export function ConversationScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={{ fontSize: 16, fontWeight: "600", textAlign: "center" }}>
-                {t("chat.thread.emptyTitle")}
+                {searchVisible && searchQuery.trim()
+                  ? t("chat.search.noResults")
+                  : t("chat.thread.emptyTitle")}
               </Text>
               <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center", marginTop: 4 }}>
-                {t("chat.thread.emptyDescription")}
+                {searchVisible && searchQuery.trim()
+                  ? ""
+                  : t("chat.thread.emptyDescription")}
               </Text>
             </View>
           }
@@ -588,7 +726,7 @@ export function ConversationScreen() {
           <View
             style={[
               styles.inputBar,
-              { borderTopColor: colors.border, backgroundColor: colors.card },
+              { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 8) },
             ]}
           >
             <Input
@@ -596,10 +734,7 @@ export function ConversationScreen() {
               onChangeText={setMessageText}
               placeholder={t("chat.startConversation.placeholder")}
               multiline
-              style={[
-                styles.textInput,
-                { textAlign: isRtl ? "right" : "left" },
-              ]}
+              style={[styles.textInput, { textAlign: isRtl ? "right" : "left" }] as any}
               editable={!isStarting}
             />
             <Button
@@ -624,7 +759,7 @@ export function ConversationScreen() {
           <View
             style={[
               styles.inputBar,
-              { borderTopColor: colors.border, backgroundColor: colors.card },
+              { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 8) },
             ]}
           >
             <Pressable
@@ -648,10 +783,7 @@ export function ConversationScreen() {
               onChangeText={setMessageText}
               placeholder={t("chat.messagePlaceholder")}
               multiline
-              style={[
-                styles.textInput,
-                { textAlign: isRtl ? "right" : "left" },
-              ]}
+              style={[styles.textInput, { textAlign: isRtl ? "right" : "left" }] as any}
               editable={!isSending}
             />
             <Button
@@ -676,7 +808,7 @@ export function ConversationScreen() {
           <View
             style={[
               styles.closedInput,
-              { borderTopColor: colors.border, backgroundColor: colors.muted },
+              { borderTopColor: colors.border, backgroundColor: colors.muted, paddingBottom: Math.max(insets.bottom, 12) },
             ]}
           >
             <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center" }}>
@@ -692,6 +824,8 @@ export function ConversationScreen() {
         onClose={() => setMeetupSheetVisible(false)}
         onPropose={handleProposeMeetup}
       />
+      </>}
+
     </View>
   );
 }
@@ -699,6 +833,26 @@ export function ConversationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  navBar: {
+    alignItems:        "center",
+    paddingHorizontal: 12,
+    paddingBottom:     8,
+    borderBottomWidth: 1,
+    gap:               8,
+  },
+  navCenter: {
+    flex:        1,
+    alignItems:  "center",
+    gap:         6,
+  },
+  navTitle: {
+    fontSize:   16,
+    fontWeight: "600",
+    flex:       1,
+  },
+  navAction: {
+    padding: 4,
   },
   messageList: {
     paddingVertical: 12,
@@ -737,5 +891,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderTopWidth: 1,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 36,
+    minHeight: 36,
   },
 });

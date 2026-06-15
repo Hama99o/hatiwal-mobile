@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# Login with empty email and password — validation messages shown
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+# Submit empty form
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+# Should show validation or server error
+- assertVisible:
+    anyOf:
+      - "Email"
+      - "Invalid email or password"
+      - "error"

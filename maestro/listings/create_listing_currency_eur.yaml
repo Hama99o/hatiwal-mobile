@@ -1,0 +1,36 @@
+appId: com.hatiwal.app
+---
+# Create a listing with EUR currency — verify price displays with € symbol
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+- tapOn: "Title"
+- inputText: "EUR Currency Test Item"
+- tapOn: "Price"
+- inputText: "250"
+# Open currency picker and select EUR
+- tapOn: "AFN"
+- waitForAnimationToEnd
+- assertVisible: "EUR"
+- tapOn: "EUR"
+- waitForAnimationToEnd
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+# Save as draft
+- tapOn: "Save as Draft"
+- waitForAnimationToEnd
+- assertVisible: "Listing saved"
+# Find it in My Listings and verify EUR price
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "EUR Currency Test Item"
+- waitForAnimationToEnd
+# Price should display with EUR formatting
+- assertVisible: "250"
+- assertVisible: "€"

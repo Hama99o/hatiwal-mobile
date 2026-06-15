@@ -4,6 +4,24 @@ These rules are **mandatory**. Follow them strictly for consistency, accessibili
 
 ---
 
+## ⛔ TESTING IS MANDATORY — Every Feature Must Have Tests
+
+**NEVER ship a feature without adding tests. This is a hard rule, not a suggestion.**
+
+| What you built | Required tests |
+|---|---|
+| New screen | Maestro E2E flow in `maestro/<area>/` — happy path + error + empty state |
+| New API module | Jest unit test in `src/api/__tests__/` — success, error, pagination |
+| New shared component | Jest unit test in `src/components/common/__tests__/` + Storybook story |
+| Any change to existing screen | Update the relevant Maestro flow |
+| Any change to API function | Update the relevant Jest test + MSW handler |
+
+Read `docs/TESTING.md` for the full testing guide and per-layer specs.
+
+---
+
+---
+
 ## Project Foundation
 
 - **Framework**: React Native + Expo SDK 54

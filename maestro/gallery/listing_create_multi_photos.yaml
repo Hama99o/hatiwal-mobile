@@ -1,0 +1,63 @@
+appId: com.hatiwal.app
+---
+# Create listing: add multiple photos, verify Cover label on first, reorder, delete one
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+# Photos section visible
+- assertVisible: "Photos"
+- assertVisible: "Add Photos"
+- assertVisible: "Add at least one photo to attract buyers."
+
+# Tap Add Photos
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+# Sheet opens with Gallery / Camera options
+- assertVisible: "Gallery"
+- assertVisible: "Camera"
+# Pick from Gallery
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+# Select first photo in picker
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+
+# First photo added, "Cover" label visible
+- assertVisible: "Cover"
+
+# Add a second photo
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 1
+- waitForAnimationToEnd
+
+# Add a third photo
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 2
+- waitForAnimationToEnd
+
+# Reorder hint visible when 2+ photos
+- assertVisible: "Tap another photo to swap positions"
+
+# Tap second photo to set as cover (reorder)
+- tapOn:
+    index: 1
+- waitForAnimationToEnd
+# Cover label now on what was second photo
+- assertVisible: "Cover"
+
+# Photos section still shows 3 items
+- assertVisible: "Add Photos"

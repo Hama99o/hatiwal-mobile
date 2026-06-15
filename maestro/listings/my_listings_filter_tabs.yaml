@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# My Listings — filter by status tab (All / Draft / Active / Reserved / Sold)
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- assertVisible: "My Listings"
+# Default tab shows All
+- assertVisible: "All"
+# Tap Draft tab
+- tapOn: "Draft"
+- waitForAnimationToEnd
+- assertVisible: "Draft"
+# Tap Active tab
+- tapOn: "Active"
+- waitForAnimationToEnd
+- assertVisible: "Active"
+# Tap Reserved tab
+- tapOn: "Reserved"
+- waitForAnimationToEnd
+- assertVisible: "Reserved"
+# Tap Sold tab
+- tapOn: "Sold"
+- waitForAnimationToEnd
+- assertVisible: "Sold"
+# Back to All
+- tapOn: "All"
+- waitForAnimationToEnd
+- assertVisible: "My Listings"

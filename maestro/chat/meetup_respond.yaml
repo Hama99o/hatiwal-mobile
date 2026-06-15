@@ -1,0 +1,20 @@
+appId: com.hatiwal.app
+---
+# Respond to a meetup proposal — accept or decline
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Messages"
+- waitForAnimationToEnd
+# Open a conversation that has a meetup proposal from the seller
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Scroll to find a meetup proposal bubble
+- scroll
+- waitForAnimationToEnd
+# Accept the meetup proposal
+- tapOn: "Accept"
+- waitForAnimationToEnd
+- assertVisible: "Meetup accepted"
+# Verify the accepted state is shown in the thread
+- assertVisible: "You accepted the meetup"

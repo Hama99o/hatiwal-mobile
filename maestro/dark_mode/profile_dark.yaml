@@ -1,0 +1,18 @@
+appId: com.hatiwal.app
+---
+# Profile screen in dark mode — all elements visible
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+# Switch to dark
+- tapOn: "Dark"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+# Core elements still visible
+- assertVisible: "Edit Profile"
+- assertVisible: "Appearance"
+- assertVisible: "Sign Out"
+# Restore
+- tapOn: "Light"
+- waitForAnimationToEnd

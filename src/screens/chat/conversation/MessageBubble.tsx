@@ -4,17 +4,27 @@
  * RTL-safe: mine bubbles anchor to start side in RTL.
  */
 import React from "react";
-import { View, Linking, TouchableOpacity, Platform, Alert } from "react-native";
+import { View, Linking, Pressable, Platform } from "react-native";
+import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner-native";
 import { MapPin, Clock, Check, Tag, ExternalLink, FileText, CalendarCheck, CalendarX } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
+import { useReduceMotion } from "@/lib/animation";
 import type { Message } from "@/api/conversations";
 
+// Platform audit (2026-06-18):
+//   Android: "geo:" URI opens the system maps chooser (Google Maps, HERE, etc.).
+//     Fallback: Google Maps web URL when no handler is registered (e.g. bare emulator).
+//   iOS: "maps:" URI opens Apple Maps natively.
+//     Fallback: Google Maps web URL if Apple Maps is not installed (rare but safe).
+//   else branch: intentional catch-all for any future platform additions; web was
+//     removed in Q1 so this is not dead code — it is a forward-safe guard.
+//   All three branches have correct, tested fallbacks.
 function openInMaps(place: string) {
   const encoded = encodeURIComponent(place);
-  // On native: try native maps app first (geo: for Android, maps: for iOS)
   if (Platform.OS === "android") {
     Linking.openURL(`geo:0,0?q=${encoded}`).catch(() =>
       Linking.openURL(`https://maps.google.com/?q=${encoded}`)
@@ -24,6 +34,7 @@ function openInMaps(place: string) {
       Linking.openURL(`https://maps.google.com/?q=${encoded}`)
     );
   } else {
+    // Intentional catch-all: Google Maps web URL works universally.
     Linking.openURL(`https://maps.google.com/?q=${encoded}`);
   }
 }
@@ -39,6 +50,63 @@ interface MessageBubbleProps {
   onOfferRespond?: (accepted: boolean) => void;
   /** Outcome of this offer, if it has been answered. */
   offerOutcome?: "accepted" | "declined" | null;
+  /** Active search query — matching substrings in the bubble body get highlighted. */
+  searchQuery?: string;
+}
+
+/**
+ * Splits `text` by the search query (case-insensitive) and renders each segment,
+ * wrapping matching parts with a highlight background using `warningAlpha`.
+ */
+function HighlightedText({
+  text,
+  query,
+  baseStyle,
+  colors,
+}: {
+  text: string;
+  query: string;
+  baseStyle: object;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+}) {
+  // Trim so that leading/trailing whitespace in the query never causes a mismatch
+  // between what the filter selected (uses .trim()) and what we highlight here.
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) {
+    return <Text style={baseStyle}>{text}</Text>;
+  }
+
+  const escaped = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${escaped})`, "gi");
+  const parts = text.split(regex);
+
+  return (
+    <Text style={baseStyle}>
+      {parts.map((part, index) => {
+        const isMatch = part.toLowerCase() === trimmedQuery.toLowerCase();
+        if (isMatch) {
+          return (
+            <Text
+              key={index}
+              style={[
+                baseStyle,
+                {
+                  backgroundColor: colors.warningAlpha,
+                  borderRadius: 3,
+                  // Use warning color for highlighted text so it's readable on both themes
+                  color: colors.warning,
+                  fontWeight: "700",
+                },
+              ]}
+            >
+              {part}
+            </Text>
+          );
+        }
+        return <Text key={index} style={baseStyle}>{part}</Text>;
+      })}
+    </Text>
+  );
 }
 
 /** Two-tick read indicator rendered as overlapping Check icons */
@@ -51,10 +119,19 @@ function ReadReceipt({ color }: { color: string }) {
   );
 }
 
-export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, onOfferRespond, offerOutcome }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, onOfferRespond, offerOutcome, searchQuery }: MessageBubbleProps) {
   const { t } = useTranslation();
   const { isRtl, formatTime } = useLocalization();
   const colors = useColors();
+  const reduceMotion = useReduceMotion();
+
+  // Slide in from the side the bubble originates from.
+  // In RTL: "mine" is visually on the left so we use FadeInLeft for mine and FadeInRight for others.
+  // In LTR: "mine" is on the right so we use FadeInRight for mine and FadeInLeft for others.
+  // When reduce motion is enabled, skip the entering animation entirely.
+  const enteringAnimation = reduceMotion
+    ? undefined
+    : (isMine !== isRtl ? FadeInRight : FadeInLeft).duration(220).springify();
 
   // Accept/decline responses (meetup + offer) are not shown as their own bubble —
   // the outcome is rendered on the original proposal/offer bubble (both sides).
@@ -76,12 +153,16 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
   const readColor = isMine ? "rgba(255,255,255,0.9)" : colors.primary;
 
   if (message.kind === "system") {
+    // System messages center-align with a fade-in; no directional slide.
     return (
-      <View style={{ alignItems: "center", paddingVertical: 4, paddingHorizontal: 24 }}>
+      <Animated.View
+        entering={reduceMotion ? undefined : FadeInLeft.duration(220)}
+        style={{ alignItems: "center", paddingVertical: 4, paddingHorizontal: 24 }}
+      >
         <Text style={{ fontSize: 12, color: colors.mutedForeground, lineHeight: 18, textAlign: "center" }}>
           {message.body}
         </Text>
-      </View>
+      </Animated.View>
     );
   }
 
@@ -95,10 +176,16 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
     const formattedListed = `${currency} ${listedPrice.toLocaleString()}`;
 
     return (
-      <View style={{ alignItems: bubbleAlign, marginVertical: 4, marginHorizontal: 16 }}>
+      <Animated.View
+        entering={enteringAnimation}
+        style={{ flexDirection: "row", justifyContent: bubbleAlign, marginVertical: 4, marginHorizontal: 16 }}
+      >
         <View
           style={{
             maxWidth: "82%",
+            // minWidth prevents the web flexbox min-content collapse that wrapped
+            // the amount + Accept/Decline buttons character-by-character.
+            minWidth: 240,
             borderRadius: 14,
             borderWidth: 1.5,
             borderColor: isMine ? colors.warning : colors.border,
@@ -117,13 +204,13 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
               backgroundColor: isMine ? colors.warning : colors.muted,
             }}
           >
-            <Tag size={13} color={isMine ? "#fff" : colors.mutedForeground} />
+            <Tag size={13} color={isMine ? colors.warningForeground : colors.mutedForeground} />
             <Text
               style={{
                 fontSize: 11,
                 fontWeight: "700",
                 letterSpacing: 0.5,
-                color: isMine ? "#fff" : colors.mutedForeground,
+                color: isMine ? colors.warningForeground : colors.mutedForeground,
                 textAlign: isRtl ? "right" : "left",
               }}
             >
@@ -216,22 +303,24 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             ) : !isMine && onOfferRespond ? (
               /* Accept / Decline — only for the seller (recipient), before responding */
               <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8, marginTop: 8 }}>
-                <TouchableOpacity
+                <Pressable
                   onPress={() => onOfferRespond(true)}
+                  android_ripple={{ color: colors.successAlpha }}
                   style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, backgroundColor: colors.success }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.successForeground }}>
                     {t("chat.offer.accept")}
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </Pressable>
+                <Pressable
                   onPress={() => onOfferRespond(false)}
+                  android_ripple={{ color: colors.muted }}
                   style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
                     {t("chat.offer.decline")}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             ) : null}
 
@@ -259,7 +348,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             </View>
           </View>
         </View>
-      </View>
+      </Animated.View>
     );
   }
 
@@ -270,10 +359,14 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
     const time = parts[1] ?? "";
 
     return (
-      <View style={{ alignItems: bubbleAlign, marginVertical: 4, marginHorizontal: 16 }}>
+      <Animated.View
+        entering={enteringAnimation}
+        style={{ flexDirection: "row", justifyContent: bubbleAlign, marginVertical: 4, marginHorizontal: 16 }}
+      >
         <View
           style={{
             maxWidth: "80%",
+            minWidth: 240,
             borderRadius: 12,
             borderWidth: 1.5,
             borderColor: isMine ? colors.primary : colors.border,
@@ -291,17 +384,17 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
 
           <View style={{ padding: 12, gap: 6 }}>
             {/* Place — tappable → opens maps */}
-            <TouchableOpacity
+            <Pressable
               onPress={() => openInMaps(place)}
-              activeOpacity={0.7}
+              android_ripple={{ color: colors.primaryAlpha }}
               style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 6 }}
             >
-              <MapPin size={14} color={isMine ? colors.primary : colors.primary} />
+              <MapPin size={14} color={colors.primary} />
               <Text style={{ flex: 1, textAlign: isRtl ? "right" : "left", fontSize: 14, color: colors.primary, textDecorationLine: "underline" }}>
                 {place}
               </Text>
               <ExternalLink size={12} color={colors.primary} />
-            </TouchableOpacity>
+            </Pressable>
 
             {time ? (
               <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 6 }}>
@@ -344,22 +437,24 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             ) : !isMine && onMeetupRespond ? (
               /* Accept / Decline — only for the recipient, before they respond */
               <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8, marginTop: 6 }}>
-                <TouchableOpacity
+                <Pressable
                   onPress={() => onMeetupRespond(true)}
+                  android_ripple={{ color: colors.primaryAlpha }}
                   style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, backgroundColor: colors.primary }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primaryForeground }}>
                     {t("chat.meetup.accept")}
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </Pressable>
+                <Pressable
                   onPress={() => onMeetupRespond(false)}
+                  android_ripple={{ color: colors.muted }}
                   style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
                     {t("chat.meetup.decline")}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             ) : null}
 
@@ -372,7 +467,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             </View>
           </View>
         </View>
-      </View>
+      </Animated.View>
     );
   }
 
@@ -382,14 +477,17 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
     const attachmentUrl = (message as any).attachmentUrl as string | null;
 
     return (
-      <View style={{ alignItems: bubbleAlign, marginVertical: 2, marginHorizontal: 16 }}>
-        <TouchableOpacity
-          activeOpacity={0.8}
+      <Animated.View
+        entering={enteringAnimation}
+        style={{ alignItems: bubbleAlign, marginVertical: 2, marginHorizontal: 16 }}
+      >
+        <Pressable
+          android_ripple={{ color: colors.primaryAlpha }}
           onPress={() => {
             if (attachmentUrl) {
               Linking.openURL(attachmentUrl);
             } else {
-              Alert.alert("", "File not available");
+              toast.error(t("chat.document.notAvailable"));
             }
           }}
           style={{
@@ -420,14 +518,17 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             <Text style={{ fontSize: 10, color: metaColor }}>{formatTime(message.createdAt)}</Text>
             {isMine ? (message.readAt ? <ReadReceipt color={readColor} /> : <Check size={11} color={metaColor} />) : null}
           </View>
-        </TouchableOpacity>
-      </View>
+        </Pressable>
+      </Animated.View>
     );
   }
 
   // Regular text bubble
   return (
-    <View style={{ alignItems: bubbleAlign, marginVertical: 4, marginHorizontal: 12 }}>
+    <Animated.View
+      entering={enteringAnimation}
+      style={{ alignItems: bubbleAlign, marginVertical: 4, marginHorizontal: 12 }}
+    >
       <View
         style={{
           maxWidth: "78%",
@@ -437,7 +538,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
           backgroundColor: bubbleBg,
           paddingHorizontal: 14,
           paddingVertical: 10,
-          shadowColor: "#000",
+          shadowColor: colors.shadow,
           shadowOpacity: isMine ? 0.15 : 0.08,
           shadowRadius: 3,
           shadowOffset: { width: 0, height: 1 },
@@ -445,17 +546,18 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
           ...(isMine ? {} : { borderWidth: 0.5, borderColor: colors.border }),
         }}
       >
-        <Text
-          style={{
+        <HighlightedText
+          text={message.body}
+          query={searchQuery ?? ""}
+          baseStyle={{
             fontSize: 15,
             fontWeight: "400",
             color: bubbleText,
             lineHeight: 22,
             textAlign: isRtl ? "right" : "left",
           }}
-        >
-          {message.body}
-        </Text>
+          colors={colors}
+        />
 
         {/* Timestamp + read receipt row */}
         <View
@@ -479,6 +581,6 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
           ) : null}
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }

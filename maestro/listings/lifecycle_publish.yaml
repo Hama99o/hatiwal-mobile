@@ -1,0 +1,20 @@
+appId: com.hatiwal.app
+---
+# Lifecycle: draft → active (publish)
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Find a draft listing and open it
+- tapOn: "Draft"
+- waitForAnimationToEnd
+- tapOn: "Publish"
+- waitForAnimationToEnd
+# Confirm dialog
+- assertVisible: "Publish this listing?"
+- assertVisible: "Your listing will be visible to all buyers."
+- tapOn: "Publish"
+- waitForAnimationToEnd
+# Status changed to Active
+- assertVisible: "Listing published!"
+- assertVisible: "Active"

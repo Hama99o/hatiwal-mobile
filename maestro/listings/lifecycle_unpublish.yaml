@@ -1,0 +1,22 @@
+appId: com.hatiwal.app
+---
+# Active → Draft (unpublish): seller takes active listing back to draft
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Go to Active tab
+- tapOn: "Active"
+- waitForAnimationToEnd
+# Tap "Unpublish" on first active listing
+- tapOn: "Unpublish"
+- waitForAnimationToEnd
+- assertVisible: "Unpublish this listing?"
+- assertVisible: "It will be hidden from buyers"
+- tapOn: "Unpublish"
+- waitForAnimationToEnd
+# Listing moved to Draft
+- assertVisible: "Listing unpublished"
+# Navigate to Draft tab — listing appears there
+- tapOn: "Draft"
+- waitForAnimationToEnd

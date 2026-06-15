@@ -1,43 +1,22 @@
-/**
- * Skeleton — loading placeholder using NativeWind tokens.
- * Animated pulse using React Native Reanimated.
- * Usage: <Skeleton className="h-16 w-full rounded-lg" />
- */
-import React, { useEffect } from "react";
+import React from "react";
 import { type ViewProps } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { cn } from "@/lib/utils";
+import { usePulse } from "@/lib/animation";
+import { useColors } from "@/hooks/useColors";
 
 interface SkeletonProps extends ViewProps {
   className?: string;
 }
 
 export function Skeleton({ className, style, ...props }: SkeletonProps) {
-  const opacity = useSharedValue(1);
-
-  useEffect(() => {
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(0.4, { duration: 750 }),
-        withTiming(1, { duration: 750 })
-      ),
-      -1,
-      false
-    );
-  }, [opacity]);
-
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const pulseStyle = usePulse();
+  const colors = useColors();
 
   return (
     <Animated.View
-      className={cn("bg-muted rounded-md", className)}
-      style={[animatedStyle, style]}
+      className={cn("rounded-md", className)}
+      style={[{ backgroundColor: colors.muted }, pulseStyle, style]}
       {...props}
     />
   );

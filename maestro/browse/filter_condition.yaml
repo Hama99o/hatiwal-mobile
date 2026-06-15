@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# Filter listings by condition chips
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+- tapOn: "Filters"
+- waitForAnimationToEnd
+# Select "Like new" condition
+- tapOn: "Like new"
+- waitForAnimationToEnd
+# Confirm chip is selected (appears highlighted)
+- assertVisible: "Like new"
+# Apply and check results
+- tapOn: "Apply filters to save search combinations"
+- waitForAnimationToEnd
+- assertVisible: "Browse"
+# Reopen and clear
+- tapOn: "Filters"
+- waitForAnimationToEnd
+- tapOn: "Reset filters"
+- waitForAnimationToEnd

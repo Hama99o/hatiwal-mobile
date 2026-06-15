@@ -1,0 +1,26 @@
+appId: com.hatiwal.app
+---
+# Create listing — select province from picker
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+# Open province picker
+- tapOn: "Select Province"
+- waitForAnimationToEnd
+- assertVisible: "Select Province"
+- assertVisible: "Kabul"
+- assertVisible: "Kandahar"
+# Search for a province
+- tapOn: "Search provinces..."
+- inputText: "Herat"
+- waitForAnimationToEnd
+- assertVisible: "Herat"
+# Select it
+- tapOn: "Herat"
+- waitForAnimationToEnd
+# Province set on form
+- assertVisible: "Herat"

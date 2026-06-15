@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# Chat in RTL (Pashto) — messages, input, send button in correct RTL order
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Pashto (پښتو)"
+- waitForAnimationToEnd
+# Open Messages tab
+- tapOn:
+    index: 2
+- waitForAnimationToEnd
+# Conversations visible in Pashto
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Message input and send button visible
+- assertVisible: "پیغام ولیکئ..."
+# Send a message in RTL
+- tapOn: "پیغام ولیکئ..."
+- inputText: "سلام، آیا دا شتون لري؟"
+- tapOn: "لیږل"
+- waitForAnimationToEnd
+# Reset to English
+- back
+- waitForAnimationToEnd
+- tapOn:
+    index: 4
+- waitForAnimationToEnd
+- tapOn: "English"
+- waitForAnimationToEnd

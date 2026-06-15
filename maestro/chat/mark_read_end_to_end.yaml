@@ -1,0 +1,58 @@
+appId: com.hatiwal.app
+---
+# mark_read end-to-end flow
+#
+# Acceptance criteria (TASK-D003):
+#   - Opening a conversation with unread messages clears its unread badge on the list.
+#   - The chat tab badge decrements when all unread conversations are read.
+#   - markRead fires on thread focus (useFocusEffect) — not only on first load.
+#   - Re-navigating back into the same thread fires markRead again (idempotent / safe).
+#
+# Prerequisites: test device seeded with at least one conversation that has
+#               unread_count > 0 for the logged-in buyer@hatiwal.test account.
+
+- runFlow: ../_helpers/login.yaml
+
+# ── Step 1: verify unread badge is present before opening ───────────────────
+- tapOn:
+    text: "Messages"
+- waitForAnimationToEnd
+
+- assertVisible:
+    id: "unread-badge-0"
+
+# ── Step 2: open the unread conversation ────────────────────────────────────
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Allow network roundtrip for mark_read PUT
+- waitForAnimationToEnd
+
+# Thread loaded — message list visible
+- assertVisible: "Type a message..."
+
+# ── Step 3: return to list; badge must be cleared ───────────────────────────
+- back
+- waitForAnimationToEnd
+
+- assertNotVisible:
+    id: "unread-badge-0"
+
+# ── Step 4: re-enter the same conversation (focus fires markRead again) ──────
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+
+# Still operational — no crash, input bar visible
+- assertVisible: "Type a message..."
+
+# ── Step 5: back to list — badge still absent (idempotent) ──────────────────
+- back
+- waitForAnimationToEnd
+
+- assertNotVisible:
+    id: "unread-badge-0"
+
+# ── Step 6: error state — closed conversation has no input bar ───────────────
+# (Skipped automatically if no closed conversation is available on device)

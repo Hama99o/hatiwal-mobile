@@ -56,6 +56,19 @@ export interface ConversationsResponse {
   };
 }
 
+/**
+ * Aggregates the total number of unread messages across all conversations.
+ *
+ * - Sums each conversation's `unreadCount` (treats undefined as 0).
+ * - Returns 0 for an empty list or when every conversation has no unread messages.
+ * - Caps the returned value at 99; conversations with a combined total above 99
+ *   return 99 so callers can display a "99+" badge label if desired.
+ */
+export function getUnreadTotal(conversations: Pick<Conversation, "unreadCount">[]): number {
+  const total = conversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+  return Math.min(total, 99);
+}
+
 export const conversationsAPI = {
   getConversations: async (params?: {
     pageNumber?: number;

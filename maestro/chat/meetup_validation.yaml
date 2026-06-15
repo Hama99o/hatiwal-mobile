@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# Meetup proposal validation — place and time are required
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Messages"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Propose Meetup"
+- waitForAnimationToEnd
+- assertVisible: "Propose a Meetup"
+# Try submitting empty form
+- tapOn: "Propose Meetup"
+- waitForAnimationToEnd
+- assertVisible: "Please enter a meeting place."
+# Fill place only
+- tapOn: "Where? (e.g. Shahr-e-Naw market)"
+- inputText: "Shahr-e-Naw"
+- tapOn: "Propose Meetup"
+- waitForAnimationToEnd
+- assertVisible: "Please enter a meeting time."
+# Fill time too
+- tapOn: "When? (e.g. Tomorrow 3pm)"
+- inputText: "Tomorrow at 3pm"
+- tapOn: "Propose Meetup"
+- waitForAnimationToEnd
+# Proposal sent
+- assertVisible: "Meetup proposal sent!"

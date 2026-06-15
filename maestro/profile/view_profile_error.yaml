@@ -1,0 +1,38 @@
+appId: com.hatiwal.app
+---
+# Profile screen — error state: first load with empty cache under airplane mode
+# triggers isError correctly in TanStack Query v5 (cached data would keep
+# status:'success' on refetch failure — so we must fail the very first fetch).
+#
+# retry:1 is configured in app/_layout.tsx — TQ retries once before settling to
+# error, so we use retryTimes/waitForAnimationToEnd to let the retry complete.
+
+- runFlow: ../_helpers/login.yaml
+
+# Enable airplane mode BEFORE opening Profile so the cache is cold.
+# The first fetch will fail (with one TQ retry), then isError becomes true.
+- setAirplaneMode:
+    value: true
+- waitForAnimationToEnd
+
+# Open Profile — first fetch attempts, retries once (retry:1), then fails
+- tapOn: "Profile"
+# Allow extra time for the retry + exponential backoff to complete
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+
+# Error state must be visible — errorTitle and errorDescription from common.json
+- assertVisible: "Something went wrong"
+- assertVisible: "We couldn't load the data. Check your connection and try again."
+- assertVisible: "Retry"
+
+# Re-enable network and tap Retry — should refetch and return to happy path
+- setAirplaneMode:
+    value: false
+- waitForAnimationToEnd
+- tapOn: "Retry"
+- waitForAnimationToEnd
+
+# Happy path restored after retry
+- assertVisible: "Profile"
+- assertVisible: "Sign Out"

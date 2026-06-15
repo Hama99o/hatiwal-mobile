@@ -20,7 +20,11 @@ interface UserIdentityProps {
   layout?: "row" | "stacked";
   /** Hide the name (avatar-only). */
   showName?: boolean;
+  /** Hide the avatar (name-only). Cleaner than passing size={0}. */
+  showAvatar?: boolean;
   onPress?: () => void;
+  /** testID forwarded to the pressable wrapper (when onPress is set) for E2E taps. */
+  testID?: string;
 }
 
 /**
@@ -38,7 +42,9 @@ export function UserIdentity({
   nameSize,
   layout = "row",
   showName = true,
+  showAvatar = true,
   onPress,
+  testID,
 }: UserIdentityProps) {
   const colors = useColors();
   const { isRtl } = useLocalization();
@@ -77,7 +83,7 @@ export function UserIdentity({
         gap: stacked ? 8 : 12,
       }}
     >
-      <UserAvatar name={name} avatarUrl={avatarUrl} size={size} />
+      {showAvatar && <UserAvatar name={name} avatarUrl={avatarUrl} size={size} />}
       {showName && (
         <View style={{ flex: stacked ? undefined : 1, gap: 2, alignItems: stacked ? "center" : undefined }}>
           {nameRow}
@@ -96,7 +102,7 @@ export function UserIdentity({
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={name}>
+      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={name} testID={testID}>
         {body}
       </Pressable>
     );

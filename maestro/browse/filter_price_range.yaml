@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# Filter listings by price range — min and max price
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+# Open filter sheet
+- tapOn: "Filters"
+- waitForAnimationToEnd
+# Set min price
+- tapOn: "Min Price"
+- inputText: "10000"
+# Set max price
+- tapOn: "Max Price"
+- inputText: "50000"
+# Apply filters
+- tapOn: "Apply filters to save search combinations"
+- waitForAnimationToEnd
+# Results show (may be empty or filtered)
+- assertVisible: "Browse"
+# Reset filters
+- tapOn: "Filters"
+- waitForAnimationToEnd
+- tapOn: "Reset filters"
+- waitForAnimationToEnd
+- assertVisible: "Browse"

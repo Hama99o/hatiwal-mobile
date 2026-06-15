@@ -1,0 +1,21 @@
+appId: com.hatiwal.app
+---
+# Dark mode: listing detail renders correctly — no white areas, text readable
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- tapOn: "Dark"
+- waitForAnimationToEnd
+- tapOn: "Browse"
+- waitForAnimationToEnd
+# Open a listing detail
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+- assertVisible: "Description"
+- scroll
+- assertVisible: "Seller"
+- back
+# Reset theme
+- tapOn: "Profile"
+- tapOn: "System"

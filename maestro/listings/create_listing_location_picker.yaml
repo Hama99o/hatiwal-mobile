@@ -1,0 +1,40 @@
+appId: com.hatiwal.app
+---
+# Create listing: open location picker, scroll, select Kandahar, verify on listing
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+
+- tapOn: "Title"
+- inputText: "Kandahar Location Test"
+
+- tapOn: "Price"
+- inputText: "3000"
+
+- tapOn: "Category"
+- waitForAnimationToEnd
+- tapOn: "Clothes"
+- waitForAnimationToEnd
+
+- tapOn: "Location"
+- waitForAnimationToEnd
+# Location sheet / picker opens
+- assertVisible: "Kabul"
+- assertVisible: "Kandahar"
+- tapOn: "Kandahar"
+- waitForAnimationToEnd
+
+# Location field shows Kandahar
+- assertVisible: "Kandahar"
+
+- tapOn: "Post Listing"
+- waitForAnimationToEnd
+- assertVisible: "Listing posted"
+
+# Open listing — location shown
+- tapOn: "Kandahar Location Test"
+- waitForAnimationToEnd
+- assertVisible: "Kandahar"

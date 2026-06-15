@@ -1,0 +1,63 @@
+appId: com.hatiwal.app
+---
+# Create listing: fill every field (title, desc, price, condition, category, location, photo)
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+# Photo first
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Cover"
+
+# Title
+- tapOn: "Title"
+- inputText: "Samsung Galaxy S22 Used"
+
+# Description
+- tapOn: "Description"
+- inputText: "Excellent condition, minor scratches on back. All accessories included."
+
+# Price
+- tapOn: "Price"
+- inputText: "18000"
+
+# Currency — default is AFN, switch to USD
+- tapOn: "AFN"
+- waitForAnimationToEnd
+- tapOn: "USD"
+- waitForAnimationToEnd
+
+# Category
+- tapOn: "Category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+# Condition
+- tapOn: "Used"
+- waitForAnimationToEnd
+
+# Location
+- tapOn: "Location"
+- waitForAnimationToEnd
+- tapOn: "Kabul"
+- waitForAnimationToEnd
+
+# Post listing
+- tapOn: "Post Listing"
+- waitForAnimationToEnd
+- assertVisible: "Listing posted"
+
+# Shows in My Listings
+- assertVisible: "Samsung Galaxy S22 Used"
+- assertVisible: "Active"

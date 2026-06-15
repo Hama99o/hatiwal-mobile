@@ -1,0 +1,17 @@
+appId: com.hatiwal.app
+---
+# Seller profile with no listings: shows "No listings yet" empty state
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+
+# Navigate to a seller whose profile has 0 listings
+- tapOn:
+    id: "seller-name"
+- waitForAnimationToEnd
+- assertVisible: "Seller Profile"
+- assertVisible: "No listings yet"

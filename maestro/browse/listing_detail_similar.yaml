@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# Listing detail — similar listings rail shows + tapping one opens that listing
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Scroll down to the similar listings section
+- scroll
+- scroll
+- waitForAnimationToEnd
+- assertVisible: "Similar Listings"
+# Tap the first similar listing card
+- tapOn:
+    id: "similar-listing"
+    index: 0
+- waitForAnimationToEnd
+# Opens a new listing detail — verify we're on a detail screen
+- assertVisible: "Message Seller"
+- assertVisible: "Description"
+# Back returns to original listing detail
+- back
+- waitForAnimationToEnd
+- assertVisible: "Similar Listings"

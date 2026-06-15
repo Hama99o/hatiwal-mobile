@@ -1,0 +1,21 @@
+appId: com.hatiwal.app
+---
+# Edit profile — change avatar photo
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Edit Profile"
+- waitForAnimationToEnd
+- assertVisible: "Edit Profile"
+# Tap the avatar to change it
+- tapOn:
+    id: "avatar-picker"
+- waitForAnimationToEnd
+# Photo picker sheet opens with Gallery/Camera options
+- assertVisible: "Gallery"
+- assertVisible: "Camera"
+# Dismiss without picking
+- tapOn: "Cancel"
+- waitForAnimationToEnd
+- assertVisible: "Edit Profile"

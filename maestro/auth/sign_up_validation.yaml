@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# Validation: required fields, password mismatch
+
+- launchApp:
+    clearState: true
+- tapOn: "Create Account"
+- assertVisible: "Create Account"
+
+# Submit empty form
+- tapOn: "Create Account"
+- assertVisible: "is required"
+
+# Fill first + last name only, submit — still missing email/password
+- tapOn: "First Name"
+- inputText: "Ahmad"
+- tapOn: "Last Name"
+- inputText: "Karimi"
+- tapOn: "Create Account"
+- assertVisible: "is required"
+
+# Fill email + mismatched passwords
+- tapOn: "Email"
+- inputText: "test@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Confirm Password"
+- inputText: "DifferentPass!"
+- tapOn: "Create Account"
+- assertVisible: "Passwords do not match"

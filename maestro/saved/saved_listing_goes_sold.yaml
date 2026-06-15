@@ -1,0 +1,45 @@
+appId: com.hatiwal.app
+---
+# Buyer saves a listing → seller marks it sold →
+# Buyer checks saved tab → listing shows "Sold" badge
+
+# ── Buyer saves the listing ───────────────────────────────────────────────────
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+# Open first active listing
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Save it
+- tapOn:
+    id: "save-button"
+- waitForAnimationToEnd
+# Note the listing title for later assertion
+- tapOn: "Browse"
+- waitForAnimationToEnd
+
+# ── Seller marks it sold ──────────────────────────────────────────────────────
+- launchApp:
+    clearState: false
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Active"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Mark as Reserved"
+- waitForAnimationToEnd
+- tapOn: "Mark as Sold"
+- waitForAnimationToEnd
+- assertVisible: "Sold"
+
+# ── Buyer checks saved tab — listing shows Sold ───────────────────────────────
+- launchApp:
+    clearState: false
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Saved"
+- waitForAnimationToEnd
+- assertVisible: "Sold"

@@ -1,0 +1,21 @@
+appId: com.hatiwal.app
+---
+# Filter by category — bottom sheet opens, selection filters feed, clear resets
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+# Open filter panel
+- tapOn: "Filters"
+- waitForAnimationToEnd
+# Bottom sheet visible
+- assertVisible: "All Categories"
+# Select a category (Electronics is common — adjust if seeded differently)
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Apply filters to save search combinations"
+- waitForAnimationToEnd
+# Category chip is shown as active
+- assertVisible: "Electronics"
+# Clear filter — full feed returns
+- tapOn: "All"
+- waitForAnimationToEnd

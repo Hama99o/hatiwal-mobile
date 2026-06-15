@@ -1,0 +1,24 @@
+appId: com.hatiwal.app
+---
+# Search filters listings, clear returns full feed, no-results shows empty state
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+# Type in search bar
+- tapOn: "Search listings..."
+- inputText: "phone"
+- waitForAnimationToEnd
+# Results visible
+- assertVisible: "Browse"
+# Clear search — full feed returns
+- clearText
+- waitForAnimationToEnd
+- assertVisible: "Browse"
+# Search with no results
+- inputText: "xzxzxzxz_no_results_xzxzxz"
+- waitForAnimationToEnd
+- assertVisible: "No listings found"
+# Tap clear / reset
+- tapOn: "Reset filters"
+- waitForAnimationToEnd
+- assertNotVisible: "No listings found"

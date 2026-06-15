@@ -2,48 +2,98 @@ import { View } from "react-native";
 import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
-import { useColorScheme } from "nativewind";
 
 export type ListingStatus = "draft" | "active" | "reserved" | "sold";
 
 interface StatusBadgeProps {
   status: ListingStatus;
-  className?: string;
+  /**
+   * overlay — renders as a full-width strip pinned to the bottom of a
+   * thumbnail container. The parent must have `position: relative` /
+   * `overflow: hidden`. Used in ConversationRow and ListingCard overlays.
+   */
+  overlay?: boolean;
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+/**
+ * StatusBadge — maps listing status to semantic color tokens from useColors().
+ *
+ * Token mapping (from DESIGN_SYSTEM.md §2):
+ *   draft    → muted / mutedForeground  (grey — not yet published)
+ *   active   → successAlpha bg / success text  (green — live)
+ *   reserved → warningAlpha bg / warning text  (amber — held for buyer)
+ *   sold     → secondary / secondaryForeground  (grey — archived)
+ *
+ * overlay mode:
+ *   sold     → colors.overlay (translucent black, rgba(0,0,0,0.5))
+ *   reserved → colors.reservedOverlay (translucent amber, rgba(180,83,9,0.85))
+ */
+export function StatusBadge({ status, overlay = false }: StatusBadgeProps) {
   const { t } = useTranslation();
   const colors = useColors();
-  const { colorScheme } = useColorScheme();
-  const dark = colorScheme === "dark";
 
-  const bg = {
-    draft: colors.muted,
-    active: dark ? "rgba(20,83,45,0.9)" : "rgba(220,252,231,0.9)",
-    reserved: dark ? "rgba(120,53,15,0.9)" : "rgba(254,243,199,0.9)",
-    sold: colors.secondary,
-  }[status];
+  if (overlay) {
+    // Only relevant for sold / reserved — do not render for draft / active
+    if (status !== "sold" && status !== "reserved") return null;
 
-  const textColor = {
-    draft: colors.mutedForeground,
-    active: dark ? "#86efac" : "#15803d",
-    reserved: dark ? "#fcd34d" : "#92400e",
-    sold: colors.secondaryForeground,
-  }[status];
+    const bgColor =
+      status === "sold" ? colors.overlay : colors.reservedOverlay;
+
+    return (
+      <View
+        style={{
+          position:        "absolute",
+          bottom:          0,
+          left:            0,
+          right:           0,
+          backgroundColor: bgColor,
+          paddingVertical: 2,
+          alignItems:      "center",
+        }}
+        accessibilityRole="text"
+      >
+        <Text
+          style={{
+            fontSize:      9,
+            fontWeight:    "800",
+            color:         colors.primaryForeground,
+            letterSpacing: 0.5,
+          }}
+        >
+          {t(`listing.status.${status}`).toUpperCase()}
+        </Text>
+      </View>
+    );
+  }
+
+  // All colors from semantic useColors() tokens — theme-aware, no raw palette classes.
+  const bg: Record<ListingStatus, string> = {
+    draft:    colors.muted,
+    active:   colors.successAlpha,
+    reserved: colors.warningAlpha,
+    sold:     colors.secondary,
+  };
+
+  const textColor: Record<ListingStatus, string> = {
+    draft:    colors.mutedForeground,
+    active:   colors.success,
+    reserved: colors.warning,
+    sold:     colors.secondaryForeground,
+  };
 
   return (
     <View
       style={{
-        backgroundColor: bg,
-        borderRadius: 999,
+        backgroundColor:  bg[status],
+        borderRadius:     999,
         paddingHorizontal: 8,
-        paddingVertical: 2,
-        alignSelf: "flex-start",
+        paddingVertical:  2,
+        alignSelf:        "flex-start",
       }}
       accessibilityRole="text"
     >
       <Text
-        style={{ color: textColor, fontSize: 11, fontWeight: "600" }}
+        style={{ color: textColor[status], fontSize: 11, fontWeight: "600" }}
         numberOfLines={1}
       >
         {t(`listing.status.${status}`)}

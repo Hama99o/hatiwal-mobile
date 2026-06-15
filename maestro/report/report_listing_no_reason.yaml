@@ -1,0 +1,14 @@
+appId: com.hatiwal.app
+---
+# Report validation — submit without selecting a reason shows error
+
+- runFlow: ../_helpers/login.yaml
+- waitForAnimationToEnd
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- tapOn: "Report"
+- waitForAnimationToEnd
+- assertVisible: "Why are you reporting this?"
+# Submit without selecting reason
+- tapOn: "Submit Report"
+- assertVisible: "Please select a reason."

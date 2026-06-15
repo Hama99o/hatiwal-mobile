@@ -1,0 +1,28 @@
+appId: com.hatiwal.app
+---
+# Send offer in existing thread (thread already has messages)
+
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+
+# Open existing conversation
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Chat"
+
+# Existing messages present
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- assertVisible: "Send Offer"
+- tapOn: "Offer Amount"
+- inputText: "15000"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+
+# Offer bubble appears in thread
+- assertVisible: "15,000"
+- assertVisible: "Offer"
+- assertVisible: "Pending"

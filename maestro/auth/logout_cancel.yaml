@@ -1,0 +1,12 @@
+appId: com.hatiwal.app
+---
+# Cancel logout — user stays logged in
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- tapOn: "Sign Out"
+- assertVisible: "Are you sure you want to sign out?"
+- tapOn: "Cancel"
+# Still on Profile, still logged in
+- assertVisible: "Sign Out"
+- assertNotVisible: "Sign In"

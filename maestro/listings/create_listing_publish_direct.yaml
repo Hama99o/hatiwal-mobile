@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# Create listing and publish directly (not save as draft)
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+# Fill required fields
+- tapOn: "What are you selling?"
+- inputText: "Samsung Galaxy S22"
+- tapOn: "Enter price"
+- inputText: "35000"
+# Select category
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+# Fill description
+- tapOn: "Describe your item..."
+- inputText: "Excellent condition, comes with box and charger."
+# Select condition
+- tapOn: "Like new"
+# Publish directly
+- tapOn: "Publish"
+- waitForAnimationToEnd
+# Back to My Listings — listing appears as Active
+- assertVisible: "My Listings"
+- assertVisible: "Samsung Galaxy S22"
+- assertVisible: "Active"

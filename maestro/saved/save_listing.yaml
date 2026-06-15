@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# Save a listing from browse — appears in Saved tab
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+# Open a listing detail
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+# Tap save heart
+- tapOn: "Save listing"
+- waitForAnimationToEnd
+# Go to Saved tab
+- back
+- tapOn: "Saved"
+- waitForAnimationToEnd
+# Listing is saved
+- assertNotVisible: "No saved items yet"

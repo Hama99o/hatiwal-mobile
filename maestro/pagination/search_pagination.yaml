@@ -1,0 +1,26 @@
+appId: com.hatiwal.app
+---
+# Search: results load, scroll to bottom loads next page
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+
+# Search for something common
+- tapOn: "Search listings..."
+- inputText: "phone"
+- waitForAnimationToEnd
+
+# Scroll through results
+- scroll
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+
+# Results still visible
+- assertVisible: "Browse"
+
+# Clear search
+- tapOn: "Search listings..."
+- clearText
+- waitForAnimationToEnd

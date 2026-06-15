@@ -1,8 +1,8 @@
 import React from "react";
-import { TouchableOpacity } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
+import { Text } from "@/components/reusables/text";
 import { X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
-import { Text } from "@/components/reusables/text";
 import type { SavedSearch } from "@/api/saved-searches";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -18,10 +18,8 @@ export function SavedSearchItem({ search, onPress, onDelete }: SavedSearchItemPr
   const { isRtl } = useLocalization();
   const { t } = useTranslation();
 
-  // Build filter summary
   const parts: string[] = [];
   if (search.locationBased && search.radius) {
-    // Map-based search — show the radius rather than raw "lat, lng".
     parts.push(t("browse.withinRadius", { km: search.radius }));
   } else if (search.location) {
     parts.push(search.location);
@@ -36,41 +34,52 @@ export function SavedSearchItem({ search, onPress, onDelete }: SavedSearchItemPr
   const summary = parts.join(" • ");
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
-      activeOpacity={0.7}
-      style={{
-        flexDirection: isRtl ? "row-reverse" : "row",
-        alignItems: "center",
-        gap: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        backgroundColor: colors.secondary,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: colors.border,
-        maxWidth: "85%",
-      }}
+      android_ripple={{ color: colors.muted, borderless: false }}
+      style={[
+        styles.chip,
+        {
+          flexDirection:   isRtl ? "row-reverse" : "row",
+          backgroundColor: colors.secondary,
+          borderColor:     colors.border,
+        },
+      ]}
     >
       <Text
-        style={{
-          fontSize: 13,
-          fontWeight: "500",
-          color: colors.foreground,
-          flex: 1,
-          textAlign: isRtl ? "right" : "left",
-        }}
+        style={[styles.label, { color: colors.foreground, textAlign: isRtl ? "right" : "left" }]}
         numberOfLines={1}
       >
         {summary || t("browse.savedSearch")}
       </Text>
-      <TouchableOpacity
+      <Pressable
         onPress={onDelete}
         hitSlop={8}
-        style={{ padding: 4 }}
+        style={styles.deleteBtn}
       >
         <X size={14} color={colors.mutedForeground} />
-      </TouchableOpacity>
-    </TouchableOpacity>
+      </Pressable>
+    </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  chip: {
+    alignItems:      "center",
+    gap:             8,
+    paddingHorizontal: 12,
+    paddingVertical:   8,
+    borderRadius:    20,
+    borderWidth:     1,
+    maxWidth:        240,
+  },
+  label: {
+    fontSize:   13,
+    fontWeight: "500",
+    flexShrink: 1,
+    maxWidth:   180,
+  },
+  deleteBtn: {
+    padding: 4,
+  },
+});

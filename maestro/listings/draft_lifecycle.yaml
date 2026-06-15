@@ -1,0 +1,51 @@
+appId: com.hatiwal.app
+---
+# Full draft lifecycle: draft → publish → reserve → sold → back to active (deal fell through)
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+
+- tapOn: "Title"
+- inputText: "Lifecycle Test Item"
+- tapOn: "Price"
+- inputText: "2500"
+- tapOn: "Category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+# 1) Save as draft
+- tapOn: "Save as Draft"
+- waitForAnimationToEnd
+- assertVisible: "Saved as draft"
+
+# 2) Publish from draft
+- tapOn: "Drafts"
+- waitForAnimationToEnd
+- tapOn: "Lifecycle Test Item"
+- waitForAnimationToEnd
+- tapOn: "Publish"
+- waitForAnimationToEnd
+- assertVisible: "Listing posted"
+
+# 3) Mark as Reserved
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Lifecycle Test Item"
+- waitForAnimationToEnd
+- tapOn: "Mark as Reserved"
+- waitForAnimationToEnd
+- assertVisible: "Reserved"
+
+# 4) Mark as Sold
+- tapOn: "Mark as Sold"
+- waitForAnimationToEnd
+- assertVisible: "Sold"
+
+# 5) Reactivate — deal fell through
+- tapOn: "Reactivate"
+- waitForAnimationToEnd
+- assertVisible: "Active"

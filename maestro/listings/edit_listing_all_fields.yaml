@@ -1,0 +1,48 @@
+appId: com.hatiwal.app
+---
+# Edit listing: update title, description, price, condition, category — all persisted
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Open edit on first listing
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+
+# Update title
+- tapOn: "Title"
+- clearText
+- inputText: "Updated Title Deep Test"
+
+# Update description
+- tapOn: "Description"
+- clearText
+- inputText: "Updated description for deep test."
+
+# Update price
+- tapOn: "Price"
+- clearText
+- inputText: "99000"
+
+# Change condition
+- tapOn: "Like New"
+- waitForAnimationToEnd
+
+# Change category
+- tapOn: "Category"
+- waitForAnimationToEnd
+- tapOn: "Vehicles"
+- waitForAnimationToEnd
+
+# Save
+- tapOn: "Save Changes"
+- waitForAnimationToEnd
+- assertVisible: "Changes saved"
+
+# Verify on detail
+- assertVisible: "Updated Title Deep Test"
+- assertVisible: "Updated description for deep test."
+- assertVisible: "99,000"
+- assertVisible: "Like New"
+- assertVisible: "Vehicles"

@@ -1,0 +1,25 @@
+appId: com.hatiwal.app
+---
+# Edit listing — discard unsaved changes via confirm dialog
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Open edit for the first active listing
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+# Make a change
+- tapOn: "What are you selling?"
+- clearText
+- inputText: "Changed Title"
+# Try to go back — discard dialog should appear
+- back
+- waitForAnimationToEnd
+- assertVisible: "Discard changes?"
+- assertVisible: "Your unsaved changes will be lost."
+# Confirm discard
+- tapOn: "Discard"
+- waitForAnimationToEnd
+# Back to My Listings — no changes saved
+- assertVisible: "My Listings"

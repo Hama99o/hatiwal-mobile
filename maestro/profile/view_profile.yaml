@@ -1,0 +1,20 @@
+appId: com.hatiwal.app
+---
+# Profile screen — happy path: avatar, name, mode toggle, settings sections, sign out
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+
+# Profile tab is rendered
+- assertVisible: "Profile"
+
+# Settings sections present
+- assertVisible: "Appearance"
+- assertVisible: "Language"
+
+# Sign out is present (subdued ghost button at the bottom)
+- assertVisible: "Sign Out"
+
+# Edit Profile link visible
+- assertVisible: "Edit Profile"

@@ -1,0 +1,95 @@
+appId: com.hatiwal.app
+---
+# Full cross-account marketplace cycle:
+# Seller creates + publishes listing → Buyer finds it, saves it, messages seller →
+# Seller accepts offer → Seller marks reserved → Seller marks sold →
+# Buyer checks saved tab → listing shows as Sold
+
+# ── Step 1: Seller creates and publishes a listing ───────────────────────────
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- tapOn: "Title"
+- inputText: "Marketplace Cycle Phone"
+- tapOn: "Price"
+- inputText: "3500"
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Publish"
+- waitForAnimationToEnd
+- assertVisible: "Listing posted"
+
+# ── Step 2: Buyer finds the listing and saves it ─────────────────────────────
+- launchApp:
+    clearState: false
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn: "Search"
+- inputText: "Marketplace Cycle Phone"
+- waitForAnimationToEnd
+- tapOn: "Marketplace Cycle Phone"
+- waitForAnimationToEnd
+- assertVisible: "Marketplace Cycle Phone"
+- assertVisible: "3,500"
+# Save it
+- tapOn:
+    id: "save-button"
+- waitForAnimationToEnd
+# Verify in Saved tab
+- tapOn: "Saved"
+- waitForAnimationToEnd
+- assertVisible: "Marketplace Cycle Phone"
+
+# ── Step 3: Buyer messages seller + makes an offer ───────────────────────────
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn: "Marketplace Cycle Phone"
+- waitForAnimationToEnd
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- tapOn: "Your offer price"
+- inputText: "3000"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+- assertVisible: "3,000"
+
+# ── Step 4: Seller accepts the offer ─────────────────────────────────────────
+- launchApp:
+    clearState: false
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "Chat"
+- waitForAnimationToEnd
+- tapOn: "Marketplace Cycle Phone"
+- waitForAnimationToEnd
+- assertVisible: "3,000"
+- tapOn: "Accept"
+- waitForAnimationToEnd
+- assertVisible: "Offer accepted"
+
+# ── Step 5: Seller marks listing reserved then sold ──────────────────────────
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Marketplace Cycle Phone"
+- waitForAnimationToEnd
+- tapOn: "Mark as Reserved"
+- waitForAnimationToEnd
+- assertVisible: "Reserved"
+- tapOn: "Mark as Sold"
+- waitForAnimationToEnd
+- assertVisible: "Sold"
+
+# ── Step 6: Buyer checks saved tab — listing shows Sold ──────────────────────
+- launchApp:
+    clearState: false
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Saved"
+- waitForAnimationToEnd
+- assertVisible: "Marketplace Cycle Phone"
+- assertVisible: "Sold"

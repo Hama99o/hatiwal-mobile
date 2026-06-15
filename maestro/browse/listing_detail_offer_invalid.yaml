@@ -1,0 +1,22 @@
+appId: com.hatiwal.app
+---
+# Offer validation — empty amount or zero shows inline error
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+# Try sending with empty offer
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+- assertVisible: "Enter a valid amount"
+# Try with 0
+- tapOn: "Your offer"
+- clearText
+- inputText: "0"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+- assertVisible: "Enter a valid amount"

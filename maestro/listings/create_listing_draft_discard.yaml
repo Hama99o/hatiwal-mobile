@@ -1,0 +1,24 @@
+appId: com.hatiwal.app
+---
+# Create listing: tap back mid-way → discard dialog → confirm discard → not in My Listings
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "Title"
+- inputText: "Should Not Be Saved"
+
+- back
+- waitForAnimationToEnd
+# Discard confirmation dialog
+- assertVisible: "Discard listing?"
+- tapOn: "Discard"
+- waitForAnimationToEnd
+
+# Listing not created
+- assertVisible: "My Listings"
+- assertNotVisible: "Should Not Be Saved"

@@ -1,0 +1,17 @@
+appId: com.hatiwal.app
+---
+# Search with no results — shows empty state
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+- tapOn: "Search listings..."
+- inputText: "xyznonexistentitem99999"
+- waitForAnimationToEnd
+- assertVisible: "No listings found"
+# Clear search
+- tapOn: "Search listings..."
+- clearText
+- waitForAnimationToEnd
+# Feed reappears
+- assertVisible: "Browse"

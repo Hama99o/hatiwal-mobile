@@ -1,22 +1,16 @@
 import "../src/styles/global.css";
 import "../src/i18n";
 
-// Polyfill for Expo Go - provide fallback for gesture handler module
-if (typeof global !== 'undefined' && !global.RNGestureHandlerModule) {
-  global.RNGestureHandlerModule = {
-    default: {
-      installUIRuntimeBindings: () => {}, // No-op for Expo Go
-    },
-  };
-}
-
 import { useEffect, useState } from "react";
-import { Platform, View } from "react-native";
+import { View, useColorScheme } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { useThemeStore, loadSavedTheme } from "@/stores/theme.store";
+// @ts-ignore — module is installed in Docker container; not resolvable on host
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useColorScheme } from "nativewind";
 import { Toaster } from "sonner-native";
-import { useThemeStore, loadSavedTheme } from "@/stores/theme.store";
 import { bootstrapAuth } from "@/stores/auth.bootstrap";
 
 const queryClient = new QueryClient({
@@ -25,36 +19,22 @@ const queryClient = new QueryClient({
   },
 });
 
-function ThemeManager({ onReady }: { onReady: () => void }) {
+function ThemedStatusBar() {
   const theme = useThemeStore((s) => s.theme);
-  const [loaded, setLoaded] = useState(false);
-  const { colorScheme, setColorScheme } = Platform.OS === "web" ? useColorScheme() : { colorScheme: theme, setColorScheme: () => {} };
+  const osScheme = useColorScheme();
+  const isDark = theme === "system" ? osScheme === "dark" : theme === "dark";
+  return <StatusBar style={isDark ? "light" : "dark"} translucent />;
+}
 
-  // Load saved theme once on mount
+function ThemeManager({ onReady }: { onReady: () => void }) {
+  const [loaded, setLoaded] = useState(false);
+
   useEffect(() => {
     loadSavedTheme().finally(() => setLoaded(true));
   }, []);
 
-  // On web: Apply stored preference to NativeWind's color scheme engine
   useEffect(() => {
-    if (Platform.OS !== "web" || !loaded) return;
-    setColorScheme(theme);
-  }, [theme, setColorScheme, loaded]);
-
-  // On web: Sync `dark` class on <html> for CSS custom property cascade
-  useEffect(() => {
-    if (Platform.OS !== "web" || typeof document === "undefined") return;
-    if (colorScheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
     if (loaded) onReady();
-  }, [colorScheme, loaded]);
-
-  // On native, signal ready as soon as loaded (we use useColors() hook, not CSS classes)
-  useEffect(() => {
-    if (loaded && Platform.OS !== "web") onReady();
   }, [loaded]);
 
   return null;
@@ -74,16 +54,26 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeManager onReady={() => setThemeReady(true)} />
-      {/* Hide everything until theme is resolved to avoid flash of wrong colors */}
-      <View style={{ flex: 1, opacity: ready ? 1 : 0 }}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(main)" />
-        </Stack>
-        <Toaster position="top-center" richColors />
-      </View>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* SafeAreaProvider MUST wrap the app — every screen's useSafeAreaInsets()
+          (tab bar, headers, sheets, footers) returns zeros without it, which
+          silently disables all notch / home-indicator spacing. */}
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        {/* StatusBar — reads the app's own theme store (not just system scheme)
+            so icons are correct even when the user has overridden light/dark. */}
+        <ThemedStatusBar />
+        <QueryClientProvider client={queryClient}>
+          <ThemeManager onReady={() => setThemeReady(true)} />
+          {/* Hide everything until theme is resolved to avoid flash of wrong colors */}
+          <View style={{ flex: 1, opacity: ready ? 1 : 0 }}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(main)" />
+            </Stack>
+            <Toaster position="top-center" richColors />
+          </View>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -1,4 +1,5 @@
 {
+  "appName": "Hatiwal",
   "save": "ذخیره",
   "cancel": "لغو",
   "delete": "حذف",
@@ -7,6 +8,8 @@
   "back": "بازگشت",
   "loading": "در حال بارگذاری...",
   "error": "خطا",
+  "errorTitle": "مشکلی پیش آمد",
+  "errorDescription": "بارگذاری اطلاعات امکان‌پذیر نبود. اتصال اینترنت خود را بررسی کنید و دوباره تلاش کنید.",
   "success": "موفقیت",
   "confirmDelete": "تأیید حذف",
   "confirmDeleteDescription": "این عمل قابل بازگشت نیست.",
@@ -41,7 +44,8 @@
   "retry": "تلاش مجدد",
   "notFound": "یافت نشد",
   "required": "الزامی است",
+  "comingSoon": "به زودی",
   "splash": {
-    "validating": "در حال بارگذاری…"
+    "validating": "در حال بررسی نشست شما…"
   }
 }

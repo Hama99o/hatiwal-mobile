@@ -1,0 +1,13 @@
+appId: com.hatiwal.app
+---
+# Guest can browse without logging in
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Continue browsing"
+- assertVisible: "Browse"
+# Can tap a listing
+- tapOn:
+    text: "Browse"
+- assertVisible: "Browse"

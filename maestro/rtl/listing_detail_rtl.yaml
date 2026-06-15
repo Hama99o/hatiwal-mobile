@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# Listing detail in RTL (Pashto) — all elements visible, layout correct
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Pashto (پښتو)"
+- waitForAnimationToEnd
+# Verify RTL is active — back to browse
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Open a listing detail
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Core elements visible in Pashto
+- assertVisible: "د پلورونکي سره اړیکه"
+# Scroll to see seller section
+- scroll
+- waitForAnimationToEnd
+# Reset to English
+- back
+- waitForAnimationToEnd
+- tapOn:
+    index: 4
+- waitForAnimationToEnd
+- tapOn: "English"
+- waitForAnimationToEnd

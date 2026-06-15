@@ -1,0 +1,20 @@
+appId: com.hatiwal.app
+---
+# Long message: 500+ characters wraps correctly in bubble, does not overflow
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Message Seller"
+- waitForAnimationToEnd
+
+- tapOn: "Type a message..."
+- inputText: "Hello, I am very interested in this item. I have been looking for something exactly like this for a long time. Could you please tell me more about its condition, how long you have had it, and whether you are willing to negotiate on the price? I can meet in Kabul any day this week, morning or afternoon. Please let me know what works best for you. Thank you so much!"
+- tapOn: "Send"
+- waitForAnimationToEnd
+
+# Long message visible, not clipped or overflowing
+- assertVisible: "Hello, I am very interested"

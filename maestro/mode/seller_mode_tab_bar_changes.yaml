@@ -1,0 +1,25 @@
+appId: com.hatiwal.app
+---
+# Switch to seller mode: tab bar shows "My Listings" instead of "Browse"
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+
+# Switch to seller mode via banner
+- tapOn:
+    id: "mode-switcher-banner"
+- waitForAnimationToEnd
+- assertVisible: "Switch to Seller Mode"
+- tapOn: "Switch"
+- waitForAnimationToEnd
+
+# Tab bar changed — My Listings visible, Browse hidden or de-emphasized
+- assertVisible: "My Listings"
+
+# Switch back to buyer mode
+- tapOn:
+    id: "mode-switcher-banner"
+- waitForAnimationToEnd
+- tapOn: "Switch to Buyer Mode"
+- waitForAnimationToEnd
+- assertVisible: "Browse"

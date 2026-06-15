@@ -11,7 +11,10 @@ interface PriceTagProps {
   className?: string;
 }
 
-const fontSize: Record<PriceTagSize, number> = { lg: 20, md: 16, sm: 14 };
+// lg: hero price on Listing Detail (24sp — most prominent text after the photo)
+// md: price in Browse card (17sp — dominant within card body)
+// sm: secondary surfaces (chat header, similar listings)
+const fontSize: Record<PriceTagSize, number> = { lg: 24, md: 17, sm: 13 };
 const fontWeight: Record<PriceTagSize, "700" | "600"> = { lg: "700", md: "700", sm: "600" };
 
 export function PriceTag({ price, currency = "AFN", size = "md" }: PriceTagProps) {

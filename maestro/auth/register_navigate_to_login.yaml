@@ -1,0 +1,15 @@
+appId: com.hatiwal.app
+---
+# From register screen: tap "Already have an account?" → lands on login screen
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Create Account"
+- waitForAnimationToEnd
+- assertVisible: "Create Account"
+- tapOn: "Already have an account?"
+- waitForAnimationToEnd
+- assertVisible: "Sign In"
+- assertVisible: "Create account"

@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# Chat thread — scroll to top loads older messages (page 2+).
+# Requires a seeded conversation with more than 30 messages (one full page).
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chat"
+- waitForAnimationToEnd
+# Open the conversation that has the most messages (index 0 = most recent)
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+# Note a message visible near the bottom (newest)
+# Scroll all the way to the top — triggers page 2 load
+- scrollUntilVisible:
+    element:
+      id: "messages-list-top"
+    direction: UP
+    timeout: 10000
+- waitForAnimationToEnd
+# Loading indicator may briefly appear at the top
+# Older messages should now be visible above the original ones
+# Verify we can still scroll back down to the most recent messages
+- scroll
+- scroll
+- assertVisible: "Type a message..."

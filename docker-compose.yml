@@ -1,10 +1,6 @@
 # =============================================================================
 # hatiwal-mobile — Development
 #
-# WEB  (Chrome on same machine, works OFFLINE — no WiFi needed):
-#   docker compose up web
-#   → open http://localhost:3008
-#
 # MOBILE (Expo Go on phone — requires WiFi, same network as your machine):
 #   HOST_IP=192.168.1.xx docker compose up mobile
 #   → scan QR code with Expo Go
@@ -25,29 +21,6 @@ x-base: &base
     - "host.docker.internal:host-gateway"
 
 services:
-  # ── Web ──────────────────────────────────────────────────────────────────
-  # Opens at http://localhost:3008 in your browser.
-  # Works fully OFFLINE — no WiFi required.
-  #
-  # EXPO_PUBLIC_API_URL=localhost:3007 because the JS bundle runs in the
-  # BROWSER on your host machine — not inside Docker. The browser can reach
-  # Rails at localhost:3007 (host port-mapped by hatiwal-api docker-compose).
-  web:
-    <<: *base
-    environment:
-      - EXPO_PUBLIC_API_URL=http://localhost:3007/api/v1
-      # Dedicated ActionCable server (hatiwal-api `cable` service on host port 3098).
-      # Browser runs on the host, so localhost reaches the mapped host port.
-      - EXPO_PUBLIC_CABLE_URL=ws://localhost:3098/hatiwal-cable
-      - EXPO_PUBLIC_APP_NAME=Hatiwal
-      - EXPO_PUBLIC_DEFAULT_LANG=en
-      - EXPO_PUBLIC_DEFAULT_THEME=system
-      - EXPO_NO_TELEMETRY=1
-      - EXPO_NO_DOCTOR=1
-    ports:
-      - "3008:3008"
-    command: ["npx", "expo", "start", "--web", "--port", "3008", "--offline"]
-
   # ── Mobile (Expo Go on phone) ─────────────────────────────────────────────
   # Requires HOST_IP set to your machine's LAN/hotspot IP so the phone can reach it.
   # Example: HOST_IP=192.168.1.23 docker compose up mobile
@@ -70,4 +43,7 @@ services:
       # The legacy 19000-19002 ports (Expo SDK ≤48) are unused here and were
       # colliding with other Expo projects on this machine — removed.
       - "3008:3008"
-    command: ["npx", "expo", "start", "--port", "3008"]
+    # --clear wipes Metro's cache on start. The cache lives in the node_modules
+    # volume, which survives `docker compose down`, so without this a stale JS
+    # bundle keeps getting served to Expo Go even after restarts/dep changes.
+    command: ["npx", "expo", "start", "--port", "3008", "--clear"]

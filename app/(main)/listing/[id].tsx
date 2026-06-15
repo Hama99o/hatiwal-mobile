@@ -1,3 +1,3 @@
-import ListingDetailScreen from "@/screens/buyer/ListingDetail";
+import ListingDetailScreen from "@/screens/shared/ListingDetail";
 
 export default ListingDetailScreen;

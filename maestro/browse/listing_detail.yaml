@@ -1,0 +1,20 @@
+appId: com.hatiwal.app
+---
+# Listing detail: photos, price, description, seller, contact button all visible
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+# Tap first listing card
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+# Verify detail screen elements
+- assertVisible: "Message Seller"
+- assertVisible: "Description"
+- assertVisible: "Seller"
+# Scroll down to see more
+- scroll
+- assertVisible: "Location"
+# Back to browse
+- back
+- assertVisible: "Browse"

@@ -34,5 +34,17 @@
   "locationDenied": "Location access is blocked. Allow location for this site (tap the lock/location icon in the address bar on web, or enable it in Settings), then try again.",
   "locationUnavailable": "Couldn't determine your location. Please try again.",
   "locationTimeout": "Location request timed out. Please try again.",
-  "locationUnsupported": "Location isn't available on this device."
+  "locationUnsupported": "Location isn't available on this device.",
+  "recentSearches": "Recent searches",
+  "clearHistory": "Clear all",
+  "resetFilters": "Reset filters",
+  "viewGrid": "Grid view",
+  "viewList": "List view",
+  "sort": {
+    "label": "Sort",
+    "newest": "Newest first",
+    "oldest": "Oldest first",
+    "priceAsc": "Price: low to high",
+    "priceDesc": "Price: high to low"
+  }
 }

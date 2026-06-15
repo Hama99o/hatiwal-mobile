@@ -1,6 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import { I18nManager, Platform } from "react-native";
+import { I18nManager } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authAPI } from "@/api/auth";
 import { enTranslations } from "./en";
@@ -40,15 +40,8 @@ export function isRtlLanguage(lang: string): boolean {
 
 function applyDirection(lang: string) {
   const rtl = isRtlLanguage(lang);
-  if (Platform.OS === "web") {
-    if (typeof document !== "undefined") {
-      document.documentElement.dir = rtl ? "rtl" : "ltr";
-      document.documentElement.lang = lang;
-    }
-  } else {
-    I18nManager.allowRTL(rtl);
-    I18nManager.forceRTL(rtl);
-  }
+  I18nManager.allowRTL(rtl);
+  I18nManager.forceRTL(rtl);
 }
 
 // Apply direction for the initial language.

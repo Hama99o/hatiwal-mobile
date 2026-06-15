@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# Save and unsave a listing from the detail page
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+# Open a listing detail
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+# Save the listing via the heart button
+- tapOn:
+    id: "save-toggle-button"
+- waitForAnimationToEnd
+# Navigate to Saved tab to confirm it's there
+- tapOn: "Saved"
+- waitForAnimationToEnd
+- assertVisible: "Saved"
+# Go back to Browse and re-open the listing
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+# Unsave it
+- tapOn:
+    id: "save-toggle-button"
+- waitForAnimationToEnd
+# Navigate to Saved — should be empty now
+- tapOn: "Saved"
+- waitForAnimationToEnd
+- assertVisible: "No saved items yet"

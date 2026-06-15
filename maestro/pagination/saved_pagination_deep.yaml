@@ -1,0 +1,21 @@
+appId: com.hatiwal.app
+---
+# Saved: scroll to bottom loads next page, pull-to-refresh works
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Saved"
+- waitForAnimationToEnd
+- assertVisible: "Saved"
+
+# Scroll to trigger pagination
+- scroll
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+
+# Pull-to-refresh
+- swipe:
+    direction: DOWN
+    duration: 800
+- waitForAnimationToEnd
+- assertVisible: "Saved"

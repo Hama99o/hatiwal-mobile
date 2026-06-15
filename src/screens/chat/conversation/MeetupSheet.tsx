@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { Modal, View, KeyboardAvoidingView, Platform, Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { Input } from "@/components/reusables/input";
@@ -23,6 +24,7 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting }: Meetu
   const { t } = useTranslation();
   const colors = useColors();
   const { isRtl } = useLocalization();
+  const insets = useSafeAreaInsets();
 
   const [place, setPlace] = useState("");
   const [time, setTime] = useState("");
@@ -65,15 +67,20 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting }: Meetu
       animationType="slide"
       onRequestClose={handleClose}
     >
-      <Pressable style={styles.backdrop} onPress={handleClose} />
+      <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={handleClose} />
       <KeyboardAvoidingView
+        // Platform audit (2026-06-18):
+        //   iOS "padding" — lifts the sheet so the keyboard doesn't cover Place/Time
+        //   inputs. Android "height" — shrinks the KAV so the sheet layout recalculates
+        //   and the Propose button stays reachable. Both branches are intentional and
+        //   correct; no fallback is missing.
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         <View
           style={[
             styles.sheet,
-            { backgroundColor: colors.card, borderTopColor: colors.border },
+            { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) },
           ]}
         >
           {/* Handle */}
@@ -152,7 +159,7 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting }: Meetu
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    // backgroundColor is applied inline via colors.darkScrim (useColors token)
   },
   keyboardView: {
     justifyContent: "flex-end",

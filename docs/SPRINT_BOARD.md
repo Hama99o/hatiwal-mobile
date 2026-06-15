@@ -8,147 +8,58 @@
 > **Priorities:** `P0` (critical/blocking) · `P1` (core MVP) · `P2` (polish)
 
 ---
-
-## TASK-S001
-- **Title**: Build shared components (ListingCard, PriceTag, StatusBadge, EmptyState, Skeletons)
-- **Type**: frontend
-- **Priority**: P0
-- **Status**: CHANGES_REQUESTED
-- **Session**: -
-- **Blocks**: TASK-B001, TASK-B002, TASK-C002, TASK-D001, TASK-E001, TASK-F003
-- **BlockedBy**: -
-- **ReviewNotes**: CORRECTNESS (dark mode) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/components/common/ListingCard.tsx line 160: unsaved heart uses color={colors.primaryForeground}. primaryForeground is near-white in light mode (ok over the dark rgba(0,0,0,0.35) button) but DARK (hsl(240 5.9% 10%)) in dark mode, making the unsaved heart nearly invisible against the dark overlay button. Fix: the heart sits on a fixed dark overlay, so the unsaved icon should use a fixed light color (e.g. '#fff' / colors.background is wrong too) — use a constant white or add a dedicated 'onOverlay' token, independent of theme. | INFRA / dark-mode source — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/hooks/useColors.ts line 1+11: imports useColorScheme from 'react-native'. NativeWind v4 uses darkMode:'class' (tailwind.config.js line 5) and its own scheme to drive the dark: className variant. RN's useColorScheme follows the OS only and can diverge from NativeWind's class scheme under a manual theme override, so inline colors (heart, MapPin icon, EmptyState icon) may render in the wrong mode while className surfaces render correctly. Fix: import { useColorScheme } from 'nativewind' so inline colors and dark: classes share one source of truth. | MINOR (state parity) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/components/common/ListingCardSkeleton.tsx lines 49-54 render 'bg-card rounded-lg border border-border' but ListingCard.tsx has no card surface (no bg-card/border; only inner Pressable has borderRadius 8). The loading skeleton will not visually match the loaded card. Resolve the card-shell ownership question (developer flagged this) so skeleton and real card share the same surface treatment. | MINOR (type safety) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/components/common/ListingCard.tsx line 94: router.push(`/(main)/listing/${listing.id}` as never). The 'as never' cast disables typed-route checking; if the actual route path differs this fails silently at runtime. Prefer a typed href object or confirm the route file exists at app/(main)/listing/[id].tsx. | VERIFIED OK — Translations: en/ps/fa listing.json are key-consistent (status.*, save, unsave, postedAgo, viewsCount, form.*) — no missing-locale violation. Dependencies expo-image ~2.1.0, reanimated, clsx, tailwind-merge all present. Listing type matches usage (seller.city, currency, thumbnailUrl). formatCurrency accepts the 2nd currency arg. No raw Alert.alert, no hardcoded strings, no raw react-native Text, RTL handled. PriceTag returns null on null price (good). | OUT-OF-SCOPE NOTE — No CSS file defining the --background/--destructive/etc HSL custom properties referenced by tailwind.config.js (hsl(var(--token))) was found in the repo. This is a pre-existing infra gap, not introduced by this task, but the entire className token system (and thus these components' visuals) depends on those variables being defined somewhere NativeWind loads. Confirm the global stylesheet exists before relying on rendered output. | LIBRARY COMPLIANCE - EmptyState.tsx (lines 66-78): An RNR Button exists at src/components/reusables/button.tsx (with a 'default' filled primary variant and >=44pt minHeight), and DESIGN_SYSTEM.md section 5 explicitly defines EmptyState as 'RNR Icon + Text + Button (primary action)'. The action button is hand-rolled as a styled Pressable. Fix: import { Button } from '@/components/reusables/button' and render the action via <Button onPress={action.onPress}><Text className="text-primary-foreground...">{action.label}</Text></Button>. The code comment even admits this ('for now uses Pressable styled identically'). Replace it. | DARK MODE / CONTRAST - ListingCard.tsx (line 160): The unsaved heart uses color={colors.primaryForeground}. In dark mode primaryForeground is near-black (hsl 240 5.9% 10%) and it sits on a dark rgba(0,0,0,0.35) scrim circle -> the heart nearly disappears. The heart over a photo scrim should be a fixed white in both themes. Fix: use a constant '#FFFFFF' for the unsaved/stroke color (the scrim is always dark regardless of theme), keep colors.destructive only for the filled/saved state. | TOKEN COMPLIANCE - StatusBadge.tsx (lines 28-35): active/reserved use raw Tailwind palette classes (bg-green-100 dark:bg-green-900 / bg-amber-100 ...). useColors() already exposes semantic success and warning tokens, and DESIGN_SYSTEM.md maps active->success and reserved->warning. Raw palette colors bypass the token system and will drift from the theme. Fix: either add success/warning className tokens to tailwind.config and use bg-success/text-success-foreground style classes, or render the badge background via useColors().success/.warning inline styles so the badge tracks the real palette. The developer flagged this themselves as needing fine-tuning. | STATE PARITY - ListingCard.tsx (lines 215-219) vs ListingCardSkeleton.tsx (lines 49-54): The skeleton card wraps content in 'bg-card rounded-lg overflow-hidden border border-border', but the real ListingCard's outer surface only has borderRadius:8 + overflow:hidden with NO bg-card and NO border. Loading state and loaded state therefore look visually different (bordered card -> borderless on load), and the loaded card has no surface background. The developer noted 'ListingCard has no card surface bg'. Fix: give ListingCard the same bg-card rounded-lg border border-border shell as the skeleton so the two states are pixel-consistent. Per DESIGN_SYSTEM section 9, cards should be a real card surface. | TRUST / META - ListingCard.tsx (lines 99-100, 188-208): The card shows city + posted date but no seller identity (avatar/name). The design north star is 'trust-building' and the BACKLOG calls for seller signals; consider whether the buyer feed card needs at least a seller hint. Minor / optional for the shared component since SellerCard is a separate item, but note that the meta row currently leans on city which can be null (then only a date shows). Acceptable for now, flagging for the feed integration. | PRICE PROMINENCE - PriceTag.tsx + ListingCard.tsx (line 174): Card uses size='md' (text-base font-bold) for price and text-sm font-medium for the title below it. This correctly makes price the second hero element below the photo - good. No change needed; confirming the hierarchy passes. | RTL - ListingCard.tsx (lines 130-166, 234-255): Status overlay and heart correctly swap left/right via isRtl style variants, and the meta row flips flexDirection. Title textAlign also flips. Good RTL handling. Note: the body padding wrapper (line 170 'p-3 gap-1.5') and PriceTag/title use default text alignment which RN handles via I18nManager - verify PriceTag (line 36) right-aligns under RTL on device since it has no explicit textAlign; currency strings may want textAlign:'right' in RTL for visual consistency with the title.
-- **Description**: Build the core reusable components used across all listing screens. ListingCard (expo-image 4:3 blurhash, PriceTag, title 1-2 lines, seller city, "posted X ago" via formatDate, StatusBadge, save-heart animated toggle, android_ripple). PriceTag (formatCurrency, sizes lg/md/sm). StatusBadge (draft→muted, active→success, reserved→warning, sold→grey via RNR Badge). EmptyState (Lucide icon + title + guidance + optional Button). ListingCardSkeleton (RNR Skeleton mirroring card layout). All RTL-safe, dark-mode ready, NativeWind tokens only. Files: src/components/common/
-- **Acceptance**: Card renders in light/dark + RTL; skeleton matches card layout; used by ≥2 screens; no hardcoded colors or strings
-
-## TASK-A003
-- **Title**: Fix app bootstrap / splash redirect (wire validate_token)
-- **Type**: frontend
-- **Priority**: P1
-- **Status**: CHANGES_REQUESTED
-- **Session**: -
-- **Blocks**: -
-- **BlockedBy**: -
-- **ReviewNotes**: CORRECTNESS / UX BUG (Splash.tsx:47-54): The catch block treats ANY thrown error identically to a 401 — it clears the auth store AND wipes stored tokens via secureStorage.clearAuthHeaders(). A transient network failure (offline on launch, server restart, DNS hiccup) will therefore permanently log out a user who has a perfectly valid token and force them to re-enter credentials. Fix: distinguish error.response?.status === 401 (revoked/expired → clear tokens + go to login) from network/timeout errors (no error.response → keep tokens, optionally route to login or show a retry, but do NOT call clearAuthHeaders()). Note the http response interceptor already clears headers on 401, so the explicit clearAuthHeaders() here is only meaningful for the non-401 path — which is exactly the path where it is harmful. | RTL VIOLATION (Splash.tsx:65-72): The screen does not consult useLocalization().isRtl. While a centered spinner is visually symmetric, the mobile.prompt.md §6 rule is that screens must handle RTL, and the accessibilityLabel text will be read in ps/fa without the container being marked RTL. Low severity for a spinner-only screen, but per house rules add useLocalization() and at minimum confirm the layout is RTL-safe; if any text/branding is later added it must flip. Acceptable to note as minor, but flagged because the prompt makes RTL mandatory on every screen. | RULE DEVIATION (Splash.tsx:7,66): The screen uses a raw react-native View with StyleSheet instead of the mandatory ScreenContainer wrapper (mobile.prompt.md §2: 'Every screen must use ScreenContainer as the outermost wrapper'). ActivityIndicator and View are sanctioned primitives, but the ScreenContainer requirement is explicit. Fix: wrap in <ScreenContainer scrollable={false} padded={false}> or justify the exception (full-bleed splash). At minimum this is an intentional deviation that should be acknowledged. | TRANSLATION MISMATCH (en/ps/fa common.json splash.validating): The key is named 'validating' and the developer summary calls it the 'validating' string, but all three locale values say 'Loading…' / 'بار کیږي…' / 'در حال بارگذاری…' (= Loading), which duplicates the existing common.loading key. Either rename intent or set the value to reflect validation ('Checking your session…'). Low severity since it is only an accessibilityLabel, but it is misleading and redundant with common.loading. | MINOR / NON-BLOCKING (Splash.tsx:23-63): The empty useEffect dependency array with eslint-disable is acceptable for a one-shot bootstrap. setUser/clearUser are stable Zustand selectors and router is stable, so this is fine. No change required — noted to confirm it was reviewed and is not a stale-closure bug. | POSITIVE / VERIFIED: api/auth.ts validateToken correctly uses the shared http instance, returns a typed User (no any), and parses response.data.data — verified against backend mount_devise_token_auth_for at api/v1/auth (DeviseTokenAuth TokenValidationsController returns { success, data }) and consistent with the existing login/register parsing. The pre-network secureStorage.getAuthHeaders() short-circuit is correct and avoids a wasted round-trip. No API rule violations.
-- **Description**: Wire GET /auth/validate_token in app/index.tsx. On launch: call validate_token with stored headers → if valid route to (main)/(tabs)/browse, else route to (auth)/login. Show a splash/loading state while deciding. Currently redirects on local auth state only — must hit the real endpoint. Use secureStorage to read tokens.
-- **Acceptance**: Cold start on authed device lands on browse without flash; cold start on unauthed device lands on login; expired token goes to login
-
-## TASK-C001
-- **Title**: Create / Edit listing form (photos, title, price, category, location)
-- **Type**: fullstack
-- **Priority**: P0
-- **Status**: CHANGES_REQUESTED
-- **Session**: -
-- **Blocks**: -
-- **BlockedBy**: -
-- **ReviewNotes**: DATA LOSS (BLOCKER-level bug) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/screens/seller/ListingForm.tsx + /home/hama99o/Apps/Personal/Hatiwal/hatiwal-api/app/models/listing.rb. The model uses `has_many_attached :images` and the controller permits `images: []`. Rails 7+ defaults `config.active_storage.replace_on_assign_to_many = true`, so assigning `images` REPLACES the entire attachment collection. In edit mode the form only uploads NEW local photos (`photos.filter(p => !p.isRemote)`) and never re-sends the existing remote photos. Result: as soon as a user adds even one new photo while keeping existing ones, ALL previously uploaded photos are destroyed. The developer summary claims 'backend images[] param replaces all images on update, which is correct' — but the client does NOT resend the remote ones, so it is data loss, not a correct replace. Fix: either (a) on the backend add a separate flow (append new + accept an explicit `remove_image_ids` list) and keep existing attachments, or (b) re-download/re-send remote photos is not feasible — instead make the backend NOT replace on partial update (use `listing.images.attach(new_files)` only when new files present, and delete removed ones by signed_id). Recommended: dedicated image params (`images` to append, `removed_image_ids` to purge) so text-only edits and photo edits never wipe the gallery. | RULE VIOLATION (backend render json:) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-api/app/controllers/api/v1/categories_controller.rb line 4 uses `render json: { categories: ... }, status: :ok`. CLAUDE.md and backend.prompt.md state unambiguously: 'Never use render json: in controllers — use paginate_blue / render_blue / render_unprocessable_entity.' There is no documented exception for flat collections. Fix: use `paginate_blue(CategorySerializer, categories, extra: { view: :list })`, or if pagination is undesired for a small seeded set, add/extend a render helper rather than raw `render json:`. | RULE VIOLATION (raw Alert.alert) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/screens/seller/listing-form/PhotosSection.tsx lines 54 and 71 call `Alert.alert(...)` directly for permission messages. mobile.prompt.md §11: 'NEVER call Alert.alert directly — it is a no-op on web.' Fix: use `confirmAlert` from `@/utils/alert` (single OK button) or an RNR Dialog. The `import { Alert } from 'react-native'` must also be removed. | RULE VIOLATION (ScreenContainer) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/screens/seller/ListingForm.tsx and MyListings.tsx do not wrap content in `ScreenContainer` (mobile.prompt.md §2: 'Every screen MUST use ScreenContainer as the outermost wrapper'). ListingForm hand-rolls KeyboardAvoidingView+ScrollView and MyListings hand-rolls a View+header. Fix: wrap in ScreenContainer (set scrollable={false} for the list) and use AppHeader for titles. | RULE VIOLATION (UniversalList) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/screens/seller/MyListings.tsx uses a raw `FlatList`. mobile.prompt.md §7: 'All list screens (browse, my listings, saved, conversations) MUST use UniversalList.' This also means it loses built-in search, pagination/infinite scroll and the standard empty/loading states. Fix: convert MyListings to a UniversalListConfig with a fetcher calling listingsAPI.getMyListings, and put refetchKey in the config id for focus refetch. | RULE VIOLATION (hardcoded colors) — Multiple files hardcode color literals, violating 'never hardcode hex values': /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/screens/seller/listing-form/PhotosSection.tsx setCoverBtn icon `color="#fff"` (line 145) and `backgroundColor: "rgba(0,0,0,0.45)"` (line 239); /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/screens/seller/listing-form/CategoryPickerSheet.tsx backdrop `backgroundColor: "rgba(0,0,0,0.45)"` (line 165) and row border `"rgba(128,128,128,0.15)"` (line 195). Fix: use useColors() tokens (e.g. colors.foreground/colors.border) or an overlay token; for the scrim, define a theme overlay color rather than a literal rgba. | MINOR (edit-mode toast wording) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/screens/seller/ListingForm.tsx saveMutation.onSuccess always shows t('listing.form.savedDraft') even when editing an already-active listing (it is not a draft). Misleading copy. Fix: branch the success message on isEdit / listing status, or use a neutral 'Saved' key. | MINOR (zod messages not localized) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/screens/seller/ListingForm.tsx listingSchema uses hardcoded English strings in `invalid_type_error` (lines 59, 61). These are not surfaced to the user (the JSX renders t('listing.form.*') errors instead), so it is cosmetic, but per the no-hardcoded-strings rule prefer mapping zod issues to translation keys. | POSITIVE — Translations are complete and correct across all 3 locales (en/ps/fa) for the full listing.form.* namespace; ps and fa are genuine RTL translations, not copies. RTL flipping (flexDirection row-reverse, textAlign) is applied consistently in ListingForm, PhotosSection and CategoryPickerSheet. Backend My::ListingsController correctly uses policy_scope/authorize/render_blue/render_unprocessable_entity, set_listing scopes to current_user.listings (404 via global rescue_from), and the multipart upload spec is a valid addition. No SQL injection or auth bypass found. | DUPLICATE COMPONENTS — src/components/reusables/{button,input,textarea,label,separator}.tsx: The dev hand-rolled RNR atoms, but @rn-primitives/* (the RNR foundation: label, separator, slot, etc.) are already in package.json, and a canonical src/components/reusables/text.tsx already existed. DESIGN_SYSTEM.md §4 says 'Atoms always come from RNR' and 'Do not hand-roll.' Fix: build these atoms on top of the installed @rn-primitives packages (e.g. label.tsx via @rn-primitives/label, separator.tsx via @rn-primitives/separator) or import the project's existing RNR atoms — do not re-implement with raw Pressable + useColors inline styles. | DUPLICATE STATUS BADGE — src/screens/seller/MyListings.tsx lines 14-19, 96-100, 223-233: A local STATUS_TOKEN map + getStatusColor() + inline hex-driven badge re-implements the shared <StatusBadge status={...} /> that already exists in src/components/common/StatusBadge.tsx (and is exported from common/index.ts). DESIGN_SYSTEM.md §2 mandates the single shared StatusBadge everywhere a status appears. Fix: delete STATUS_TOKEN and getStatusColor, import { StatusBadge } from '@/components/common' and render <StatusBadge status={item.status} />. | DUPLICATE EMPTY STATE — src/screens/seller/MyListings.tsx lines 204-216: The ListEmptyComponent is a bespoke View + Text + Button. The shared <EmptyState icon title description action /> already exists (common/EmptyState.tsx). DESIGN_SYSTEM.md §6 requires EmptyState with a feature icon + primary action. Fix: replace with <EmptyState icon={ShoppingBag} title={t('listing.noListings')} action={{ label: t('listing.createFirst'), onPress: goNew }} />. | NO SKELETON LOADING — src/screens/seller/MyListings.tsx line 197: uses bare <ActivityIndicator>. DESIGN_SYSTEM.md §6 requires a Skeleton composition mirroring the layout; ListingCardSkeleton already exists (common/ListingCardSkeleton.tsx, exports ListingCardSkeletonGrid). Fix: render the skeleton grid while isLoading. | NO PRICETAG REUSE — src/screens/seller/MyListings.tsx lines 103-105: price is rendered via raw <Text className='text-primary font-bold'> + formatCurrency. DESIGN_SYSTEM.md §3/§5 require the shared <PriceTag price currency size /> and price should be text-foreground bold (not text-primary). Fix: <PriceTag price={item.price} currency={item.currency} size='md' />. | HARD-CODED COLORS — multiple files: PhotosSection.tsx line 145 (color="#fff") and line 239 (backgroundColor: 'rgba(0,0,0,0.45)'); CategoryPickerSheet.tsx line 165 (rgba(0,0,0,0.45) backdrop) and line 195 (borderBottomColor: 'rgba(128,128,128,0.15)'). DESIGN_SYSTEM.md §2 + §9 forbid hex/rgb. Fix: use colors.primaryForeground / a token-based overlay color and colors.border for the divider. | INLINE STYLES OVER TOKENS — src/screens/seller/MyListings.tsx lines 82-101, 172-194 build cards/header entirely with inline StyleSheet objects + useColors instead of NativeWind className tokens (bg-card, border-border, rounded-lg, p-4). DESIGN_SYSTEM.md §2 says className tokens are preferred. Fix: convert card/header to className-driven layout for automatic dark-mode flipping. | NON-LIBRARY CATEGORY SHEET — src/screens/seller/listing-form/CategoryPickerSheet.tsx uses raw RN <Modal animationType='slide'>. DESIGN_SYSTEM.md §4/§5 designate @gorhom/bottom-sheet as THE category picker (CategoryPicker shared component). @gorhom/bottom-sheet and react-native-gesture-handler are NOT in package.json yet. Acknowledged as a known polish item, but the sheet should be promoted to a shared src/components/common/CategoryPicker built on @gorhom/bottom-sheet once installed, not left as a per-screen RN Modal. Also it lacks search-input clear affordance via RTL-correct icon position. | TOUCH TARGETS < 44pt — PhotosSection.tsx removeBtn (lines 222-231) is 18x18 with only hitSlop=8 (=34pt effective); setCoverBtn (lines 232-242) is 20x20 hitSlop=4. Button 'sm' size (button.tsx line 60) is minHeight 36. DESIGN_SYSTEM.md §3 requires ≥44pt. Fix: bump icon-button hit area to ≥44pt (larger hitSlop or size) and verify the sm action buttons in MyListings meet 44pt. | PHOTO HIERARCHY / states — PhotosSection.tsx: thumbnails are a uniform 90px strip with no large hero/cover preview. North star is photo-first; the cover photo (first) should read as a hero (≥200px per the review brief) so the seller sees what buyers see. Also there is no per-photo upload/loading state and no skeleton while images decode — add a loading overlay and (per dev's own note) an axios upload-progress indicator on submit. | PUBLISH BUTTON BUSY STATE — ListingForm.tsx lines 408-415: only the Publish button shows a loading label, and isLoading disables both buttons but the Save Draft button gives no spinner/label feedback. Add a consistent busy indicator (e.g. ActivityIndicator inside Button) to whichever action is pending, and ideally autoscroll to first error field (dev noted setFocus is missing). | PRICE NOT PROMINENT IN FORM — ListingForm.tsx price section is a plain Input + segmented currency; acceptable for input, but the currency segmented control is hand-rolled with inline colors (lines 277-296). Prefer RNR Tabs/ToggleGroup (@rn-primitives/tabs is installed) for the AFN/USD segmented control instead of bespoke Pressables, to stay library-compliant and token-driven.
-- **Description**: Backend: POST /my/listings (multipart, starts as draft), PUT /my/listings/:id, GET /categories. Mobile: src/screens/seller/ListingForm.tsx using react-hook-form + zod. Sections: (1) Photos — expo-image-picker multi-select + camera, thumbnail strip with reorder + cover indicator + remove, upload via FormData; (2) Title — required ≤150 chars; (3) Price + currency — AFN default/USD segmented; (4) Category — CategoryPicker bottom sheet (@gorhom/bottom-sheet, searchable, trilingual); (5) Description — RNR Textarea optional; (6) Location — city text. Submit: Save draft vs Publish now (publish = create then PUT publish). Sticky submit bar, sonner-native toast, inline validation. Routes: app/(main)/listing/new.tsx and app/(main)/listing/edit/[id].tsx
-- **Acceptance**: Can create listing with photos end-to-end; draft and publish both work; category picker works; RTL + dark
-
-## TASK-C002
-- **Title**: Migrate My Listings screen to design system (replace raw RN + Alert)
-- **Type**: frontend
-- **Priority**: P0
-- **Status**: IN_PROGRESS
-- **Session**: software-house
-- **Blocks**: -
-- **BlockedBy**: -
-- **ReviewNotes**: -
-- **Description**: src/screens/seller/MyListings.tsx exists with raw RN + raw Alert.alert (rule violation). Replace entirely: UniversalList of ListingCard (seller variant with views count + conversation count). Status tabs/filter: All · Draft · Active · Reserved · Sold. Per-card next-action button by state: Draft→Publish, Active→Reserve, Reserved→Mark sold, any→Edit/Delete (overflow). Delete via confirmAlert (destructive) + sonner-native toast. FAB/header "+ Post" → C1. States: skeleton, empty "You haven't posted anything yet" + Post a listing button. useFocusEffect refetch. Endpoints: GET /my/listings?status, DELETE /my/listings/:id, PUT .../publish|reserve|sold
-- **Acceptance**: Every lifecycle transition works with confirmation + toast; no raw Alert.alert; status filter works; RTL + dark
-
 ## TASK-D002
 - **Title**: Build conversation thread screen (gifted-chat, meetup proposal)
 - **Type**: fullstack
 - **Priority**: P1
 - **Status**: IN_PROGRESS
-- **Session**: software-house
+- **Session**: house-1
 - **Blocks**: -
 - **BlockedBy**: -
-- **ReviewNotes**: -
+- **ReviewNotes**: RULE VIOLATION (render json:) - conversations_controller.rb:34. RULE VIOLATION (raw Alert.alert) - MessageBubble.tsx:392. SECURITY (cross-conversation responds_to_id). SECURITY (forgeable message kind). PERFORMANCE (N+1 in conversations#index). MINOR (type-safety casts). LIBRARY COMPLIANCE (blocking rule) — hand-rolled FlatList instead of react-native-gifted-chat. LIBRARY COMPLIANCE — MeetupSheet.…
 - **Description**: Backend: ensure GET /conversations/:id (detailed: listing, buyer, seller), GET /conversations/:id/messages (paginated asc), POST /conversations/:id/messages (body, kind), POST /listings/:listing_id/conversations (start flow). Mobile: src/screens/chat/Conversation.tsx using react-native-gifted-chat themed to NativeWind tokens. Pinned listing header card (thumbnail + PriceTag + StatusBadge). RTL bubbles. Read receipts (read_at). Meetup proposal action (kind: meetup_proposal) via @gorhom/bottom-sheet (place+time) → special bubble. Start flow: first-message sheet from listing detail; 422 (inactive/self/duplicate) → friendly toast → open existing if duplicate. Closed conversation → input disabled with notice. States: loading skeleton, empty thread (just listing header), send failure toast. Route: app/(main)/conversation/[id].tsx
 - **Acceptance**: Can start from a listing and exchange messages; RTL bubbles correct; pinned listing visible; meetup proposal works
-
-## TASK-G001
-- **Title**: Build report sheet (report listing or user)
+## TASK-P401
+- **Title**: Micro-interactions: input focus, empty state illustrations, toast polish
 - **Type**: frontend
+- **Priority**: P1
+- **Status**: AVAILABLE
+- **Session**: -
+- **Blocks**: -
+- **BlockedBy**: TASK-P501
+- **ReviewNotes**: -
+- **Description**: ## Goal P4 — Micro-interactions. Small targeted interactions that make the app feel polished and alive.  ## Dependency P1 animation system (AnimatedPressable, haptics.ts) must exist. Check P1 card before starting.  ## Sub-features  ### 1. Form input focus animations - When an Input or Textarea gains focus: border color transitions from border to primary over 150ms (withTiming) - Label text transit
+- **Acceptance**: Ship with no console errors. All mobile coding rules satisfied.
+## TASK-Q501
+- **Title**: End-to-end manual test on iOS simulator and Android emulator
+- **Type**: frontend
+- **Priority**: P0
+- **Status**: CHANGES_REQUESTED
+- **Session**: -
+- **Blocks**: -
+- **BlockedBy**: TASK-Q301
+- **ReviewNotes**: FALSE TEST CLAIM (must fix): `npx jest --watchAll=false` reports `Tests: 1 failed, 584 passed, 585 total` — NOT 585/585 as the summary states. The failure is in /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/src/components/common/__tests__/SavedSearches.test.tsx, test 'SavedSearches — optimistic delete › calls savedSearchesAPI.delete with the correct id when X is tapped'. It fails at line 267 …
+- **Description**: ## Goal Q5 — Testing on Real Devices. Final gate before a production build.  ## Dependency Q1, Q2, Q3, Q4 must all be Done before this starts.  ## Test environment - iOS: physical iPhone or Xcode simulator (iOS 17+) - Android: physical device or Android emulator (API 34+) - Run the app via: npx expo run:ios and npx expo run:android  ## Full checklist (run on BOTH platforms) 1. App launches from cold start...
+- **Acceptance**: Ship with no console errors. All mobile coding rules satisfied.
+## TASK-N804
+- **Title**: Listing price history: track price changes and show a badge on detail
+- **Type**: fullstack
 - **Priority**: P2
 - **Status**: IN_PROGRESS
-- **Session**: software-house
+- **Session**: house-1
 - **Blocks**: -
 - **BlockedBy**: -
-- **ReviewNotes**: -
-- **Description**: src/components/common/ReportSheet.tsx — @gorhom/bottom-sheet surface (no route). Props: reportableType ("Listing"|"User"), reportableId. RNR RadioGroup with 6 reasons: spam, inappropriate, fraud, wrong_category, prohibited_item, other. Optional RNR Textarea for note. Submit → POST /reports. Blocks self-report and duplicates (422 → toast). Success → close sheet + toast. Triggered from listing detail and public user profile.
-- **Acceptance**: Sheet opens from both surfaces; all 6 reasons selectable; submit works; 422 handled gracefully; RTL + dark
-
-## TASK-F002
-- **Title**: Build Edit Profile screen
-- **Type**: frontend
+- **ReviewNotes**: REGRESSION (must fix) — /home/hama99o/Apps/Personal/Hatiwal/hatiwal-api/app/controllers/api/v1/my/saved_listings_controller.rb lines 11-14: The saved-listings index renders ListingSerializer with view: :list (line 17), which now invokes price_drop_percent and price_dropped_at. Its includes(listing: [...]) chain eager-loads :category, :user/avatar, :images but NOT :price_histories. Because price_hi…
+- **Description**: ## Goal Buyers should know if a seller has recently lowered their price. A price-drop badge on the listing detail builds urgency and trust. Sellers benefit because serious buyers notice the drop.  ## Backend - Add ListingPriceHistory model: listing_id, old_price, new_price, currency, changed_at - After each PUT /my/listings/:id, if price changed: create a ListingPriceHistory record - Add price_drop badge/indicator on listing detail screen...
+- **Acceptance**: Ship with no console errors. All mobile coding rules satisfied.
+## TASK-N805
+- **Title**: Seller response rate badge: show on public seller profile
+- **Type**: fullstack
 - **Priority**: P2
-- **Status**: AVAILABLE
-- **Session**: -
+- **Status**: IN_PROGRESS
+- **Session**: house-1
 - **Blocks**: -
 - **BlockedBy**: -
-- **ReviewNotes**: -
-- **Description**: src/screens/shared/EditProfile.tsx. Endpoint: PUT /users/me (user: firstname, lastname, phone, bio, city, province, lat, long, preferred_language). Sectioned form using react-hook-form + zod: (1) Identity — first/last name; (2) Contact — phone, bio (Textarea); (3) Location — city, province; (4) Language — preferred_language selector (en/ps/fa). Sticky save button + sonner-native toast on success/error. Prefill from GET /users/me. Route: app/(main)/profile/edit.tsx. Link from Profile screen F1.
-- **Acceptance**: All fields save correctly; prefill works; language change persists; RTL + dark
-
-## TASK-B001
-- **Title**: Build browse feed screen (photo-first feed, search, category filter)
-- **Type**: frontend
-- **Priority**: P0
-- **Status**: AVAILABLE
-- **Session**: -
-- **Blocks**: -
-- **BlockedBy**: TASK-S001
-- **ReviewNotes**: -
-- **Description**: src/screens/buyer/Browse.tsx — replace existing raw RN implementation. Endpoint: GET /listings?search&category_id&page → listings[] + meta.pagination. UniversalList → @shopify/flash-list of ListingCard (from S001). Search bar: debounced RNR Input, clears, submit re-queries. Category filter: horizontal chip row (RNR Badge) + "All" + CategoryPicker sheet (@gorhom/bottom-sheet). Pull-to-refresh + infinite scroll (Pagy pagination). Save-heart on each card (optimistic). States: ListingCardSkeleton grid (loading), EmptyState "Nothing here yet", no-results "Nothing matches '<q>'" + Reset, error + retry. useFocusEffect refetch. Route: app/(main)/(tabs)/browse.tsx
-- **Acceptance**: Photo-first, price prominent; search + category filter work; smooth on Android; RTL + dark; skeleton on load
-
-## TASK-B002
-- **Title**: Build listing detail screen (gallery, seller card, message CTA)
-- **Type**: frontend
-- **Priority**: P0
-- **Status**: AVAILABLE
-- **Session**: -
-- **Blocks**: -
-- **BlockedBy**: TASK-S001
-- **ReviewNotes**: -
-- **Description**: src/screens/shared/ListingDetail.tsx. Endpoint: GET /listings/:id (detailed: images[], description, location, seller{name,city}, category). ListingGallery hero: react-native-reanimated-carousel + expo-image + page dots. PriceTag (lg) → title → category + condition Badges → description → location (city). SellerCard: avatar, name, city → tap → public profile F3. Sticky primary "Message seller" button → opens first-message sheet (D2 start flow). Hidden/disabled if viewing own listing or not active. Save-heart in header. Report affordance → ReportSheet G1. StatusBadge + "posted X ago" + views count. States: skeleton (gallery + lines), error "Listing not found", sold/reserved banner. Route: app/(main)/listing/[id].tsx
-- **Acceptance**: Gallery swipes; sticky CTA visible and functional; RTL + dark; sold/reserved states clear
-
-## TASK-D001
-- **Title**: Migrate conversations list screen to design system
-- **Type**: frontend
-- **Priority**: P1
-- **Status**: AVAILABLE
-- **Session**: -
-- **Blocks**: -
-- **BlockedBy**: TASK-S001
-- **ReviewNotes**: -
-- **Description**: src/screens/chat/Conversations.tsx exists with raw RN — replace entirely. Endpoint: GET /conversations (list: listing{title,thumbnail,status}, other_participant{name,city}, last_message_body, unread_count). UniversalList rows: participant avatar (expo-image) + listing thumbnail + last message (truncated) + time (formatDate) + unread badge (RNR Badge). Ordered by last_message_at. Tap → thread D2. Unread total drives the chat tab badge. States: skeleton rows, EmptyState "No conversations yet" + Browse button. useFocusEffect refetch.
-- **Acceptance**: Unread counts correct; RTL row layout mirrors; dark mode; tab badge updates
-
-## TASK-E001
-- **Title**: Build saved / favorites screen
-- **Type**: frontend
-- **Priority**: P1
-- **Status**: AVAILABLE
-- **Session**: -
-- **Blocks**: -
-- **BlockedBy**: TASK-S001
-- **ReviewNotes**: -
-- **Description**: src/screens/buyer/Saved.tsx. Endpoints: GET /my/saved_listings (list, no pagination); save POST /listings/:id/save; unsave DELETE /listings/:id/unsave. UniversalList of ListingCard with save-heart toggle (shared across B1/B2 — must be consistent). Heart animates: optimistic toggle + sonner-native toast on error. Tap card → detail. States: skeleton, EmptyState "No saved items yet" + Browse button. useFocusEffect refetch. Route: app/(main)/(tabs)/saved.tsx
-- **Acceptance**: Heart state consistent across B1/B2/E1; unsave updates list immediately; RTL + dark
-
-## TASK-F003
-- **Title**: Build public seller profile screen
-- **Type**: frontend
-- **Priority**: P2
-- **Status**: AVAILABLE
-- **Session**: -
-- **Blocks**: -
-- **BlockedBy**: TASK-S001
-- **ReviewNotes**: -
-- **Description**: src/screens/shared/UserProfile.tsx. Endpoint: GET /users/:id (public: full_name, bio, province, listings_count). Trust dossier layout: large avatar, name, city, member-since (formatDate), active-listings count, grid of their active listings (ListingCard, tap → detail). Report affordance → ReportSheet G1. Reached from SellerCard in listing detail. Route: app/(main)/user/[id].tsx
-- **Acceptance**: All public info shown; listings grid works; report affordance present; RTL + dark
+- **ReviewNotes**: PERFORMANCE (must fix) — app/models/user.rb:88-89: response_time_label calls response_rate_percent (which runs the full seller_conversations.where(created_at: 90.days.ago..).includes(:messages) query) and then runs the SAME window query AGAIN at lines 91-93. Meanwhile the serializer (user_serializer.rb:24-25 and listing_serializer.rb:59-60) ALSO calls response_rate_percent directly. Net result: ea…
+- **Description**: ## Goal Buyers cannot know in advance if a seller actually responds to messages. A response-rate badge on the public seller profile (and optionally on listing detail) gives buyers a strong trust signal before they decide to message.  ## Backend - Add a response_rate computed attribute to the User model: a. Definition: percentage of conversations where the seller sent at least one message within...
+- **Acceptance**: Ship with no console errors. All mobile coding rules satisfied.

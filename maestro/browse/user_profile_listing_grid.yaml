@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# Seller profile from browse: listings grid shows seller's active listings
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+
+# Tap seller name/avatar → seller profile
+- tapOn:
+    id: "seller-name"
+- waitForAnimationToEnd
+- assertVisible: "Seller Profile"
+
+# Listings grid visible
+- assertVisible: "Listings"
+- assertVisible:
+    id: "listing-card-0"
+
+# Tap a listing in the grid → goes to listing detail
+- tapOn:
+    id: "listing-card-0"
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+
+- back
+- waitForAnimationToEnd
+- assertVisible: "Seller Profile"

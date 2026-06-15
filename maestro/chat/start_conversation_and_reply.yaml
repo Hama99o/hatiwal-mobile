@@ -1,0 +1,26 @@
+appId: com.hatiwal.app
+---
+# Buyer starts conversation from listing detail → conversation appears in Chats tab
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Message Seller"
+- waitForAnimationToEnd
+- assertVisible: "Chat"
+
+# Send opening message
+- tapOn: "Type a message..."
+- inputText: "Hi, is this item available?"
+- tapOn: "Send"
+- waitForAnimationToEnd
+- assertVisible: "Hi, is this item available?"
+
+# Back → Chats tab — conversation listed
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- assertVisible: "Hi, is this item available?"

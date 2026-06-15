@@ -1,0 +1,28 @@
+appId: com.hatiwal.app
+---
+# Report a listing — bottom sheet, select reason, submit, toast shown
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+# Open a listing detail
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+# Tap report
+- tapOn: "Report"
+- waitForAnimationToEnd
+# Bottom sheet opens
+- assertVisible: "Why are you reporting this?"
+- assertVisible: "Spam"
+- assertVisible: "Fraud or scam"
+- assertVisible: "Prohibited item"
+# Select a reason
+- tapOn: "Spam"
+# Add optional description
+- tapOn: "Describe the issue in more detail..."
+- inputText: "This listing is spam"
+# Submit
+- tapOn: "Submit Report"
+- waitForAnimationToEnd
+# Success toast
+- assertVisible: "Report submitted. Thank you."

@@ -1,12 +1,7 @@
 import { View } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
-import { useEffect } from "react";
+import Animated from "react-native-reanimated";
 import { useColors } from "@/hooks/useColors";
+import { usePulse } from "@/lib/animation";
 
 function SkeletonBlock({
   width,
@@ -18,13 +13,8 @@ function SkeletonBlock({
   style?: object;
 }) {
   const colors = useColors();
-  const opacity = useSharedValue(1);
-
-  useEffect(() => {
-    opacity.value = withRepeat(withTiming(0.35, { duration: 850 }), -1, true);
-  }, [opacity]);
-
-  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  // usePulse() is reduce-motion aware: static opacity when Reduce Motion is on.
+  const animStyle = usePulse();
 
   return (
     <Animated.View
@@ -58,17 +48,50 @@ export function ListingCardSkeleton() {
       {/* Photo placeholder — 4:3 ratio */}
       <SkeletonBlock style={{ aspectRatio: 4 / 3, borderRadius: 0 }} />
 
-      <View style={{ padding: 12, gap: 8 }}>
-        {/* Price */}
-        <SkeletonBlock width={88} height={20} />
+      <View style={{ padding: 10, paddingTop: 8, gap: 5 }}>
+        {/* Price — 17sp bold, matches PriceTag md */}
+        <SkeletonBlock width={80} height={17} />
         {/* Title line 1 */}
-        <SkeletonBlock height={14} />
+        <SkeletonBlock height={13} style={{ marginTop: 1 }} />
         {/* Title line 2 — shorter */}
-        <SkeletonBlock width="72%" height={14} />
-        {/* Meta row */}
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 2 }}>
-          <SkeletonBlock width={56} height={12} />
-          <SkeletonBlock width={72} height={12} />
+        <SkeletonBlock width="68%" height={13} />
+        {/* Location meta */}
+        <View style={{ flexDirection: "row", gap: 4, marginTop: 2, alignItems: "center" }}>
+          <SkeletonBlock width={10} height={10} style={{ borderRadius: 999 }} />
+          <SkeletonBlock width={56} height={11} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** Horizontal skeleton that mirrors ListingCard variant="list" */
+export function ListingCardListSkeleton() {
+  const colors = useColors();
+  return (
+    <View
+      style={{
+        backgroundColor: colors.card,
+        borderRadius: 12,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: colors.border,
+        flexDirection: "row",
+        minHeight: 96,
+      }}
+    >
+      {/* Thumbnail — matches listImageContainer: width 108, 4:3 ratio */}
+      <SkeletonBlock
+        width={108}
+        style={{ aspectRatio: 4 / 3, borderRadius: 0, flexShrink: 0 } as object}
+      />
+      <View style={{ flex: 1, padding: 10, gap: 6, justifyContent: "center" }}>
+        <SkeletonBlock width={80} height={16} />
+        <SkeletonBlock height={13} />
+        <SkeletonBlock width="70%" height={13} />
+        <View style={{ flexDirection: "row", gap: 4, alignItems: "center", marginTop: 2 }}>
+          <SkeletonBlock width={10} height={10} style={{ borderRadius: 999 }} />
+          <SkeletonBlock width={56} height={11} />
         </View>
       </View>
     </View>
@@ -104,21 +127,24 @@ export function ConversationRowSkeleton() {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        padding: 16,
-        backgroundColor: colors.card,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        backgroundColor: colors.background,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
         gap: 12,
+        minHeight: 72,
       }}
     >
-      {/* Avatar circle */}
-      <SkeletonBlock width={48} height={48} style={{ borderRadius: 24, flexShrink: 0 }} />
-      <View style={{ flex: 1, gap: 8 }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <SkeletonBlock width={120} height={14} />
-          <SkeletonBlock width={48} height={12} />
+      {/* Listing thumbnail square */}
+      <SkeletonBlock width={52} height={52} style={{ borderRadius: 10, flexShrink: 0 }} />
+      <View style={{ flex: 1, gap: 6 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <SkeletonBlock width={140} height={14} />
+          <SkeletonBlock width={40} height={11} />
         </View>
-        <SkeletonBlock width="80%" height={13} />
+        <SkeletonBlock width={90} height={12} />
+        <SkeletonBlock width="75%" height={12} />
       </View>
     </View>
   );

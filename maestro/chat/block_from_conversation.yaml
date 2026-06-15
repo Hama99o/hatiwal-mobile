@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# Block a user from within an open conversation thread (not from their profile).
+# The conversation header has a block button next to the other participant's name.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chat"
+- waitForAnimationToEnd
+# Open first conversation
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+# Tap block icon / button in the conversation participant bar
+- tapOn:
+    id: "block-user-button"
+- waitForAnimationToEnd
+- assertVisible: "Block this user?"
+- assertVisible: "Blocked users cannot contact you"
+# Confirm
+- tapOn: "Block User"
+- waitForAnimationToEnd
+- assertVisible: "User blocked"
+# Input should now be disabled or a blocked notice visible
+- assertNotVisible: "Type a message..."
+# Unblock — tap the same button (now shows Unblock)
+- tapOn:
+    id: "block-user-button"
+- waitForAnimationToEnd
+- assertVisible: "User unblocked"
+# Input re-enabled after unblock
+- assertVisible: "Type a message..."

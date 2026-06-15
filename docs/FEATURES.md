@@ -44,7 +44,7 @@ draft ──publish──▶ active ──reserve──▶ reserved ──sold�
 | Sign out | `DELETE /auth/sign_out` | Profile action | `confirmAlert`; clears tokens; resilient if the call fails. | ✅ |
 | Token validate / bootstrap | `GET /auth/validate_token` | App root redirect (`app/index.tsx`) | Splash → route to browse (authed) or login. | 🟡 |
 
-**Notes.** Default language is **English**; the chooser (English / پښتو / دری) persists to AsyncStorage and sets RTL. Tokens stored via the web-safe `secureStorage` wrapper (localStorage on web, SecureStore on native).
+**Notes.** Default language is **English**; the chooser (English / پښتو / دری) persists to AsyncStorage and sets RTL. Tokens stored via `expo-secure-store` (native-only; no web fallback).
 
 ---
 

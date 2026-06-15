@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { useModeStore } from "@/stores/mode.store";
 import { useAuthStore } from "@/stores/auth.store";
+import { useChatStore } from "@/stores/chat.store";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ShoppingBag, MessageCircle, Package, User, Heart, LogIn } from "lucide-react-native";
 
 export default function TabsLayout() {
@@ -11,8 +13,10 @@ export default function TabsLayout() {
   const router = useRouter();
   const { mode } = useModeStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const insets = useSafeAreaInsets();
 
   const isSeller = mode === "seller";
+  const unreadMessageTotal = useChatStore((s) => s.unreadMessageTotal);
 
   // A logged-out guest gets a deliberately minimal bar — just Browse + Login —
   // instead of the full logged-in set (Saved/Messages/Profile) that would only
@@ -35,6 +39,8 @@ export default function TabsLayout() {
           backgroundColor: colors.card,
           borderTopColor: isSeller ? colors.warning : colors.border,
           borderTopWidth: isSeller ? 2 : 1,
+          paddingBottom: insets.bottom,
+          height: 49 + insets.bottom,
         },
         tabBarActiveTintColor: isSeller ? colors.warning : colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
@@ -79,6 +85,10 @@ export default function TabsLayout() {
           href: isAuthenticated ? undefined : null,
           title: t("sidebar.chat"),
           tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
+          tabBarBadge:
+            isAuthenticated && unreadMessageTotal > 0
+              ? unreadMessageTotal
+              : undefined,
         }}
       />
 

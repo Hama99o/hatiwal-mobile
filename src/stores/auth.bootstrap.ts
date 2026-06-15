@@ -70,8 +70,7 @@ export function bootstrapAuth(): Promise<void> {
           }
         });
     } catch {
-      // Storage read failed (e.g. blocked localStorage) — fall back to guest
-      // rather than crashing startup.
+      // Storage read failed — fall back to guest rather than crashing startup.
       useAuthStore.getState().clearUser();
     }
   })();

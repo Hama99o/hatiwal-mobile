@@ -1,0 +1,21 @@
+appId: com.hatiwal.app
+---
+# Report a listing from listing detail — more options menu → Report
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+# Open more options / report menu
+- tapOn: "More options"
+- waitForAnimationToEnd
+- tapOn: "Report"
+- waitForAnimationToEnd
+- assertVisible: "Why are you reporting this?"
+# Select a reason
+- tapOn: "Fraud or scam"
+- tapOn: "Submit Report"
+- waitForAnimationToEnd
+- assertVisible: "Report submitted. Thank you."

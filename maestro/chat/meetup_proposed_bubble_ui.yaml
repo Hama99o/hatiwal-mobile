@@ -1,0 +1,37 @@
+appId: com.hatiwal.app
+---
+# Meetup proposal bubble shows location, date/time, and accept/decline buttons
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Message Seller"
+- waitForAnimationToEnd
+
+- tapOn: "Propose Meetup"
+- waitForAnimationToEnd
+- tapOn: "Location"
+- inputText: "Share Now Market"
+- tapOn: "Send Proposal"
+- waitForAnimationToEnd
+
+# Bubble shows correct UI elements
+- assertVisible: "Meetup Proposed"
+- assertVisible: "Share Now Market"
+
+# Seller side would show Accept/Decline — switch to seller
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Share Now Market"
+- assertVisible: "Accept Meetup"
+- assertVisible: "Decline"

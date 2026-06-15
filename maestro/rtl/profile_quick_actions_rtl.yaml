@@ -1,0 +1,50 @@
+appId: com.hatiwal.app
+---
+# Profile quick action cards in RTL (Pashto) — verifies icon+label+badge mirror correctly
+# for both buyer-mode single-column actions and the seller side-by-side row.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+
+# Switch to Pashto to trigger RTL
+- tapOn: "Pashto (پښتو)"
+- waitForAnimationToEnd
+
+# Navigate back to profile tab
+- tapOn:
+    index: 4
+- waitForAnimationToEnd
+
+# Pashto profile label visible
+- assertVisible: "پروفایل"
+
+# --- Buyer-mode RTL quick actions ---
+# Buyer mode is the default; verify the three single-column action rows are visible
+- assertVisible: "اعلانونه لټول"
+- assertVisible: "خوندي اعلانونه"
+- assertVisible: "پیغامونه"
+
+# --- Switch to seller mode and verify seller side-by-side row in RTL ---
+- tapOn: "د پلورونکي حالت ته لاړ شئ"
+- waitForAnimationToEnd
+
+# Navigate back to profile tab to see seller content
+- tapOn:
+    index: 4
+- waitForAnimationToEnd
+
+# Seller quick-action labels visible in Pashto
+# "My Listings" and "Messages" appear as a side-by-side row
+# whose container is now flexDirection:row-reverse (RTL fix applied)
+- assertVisible: "زما اعلانونه"
+- assertVisible: "پیغامونه"
+- assertVisible: "نوی اعلان پوسٹ کړئ"
+
+# Switch back to buyer mode
+- tapOn: "د اخیستونکي حالت ته لاړ شئ"
+- waitForAnimationToEnd
+
+# Reset to English
+- tapOn: "English"
+- waitForAnimationToEnd

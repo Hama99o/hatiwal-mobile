@@ -1,17 +1,18 @@
-import React, { useCallback, useState } from "react";
-import { View, FlatList, Pressable, Platform, ScrollView, RefreshControl } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { View, ScrollView, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ShoppingBag, Plus } from "lucide-react-native";
 
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
-import { EmptyState } from "@/components/common/EmptyState";
-import { ListingCardSkeleton } from "@/components/common/ListingCardSkeleton";
+import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { ListingFeed, type ListingFeedViewMode } from "@/components/common/ListingFeed";
+import { ListingFiltersBar } from "@/components/common/ListingFiltersBar";
 import { listingsAPI, type Listing } from "@/api/listings";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
+import { useCategories } from "@/hooks/useCategories";
 import { SellerListingCard } from "./my-listings/SellerListingCard";
 
 // "expired" is a virtual filter (active listings past their 30-day clock),
@@ -26,36 +27,79 @@ export default function MyListingsScreen() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<StatusFilter>("all");
+  const [viewMode, setViewMode] = useState<ListingFeedViewMode>("list");
   const [refetchKey, setRefetchKey] = useState(0);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [categoryId, setCategoryId] = useState<number | null>(null);
 
-  useFocusEffect(useCallback(() => { setRefetchKey((k) => k + 1); }, []));
+  const { data: categories } = useCategories();
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["my-listings", activeTab, refetchKey],
-    queryFn: () => listingsAPI.getMyListings(activeTab !== "all" ? { status: activeTab } : undefined),
-  });
+  // Debounce search input (400ms)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const listings = data?.items ?? [];
+  // Bump refetchKey on focus — causes UniversalList to re-mount and re-fetch
+  // so newly created / edited listings appear immediately without a stale list.
+  useFocusEffect(
+    useCallback(() => {
+      setRefetchKey((k) => k + 1);
+    }, [])
+  );
 
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Header */}
-      <View style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, flexDirection: isRtl ? "row-reverse" : "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ fontSize: 20, fontWeight: "700", color: colors.foreground }}>
+  // Header: screen title + "Post a listing" button + status filter tabs.
+  // Passed as ListHeaderComponent so it scrolls with the list on short lists
+  // but stays pinned via the outer ScreenContainer structure.
+  const ListHeader = (
+    <View>
+      {/* Title row */}
+      <View
+        style={{
+          backgroundColor: colors.card,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          paddingBottom: 12,
+          flexDirection: isRtl ? "row-reverse" : "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Text className="text-2xl font-bold" style={{ color: colors.foreground }}>
           {t("listing.myListings")}
         </Text>
-        <Button variant="default" size="sm" onPress={() => router.push("/(main)/listing/new" as never)}>
-          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 4 }}>
+        <Button
+          variant="default"
+          size="sm"
+          onPress={() => router.push("/(main)/listing/new" as never)}
+        >
+          <View
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
             <Plus size={15} color={colors.primaryForeground} />
-            <Text style={{ fontSize: 13, fontWeight: "600" }}>
+            <Text className="text-sm font-semibold">
               {t("listing.postListing")}
             </Text>
           </View>
         </Button>
       </View>
 
-      {/* Filter tabs — fixed height, horizontal scroll */}
-      <View style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border, height: 52 }}>
+      {/* Filter tabs — fixed height horizontal scroll */}
+      <View
+        style={{
+          backgroundColor: colors.card,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          height: 52,
+        }}
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -73,16 +117,24 @@ export default function MyListingsScreen() {
               <Pressable
                 key={tab}
                 onPress={() => setActiveTab(tab)}
+                android_ripple={{ color: colors.muted, borderless: true }}
                 style={{
                   borderRadius: 20,
                   paddingHorizontal: 16,
-                  paddingVertical: 6,
+                  paddingVertical: 10,
                   borderWidth: 1.5,
                   backgroundColor: isActive ? colors.primary : "transparent",
                   borderColor: isActive ? colors.primary : colors.border,
+                  minHeight: 44,
+                  justifyContent: "center",
                 }}
               >
-                <Text style={{ fontSize: 13, fontWeight: "600", color: isActive ? colors.primaryForeground : colors.mutedForeground }}>
+                <Text
+                  className="text-sm font-semibold"
+                  style={{
+                    color: isActive ? colors.primaryForeground : colors.mutedForeground,
+                  }}
+                >
                   {t(`listing.filter.${tab}`)}
                 </Text>
               </Pressable>
@@ -91,37 +143,73 @@ export default function MyListingsScreen() {
         </ScrollView>
       </View>
 
-      {/* Content */}
-      {isLoading ? (
-        <View style={{ padding: 16, gap: 12 }}>
-          {[1, 2, 3].map((i) => <ListingCardSkeleton key={i} />)}
-        </View>
-      ) : (
-        <FlatList<Listing>
-          data={listings}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={{ padding: 16, paddingBottom: 48, flexGrow: 1 }}
-          renderItem={({ item }) => <SellerListingCard listing={item} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={refetch}
-              tintColor={colors.primary}
-            />
-          }
-          ListEmptyComponent={
-            <View style={{ flex: 1, justifyContent: "center" }}>
-              <EmptyState
-                icon={ShoppingBag}
-                title={activeTab === "all" ? t("listing.emptyAll.title") : t("listing.emptyFiltered.title", { status: t(`listing.filter.${activeTab}`) })}
-                description={activeTab === "all" ? t("listing.emptyAll.description") : t("listing.emptyFiltered.description")}
-                action={activeTab === "all" ? { label: t("listing.postListing"), onPress: () => router.push("/(main)/listing/new" as never) } : undefined}
-              />
-            </View>
-          }
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      {/* Search + category chips + view toggle */}
+      <ListingFiltersBar
+        search={search}
+        onSearchChange={setSearch}
+        categories={categories}
+        categoryId={categoryId}
+        onCategoryChange={setCategoryId}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        placeholder={t("listing.searchPlaceholder")}
+      />
     </View>
+  );
+
+  const fetcher = useCallback(
+    async (query: { page: number; perPage: number }) => {
+      const result = await listingsAPI.getMyListings({
+        pageNumber: query.page,
+        pageSize: query.perPage,
+        ...(activeTab !== "all" ? { status: activeTab } : {}),
+        search: debouncedSearch || undefined,
+        categoryId: categoryId ?? undefined,
+      });
+      return {
+        items: result.items,
+        totalCount: result.pagination.totalCount,
+        totalPages: result.pagination.totalPages,
+        currentPage: result.pagination.currentPage,
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeTab, debouncedSearch, categoryId]
+  );
+
+  return (
+    <ScreenContainer scrollable={false} padded={false}>
+      <ListingFeed
+        id={`my-listings-${activeTab}-${debouncedSearch}-${categoryId}-${viewMode}`}
+        refreshKey={refetchKey}
+        fetcher={fetcher}
+        viewMode={viewMode}
+        showStatus
+        skeletonCount={3}
+        renderListItem={({ item }) => (
+          <View style={{ paddingBottom: 16 }}>
+            <SellerListingCard listing={item} />
+          </View>
+        )}
+        ListHeaderComponent={ListHeader}
+        emptyIcon={ShoppingBag}
+        emptyTitle={
+          activeTab === "all"
+            ? t("listing.emptyAll.title")
+            : t("listing.emptyFiltered.title", { status: t(`listing.filter.${activeTab}`) })
+        }
+        emptyDescription={
+          activeTab === "all"
+            ? t("listing.emptyAll.description")
+            : t("listing.emptyFiltered.description")
+        }
+        emptyAction={
+          activeTab === "all"
+            ? { label: t("listing.postListing"), onPress: () => router.push("/(main)/listing/new" as never) }
+            : undefined
+        }
+        contentPaddingBottom={48}
+      />
+    </ScreenContainer>
   );
 }

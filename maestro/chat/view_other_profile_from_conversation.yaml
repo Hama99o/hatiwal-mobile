@@ -1,0 +1,24 @@
+appId: com.hatiwal.app
+---
+# From an open conversation, tap the other participant's name/avatar →
+# navigates to their public profile (seller/[id] screen).
+# Works for both buyer (tapping seller) and seller (tapping buyer).
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chat"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+# Tap the other participant's name in the conversation header bar
+- tapOn:
+    id: "other-participant-name"
+- waitForAnimationToEnd
+# Should be on public profile / seller profile screen
+- assertVisible: "Listings"
+- assertVisible: "Member since"
+# Back returns to conversation
+- back
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."

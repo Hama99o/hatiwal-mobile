@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# Search for a term then apply a condition filter on top — both active simultaneously
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+# Type a search term
+- tapOn: "Search listings..."
+- inputText: "phone"
+- waitForAnimationToEnd
+- assertVisible: "phone"
+# Now apply a condition filter on top of the search
+- tapOn: "Filter"
+- waitForAnimationToEnd
+- tapOn: "Good"
+- tapOn: "Apply"
+- waitForAnimationToEnd
+# Both search term and condition filter are active
+- assertVisible: "phone"
+- assertVisible: "Good"
+# Results reflect both — no "New" condition items visible
+- assertNotVisible: "Brand New"
+# Clear condition filter — search results remain
+- tapOn: "Good"
+- waitForAnimationToEnd
+- assertVisible: "phone"
+# Clear search — back to full browse
+- clearText
+- waitForAnimationToEnd

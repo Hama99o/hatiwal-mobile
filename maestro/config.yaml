@@ -1,0 +1,5 @@
+appId: com.hatiwal.app
+---
+# Global Maestro config for Hatiwal
+# Run all flows: maestro test maestro/
+# Run one flow:  maestro test maestro/auth/login.yaml

@@ -2,12 +2,12 @@
  * RNR Input — NativeWind-aware TextInput wrapper.
  */
 import React from "react";
-import { TextInput, type TextInputProps, StyleSheet, ViewStyle, TextStyle } from "react-native";
+import { TextInput, type TextInputProps, StyleSheet, StyleProp, TextStyle } from "react-native";
 import { useColors } from "@/hooks/useColors";
 
-interface InputProps extends TextInputProps {
+interface InputProps extends Omit<TextInputProps, "style"> {
   className?: string;
-  style?: ViewStyle | TextStyle;
+  style?: StyleProp<TextStyle>;
 }
 
 export function Input({ className, style, ...props }: InputProps) {

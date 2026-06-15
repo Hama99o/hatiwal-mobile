@@ -88,6 +88,10 @@
   "postListing": "Post a listing",
   "noPhoto": "No photo",
   "seen": "Seen",
+  "priceDrop": {
+    "badge": "{{percent}}% price drop",
+    "badgeCardShort": "-{{percent}}%"
+  },
   "detail": {
     "contactSeller": "Contact Seller",
     "makeOffer": "Make an Offer",
@@ -110,7 +114,30 @@
     "moreOptions": "More options",
     "soldNotice": "This item has been sold",
     "reservedNotice": "This item is reserved",
-    "unavailableNotice": "This item is no longer available"
+    "unavailableNotice": "This item is no longer available",
+    "location": "Location",
+    "getDirections": "Get Directions",
+    "showMyLocation": "My Location",
+    "messageSeller": "Message Seller",
+    "yourMessage": "Your message",
+    "messageNote": "No payment required — you'll arrange the meetup in chat.",
+    "sendMessage": "Send Message",
+    "ownListingNotice": "This is your listing",
+    "showPhone": "Show phone number",
+    "callSeller": "Call seller",
+    "mapTapToInteract": "View full map",
+    "mapDone": "Close map"
+  },
+  "ownerDetail": {
+    "notFound": "Listing not found",
+    "views": "Views",
+    "conversations": "Chats",
+    "actions": "Manage Listing",
+    "viewConversations": "View Conversations",
+    "conversationsCount": "{{count}} conversations",
+    "posted": "Posted {{date}}",
+    "dailyViews": "Views — last 7 days",
+    "noViewsYet": "No views yet in the last 7 days"
   },
   "form": {
     "photos": "Photos",
@@ -121,6 +148,7 @@
     "camera": "Camera",
     "permissionRequired": "Permission Required",
     "galleryPermission": "Please allow access to your photo library in Settings.",
+    "galleryLimitedPermission": "You've allowed partial photo access. Only selected photos are available. To choose more, go to Settings and allow full access.",
     "cameraPermission": "Please allow camera access in Settings.",
     "selectCategory": "Select Category",
     "searchCategories": "Search categories...",
@@ -154,6 +182,7 @@
     "discard": "Discard",
     "discardTitle": "Discard changes?",
     "discardMessage": "Your unsaved changes will be lost.",
-    "discardConfirm": "Discard"
+    "discardConfirm": "Discard",
+    "locationRequired": "Location is required — buyers filter listings by area"
   }
 }

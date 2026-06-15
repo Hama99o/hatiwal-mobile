@@ -1,0 +1,42 @@
+appId: com.hatiwal.app
+---
+# Offer flow: buyer sends offer → seller accepts → accepted badge shown
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Message Seller"
+- waitForAnimationToEnd
+
+# Send offer
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- assertVisible: "Send Offer"
+- tapOn: "Offer Amount"
+- inputText: "12000"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+
+# Offer bubble visible
+- assertVisible: "12,000"
+- assertVisible: "Offer"
+- assertVisible: "Pending"
+
+# Switch to seller account and accept
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Accept"
+- waitForAnimationToEnd
+
+# Accepted state
+- assertVisible: "Accepted"

@@ -1,0 +1,15 @@
+appId: com.hatiwal.app
+---
+# Conversations list — rows visible, tap opens thread
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Messages"
+- waitForAnimationToEnd
+# Either conversations visible or empty state
+- assertVisible: "Messages"
+# If conversations exist, tap one
+- tapOn:
+    index: 0
+    optional: true
+- waitForAnimationToEnd
+- back

@@ -1,0 +1,34 @@
+appId: com.hatiwal.app
+---
+# Create listing with photos — picker opens, photos appear in preview
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+# Tap add photos
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+# Photo picker opens — select from gallery
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+# Select first available photo (Maestro picks the first in the media library)
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Photo preview should be visible
+- assertVisible: "Cover"
+# Add title and price to make it submittable
+- tapOn: "What are you selling?"
+- inputText: "Laptop HP"
+- tapOn: "Enter price"
+- inputText: "45000"
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertVisible: "My Listings"
+- assertVisible: "Laptop HP"

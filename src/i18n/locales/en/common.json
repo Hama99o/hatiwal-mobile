@@ -1,4 +1,5 @@
 {
+  "appName": "Hatiwal",
   "save": "Save",
   "cancel": "Cancel",
   "delete": "Delete",
@@ -7,6 +8,8 @@
   "back": "Back",
   "loading": "Loading...",
   "error": "Error",
+  "errorTitle": "Something went wrong",
+  "errorDescription": "We couldn't load the data. Check your connection and try again.",
   "success": "Success",
   "confirmDelete": "Confirm Delete",
   "confirmDeleteDescription": "This action cannot be undone.",
@@ -41,7 +44,8 @@
   "retry": "Retry",
   "notFound": "Not found",
   "required": "is required",
+  "comingSoon": "Coming soon",
   "splash": {
-    "validating": "Loading…"
+    "validating": "Checking your session…"
   }
 }

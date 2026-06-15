@@ -1,0 +1,24 @@
+appId: com.hatiwal.app
+---
+# Listing detail — views count is visible and increments on visit
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Scroll down to meta section where views count is shown
+- scroll
+- waitForAnimationToEnd
+# Views count label is visible (e.g. "12 views" or "1 view")
+- assertVisible: "view"
+# Go back and re-open the same listing — count should increment
+- back
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+- assertVisible: "view"

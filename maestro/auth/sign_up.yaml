@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# Happy path: new user registers and lands on Browse
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+# Navigate to Register
+- tapOn: "Create Account"
+- assertVisible: "Create Account"
+- assertVisible: "Buy and sell locally in Afghanistan"
+# Fill form
+- tapOn: "First Name"
+- inputText: "Ahmad"
+- tapOn: "Last Name"
+- inputText: "Karimi"
+- tapOn: "Phone Number"
+- inputText: "0700000001"
+- tapOn: "Email"
+- inputText: "newuser_${random}@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Confirm Password"
+- inputText: "Password123!"
+- tapOn: "Create Account"
+# Lands on Browse after successful registration
+- assertVisible: "Browse"

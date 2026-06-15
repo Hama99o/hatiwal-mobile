@@ -1,0 +1,29 @@
+appId: com.hatiwal.app
+---
+# Category filter applied → scroll to paginate → filter still active on page 2
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+# Apply category filter
+- tapOn: "Filter"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Apply"
+- waitForAnimationToEnd
+# Filter chip visible — confirms filter is active
+- assertVisible: "Electronics"
+# Scroll to bottom to trigger page 2
+- scroll:
+    direction: DOWN
+    duration: 2000
+- waitForAnimationToEnd
+- scroll:
+    direction: DOWN
+    duration: 2000
+- waitForAnimationToEnd
+# Filter chip still present — category filter survived pagination
+- assertVisible: "Electronics"
+# Results are still filtered (not all categories showing)
+- assertNotVisible: "All Categories"

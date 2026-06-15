@@ -1,0 +1,26 @@
+appId: com.hatiwal.app
+---
+# Block a user from their public profile page
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- tapOn: "Seller"
+- waitForAnimationToEnd
+- assertVisible: "Seller Profile"
+# Block user
+- tapOn: "Block User"
+- waitForAnimationToEnd
+- assertVisible: "Block this user?"
+- assertVisible: "Blocked users cannot contact you"
+- tapOn: "Block User"
+- waitForAnimationToEnd
+- assertVisible: "User blocked"
+# Profile now shows "Unblock User" option
+- assertVisible: "Unblock User"
+# Unblock
+- tapOn: "Unblock User"
+- waitForAnimationToEnd
+- assertVisible: "User unblocked"

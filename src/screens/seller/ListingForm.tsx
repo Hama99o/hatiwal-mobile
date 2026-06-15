@@ -9,7 +9,7 @@
  *  1. Photos   — PhotosSection (expo-image-picker)
  *  2. Title    — required, ≤150 chars
  *  3. Price    — numeric + currency picker (AFN / USD / EUR)
- *  4. Category — CategoryPickerSheet
+ *  4. Category — CategoryPicker (shared: @/components/common/CategoryPicker)
  *  5. Description — optional Textarea
  *  6. Location — exact point on the map (search a place or drop a pin)
  *  7. Address — free-text meeting point (street, landmark)
@@ -24,13 +24,15 @@ import {
   View,
   ScrollView,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   StyleSheet,
   Pressable,
-  Modal,
 } from "react-native";
-import { ChevronRight, MapPin, Coins } from "lucide-react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { ChevronRight, MapPin, Coins, Check } from "lucide-react-native";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -53,7 +55,7 @@ import { Label } from "@/components/reusables/label";
 import { Separator } from "@/components/reusables/separator";
 
 import { PhotosSection, PhotoItem } from "./listing-form/PhotosSection";
-import { CategoryPickerSheet } from "./listing-form/CategoryPickerSheet";
+import { CategoryPicker } from "@/components/common/CategoryPicker";
 import { ConditionChips } from "@/components/common/ConditionChips";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -74,9 +76,11 @@ const listingSchema = z.object({
   description: z.string().optional(),
   location: z.string().optional(),
   address: z.string().optional(),
-  // Coordinates derived from the selected province — used for map/distance search.
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
+  // Coordinates are required — used for distance-based filtering.
+  // coerce: the API returns decimal columns as strings (e.g. "48.947681"), same as price/categoryId.
+  // finite() rejects undefined→NaN and Infinity, making these effectively required.
+  latitude: z.coerce.number().finite(),
+  longitude: z.coerce.number().finite(),
 });
 
 type ListingFormValues = z.infer<typeof listingSchema>;
@@ -101,6 +105,7 @@ export default function ListingFormScreen() {
   const { isRtl } = useLocalization();
   const colors = useColors();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id?: string }>();
   const qc = useQueryClient();
 
@@ -124,6 +129,16 @@ export default function ListingFormScreen() {
     queryFn: () => listingsAPI.getMyListing(listingId!),
     enabled: isEdit && !!listingId,
   });
+
+  // Refetch the listing every time the edit form comes into focus so the
+  // user always sees the latest data (not a stale cache from a previous visit).
+  useFocusEffect(
+    useCallback(() => {
+      if (isEdit && listingId) {
+        qc.invalidateQueries({ queryKey: ["my-listing", listingId] });
+      }
+    }, [isEdit, listingId, qc])
+  );
 
   // ---------------------------------------------------------------------------
   // react-hook-form
@@ -174,8 +189,12 @@ export default function ListingFormScreen() {
       }
       // Show the saved place name on the location row.
       setMapLabel(existingListing.location ?? null);
-      if (existingListing.images) {
-        setPhotos(existingListing.images.map((uri) => ({ uri, isRemote: true })));
+      // Prefer image_attachments (carry the blob id so a removed photo can be
+      // purged server-side); fall back to plain urls for older payloads.
+      if (existingListing.imageAttachments?.length) {
+        setPhotos(existingListing.imageAttachments.map((a: { id: string; url: string }) => ({ uri: a.url, isRemote: true, id: a.id })));
+      } else if (existingListing.images) {
+        setPhotos(existingListing.images.map((uri: string) => ({ uri, isRemote: true })));
       }
     }
   }, [existingListing, isEdit, reset]);
@@ -258,12 +277,22 @@ export default function ListingFormScreen() {
     clearDraft();
   };
 
+  // signed_ids of remote photos that were loaded but the user has since removed
+  // — sent so the backend purges exactly those, keeping the rest of the gallery.
+  const computeRemovedImageIds = useCallback((): string[] => {
+    const originalIds: string[] = existingListing?.imageAttachments?.map((a: { id: string; url: string }) => a.id) ?? [];
+    const keptIds = new Set(
+      photos.filter((p) => p.isRemote && p.id).map((p) => p.id as string)
+    );
+    return originalIds.filter((id: string) => !keptIds.has(id));
+  }, [existingListing, photos]);
+
   const saveMutation = useMutation({
     mutationFn: async (values: ListingFormValues) => {
       const imageUris = photos.filter((p) => !p.isRemote).map((p) => p.uri);
       // remote photos are already on the server; only upload new local ones
       if (isEdit && listingId) {
-        return listingsAPI.updateListingWithImages(listingId, values, imageUris);
+        return listingsAPI.updateListingWithImages(listingId, values, imageUris, computeRemovedImageIds());
       }
       return listingsAPI.createListingWithImages(values, imageUris);
     },
@@ -282,7 +311,7 @@ export default function ListingFormScreen() {
       const imageUris = photos.filter((p) => !p.isRemote).map((p) => p.uri);
       let listing;
       if (isEdit && listingId) {
-        listing = await listingsAPI.updateListingWithImages(listingId, values, imageUris);
+        listing = await listingsAPI.updateListingWithImages(listingId, values, imageUris, computeRemovedImageIds());
       } else {
         listing = await listingsAPI.createListingWithImages(values, imageUris);
       }
@@ -341,18 +370,24 @@ export default function ListingFormScreen() {
   // Render
   // ---------------------------------------------------------------------------
   return (
+    <ScreenContainer scrollable={false} padded={false}>
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      // Platform audit (2026-06-18):
+      //   iOS "padding" — lifts the scroll view so keyboard doesn't cover inputs.
+      //   Android "height" — shrinks the KAV height so the ScrollView recalculates
+      //   and the submit bar remains reachable while typing. Was previously `undefined`
+      //   (KAV did nothing on Android, leaving the keyboard overlapping the form).
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        style={[styles.flex, { backgroundColor: colors.background }]}
+        style={styles.flex}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Screen title */}
-        <Text style={{ fontSize: 24, fontWeight: "700", marginBottom: 24 }}>
+        <Text className="text-2xl font-bold" style={{ marginBottom: 24, color: colors.foreground }}>
           {isEdit ? t("listing.edit") : t("listing.create")}
         </Text>
 
@@ -371,19 +406,25 @@ export default function ListingFormScreen() {
               marginBottom: 20,
             }}
           >
-            <Text style={{ flex: 1, fontSize: 13, color: colors.foreground, textAlign: isRtl ? "right" : "left" }}>
+            <Text className="text-sm" style={{ flex: 1, color: colors.foreground, textAlign: isRtl ? "right" : "left" }}>
               {t("listing.form.draftFound")}
             </Text>
-            <Pressable onPress={handleDiscardDraft} hitSlop={8} style={{ paddingHorizontal: 8, paddingVertical: 6 }}>
-              <Text style={{ fontSize: 13, fontWeight: "600", color: colors.mutedForeground }}>
+            <Pressable
+              onPress={handleDiscardDraft}
+              hitSlop={8}
+              style={{ paddingHorizontal: 8, paddingVertical: 6, minHeight: 44, justifyContent: "center" }}
+              android_ripple={{ color: colors.muted, borderless: true }}
+            >
+              <Text className="text-sm font-semibold" style={{ color: colors.mutedForeground }}>
                 {t("listing.form.draftDiscard")}
               </Text>
             </Pressable>
             <Pressable
               onPress={handleRestoreDraft}
-              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.primary }}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.primary, minHeight: 44, justifyContent: "center" }}
+              android_ripple={{ color: colors.muted, borderless: true }}
             >
-              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primaryForeground }}>
+              <Text className="text-sm font-bold" style={{ color: colors.primaryForeground }}>
                 {t("listing.form.draftRestore")}
               </Text>
             </Pressable>
@@ -421,11 +462,11 @@ export default function ListingFormScreen() {
             )}
           />
           {errors.title && (
-            <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4 }}>
+            <Text className="text-xs" style={{ color: colors.destructive, marginTop: 4 }}>
               {t("listing.form.titleRequired")}
             </Text>
           )}
-          <Text style={{ fontSize: 12, color: colors.mutedForeground, textAlign: "right", marginTop: 4 }}>
+          <Text className="text-xs" style={{ color: colors.mutedForeground, textAlign: isRtl ? "left" : "right", marginTop: 4 }}>
             {`${watch("title")?.length ?? 0}/150`}
           </Text>
         </View>
@@ -436,7 +477,7 @@ export default function ListingFormScreen() {
         <View style={styles.field}>
           <Label className="mb-1">
             {t("common.price")}
-            <Text className="text-destructive"> *</Text>
+            <Text style={{ color: colors.destructive }}> *</Text>
           </Label>
           <View style={[styles.priceRow, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
             <Controller
@@ -464,16 +505,17 @@ export default function ListingFormScreen() {
                 },
               ]}
               onPress={() => setCurrencyPickerVisible(true)}
+              android_ripple={{ color: colors.border, borderless: false }}
             >
               <Coins size={14} color={colors.mutedForeground} />
-              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginHorizontal: 4 }}>
+              <Text className="text-sm font-semibold" style={{ color: colors.foreground, marginHorizontal: 4 }}>
                 {currency}
               </Text>
               <ChevronRight size={12} color={colors.mutedForeground} />
             </Pressable>
           </View>
           {errors.price && (
-            <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4 }}>
+            <Text className="text-xs" style={{ color: colors.destructive, marginTop: 4 }}>
               {t("listing.form.priceRequired")}
             </Text>
           )}
@@ -485,7 +527,7 @@ export default function ListingFormScreen() {
         <View style={styles.field}>
           <Label className="mb-1">
             {t("common.category")}
-            <Text className="text-destructive"> *</Text>
+            <Text style={{ color: colors.destructive }}> *</Text>
           </Label>
           <Controller
             control={control}
@@ -500,9 +542,11 @@ export default function ListingFormScreen() {
                   },
                 ]}
                 onPress={() => setCategoryPickerVisible(true)}
+                android_ripple={{ color: colors.muted }}
               >
                 <Text
-                  style={{ fontSize: 14, color: selectedCategory ? colors.foreground : colors.mutedForeground, textAlign: isRtl ? "right" : "left" }}
+                  className="text-sm"
+                  style={{ color: selectedCategory ? colors.foreground : colors.mutedForeground, textAlign: isRtl ? "right" : "left" }}
                 >
                   {selectedCategory
                     ? categoryName(selectedCategory)
@@ -512,7 +556,7 @@ export default function ListingFormScreen() {
             )}
           />
           {errors.categoryId && (
-            <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4 }}>
+            <Text className="text-xs" style={{ color: colors.destructive, marginTop: 4 }}>
               {t("listing.form.categoryRequired")}
             </Text>
           )}
@@ -560,24 +604,32 @@ export default function ListingFormScreen() {
         {/* 6. Location — exact point on the map (search or drop a pin)         */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field}>
-          <Label className="mb-1">{t("common.location")}</Label>
+          <Label className="mb-1">
+            {t("common.location")}
+            <Text style={{ color: colors.destructive }}> *</Text>
+          </Label>
           <Pressable
             style={[
               styles.pickerRow,
               {
-                borderColor: hasExactLocation ? colors.primary : colors.border,
+                borderColor: errors.latitude
+                  ? colors.destructive
+                  : hasExactLocation
+                  ? colors.primary
+                  : colors.border,
                 backgroundColor: colors.card,
                 flexDirection: isRtl ? "row-reverse" : "row",
               },
             ]}
             onPress={() => setLocationPickerVisible(true)}
+            android_ripple={{ color: colors.muted }}
           >
-            <MapPin size={16} color={hasExactLocation ? colors.primary : colors.mutedForeground} />
+            <MapPin size={16} color={errors.latitude ? colors.destructive : hasExactLocation ? colors.primary : colors.mutedForeground} />
             <Text
+              className="text-sm"
               style={{
                 flex: 1,
-                fontSize: 14,
-                color: hasExactLocation ? colors.foreground : colors.mutedForeground,
+                color: hasExactLocation ? colors.foreground : errors.latitude ? colors.destructive : colors.mutedForeground,
                 marginHorizontal: 8,
                 textAlign: isRtl ? "right" : "left",
               }}
@@ -589,6 +641,11 @@ export default function ListingFormScreen() {
             </Text>
             <ChevronRight size={16} color={colors.mutedForeground} />
           </Pressable>
+          {errors.latitude && (
+            <Text className="text-xs" style={{ color: colors.destructive, marginTop: 4 }}>
+              {t("listing.form.locationRequired")}
+            </Text>
+          )}
         </View>
 
         {/* ------------------------------------------------------------------ */}
@@ -609,7 +666,7 @@ export default function ListingFormScreen() {
               />
             )}
           />
-          <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 4, textAlign: isRtl ? "right" : "left" }}>
+          <Text className="text-xs" style={{ color: colors.mutedForeground, marginTop: 4, textAlign: isRtl ? "right" : "left" }}>
             {t("listing.form.addressHint")}
           </Text>
         </View>
@@ -625,6 +682,7 @@ export default function ListingFormScreen() {
             backgroundColor: colors.background,
             borderTopColor: colors.border,
             flexDirection: isRtl ? "row-reverse" : "row",
+            paddingBottom: Math.max(insets.bottom, 12),
           },
         ]}
       >
@@ -671,7 +729,7 @@ export default function ListingFormScreen() {
       {/* -------------------------------------------------------------------- */}
       {/* Category picker sheet                                                 */}
       {/* -------------------------------------------------------------------- */}
-      <CategoryPickerSheet
+      <CategoryPicker
         visible={categoryPickerVisible}
         selectedId={selectedCategory?.id ?? null}
         onSelect={(cat) => {
@@ -683,7 +741,7 @@ export default function ListingFormScreen() {
       />
 
       {/* -------------------------------------------------------------------- */}
-      {/* Currency picker modal                                                  */}
+      {/* Currency picker — raw Modal (consistent with all sheets in project)   */}
       {/* -------------------------------------------------------------------- */}
       <Modal
         visible={currencyPickerVisible}
@@ -692,16 +750,27 @@ export default function ListingFormScreen() {
         onRequestClose={() => setCurrencyPickerVisible(false)}
       >
         <Pressable
-          style={styles.backdrop}
+          style={[styles.currencyBackdrop, { backgroundColor: colors.darkScrim }]}
           onPress={() => setCurrencyPickerVisible(false)}
         />
         <View
           style={[
-            styles.pickerSheet,
-            { backgroundColor: colors.card, borderTopColor: colors.border },
+            styles.currencySheet,
+            {
+              backgroundColor: colors.card,
+              borderTopColor: colors.border,
+              paddingBottom: Math.max(insets.bottom, 16),
+            },
           ]}
         >
-          <Text style={{ fontSize: 17, fontWeight: "600", color: colors.foreground, marginBottom: 16, paddingHorizontal: 20 }}>
+          {/* drag handle */}
+          <View style={styles.currencyHandle}>
+            <View style={[styles.handleBar, { backgroundColor: colors.border }]} />
+          </View>
+          <Text
+            className="text-lg font-semibold"
+            style={{ color: colors.foreground, marginBottom: 4, paddingHorizontal: 16 }}
+          >
             {t("listing.form.selectCurrency")}
           </Text>
           {(
@@ -718,27 +787,20 @@ export default function ListingFormScreen() {
                 {
                   flexDirection: isRtl ? "row-reverse" : "row",
                   borderBottomColor: colors.border,
-                  backgroundColor:
-                    currency === opt.value ? colors.muted : "transparent",
+                  backgroundColor: currency === opt.value ? colors.muted : "transparent",
                 },
               ]}
               onPress={() => {
                 setValue("currency", opt.value, { shouldValidate: true });
                 setCurrencyPickerVisible(false);
               }}
+              android_ripple={{ color: colors.muted }}
             >
-              <Text style={{ fontSize: 15, color: colors.foreground, flex: 1 }}>
+              <Text className="text-sm" style={{ color: colors.foreground, flex: 1 }}>
                 {opt.label}
               </Text>
               {currency === opt.value && (
-                <View
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: colors.primary,
-                  }}
-                />
+                <Check size={16} color={colors.primary} />
               )}
             </Pressable>
           ))}
@@ -764,6 +826,7 @@ export default function ListingFormScreen() {
         }}
       />
     </KeyboardAvoidingView>
+    </ScreenContainer>
   );
 }
 
@@ -808,22 +871,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  pickerSheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderTopWidth: 1,
-    paddingTop: 20,
-    paddingBottom: Platform.OS === "ios" ? 40 : 24,
-  },
   currencyOption: {
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
+    minHeight: 44,
+  },
+  currencyBackdrop: {
+    flex: 1,
+    // backgroundColor is applied inline via colors.darkScrim (useColors token)
+  },
+  currencySheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    // Platform audit (2026-06-18): iOS bottom safe-area is 34pt (home indicator);
+    // Android has no equivalent inset → 16pt is the correct fallback.
+    paddingBottom: Platform.OS === "ios" ? 34 : 16,
+  },
+  currencyHandle: {
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
   },
   submitBar: {
     position: "absolute",
@@ -832,6 +906,8 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    // Platform audit (2026-06-18): iOS home indicator height is ~28pt on modern devices;
+    // Android has no bottom safe-area equivalent → 12pt is the correct fallback.
     paddingBottom: Platform.OS === "ios" ? 28 : 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: 10,

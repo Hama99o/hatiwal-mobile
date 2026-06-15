@@ -1,0 +1,17 @@
+appId: com.hatiwal.app
+---
+# Decline a meetup proposal
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Messages"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+# Decline the meetup proposal
+- tapOn: "Decline"
+- waitForAnimationToEnd
+- assertVisible: "Meetup declined"
+- assertVisible: "You declined the meetup"

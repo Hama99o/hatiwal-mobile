@@ -1,0 +1,17 @@
+appId: com.hatiwal.app
+---
+# Profile stats: listings count, joined date visible on own profile
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+
+# Stats section visible
+- assertVisible: "Listings"
+- assertVisible: "Joined"
+
+# Member since includes year
+- assertVisible: "2024"
+
+# Listings count is a non-negative number (assert section label is there)
+- assertVisible: "Listings"

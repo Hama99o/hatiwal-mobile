@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# Browse feed: scroll to bottom triggers next page, pull-to-refresh reloads
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+
+# Scroll down three times to trigger pagination
+- scroll
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+
+# More cards should have loaded — feed is not empty
+- assertVisible: "Browse"
+
+# Pull-to-refresh: swipe down from top of list
+- swipe:
+    direction: DOWN
+    duration: 800
+- waitForAnimationToEnd
+
+# Feed still shows after refresh
+- assertVisible: "Browse"

@@ -1,0 +1,29 @@
+appId: com.hatiwal.app
+---
+# Edit listing: add a new photo, verify it appears in the photo strip
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+
+# Photos section
+- assertVisible: "Photos"
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- assertVisible: "Gallery"
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+
+# Photo added — Cover label visible
+- assertVisible: "Cover"
+
+# Save changes
+- tapOn: "Save Changes"
+- waitForAnimationToEnd
+- assertVisible: "Changes saved"

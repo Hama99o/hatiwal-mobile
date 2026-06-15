@@ -1,0 +1,33 @@
+appId: com.hatiwal.app
+---
+# Create a listing, save as draft — appears in My Listings with draft badge
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Tap create button
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+# Fill title
+- tapOn: "What are you selling?"
+- inputText: "iPhone 12 Pro - 128GB"
+# Fill price
+- tapOn: "Enter price"
+- inputText: "25000"
+# Select currency — AFN is default, skip if already set
+# Select category
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+# Fill description
+- tapOn: "Describe your item..."
+- inputText: "Good condition, no scratches. Comes with original charger."
+# Save as draft
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+# Back to My Listings — listing appears
+- assertVisible: "My Listings"
+- assertVisible: "iPhone 12 Pro - 128GB"
+- assertVisible: "Draft"

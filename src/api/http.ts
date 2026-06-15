@@ -2,10 +2,16 @@ import axios from "axios";
 import { secureStorage } from "@/utils/secure-storage";
 
 export const BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api/v1";
+  // The Rails API listens on 3007 (see docker-compose). EXPO_PUBLIC_API_URL
+  // overrides this with the LAN address on device.
+  process.env.EXPO_PUBLIC_API_URL || "http://localhost:3007/api/v1";
 
 export const http = axios.create({
   baseURL: BASE_URL,
+  // Fail fast instead of spinning forever when the API is unreachable (e.g. a
+  // stale HOST_IP / wrong LAN address). Without this, a dead API address makes
+  // the login button "load" indefinitely with no error shown.
+  timeout: 20000,
   headers: {
     "Content-Type": "application/json",
   },

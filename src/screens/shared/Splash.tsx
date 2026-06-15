@@ -1,50 +1,124 @@
 // src/screens/shared/Splash.tsx
-// Bootstrap / splash: ensures the stored session is restored, then routes to
-// the feed. The auth hydration itself lives in src/stores/auth.bootstrap.ts
-// (shared with the root layout, so deep-route reloads hydrate too). Guests and
-// logged-in users both land on Browse; account-only actions prompt login on
-// demand. Never shows the wrong screen — avoids any flash.
+//
+// Bootstrap / splash screen.
+// On mount: calls bootstrapAuth() which reads the stored token from
+// secureStorage and sets the auth store optimistically. Then EVERYONE —
+// guest or authenticated — lands on /(main)/(tabs)/browse.
+//
+// Branded reveal (DESIGN_SYSTEM §6/§7, BACKLOG P2.1): the "Hatiwal" wordmark
+// fades in + scales up (withSpring) over ~500 ms as the placeholder logomark,
+// with the spinner demoted to a secondary cue below — a bare spinner alone is
+// explicitly discouraged by the design system.
+//
+// Guest browsing (BACKLOG A4): a logged-out user MUST see the Browse feed,
+// never a login wall. The account-only tabs (Saved/Messages/Profile) and
+// actions (save/contact/offer) self-gate to login with a returnTo via
+// useRequireAuth. So Splash never routes to /(auth)/login — doing so would
+// re-break the shipped guest-browsing contract.
+//
+// Network error distinction (enforced in auth.bootstrap.ts):
+//   • HTTP 401 (token revoked/expired) → tokens cleared inside bootstrapAuth,
+//     auth store cleared → user continues as a guest on Browse.
+//   • Network / timeout (no response) → tokens kept, optimistic session stays.
+//
+// IMPORTANT: This file does NOT call clearAuthHeaders() — that is handled
+// inside bootstrapAuth() only for the definitive 401 case. Calling it here
+// on a generic error would permanently log out a user whose device is
+// temporarily offline.
 
 import { useEffect } from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
 import { bootstrapAuth } from "@/stores/auth.bootstrap";
 import { useColors } from "@/hooks/useColors";
+import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { useReduceMotion } from "@/lib/animation";
 
 export default function SplashScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const colors = useColors();
+  const reduceMotion = useReduceMotion();
+
+  // Logo reveal: fade in + subtle scale-up on cold start.
+  // When Reduce Motion is on, snap directly to visible without animating.
+  const opacity = useSharedValue(0);
+  const scale = useSharedValue(0.8);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.value = 1;
+      scale.value = 1;
+      return;
+    }
+    opacity.value = withTiming(1, { duration: 500 });
+    scale.value = withSpring(1, { damping: 12, stiffness: 120 });
+  }, [opacity, scale, reduceMotion]);
+
+  const wordmarkStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
 
   useEffect(() => {
     let cancelled = false;
-    // bootstrapAuth is idempotent (the root layout also calls it) and resolves
-    // fast — it sets the optimistic auth state, then validates in the background.
-    bootstrapAuth().finally(() => {
-      if (!cancelled) router.replace("/(main)/(tabs)/browse");
-    });
+
+    bootstrapAuth()
+      .then(() => {
+        // Guests and authenticated users alike land on Browse — the feed is
+        // guest-capable and account actions/tabs self-gate to login on demand.
+        if (!cancelled) router.replace("/(main)/(tabs)/browse");
+      })
+      .catch(() => {
+        // bootstrapAuth never rejects (it catches internally), but guard
+        // against unexpected throws. Do NOT call clearAuthHeaders() here and do
+        // NOT route to login — keep tokens intact and drop to the guest feed.
+        if (!cancelled) router.replace("/(main)/(tabs)/browse");
+      });
+
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A centered wordmark is direction-agnostic — no RTL mirroring needed.
   return (
-    <View
-      style={[styles.container, { backgroundColor: colors.background }]}
+    <ScreenContainer
+      scrollable={false}
+      padded={false}
+      safeArea={[]}
+      accessible
       accessibilityLabel={t("common.splash.validating")}
+      style={{ alignItems: "center", justifyContent: "center" }}
     >
-      <ActivityIndicator size="large" color={colors.primary} />
-    </View>
+      <Animated.Text style={[styles.wordmark, wordmarkStyle, { color: colors.primary }]}>
+        {t("common.appName")}
+      </Animated.Text>
+      <ActivityIndicator
+        size="small"
+        color={colors.mutedForeground}
+        style={styles.spinner}
+      />
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  wordmark: {
+    fontSize: 40,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  spinner: {
+    marginTop: 24,
   },
 });

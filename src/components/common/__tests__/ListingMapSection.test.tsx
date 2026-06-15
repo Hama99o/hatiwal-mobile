@@ -1,0 +1,337 @@
+/**
+ * ListingMapSection unit tests.
+ *
+ * The component renders a map snippet (MapCanvas), an optional address/location
+ * label, and a "Get Directions" button.
+ *
+ * Because MapCanvas is a platform-split module (MapCanvas.native.tsx /
+ * MapCanvas.web.tsx) that renders native tiles or Leaflet, we stub it with a
+ * simple View so tests can run in Jest / Node without any native map module.
+ *
+ * Global mocks provided by src/__tests__/setup.ts:
+ *   - react-i18next  → t(key) returns the key
+ *   - useColors      → fixed light-mode token map
+ *   - useLocalization → isRtl = false
+ *
+ * Per-file mocks (below):
+ *   - MapCanvas              → stub View with testID="map-canvas-stub"
+ *   - expo-location          → getForegroundPermissionsAsync resolves immediately
+ *   - @/utils/geolocation    → getCurrentLocation mocked
+ *   - lucide-react-native    → icons as string stubs
+ */
+
+import React from "react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react-native";
+
+// Stub MapCanvas via the manual __mocks__/MapCanvas.js file that lives next to
+// the component. The manual mock uses plain CommonJS (no react-native require)
+// to avoid NativeWind's Babel transform injecting _ReactNativeCSSInterop into
+// the jest.mock factory scope, which would trigger an out-of-scope variable error.
+jest.mock("@/components/common/map/MapCanvas");
+
+// Stub expo-location. The component calls getForegroundPermissionsAsync on mount.
+const mockGetForegroundPermissions = jest.fn();
+jest.mock("expo-location", () => ({
+  getForegroundPermissionsAsync: function () {
+    return mockGetForegroundPermissions();
+  },
+  requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: "granted" }),
+  getCurrentPositionAsync: jest.fn(),
+  Accuracy: { Balanced: 3 },
+}));
+
+// Stub geolocation util.
+jest.mock("@/utils/geolocation", () => ({
+  getCurrentLocation: jest.fn(),
+}));
+
+// Stub lucide icons to avoid react-native-svg in Jest / Node.
+jest.mock("lucide-react-native", () => ({
+  Navigation: "Navigation",
+  Crosshair: "Crosshair",
+}));
+
+// Imports AFTER all jest.mock() calls so Babel hoisting works correctly.
+import { ListingMapSection } from "../ListingMapSection";
+
+// Kabul, Afghanistan — a realistic coordinate fixture.
+const KABUL = { latitude: 34.5553, longitude: 69.2075 };
+
+// Helper: control the permission state returned by expo-location.
+function setPermission(status: "granted" | "denied" | "undetermined") {
+  mockGetForegroundPermissions.mockResolvedValue({ status });
+}
+
+// Helper: retrieve the getCurrentLocation mock via require (avoids hoisting quirks).
+function geoMock(): jest.Mock {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  return require("@/utils/geolocation").getCurrentLocation as jest.Mock;
+}
+
+// ─── Setup ───────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  // Default: permission is "undetermined" so the "My Location" button shows.
+  setPermission("undetermined");
+  // Default: location request returns nothing (permission not granted yet).
+  geoMock().mockResolvedValue({ coords: null, error: "denied" });
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
+// ─── Suite 1: Map canvas renders when coordinates are provided ────────────────
+
+describe("ListingMapSection — with coordinates", () => {
+  it("renders the map section container when lat/long are provided", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+      })
+    );
+
+    // The map section always renders the Get Directions button and the My Location
+    // button (when permission is undetermined). The map canvas itself is stubbed.
+    await waitFor(() => {
+      // Both the map action buttons confirm the full map section rendered.
+      expect(screen.getByText("listing.detail.getDirections")).toBeTruthy();
+    });
+  });
+
+  it("renders the 'Get Directions' button", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+      })
+    );
+
+    // t() returns the key string in tests
+    await waitFor(() => {
+      expect(screen.getByText("listing.detail.getDirections")).toBeTruthy();
+    });
+  });
+
+  it("renders the address string when address is provided", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+        address: "Share Naw, Kabul",
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Share Naw, Kabul")).toBeTruthy();
+    });
+  });
+
+  it("renders the location string when location is provided and address is absent", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+        location: "Kabul",
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Kabul")).toBeTruthy();
+    });
+  });
+
+  it("prefers address over location when both are provided", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+        address: "Share Naw, Kabul",
+        location: "Kabul",
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Share Naw, Kabul")).toBeTruthy();
+    });
+    // "Kabul" alone should NOT appear as a separate element since address wins.
+    expect(screen.queryByText("Kabul")).toBeNull();
+  });
+
+  it("shows the 'My Location' button when permission is undetermined", async () => {
+    setPermission("undetermined");
+
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("listing.detail.showMyLocation")).toBeTruthy();
+    });
+  });
+
+  it("hides the 'My Location' button when permission is already granted", async () => {
+    setPermission("granted");
+    geoMock().mockResolvedValue({
+      coords: { latitude: 34.55, longitude: 69.21 },
+    });
+
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+      })
+    );
+
+    // Wait for the permission effect to update permissionState to "granted".
+    await waitFor(() => {
+      expect(screen.queryByText("listing.detail.showMyLocation")).toBeNull();
+    });
+  });
+
+  it("hides the 'My Location' button when permission is denied", async () => {
+    setPermission("denied");
+
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+      })
+    );
+
+    // Wait for the permission effect to update permissionState to "denied".
+    await waitFor(() => {
+      expect(screen.queryByText("listing.detail.showMyLocation")).toBeNull();
+    });
+  });
+});
+
+// ─── Suite 2: Missing coordinates fallback (no address/location label) ────────
+
+describe("ListingMapSection — without address/location label", () => {
+  it("renders the map section and directions button even without address or location", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+      })
+    );
+
+    // The map section renders its container and the directions button
+    // even when no address or location label is provided.
+    await waitFor(() => {
+      expect(screen.getByText("listing.detail.getDirections")).toBeTruthy();
+    });
+  });
+
+  it("does not render the label row when address and location are both undefined", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+      })
+    );
+
+    await waitFor(() => {
+      // The only visible text nodes should be translation keys.
+      // No plain city string should be present.
+      expect(screen.queryByText("Share Naw, Kabul")).toBeNull();
+      expect(screen.queryByText("Kabul")).toBeNull();
+    });
+  });
+
+  it("does not render the label row when address is null and location is null", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+        address: null,
+        location: null,
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("listing.detail.getDirections")).toBeTruthy();
+    });
+    expect(screen.queryByText("Kabul")).toBeNull();
+  });
+});
+
+// ─── Suite 3: City / location label text ─────────────────────────────────────
+
+describe("ListingMapSection — city label text", () => {
+  it("shows address text in the label area", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: 34.3528,
+        longitude: 62.2041,
+        address: "Herat, Herat Province",
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Herat, Herat Province")).toBeTruthy();
+    });
+  });
+
+  it("shows location text in the label area when address is missing", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: 36.7069,
+        longitude: 67.1106,
+        location: "Mazar-i-Sharif",
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Mazar-i-Sharif")).toBeTruthy();
+    });
+  });
+
+  it("does not render the label row when both address and location are empty strings", async () => {
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+        address: "",
+        location: "",
+      })
+    );
+
+    // Empty strings are falsy — the conditional (address || location) is false.
+    await waitFor(() => {
+      expect(screen.getByText("listing.detail.getDirections")).toBeTruthy();
+    });
+  });
+});
+
+// ─── Suite 4: Get Directions interaction ─────────────────────────────────────
+
+describe("ListingMapSection — Get Directions interaction", () => {
+  it("calls Linking.openURL when the directions button is pressed", async () => {
+    const { Linking } = require("react-native");
+    const openURLSpy = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+      })
+    );
+
+    const btn = await screen.findByText("listing.detail.getDirections");
+    await act(async () => {
+      fireEvent.press(btn);
+    });
+
+    expect(openURLSpy).toHaveBeenCalled();
+    const calledUrl = openURLSpy.mock.calls[0][0] as string;
+    expect(calledUrl).toContain(`${KABUL.latitude},${KABUL.longitude}`);
+
+    openURLSpy.mockRestore();
+  });
+});

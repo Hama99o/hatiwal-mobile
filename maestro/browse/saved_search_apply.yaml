@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# Saved searches: apply filters → auto-saved → clear → re-apply from saved searches chip
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+# Apply a category filter — this combination gets auto-saved
+- tapOn: "Filter"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Apply"
+- waitForAnimationToEnd
+# Filtered results visible
+- assertVisible: "Electronics"
+# Wait for auto-save (debounced)
+- waitForAnimationToEnd
+# Clear filters
+- tapOn: "Clear"
+- waitForAnimationToEnd
+# Saved search chip should appear (auto-saved the previous filter combo)
+- assertVisible: "Saved Searches"
+# Tap the saved search to re-apply it
+- tapOn:
+    id: "saved-search-chip"
+    index: 0
+- waitForAnimationToEnd
+# Filters are re-applied — Electronics results visible again
+- assertVisible: "Electronics"

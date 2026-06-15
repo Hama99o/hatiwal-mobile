@@ -1,0 +1,36 @@
+appId: com.hatiwal.app
+---
+# Report a user from their public profile page.
+# Flow: Browse → open a listing → tap the seller card → seller profile →
+#       open the 3-dot "Actions" menu → Report User → submit a report.
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+
+# Open the first listing in the feed
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
+
+# Navigate to the seller's public profile via the seller card
+- tapOn:
+    id: "seller-profile-link"
+- waitForAnimationToEnd
+# The loaded profile shows stat labels (the header title is the dynamic
+# seller name, so we assert on a stable stat label instead).
+- assertVisible: "Active Listings"
+
+# Open the 3-dot actions menu, then choose Report User
+- tapOn: "Actions"
+- waitForAnimationToEnd
+- tapOn: "Report User"
+- waitForAnimationToEnd
+- assertVisible: "Why are you reporting this?"
+
+# Select a reason and submit
+- tapOn: "Spam"
+- tapOn: "Submit Report"
+- waitForAnimationToEnd
+- assertVisible: "Report submitted. Thank you."

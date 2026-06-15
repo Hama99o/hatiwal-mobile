@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# My Listings in RTL (Pashto) — cards mirrored, action buttons readable
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Pashto (پښتو)"
+- waitForAnimationToEnd
+# Switch to seller mode
+- tapOn:
+    index: 4
+- waitForAnimationToEnd
+- tapOn: "د پلور حالت ته لاړ شئ"
+- waitForAnimationToEnd
+# Open My Listings in Pashto
+- tapOn:
+    index: 3
+- waitForAnimationToEnd
+# Pashto label for My Listings
+- assertVisible: "زما توکي"
+# Cards render without crash
+- scroll
+- waitForAnimationToEnd
+# Reset to English
+- tapOn:
+    index: 4
+- waitForAnimationToEnd
+- tapOn: "English"
+- waitForAnimationToEnd

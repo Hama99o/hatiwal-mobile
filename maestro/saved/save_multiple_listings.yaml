@@ -1,0 +1,31 @@
+appId: com.hatiwal.app
+---
+# Save multiple listings: save 3 → all appear in Saved tab
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+
+# Save first 3 listings
+- tapOn:
+    id: "save-button-0"
+- waitForAnimationToEnd
+- tapOn:
+    id: "save-button-1"
+- waitForAnimationToEnd
+- tapOn:
+    id: "save-button-2"
+- waitForAnimationToEnd
+
+# Go to Saved tab
+- tapOn: "Saved"
+- waitForAnimationToEnd
+- assertNotVisible: "No saved listings"
+
+# At least 3 items visible
+- assertVisible:
+    id: "listing-card-0"
+- assertVisible:
+    id: "listing-card-1"
+- assertVisible:
+    id: "listing-card-2"

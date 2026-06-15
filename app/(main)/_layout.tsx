@@ -1,43 +1,33 @@
 import { Stack, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
-import { TouchableOpacity } from "react-native";
-import { ChevronLeft } from "lucide-react-native";
+import { BackButton } from "@/components/common/BackButton";
+import { useReduceMotion } from "@/lib/animation/useReduceMotion";
 
 export default function MainLayout() {
   const { t } = useTranslation();
   const colors = useColors();
   const router = useRouter();
+  const reduceMotion = useReduceMotion();
+
+  const stackAnimation = reduceMotion ? "none" : "slide_from_right";
 
   const themedHeader = {
     headerStyle: { backgroundColor: colors.card },
     headerTintColor: colors.primary,
-    headerTitleStyle: { color: colors.foreground, fontWeight: "500", fontSize: 15 },
+    headerTitleStyle: { color: colors.foreground, fontWeight: "500" as const, fontSize: 15 },
     headerShadowVisible: false,
     headerBackTitle: "",
   };
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
+    <Stack screenOptions={{ headerShown: false, animation: stackAnimation }}>
+      <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
       <Stack.Screen name="listing/new" />
       <Stack.Screen name="listing/edit/[id]" />
       <Stack.Screen
         name="conversation/[id]"
-        options={{
-          headerShown: true,
-          headerTitle: t("chat.title"),
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(main)/(tabs)/chat" as any)}
-              hitSlop={8}
-              style={{ paddingLeft: 12 }}
-            >
-              <ChevronLeft size={24} color={colors.primary} />
-            </TouchableOpacity>
-          ),
-          ...themedHeader,
-        }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="listing-conversations/[id]"
@@ -53,6 +43,42 @@ export default function MainLayout() {
         name="seller/[userId]"
         options={{
           headerShown: false,
+          ...themedHeader,
+        }}
+      />
+      <Stack.Screen
+        name="my-listings/[id]"
+        options={{
+          headerShown: false,
+          ...themedHeader,
+        }}
+      />
+      <Stack.Screen
+        name="profile/edit"
+        options={{
+          headerShown: true,
+          headerTitle: t("profile.edit.title"),
+          headerLeft: () => (
+            <BackButton
+              onPress={() => router.push("/(main)/(tabs)/profile" as any)}
+            />
+          ),
+          ...themedHeader,
+        }}
+      />
+      <Stack.Screen
+        name="blocked-users"
+        options={{
+          headerShown: true,
+          headerTitle: t("profile.blockedUsers"),
+          headerLeft: () => (
+            <BackButton
+              onPress={() => {
+                if (router.canGoBack()) router.back();
+                else router.replace("/(main)/(tabs)/profile" as any);
+              }}
+            />
+          ),
           ...themedHeader,
         }}
       />

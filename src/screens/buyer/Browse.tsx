@@ -1,134 +1,132 @@
-import { View, FlatList, TextInput, TouchableOpacity, RefreshControl, ScrollView } from "react-native";
-import { Sliders, MapPin, ChevronRight, ChevronLeft } from "lucide-react-native";
-import { Text } from "@/components/reusables/text";
+/**
+ * BrowseScreen — photo-first marketplace feed.
+ *
+ * Features:
+ *   - UniversalList (FlashList) with infinite scroll + pull-to-refresh
+ *   - Debounced RNR Input search bar (in BrowseHeader)
+ *   - Horizontal category chip row + full filter panel (in BrowseHeader)
+ *   - Saved searches (auto-save + quick-apply)
+ *   - ListingCard with optimistic save-heart toggle
+ *   - Skeleton grid on load, EmptyState on empty/no-results, error+retry
+ *   - useFocusEffect refetch
+ *   - RTL + dark mode correct
+ */
+
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { View } from "react-native";
 import { useTranslation } from "react-i18next";
-import type { Category } from "@/api/categories";
-import { useState, useCallback, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter, useFocusEffect } from "expo-router";
-import { listingsAPI, Listing } from "@/api/listings";
-import { useCategories } from "@/hooks/useCategories";
-import { useCategoryName } from "@/hooks/useCategoryName";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { ConditionChips } from "@/components/common/ConditionChips";
-import type { ListingCondition } from "@/api/listings";
-import { savedSearchesAPI, type SavedSearch } from "@/api/saved-searches";
-import { LocationRangePicker } from "@/components/common/LocationRangePicker";
-import type { MapCanvasCoords } from "@/components/common/map/MapCanvas.types";
-import { useLocalization } from "@/hooks/useLocalization";
-import { useColors } from "@/hooks/useColors";
-import { ListingCard } from "@/components/common/ListingCard";
-import { EmptyState } from "@/components/common/EmptyState";
-import { ListingCardSkeletonGrid } from "@/components/common/ListingCardSkeleton";
-import { SavedSearches } from "@/components/common/SavedSearches";
+import { useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react-native";
+
+import { ListingFeed } from "@/components/common/ListingFeed";
+import { LocationRangePicker } from "@/components/common/LocationRangePicker";
+import { BrowseHeader } from "./browse/BrowseHeader";
+
+import { listingsAPI, type Listing, type ListingCondition, type ListingSort } from "@/api/listings";
+import type { ListQuery, ListFetchResult } from "@/components/common/UniversalList";
+import { savedSearchesAPI, type SavedSearch } from "@/api/saved-searches";
+import { useCategories } from "@/hooks/useCategories";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useColors } from "@/hooks/useColors";
+import { useBrowseViewModeStore } from "@/stores/browseViewMode.store";
+import { useSearchHistoryStore } from "@/stores/searchHistory.store";
+import type { MapCanvasCoords } from "@/components/common/map/MapCanvas.types";
 
 export default function BrowseScreen() {
   const { t } = useTranslation();
-  const { isRtl } = useLocalization();
-
-  const getCategoryName = useCategoryName();
   const colors = useColors();
-  const router = useRouter();
+
   const qc = useQueryClient();
+  const insets = useSafeAreaInsets();
   const { requireAuth } = useRequireAuth();
+  // ── View mode (grid / list) — persisted via zustand + AsyncStorage ──────────
+  const viewMode = useBrowseViewModeStore((s) => s.viewMode);
+  const setViewMode = useBrowseViewModeStore((s) => s.setViewMode);
+
+  // ── Search history — persisted locally ───────────────────────────────────
+  const addToSearchHistory = useSearchHistoryStore((s) => s.add);
+
+  // ── Filter state ──────────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [location, setLocation] = useState<string | null>(null);
   const [coordinates, setCoordinates] = useState<MapCanvasCoords | null>(null);
   const [distance, setDistance] = useState<number>(5);
-  const [priceMin, setPriceMin] = useState<number | null>(null);
-  const [priceMax, setPriceMax] = useState<number | null>(null);
+  const [priceMin, setPriceMin] = useState<string>("");
+  const [priceMax, setPriceMax] = useState<string>("");
   const [condition, setCondition] = useState<ListingCondition | null>(null);
-  const [refetchKey, setRefetchKey] = useState(0);
-  const [showLocationPicker, setShowLocationPicker] = useState(false);
-  // Optimistic save state: listingId → boolean
-  const [savedMap, setSavedMap] = useState<Record<number, boolean>>({});
+  const [sort, setSort] = useState<ListingSort>("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
-  // Debounce search — wait 400ms after user stops typing
+  // ── Optimistic save state: listingId → boolean ────────────────────────────
+  const [savedMap, setSavedMap] = useState<Record<number, boolean>>({});
+
+  // ── Focus refetch ─────────────────────────────────────────────────────────
+  const [refetchKey, setRefetchKey] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setRefetchKey((k) => k + 1);
+    }, [])
+  );
+
+  // ── Search debounce ───────────────────────────────────────────────────────
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
   }, [search]);
 
-  useFocusEffect(useCallback(() => { setRefetchKey((k) => k + 1); }, []));
-
+  // ── Categories ────────────────────────────────────────────────────────────
   const { data: categories } = useCategories();
 
-  const { data: listings, isLoading, isFetching, refetch } = useQuery({
-    queryKey: [
-      "browse-listings",
-      { search: debouncedSearch, categoryId, condition, priceMin, priceMax, coordinates, distance, location, refetchKey },
-    ],
-    queryFn: () =>
-      listingsAPI.getListings({
-        search: debouncedSearch || undefined,
-        categoryId: categoryId ?? undefined,
-        condition: condition ?? undefined,
-        priceMin: priceMin ?? undefined,
-        priceMax: priceMax ?? undefined,
-        location: coordinates ? undefined : location ?? undefined,
-        latitude: coordinates?.latitude,
-        longitude: coordinates?.longitude,
-        radius: coordinates ? distance : undefined,
-      }),
-  });
-
-  // Seed saved state from fresh server data (don't overwrite optimistic updates)
-  useEffect(() => {
-    if (!listings) return;
-    setSavedMap((prev) => {
-      const init: Record<number, boolean> = {};
-      listings.items.forEach((l) => { if (l.isSaved !== undefined) init[l.id] = !!l.isSaved; });
-      return { ...init, ...prev };
-    });
-  }, [listings]);
-
+  // ── Save / unsave mutations ───────────────────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: (id: number) => listingsAPI.saveListing(id),
     onError: (_e, id) => setSavedMap((prev) => ({ ...prev, [id]: false })),
   });
-
   const unsaveMutation = useMutation({
     mutationFn: (id: number) => listingsAPI.unsaveListing(id),
     onError: (_e, id) => setSavedMap((prev) => ({ ...prev, [id]: true })),
   });
 
-  const handleSaveToggle = useCallback((listingId: number, newValue: boolean) => {
-    // Saving requires an account — guests are sent to login and returned here.
-    requireAuth(() => {
-      setSavedMap((prev) => ({ ...prev, [listingId]: newValue }));
-      if (newValue) {
-        saveMutation.mutate(listingId);
-      } else {
-        unsaveMutation.mutate(listingId);
-      }
-    }, "/(main)/(tabs)/browse");
-  }, [requireAuth, saveMutation, unsaveMutation]);
+  const handleSaveToggle = useCallback(
+    (listingId: number, newValue: boolean) => {
+      requireAuth(() => {
+        setSavedMap((prev) => ({ ...prev, [listingId]: newValue }));
+        if (newValue) saveMutation.mutate(listingId);
+        else unsaveMutation.mutate(listingId);
+      }, "/(main)/(tabs)/browse");
+    },
+    [requireAuth, saveMutation, unsaveMutation]
+  );
 
-  // Auto-save filter combination when user applies filters
+  // ── Auto-save filter combos ───────────────────────────────────────────────
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (debouncedSearch || categoryId || location || priceMin || priceMax || coordinates) {
-      // Save the current filter combination silently in the background
-      savedSearchesAPI.create({
-        categoryId: categoryId ?? undefined,
-        location: location ?? undefined,
-        priceMin: priceMin ?? undefined,
-        priceMax: priceMax ?? undefined,
-        latitude: coordinates?.latitude,
-        longitude: coordinates?.longitude,
-        radius: coordinates ? distance : undefined,
-      }).then(() => {
-        qc.invalidateQueries({ queryKey: ["saved-searches"] });
-      }).catch(() => {
-        // Fail silently — don't disrupt user experience
-      });
-    }
-  }, [debouncedSearch, categoryId, location, distance, priceMin, priceMax, coordinates, qc]);
+    const hasFilters = categoryId || location || priceMin || priceMax || coordinates;
+    if (!hasFilters) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      savedSearchesAPI
+        .create({
+          categoryId: categoryId ?? undefined,
+          location: location ?? undefined,
+          priceMin: priceMin ? parseInt(priceMin) : undefined,
+          priceMax: priceMax ? parseInt(priceMax) : undefined,
+          latitude: coordinates?.latitude,
+          longitude: coordinates?.longitude,
+          radius: coordinates ? distance : undefined,
+        })
+        .then(() => qc.invalidateQueries({ queryKey: ["saved-searches"] }))
+        .catch(() => {});
+    }, 2000);
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+  }, [categoryId, location, priceMin, priceMax, coordinates, distance, qc]);
 
-  // Apply the location + range chosen in the map picker
+  // ── Location picker ───────────────────────────────────────────────────────
   const handleConfirmLocation = useCallback(
     ({ coords, radiusKm, label }: { coords: MapCanvasCoords; radiusKm: number; label: string | null }) => {
       setCoordinates(coords);
@@ -137,250 +135,152 @@ export default function BrowseScreen() {
     },
     []
   );
-
-  // Clear the location/range filter
   const handleClearLocation = useCallback(() => {
     setCoordinates(null);
     setLocation(null);
     setDistance(5);
   }, []);
 
-  // Apply a saved search's filters
-  const handleApplySavedSearch = useCallback((savedSearch: SavedSearch) => {
-    setCategoryId(savedSearch.categoryId ?? null);
-    setLocation(savedSearch.location ?? null);
-    setPriceMin(savedSearch.priceMin ?? null);
-    setPriceMax(savedSearch.priceMax ?? null);
-    if (savedSearch.locationBased && savedSearch.latitude && savedSearch.longitude) {
-      setCoordinates({
-        latitude: savedSearch.latitude,
-        longitude: savedSearch.longitude,
-      });
-      // Always reset distance so location + radius never go out of sync.
-      setDistance(savedSearch.radius ?? 5);
+  // ── Saved search apply ────────────────────────────────────────────────────
+  const handleApplySavedSearch = useCallback((saved: SavedSearch) => {
+    setCategoryId(saved.categoryId ?? null);
+    setLocation(saved.location ?? null);
+    setPriceMin(saved.priceMin ? String(saved.priceMin) : "");
+    setPriceMax(saved.priceMax ? String(saved.priceMax) : "");
+    if (saved.locationBased && saved.latitude && saved.longitude) {
+      setCoordinates({ latitude: saved.latitude, longitude: saved.longitude });
+      setDistance(saved.radius ?? 5);
     } else {
       setCoordinates(null);
       setDistance(5);
     }
-    // Reveal the filter panel so the applied location/price are visible.
     setShowFilters(true);
   }, []);
 
+  // ── Reset all filters ─────────────────────────────────────────────────────
+  const handleReset = useCallback(() => {
+    setSearch("");
+    setDebouncedSearch("");
+    setCategoryId(null);
+    setLocation(null);
+    setCoordinates(null);
+    setDistance(5);
+    setPriceMin("");
+    setPriceMax("");
+    setCondition(null);
+    setSort("newest");
+  }, []);
+
+  // ── UniversalList fetcher key (triggers page reset on filter/mode change) ──
+  // viewMode is included so FlashList re-mounts cleanly when switching grid↔list
+  // (numColumns change requires a full re-layout, not just a re-render).
+  const fetcherKey = `${debouncedSearch}|${categoryId}|${condition}|${priceMin}|${priceMax}|${coordinates?.latitude}|${coordinates?.longitude}|${distance}|${location}|${sort}|${viewMode}`;
+
+  const fetcher = useCallback(
+    async (query: ListQuery): Promise<ListFetchResult<Listing>> => {
+      const result = await listingsAPI.getListings({
+        pageNumber: query.page,
+        pageSize: query.perPage,
+        search: debouncedSearch || undefined,
+        categoryId: categoryId ?? undefined,
+        condition: condition ?? undefined,
+        priceMin: priceMin ? parseInt(priceMin) : undefined,
+        priceMax: priceMax ? parseInt(priceMax) : undefined,
+        location: coordinates ? undefined : (location ?? undefined),
+        latitude: coordinates?.latitude,
+        longitude: coordinates?.longitude,
+        radius: coordinates ? distance : undefined,
+        sort,
+      });
+
+      // Seed saved map from server data without overwriting optimistic state
+      setSavedMap((prev) => {
+        const defaults: Record<number, boolean> = {};
+        result.items.forEach((l) => {
+          if (l.isSaved !== undefined) defaults[l.id] = !!l.isSaved;
+        });
+        return { ...defaults, ...prev };
+      });
+
+      return {
+        items: result.items,
+        totalCount: result.pagination.totalCount,
+        totalPages: result.pagination.totalPages,
+        currentPage: result.pagination.currentPage,
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fetcherKey]
+  );
+
+  // ── Derived ───────────────────────────────────────────────────────────────
+  const hasActiveFilters = !!(
+    debouncedSearch || categoryId !== null || location || priceMin || priceMax || condition
+  );
+
+  const listHeader = (
+    <BrowseHeader
+      search={search}
+      onSearchChange={setSearch}
+      showFilters={showFilters}
+      onToggleFilters={() => setShowFilters((v) => !v)}
+      coordinates={coordinates}
+      distance={distance}
+      location={location}
+      priceMin={priceMin}
+      priceMax={priceMax}
+      condition={condition}
+      onOpenLocationPicker={() => setShowLocationPicker(true)}
+      onClearLocation={handleClearLocation}
+      onPriceMinChange={setPriceMin}
+      onPriceMaxChange={setPriceMax}
+      onConditionChange={setCondition}
+      categories={categories}
+      categoryId={categoryId}
+      onCategoryChange={setCategoryId}
+      onSelectSavedSearch={handleApplySavedSearch}
+      sort={sort}
+      onSortChange={setSort}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+    />
+  );
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  //
+  // BrowseHeader lives OUTSIDE ListingFeed so it is NEVER unmounted when
+  // loading/error/empty/list state changes. This keeps the TextInput mounted
+  // at all times — the keyboard stays open and focus is never lost mid-typing,
+  // even when each debounced keystroke flips the feed id and causes a full
+  // data-reset cycle. BrowseHeader owns the grid/list toggle — ListingFeed
+  // only receives viewMode (no onViewModeChange) so no duplicate toggle appears.
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Search bar + Filters button */}
-      <View style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 12, paddingVertical: 10, gap: 10 }}>
-        <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 8 }}>
-          <View style={{ flex: 1, flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", backgroundColor: colors.muted, borderRadius: 12, paddingHorizontal: 12, gap: 8, height: 44 }}>
-            <Search size={16} color={colors.mutedForeground} />
-            <TextInput
-              placeholder={t("browse.searchPlaceholder")}
-              placeholderTextColor={colors.mutedForeground}
-              value={search}
-              onChangeText={setSearch}
-              returnKeyType="search"
-              style={{ flex: 1, fontSize: 14, color: colors.foreground, textAlign: isRtl ? "right" : "left" }}
-            />
-          </View>
-          <TouchableOpacity
-            onPress={() => setShowFilters(!showFilters)}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              backgroundColor: showFilters ? colors.primary : colors.muted,
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <Sliders size={20} color={showFilters ? colors.primaryForeground : colors.mutedForeground} />
-          </TouchableOpacity>
-        </View>
+    <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
+      {listHeader}
 
-        {/* Filter panel */}
-        {showFilters && (
-          <View style={{ gap: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-            {/* Location & range — opens the map picker */}
-            <View style={{ gap: 6 }}>
-              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.mutedForeground }}>
-                {t("browse.location")}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowLocationPicker(true)}
-                style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  alignItems: "center",
-                  gap: 10,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 10,
-                  paddingHorizontal: 12,
-                  paddingVertical: 12,
-                  backgroundColor: colors.background,
-                }}
-              >
-                <MapPin size={18} color={coordinates ? colors.primary : colors.mutedForeground} />
-                <View style={{ flex: 1 }}>
-                  {coordinates ? (
-                    <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, textAlign: isRtl ? "right" : "left" }}>
-                      {t("browse.withinRadius", { km: distance })}
-                    </Text>
-                  ) : (
-                    <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: isRtl ? "right" : "left" }}>
-                      {t("browse.setLocationRange")}
-                    </Text>
-                  )}
-                </View>
-                {coordinates ? (
-                  <TouchableOpacity onPress={handleClearLocation} hitSlop={10} style={{ padding: 2 }}>
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: colors.primary }}>
-                      {t("common.clear")}
-                    </Text>
-                  </TouchableOpacity>
-                ) : isRtl ? (
-                  <ChevronLeft size={18} color={colors.mutedForeground} />
-                ) : (
-                  <ChevronRight size={18} color={colors.mutedForeground} />
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Price filter */}
-            <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: "600", color: colors.mutedForeground, marginBottom: 6 }}>
-                  {t("browse.priceMin") || "Min Price"}
-                </Text>
-                <TextInput
-                  placeholder="0"
-                  placeholderTextColor={colors.mutedForeground}
-                  value={priceMin?.toString() || ""}
-                  onChangeText={(val) => setPriceMin(val ? parseInt(val) : null)}
-                  keyboardType="numeric"
-                  style={{
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    fontSize: 14,
-                    color: colors.foreground,
-                    backgroundColor: colors.background,
-                  }}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: "600", color: colors.mutedForeground, marginBottom: 6 }}>
-                  {t("browse.priceMax") || "Max Price"}
-                </Text>
-                <TextInput
-                  placeholder="∞"
-                  placeholderTextColor={colors.mutedForeground}
-                  value={priceMax?.toString() || ""}
-                  onChangeText={(val) => setPriceMax(val ? parseInt(val) : null)}
-                  keyboardType="numeric"
-                  style={{
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                    fontSize: 14,
-                    color: colors.foreground,
-                    backgroundColor: colors.background,
-                  }}
-                />
-              </View>
-            </View>
-
-            {/* Condition filter */}
-            <View style={{ gap: 6 }}>
-              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.mutedForeground }}>
-                {t("listing.condition.label")}
-              </Text>
-              <ConditionChips value={condition} onChange={setCondition} allowClear />
-            </View>
-          </View>
+      <ListingFeed
+        id={`buyer-browse-${fetcherKey}`}
+        refreshKey={refetchKey}
+        fetcher={fetcher}
+        viewMode={viewMode}
+        savedMap={Object.fromEntries(
+          Object.entries(savedMap).map(([k, v]) => [Number(k), v])
         )}
-      </View>
-
-      {/* Category chips */}
-      {categories && categories.length > 0 && (
-        <View style={{ height: 50, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <FlatList
-            horizontal
-            data={[{ id: null, nameEn: t("browse.all") } as any, ...categories]}
-            keyExtractor={(c) => String(c.id ?? "all")}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 12, gap: 8, alignItems: "center", flexDirection: isRtl ? "row-reverse" : "row", height: 50 }}
-            renderItem={({ item }: { item: Category & { id: null; nameEn: string } }) => {
-              const isActive = categoryId === item.id;
-              const label = item.id === null ? item.nameEn : getCategoryName(item as Category);
-              return (
-                <TouchableOpacity
-                  onPress={() => setCategoryId(item.id)}
-                  style={{
-                    paddingHorizontal: 16,
-                    paddingVertical: 7,
-                    borderRadius: 20,
-                    borderWidth: 1.5,
-                    backgroundColor: isActive ? colors.primary : "transparent",
-                    borderColor: isActive ? colors.primary : colors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: isActive ? colors.primaryForeground : colors.foreground }}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            }}
-          />
-        </View>
-      )}
-
-      {/* Saved searches — quick filter history */}
-      <SavedSearches onSelectSearch={handleApplySavedSearch} />
-
-      {/* Listings grid */}
-      {isLoading ? (
-        <ListingCardSkeletonGrid count={6} />
-      ) : (
-        <FlatList
-          data={listings?.items ?? []}
-          keyExtractor={(item) => String(item.id)}
-          numColumns={2}
-          contentContainerStyle={{ padding: 12, paddingBottom: 32, gap: 10 }}
-          columnWrapperStyle={{ gap: 10 }}
-          renderItem={({ item }: { item: Listing }) => {
-            const saved = savedMap[item.id] ?? item.isSaved ?? false;
-            return (
-              <View style={{ flex: 1 }}>
-                <ListingCard
-                  listing={item}
-                  isSaved={saved}
-                  onSaveToggle={handleSaveToggle}
-                  onPress={() => router.push(`/(main)/listing/${item.id}` as never)}
-                />
-              </View>
-            );
-          }}
-          ListEmptyComponent={
-            <EmptyState
-              icon={Search}
-              title={t("browse.noResults")}
-              description={t("browse.noResultsDescription")}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={refetch}
-              tintColor={colors.primary}
-            />
-          }
-        />
-      )}
+        onSaveToggle={handleSaveToggle}
+        skeletonCount={6}
+        emptyIcon={Search}
+        emptyTitle={hasActiveFilters ? t("browse.noResults") : t("browse.empty.title")}
+        emptyDescription={
+          hasActiveFilters ? t("browse.noResultsDescription") : t("browse.empty.description")
+        }
+        emptyAction={
+          hasActiveFilters
+            ? { label: t("browse.resetFilters"), onPress: handleReset }
+            : undefined
+        }
+        perPage={20}
+        contentPaddingBottom={96}
+      />
 
       {/* Map-based location & range picker */}
       <LocationRangePicker

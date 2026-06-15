@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# Start a conversation from listing detail — buyer taps Message Seller
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+# Open any listing detail
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+- tapOn: "Message Seller"
+- waitForAnimationToEnd
+# First message sheet opens
+- assertVisible: "Ask about this item..."
+- tapOn: "Ask about this item..."
+- inputText: "Hi, is this still available?"
+- tapOn: "Send Message"
+- waitForAnimationToEnd
+# Redirected to conversation thread
+- assertVisible: "Hi, is this still available?"
+# Listing pinned at top
+- assertVisible: "View Listing"

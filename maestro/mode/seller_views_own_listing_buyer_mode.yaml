@@ -1,0 +1,24 @@
+appId: com.hatiwal.app
+---
+# Seller switches to buyer mode → browses → finds own listing →
+# "Contact Seller" is hidden or disabled (can't message yourself)
+
+- runFlow: ../_helpers/login_seller.yaml
+# Already in seller mode — switch to buyer mode via banner
+- tapOn: "Switch to Buyer"
+- waitForAnimationToEnd
+- assertVisible: "Buyer Mode"
+# Browse as buyer
+- tapOn: "Browse"
+- waitForAnimationToEnd
+# Search for own listing (seeded seller listing)
+- tapOn: "Search listings..."
+- inputText: "seller"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# "Contact Seller" should NOT appear for your own listing
+- assertNotVisible: "Contact Seller"
+# "Edit" or seller actions should also not appear in buyer mode
+- assertNotVisible: "Edit Listing"

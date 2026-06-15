@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# Validation: required fields show errors on empty submit
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+# Submit empty form
+- tapOn: "Save Draft"
+- assertVisible: "Title is required (max 150 characters)"
+# Fill title but no price
+- tapOn: "What are you selling?"
+- inputText: "Test Item"
+- tapOn: "Save Draft"
+- assertVisible: "Enter a valid price greater than 0"
+# Fill price = 0
+- tapOn: "Enter price"
+- inputText: "0"
+- tapOn: "Save Draft"
+- assertVisible: "Enter a valid price greater than 0"
+# No category
+- clearText
+- inputText: "100"
+- tapOn: "Save Draft"
+- assertVisible: "Please select a category"

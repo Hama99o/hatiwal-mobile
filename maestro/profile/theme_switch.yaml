@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# Profile — switch between light, dark, and system theme
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+- assertVisible: "Appearance"
+# Switch to Dark theme
+- tapOn: "Dark"
+- waitForAnimationToEnd
+# Switch to Light theme
+- tapOn: "Light"
+- waitForAnimationToEnd
+# Switch back to System
+- tapOn: "System"
+- waitForAnimationToEnd
+- assertVisible: "Profile"

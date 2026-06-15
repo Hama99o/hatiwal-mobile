@@ -19,15 +19,17 @@ export function ConditionBadge({ condition }: ConditionBadgeProps) {
     <View
       style={{
         backgroundColor: colors.muted,
+        borderColor: colors.border,
+        borderWidth: 1,
         borderRadius: 999,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
         alignSelf: "flex-start",
       }}
       accessibilityRole="text"
     >
       <Text
-        style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "600" }}
+        style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}
         numberOfLines={1}
       >
         {t(`listing.condition.${condition}`)}

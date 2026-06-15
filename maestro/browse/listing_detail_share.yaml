@@ -1,0 +1,24 @@
+appId: com.hatiwal.app
+---
+# Listing detail — tap Share in the more-options menu → OS share sheet appears
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Open more-options menu (⋯ / kebab in header)
+- tapOn:
+    id: "more-options-button"
+- waitForAnimationToEnd
+- assertVisible: "Share"
+- assertVisible: "Report"
+# Tap Share — native OS share sheet opens
+- tapOn: "Share"
+- waitForAnimationToEnd
+# The native share sheet should be visible — dismiss it
+- pressKey: Escape
+- waitForAnimationToEnd
+# Still on listing detail after dismissing share
+- assertVisible: "Message Seller"

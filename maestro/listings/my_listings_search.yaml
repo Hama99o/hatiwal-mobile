@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# My Listings — search within seller's own listings
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- assertVisible: "My Listings"
+# Search for known listing
+- tapOn: "Search my listings..."
+- inputText: "iPhone"
+- waitForAnimationToEnd
+- assertVisible: "iPhone"
+# Search for something that doesn't exist
+- clearText
+- inputText: "xyznonexistent"
+- waitForAnimationToEnd
+# Empty state shown
+- assertVisible: "No"
+# Clear search
+- clearText
+- waitForAnimationToEnd
+- assertVisible: "My Listings"

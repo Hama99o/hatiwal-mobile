@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# Profile screen in RTL (Dari) — all buttons/labels visible, layout mirrored
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Dari (دری)"
+- waitForAnimationToEnd
+# Profile tab should show Dari labels
+- tapOn:
+    index: 4
+- waitForAnimationToEnd
+- assertVisible: "پروفایل"
+# Edit profile
+- assertVisible: "ویرایش پروفایل"
+# Appearance
+- assertVisible: "ظاهر"
+# Sign out
+- assertVisible: "خروج"
+# Reset to English
+- tapOn: "English"
+- waitForAnimationToEnd

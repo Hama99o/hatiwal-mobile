@@ -1,0 +1,15 @@
+appId: com.hatiwal.app
+---
+# Reusable login flow — include this in other flows with:
+# - runFlow: ../_helpers/login.yaml
+# Requires env vars: EMAIL, PASSWORD (defaults to test user below)
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Email"
+- inputText: ${EMAIL:-"buyer@hatiwal.test"}
+- tapOn: "Password"
+- inputText: ${PASSWORD:-"Password123!"}
+- tapOn: "Sign In"
+- assertVisible: "Browse"

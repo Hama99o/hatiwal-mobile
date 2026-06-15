@@ -1,16 +1,16 @@
 import React, { createContext, useContext } from "react";
-import { Pressable, type PressableProps, type ViewStyle, StyleSheet } from "react-native";
-import { cn } from "@/lib/utils";
+import { TouchableOpacity, type TouchableOpacityProps, type ViewStyle, type StyleProp, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import { triggerHaptic } from "@/lib/animation/haptics";
+import { useReduceMotion } from "@/lib/animation/useReduceMotion";
 
 type Variant = "default" | "outline" | "ghost" | "destructive" | "secondary";
 type Size = "default" | "sm" | "lg" | "icon";
 
-interface ButtonProps extends PressableProps {
+interface ButtonProps extends Omit<TouchableOpacityProps, "style"> {
   variant?: Variant;
   size?: Size;
-  className?: string;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 }
 
@@ -23,13 +23,13 @@ export function useButtonTextColor(): string | undefined {
 export function Button({
   variant = "default",
   size = "default",
-  className,
   style,
   children,
   disabled,
   ...props
 }: ButtonProps) {
   const colors = useColors();
+  const reduceMotion = useReduceMotion();
 
   const baseStyle: ViewStyle = {
     flexDirection: "row",
@@ -40,23 +40,28 @@ export function Button({
     ...getSizeStyle(size),
     ...getVariantStyle(variant, colors),
   };
+  const combinedStyle = StyleSheet.flatten([baseStyle, style]) as ViewStyle;
 
   const textColor = getVariantTextColor(variant, colors);
 
+  const handlePress = props.onPress
+    ? (e: any) => {
+        triggerHaptic(variant === "destructive" ? "medium" : "light", reduceMotion);
+        props.onPress!(e);
+      }
+    : undefined;
+
   return (
     <ButtonTextColorContext.Provider value={textColor}>
-      <Pressable
-        style={({ pressed }) => [
-          baseStyle,
-          pressed && { opacity: disabled ? 0.5 : 0.75 },
-          style,
-        ]}
+      <TouchableOpacity
+        style={combinedStyle}
         disabled={disabled}
-        android_ripple={{ color: colors.muted }}
+        activeOpacity={0.75}
         {...props}
+        onPress={handlePress}
       >
         {children}
-      </Pressable>
+      </TouchableOpacity>
     </ButtonTextColorContext.Provider>
   );
 }

@@ -1,6 +1,7 @@
 import React from "react";
-import { View, Pressable } from "react-native";
+import { View } from "react-native";
 import { Text } from "@/components/reusables/text";
+import { Button } from "@/components/reusables/button";
 import { useColors } from "@/hooks/useColors";
 
 interface LucideIconProps {
@@ -46,17 +47,17 @@ export function EmptyState({ icon: Icon, title, description, action }: EmptyStat
       ) : null}
 
       {action ? (
-        <Pressable
+        <Button
+          variant="default"
+          size="default"
           onPress={action.onPress}
-          android_ripple={{ color: colors.muted }}
-          style={{ marginTop: 8, backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 24, paddingVertical: 12 }}
-          accessibilityRole="button"
+          style={{ marginTop: 8, paddingHorizontal: 24 }}
           accessibilityLabel={action.label}
         >
-          <Text style={{ color: colors.primaryForeground, fontSize: 14, fontWeight: "600", textAlign: "center" }}>
+          <Text style={{ fontSize: 14, fontWeight: "600" }}>
             {action.label}
           </Text>
-        </Pressable>
+        </Button>
       ) : null}
     </View>
   );

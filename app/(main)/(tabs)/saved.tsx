@@ -1,2 +1,2 @@
-import SavedListingsScreen from "@/screens/buyer/SavedListings";
-export default SavedListingsScreen;
+import SavedScreen from "@/screens/buyer/Saved";
+export default SavedScreen;

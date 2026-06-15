@@ -1,4 +1,5 @@
 import { View, FlatList, TouchableOpacity, RefreshControl } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
@@ -24,7 +25,7 @@ function ConversationRow({ item, onDelete }: { item: Conversation; onDelete: (id
   const colors = useColors();
 
   const other = item.otherParticipant;
-  const otherName = other?.name ?? other?.fullName;
+  const otherName = other?.name;
   const unread = item.unreadCount ?? 0;
 
   const handleLongPress = useCallback(() => {
@@ -103,6 +104,7 @@ export default function ListingConversationsScreen() {
   const colors = useColors();
   const router = useRouter();
   const { isRtl } = useLocalization();
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set());
 
@@ -127,12 +129,12 @@ export default function ListingConversationsScreen() {
     deleteMutation.mutate(cid);
   }, [deleteMutation]);
 
-  const items = (data?.items ?? []).filter((c) => !deletedIds.has(c.id));
+  const items = (data?.items ?? []).filter((c: Conversation) => !deletedIds.has(c.id));
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+      <View style={{ paddingHorizontal: 16, paddingTop: insets.top + 12, paddingBottom: 14, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
           <TouchableOpacity onPress={() => router.back()} hitSlop={12}>
             <ArrowLeft size={22} color={colors.foreground} style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined} />
@@ -165,6 +167,7 @@ export default function ListingConversationsScreen() {
               description={t("chat.noConversationsDescription")}
             />
           }
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
           showsVerticalScrollIndicator={false}
         />
       )}

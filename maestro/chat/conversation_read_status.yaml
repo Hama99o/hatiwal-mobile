@@ -1,0 +1,41 @@
+appId: com.hatiwal.app
+---
+# Read-receipt / unread-clearing flow:
+#   1. Open the chat tab — first conversation shows an unread badge.
+#   2. Tap into the thread — markRead fires on focus.
+#   3. Return to the list — unread badge on the row is gone.
+#   4. The chat tab badge count has decremented (or is gone if it was 1).
+
+- runFlow: ../_helpers/login.yaml
+
+# Navigate to Messages tab
+- tapOn:
+    text: "Messages"
+- waitForAnimationToEnd
+
+# Unread badge must be visible on the first conversation row before opening it
+- assertVisible:
+    id: "unread-badge-0"
+
+# Open the first conversation (it has unread messages)
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Give mark_read API call time to complete
+- waitForAnimationToEnd
+
+# Thread is open — input bar is visible (conversation is still open)
+- assertVisible: "Type a message..."
+
+# Go back to the conversations list
+- back
+- waitForAnimationToEnd
+
+# After returning, the unread badge on that row must be gone
+- assertNotVisible:
+    id: "unread-badge-0"
+
+# The tab-level badge (Expo tabBarBadge) should be gone or show a lower count.
+# When there was exactly 1 unread conversation, the tab badge disappears entirely.
+- assertNotVisible:
+    text: "1"

@@ -54,7 +54,7 @@ Notes: <special tabs, filters, lifecycle actions, RTL edge cases>
 - [ ] **i18n** — every new key in **en + ps + fa**; new namespace registered in `en.ts`/`ps.ts`/`fa.ts`. English is the default.
 - [ ] **RTL** — verified for Pashto; **dark mode** verified; **no hex literals**.
 - [ ] **Size** — screen file ≤ ~300 lines; tabs/modals split into a `<screen-name>/` subfolder.
-- [ ] **Verify** — builds clean; loads against API (`:3007`) on web (`:3008`); search/pagination work.
+- [ ] **Verify** — builds clean; loads against API (`:3007`) on device/simulator; search/pagination work.
 
 ---
 

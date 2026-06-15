@@ -1,0 +1,39 @@
+appId: com.hatiwal.app
+---
+# Send 3 messages in sequence — all appear in chat thread in order
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Message Seller"
+- waitForAnimationToEnd
+- assertVisible: "Chat"
+
+# Message 1
+- tapOn: "Type a message..."
+- inputText: "Hello, is this still available?"
+- tapOn: "Send"
+- waitForAnimationToEnd
+- assertVisible: "Hello, is this still available?"
+
+# Message 2
+- tapOn: "Type a message..."
+- inputText: "What is your best price?"
+- tapOn: "Send"
+- waitForAnimationToEnd
+- assertVisible: "What is your best price?"
+
+# Message 3
+- tapOn: "Type a message..."
+- inputText: "Can we meet tomorrow?"
+- tapOn: "Send"
+- waitForAnimationToEnd
+- assertVisible: "Can we meet tomorrow?"
+
+# All 3 in thread
+- assertVisible: "Hello, is this still available?"
+- assertVisible: "What is your best price?"
+- assertVisible: "Can we meet tomorrow?"

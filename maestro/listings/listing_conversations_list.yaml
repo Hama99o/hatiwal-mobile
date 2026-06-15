@@ -1,0 +1,26 @@
+appId: com.hatiwal.app
+---
+# Seller views all conversations for a specific listing (listing-conversations screen)
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Tap the "chats" count link on a listing card that has conversations
+- assertVisible: "My Listings"
+- tapOn:
+    text: "chats"
+    index: 0
+- waitForAnimationToEnd
+# Listing conversations screen opens
+- assertVisible: "Messages"
+# Should show conversation threads for this listing
+# Tap into a conversation
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Opens the conversation thread
+- assertVisible: "Type a message..."
+# Go back to listing conversations
+- back
+- waitForAnimationToEnd
+- assertVisible: "Messages"

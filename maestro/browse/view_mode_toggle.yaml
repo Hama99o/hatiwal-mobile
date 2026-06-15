@@ -1,0 +1,67 @@
+appId: com.hatiwal.app
+---
+# View mode toggle: grid/list switch persists across sessions
+
+- runFlow: ../_helpers/login.yaml
+
+# ── 1. Start in grid mode (default) ─────────────────────────────────────────
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+
+# Grid mode button should be visible (accessibility label "Grid view")
+- assertVisible:
+    id: "browse-view-grid"
+    optional: true
+
+# ── 2. Switch to list mode ────────────────────────────────────────────────────
+- tapOn:
+    text: "List view"
+    optional: true
+
+- waitForAnimationToEnd
+
+# After switching to list mode, listings should still be visible
+- assertVisible: "Browse"
+
+# ── 3. Switch back to grid mode ───────────────────────────────────────────────
+- tapOn:
+    text: "Grid view"
+    optional: true
+
+- waitForAnimationToEnd
+
+# Grid layout should be restored
+- assertVisible: "Browse"
+
+# ── 4. Search still works in list mode ───────────────────────────────────────
+- tapOn:
+    text: "List view"
+    optional: true
+
+- waitForAnimationToEnd
+
+- tapOn:
+    text: "Search listings..."
+    optional: true
+
+- inputText: "laptop"
+- waitForAnimationToEnd
+
+# Results should appear in list mode
+- assertVisible: "Browse"
+
+# Clear search
+- tapOn:
+    id: "search-clear"
+    optional: true
+
+# ── 5. Empty state still works in list mode ───────────────────────────────────
+- tapOn:
+    text: "Search listings..."
+    optional: true
+
+- inputText: "xyznonexistentitem12345"
+- waitForAnimationToEnd
+
+# Empty state should show — not a crash
+- assertVisible: "Browse"

@@ -7,7 +7,7 @@
  */
 
 import React from "react";
-import { TouchableOpacity, View, StyleSheet } from "react-native";
+import { Pressable, View, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
@@ -30,15 +30,16 @@ export function ModeSwitcherBanner() {
   const ChevronIcon = isRtl ? ArrowLeft : ArrowRight;
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={toggleMode}
-      activeOpacity={0.75}
-      style={[
+      android_ripple={{ color: borderColor, borderless: false }}
+      style={({ pressed }) => [
         styles.banner,
         {
           backgroundColor: bgColor,
           borderBottomColor: borderColor,
           flexDirection: isRtl ? "row-reverse" : "row",
+          opacity: pressed ? 0.75 : 1,
         },
       ]}
     >
@@ -51,7 +52,7 @@ export function ModeSwitcherBanner() {
         {isSeller ? t("profile.switchToBuyer") : t("profile.switchToSeller")}
       </Text>
       <ChevronIcon size={13} color={textColor} />
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

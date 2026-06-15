@@ -1,0 +1,36 @@
+appId: com.hatiwal.app
+---
+# Seller mode banner stays across navigation and app restart
+
+- runFlow: ../_helpers/login.yaml
+
+# Switch to seller mode
+- tapOn:
+    id: "mode-switcher-banner"
+- waitForAnimationToEnd
+- tapOn: "Switch"
+- waitForAnimationToEnd
+- assertVisible: "Seller Mode"
+
+# Navigate to other tabs
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- assertVisible: "Seller Mode"
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- assertVisible: "Seller Mode"
+
+# Background and restore
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- assertVisible: "Seller Mode"
+
+# Switch back to buyer mode
+- tapOn:
+    id: "mode-switcher-banner"
+- waitForAnimationToEnd
+- tapOn: "Switch to Buyer Mode"
+- waitForAnimationToEnd
+- assertNotVisible: "Seller Mode"

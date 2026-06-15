@@ -1,0 +1,55 @@
+appId: com.hatiwal.app
+---
+# Owner listing detail screen
+# Tests: card press → owner detail → analytics row → lifecycle action
+
+- runFlow: ../_helpers/login_seller.yaml
+
+# Navigate to My Listings
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- assertVisible: "My Listings"
+
+# Tap the first listing card to open the owner detail screen
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+
+# Owner detail screen should be visible — verify analytics row
+- assertVisible:
+    testID: "my-listing-detail-scroll"
+- assertVisible:
+    testID: "analytics-views"
+- assertVisible:
+    testID: "analytics-conversations"
+
+# Verify lifecycle action button is present (state-dependent label)
+- assertVisible:
+    testID: "lifecycle-primary-action"
+
+# Verify "View Conversations" link is present
+- assertVisible:
+    testID: "view-conversations-link"
+
+# Tap "View Conversations" and verify it navigates to listing-conversations screen
+- tapOn:
+    testID: "view-conversations-link"
+- waitForAnimationToEnd
+- back
+- waitForAnimationToEnd
+
+# Should be back on owner detail
+- assertVisible:
+    testID: "analytics-views"
+
+# Tap the lifecycle action button and dismiss the confirm dialog (cancel)
+- tapOn:
+    testID: "lifecycle-primary-action"
+- waitForAnimationToEnd
+- tapOn: "Cancel"
+- waitForAnimationToEnd
+
+# Navigate back to My Listings
+- back
+- waitForAnimationToEnd
+- assertVisible: "My Listings"

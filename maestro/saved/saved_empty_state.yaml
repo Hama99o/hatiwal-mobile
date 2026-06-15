@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# Empty saved state — shows message and browse button
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Email"
+- inputText: "newbuyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- tapOn: "Saved"
+- waitForAnimationToEnd
+- assertVisible: "No saved items yet"
+- assertVisible: "Browse listings"
+# Tap browse button — goes to Browse
+- tapOn: "Browse listings"
+- assertVisible: "Browse"

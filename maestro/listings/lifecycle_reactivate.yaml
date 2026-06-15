@@ -1,0 +1,20 @@
+appId: com.hatiwal.app
+---
+# Lifecycle: reserved → active (deal fell through, reactivate)
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Find a reserved listing
+- tapOn: "Reserved"
+- waitForAnimationToEnd
+- tapOn: "Make active"
+- waitForAnimationToEnd
+# Confirm dialog
+- assertVisible: "Make active again?"
+- assertVisible: "This cancels the reservation and reopens the listing to buyers."
+- tapOn: "Confirm"
+- waitForAnimationToEnd
+# Status back to Active
+- assertVisible: "Listing is active again"
+- assertVisible: "Active"

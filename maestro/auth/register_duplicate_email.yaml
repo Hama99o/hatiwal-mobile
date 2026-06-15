@@ -1,0 +1,26 @@
+appId: com.hatiwal.app
+---
+# Register with an email that already exists — shows error
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Create Account"
+- waitForAnimationToEnd
+- assertVisible: "Create Account"
+# Fill with an existing email
+- tapOn: "First Name"
+- inputText: "Ahmad"
+- tapOn: "Last Name"
+- inputText: "Test"
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Confirm Password"
+- inputText: "Password123!"
+- tapOn: "Create Account"
+- waitForAnimationToEnd
+# Server returns 422 — error shown
+- assertVisible: "Email has already been taken"

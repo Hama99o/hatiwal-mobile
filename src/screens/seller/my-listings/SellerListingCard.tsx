@@ -1,13 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, StyleSheet, Pressable, TouchableOpacity, FlatList, Dimensions } from "react-native";
+import React, { useCallback, useRef, useState } from "react";
+import { View, StyleSheet, Pressable, FlatList, Dimensions } from "react-native";
 import { RemoteImage } from "@/components/common/RemoteImage";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { Eye, MessageCircle, Camera } from "lucide-react-native";
+import { usePulse } from "@/lib/animation";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -25,13 +21,10 @@ import { useColors } from "@/hooks/useColors";
 
 const MY_LISTINGS_QK = "my-listings";
 
-/** Animated shimmer shown behind each photo until it finishes loading */
+/** Animated shimmer shown behind each photo until it finishes loading.
+ *  Uses usePulse() so the shimmer is skipped when Reduce Motion is enabled. */
 function PhotoSkeleton({ width }: { width: number }) {
-  const opacity = useSharedValue(1);
-  useEffect(() => {
-    opacity.value = withRepeat(withTiming(0.4, { duration: 750 }), -1, true);
-  }, [opacity]);
-  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const animStyle = usePulse();
   return (
     <Animated.View
       style={[animStyle, { position: "absolute", top: 0, left: 0, width, aspectRatio: 4 / 3 }]}
@@ -234,6 +227,10 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
     router.push(`/(main)/listing/edit/${listing.id}` as never);
   }, [router, listing.id]);
 
+  const handleOpenDetail = useCallback(() => {
+    router.push(`/(main)/my-listings/${listing.id}` as never);
+  }, [router, listing.id]);
+
   const isLoading =
     publish.isPending ||
     reserve.isPending ||
@@ -286,8 +283,8 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
         { backgroundColor: colors.card, borderColor: colors.border },
       ]}
     >
-      {/* Photo gallery — tap anywhere on the card to edit */}
-      <Pressable onPress={handleEdit} accessibilityRole="button" accessibilityLabel={listing.title}>
+      {/* Photo gallery — tap card body to open owner detail screen */}
+      <Pressable onPress={handleOpenDetail} accessibilityRole="button" accessibilityLabel={listing.title}>
         {photos.length > 0 ? (
           <View style={[styles.galleryWrapper, { backgroundColor: colors.muted }]}>
             <FlatList
@@ -340,8 +337,8 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
                       {
                         backgroundColor:
                           i === activeSlide
-                            ? "#fff"
-                            : "rgba(255,255,255,0.45)",
+                            ? colors.overlayForeground
+                            : colors.overlayDotInactive,
                         width: i === activeSlide ? 8 : 6,
                         height: i === activeSlide ? 8 : 6,
                       },
@@ -399,7 +396,7 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
               </Text>
             </View>
             {listing.conversationsCount != null && (
-              <TouchableOpacity
+              <Pressable
                 onPress={() => router.push({
                   pathname: "/(main)/listing-conversations/[id]" as never,
                   params: { id: String(listing.id), listingTitle: listing.title },
@@ -411,7 +408,7 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
                 <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>
                   {t("listing.conversationsCount", { count: formatNumber(listing.conversationsCount) })}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             )}
           </View>
         </View>
@@ -458,7 +455,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     overflow: "hidden",
-    marginBottom: 16,
   },
   galleryWrapper: {
     width: "100%",

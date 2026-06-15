@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# Make a price offer from listing detail
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Browse"
+- waitForAnimationToEnd
+# Open a listing detail
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+# Tap "Make an Offer"
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- assertVisible: "Make an Offer"
+- assertVisible: "No payment required"
+# Enter an offer amount
+- tapOn: "Your offer"
+- inputText: "20000"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+# Redirected to conversation thread with the offer message
+- assertVisible: "Offer:"

@@ -1,36 +1,9 @@
-// src/utils/secure-storage.ts
-// expo-secure-store has NO web implementation (its web build exports {}),
-// so on web we fall back to localStorage. On native we use SecureStore.
-
 import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
-
-const isWeb = Platform.OS === "web";
 
 const store = {
-  async getItemAsync(key: string): Promise<string | null> {
-    if (isWeb) {
-      if (typeof localStorage === "undefined") return null;
-      return localStorage.getItem(key);
-    }
-    return SecureStore.getItemAsync(key);
-  },
-  async setItemAsync(key: string, value: string): Promise<void> {
-    if (isWeb) {
-      if (typeof localStorage === "undefined") return;
-      localStorage.setItem(key, value);
-      return;
-    }
-    return SecureStore.setItemAsync(key, value);
-  },
-  async deleteItemAsync(key: string): Promise<void> {
-    if (isWeb) {
-      if (typeof localStorage === "undefined") return;
-      localStorage.removeItem(key);
-      return;
-    }
-    return SecureStore.deleteItemAsync(key);
-  },
+  getItemAsync: (key: string) => SecureStore.getItemAsync(key),
+  setItemAsync: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  deleteItemAsync: (key: string) => SecureStore.deleteItemAsync(key),
 };
 
 const AUTH_KEYS = ["access-token", "client", "uid", "token-type", "expiry"] as const;

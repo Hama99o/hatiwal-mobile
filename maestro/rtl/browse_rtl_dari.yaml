@@ -1,0 +1,16 @@
+appId: com.hatiwal.app
+---
+# RTL verification: Dari — Browse renders correctly
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- scrollUntilVisible:
+    text: "LANGUAGE"
+- tapOn: "Dari (دری)"
+- waitForAnimationToEnd
+- tapOn:
+    text: "Browse"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible: "دری"
+- waitForAnimationToEnd

@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# Session persists: login, background app, reopen — still logged in (no re-login required)
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- assertVisible: "Browse"
+
+# Background and reopen without clearing state
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+
+# Should land on Browse, not Welcome/Login
+- assertVisible: "Browse"
+- assertNotVisible: "Welcome to Hatiwal"
+- assertNotVisible: "Sign In"

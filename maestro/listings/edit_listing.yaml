@@ -1,0 +1,28 @@
+appId: com.hatiwal.app
+---
+# Edit existing draft listing — change title and price, verify updated
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+# Tap on first draft listing
+- tapOn: "Draft"
+- waitForAnimationToEnd
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+# Change title
+- tapOn:
+    text: "iPhone 12 Pro - 128GB"
+    optional: true
+- clearText
+- inputText: "iPhone 12 Pro - 256GB (Updated)"
+# Change price
+- tapOn: "Enter price"
+- clearText
+- inputText: "28000"
+# Save
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+# Verify updated values shown
+- assertVisible: "iPhone 12 Pro - 256GB (Updated)"

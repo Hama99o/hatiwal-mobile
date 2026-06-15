@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# Province picker: scroll through provinces, select one, verify it appears in form
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Edit Profile"
+- waitForAnimationToEnd
+
+- tapOn: "Province"
+- waitForAnimationToEnd
+# Province picker/sheet is open
+- assertVisible: "Kabul"
+- assertVisible: "Kandahar"
+- scroll
+- waitForAnimationToEnd
+- assertVisible: "Herat"
+- tapOn: "Herat"
+- waitForAnimationToEnd
+
+# Herat selected in the form field
+- assertVisible: "Herat"
+
+- tapOn: "Save"
+- waitForAnimationToEnd
+- assertVisible: "Profile updated"
+
+# Go back and re-edit — Herat still selected
+- tapOn: "Edit Profile"
+- waitForAnimationToEnd
+- assertVisible: "Herat"

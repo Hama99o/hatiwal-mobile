@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Development only — supports both Expo web and Expo Go (mobile)
+# Development only — Expo Go (iOS / Android)
 
 ARG NODE_VERSION=22
 FROM node:${NODE_VERSION}-slim AS base
@@ -23,4 +23,4 @@ COPY . .
 # Expo Go dev tools: 19000 19001 19002
 EXPOSE 3008 19000 19001 19002
 
-CMD ["npx", "expo", "start", "--web", "--port", "3008"]
+CMD ["npx", "expo", "start", "--port", "3008"]

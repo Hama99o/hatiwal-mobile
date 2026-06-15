@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# Propose a meetup in a conversation thread
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Messages"
+- waitForAnimationToEnd
+# Open first conversation
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Tap meetup proposal button
+- tapOn: "Propose Meetup"
+- waitForAnimationToEnd
+# Bottom sheet opens
+- assertVisible: "Propose a Meetup"
+- assertVisible: "Place"
+- assertVisible: "Time"
+- tapOn: "Where? (e.g. Shahr-e-Naw market)"
+- inputText: "Shahr-e-Naw market, near the blue mosque"
+- tapOn: "When? (e.g. Tomorrow 3pm)"
+- inputText: "Tomorrow at 3pm"
+- tapOn: "Propose Meetup"
+- waitForAnimationToEnd
+# Meetup proposal bubble visible in thread
+- assertVisible: "Meetup Proposal"
+- assertVisible: "Meetup proposal sent!"

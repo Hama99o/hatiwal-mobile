@@ -16,6 +16,18 @@ export interface MapCanvasProps {
   primaryColor: string;
   /** Whether the app is in dark mode (used to pick map tiles / styling). */
   dark: boolean;
+  /** Optional secondary pin shown as a blue dot (e.g. user's current location). */
+  secondaryPin?: MapCanvasCoords;
+  /** When true, disables pin-drag/tap interaction. */
+  readonly?: boolean;
+  /** When true, enables pan + pinch-to-zoom gestures (use for readonly detail maps). */
+  interactive?: boolean;
+  /**
+   * When false, all pan/pinch gestures are disabled even if interactive=true.
+   * Use in ScrollView contexts to prevent the map from stealing scroll touches
+   * until the user explicitly activates it.
+   */
+  gesturesEnabled?: boolean;
 }
 
 /** Kabul, Afghanistan — sensible default center for a local marketplace. */

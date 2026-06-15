@@ -1,0 +1,36 @@
+appId: com.hatiwal.app
+---
+# Offer flow: buyer sends offer → seller declines → declined badge shown in thread
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Message Seller"
+- waitForAnimationToEnd
+
+# Send offer
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- tapOn: "Offer Amount"
+- inputText: "8000"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+- assertVisible: "8,000"
+- assertVisible: "Pending"
+
+# Switch to seller to decline
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Decline"
+- waitForAnimationToEnd
+- assertVisible: "Declined"

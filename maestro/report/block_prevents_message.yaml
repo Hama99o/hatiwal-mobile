@@ -1,0 +1,37 @@
+appId: com.hatiwal.app
+---
+# Blocked user: "Message Seller" button disabled or shows blocked message
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Browse"
+- waitForAnimationToEnd
+
+# Open a listing
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Get seller name for reference
+- tapOn: "Seller Name"
+- waitForAnimationToEnd
+
+# Block from seller profile
+- tapOn:
+    id: "more-menu"
+- waitForAnimationToEnd
+- tapOn: "Block User"
+- waitForAnimationToEnd
+- tapOn: "Block"
+- waitForAnimationToEnd
+- assertVisible: "User blocked"
+
+# Navigate back to listing detail
+- back
+- waitForAnimationToEnd
+
+# Message button either disabled or shows "Can't message blocked user"
+- assertVisible: "Browse"
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# "Message Seller" disabled for blocked user
+- assertNotVisible: "Message Seller"

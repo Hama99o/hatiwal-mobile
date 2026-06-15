@@ -1,0 +1,35 @@
+appId: com.hatiwal.app
+---
+# Create listing with USD currency — price shown with $ on detail
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+
+- tapOn: "Title"
+- inputText: "iPhone 14 Pro — USD Test"
+
+- tapOn: "Price"
+- inputText: "450"
+
+# Switch currency to USD
+- tapOn: "AFN"
+- waitForAnimationToEnd
+- tapOn: "USD"
+- waitForAnimationToEnd
+
+- tapOn: "Category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+- tapOn: "Post Listing"
+- waitForAnimationToEnd
+- assertVisible: "Listing posted"
+
+# Open the listing — price shows $450
+- tapOn: "iPhone 14 Pro — USD Test"
+- waitForAnimationToEnd
+- assertVisible: "$450"

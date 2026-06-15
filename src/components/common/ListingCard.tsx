@@ -8,6 +8,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { useListItemEntering, triggerHaptic, useReduceMotion } from "@/lib/animation";
 import { useTranslation } from "react-i18next";
 import { useCallback } from "react";
 import { useRouter } from "expo-router";
@@ -15,11 +16,14 @@ import { useRouter } from "expo-router";
 import { type Listing } from "@/api/listings";
 import { PriceTag } from "./PriceTag";
 import { StatusBadge } from "./StatusBadge";
+import { PriceDropBadge } from "./PriceDropBadge";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 
 export interface ListingCardProps {
   listing: Listing;
+  /** Position in the list — used for staggered entrance animation */
+  index?: number;
   /** Show StatusBadge — defaults true for seller mode, false for buyer feed */
   showStatus?: boolean;
   /** Controlled save state — pass undefined to hide the heart */
@@ -27,6 +31,14 @@ export interface ListingCardProps {
   onSaveToggle?: (listingId: number, newValue: boolean) => void;
   onPress?: () => void;
   style?: ViewStyle;
+  /**
+   * Layout variant:
+   *   'grid'  — vertical card (photo top, info bottom). DEFAULT. Used by Browse grid,
+   *             Saved, My Listings — all existing callers get this automatically.
+   *   'list'  — horizontal compact row (photo leading, info trailing). Used by
+   *             Browse list mode only.
+   */
+  variant?: "grid" | "list";
 }
 
 /**
@@ -43,16 +55,22 @@ export interface ListingCardProps {
  */
 export function ListingCard({
   listing,
+  index,
   showStatus = false,
   isSaved,
   onSaveToggle,
   onPress,
   style,
+  variant = "grid",
 }: ListingCardProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const { formatDate, isRtl } = useLocalization();
   const colors = useColors();
+  const reduceMotion = useReduceMotion();
+  // Reduce-motion aware entering animation factory — returns undefined when
+  // the OS "Reduce Motion" setting is on, so Reanimated skips the transition.
+  const getEntering = useListItemEntering();
 
   // ── Heart animation ──────────────────────────────────────────────────────
   const heartScale = useSharedValue(1);
@@ -62,12 +80,14 @@ export function ListingCard({
 
   const handleSaveToggle = useCallback(() => {
     if (!onSaveToggle) return;
-    // Pop animation
-    heartScale.value = withSpring(1.4, { damping: 4, stiffness: 300 }, () => {
-      heartScale.value = withSpring(1, { damping: 6, stiffness: 200 });
-    });
+    triggerHaptic("light", reduceMotion);
+    if (!reduceMotion) {
+      heartScale.value = withSpring(1.4, { damping: 4, stiffness: 300 }, () => {
+        heartScale.value = withSpring(1, { damping: 6, stiffness: 200 });
+      });
+    }
     onSaveToggle(listing.id, !isSaved);
-  }, [onSaveToggle, listing.id, isSaved, heartScale]);
+  }, [onSaveToggle, listing.id, isSaved, heartScale, reduceMotion]);
 
   // ── Card press ───────────────────────────────────────────────────────────
   const cardOpacity = useSharedValue(1);
@@ -87,7 +107,8 @@ export function ListingCard({
     if (onPress) {
       onPress();
     } else {
-      router.push(`/(main)/listing/${listing.id}` as never);
+      // Route confirmed at app/(main)/listing/[id].tsx
+      router.push({ pathname: "/(main)/listing/[id]", params: { id: String(listing.id) } });
     }
   }, [onPress, router, listing.id]);
 
@@ -101,8 +122,198 @@ export function ListingCard({
 
   const metaRowDirection = isRtl ? "row-reverse" : "row";
 
+  // ── List variant (horizontal compact row) ────────────────────────────────
+  if (variant === "list") {
+    // In RTL the photo sits on the right — achieved by row-reverse.
+    return (
+      <Animated.View
+        entering={index !== undefined ? getEntering(index) : undefined}
+        style={[
+          {
+            overflow: "hidden",
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+          },
+          cardAnimStyle,
+          style,
+        ]}
+      >
+        <Pressable
+          onPress={handlePress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          android_ripple={{ color: colors.muted, foreground: false }}
+          accessibilityRole="button"
+          accessibilityLabel={listing.title}
+          testID="listing-card"
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            minHeight: 96,
+          }}
+        >
+          {/* ── Thumbnail ──────────────────────────────────────────── */}
+          <View
+            style={[
+              styles.listImageContainer,
+              { backgroundColor: colors.imagePlaceholder },
+            ]}
+          >
+            {listing.thumbnailUrl ? (
+              <RemoteImage
+                uri={listing.thumbnailUrl}
+                transition={300}
+                style={[styles.listImage, isViewed && { opacity: 0.62 }]}
+                accessibilityLabel={listing.title}
+              />
+            ) : (
+              <View
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                }}
+              >
+                <Camera size={22} color={colors.mutedForeground} />
+              </View>
+            )}
+
+            {/* "Seen" badge */}
+            {isViewed && (
+              <View
+                style={[
+                  styles.seenBadge,
+                  isRtl ? { right: 6 } : { left: 6 },
+                  { backgroundColor: colors.overlay },
+                ]}
+              >
+                <Eye size={10} color={colors.overlayForeground} />
+                <Text style={{ fontSize: 10, fontWeight: "600", color: colors.overlayForeground }}>
+                  {t("listing.seen")}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* ── Info ────────────────────────────────────────────────── */}
+          <View
+            style={{
+              flex: 1,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              gap: 3,
+              justifyContent: "center",
+            }}
+          >
+            {/* Price — hero in list mode too */}
+            <PriceTag
+              price={listing.price}
+              currency={listing.currency}
+              size="md"
+            />
+
+            {/* Price-drop badge in list mode — tiny pill after price */}
+            {listing.priceDropPercent != null && listing.priceDropPercent > 0 && (
+              <PriceDropBadge percent={listing.priceDropPercent} variant="card" />
+            )}
+
+            {/* Title */}
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "400",
+                lineHeight: 18,
+                textAlign: isRtl ? "right" : "left",
+                color: isViewed ? colors.mutedForeground : colors.foreground,
+              }}
+              numberOfLines={2}
+            >
+              {listing.title}
+            </Text>
+
+            {/* Meta row: location + StatusBadge */}
+            {(listingLocation || showStatus) ? (
+              <View
+                style={{
+                  flexDirection: metaRowDirection,
+                  gap: 6,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  marginTop: 2,
+                }}
+              >
+                {listingLocation ? (
+                  <View
+                    style={{
+                      flexDirection: metaRowDirection,
+                      alignItems: "center",
+                      gap: 2,
+                    }}
+                  >
+                    <MapPin size={10} color={colors.mutedForeground} />
+                    <Text
+                      style={{ fontSize: 11, color: colors.mutedForeground }}
+                      numberOfLines={1}
+                    >
+                      {listingLocation}
+                    </Text>
+                  </View>
+                ) : null}
+                {showStatus && <StatusBadge status={listing.status} />}
+              </View>
+            ) : null}
+          </View>
+
+          {/* ── Save heart ──────────────────────────────────────────── */}
+          {isSaved !== undefined && onSaveToggle && (
+            <Pressable
+              onPress={handleSaveToggle}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{
+                width: 44,
+                alignSelf: "center",
+                alignItems: "center",
+                justifyContent: "center",
+                paddingRight: isRtl ? 0 : 4,
+                paddingLeft: isRtl ? 4 : 0,
+              }}
+              accessibilityRole="togglebutton"
+              accessibilityLabel={isSaved ? t("listing.unsave") : t("listing.save")}
+              accessibilityState={{ checked: isSaved }}
+            >
+              <Animated.View style={heartAnimStyle}>
+                <Heart
+                  size={20}
+                  color={isSaved ? colors.destructive : colors.mutedForeground}
+                  fill={isSaved ? colors.destructive : "transparent"}
+                  strokeWidth={2}
+                />
+              </Animated.View>
+            </Pressable>
+          )}
+        </Pressable>
+      </Animated.View>
+    );
+  }
+
+  // ── Grid variant (default — vertical card) ───────────────────────────────
   return (
-    <Animated.View style={[{ overflow: "hidden", borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card }, cardAnimStyle, style]}>
+    <Animated.View
+      entering={index !== undefined ? getEntering(index) : undefined}
+      style={[
+        {
+          overflow: "hidden",
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.card,
+        },
+        cardAnimStyle,
+        style,
+      ]}
+    >
       <Pressable
         onPress={handlePress}
         onPressIn={handlePressIn}
@@ -137,8 +348,8 @@ export function ListingCard({
                 { backgroundColor: colors.overlay },
               ]}
             >
-              <Eye size={11} color="#fff" />
-              <Text style={{ fontSize: 11, fontWeight: "600", color: "#fff" }}>
+              <Eye size={11} color={colors.overlayForeground} />
+              <Text style={{ fontSize: 11, fontWeight: "600", color: colors.overlayForeground }}>
                 {t("listing.seen")}
               </Text>
             </View>
@@ -156,11 +367,22 @@ export function ListingCard({
             </View>
           )}
 
-          {/* Save heart (top-right / top-left depending on RTL) */}
+          {/* Price-drop corner badge — bottom-right (LTR) / bottom-left (RTL) overlay */}
+          {listing.priceDropPercent != null && listing.priceDropPercent > 0 && (
+            <View
+              style={[
+                styles.priceDropOverlay,
+                isRtl ? styles.priceDropOverlayRtl : styles.priceDropOverlayLtr,
+              ]}
+            >
+              <PriceDropBadge percent={listing.priceDropPercent} variant="card" />
+            </View>
+          )}
+
+          {/* Save heart — outer 44px Pressable (touch target), inner 36px scrim circle */}
           {isSaved !== undefined && onSaveToggle && (
             <Pressable
               onPress={handleSaveToggle}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={[
                 styles.heartButton,
                 isRtl ? styles.heartButtonRtl : styles.heartButtonLtr,
@@ -171,32 +393,37 @@ export function ListingCard({
               }
               accessibilityState={{ checked: isSaved }}
             >
-              <Animated.View style={heartAnimStyle}>
-                <Heart
-                  size={20}
-                  color={isSaved ? colors.destructive : colors.primaryForeground}
-                  fill={isSaved ? colors.destructive : "transparent"}
-                  strokeWidth={2}
-                />
-              </Animated.View>
+              <View style={[styles.heartScrim, { backgroundColor: colors.darkScrim }]}>
+                <Animated.View style={heartAnimStyle}>
+                  <Heart
+                    size={18}
+                    // The heart sits on a dark rgba scrim — use overlayForeground (white)
+                    // for unfilled state regardless of theme so it's legible on any photo.
+                    color={isSaved ? colors.destructive : colors.overlayForeground}
+                    fill={isSaved ? colors.destructive : "transparent"}
+                    strokeWidth={2.5}
+                  />
+                </Animated.View>
+              </View>
             </Pressable>
           )}
         </View>
 
         {/* ── Card body ──────────────────────────────────────────────── */}
-        <View style={{ padding: 12, gap: 6 }}>
-          {/* Price — hero element */}
+        <View style={{ padding: 10, paddingTop: 8, gap: 3, minHeight: 80 }}>
+          {/* Price — hero element: larger, bolder, more vertical space */}
           <PriceTag
             price={listing.price}
             currency={listing.currency}
             size="md"
           />
 
-          {/* Title */}
+          {/* Title — secondary to price */}
           <Text
             style={{
-              fontSize: 14,
-              fontWeight: "500",
+              fontSize: 13,
+              fontWeight: "400",
+              lineHeight: 18,
               textAlign: isRtl ? "right" : "left",
               color: isViewed ? colors.mutedForeground : colors.foreground,
             }}
@@ -205,28 +432,25 @@ export function ListingCard({
             {listing.title}
           </Text>
 
-          {/* Meta row: listing location + posted date */}
-          <View style={{ flexDirection: metaRowDirection, gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            {listingLocation ? (
-              <View style={{ flexDirection: metaRowDirection, alignItems: "center", gap: 2 }}>
-                <MapPin size={11} color={colors.mutedForeground} />
-                <Text
-                  style={{ fontSize: 12, color: colors.mutedForeground }}
-                  numberOfLines={1}
-                >
-                  {listingLocation}
-                </Text>
-              </View>
-            ) : null}
-            {postedAgo ? (
+          {/* Meta row: listing location */}
+          {listingLocation ? (
+            <View
+              style={{
+                flexDirection: metaRowDirection,
+                alignItems: "center",
+                gap: 2,
+                marginTop: 2,
+              }}
+            >
+              <MapPin size={10} color={colors.mutedForeground} />
               <Text
-                style={{ fontSize: 12, color: colors.mutedForeground }}
+                style={{ fontSize: 11, color: colors.mutedForeground, flex: 1 }}
                 numberOfLines={1}
               >
-                {postedAgo}
+                {listingLocation}
               </Text>
-            ) : null}
-          </View>
+            </View>
+          ) : null}
         </View>
       </Pressable>
     </Animated.View>
@@ -246,6 +470,19 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  // ── List variant ───────────────────────────────────────────────────
+  listImageContainer: {
+    width: 108,
+    aspectRatio: 4 / 3,
+    position: "relative",
+    flexShrink: 0,
+    borderRadius: 0,
+  },
+  listImage: {
+    width: "100%",
+    height: "100%",
+  },
+  // ── Shared overlays ────────────────────────────────────────────────
   statusOverlay: {
     position: "absolute",
     top: 8,
@@ -266,20 +503,38 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
   },
+  // 44×44 touch target — the visible scrim circle is 36px, centered inside.
   heartButton: {
     position: "absolute",
-    top: 8,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    top: 4,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
   heartButtonLtr: {
-    right: 8,
+    right: 4,
   },
   heartButtonRtl: {
+    left: 4,
+  },
+  heartScrim: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    // backgroundColor applied inline via colors.darkScrim (useColors token)
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // Price-drop badge corner overlay — bottom-right (LTR) / bottom-left (RTL)
+  priceDropOverlay: {
+    position: "absolute",
+    bottom: 8,
+  },
+  priceDropOverlayLtr: {
+    right: 8,
+  },
+  priceDropOverlayRtl: {
     left: 8,
   },
 });

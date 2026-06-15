@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# Renew listing: expired → tap Renew → listing moves to Active tab
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+
+- tapOn: "Expired"
+- waitForAnimationToEnd
+- assertVisible: "Expired"
+
+# Open expired listing
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Expired"
+- assertVisible: "Renew Listing"
+
+# Renew it
+- tapOn: "Renew Listing"
+- waitForAnimationToEnd
+- assertVisible: "Listing renewed"
+
+# Now appears in Active
+- tapOn: "My Listings"
+- waitForAnimationToEnd
+- tapOn: "Active"
+- waitForAnimationToEnd
+- assertVisible: "Active"
