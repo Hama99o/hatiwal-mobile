@@ -3,11 +3,11 @@ appId: com.hatiwal.app
 # Listing detail in RTL (Pashto) — all elements visible, layout correct
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - tapOn: "Pashto (پښتو)"
 - waitForAnimationToEnd
-# Verify RTL is active — back to browse
+# Verify RTL is active — back to Bazaar tab (index 0)
 - tapOn:
     index: 0
 - waitForAnimationToEnd

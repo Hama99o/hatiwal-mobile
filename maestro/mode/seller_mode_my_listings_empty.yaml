@@ -22,7 +22,7 @@ appId: com.hatiwal.app
 - tapOn: "Switch"
 - waitForAnimationToEnd
 
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 
 # Empty state

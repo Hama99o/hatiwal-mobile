@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Profile screen in dark mode — all elements visible
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 # Switch to dark
 - tapOn: "Dark"

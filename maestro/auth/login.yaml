@@ -1,6 +1,6 @@
 appId: com.hatiwal.app
 ---
-# Happy path: user logs in and lands on Browse
+# Happy path: user logs in and lands on Bazaar
 
 - launchApp:
     clearState: true
@@ -11,8 +11,8 @@ appId: com.hatiwal.app
 - tapOn: "Password"
 - inputText: "Password123!"
 - tapOn: "Sign In"
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 # Verify user is authenticated — Profile tab shows name
-- tapOn: "Profile"
+- tapOn: "Me"
 - assertNotVisible: "Sign In"
 - assertVisible: "Sign Out"

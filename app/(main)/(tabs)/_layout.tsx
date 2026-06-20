@@ -1,19 +1,16 @@
 import { Tabs, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useColors } from "@/hooks/useColors";
 import { useModeStore } from "@/stores/mode.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useChatStore } from "@/stores/chat.store";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ShoppingBag, MessageCircle, Package, User, Heart, LogIn } from "lucide-react-native";
+import { Store, MessageCircle, Package, User, Heart, LogIn } from "lucide-react-native";
+import { FloatingTabBar } from "@/components/common/FloatingTabBar";
 
 export default function TabsLayout() {
   const { t } = useTranslation();
-  const colors = useColors();
   const router = useRouter();
   const { mode } = useModeStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const insets = useSafeAreaInsets();
 
   const isSeller = mode === "seller";
   const unreadMessageTotal = useChatStore((s) => s.unreadMessageTotal);
@@ -33,34 +30,33 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: isSeller ? colors.warning : colors.border,
-          borderTopWidth: isSeller ? 2 : 1,
-          paddingBottom: insets.bottom,
-          height: 49 + insets.bottom,
-        },
-        tabBarActiveTintColor: isSeller ? colors.warning : colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-      }}
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <FloatingTabBar {...props} />}
     >
-      {/* Browse — the feed; visible to guests and to buyers (hidden in seller mode) */}
+      {/* Home tab — the single always-visible landing tab (index 0, so it is the
+          tab focused on a cold start / reload, which is why its active highlight
+          works reliably). Its content + label flip by mode: a seller sees
+          "My Shop" (browse.tsx renders MyListings for sellers); a buyer/guest
+          sees "Bazaar" (the feed). Keeping ONE home tab — instead of a hidden
+          browse + a separate my-listings tab — is what makes the bottom-bar
+          highlight correct for sellers on reload. */}
       <Tabs.Screen
         name="browse"
         options={{
-          href: isSeller ? null : undefined,
-          title: t("sidebar.browse"),
-          tabBarIcon: ({ color, size }) => <ShoppingBag size={size} color={color} />,
+          title: isSeller ? t("sidebar.myListings") : t("sidebar.browse"),
+          tabBarIcon: ({ color, size }) =>
+            isSeller ? <Package size={size} color={color} /> : <Store size={size} color={color} />,
         }}
       />
 
-      {/* My Listings — signed-in seller mode only */}
+      {/* My Listings route still exists (reached from Profile / post-create
+          flows) but its TAB is always hidden — the home tab above is the
+          seller's My Shop. A visible duplicate here would sit unfocused on
+          cold-load and break the active-tab highlight. */}
       <Tabs.Screen
         name="my-listings"
         options={{
-          href: isAuthenticated && isSeller ? undefined : null,
+          href: null,
           title: t("sidebar.myListings"),
           tabBarIcon: ({ color, size }) => <Package size={size} color={color} />,
         }}

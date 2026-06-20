@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Profile screen — happy path: avatar, name, mode toggle, settings sections, sign out
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 
 # Profile tab is rendered

@@ -197,6 +197,9 @@ export function ConversationScreen() {
         conversationsAPI.getMessages(convId, { pageSize: PAGE_SIZE }),
       ]);
       setConversation(conv);
+      // Seed the block state from the server so the ShieldBan toggle reflects
+      // reality on first load (otherwise it always shows "not blocked" until tapped).
+      setIsBlocked(conv.blockedWithParticipant ?? false);
       // Backend returns newest-first → reverse so FlatList shows oldest→newest
       setMessages([...items].reverse());
       setPage(1);
@@ -901,7 +904,8 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 36,
-    minHeight: 36,
+    // 44px min tap target (DESIGN_SYSTEM §3); stays visually compact via padding.
+    height: 44,
+    minHeight: 44,
   },
 });

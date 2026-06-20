@@ -5,7 +5,7 @@ appId: com.hatiwal.app
 
 # ── Buyer saves the listing ───────────────────────────────────────────────────
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 # Open first active listing
 - tapOn:
@@ -16,14 +16,14 @@ appId: com.hatiwal.app
     id: "save-button"
 - waitForAnimationToEnd
 # Note the listing title for later assertion
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 
 # ── Seller marks it sold ──────────────────────────────────────────────────────
 - launchApp:
     clearState: false
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - tapOn: "Active"
 - waitForAnimationToEnd

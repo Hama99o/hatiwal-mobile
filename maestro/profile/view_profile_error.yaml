@@ -16,7 +16,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Open Profile — first fetch attempts, retries once (retry:1), then fails
-- tapOn: "Profile"
+- tapOn: "Me"
 # Allow extra time for the retry + exponential backoff to complete
 - waitForAnimationToEnd
 - waitForAnimationToEnd

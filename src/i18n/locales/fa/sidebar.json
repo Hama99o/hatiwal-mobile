@@ -1,9 +1,9 @@
 {
-  "browse": "مرور",
+  "browse": "بازار",
   "saved": "ذخیره‌شده‌ها",
-  "chat": "پیام‌ها",
-  "profile": "پروفایل",
-  "myListings": "آگهی‌های من",
+  "chat": "گفتگوها",
+  "profile": "من",
+  "myListings": "دکان من",
   "createListing": "آگهی جدید",
   "sellerDashboard": "داشبورد فروشنده"
 }

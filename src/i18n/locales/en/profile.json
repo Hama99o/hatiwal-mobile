@@ -45,7 +45,8 @@
       "within_one_hour": "Usually responds within 1 hour",
       "within_a_day": "Usually responds within a day",
       "within_a_few_days": "Usually responds within a few days"
-    }
+    },
+    "responseRate": "{{percent}}% reply rate"
   },
   "userProfile": {
     "title": "Seller Profile",
@@ -125,4 +126,3 @@
     "province": "Province"
   }
 }
-

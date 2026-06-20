@@ -8,9 +8,9 @@ appId: com.hatiwal.app
 
 - runFlow: ../_helpers/login.yaml
 
-# Navigate to Messages tab
+# Navigate to Chats tab
 - tapOn:
-    text: "Messages"
+    text: "Chats"
 - waitForAnimationToEnd
 
 # Unread badge must be visible on the first conversation row before opening it

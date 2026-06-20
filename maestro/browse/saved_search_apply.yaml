@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Saved searches: apply filters → auto-saved → clear → re-apply from saved searches chip
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 # Apply a category filter — this combination gets auto-saved
 - tapOn: "Filter"

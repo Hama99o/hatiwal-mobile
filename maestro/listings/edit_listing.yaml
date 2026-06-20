@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Edit existing draft listing — change title and price, verify updated
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 # Tap on first draft listing
 - tapOn: "Draft"

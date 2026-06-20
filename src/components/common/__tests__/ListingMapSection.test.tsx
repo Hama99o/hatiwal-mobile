@@ -1,8 +1,14 @@
 /**
  * ListingMapSection unit tests.
  *
- * The component renders a map snippet (MapCanvas), an optional address/location
- * label, and a "Get Directions" button.
+ * The component renders a static map preview (MapCanvas) that, when tapped,
+ * opens a fullscreen Modal with an interactive map. Beneath the preview it shows
+ * an optional address/location label and a "Get Directions" button.
+ *
+ * The "My Location" button lives INSIDE the fullscreen modal (not the preview),
+ * and is shown whenever location permission is not "denied". To assert on it,
+ * tests must first open the modal by pressing the preview overlay (labelled
+ * with the "listing.detail.mapTapToInteract" key).
  *
  * Because MapCanvas is a platform-split module (MapCanvas.native.tsx /
  * MapCanvas.web.tsx) that renders native tiles or Leaflet, we stub it with a
@@ -49,6 +55,8 @@ jest.mock("@/utils/geolocation", () => ({
 jest.mock("lucide-react-native", () => ({
   Navigation: "Navigation",
   Crosshair: "Crosshair",
+  Maximize2: "Maximize2",
+  X: "X",
 }));
 
 // Imports AFTER all jest.mock() calls so Babel hoisting works correctly.
@@ -66,6 +74,15 @@ function setPermission(status: "granted" | "denied" | "undetermined") {
 function geoMock(): jest.Mock {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   return require("@/utils/geolocation").getCurrentLocation as jest.Mock;
+}
+
+// Helper: open the fullscreen map modal by pressing the preview overlay.
+// The overlay's accessibilityLabel is the "tap to interact" translation key.
+async function openMapModal() {
+  const overlay = await screen.findByLabelText("listing.detail.mapTapToInteract");
+  await act(async () => {
+    fireEvent.press(overlay);
+  });
 }
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
@@ -159,7 +176,7 @@ describe("ListingMapSection — with coordinates", () => {
     expect(screen.queryByText("Kabul")).toBeNull();
   });
 
-  it("shows the 'My Location' button when permission is undetermined", async () => {
+  it("does not show the 'My Location' button in the preview (it lives in the modal)", async () => {
     setPermission("undetermined");
 
     render(
@@ -169,12 +186,31 @@ describe("ListingMapSection — with coordinates", () => {
       })
     );
 
+    // Preview is shown; the modal is closed, so My Location is not yet rendered.
+    await waitFor(() => {
+      expect(screen.getByText("listing.detail.getDirections")).toBeTruthy();
+    });
+    expect(screen.queryByText("listing.detail.showMyLocation")).toBeNull();
+  });
+
+  it("shows the 'My Location' button in the modal when permission is undetermined", async () => {
+    setPermission("undetermined");
+
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+      })
+    );
+
+    await openMapModal();
+
     await waitFor(() => {
       expect(screen.getByText("listing.detail.showMyLocation")).toBeTruthy();
     });
   });
 
-  it("hides the 'My Location' button when permission is already granted", async () => {
+  it("shows the 'My Location' button in the modal when permission is already granted", async () => {
     setPermission("granted");
     geoMock().mockResolvedValue({
       coords: { latitude: 34.55, longitude: 69.21 },
@@ -187,13 +223,15 @@ describe("ListingMapSection — with coordinates", () => {
       })
     );
 
-    // Wait for the permission effect to update permissionState to "granted".
+    await openMapModal();
+
+    // Granted permission still offers the button — it recenters the map on the user.
     await waitFor(() => {
-      expect(screen.queryByText("listing.detail.showMyLocation")).toBeNull();
+      expect(screen.getByText("listing.detail.showMyLocation")).toBeTruthy();
     });
   });
 
-  it("hides the 'My Location' button when permission is denied", async () => {
+  it("hides the 'My Location' button in the modal when permission is denied", async () => {
     setPermission("denied");
 
     render(
@@ -203,7 +241,32 @@ describe("ListingMapSection — with coordinates", () => {
       })
     );
 
-    // Wait for the permission effect to update permissionState to "denied".
+    await openMapModal();
+
+    // Wait for the modal to open (close button present), then confirm My Location is hidden.
+    await screen.findByLabelText("listing.detail.mapDone");
+    expect(screen.queryByText("listing.detail.showMyLocation")).toBeNull();
+  });
+
+  it("opens and closes the fullscreen map modal", async () => {
+    setPermission("undetermined");
+
+    render(
+      React.createElement(ListingMapSection, {
+        latitude: KABUL.latitude,
+        longitude: KABUL.longitude,
+      })
+    );
+
+    await openMapModal();
+
+    // The modal exposes a close affordance (labelled with the mapDone key).
+    const closeBtn = await screen.findByLabelText("listing.detail.mapDone");
+    await act(async () => {
+      fireEvent.press(closeBtn);
+    });
+
+    // After closing, the modal's My Location button is gone again.
     await waitFor(() => {
       expect(screen.queryByText("listing.detail.showMyLocation")).toBeNull();
     });

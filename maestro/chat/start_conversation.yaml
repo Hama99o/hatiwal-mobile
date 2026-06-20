@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Start a conversation from listing detail — buyer taps Message Seller
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 # Open any listing detail
 - tapOn: "Contact Seller"

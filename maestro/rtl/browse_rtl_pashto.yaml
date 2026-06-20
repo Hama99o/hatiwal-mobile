@@ -1,23 +1,23 @@
 appId: com.hatiwal.app
 ---
-# RTL verification: Pashto — Browse renders correctly, no overflow
+# RTL verification: Pashto — Bazaar renders correctly, no overflow
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - scrollUntilVisible:
     text: "LANGUAGE"
 - tapOn: "Pashto (پښتو)"
 - waitForAnimationToEnd
-# Navigate to Browse
+# Navigate to Bazaar tab (Pashto label is "بازار")
 - tapOn:
-    text: "Browse"
+    text: "بازار"
     optional: true
 - waitForAnimationToEnd
 # App should be in RTL layout — Maestro can verify elements exist
 # but visual RTL correctness requires manual screenshot review
 - assertVisible: "پښتو"
 - waitForAnimationToEnd
-# Listings are still visible
+# Listings are still visible (Pashto Bazaar label "بازار")
 - assertVisible:
-    text: "Browse"
+    text: "بازار"
     optional: true

@@ -3,13 +3,13 @@ appId: com.hatiwal.app
 # Chat screen in dark mode — conversations list and thread visible
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 # Switch to dark theme
 - tapOn: "Dark"
 - waitForAnimationToEnd
-# Navigate to chat
-- tapOn: "Messages"
+# Navigate to Chats tab
+- tapOn: "Chats"
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 # Open a conversation
@@ -25,7 +25,7 @@ appId: com.hatiwal.app
 # Restore light theme
 - back
 - waitForAnimationToEnd
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - tapOn: "Light"
 - waitForAnimationToEnd

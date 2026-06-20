@@ -12,4 +12,4 @@ appId: com.hatiwal.app
 - tapOn: "Password"
 - inputText: ${PASSWORD:-"Password123!"}
 - tapOn: "Sign In"
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"

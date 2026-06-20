@@ -121,7 +121,7 @@ function ReadReceipt({ color }: { color: string }) {
 
 export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, onOfferRespond, offerOutcome, searchQuery }: MessageBubbleProps) {
   const { t } = useTranslation();
-  const { isRtl, formatTime } = useLocalization();
+  const { isRtl, formatTime, formatCurrency } = useLocalization();
   const colors = useColors();
   const reduceMotion = useReduceMotion();
 
@@ -149,8 +149,10 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
   const bubbleAlign = isMine !== isRtl ? "flex-end" : "flex-start";
   const bubbleBg = isMine ? colors.primary : colors.secondary;
   const bubbleText = isMine ? colors.primaryForeground : colors.foreground;
-  const metaColor = isMine ? "rgba(255,255,255,0.65)" : colors.mutedForeground;
-  const readColor = isMine ? "rgba(255,255,255,0.9)" : colors.primary;
+  // On the "mine" bubble (primary background) meta + read receipts use the
+  // theme's on-primary color so they stay dark-mode-correct — no hardcoded rgba.
+  const metaColor = isMine ? colors.primaryForeground : colors.mutedForeground;
+  const readColor = isMine ? colors.primaryForeground : colors.primary;
 
   if (message.kind === "system") {
     // System messages center-align with a fade-in; no directional slide.
@@ -172,8 +174,10 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
     const amount = Number(parts[0] ?? 0);
     const currency = parts[1] ?? "AFN";
     const listedPrice = Number(parts[2] ?? 0);
-    const formattedOffer = `${currency} ${amount.toLocaleString()}`;
-    const formattedListed = `${currency} ${listedPrice.toLocaleString()}`;
+    // Localized currency (Arabic-Indic digits + locale grouping in ps/fa) per
+    // mobile.prompt.md §4 — never raw toLocaleString.
+    const formattedOffer = formatCurrency(amount, currency);
+    const formattedListed = formatCurrency(listedPrice, currency);
 
     return (
       <Animated.View
@@ -262,7 +266,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 marginTop: 8,
                 paddingTop: 8,
                 borderTopWidth: 1,
-                borderTopColor: isMine ? `${colors.warning}40` : colors.border,
+                borderTopColor: isMine ? colors.warningAlpha : colors.border,
               }}
             >
               <Text
@@ -306,7 +310,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 <Pressable
                   onPress={() => onOfferRespond(true)}
                   android_ripple={{ color: colors.successAlpha }}
-                  style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, backgroundColor: colors.success }}
+                  style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.success }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.successForeground }}>
                     {t("chat.offer.accept")}
@@ -315,7 +319,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 <Pressable
                   onPress={() => onOfferRespond(false)}
                   android_ripple={{ color: colors.muted }}
-                  style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
+                  style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
                     {t("chat.offer.decline")}
@@ -440,7 +444,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 <Pressable
                   onPress={() => onMeetupRespond(true)}
                   android_ripple={{ color: colors.primaryAlpha }}
-                  style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, backgroundColor: colors.primary }}
+                  style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.primary }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primaryForeground }}>
                     {t("chat.meetup.accept")}
@@ -449,7 +453,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 <Pressable
                   onPress={() => onMeetupRespond(false)}
                   android_ripple={{ color: colors.muted }}
-                  style={{ flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
+                  style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
                 >
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
                     {t("chat.meetup.decline")}

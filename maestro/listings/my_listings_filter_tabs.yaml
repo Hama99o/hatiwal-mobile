@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # My Listings — filter by status tab (All / Draft / Active / Reserved / Sold)
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - assertVisible: "My Listings"
 # Default tab shows All

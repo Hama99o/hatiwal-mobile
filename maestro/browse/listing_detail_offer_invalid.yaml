@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Offer validation — empty amount or zero shows inline error
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd

@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Save multiple listings: save 3 → all appear in Saved tab
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
 # Save first 3 listings

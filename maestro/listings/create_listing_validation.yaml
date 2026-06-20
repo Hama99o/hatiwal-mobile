@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Validation: required fields show errors on empty submit
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
 - assertVisible: "Create Listing"

@@ -4,23 +4,24 @@ appId: com.hatiwal.app
 # for both buyer-mode single-column actions and the seller side-by-side row.
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 
 # Switch to Pashto to trigger RTL
 - tapOn: "Pashto (پښتو)"
 - waitForAnimationToEnd
 
-# Navigate back to profile tab
+# Navigate back to profile tab (Pashto tab label "زه", use index as fallback)
 - tapOn:
     index: 4
 - waitForAnimationToEnd
 
-# Pashto profile label visible
+# Pashto profile SCREEN HEADER visible (profile.title key — unchanged)
 - assertVisible: "پروفایل"
 
 # --- Buyer-mode RTL quick actions ---
 # Buyer mode is the default; verify the three single-column action rows are visible
+# These are profile quick-action labels (separate i18n keys, not sidebar tab labels)
 - assertVisible: "اعلانونه لټول"
 - assertVisible: "خوندي اعلانونه"
 - assertVisible: "پیغامونه"
@@ -37,6 +38,7 @@ appId: com.hatiwal.app
 # Seller quick-action labels visible in Pashto
 # "My Listings" and "Messages" appear as a side-by-side row
 # whose container is now flexDirection:row-reverse (RTL fix applied)
+# These are profile quick-action labels, not sidebar tab labels
 - assertVisible: "زما اعلانونه"
 - assertVisible: "پیغامونه"
 - assertVisible: "نوی اعلان پوسٹ کړئ"

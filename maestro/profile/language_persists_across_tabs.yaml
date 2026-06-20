@@ -3,18 +3,18 @@ appId: com.hatiwal.app
 # Language persists: switch to Pashto, navigate all tabs, Pashto strings everywhere
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - tapOn: "Language"
 - waitForAnimationToEnd
 - tapOn: "پښتو"
 - waitForAnimationToEnd
 
-# Browse tab
+# Bazaar tab — English label "Bazaar" must NOT appear (Pashto shows "بازار")
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- assertNotVisible: "Browse"
+- assertNotVisible: "Bazaar"
 
 # Saved tab
 - tapOn:
@@ -22,23 +22,23 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertNotVisible: "Saved"
 
-# Chat tab
+# Chats tab — English label "Chats" must NOT appear (Pashto shows "چټونه")
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
 - assertNotVisible: "Chats"
 
-# Profile tab
+# Profile tab — English label "Me" must NOT appear (Pashto shows "زه")
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-- assertNotVisible: "Profile"
+- assertNotVisible: "Me"
 
 # Background + reopen → still Pashto
 - launchApp:
     clearState: false
 - waitForAnimationToEnd
-- assertNotVisible: "Browse"
+- assertNotVisible: "Bazaar"
 
 # Reset to English
 - tapOn:

@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Listing detail — tap Share in the more-options menu → OS share sheet appears
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
     index: 0

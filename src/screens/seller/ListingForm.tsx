@@ -299,7 +299,7 @@ export default function ListingFormScreen() {
     onSuccess: () => {
       invalidateListingCaches();
       toast.success(isPublished ? t("listing.form.saved") : t("listing.form.savedDraft"));
-      router.replace("/(main)/(tabs)/my-listings" as never);
+      router.replace("/(main)/(tabs)/browse" as never);
     },
     onError: () => {
       toast.error(t("listing.form.saveError"));
@@ -325,7 +325,7 @@ export default function ListingFormScreen() {
     onSuccess: () => {
       invalidateListingCaches();
       toast.success(t("listing.form.published"));
-      router.replace("/(main)/(tabs)/my-listings" as never);
+      router.replace("/(main)/(tabs)/browse" as never);
     },
     onError: () => {
       toast.error(t("listing.form.publishError"));
@@ -349,7 +349,7 @@ export default function ListingFormScreen() {
 
   const onCancel = () => {
     if (!isDirty && photos.every((p) => p.isRemote)) {
-      router.replace("/(main)/(tabs)/my-listings" as never);
+      router.replace("/(main)/(tabs)/browse" as never);
       return;
     }
     confirmAlert(
@@ -360,7 +360,7 @@ export default function ListingFormScreen() {
         {
           text: t("listing.form.discardConfirm"),
           style: "destructive",
-          onPress: () => router.replace("/(main)/(tabs)/my-listings" as never),
+          onPress: () => router.replace("/(main)/(tabs)/browse" as never),
         },
       ]
     );

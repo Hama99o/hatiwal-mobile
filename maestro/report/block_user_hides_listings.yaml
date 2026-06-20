@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Block user: their listings disappear from browse feed
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 
 # Open a listing from seller@hatiwal.test
@@ -25,8 +25,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "User blocked"
 
-# Back to browse — blocked user's listings gone
-- tapOn: "Browse"
+# Back to Bazaar — blocked user's listings gone
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
-# Confirm by checking listing count changed (or just that browse loaded)
-- assertVisible: "Browse"
+# Confirm by checking listing count changed (or just that Bazaar loaded)
+- assertVisible: "Bazaar"

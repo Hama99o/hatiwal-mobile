@@ -182,7 +182,7 @@ export default function MyListingDetailScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
       toast.success(t("listing.deleteSuccess"));
-      router.replace("/(main)/(tabs)/my-listings" as never);
+      router.replace("/(main)/(tabs)/browse" as never);
     },
     onError: () => toast.error(t("common.error")),
     onSettled: () => setIsActionLoading(false),

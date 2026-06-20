@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Create listing — select province from picker
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd

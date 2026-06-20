@@ -6,8 +6,8 @@ appId: com.hatiwal.app
     clearState: true
 - assertVisible: "Welcome to Hatiwal"
 - tapOn: "Continue browsing"
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 # Can tap a listing
 - tapOn:
-    text: "Browse"
-- assertVisible: "Browse"
+    text: "Bazaar"
+- assertVisible: "Bazaar"

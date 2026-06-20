@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Delete a conversation — confirm dialog, then removed from list
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Messages"
+- tapOn: "Chats"
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 # Long-press or swipe on a conversation to reveal delete, OR tap into it

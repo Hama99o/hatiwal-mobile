@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Seller profile from browse: listings grid shows seller's active listings
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
     index: 0

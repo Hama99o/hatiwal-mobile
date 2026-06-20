@@ -1,15 +1,16 @@
 appId: com.hatiwal.app
 ---
-# RTL verification: Dari — Browse renders correctly
+# RTL verification: Dari — Bazaar renders correctly
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - scrollUntilVisible:
     text: "LANGUAGE"
 - tapOn: "Dari (دری)"
 - waitForAnimationToEnd
+# Navigate to Bazaar tab (Dari label is "بازار")
 - tapOn:
-    text: "Browse"
+    text: "بازار"
     optional: true
 - waitForAnimationToEnd
 - assertVisible: "دری"

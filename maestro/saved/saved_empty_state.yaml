@@ -14,6 +14,6 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "No saved items yet"
 - assertVisible: "Browse listings"
-# Tap browse button — goes to Browse
+# Tap browse button — goes to Bazaar
 - tapOn: "Browse listings"
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"

@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Block a user from their public profile page
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd

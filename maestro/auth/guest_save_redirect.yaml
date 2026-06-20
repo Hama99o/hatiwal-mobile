@@ -7,11 +7,11 @@ appId: com.hatiwal.app
 - assertVisible: "Welcome to Hatiwal"
 - tapOn: "Continue browsing"
 - waitForAnimationToEnd
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 # Tap a listing to open detail
 - tapOn:
     index: 0
-    text: "Browse"
+    text: "Bazaar"
 - waitForAnimationToEnd
 # Tap the save heart as a guest — should redirect to login
 - tapOn:

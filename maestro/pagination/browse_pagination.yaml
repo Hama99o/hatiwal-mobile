@@ -1,9 +1,9 @@
 appId: com.hatiwal.app
 ---
-# Browse feed: scroll to bottom triggers next page, pull-to-refresh reloads
+# Bazaar feed: scroll to bottom triggers next page, pull-to-refresh reloads
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
 # Scroll down three times to trigger pagination
@@ -15,7 +15,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # More cards should have loaded — feed is not empty
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 
 # Pull-to-refresh: swipe down from top of list
 - swipe:
@@ -24,4 +24,4 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Feed still shows after refresh
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"

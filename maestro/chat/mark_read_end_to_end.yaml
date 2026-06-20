@@ -15,7 +15,7 @@ appId: com.hatiwal.app
 
 # ── Step 1: verify unread badge is present before opening ───────────────────
 - tapOn:
-    text: "Messages"
+    text: "Chats"
 - waitForAnimationToEnd
 
 - assertVisible:

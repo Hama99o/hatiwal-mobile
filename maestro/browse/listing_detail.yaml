@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Listing detail: photos, price, description, seller, contact button all visible
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 # Tap first listing card
 - tapOn: "Contact Seller"
@@ -15,6 +15,6 @@ appId: com.hatiwal.app
 # Scroll down to see more
 - scroll
 - assertVisible: "Location"
-# Back to browse
+# Back to Bazaar
 - back
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"

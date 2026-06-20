@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Edit listing: add a new photo, verify it appears in the photo strip
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - tapOn: "Edit"
 - waitForAnimationToEnd

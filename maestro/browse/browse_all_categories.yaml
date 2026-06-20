@@ -1,9 +1,9 @@
 appId: com.hatiwal.app
 ---
-# Browse — verify all category chips load and can be tapped
+# Bazaar — verify all category chips load and can be tapped
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 # Scroll the category chips horizontally to see all
 - tapOn: "All Categories"
@@ -16,8 +16,8 @@ appId: com.hatiwal.app
 - tapOn: "Electronics"
 - waitForAnimationToEnd
 # Feed is filtered
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 # Clear filter — tap "All Categories" chip or the X
 - tapOn: "All Categories"
 - waitForAnimationToEnd
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"

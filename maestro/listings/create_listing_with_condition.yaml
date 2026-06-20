@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Create a listing with a condition set → publish → verify ConditionBadge on detail
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
@@ -30,7 +30,7 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: false
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn: "Search listings..."
 - inputText: "Condition Test Laptop"

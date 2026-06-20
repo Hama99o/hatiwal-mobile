@@ -2,23 +2,290 @@ import React, { useCallback, useEffect, useState } from "react";
 import { View, ScrollView, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useRouter, useFocusEffect } from "expo-router";
-import { ShoppingBag, Plus } from "lucide-react-native";
+import { ShoppingBag, Plus, LayoutGrid, List, Search, X } from "lucide-react-native";
 
 import { Text } from "@/components/reusables/text";
-import { Button } from "@/components/reusables/button";
+import { Input } from "@/components/reusables/input";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { ListingFeed, type ListingFeedViewMode } from "@/components/common/ListingFeed";
-import { ListingFiltersBar } from "@/components/common/ListingFiltersBar";
 import { listingsAPI, type Listing } from "@/api/listings";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
-import { useCategories } from "@/hooks/useCategories";
 import { SellerListingCard } from "./my-listings/SellerListingCard";
 
 // "expired" is a virtual filter (active listings past their 30-day clock),
 // resolved server-side — not a real status enum value.
 type StatusFilter = "all" | Listing["status"] | "expired";
 const STATUS_TABS: StatusFilter[] = ["all", "draft", "active", "expired", "reserved", "sold"];
+
+// ─── Compact Header ───────────────────────────────────────────────────────────
+//
+// Layout (two rows, ~92px total):
+//
+//   Row 1 — Tool bar (~48px):
+//     [count label]  [search input flex-1]  [grid|list toggle]
+//
+//   Row 2 — Status tabs (~44px):
+//     [All] [Draft] [Active] [Expired] [Reserved] [Sold]
+//
+// The "Post a listing" action moves to a FAB (bottom-right).
+// The category-chip filter row (ListingFiltersBar) is intentionally omitted
+// from My Shop: filtering one's own inventory by category is rarely useful
+// and was consuming ~110px of precious above-the-fold space.
+// ListingFiltersBar.tsx is NOT modified — UserProfile.tsx keeps using it.
+
+interface CompactHeaderProps {
+  search: string;
+  onSearchChange: (v: string) => void;
+  activeTab: StatusFilter;
+  onTabChange: (t: StatusFilter) => void;
+  viewMode: ListingFeedViewMode;
+  onViewModeChange: (m: ListingFeedViewMode) => void;
+  totalCount?: number;
+  isRtl: boolean;
+  colors: ReturnType<typeof useColors>;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function CompactHeader({
+  search,
+  onSearchChange,
+  activeTab,
+  onTabChange,
+  viewMode,
+  onViewModeChange,
+  totalCount,
+  isRtl,
+  colors,
+  t,
+}: CompactHeaderProps) {
+  return (
+    <View>
+      {/* ── Row 1: count + search + view toggle ────────────────────────── */}
+      <View
+        style={{
+          backgroundColor: colors.card,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          flexDirection: isRtl ? "row-reverse" : "row",
+          alignItems: "center",
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          gap: 8,
+          minHeight: 52,
+        }}
+      >
+        {/* Listing count — secondary identity label, keeps the tab feeling
+            informative without needing a big title */}
+        {totalCount !== undefined && (
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "600",
+              color: colors.mutedForeground,
+              minWidth: 64,
+              textAlign: isRtl ? "right" : "left",
+            }}
+            numberOfLines={1}
+          >
+            {t("listing.shopCount", { count: totalCount })}
+          </Text>
+        )}
+
+        {/* Search input */}
+        <View
+          style={{
+            flex: 1,
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            backgroundColor: colors.muted,
+            borderRadius: 10,
+            paddingHorizontal: 10,
+            gap: 6,
+            height: 38,
+          }}
+        >
+          <Search size={15} color={colors.mutedForeground} />
+          <Input
+            value={search}
+            onChangeText={onSearchChange}
+            placeholder={t("listing.searchPlaceholder")}
+            returnKeyType="search"
+            style={{
+              flex: 1,
+              fontSize: 13,
+              borderWidth: 0,
+              backgroundColor: "transparent",
+              paddingHorizontal: 0,
+              paddingVertical: 0,
+              minHeight: 0,
+              textAlign: isRtl ? "right" : "left",
+            }}
+            placeholderTextColor={colors.mutedForeground}
+          />
+          {search.length > 0 && (
+            <Pressable
+              onPress={() => onSearchChange("")}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.clear")}
+            >
+              <X size={14} color={colors.mutedForeground} />
+            </Pressable>
+          )}
+        </View>
+
+        {/* Grid / list toggle — segmented control, compact */}
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            borderRadius: 8,
+            overflow: "hidden",
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <Pressable
+            onPress={() => onViewModeChange("grid")}
+            style={{
+              width: 34,
+              height: 38,
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: viewMode === "grid" ? colors.primary : colors.muted,
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t("browse.viewGrid")}
+            accessibilityState={{ selected: viewMode === "grid" }}
+          >
+            <LayoutGrid
+              size={16}
+              color={viewMode === "grid" ? colors.primaryForeground : colors.mutedForeground}
+            />
+          </Pressable>
+          <Pressable
+            onPress={() => onViewModeChange("list")}
+            style={{
+              width: 34,
+              height: 38,
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: viewMode === "list" ? colors.primary : colors.muted,
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t("browse.viewList")}
+            accessibilityState={{ selected: viewMode === "list" }}
+          >
+            <List
+              size={16}
+              color={viewMode === "list" ? colors.primaryForeground : colors.mutedForeground}
+            />
+          </Pressable>
+        </View>
+      </View>
+
+      {/* ── Row 2: status filter tabs ───────────────────────────────────── */}
+      <View
+        style={{
+          backgroundColor: colors.card,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+          height: 44,
+        }}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: 12,
+            gap: 6,
+            alignItems: "center",
+            flexDirection: isRtl ? "row-reverse" : "row",
+            height: 44,
+          }}
+        >
+          {STATUS_TABS.map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <Pressable
+                key={tab}
+                onPress={() => onTabChange(tab)}
+                android_ripple={{ color: colors.muted, borderless: true }}
+                style={{
+                  borderRadius: 20,
+                  paddingHorizontal: 13,
+                  paddingVertical: 6,
+                  borderWidth: 1.5,
+                  backgroundColor: isActive ? colors.primary : "transparent",
+                  borderColor: isActive ? colors.primary : colors.border,
+                  minHeight: 30,
+                  justifyContent: "center",
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: isActive ? colors.primaryForeground : colors.mutedForeground,
+                  }}
+                >
+                  {t(`listing.filter.${tab}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Spacer between header and listing feed */}
+      <View style={{ height: 10, backgroundColor: colors.background }} />
+    </View>
+  );
+}
+
+// ─── FAB ─────────────────────────────────────────────────────────────────────
+
+interface FABProps {
+  onPress: () => void;
+  colors: ReturnType<typeof useColors>;
+  label: string;
+}
+
+function PostListingFAB({ onPress, colors, label }: FABProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        position: "absolute",
+        bottom: 24,
+        // We use a fixed offset from right; RTL mirrors are handled via
+        // absolute position — FAB is always on the trailing corner.
+        right: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.primary,
+        justifyContent: "center",
+        alignItems: "center",
+        // Elevation / shadow
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 8,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <Plus size={24} color={colors.primaryForeground} strokeWidth={2.5} />
+    </Pressable>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function MyListingsScreen() {
   const { t } = useTranslation();
@@ -31,9 +298,7 @@ export default function MyListingsScreen() {
   const [refetchKey, setRefetchKey] = useState(0);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [categoryId, setCategoryId] = useState<number | null>(null);
-
-  const { data: categories } = useCategories();
+  const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
 
   // Debounce search input (400ms)
   useEffect(() => {
@@ -49,112 +314,19 @@ export default function MyListingsScreen() {
     }, [])
   );
 
-  // Header: screen title + "Post a listing" button + status filter tabs.
-  // Passed as ListHeaderComponent so it scrolls with the list on short lists
-  // but stays pinned via the outer ScreenContainer structure.
   const ListHeader = (
-    <View>
-      {/* Title row */}
-      <View
-        style={{
-          backgroundColor: colors.card,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-          paddingHorizontal: 16,
-          paddingTop: 16,
-          paddingBottom: 12,
-          flexDirection: isRtl ? "row-reverse" : "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Text className="text-2xl font-bold" style={{ color: colors.foreground }}>
-          {t("listing.myListings")}
-        </Text>
-        <Button
-          variant="default"
-          size="sm"
-          onPress={() => router.push("/(main)/listing/new" as never)}
-        >
-          <View
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              gap: 4,
-            }}
-          >
-            <Plus size={15} color={colors.primaryForeground} />
-            <Text className="text-sm font-semibold">
-              {t("listing.postListing")}
-            </Text>
-          </View>
-        </Button>
-      </View>
-
-      {/* Filter tabs — fixed height horizontal scroll */}
-      <View
-        style={{
-          backgroundColor: colors.card,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
-          height: 52,
-        }}
-      >
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: 12,
-            gap: 8,
-            alignItems: "center",
-            flexDirection: isRtl ? "row-reverse" : "row",
-            height: 52,
-          }}
-        >
-          {STATUS_TABS.map((tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <Pressable
-                key={tab}
-                onPress={() => setActiveTab(tab)}
-                android_ripple={{ color: colors.muted, borderless: true }}
-                style={{
-                  borderRadius: 20,
-                  paddingHorizontal: 16,
-                  paddingVertical: 10,
-                  borderWidth: 1.5,
-                  backgroundColor: isActive ? colors.primary : "transparent",
-                  borderColor: isActive ? colors.primary : colors.border,
-                  minHeight: 44,
-                  justifyContent: "center",
-                }}
-              >
-                <Text
-                  className="text-sm font-semibold"
-                  style={{
-                    color: isActive ? colors.primaryForeground : colors.mutedForeground,
-                  }}
-                >
-                  {t(`listing.filter.${tab}`)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Search + category chips + view toggle */}
-      <ListingFiltersBar
-        search={search}
-        onSearchChange={setSearch}
-        categories={categories}
-        categoryId={categoryId}
-        onCategoryChange={setCategoryId}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        placeholder={t("listing.searchPlaceholder")}
-      />
-    </View>
+    <CompactHeader
+      search={search}
+      onSearchChange={setSearch}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      totalCount={totalCount}
+      isRtl={isRtl}
+      colors={colors}
+      t={t}
+    />
   );
 
   const fetcher = useCallback(
@@ -164,8 +336,11 @@ export default function MyListingsScreen() {
         pageSize: query.perPage,
         ...(activeTab !== "all" ? { status: activeTab } : {}),
         search: debouncedSearch || undefined,
-        categoryId: categoryId ?? undefined,
       });
+      // Capture total count for the count label on first page
+      if (query.page === 1) {
+        setTotalCount(result.pagination.totalCount);
+      }
       return {
         items: result.items,
         totalCount: result.pagination.totalCount,
@@ -174,13 +349,13 @@ export default function MyListingsScreen() {
       };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeTab, debouncedSearch, categoryId]
+    [activeTab, debouncedSearch]
   );
 
   return (
     <ScreenContainer scrollable={false} padded={false}>
       <ListingFeed
-        id={`my-listings-${activeTab}-${debouncedSearch}-${categoryId}-${viewMode}`}
+        id={`my-listings-${activeTab}-${debouncedSearch}-${viewMode}`}
         refreshKey={refetchKey}
         fetcher={fetcher}
         viewMode={viewMode}
@@ -208,7 +383,14 @@ export default function MyListingsScreen() {
             ? { label: t("listing.postListing"), onPress: () => router.push("/(main)/listing/new" as never) }
             : undefined
         }
-        contentPaddingBottom={48}
+        contentPaddingBottom={88}
+      />
+
+      {/* Floating action button — "Post a listing" */}
+      <PostListingFAB
+        onPress={() => router.push("/(main)/listing/new" as never)}
+        colors={colors}
+        label={t("listing.postListing")}
       />
     </ScreenContainer>
   );

@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Delete a listing — confirm dialog appears, listing removed, toast shown
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 # Open a listing
 - tapOn: "Draft"

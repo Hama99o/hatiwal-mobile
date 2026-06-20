@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Dark mode persists: set dark → navigate all tabs → still dark after app restart
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - tapOn: "Appearance"
 - waitForAnimationToEnd
@@ -12,21 +12,21 @@ appId: com.hatiwal.app
 - assertVisible: "Dark"
 
 # Navigate all tabs
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn: "Saved"
 - waitForAnimationToEnd
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 
 # Restart and verify still dark
 - launchApp:
     clearState: false
 - waitForAnimationToEnd
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - tapOn: "Appearance"
 - waitForAnimationToEnd

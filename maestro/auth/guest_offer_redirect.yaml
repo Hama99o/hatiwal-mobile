@@ -9,7 +9,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn:
     index: 0
-    text: "Browse"
+    text: "Bazaar"
 - waitForAnimationToEnd
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd

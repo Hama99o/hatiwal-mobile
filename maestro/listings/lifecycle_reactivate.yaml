@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Lifecycle: reserved → active (deal fell through, reactivate)
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 # Find a reserved listing
 - tapOn: "Reserved"

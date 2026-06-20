@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Seller public profile: stats (listings count, joined date) visible to buyers
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
     index: 0

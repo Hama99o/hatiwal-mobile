@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Mode switcher — toggle between buyer and seller mode via the top banner
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 # Banner shows Buyer Mode
 - assertVisible: "Buyer Mode"
@@ -14,8 +14,8 @@ appId: com.hatiwal.app
 # Banner now shows Seller Mode
 - assertVisible: "Seller Mode"
 - assertVisible: "Switch to Buyer Mode"
-# Bottom tab now shows My Listings
-- assertVisible: "My Listings"
+# Bottom tab now shows My Shop
+- assertVisible: "My Shop"
 # Switch back to buyer
 - tapOn: "Switch to Buyer Mode"
 - waitForAnimationToEnd

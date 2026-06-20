@@ -6,7 +6,7 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 
 # Navigate to My Listings
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - assertVisible: "My Listings"
 

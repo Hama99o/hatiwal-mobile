@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Create listing with photos — picker opens, photos appear in preview
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
 - assertVisible: "Create Listing"

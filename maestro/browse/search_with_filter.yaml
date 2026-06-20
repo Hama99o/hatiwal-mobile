@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Search for a term then apply a condition filter on top — both active simultaneously
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 # Type a search term
 - tapOn: "Search listings..."

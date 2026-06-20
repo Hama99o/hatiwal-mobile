@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Edit listing: remove a photo — photo count decreases, saved successfully
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - tapOn: "Edit"
 - waitForAnimationToEnd

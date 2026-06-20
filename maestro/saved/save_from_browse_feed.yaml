@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Save listing from browse feed: heart icon → listing appears in Saved tab
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
 # Tap the heart/save icon on the first listing card

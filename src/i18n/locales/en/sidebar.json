@@ -1,9 +1,9 @@
 {
-  "browse": "Browse",
+  "browse": "Bazaar",
   "saved": "Saved",
-  "chat": "Messages",
-  "profile": "Profile",
-  "myListings": "My Listings",
+  "chat": "Chats",
+  "profile": "Me",
+  "myListings": "My Shop",
   "createListing": "New Listing",
   "sellerDashboard": "Seller Dashboard"
 }

@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # User's own profile page — verify stats, quick actions, listings section
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - assertVisible: "Profile"
 # Profile header shows name and avatar
@@ -13,7 +13,7 @@ appId: com.hatiwal.app
 # Quick actions
 - assertVisible: "Saved Items"
 - assertVisible: "Browse Listings"
-# Tap My Listings shortcut
+# Tap My Listings shortcut (this is a profile quick action link, not the tab)
 - tapOn: "My Listings"
 - waitForAnimationToEnd
 # Back to profile

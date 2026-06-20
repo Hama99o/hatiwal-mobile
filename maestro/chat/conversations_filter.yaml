@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Conversations list — filter by All / Unread / Read tabs
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Messages"
+- tapOn: "Chats"
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 # Default shows All

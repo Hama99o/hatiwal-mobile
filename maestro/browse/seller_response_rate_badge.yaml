@@ -1,0 +1,56 @@
+appId: com.hatiwal.app
+---
+# Seller response-rate badge — TASK-N805
+# Verifies the "Usually responds within …" trust signal appears on:
+#   1. The public seller profile page (SellerProfile screen)
+#   2. The seller card inside a listing detail page (ListingDetail screen)
+#
+# CI seed data must include a seller with >=5 conversations and at least one reply
+# so that both the response-time badge AND the response-rate percent are rendered.
+#
+# Happy path — both badges visible
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+
+# ── Listing Detail: seller card response-time row ──────────────────────────────
+# Open first listing
+- tapOn:
+    index: 0
+    testID: "listing-card"
+- waitForAnimationToEnd
+
+# Scroll down to the Seller section
+- scrollUntilVisible:
+    element:
+      text: "Usually responds"
+    direction: DOWN
+    timeout: 5000
+
+# The badge should contain one of the three response-time strings
+- assertVisible:
+    regex: "Usually responds within.*"
+
+# The response-rate percent is also rendered (e.g. "85% reply rate")
+- assertVisible:
+    text: "\\d+% reply rate"
+
+# ── Seller Profile: response-time and response-rate rows ──────────────────────
+# Tap the seller row to open their public profile
+- tapOn:
+    testID: "seller-profile-link"
+- waitForAnimationToEnd
+
+# The same response-time string should appear under the seller avatar
+- assertVisible:
+    regex: "Usually responds within.*"
+
+# The response-rate percent should also appear on the seller profile
+- assertVisible:
+    text: "\\d+% reply rate"
+
+# Back to listing detail
+- back
+- waitForAnimationToEnd
+- assertVisible: "Contact Seller"

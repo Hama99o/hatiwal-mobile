@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Propose a meetup in a conversation thread
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Messages"
+- tapOn: "Chats"
 - waitForAnimationToEnd
 # Open first conversation
 - tapOn:

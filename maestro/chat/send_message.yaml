@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Send a message in an existing conversation
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Messages"
+- tapOn: "Chats"
 - waitForAnimationToEnd
 # Open first conversation
 - tapOn:

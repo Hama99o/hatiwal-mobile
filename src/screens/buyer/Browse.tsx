@@ -58,7 +58,7 @@ export default function BrowseScreen() {
   const [priceMin, setPriceMin] = useState<string>("");
   const [priceMax, setPriceMax] = useState<string>("");
   const [condition, setCondition] = useState<ListingCondition | null>(null);
-  const [sort, setSort] = useState<ListingSort>("newest");
+  const [sort, setSort] = useState<ListingSort | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
@@ -74,10 +74,16 @@ export default function BrowseScreen() {
   );
 
   // ── Search debounce ───────────────────────────────────────────────────────
+  // Once a search term settles, record it in history so BrowseHeader's "recent
+  // searches" chips populate. The store ignores empty / <2-char terms, dedupes,
+  // and caps the list, so it is safe to call on every settle.
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      addToSearchHistory(search);
+    }, 400);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, addToSearchHistory]);
 
   // ── Categories ────────────────────────────────────────────────────────────
   const { data: categories } = useCategories();
@@ -168,7 +174,7 @@ export default function BrowseScreen() {
     setPriceMin("");
     setPriceMax("");
     setCondition(null);
-    setSort("newest");
+    setSort(null);
   }, []);
 
   // ── UniversalList fetcher key (triggers page reset on filter/mode change) ──
@@ -190,7 +196,7 @@ export default function BrowseScreen() {
         latitude: coordinates?.latitude,
         longitude: coordinates?.longitude,
         radius: coordinates ? distance : undefined,
-        sort,
+        sort: sort ?? undefined,
       });
 
       // Seed saved map from server data without overwriting optimistic state

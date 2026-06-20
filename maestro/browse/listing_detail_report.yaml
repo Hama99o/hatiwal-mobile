@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Report a listing from listing detail — more options menu → Report
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd

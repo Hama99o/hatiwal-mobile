@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Province picker: scroll through provinces, select one, verify it appears in form
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - tapOn: "Edit Profile"
 - waitForAnimationToEnd

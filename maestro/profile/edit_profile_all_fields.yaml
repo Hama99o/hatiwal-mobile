@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Edit profile: update first name, last name, bio, phone, province — all saved
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - tapOn: "Edit Profile"
 - waitForAnimationToEnd

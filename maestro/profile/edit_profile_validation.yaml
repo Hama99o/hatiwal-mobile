@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Edit profile validation — clear required first name, submit shows error
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - tapOn: "Edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Profile"

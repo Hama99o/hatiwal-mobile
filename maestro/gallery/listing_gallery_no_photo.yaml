@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Listing with no photo shows "No photo" placeholder on card and detail
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
 # Scroll until a card with "No photo" placeholder appears

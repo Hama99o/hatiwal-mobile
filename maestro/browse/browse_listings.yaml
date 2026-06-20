@@ -1,12 +1,12 @@
 appId: com.hatiwal.app
 ---
-# Browse feed loads listings, pagination works, tap opens detail
+# Bazaar feed loads listings, pagination works, tap opens detail
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 # Feed is visible with listings
 - waitForAnimationToEnd
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 # Scroll down to trigger pagination
 - scroll
 - scroll

@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Send 3 messages in sequence — all appear in chat thread in order
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
     index: 0

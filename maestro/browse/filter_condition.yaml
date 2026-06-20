@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Filter listings by condition chips
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 - tapOn: "Filters"
 - waitForAnimationToEnd
@@ -15,7 +15,7 @@ appId: com.hatiwal.app
 # Apply and check results
 - tapOn: "Apply filters to save search combinations"
 - waitForAnimationToEnd
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 # Reopen and clear
 - tapOn: "Filters"
 - waitForAnimationToEnd

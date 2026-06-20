@@ -13,7 +13,7 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 
 # ── Navigate to My Listings and open the first listing ──────────────────────
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - assertVisible: "My Listings"
 

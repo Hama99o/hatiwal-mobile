@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Edit listing: update title, description, price, condition, category — all persisted
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 # Open edit on first listing
 - tapOn: "Edit"

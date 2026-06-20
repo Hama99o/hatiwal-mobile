@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Switch to Dari — RTL layout, Dari strings visible
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     text: "LANGUAGE"

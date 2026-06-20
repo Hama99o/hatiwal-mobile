@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Respond to a meetup proposal — accept or decline
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Messages"
+- tapOn: "Chats"
 - waitForAnimationToEnd
 # Open a conversation that has a meetup proposal from the seller
 - tapOn:

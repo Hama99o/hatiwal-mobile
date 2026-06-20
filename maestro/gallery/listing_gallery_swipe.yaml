@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Gallery: open listing with multiple photos, swipe between images, verify dots
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
 # Open a listing that has multiple photos (seller@hatiwal.test has listings with photos)
@@ -29,7 +29,7 @@ appId: com.hatiwal.app
     duration: 500
 - waitForAnimationToEnd
 
-# Back to browse
+# Back to Bazaar
 - back
 - waitForAnimationToEnd
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"

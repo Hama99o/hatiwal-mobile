@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useLayoutEffect } from "react";
+import { useState, useMemo } from "react";
 import { View, Pressable, type LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
 import { MapPin, Plus, Minus } from "lucide-react-native";
@@ -16,8 +16,12 @@ const TILE = 256;
 const DEFAULT_ZOOM = 15;
 const MIN_ZOOM = 8;
 const MAX_ZOOM = 18;
-const GRID_RADIUS = 3;
+const GRID_RADIUS = 4;
 const GRID_SIZE = GRID_RADIUS * 2 + 1;
+// Re-anchor the tile grid once the committed pan offset gets within one tile of
+// the rendered grid's edge — keeps a healthy buffer so a single drag never
+// reaches blank space, while keeping re-renders (and any rebase work) rare.
+const REBASE_BUFFER = (GRID_RADIUS - 1) * TILE;
 
 function lngToWorldX(lng: number, worldPx: number) {
   return ((lng + 180) / 360) * worldPx;
@@ -60,22 +64,20 @@ export default function MapCanvas({
     lng: Number(center.longitude),
   });
 
-  // Shared values for live gesture feedback (UI thread only)
+  // Pan offset is split in two so a finger-release never triggers a re-render
+  // (which is what caused the "hold → jump → settle" glitch):
+  //   • panX/panY  — the LIVE delta of the in-progress drag (0 when idle).
+  //   • accX/accY  — the COMMITTED offset, accumulated across gestures. On
+  //                  release we simply fold the live delta into the committed
+  //                  offset on the UI thread — no setState, no tile re-render,
+  //                  so the map stays exactly where the finger left it.
+  // Tiles are only re-anchored (setMapCenter) lazily, once the committed offset
+  // approaches the rendered grid's edge — see handlePanEnd / REBASE_BUFFER.
   const panX = useSharedValue(0);
   const panY = useSharedValue(0);
+  const accX = useSharedValue(0);
+  const accY = useSharedValue(0);
   const liveScale = useSharedValue(1);
-
-  // After handlePanEnd updates mapCenter, reset panX/panY synchronously before
-  // the next paint. This avoids the "snap-back" glitch caused by resetting in the
-  // gesture worklet before React can re-render tiles at the new center.
-  const panResetPendingRef = useRef(false);
-  useLayoutEffect(() => {
-    if (panResetPendingRef.current) {
-      panResetPendingRef.current = false;
-      panX.value = 0;
-      panY.value = 0;
-    }
-  }, [mapCenter.lat, mapCenter.lng]);
 
   const vcLat = interactive ? mapCenter.lat : Number(center.latitude);
   const vcLng = interactive ? mapCenter.lng : Number(center.longitude);
@@ -122,27 +124,50 @@ export default function MapCanvas({
     return result;
   }, [centerTileX, centerTileY, tilesPerAxis, dark, zoom]);
 
-  // Animated style: pan + live pinch scale applied together
+  // Animated style: committed offset + live drag delta + live pinch scale.
   const tileGridStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: panX.value },
-      { translateY: panY.value },
+      { translateX: accX.value + panX.value },
+      { translateY: accY.value + panY.value },
       { scale: liveScale.value },
     ],
   }));
 
-  const handlePanEnd = (tx: number, ty: number) => {
-    panResetPendingRef.current = true;
-    const newWorldX = vcWorldX - tx;
-    const newWorldY = vcWorldY - ty;
+  // Called after a drag is committed. Most releases do nothing — the map keeps
+  // the committed offset and never re-renders. Only when the offset nears the
+  // grid edge do we move the tile anchor to the current viewport centre, and we
+  // back-solve the residual offset so `gridPos + offset` is identical before and
+  // after — i.e. the visible position does not move. Both the shared-value write
+  // and setMapCenter happen here on the JS thread, so they land together.
+  const handlePanEnd = () => {
+    if (!interactive) return;
+    const ax = accX.value;
+    const ay = accY.value;
+    if (Math.abs(ax) < REBASE_BUFFER && Math.abs(ay) < REBASE_BUFFER) return;
+
+    const newVcWorldX = vcWorldX - ax;
+    const newVcWorldY = vcWorldY - ay;
+    const newCenterTileX = Math.floor(newVcWorldX / TILE);
+    const newCenterTileY = Math.floor(newVcWorldY / TILE);
+    const newGridLeft = width / 2 - (newVcWorldX - (newCenterTileX - GRID_RADIUS) * TILE);
+    const newGridTop = height / 2 - (newVcWorldY - (newCenterTileY - GRID_RADIUS) * TILE);
+
+    accX.value = gridLeft + ax - newGridLeft;
+    accY.value = gridTop + ay - newGridTop;
     setMapCenter({
-      lat: worldYToLat(newWorldY, worldPx),
-      lng: worldXToLng(newWorldX, worldPx),
+      lat: worldYToLat(newVcWorldY, worldPx),
+      lng: worldXToLng(newVcWorldX, worldPx),
     });
   };
 
   const handleZoom = (newZoom: number) => {
-    setZoom(clampZoom(Math.round(newZoom)));
+    const clamped = clampZoom(Math.round(newZoom));
+    // The committed offset is in pixels at the current zoom; rescale it so the
+    // viewport centre stays put across the zoom change (world px scale by 2^Δ).
+    const ratio = Math.pow(2, clamped - zoom);
+    accX.value = accX.value * ratio;
+    accY.value = accY.value * ratio;
+    setZoom(clamped);
   };
 
   const handleTap = (x: number, y: number) => {
@@ -159,8 +184,6 @@ export default function MapCanvas({
     .minDistance(6)
     .averageTouches(true)
     .onBegin(() => {
-      // Clean slate at gesture start in case a previous useLayoutEffect reset
-      // hasn't fired yet (rapid successive pans).
       panX.value = 0;
       panY.value = 0;
     })
@@ -169,10 +192,15 @@ export default function MapCanvas({
       panY.value = e.translationY;
     })
     .onEnd((e) => {
-      // panX/panY intentionally NOT reset here. useLayoutEffect resets them after
-      // mapCenter state updates and tiles re-render at the new position, preventing
-      // the one-frame snap-back glitch.
-      runOnJS(handlePanEnd)(e.translationX, e.translationY);
+      // Fold the drag into the committed offset on the UI thread. Because
+      // (accX + panX) is unchanged at this instant — accX gains exactly what
+      // panX loses — there is zero visual movement on release, no setState, and
+      // no tile re-render. The map simply stays where the finger left it.
+      accX.value += e.translationX;
+      accY.value += e.translationY;
+      panX.value = 0;
+      panY.value = 0;
+      runOnJS(handlePanEnd)();
     });
 
   // Pinch: scale the tile grid live; snap to nearest integer zoom on end

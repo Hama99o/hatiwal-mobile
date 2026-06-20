@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Make a price offer from listing detail
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 # Open a listing detail
 - tapOn: "Contact Seller"

@@ -3,7 +3,7 @@
  *
  * The component uses @tanstack/react-query to fetch saved searches via
  * savedSearchesAPI.list(), renders one SavedSearchItem per entry, shows a
- * loading spinner while fetching, renders an empty-state message when the list
+ * loading spinner while fetching, renders nothing (null) when the list
  * is empty, and fires onSelectSearch with the correct SavedSearch payload when
  * an item chip is tapped.
  *
@@ -20,7 +20,6 @@
  */
 
 import React from "react";
-import { View } from "react-native";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -39,6 +38,12 @@ jest.mock("@/api/saved-searches", () => ({
     list: (...args: unknown[]) => mockList(...args),
     delete: (...args: unknown[]) => mockDelete(...args),
   },
+}));
+
+// SavedSearchItem now resolves the category via useCategories; stub it so the
+// chips fall back to the (English) categoryName snapshot without a real query.
+jest.mock("@/hooks/useCategories", () => ({
+  useCategories: () => ({ data: undefined }),
 }));
 
 // ── Import component AFTER mocks are declared ─────────────────────────────────
@@ -118,12 +123,15 @@ describe("SavedSearches — loading state", () => {
 // ── 2. Empty state ────────────────────────────────────────────────────────────
 
 describe("SavedSearches — empty state", () => {
-  it("renders the empty-state message when the list resolves to []", async () => {
+  it("renders nothing (null) when the list resolves to []", async () => {
     mockList.mockResolvedValue([]);
     renderComponent();
+    // The component hides itself entirely when there are no saved searches —
+    // no empty-state text, no chips. Wait for the query to settle, then confirm.
     await waitFor(() => {
-      expect(screen.getByText("browse.applyFilters")).toBeTruthy();
+      expect(mockList).toHaveBeenCalled();
     });
+    expect(screen.queryByText("browse.applyFilters")).toBeNull();
   });
 
   it("does NOT render any SavedSearchItem when the list is empty", async () => {
@@ -240,7 +248,7 @@ describe("SavedSearches — onSelectSearch callback", () => {
     const onSelectSearch = jest.fn();
     renderComponent(onSelectSearch);
     await waitFor(() => {
-      expect(screen.getByText("browse.applyFilters")).toBeTruthy();
+      expect(mockList).toHaveBeenCalled();
     });
     expect(onSelectSearch).not.toHaveBeenCalled();
   });
@@ -248,13 +256,10 @@ describe("SavedSearches — onSelectSearch callback", () => {
 
 // ── 5. Optimistic delete ──────────────────────────────────────────────────────
 //
-// Strategy: Pressable renders as a host View in the React Native test renderer,
-// so UNSAFE_getAllByType(View) is used to locate interactive elements.
-// When SavedSearches renders one chip the View tree (in order) is:
-//   View[0] — outer wrapper View from SavedSearches
-//   View[1] — ScrollView's content container
-//   View[2] — outer Pressable from SavedSearchItem (chip row / onSelectSearch)
-//   View[3] — inner Pressable from SavedSearchItem (X delete button / onDelete)
+// The delete (X) button is located by its accessibility label ("common.delete",
+// which the i18n test stub returns verbatim). This is stable across render-tree
+// changes — unlike indexing into UNSAFE_getAllByType(View), which was order-
+// dependent and flaked when the suite ran after other specs.
 
 describe("SavedSearches — optimistic delete", () => {
   it("calls savedSearchesAPI.delete with the correct id when X is tapped", async () => {
@@ -269,11 +274,7 @@ describe("SavedSearches — optimistic delete", () => {
       expect(screen.getByText("Kunduz")).toBeTruthy();
     });
 
-    // View[3] is the inner delete Pressable (the X button) for a single-chip list.
-    // UNSAFE_getAllByType(View) finds all host View nodes in the tree, which includes
-    // Pressable instances because Pressable renders as a View in the test renderer.
-    const views = screen.UNSAFE_getAllByType(View);
-    fireEvent.press(views[3]);
+    fireEvent.press(screen.getByLabelText("common.delete"));
 
     await waitFor(() => {
       expect(mockDelete).toHaveBeenCalledTimes(1);
@@ -284,9 +285,11 @@ describe("SavedSearches — optimistic delete", () => {
   it("optimistically removes the chip before the server responds", async () => {
     const search = makeSearch({ id: 99, location: "Kunduz" });
     mockList.mockResolvedValue([search]);
-    // Use a never-settling promise so the optimistic removal is visible before
-    // onSettled re-invalidates the query.
-    mockDelete.mockReturnValue(new Promise(() => {}));
+    // A controllable deferred: stays pending while we observe the optimistic
+    // removal, then is resolved before the test ends so no promise leaks into
+    // the next suite (a never-resolving promise caused cross-suite flakiness).
+    let resolveDelete: () => void = () => {};
+    mockDelete.mockReturnValue(new Promise<void>((res) => { resolveDelete = res; }));
 
     renderComponent();
 
@@ -294,14 +297,23 @@ describe("SavedSearches — optimistic delete", () => {
       expect(screen.getByText("Kunduz")).toBeTruthy();
     });
 
-    const views = screen.UNSAFE_getAllByType(View);
-    fireEvent.press(views[3]);
+    fireEvent.press(screen.getByLabelText("common.delete"));
 
-    // The chip should disappear immediately (optimistic update) even though
-    // the delete request has not yet resolved.
-    await waitFor(() => {
-      expect(screen.queryByText("Kunduz")).toBeNull();
-    });
+    try {
+      // The chip should disappear (optimistic update) even though the delete
+      // request has not resolved. Generous timeout: under full-suite parallel
+      // load the optimistic re-render can exceed waitFor's 1000ms default.
+      await waitFor(
+        () => {
+          expect(screen.queryByText("Kunduz")).toBeNull();
+        },
+        { timeout: 4000 }
+      );
+    } finally {
+      // Always settle the mutation so nothing stays pending past this test
+      // (a leaked promise previously caused cross-suite flakiness).
+      resolveDelete();
+    }
   });
 
   it("rolls back the chip when savedSearchesAPI.delete rejects", async () => {
@@ -316,8 +328,7 @@ describe("SavedSearches — optimistic delete", () => {
       expect(screen.getByText("Kunduz")).toBeTruthy();
     });
 
-    const views = screen.UNSAFE_getAllByType(View);
-    fireEvent.press(views[3]);
+    fireEvent.press(screen.getByLabelText("common.delete"));
 
     // After the rejection, onError restores the previous cache snapshot,
     // so the chip should reappear.
@@ -334,7 +345,7 @@ describe("SavedSearches — smoke tests", () => {
     mockList.mockResolvedValue([]);
     expect(() => renderComponent()).not.toThrow();
     await waitFor(() => {
-      expect(screen.getByText("browse.applyFilters")).toBeTruthy();
+      expect(mockList).toHaveBeenCalled();
     });
   });
 
@@ -350,7 +361,7 @@ describe("SavedSearches — smoke tests", () => {
     mockList.mockResolvedValue([]);
     renderComponent();
     await waitFor(() => {
-      expect(screen.getByText("browse.applyFilters")).toBeTruthy();
+      expect(mockList).toHaveBeenCalled();
     });
     expect(mockList).toHaveBeenCalledTimes(1);
   });

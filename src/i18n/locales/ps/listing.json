@@ -86,6 +86,7 @@
     "description": "د خرڅلاو لپاره خپل لومړی اعلان خپور کړئ."
   },
   "postListing": "اعلان خپرول",
+  "shopCount_other": "{{count}} اعلانونه",
   "noPhoto": "انځور نشته",
   "seen": "لیدل شوی",
   "priceDrop": {
@@ -184,5 +185,6 @@
     "discardMessage": "ستاسو ناخوندي شوي بدلونونه به له لاسه لاړ شي.",
     "discardConfirm": "لغوه کول",
     "locationRequired": "موقعیت اړین دی — پیرودونکي د سیمې له مخې فلټر کوي"
-  }
+  },
+  "shopCount_one": "{{count}} اعلان"
 }

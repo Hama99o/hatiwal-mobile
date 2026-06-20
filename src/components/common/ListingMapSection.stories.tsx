@@ -1,9 +1,11 @@
 /**
  * ListingMapSection stories
  *
- * The component shows a read-only map snippet for a listing's coordinates,
- * an optional address / location label beneath the map, and a "Get Directions"
- * button that opens the device's maps app.
+ * The component shows a static map preview for a listing's coordinates that
+ * opens a fullscreen interactive Modal when tapped, an optional address /
+ * location label beneath the preview, and a "Get Directions" button that opens
+ * the device's maps app. The "My Location" button lives inside the fullscreen
+ * modal (shown unless location permission is denied), not in the preview.
  *
  * Stories:
  *   WithCoordinates        — full coords + address label
@@ -15,14 +17,10 @@
  *   DarkSurface            — dark background to verify useColors() token correctness
  *
  * Map rendering notes:
- *   On Storybook web the MapCanvas loads Leaflet from a CDN; it shows a loading
- *   skeleton until the CDN response arrives. This is expected behaviour — the
- *   stories are still useful for verifying labels, the directions button, and
- *   the address row. On Storybook native the tile-based renderer is used directly.
- *
- *   expo-location is NOT called on mount when the permission check resolves to
- *   "undetermined" (the most common first-launch state) — the component simply
- *   leaves the "Show My Location" button visible without making any async call.
+ *   The preview MapCanvas renders tile-based map imagery (CartoCDN) and is
+ *   static — gestures are disabled until the user taps to open the fullscreen
+ *   modal. The stories below verify the preview, the address row, and the
+ *   directions button; tap the preview at runtime to exercise the modal.
  */
 
 import React from "react";

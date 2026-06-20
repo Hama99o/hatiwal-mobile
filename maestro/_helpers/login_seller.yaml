@@ -11,10 +11,10 @@ appId: com.hatiwal.app
 - tapOn: "Password"
 - inputText: ${PASSWORD:-"Password123!"}
 - tapOn: "Sign In"
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 # Switch to seller mode via Profile tab
-- tapOn: "Profile"
+- tapOn: "Me"
 - assertVisible: "Switch to Seller Mode"
 - tapOn: "Switch to Seller Mode"
 - assertVisible: "Switch to Buyer Mode"
-- tapOn: "Browse"
+- tapOn: "Bazaar"

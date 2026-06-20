@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Full meetup cycle: buyer proposes → seller accepts → confirmed badge in both threads
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
     index: 0

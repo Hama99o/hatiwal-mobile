@@ -5,7 +5,7 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 
 # ── 1. Start in grid mode (default) ─────────────────────────────────────────
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
 # Grid mode button should be visible (accessibility label "Grid view")
@@ -21,7 +21,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # After switching to list mode, listings should still be visible
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 
 # ── 3. Switch back to grid mode ───────────────────────────────────────────────
 - tapOn:
@@ -31,7 +31,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Grid layout should be restored
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 
 # ── 4. Search still works in list mode ───────────────────────────────────────
 - tapOn:
@@ -48,7 +48,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Results should appear in list mode
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 
 # Clear search
 - tapOn:
@@ -64,4 +64,4 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Empty state should show — not a crash
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"

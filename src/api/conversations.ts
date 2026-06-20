@@ -40,6 +40,7 @@ export interface Conversation {
   buyer?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
   seller?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
   otherParticipant?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
+  blockedWithParticipant?: boolean;
   lastMessageBody?: string | null;
   lastMessageKind?: Message["kind"] | null;
   unreadCount?: number;

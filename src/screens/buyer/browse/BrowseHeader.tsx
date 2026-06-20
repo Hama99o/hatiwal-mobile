@@ -59,8 +59,8 @@ interface BrowseHeaderProps {
   categoryId: number | null;
   onCategoryChange: (id: number | null) => void;
   onSelectSavedSearch: (search: SavedSearch) => void;
-  sort: ListingSort;
-  onSortChange: (val: ListingSort) => void;
+  sort: ListingSort | null;
+  onSortChange: (val: ListingSort | null) => void;
   viewMode: BrowseViewMode;
   onViewModeChange: (mode: BrowseViewMode) => void;
 }
@@ -521,7 +521,9 @@ export function BrowseHeader({
                   return (
                     <Pressable
                       key={opt.key}
-                      onPress={() => onSortChange(opt.key)}
+                      // Toggle: tapping the active sort clears it (back to the
+                      // default newest order), mirroring the condition chips.
+                      onPress={() => onSortChange(isActive ? null : opt.key)}
                       style={{
                         flex: 1,
                         paddingVertical: 9,

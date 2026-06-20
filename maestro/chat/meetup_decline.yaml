@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Decline a meetup proposal
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Messages"
+- tapOn: "Chats"
 - waitForAnimationToEnd
 - tapOn:
     index: 0

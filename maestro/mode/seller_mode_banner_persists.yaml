@@ -13,7 +13,7 @@ appId: com.hatiwal.app
 - assertVisible: "Seller Mode"
 
 # Navigate to other tabs
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - assertVisible: "Seller Mode"
 - tapOn:

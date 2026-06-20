@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Save and unsave a listing from the detail page
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 # Open a listing detail
 - tapOn: "Contact Seller"
@@ -17,8 +17,8 @@ appId: com.hatiwal.app
 - tapOn: "Saved"
 - waitForAnimationToEnd
 - assertVisible: "Saved"
-# Go back to Browse and re-open the listing
-- tapOn: "Browse"
+# Go back to Bazaar and re-open the listing
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd

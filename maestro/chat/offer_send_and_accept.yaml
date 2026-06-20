@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Offer flow: buyer sends offer → seller accepts → accepted badge shown
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
     index: 0

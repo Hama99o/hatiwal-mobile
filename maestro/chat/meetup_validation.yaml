@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Meetup proposal validation — place and time are required
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Messages"
+- tapOn: "Chats"
 - waitForAnimationToEnd
 - tapOn:
     index: 0

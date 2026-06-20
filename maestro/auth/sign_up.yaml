@@ -1,6 +1,6 @@
 appId: com.hatiwal.app
 ---
-# Happy path: new user registers and lands on Browse
+# Happy path: new user registers and lands on Bazaar
 
 - launchApp:
     clearState: true
@@ -23,5 +23,5 @@ appId: com.hatiwal.app
 - tapOn: "Confirm Password"
 - inputText: "Password123!"
 - tapOn: "Create Account"
-# Lands on Browse after successful registration
-- assertVisible: "Browse"
+# Lands on Bazaar after successful registration
+- assertVisible: "Bazaar"

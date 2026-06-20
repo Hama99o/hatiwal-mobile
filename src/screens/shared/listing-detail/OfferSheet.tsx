@@ -9,6 +9,8 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -53,17 +55,24 @@ export function OfferSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={onClose} />
-      <View
-        style={[
-          styles.sheet,
-          {
-            backgroundColor: colors.card,
-            borderTopColor: colors.border,
-            paddingBottom: Math.max(insets.bottom, 24),
-          },
-        ]}
+      {/* KeyboardAvoidingView lifts the bottom sheet above the keyboard so the
+          amount input and Send button stay visible (the input auto-focuses, so
+          the keyboard is up immediately). Matches the chat screen's pattern. */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
+        <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={onClose} />
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: colors.card,
+              borderTopColor: colors.border,
+              paddingBottom: Math.max(insets.bottom, 24),
+            },
+          ]}
+        >
         {/* Header */}
         <View
           style={{
@@ -137,7 +146,8 @@ export function OfferSheet({
         >
           <Text>{t("listing.detail.sendOffer")}</Text>
         </Button>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

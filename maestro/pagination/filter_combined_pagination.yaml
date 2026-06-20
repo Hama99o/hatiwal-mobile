@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Category filter applied → scroll to paginate → filter still active on page 2
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 # Apply category filter
 - tapOn: "Filter"

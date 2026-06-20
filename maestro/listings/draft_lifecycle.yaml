@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Full draft lifecycle: draft → publish → reserve → sold → back to active (deal fell through)
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
@@ -32,7 +32,7 @@ appId: com.hatiwal.app
 - assertVisible: "Listing posted"
 
 # 3) Mark as Reserved
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - tapOn: "Lifecycle Test Item"
 - waitForAnimationToEnd

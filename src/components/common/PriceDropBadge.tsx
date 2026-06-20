@@ -79,7 +79,9 @@ export function PriceDropBadge({ percent, variant = "detail" }: PriceDropBadgePr
         paddingVertical: 4,
         borderWidth: 1,
         borderColor: colors.success,
-        alignSelf: "flex-start",
+        // Hug the start edge so the badge stays visually attached to the price
+        // it annotates — which is the right edge in RTL (ps/fa), left in LTR.
+        alignSelf: isRtl ? "flex-end" : "flex-start",
       }}
     >
       <TrendingDown size={12} color={colors.success} strokeWidth={2.5} />

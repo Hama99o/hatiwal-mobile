@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Conversations list: scroll to bottom loads next page, pull-to-refresh works
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Messages"
+- tapOn: "Chats"
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 

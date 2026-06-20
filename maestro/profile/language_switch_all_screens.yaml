@@ -1,9 +1,9 @@
 appId: com.hatiwal.app
 ---
-# Language switch: EN → PS (Pashto) — key strings appear in Pashto on Browse + Profile
+# Language switch: EN → PS (Pashto) — key strings appear in Pashto on Bazaar + Profile
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 
 # Open language settings
@@ -17,13 +17,13 @@ appId: com.hatiwal.app
 - tapOn: "پښتو"
 - waitForAnimationToEnd
 
-# Profile tab label in Pashto
+# Profile SCREEN HEADER in Pashto (profile.title key — unchanged)
 - assertVisible: "پروفایل"
 
-# Browse tab in Pashto
-- tapOn: "پروفایل"
+# Navigate to Bazaar tab using new Pashto tab label "بازار"
+- tapOn: "زه"
 - waitForAnimationToEnd
-# Browse tab label Pashto
+# Bazaar tab label in Pashto is "بازار" — use testID to navigate
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
@@ -36,10 +36,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "دری"
 - waitForAnimationToEnd
+# Profile SCREEN HEADER in Dari (profile.title key — unchanged)
 - assertVisible: "پروفایل"
 
-# Switch back to English
-- tapOn: "پروفایل"
+# Navigate profile tab using new Dari tab label "من"
+- tapOn: "من"
 - waitForAnimationToEnd
 - tapOn: "زبان"
 - waitForAnimationToEnd

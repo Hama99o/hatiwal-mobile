@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Lifecycle: active → reserved
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 # Find an active listing
 - tapOn: "Active"

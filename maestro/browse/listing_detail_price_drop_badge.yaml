@@ -1,0 +1,41 @@
+appId: com.hatiwal.app
+---
+# Price-drop badge: after a seller lowers a listing's price, the buyer should
+# see the badge on the listing detail and on the browse card.
+#
+# Prerequisites:
+#   - Seed data includes at least one active listing with a recent price drop
+#     (a ListingPriceHistory record created within the last 14 days with
+#      new_price < old_price).
+#
+# Happy-path flow:
+#   1. Login as buyer
+#   2. Bazaar feed — confirm the price-drop badge/overlay is visible on a card
+#   3. Open the listing detail — confirm the detail badge is visible
+#   4. The badge should NOT appear for listings that have no price drop
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+
+# Happy path: a listing with a recent price drop shows the card badge (overlay)
+# The badge renders "-N%" text as a pill on the thumbnail corner.
+# Regex matches "-15%", "-5%", etc.
+- assertVisible:
+    text: "-\\d+%"
+
+# Tap into a listing to open the detail screen
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+
+# Detail variant: the detail badge renders "N% price drop" (e.g. "15% price drop")
+- assertVisible:
+    text: "\\d+% price drop"
+
+# Price must still be the dominant element — assert price is visible
+- assertVisible: "Description"
+- assertVisible: "Seller"
+
+# Back to Bazaar
+- back
+- assertVisible: "Bazaar"

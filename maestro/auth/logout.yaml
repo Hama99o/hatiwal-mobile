@@ -1,17 +1,17 @@
 appId: com.hatiwal.app
 ---
-# Happy path: user logs out, lands on Browse (guest mode), tokens cleared
+# Happy path: user logs out, lands on Bazaar (guest mode), tokens cleared
 
 - runFlow: ../_helpers/login.yaml
 # Go to Profile
-- tapOn: "Profile"
+- tapOn: "Me"
 - assertVisible: "Sign Out"
 - tapOn: "Sign Out"
 # Confirm dialog appears
 - assertVisible: "Are you sure you want to sign out?"
 - tapOn: "Sign Out"
-# Lands on Browse (guests can browse without auth)
-- assertVisible: "Browse"
+# Lands on Bazaar (guests can browse without auth)
+- assertVisible: "Bazaar"
 # Verify logged out — Profile tab no longer shows user name
-- tapOn: "Profile"
+- tapOn: "Me"
 - assertVisible: "Sign In"

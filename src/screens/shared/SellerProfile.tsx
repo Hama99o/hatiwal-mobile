@@ -267,8 +267,10 @@ export function SellerProfileScreen() {
                 nameSize={20}
                 layout="stacked"
               />
-              {/* Response time badge — only when threshold is met */}
-              {profile.responseTimeLabel != null && (
+              {/* Response badge — reply rate and/or typical response time.
+                  Shown whenever the seller has met the threshold (rate != null),
+                  even if the time label is nil (e.g. a 0% never-replied seller). */}
+              {(profile.responseRatePercent != null || profile.responseTimeLabel != null) && (
                 <View
                   style={{
                     flexDirection: isRtl ? "row-reverse" : "row",
@@ -279,7 +281,16 @@ export function SellerProfileScreen() {
                 >
                   <Clock size={12} color={colors.mutedForeground} />
                   <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                    {t(`profile.sellerProfile.responseTime.${profile.responseTimeLabel}`)}
+                    {[
+                      profile.responseRatePercent != null
+                        ? t("profile.sellerProfile.responseRate", { percent: profile.responseRatePercent })
+                        : null,
+                      profile.responseTimeLabel != null
+                        ? t(`profile.sellerProfile.responseTime.${profile.responseTimeLabel}`)
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </Text>
                 </View>
               )}

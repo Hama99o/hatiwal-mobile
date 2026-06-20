@@ -9,7 +9,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Buyer Mode"
 # Browse as buyer
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 # Search for own listing (seeded seller listing)
 - tapOn: "Search listings..."

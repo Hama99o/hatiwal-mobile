@@ -86,6 +86,7 @@
     "description": "اولین آگهی خود را برای شروع فروش ثبت کنید."
   },
   "postListing": "ثبت آگهی",
+  "shopCount_other": "{{count}} آگهی",
   "noPhoto": "عکس ندارد",
   "seen": "دیده‌شده",
   "priceDrop": {
@@ -184,5 +185,6 @@
     "discardMessage": "تغییرات ذخیره‌نشده شما از دست خواهد رفت.",
     "discardConfirm": "انصراف",
     "locationRequired": "موقعیت الزامی است — خریداران بر اساس منطقه فیلتر می‌کنند"
-  }
+  },
+  "shopCount_one": "{{count}} آگهی"
 }

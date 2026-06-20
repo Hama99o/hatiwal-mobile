@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Filter by category — bottom sheet opens, selection filters feed, clear resets
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 # Open filter panel
 - tapOn: "Filters"
 - waitForAnimationToEnd

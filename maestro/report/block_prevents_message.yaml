@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Blocked user: "Message Seller" button disabled or shows blocked message
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 
 # Open a listing
@@ -29,7 +29,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Message button either disabled or shows "Can't message blocked user"
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - tapOn:
     index: 0
 - waitForAnimationToEnd

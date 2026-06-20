@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Create listing and publish directly (not save as draft)
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd

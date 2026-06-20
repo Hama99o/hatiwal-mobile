@@ -86,6 +86,7 @@
     "description": "Post your first listing to start selling."
   },
   "postListing": "Post a listing",
+  "shopCount_other": "{{count}} listings",
   "noPhoto": "No photo",
   "seen": "Seen",
   "priceDrop": {
@@ -184,5 +185,6 @@
     "discardMessage": "Your unsaved changes will be lost.",
     "discardConfirm": "Discard",
     "locationRequired": "Location is required — buyers filter listings by area"
-  }
+  },
+  "shopCount_one": "{{count}} listing"
 }

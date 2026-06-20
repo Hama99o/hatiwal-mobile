@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Create a listing, save as draft — appears in My Listings with draft badge
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 # Tap create button
 - tapOn: "Post a listing"

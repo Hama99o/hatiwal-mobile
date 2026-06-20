@@ -18,8 +18,21 @@
 import React from "react";
 import { View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
+
+// Mutable categories data so we can verify the saved search localizes via its
+// stored categoryId relation when the category is loaded, and falls back to the
+// English categoryName snapshot otherwise. Default: not loaded (fallback path).
+let mockCategoriesData: unknown = undefined;
+jest.mock("@/hooks/useCategories", () => ({
+  useCategories: () => ({ data: mockCategoriesData }),
+}));
+
 import { SavedSearchItem } from "../SavedSearchItem";
 import type { SavedSearch } from "@/api/saved-searches";
+
+beforeEach(() => {
+  mockCategoriesData = undefined;
+});
 
 // ── Fixture factory ───────────────────────────────────────────────────────────
 
@@ -125,9 +138,32 @@ describe("SavedSearchItem — text location summary", () => {
 // ── 4. Category in summary ────────────────────────────────────────────────────
 
 describe("SavedSearchItem — category in summary", () => {
-  it("includes categoryName in the summary", () => {
+  it("includes categoryName (English snapshot) when categories aren't loaded", () => {
     renderItem(makeSearch({ categoryName: "Electronics" }));
     expect(screen.getByText("Electronics")).toBeTruthy();
+  });
+
+  it("localizes the category via the stored categoryId relation when loaded", () => {
+    // Live category (id 5) with a fresh name; the saved search carries a stale
+    // English snapshot. The chip must use the resolved category (the relation),
+    // which useCategoryName renders in the active language (en → nameEn here).
+    mockCategoriesData = [
+      { id: 5, slug: "electronics", icon: "📱", position: 1, nameEn: "Electronics", namePs: "برقي", nameFa: "برقی", subcategories: [] },
+    ];
+    renderItem(makeSearch({ categoryId: 5, categoryName: "STALE SNAPSHOT" }));
+    expect(screen.getByText("Electronics")).toBeTruthy();
+    expect(screen.queryByText("STALE SNAPSHOT")).toBeNull();
+  });
+
+  it("resolves a subcategory id nested under a top-level category", () => {
+    mockCategoriesData = [
+      {
+        id: 1, slug: "electronics", icon: "📱", position: 1, nameEn: "Electronics", namePs: "", nameFa: "",
+        subcategories: [{ id: 9, slug: "phones", icon: "📱", position: 1, nameEn: "Phones", namePs: "", nameFa: "" }],
+      },
+    ];
+    renderItem(makeSearch({ categoryId: 9, categoryName: "ignored" }));
+    expect(screen.getByText("Phones")).toBeTruthy();
   });
 
   it("combines location and category with bullet separator", () => {

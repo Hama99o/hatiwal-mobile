@@ -1,2 +1,10 @@
 import ChatScreen from "@/screens/chat/Conversations";
-export default ChatScreen;
+import { GuestGuard } from "@/components/common/GuestGuard";
+
+export default function ChatTab() {
+  return (
+    <GuestGuard returnTo="/(main)/(tabs)/chat">
+      <ChatScreen />
+    </GuestGuard>
+  );
+}

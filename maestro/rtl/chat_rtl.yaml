@@ -3,11 +3,11 @@ appId: com.hatiwal.app
 # Chat in RTL (Pashto) — messages, input, send button in correct RTL order
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - tapOn: "Pashto (پښتو)"
 - waitForAnimationToEnd
-# Open Messages tab
+# Open Chats tab (Pashto label is "چټونه", use index as fallback)
 - tapOn:
     index: 2
 - waitForAnimationToEnd

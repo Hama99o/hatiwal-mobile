@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Active → Draft (unpublish): seller takes active listing back to draft
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 # Go to Active tab
 - tapOn: "Active"

@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Listing detail — views count is visible and increments on visit
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
     index: 0

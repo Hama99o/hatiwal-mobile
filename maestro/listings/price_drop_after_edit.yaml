@@ -1,0 +1,52 @@
+appId: com.hatiwal.app
+---
+# Price-drop badge after seller lowers price via edit flow:
+#
+# 1. Login as seller
+# 2. Open an active listing via My Shop (My Listings)
+# 3. Edit the listing — reduce the price
+# 4. Save (primary save for an active/published listing — NOT "Save Draft")
+# 5. Open the seller listing card — badge should now be visible
+#
+# Note: editing a published (active) listing shows only a "Save" button, not
+# "Save Draft" or "Publish". Tapping "Save Draft" on a published listing would
+# unpublish it (move to draft), removing it from the Active tab.
+#
+# Prerequisites: seller has at least one active listing in seed data.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+# Tap the Active status tab to see active listings
+- tapOn: "Active"
+- waitForAnimationToEnd
+# Tap the first active listing card to open detail
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+
+# Lower the price
+- tapOn: "Enter price"
+- clearText
+- inputText: "4000"
+
+# Save using the primary save button (for an active listing this is "Save",
+# NOT "Save Draft" — "Save Draft" would move the listing back to draft status)
+- tapOn: "Save"
+- waitForAnimationToEnd
+
+# Confirm the listing stayed Active — not moved to draft
+- assertVisible: "Active"
+
+# Navigate back to My Listings; the card should now show the price-drop badge
+- back
+- waitForAnimationToEnd
+
+# The card overlay badge "-N%" should appear (e.g. "-15%")
+# after the focus-refetch fires with the updated price_drop_percent.
+- assertVisible:
+    text: "-\\d+%"

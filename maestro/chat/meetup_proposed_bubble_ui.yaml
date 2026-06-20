@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Meetup proposal bubble shows location, date/time, and accept/decline buttons
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Browse"
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
     index: 0

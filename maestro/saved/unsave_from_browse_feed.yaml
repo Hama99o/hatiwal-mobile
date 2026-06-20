@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Unsave listing from browse feed: tap saved (filled) heart → listing removed from Saved
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
 # Save the first listing

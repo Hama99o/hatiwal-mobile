@@ -1,11 +1,11 @@
 appId: com.hatiwal.app
 ---
 # Report a user from their public profile page.
-# Flow: Browse → open a listing → tap the seller card → seller profile →
+# Flow: Bazaar → open a listing → tap the seller card → seller profile →
 #       open the 3-dot "Actions" menu → Report User → submit a report.
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Browse"
+- assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
 # Open the first listing in the feed

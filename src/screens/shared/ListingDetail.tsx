@@ -521,8 +521,10 @@ export default function ListingDetailScreen() {
                 testID="seller-profile-link"
                 onPress={() => router.push(`/(main)/seller/${listing.seller.id}` as never)}
               />
-              {/* Response time badge — only shown when threshold is met */}
-              {listing.seller.responseTimeLabel != null && (
+              {/* Response badge — reply rate and/or typical response time. Shown
+                  when the seller has met the threshold (rate != null), even if
+                  the time label is nil (e.g. a 0% never-replied seller). */}
+              {(listing.seller.responseRatePercent != null || listing.seller.responseTimeLabel != null) && (
                 <View
                   style={{
                     flexDirection: isRtl ? "row-reverse" : "row",
@@ -533,7 +535,16 @@ export default function ListingDetailScreen() {
                 >
                   <Clock size={12} color={colors.mutedForeground} />
                   <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                    {t(`profile.sellerProfile.responseTime.${listing.seller.responseTimeLabel}`)}
+                    {[
+                      listing.seller.responseRatePercent != null
+                        ? t("profile.sellerProfile.responseRate", { percent: listing.seller.responseRatePercent })
+                        : null,
+                      listing.seller.responseTimeLabel != null
+                        ? t(`profile.sellerProfile.responseTime.${listing.seller.responseTimeLabel}`)
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </Text>
                 </View>
               )}

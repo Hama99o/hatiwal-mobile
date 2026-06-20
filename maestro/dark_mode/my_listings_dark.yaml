@@ -1,20 +1,20 @@
 appId: com.hatiwal.app
 ---
-# My Listings in dark mode — all listing cards visible
+# My Shop in dark mode — all listing cards visible
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - tapOn: "Dark"
 - waitForAnimationToEnd
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 - assertVisible: "My Listings"
 # Listing cards render without blank/white backgrounds
 - scroll
 - waitForAnimationToEnd
 # Restore theme
-- tapOn: "Profile"
+- tapOn: "Me"
 - waitForAnimationToEnd
 - tapOn: "Light"
 - waitForAnimationToEnd

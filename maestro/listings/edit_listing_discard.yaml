@@ -3,7 +3,7 @@ appId: com.hatiwal.app
 # Edit listing — discard unsaved changes via confirm dialog
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 # Open edit for the first active listing
 - tapOn: "Edit"
