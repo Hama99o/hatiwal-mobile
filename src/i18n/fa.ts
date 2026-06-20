@@ -7,6 +7,7 @@ import fa_profile from "./locales/fa/profile.json";
 import fa_sidebar from "./locales/fa/sidebar.json";
 import fa_report  from "./locales/fa/report.json";
 import fa_saved   from "./locales/fa/saved.json";
+import fa_warning from "./locales/fa/warning.json";
 
 export const faTranslations = {
   common:  fa_common,
@@ -18,4 +19,5 @@ export const faTranslations = {
   sidebar: fa_sidebar,
   report:  fa_report,
   saved:   fa_saved,
+  warning: fa_warning,
 };

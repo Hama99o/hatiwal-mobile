@@ -7,6 +7,7 @@ import ps_profile from "./locales/ps/profile.json";
 import ps_sidebar from "./locales/ps/sidebar.json";
 import ps_report  from "./locales/ps/report.json";
 import ps_saved   from "./locales/ps/saved.json";
+import ps_warning from "./locales/ps/warning.json";
 
 export const psTranslations = {
   common:  ps_common,
@@ -18,4 +19,5 @@ export const psTranslations = {
   sidebar: ps_sidebar,
   report:  ps_report,
   saved:   ps_saved,
+  warning: ps_warning,
 };

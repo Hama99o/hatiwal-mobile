@@ -3,12 +3,17 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { BackButton } from "@/components/common/BackButton";
 import { useReduceMotion } from "@/lib/animation/useReduceMotion";
+import { useNotificationObserver } from "@/lib/notifications";
 
 export default function MainLayout() {
   const { t } = useTranslation();
   const colors = useColors();
   const router = useRouter();
   const reduceMotion = useReduceMotion();
+
+  // Opens the right conversation when a message push notification is tapped
+  // (handles both cold-start and while-running taps).
+  useNotificationObserver();
 
   const stackAnimation = reduceMotion ? "none" : "slide_from_right";
 

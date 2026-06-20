@@ -20,6 +20,8 @@ export interface User {
   sellerMode: boolean;
   status: string;
   verified?: boolean;
+  activeWarningsCount?: number;
+  warningThreshold?: number;
   itemsActiveCount?: number;
   itemsSoldCount?: number;
   unreadMessageCount?: number;

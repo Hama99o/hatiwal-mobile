@@ -30,6 +30,8 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { clearCachedPushToken } from "@/utils/push-token";
 import { authAPI, type User } from "@/api/auth";
+import { warningsAPI } from "@/api/warnings";
+import { WarningBanner } from "@/components/common/WarningBanner";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { useAuthStore } from "@/stores/auth.store";
@@ -397,11 +399,18 @@ export default function ProfileScreen() {
     queryFn: authAPI.me,
   });
 
+  // The user's own moderation warnings — drives the WarningBanner.
+  const { data: warningsData } = useQuery({
+    queryKey: ["warnings"],
+    queryFn: warningsAPI.list,
+  });
+
   // Refetch profile data every time the screen comes into focus so edits
   // and mode changes are reflected immediately on return.
   useFocusEffect(
     useCallback(() => {
       qc.invalidateQueries({ queryKey: ["me"] });
+      qc.invalidateQueries({ queryKey: ["warnings"] });
     }, [qc])
   );
 
@@ -600,6 +609,17 @@ export default function ProfileScreen() {
           </Text>
         </Button>
       </View>
+
+      {/* ── Moderation warnings (only renders when the user has active strikes) ── */}
+      {warningsData && warningsData.activeCount > 0 && (
+        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+          <WarningBanner
+            activeCount={warningsData.activeCount}
+            threshold={warningsData.threshold}
+            warnings={warningsData.warnings.filter((w) => w.active)}
+          />
+        </View>
+      )}
 
       {/* ── Content — one unified layout; mode only changes stats + actions ── */}
       {user && <ProfileContent user={user} isSeller={isSeller} handleEdit={startEdit} />}

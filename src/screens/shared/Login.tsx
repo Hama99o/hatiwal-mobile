@@ -26,18 +26,38 @@ export default function LoginScreen() {
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const setUser = useAuthStore((s) => s.setUser);
   const hydrateFromUser = useModeStore((s) => s.hydrateFromUser);
+  // Set by the http interceptor when the account is suspended/banned — either on
+  // this login attempt or when the user was blocked mid-session and bounced here.
+  const blockedNotice = useAuthStore((s) => s.blockedNotice);
+  const setBlockedNotice = useAuthStore((s) => s.setBlockedNotice);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Build the localized "you are blocked" message (+ admin reason, if any) from
+  // the notice. Localized here rather than using the API's English string.
+  const blockedMessage = blockedNotice
+    ? (() => {
+        const base =
+          blockedNotice.status === "suspended"
+            ? t("auth.blocked.suspended")
+            : t("auth.blocked.banned");
+        return blockedNotice.reason
+          ? `${base} ${t("auth.blocked.reason", { reason: blockedNotice.reason })}`
+          : base;
+      })()
+    : null;
+
   const handleLogin = async () => {
     setLoading(true);
     setError(null);
+    setBlockedNotice(null);
     try {
       const user = await authAPI.login({ email, password });
       setUser(user);
+      setBlockedNotice(null);
       hydrateFromUser(user.sellerMode);
       applyThemeFromUser(user.preferredTheme);
       await applyLanguageFromUser(user.preferredLanguage as LanguageCode);
@@ -46,9 +66,17 @@ export default function LoginScreen() {
       registerPushToken().catch(() => undefined);
       router.replace((returnTo ?? "/(main)/(tabs)/browse") as never);
     } catch (err: any) {
-      // devise_token_auth returns { errors: ["Invalid login credentials..."] }
-      const apiErrors: string[] = err?.response?.data?.errors ?? [];
-      setError(apiErrors.length > 0 ? apiErrors.join(" ") : t("common.error"));
+      const httpStatus = err?.response?.status;
+      const data = err?.response?.data;
+      // A blocked account is already captured as a notice by the interceptor and
+      // shown via `blockedMessage` — don't overwrite it with a generic error.
+      const isBlocked =
+        httpStatus === 403 && (data?.status === "banned" || data?.status === "suspended");
+      if (!isBlocked) {
+        // devise_token_auth returns { errors: ["Invalid login credentials..."] }
+        const apiErrors: string[] = data?.errors ?? [];
+        setError(apiErrors.length > 0 ? apiErrors.join(" ") : t("common.error"));
+      }
     } finally {
       setLoading(false);
     }
@@ -111,10 +139,15 @@ export default function LoginScreen() {
           {t("auth.subtitle")}
         </Text>
 
-        {error && (
+        {(blockedMessage || error) && (
           <View style={{ backgroundColor: colors.destructiveAlpha, borderRadius: 8, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: colors.destructive }}>
+            {blockedMessage && (
+              <Text style={{ color: colors.destructive, fontSize: 14, fontWeight: "700", marginBottom: 4, textAlign: isRtl ? "right" : "left" }}>
+                {t("auth.blocked.title")}
+              </Text>
+            )}
             <Text style={{ color: colors.destructive, fontSize: 13, textAlign: isRtl ? "right" : "left" }}>
-              {error}
+              {blockedMessage ?? error}
             </Text>
           </View>
         )}

@@ -1,0 +1,5 @@
+{
+  "title": "You have {{count}} of {{total}} warnings",
+  "remaining": "{{count}} more and your account will be blocked.",
+  "atLimit": "Your account has reached the warning limit."
+}
