@@ -69,6 +69,33 @@ describe("authAPI.logout", () => {
   });
 });
 
+describe("authAPI.deleteAccount", () => {
+  it("calls DELETE /auth and resolves", async () => {
+    server.use(
+      http.delete("http://localhost:3007/api/v1/auth", () =>
+        HttpResponse.json({ status: "success" }, { status: 200 })
+      )
+    );
+    await expect(authAPI.deleteAccount()).resolves.toBeUndefined();
+  });
+});
+
+describe("authAPI.restoreAccount", () => {
+  it("calls POST /users/me/restore and returns the restored user", async () => {
+    server.use(
+      http.post("http://localhost:3007/api/v1/users/me/restore", () =>
+        HttpResponse.json(
+          { user: { id: 1, email: "buyer@hatiwal.test", firstname: "A", lastname: "B", deletion_scheduled_at: null } },
+          { status: 200 }
+        )
+      )
+    );
+    const user = await authAPI.restoreAccount();
+    expect(user.id).toBe(1);
+    expect(user.deletionScheduledAt).toBeNull();
+  });
+});
+
 describe("authAPI.me", () => {
   it("returns camelCased user", async () => {
     const user = await authAPI.me();

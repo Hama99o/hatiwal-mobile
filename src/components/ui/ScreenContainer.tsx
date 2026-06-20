@@ -4,7 +4,14 @@
 // color token), the device safe-area insets, optional padding, and optionally
 // wraps children in a ScrollView.
 
-import { View, ScrollView, type ViewStyle, type ViewProps } from "react-native";
+import {
+  View,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  type ViewStyle,
+  type ViewProps,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
@@ -78,15 +85,27 @@ export function ScreenContainer({
       ...safeAreaPadding,
       ...style,
     };
+    // KeyboardAvoidingView lifts the content so an on-screen keyboard never
+    // covers the focused input. `keyboardDismissMode="on-drag"` lets the user
+    // swipe the list down to dismiss the keyboard, and
+    // `keyboardShouldPersistTaps="handled"` keeps taps (buttons, other inputs)
+    // working while it's open. Applied here in the mandatory wrapper so every
+    // scrollable screen gets correct keyboard behavior for free.
     return (
-      <ScrollView
+      <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: colors.background }}
-        contentContainerStyle={scrollContentStyle}
-        keyboardShouldPersistTaps="handled"
-        {...a11yProps}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {children}
-      </ScrollView>
+        <ScrollView
+          style={{ flex: 1, backgroundColor: colors.background }}
+          contentContainerStyle={scrollContentStyle}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          {...a11yProps}
+        >
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 

@@ -107,6 +107,7 @@ export function ProvincePickerSheet({
           style={styles.list}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {filtered.length === 0 ? (
             <Text

@@ -24,6 +24,8 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
 } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -145,6 +147,13 @@ export function ReportSheet({
       onRequestClose={handleClose}
       onShow={handleOpen}
     >
+      {/* KeyboardAvoidingView lifts the sheet above the keyboard so the note
+          field is never covered. Tapping the backdrop or swiping the list
+          (keyboardDismissMode) also dismisses the keyboard. */}
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       {/* backdrop */}
       <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={handleClose} />
 
@@ -197,8 +206,10 @@ export function ReportSheet({
         <Separator className="mb-4" />
 
         <ScrollView
+          style={{ flexShrink: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {/* reason label */}
           <Label
@@ -296,30 +307,37 @@ export function ReportSheet({
             />
           </View>
 
-          {/* submit */}
+          {/* spacer so the last field isn't flush against the pinned footer */}
+          <View style={{ height: 8 }} />
+        </ScrollView>
+
+        {/* Pinned action footer — stays OUTSIDE the scroll so Submit/Cancel are
+            always visible, including when the keyboard is open and the sheet
+            has lifted above it. */}
+        <View style={[styles.footer, { borderTopColor: colors.border }]}>
           <Button
             variant="destructive"
             onPress={handleSubmit}
             disabled={mutation.isPending}
-            style={{ marginTop: 16, marginBottom: 8 }}
           >
             <Text>
-              {mutation.isPending
-                ? t("report.submitting")
-                : t("report.submit")}
+              {mutation.isPending ? t("report.submitting") : t("report.submit")}
             </Text>
           </Button>
 
-          <Button variant="ghost" onPress={handleClose} disabled={mutation.isPending}>
+          <Button
+            variant="ghost"
+            onPress={handleClose}
+            disabled={mutation.isPending}
+            style={{ marginTop: 8 }}
+          >
             <Text style={{ color: colors.mutedForeground }}>
               {t("common.cancel")}
             </Text>
           </Button>
-
-          {/* bottom padding for safe area */}
-          <View style={{ height: 24 }} />
-        </ScrollView>
+        </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -327,6 +345,9 @@ export function ReportSheet({
 // ─── styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
     // backgroundColor is applied inline via colors.darkScrim (useColors token)
@@ -392,5 +413,9 @@ const styles = StyleSheet.create({
   },
   noteSection: {
     marginTop: 16,
+  },
+  footer: {
+    paddingTop: 12,
+    borderTopWidth: 1,
   },
 });

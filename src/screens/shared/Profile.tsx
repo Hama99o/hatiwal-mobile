@@ -26,6 +26,7 @@ import {
   ShieldOff,
   ChevronRight,
   ChevronLeft,
+  Trash2,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { clearCachedPushToken } from "@/utils/push-token";
@@ -482,6 +483,33 @@ export default function ProfileScreen() {
     ]);
   };
 
+  // Permanent account deletion — required by App Store 5.1.1(v) & Google Play.
+  // On confirm: delete server-side (cascades all owned data), then reset local
+  // state exactly like logout and drop the user back to the guest feed.
+  const handleDeleteAccount = () => {
+    confirmAlert(t("profile.deleteAccountTitle"), t("profile.deleteAccountMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("profile.deleteAccountConfirm"),
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await authAPI.deleteAccount();
+          } catch {
+            toast.error(t("profile.deleteAccountError"));
+            return; // account NOT deleted — stay signed in
+          }
+          await clearCachedPushToken();
+          qc.clear();
+          clearUser();
+          await Promise.all([resetTheme(), resetMode(), resetLanguage()]);
+          toast.success(t("profile.deleteAccountSuccess"));
+          router.replace("/(main)/(tabs)/browse");
+        },
+      },
+    ]);
+  };
+
   if (isLoading) {
     return <ProfileSkeleton />;
   }
@@ -762,6 +790,29 @@ export default function ProfileScreen() {
           <LogOut size={18} color={colors.mutedForeground} />
           <Text className="text-base font-medium" style={{ color: colors.mutedForeground }}>
             {t("profile.logout")}
+          </Text>
+        </Button>
+
+        {/* Delete account — destructive, kept visually distinct from Sign Out.
+            Required for App Store / Google Play approval (in-app account deletion). */}
+        <Button
+          variant="ghost"
+          onPress={handleDeleteAccount}
+          accessibilityLabel={t("profile.deleteAccount")}
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            marginBottom: 8,
+            paddingVertical: 14,
+            borderRadius: 12,
+            minHeight: 44,
+          }}
+        >
+          <Trash2 size={18} color={colors.destructive} />
+          <Text className="text-base font-medium" style={{ color: colors.destructive }}>
+            {t("profile.deleteAccount")}
           </Text>
         </Button>
       </View>

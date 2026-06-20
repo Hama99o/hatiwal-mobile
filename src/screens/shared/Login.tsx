@@ -6,7 +6,7 @@ import { Button } from "@/components/reusables/button";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { authAPI } from "@/api/auth";
+import { authAPI, type User } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore } from "@/stores/mode.store";
 import { applyThemeFromUser } from "@/stores/theme.store";
@@ -15,6 +15,7 @@ import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher";
 import { registerPushToken } from "@/utils/push-token";
+import { confirmAlert } from "@/utils/alert";
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -50,21 +51,60 @@ export default function LoginScreen() {
       })()
     : null;
 
+  // Shared post-login bootstrap: set session, hydrate mode/theme/language,
+  // register push, and navigate. Used for both a normal login and a restore.
+  const enterApp = async (loggedInUser: User) => {
+    setUser(loggedInUser);
+    setBlockedNotice(null);
+    hydrateFromUser(loggedInUser.sellerMode);
+    applyThemeFromUser(loggedInUser.preferredTheme);
+    await applyLanguageFromUser(loggedInUser.preferredLanguage as LanguageCode);
+    // Fire-and-forget: register push token after login. Any failure is swallowed
+    // inside registerPushToken — it must never block navigation.
+    registerPushToken().catch(() => undefined);
+    router.replace((returnTo ?? "/(main)/(tabs)/browse") as never);
+  };
+
   const handleLogin = async () => {
     setLoading(true);
     setError(null);
     setBlockedNotice(null);
     try {
       const user = await authAPI.login({ email, password });
-      setUser(user);
-      setBlockedNotice(null);
-      hydrateFromUser(user.sellerMode);
-      applyThemeFromUser(user.preferredTheme);
-      await applyLanguageFromUser(user.preferredLanguage as LanguageCode);
-      // Fire-and-forget: register push token after login. Any failure is
-      // swallowed inside registerPushToken — it must never block navigation.
-      registerPushToken().catch(() => undefined);
-      router.replace((returnTo ?? "/(main)/(tabs)/browse") as never);
+
+      // Account is in its 30-day deletion grace window: ask whether to restore
+      // it or continue with deletion before letting them back in.
+      if (user.deletionScheduledAt) {
+        setLoading(false);
+        confirmAlert(t("auth.restore.title"), t("auth.restore.message"), [
+          {
+            text: t("auth.restore.keepDeleting"),
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await authAPI.logout();
+              } catch {
+                /* already effectively logged out */
+              }
+            },
+          },
+          {
+            text: t("auth.restore.restore"),
+            style: "default",
+            onPress: async () => {
+              try {
+                const restored = await authAPI.restoreAccount();
+                enterApp(restored);
+              } catch {
+                setError(t("common.error"));
+              }
+            },
+          },
+        ]);
+        return;
+      }
+
+      enterApp(user);
     } catch (err: any) {
       const httpStatus = err?.response?.status;
       const data = err?.response?.data;

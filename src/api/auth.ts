@@ -29,6 +29,8 @@ export interface User {
   itemsBoughtCount?: number;
   createdAt: string;
   pushToken?: string | null;
+  /** Set when the account is in its 30-day deletion grace window (recoverable). */
+  deletionScheduledAt?: string | null;
 }
 
 export interface LoginParams {
@@ -74,6 +76,22 @@ export const authAPI = {
   logout: async (): Promise<void> => {
     await http.delete("/auth/sign_out");
     await secureStorage.clearAuthHeaders();
+  },
+
+  // Request account deletion (App Store 5.1.1(v) / Google Play). DELETE /auth
+  // SCHEDULES a 30-day deletion: the account is hidden + logged out immediately
+  // but recoverable by logging back in within the grace window. Auth headers are
+  // cleared locally afterward — the caller then resets app state like logout.
+  deleteAccount: async (): Promise<void> => {
+    await http.delete("/auth");
+    await secureStorage.clearAuthHeaders();
+  },
+
+  // Cancel a pending account deletion (user logged back in within the grace
+  // window and chose to keep their account). Returns the restored user.
+  restoreAccount: async (): Promise<User> => {
+    const response = await http.post("/users/me/restore");
+    return convertKeysToCamel(response.data.user) as User;
   },
 
   me: async (): Promise<User> => {
