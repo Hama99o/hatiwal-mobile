@@ -130,5 +130,6 @@
   "deleteAccountMessage": "Your account will be scheduled for deletion and hidden right away, then permanently deleted after 30 days. You can restore it by logging back in within 30 days.",
   "deleteAccountConfirm": "Delete account",
   "deleteAccountSuccess": "Your account has been deleted.",
-  "deleteAccountError": "Couldn't delete your account. Please try again."
+  "deleteAccountError": "Couldn't delete your account. Please try again.",
+  "privacyPolicy": "Privacy Policy"
 }

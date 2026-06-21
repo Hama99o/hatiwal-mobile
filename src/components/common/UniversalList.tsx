@@ -402,7 +402,6 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
             ? <View style={{ marginHorizontal: -12 }}>{ListHeaderComponent}</View>
             : undefined
         }
-        estimatedItemSize={numColumns > 1 ? 220 : 100}
         contentContainerStyle={{
           paddingHorizontal: 12,
           paddingTop: 12,

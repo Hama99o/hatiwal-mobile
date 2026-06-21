@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { View, Pressable, ActivityIndicator } from "react-native";
+import { View, Pressable, ActivityIndicator, Linking } from "react-native";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { Separator } from "@/components/reusables/separator";
@@ -770,6 +770,19 @@ export default function ProfileScreen() {
             )}
           </Button>
         </SectionCard>
+
+        {/* Privacy Policy — opens the public web policy (required for store review).
+            TODO(ops): replace hatiwal.app with the deployed web domain. */}
+        <Pressable
+          onPress={() => Linking.openURL(`https://hatiwal.app/${i18n.language}/privacy`)}
+          accessibilityRole="link"
+          accessibilityLabel={t("profile.privacyPolicy")}
+          style={{ alignItems: "center", justifyContent: "center", paddingVertical: 10, minHeight: 44 }}
+        >
+          <Text className="text-sm" style={{ color: colors.mutedForeground, textDecorationLine: "underline" }}>
+            {t("profile.privacyPolicy")}
+          </Text>
+        </Pressable>
 
         {/* Sign Out — subdued ghost action, not a high-visibility destructive button */}
         <Button

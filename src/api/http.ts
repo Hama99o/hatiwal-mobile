@@ -22,6 +22,23 @@ export const BASE_URL =
   // overrides this with the LAN address on device.
   process.env.EXPO_PUBLIC_API_URL || "http://localhost:3007/api/v1";
 
+// A production build must point at a PUBLIC https:// API. EXPO_PUBLIC_* is
+// inlined at build time, so a release that baked in localhost / a LAN IP / plain
+// http would be dead on arrival (login + data fail) and would fail iOS ATS —
+// a guaranteed App Store / Play rejection. Fail loudly at startup so such a
+// build can never be shipped or reach review. (No effect in dev: __DEV__.)
+function isProdUnsafeApiUrl(url: string): boolean {
+  if (url.startsWith("http://")) return true; // non-TLS → blocked by iOS ATS
+  return /(localhost|127\.0\.0\.1|10\.\d|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(url);
+}
+
+if (!__DEV__ && isProdUnsafeApiUrl(BASE_URL)) {
+  throw new Error(
+    `[Hatiwal] Production build misconfigured: EXPO_PUBLIC_API_URL must be a public https:// URL, got "${BASE_URL}". ` +
+      "Set it in the eas.json production profile before building."
+  );
+}
+
 export const http = axios.create({
   baseURL: BASE_URL,
   // Fail fast instead of spinning forever when the API is unreachable (e.g. a
