@@ -39,6 +39,12 @@ export function useColors() {
     accent:                dark ? "hsl(217, 33%, 17%)"  : "hsl(210, 40%, 96%)",
     accentForeground:      dark ? "hsl(210, 40%, 98%)"  : "hsl(222, 47%, 11%)",
 
+    // Brand accent — saffron / lapis-fleck gold (#E8B23A), the gold "H" in the
+    // Hatiwal mark. Gold stays gold; nudged brighter on dark.
+    brandGold:             dark ? "hsl(41, 85%, 62%)"   : "hsl(41, 80%, 57%)",
+    // Brand tile — lapis blue base the logo "H" sits on (same in both themes).
+    brandLapis:            "hsl(222, 65%, 25%)" as string,
+
     // Destructive
     destructive:           dark ? "hsl(0, 72%, 51%)"    : "hsl(0, 84%, 60%)",
     destructiveForeground: dark ? "hsl(0, 0%, 98%)"     : "hsl(0, 0%, 98%)",

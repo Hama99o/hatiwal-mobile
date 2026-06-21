@@ -27,7 +27,7 @@
 // temporarily offline.
 
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet } from "react-native";
+import { ActivityIndicator, StyleSheet, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import Animated, {
@@ -40,6 +40,7 @@ import Animated, {
 import { bootstrapAuth } from "@/stores/auth.bootstrap";
 import { useColors } from "@/hooks/useColors";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { Logomark } from "@/components/common/Logomark";
 import { useReduceMotion } from "@/lib/animation";
 
 export default function SplashScreen() {
@@ -90,7 +91,8 @@ export default function SplashScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // A centered wordmark is direction-agnostic — no RTL mirroring needed.
+  // The H mark + wordmark are both symmetric / centered — direction-agnostic,
+  // so no RTL mirroring is needed. Both reveal together under one animated style.
   return (
     <ScreenContainer
       scrollable={false}
@@ -100,9 +102,12 @@ export default function SplashScreen() {
       accessibilityLabel={t("common.splash.validating")}
       style={{ alignItems: "center", justifyContent: "center" }}
     >
-      <Animated.Text style={[styles.wordmark, wordmarkStyle, { color: colors.primary }]}>
-        {t("common.appName")}
-      </Animated.Text>
+      <Animated.View style={[styles.brand, wordmarkStyle]}>
+        <Logomark size={72} />
+        <Text style={[styles.wordmark, { color: colors.primary }]}>
+          {t("common.appName")}
+        </Text>
+      </Animated.View>
       <ActivityIndicator
         size="small"
         color={colors.mutedForeground}
@@ -113,6 +118,10 @@ export default function SplashScreen() {
 }
 
 const styles = StyleSheet.create({
+  brand: {
+    alignItems: "center",
+    gap: 16,
+  },
   wordmark: {
     fontSize: 40,
     fontWeight: "800",
