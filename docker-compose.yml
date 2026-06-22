@@ -38,6 +38,9 @@ services:
       - EXPO_PUBLIC_DEFAULT_LANG=en
       - EXPO_PUBLIC_DEFAULT_THEME=system
       - EXPO_NO_TELEMETRY=1
+      # NOTE: don't set CI=1 here — it disables Metro watch mode / hot reload.
+      # The interactive "log in with your Expo account" prompt that loops in
+      # Docker (no TTY) is avoided by the --offline flag on the command below.
     ports:
       # Expo SDK 54 serves Metro + the manifest on a single port (3008).
       # The legacy 19000-19002 ports (Expo SDK ≤48) are unused here and were
@@ -46,4 +49,4 @@ services:
     # --clear wipes Metro's cache on start. The cache lives in the node_modules
     # volume, which survives `docker compose down`, so without this a stale JS
     # bundle keeps getting served to Expo Go even after restarts/dep changes.
-    command: ["npx", "expo", "start", "--port", "3008", "--clear"]
+    command: ["npx", "expo", "start", "--port", "3008", "--clear", "--offline"]

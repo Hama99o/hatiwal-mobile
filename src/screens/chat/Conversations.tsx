@@ -1,35 +1,47 @@
 import {
   View,
-  FlatList,
   Pressable,
-  RefreshControl,
 } from "react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MessageCircle, CheckCheck } from "lucide-react-native";
+import { MessageCircle, CheckCheck, Archive } from "lucide-react-native";
+import { ChatIllustration } from "@/components/common/empty-illustrations";
+import { toast } from "sonner-native";
 
-import { conversationsAPI, getUnreadTotal, type Conversation } from "@/api/conversations";
+import {
+  conversationsAPI,
+  getUnreadTotal,
+  type Conversation,
+} from "@/api/conversations";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { useChatStore } from "@/stores/chat.store";
 import { Text } from "@/components/reusables/text";
 import { Badge } from "@/components/reusables/badge";
-import { EmptyState } from "@/components/common/EmptyState";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import {
+  UniversalList,
+  type UniversalListConfig,
+  type ListQuery,
+  type ListFetchResult,
+} from "@/components/common/UniversalList";
+import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton";
 
 import { ConversationRow } from "./conversations/ConversationRow";
-import { SkeletonList } from "./conversations/SkeletonList";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+/** Top-level partition — determines which server-side archive scope is used */
+type TabMode = "inbox" | "archived";
+
+/** Secondary filter within the inbox (client-side) */
 type FilterMode = "all" | "unread" | "read";
 
-const FILTER_OPTIONS: { key: FilterMode; labelKey: string }[] = [
+const INBOX_FILTER_OPTIONS: { key: FilterMode; labelKey: string }[] = [
   { key: "all",    labelKey: "chat.filter.all" },
   { key: "unread", labelKey: "chat.filter.unread" },
   { key: "read",   labelKey: "chat.filter.read" },
@@ -44,67 +56,248 @@ export default function ConversationsScreen() {
   const colors = useColors();
   const { isRtl } = useLocalization();
   const router = useRouter();
-  const qc = useQueryClient();
   const insets = useSafeAreaInsets();
 
-  const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set());
-  const [filter, setFilter] = useState<FilterMode>("all");
+  const [tabMode, setTabMode]   = useState<TabMode>("inbox");
+  const [filter, setFilter]     = useState<FilterMode>("all");
+
+  // Bump to trigger UniversalList silent background refresh (no skeleton, no setItems([])).
+  const [refreshKey, setRefreshKey] = useState(0);
+  // Bump to trigger a FULL reset (skeleton + reload). Only used for deletions.
+  const [resetKey, setResetKey] = useState(0);
 
   const setUnreadMessageTotal = useChatStore((s) => s.setUnreadMessageTotal);
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["conversations"],
-    queryFn:  () => conversationsAPI.getConversations(),
-  });
+  // Raw inbox conversations ref — written by the fetcher, read for badge sync
+  const allConversationsRef = useRef<Conversation[]>([]);
+
+  // Unread badge count: derived from the inbox ref only (archived never count)
+  const [unreadBadgeCount, setUnreadBadgeCount] = useState(0);
 
   // Focus-refetch — mandatory for every screen that shows server data (§12)
   useFocusEffect(
     useCallback(() => {
-      refetch();
-    }, [refetch])
+      setRefreshKey((k) => k + 1);
+    }, [])
   );
 
-  // Sync the tab badge total into the global store every time conversation
-  // data changes. getUnreadTotal sums each conversation's unreadCount and
-  // caps at 99 — this is message-sum semantics, consistent with the store
-  // field name (unreadMessageTotal).
-  useEffect(() => {
-    if (!data) return;
-    setUnreadMessageTotal(getUnreadTotal(data.items));
-  }, [data, setUnreadMessageTotal]);
+  // ── Fetcher ────────────────────────────────────────────────────────────────
+  // For inbox: fetches non-archived conversations, applies client-side filter,
+  //            and syncs the badge.
+  // For archived: fetches archived conversations as-is (no filter).
+  const makeFetcher = useCallback(
+    (tab: TabMode, filterMode: FilterMode) =>
+      async (_query: ListQuery): Promise<ListFetchResult<Conversation>> => {
+        const response = await conversationsAPI.getConversations({
+          archived: tab === "archived",
+        });
+        const all = response.items;
 
-  const deleteMutation = useMutation({
-    mutationFn: conversationsAPI.deleteConversation,
-    onMutate:   (id) => setDeletedIds((prev) => new Set(prev).add(id)),
-    onError:    (_e, id) =>
-      setDeletedIds((prev) => {
-        const s = new Set(prev);
-        s.delete(id);
-        return s;
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
-  });
+        if (tab === "inbox") {
+          // Persist raw items for badge calculation (inbox only)
+          allConversationsRef.current = all;
+          const total = getUnreadTotal(all);
+          setUnreadMessageTotal(total);
+          setUnreadBadgeCount(total);
 
+          // Apply client-side read/unread filter
+          const filtered = all.filter((c) => {
+            const unread = c.unreadCount ?? 0;
+            if (filterMode === "unread") return unread > 0;
+            if (filterMode === "read")   return unread === 0;
+            return true;
+          });
+
+          return {
+            items:       filtered,
+            totalCount:  filtered.length,
+            totalPages:  1,
+            currentPage: 1,
+          };
+        }
+
+        // Archived tab — return all results unchanged
+        return {
+          items:       all,
+          totalCount:  all.length,
+          totalPages:  1,
+          currentPage: 1,
+        };
+      },
+    [setUnreadMessageTotal]
+  );
+
+  // ── Handle delete ──────────────────────────────────────────────────────────
   const handleDelete = useCallback(
-    (id: number) => {
-      deleteMutation.mutate(id);
+    async (id: number) => {
+      try {
+        await conversationsAPI.deleteConversation(id);
+        // Remove from ref and sync badge
+        const updated = allConversationsRef.current.filter((c) => c.id !== id);
+        allConversationsRef.current = updated;
+        const total = getUnreadTotal(updated);
+        setUnreadMessageTotal(total);
+        setUnreadBadgeCount(total);
+        // Full reset so UniversalList re-renders without the deleted row
+        setResetKey((k) => k + 1);
+      } catch {
+        toast.error(t("common.error"));
+      }
     },
-    [deleteMutation]
+    [setUnreadMessageTotal, t]
   );
 
-  const allItems = (data?.items ?? []).filter((c: Conversation) => !deletedIds.has(c.id));
+  // ── Handle archive (optimistic row-removal + badge update) ────────────────
+  // Same pattern as markRead: optimistic update to ref + state, await PUT,
+  // silent refreshKey bump. DO NOT bump resetKey (causes skeleton flash).
+  const handleArchive = useCallback(
+    async (id: number) => {
+      const prev = allConversationsRef.current;
+      // Optimistically remove from inbox ref
+      const optimistic = prev.filter((c) => c.id !== id);
+      allConversationsRef.current = optimistic;
+      const total = getUnreadTotal(optimistic);
+      setUnreadMessageTotal(total);
+      setUnreadBadgeCount(total);
 
-  const items = allItems.filter((c: Conversation) => {
-    const unread = c.unreadCount ?? 0;
-    if (filter === "unread") return unread > 0;
-    if (filter === "read")   return unread === 0;
-    return true;
-  });
+      try {
+        await conversationsAPI.archiveConversation(id);
+        setRefreshKey((k) => k + 1);
+      } catch {
+        // Rollback
+        allConversationsRef.current = prev;
+        const rollbackTotal = getUnreadTotal(prev);
+        setUnreadMessageTotal(rollbackTotal);
+        setUnreadBadgeCount(rollbackTotal);
+        setRefreshKey((k) => k + 1);
+        toast.error(t("chat.archive.error"));
+      }
+    },
+    [setUnreadMessageTotal, t]
+  );
 
-  // Use the same message-sum semantics as the tab badge and the store field
-  // (unreadMessageTotal). Both surfaces show the aggregate unread message total
-  // capped at 99, so the in-screen header badge is consistent with the tab badge.
-  const unreadBadgeCount = getUnreadTotal(allItems);
+  // ── Handle unarchive (optimistic row-removal from archived tab) ───────────
+  const handleUnarchive = useCallback(
+    async (id: number) => {
+      try {
+        await conversationsAPI.unarchiveConversation(id);
+        // Silently refresh the archived list to remove the row
+        setRefreshKey((k) => k + 1);
+      } catch {
+        toast.error(t("chat.archive.error"));
+      }
+    },
+    [t]
+  );
+
+  // ── Handle mark read ──────────────────────────────────────────────────────
+  const handleMarkRead = useCallback(
+    async (id: number) => {
+      const prev = allConversationsRef.current;
+      const optimistic = prev.map((c) =>
+        c.id === id ? { ...c, unreadCount: 0 } : c
+      );
+      allConversationsRef.current = optimistic;
+      const total = getUnreadTotal(optimistic);
+      setUnreadMessageTotal(total);
+      setUnreadBadgeCount(total);
+
+      try {
+        await conversationsAPI.markRead(id);
+        setRefreshKey((k) => k + 1);
+      } catch {
+        allConversationsRef.current = prev;
+        const rollbackTotal = getUnreadTotal(prev);
+        setUnreadMessageTotal(rollbackTotal);
+        setUnreadBadgeCount(rollbackTotal);
+        setRefreshKey((k) => k + 1);
+        toast.error(t("chat.actions.markReadError"));
+      }
+    },
+    [setUnreadMessageTotal, t]
+  );
+
+  // ── Handle mark unread ────────────────────────────────────────────────────
+  const handleMarkUnread = useCallback(
+    async (id: number) => {
+      const prev = allConversationsRef.current;
+      const optimistic = prev.map((c) =>
+        c.id === id ? { ...c, unreadCount: 1 } : c
+      );
+      allConversationsRef.current = optimistic;
+      const total = getUnreadTotal(optimistic);
+      setUnreadMessageTotal(total);
+      setUnreadBadgeCount(total);
+
+      try {
+        await conversationsAPI.markUnread(id);
+        setRefreshKey((k) => k + 1);
+      } catch {
+        allConversationsRef.current = prev;
+        const rollbackTotal = getUnreadTotal(prev);
+        setUnreadMessageTotal(rollbackTotal);
+        setUnreadBadgeCount(rollbackTotal);
+        setRefreshKey((k) => k + 1);
+        toast.error(t("chat.actions.markReadError"));
+      }
+    },
+    [setUnreadMessageTotal, t]
+  );
+
+  // config.id changes only when tab, filter, or resetKey changes.
+  // refreshKey is passed separately so UniversalList silently re-fetches
+  // without skeleton flash.
+  const listConfig: UniversalListConfig<Conversation> = {
+    id:          `conversations-${tabMode}-${filter}-${resetKey}`,
+    refreshKey,
+    fetcher:     makeFetcher(tabMode, filter),
+    keyExtractor: (item) => String(item.id),
+    renderItem:  ({ item, index }) => (
+      <ConversationRow
+        item={item}
+        tabMode={tabMode}
+        onDelete={handleDelete}
+        onMarkRead={handleMarkRead}
+        onMarkUnread={handleMarkUnread}
+        onArchive={handleArchive}
+        onUnarchive={handleUnarchive}
+        index={index}
+      />
+    ),
+    skeletonCount:     5,
+    SkeletonComponent: ConversationRowSkeleton,
+    emptyIcon:
+      tabMode === "archived"
+        ? Archive
+        : filter === "unread"
+          ? CheckCheck
+          : MessageCircle,
+    // Show the custom illustration only for the primary inbox empty state
+    emptyIllustration:
+      tabMode !== "archived" && filter === "all"
+        ? <ChatIllustration size={96} />
+        : undefined,
+    emptyTitle:
+      tabMode === "archived"
+        ? t("chat.archive.empty")
+        : filter === "unread"
+          ? t("chat.filter.noUnread")
+          : t("chat.noConversations"),
+    emptyDescription:
+      tabMode === "archived"
+        ? t("chat.archive.emptyDescription")
+        : filter === "unread"
+          ? t("chat.filter.noUnreadDescription")
+          : t("chat.noConversationsDescription"),
+    emptyAction:
+      tabMode !== "archived" && filter !== "unread"
+        ? {
+            label:   t("chat.empty.browseAction"),
+            onPress: () => router.push("/(main)/(tabs)/browse" as never),
+          }
+        : undefined,
+    contentPaddingBottom: 100,
+  };
 
   return (
     <ScreenContainer scrollable={false} padded={false} safeArea={[]}>
@@ -138,14 +331,14 @@ export default function ConversationsScreen() {
           </Text>
           {unreadBadgeCount > 0 && (
             <Badge
-              label={unreadBadgeCount}
+              label={unreadBadgeCount >= 99 ? "99+" : unreadBadgeCount}
               variant="default"
               style={{ paddingHorizontal: 8, height: 24, borderRadius: 12 }}
             />
           )}
         </View>
 
-        {/* Segmented control — All / Unread / Read */}
+        {/* Inbox / Archived tab toggle */}
         <View
           style={{
             flexDirection:   isRtl ? "row-reverse" : "row",
@@ -155,18 +348,24 @@ export default function ConversationsScreen() {
             backgroundColor: colors.muted,
           }}
         >
-          {FILTER_OPTIONS.map(({ key, labelKey }, i) => {
-            const isActive = filter === key;
+          {(["inbox", "archived"] as TabMode[]).map((tab, i) => {
+            const isActive = tabMode === tab;
+            const labelKey = tab === "inbox" ? "chat.tabs.inbox" : "chat.tabs.archived";
             return (
               <Pressable
-                key={key}
-                onPress={() => setFilter(key)}
+                key={tab}
+                onPress={() => {
+                  setTabMode(tab);
+                  // Reset secondary filter when switching tabs
+                  setFilter("all");
+                }}
+                testID={`tab-${tab}`}
                 style={{
-                  flex:           1,
-                  flexDirection:  isRtl ? "row-reverse" : "row",
-                  alignItems:     "center",
-                  justifyContent: "center",
-                  gap:            5,
+                  flex:            1,
+                  flexDirection:   isRtl ? "row-reverse" : "row",
+                  alignItems:      "center",
+                  justifyContent:  "center",
+                  gap:             6,
                   paddingVertical: 9,
                   backgroundColor: isActive ? colors.primary : "transparent",
                   borderRadius:    isActive ? 10 : 0,
@@ -174,19 +373,9 @@ export default function ConversationsScreen() {
                   borderLeftColor: colors.border,
                 }}
               >
-                {key === "unread" && (
-                  <View
-                    style={{
-                      width:           6,
-                      height:          6,
-                      borderRadius:    3,
-                      backgroundColor: isActive ? colors.primaryForeground : colors.primary,
-                    }}
-                  />
-                )}
-                {key === "read" && (
-                  <CheckCheck
-                    size={12}
+                {tab === "archived" && (
+                  <Archive
+                    size={13}
                     color={isActive ? colors.primaryForeground : colors.mutedForeground}
                   />
                 )}
@@ -203,53 +392,73 @@ export default function ConversationsScreen() {
             );
           })}
         </View>
+
+        {/* Secondary filter (All / Unread / Read) — only shown in Inbox tab */}
+        {tabMode === "inbox" && (
+          <View
+            style={{
+              flexDirection:   isRtl ? "row-reverse" : "row",
+              marginTop:       8,
+              borderRadius:    8,
+              overflow:        "hidden",
+              backgroundColor: colors.muted,
+            }}
+          >
+            {INBOX_FILTER_OPTIONS.map(({ key, labelKey }, i) => {
+              const isActive = filter === key;
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => setFilter(key)}
+                  style={{
+                    flex:            1,
+                    flexDirection:   isRtl ? "row-reverse" : "row",
+                    alignItems:      "center",
+                    justifyContent:  "center",
+                    gap:             5,
+                    paddingVertical: 7,
+                    backgroundColor: isActive ? colors.secondary : "transparent",
+                    borderRadius:    isActive ? 8 : 0,
+                    borderLeftWidth: i > 0 && !isActive ? 1 : 0,
+                    borderLeftColor: colors.border,
+                  }}
+                >
+                  {key === "unread" && (
+                    <View
+                      style={{
+                        width:           6,
+                        height:          6,
+                        borderRadius:    3,
+                        backgroundColor: isActive ? colors.secondaryForeground : colors.primary,
+                      }}
+                    />
+                  )}
+                  {key === "read" && (
+                    <CheckCheck
+                      size={11}
+                      color={isActive ? colors.secondaryForeground : colors.mutedForeground}
+                    />
+                  )}
+                  <Text
+                    style={{
+                      fontSize:   12,
+                      fontWeight: "600",
+                      color:      isActive ? colors.secondaryForeground : colors.foreground,
+                    }}
+                  >
+                    {t(labelKey)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </View>
 
-      {/* ── List ────────────────────────────────────────────────────────── */}
-      {isLoading ? (
-        <SkeletonList />
-      ) : (
-        <FlatList
-          style={{ flex: 1, backgroundColor: colors.background }}
-          data={items}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item, index }) => (
-            <ConversationRow item={item} onDelete={handleDelete} index={index} />
-          )}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching && !isLoading}
-              onRefresh={refetch}
-              tintColor={colors.primary}
-            />
-          }
-          ListEmptyComponent={
-            <EmptyState
-              icon={filter === "unread" ? CheckCheck : MessageCircle}
-              title={
-                filter === "unread"
-                  ? t("chat.filter.noUnread")
-                  : t("chat.noConversations")
-              }
-              description={
-                filter === "unread"
-                  ? t("chat.filter.noUnreadDescription")
-                  : t("chat.noConversationsDescription")
-              }
-              action={
-                filter !== "unread"
-                  ? {
-                      label:   t("chat.empty.browseAction"),
-                      onPress: () =>
-                        router.push("/(main)/(tabs)/browse" as never),
-                    }
-                  : undefined
-              }
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      {/* ── List (UniversalList — FlashList-backed) ─────────────────────── */}
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <UniversalList config={listConfig} />
+      </View>
     </ScreenContainer>
   );
 }

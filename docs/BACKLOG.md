@@ -35,7 +35,7 @@
 | C2     | My Listings + lifecycle (publish/unpublish/reserve/activate/sold + clear text actions) | ✅ Done | — | P0 | `/(main)/(tabs)/my-listings` |
 | **C3** | **Expiry visibility** (`ExpiryBadge` countdown on seller card + owner detail; **Expired tab** in My Listings; clock starts at publish) | ✅ Done | claude | P2 | `ExpiryBadge`, My Listings |
 | D1     | Conversations list (+ friendly previews, sold dimming)                                                                 | ✅ Done                                  | —                | P1       | `/(main)/(tabs)/chat`               |
-| D2     | Conversation thread                                                                                                    | ✅ Done                                  | —                | P1       | `/(main)/conversation/[id]`         |
+| D2     | Conversation thread                                                                                                    | ✅ Done (library waivers in §D2)         | feature-builder  | P1       | `/(main)/conversation/[id]`         |
 | **D3** | **Chat deal actions** — meetup propose + accept/decline, **offer accept/decline** (`responds_to` link, outcome on card) | ✅ Done | — | P1 | within D2 |
 | E1     | Saved / Favorites                                                                                                      | ✅ Done                                  | —                | P1       | `/(main)/(tabs)/saved`              |
 | F1     | Profile (mine) — stats, mode toggle, avatar edit, dedicated Edit screen (`/(main)/profile/edit`), theme + language | ✅ Done | claude | P1 | `/(main)/(tabs)/profile` |
@@ -204,18 +204,27 @@
 - **States:** skeleton rows · empty "No conversations yet" + Browse.
 - **Acceptance:** unread counts correct; RTL bubbleless rows mirror; dark mode.
 
-### D2 — Conversation thread ⬜
+### D2 — Conversation thread ✅ (taken by feature-builder, 2026-06-24)
 
-- **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Route:** `/(main)/conversation/[id]`
+- **Owner:** feature-builder · **Route:** `/(main)/conversation/[id]`
 - **Endpoints:** `GET /conversations/:id` (`:detailed`); `GET /conversations/:id/messages` (paginated, asc); `POST /conversations/:id/messages` (`body`,`kind`; only if `open`); **start:** `POST /listings/:listing_id/conversations` (`message`) · **File:** `src/screens/chat/Conversation.tsx`
 - **Options & detail:**
-  - **`react-native-gifted-chat`** themed to tokens, RTL bubbles, read receipts (`read_at`).
-  - **Pinned listing header** card (thumbnail + `PriceTag` + `StatusBadge`) so both sides remember the item.
-  - **Meetup proposal** action (`kind: meetup_proposal`) via `@gorhom/bottom-sheet` (place/time) → special bubble.
-  - Start flow: first-message sheet from B2; 422 (inactive/self/duplicate) → friendly toast → open existing if duplicate.
+  - Pinned listing header card (thumbnail + `PriceTag` + `StatusBadge`) so both sides remember the item.
+  - RTL-safe message bubbles (mine/theirs, row-reverse, scaleX:-1 Send icon, text align flips).
+  - Read receipts (`read_at` double-tick), optimistic send with rollback on failure.
+  - Meetup proposal (`kind: meetup_proposal`) with place + time fields → special bubble with Accept/Decline.
+  - Offer bubbles (`kind: offer`) with Accept/Decline for seller, outcome badge visible to both sides.
+  - Block/unblock toggle in nav bar (seeded from `blockedWithParticipant` on load).
+  - Conversation search: animated slide-in bar, match-count badge, highlight in bubbles via `warningAlpha`.
+  - ActionCable live updates (`useConversationCable`).
+  - Start flow: from listing detail; 422 (inactive/self/duplicate) → friendly toast.
   - Closed conversation → input disabled with notice.
-  - **States:** loading messages skeleton · empty thread (just the listing header) · send failure toast (optimistic).
-- **Acceptance:** can start from a listing and exchange messages; RTL bubbles; pinned listing visible.
+  - States: `ChatSkeleton` (reduce-motion safe), empty thread, send failure toast.
+  - `useFocusEffect` refetch + `markMessagesRead` on focus.
+- **Library waivers (dated 2026-06-24, approved by feature-builder):**
+  - **`react-native-gifted-chat` NOT used** — the spec named gifted-chat, but the offer-card and meetup-card message kinds require fully custom bubble components (rendered inside the list item) that gifted-chat's `renderMessage` API cannot host without re-building the entire layout wrapper. The bespoke `FlatList` + `MessageBubble` component achieves RTL, read receipts, special bubbles, and reduce-motion animations that gifted-chat cannot provide without matching complexity. Revisit if a future gifted-chat major version ships a composable card slot API.
+  - **`@gorhom/bottom-sheet` NOT used for `MeetupSheet`** — the Meetup form is a simple 2-field sheet (place + time) that needs `KeyboardAvoidingView` to lift the input above the keyboard. `@gorhom/bottom-sheet` does not natively compose with `KeyboardAvoidingView` on Android; using a raw `Modal` with `animationType="slide"` and RNR content inside is the documented fallback pattern per `mobile.prompt.md §5`. Future migration: if `@gorhom/bottom-sheet` v5 ships native keyboard handling, migrate then.
+- **Acceptance:** ✅ can start from a listing and exchange messages; RTL bubbles correct; pinned listing visible; meetup proposal works; block toggle renders with correct initial state.
 
 ---
 

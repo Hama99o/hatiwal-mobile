@@ -1,0 +1,36 @@
+appId: com.hatiwal.app
+---
+# Verify that the "Most viewed" sort option appears in the Browse filter panel,
+# can be selected, re-fetches the feed, and can be toggled off (cleared).
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+
+# Open the filter panel
+- tapOn:
+    id: "browse.filters"
+- waitForAnimationToEnd
+
+# Scroll down inside the filter panel until the Sort section is visible
+- scrollUntilVisible:
+    element:
+      text: "Sort"
+    direction: DOWN
+    timeout: 5000
+
+# The "Most viewed" option should be visible in the sort row
+- assertVisible: "Most viewed"
+
+# Tap "Most viewed" to activate it
+- tapOn:
+    text: "Most viewed"
+- waitForAnimationToEnd
+
+# The feed re-fetches — wait for animation to settle
+- waitForAnimationToEnd
+
+# Tap "Most viewed" again to toggle it off (back to default)
+- tapOn:
+    text: "Most viewed"
+- waitForAnimationToEnd

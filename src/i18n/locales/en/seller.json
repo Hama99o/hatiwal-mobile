@@ -1,0 +1,19 @@
+{
+  "awayBanner": "Seller is away until {{date}}",
+  "away": {
+    "sectionTitle": "Away Mode",
+    "toggleLabel": "I'm away",
+    "toggleDescription": "Let buyers know you're temporarily unavailable. Your listings stay active and browsable.",
+    "dateLabel": "Away until",
+    "datePlaceholder": "Pick a return date",
+    "setDate": "Set return date",
+    "clearAway": "Cancel away mode",
+    "clearConfirmTitle": "Cancel away mode?",
+    "clearConfirmMessage": "Buyers will no longer see the away notice on your listings and profile.",
+    "clearConfirmAction": "Yes, cancel",
+    "saved": "Away mode set — buyers will see your return date",
+    "cleared": "Away mode cleared",
+    "saveError": "Could not update away mode",
+    "pastDateError": "Return date must be in the future"
+  }
+}

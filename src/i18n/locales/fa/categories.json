@@ -1,0 +1,17 @@
+{
+  "hubTitle": "دسته‌بندی‌ها",
+  "itemCount_one": "{{count}} آگهی",
+  "itemCount_other": "{{count}} آگهی",
+  "itemCount": "{{count}} آگهی",
+  "itemCountZero": "بدون آگهی",
+  "empty": {
+    "title": "هنوز دسته‌بندی‌ای وجود ندارد",
+    "description": "دسته‌بندی‌ها پس از افزوده شدن اینجا نمایش داده می‌شوند."
+  },
+  "browseAll": "مشاهده همه دسته‌بندی‌ها",
+  "viewAll": "مشاهده همه",
+  "subcategories": "زیردسته‌ها",
+  "allIn": "همه در {{name}}",
+  "tapToExpand": "برای مشاهده زیردسته‌ها ضربه بزنید",
+  "collapseSubcategories": "بستن زیردسته‌ها"
+}

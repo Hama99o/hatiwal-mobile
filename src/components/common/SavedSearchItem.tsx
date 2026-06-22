@@ -1,6 +1,15 @@
-import React from "react";
-import { Pressable, StyleSheet } from "react-native";
+import React, { useEffect } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+} from "react-native-reanimated";
 import { Text } from "@/components/reusables/text";
+import { Badge } from "@/components/reusables/badge";
 import { X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import type { SavedSearch } from "@/api/saved-searches";
@@ -9,6 +18,7 @@ import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useCategories } from "@/hooks/useCategories";
 import { useCategoryName } from "@/hooks/useCategoryName";
+import { useReduceMotion } from "@/lib/animation";
 
 interface SavedSearchItemProps {
   search: SavedSearch;
@@ -37,6 +47,37 @@ export function SavedSearchItem({ search, onPress, onDelete }: SavedSearchItemPr
   const { t } = useTranslation();
   const { data: categories } = useCategories();
   const getCategoryName = useCategoryName();
+  const reduceMotion = useReduceMotion();
+
+  // Subtle entrance + low-amplitude scale pulse for the new-matches badge.
+  // Gated by system reduce-motion: when enabled the badge appears statically.
+  const badgeScale = useSharedValue(0.6);
+  useEffect(() => {
+    const hasNew = (search.newMatchesCount ?? 0) > 0;
+    if (!hasNew) {
+      cancelAnimation(badgeScale);
+      badgeScale.value = 1;
+      return;
+    }
+    if (reduceMotion) {
+      badgeScale.value = 1;
+      return;
+    }
+    // Entrance pop then subtle pulse
+    badgeScale.value = withRepeat(
+      withSequence(
+        withTiming(1.0, { duration: 200 }),
+        withTiming(1.06, { duration: 600 }),
+        withTiming(1.0, { duration: 600 })
+      ),
+      -1,
+      false
+    );
+  }, [badgeScale, search.newMatchesCount, reduceMotion]);
+
+  const badgeAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: badgeScale.value }],
+  }));
 
   // The saved search stores the category as a relation (categoryId). Resolve it
   // to the live category so the chip shows the name in the ACTIVE language —
@@ -61,6 +102,8 @@ export function SavedSearchItem({ search, onPress, onDelete }: SavedSearchItemPr
 
   const summary = parts.join(" • ");
 
+  const newCount = search.newMatchesCount ?? 0;
+
   return (
     <Pressable
       onPress={onPress}
@@ -70,7 +113,8 @@ export function SavedSearchItem({ search, onPress, onDelete }: SavedSearchItemPr
         {
           flexDirection:   isRtl ? "row-reverse" : "row",
           backgroundColor: colors.secondary,
-          borderColor:     colors.border,
+          borderColor:     newCount > 0 ? colors.primary : colors.border,
+          borderWidth:     newCount > 0 ? 1.5 : 1,
         },
       ]}
     >
@@ -80,9 +124,17 @@ export function SavedSearchItem({ search, onPress, onDelete }: SavedSearchItemPr
       >
         {summary || t("browse.savedSearch")}
       </Text>
+      {newCount > 0 && (
+        <Animated.View style={[isRtl ? styles.badgeRtl : styles.badge, badgeAnimatedStyle]}>
+          <Badge
+            label={t("browse.newMatches", { count: newCount })}
+            variant="default"
+          />
+        </Animated.View>
+      )}
       <Pressable
         onPress={onDelete}
-        hitSlop={8}
+        hitSlop={{ top: 14, right: 14, bottom: 14, left: 14 }}
         style={styles.deleteBtn}
         accessibilityRole="button"
         accessibilityLabel={t("common.delete")}
@@ -95,19 +147,25 @@ export function SavedSearchItem({ search, onPress, onDelete }: SavedSearchItemPr
 
 const styles = StyleSheet.create({
   chip: {
-    alignItems:      "center",
-    gap:             8,
+    alignItems:        "center",
+    gap:               8,
     paddingHorizontal: 12,
     paddingVertical:   8,
-    borderRadius:    20,
-    borderWidth:     1,
-    maxWidth:        240,
+    borderRadius:      20,
+    maxWidth:          280,
+    minHeight:         44,
   },
   label: {
     fontSize:   13,
     fontWeight: "500",
     flexShrink: 1,
     maxWidth:   180,
+  },
+  badge: {
+    marginLeft: -2,
+  },
+  badgeRtl: {
+    marginRight: -2,
   },
   deleteBtn: {
     padding: 4,

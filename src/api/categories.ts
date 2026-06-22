@@ -11,6 +11,8 @@ export interface Category {
   position: number;
   parentId?: number | null;
   subcategories?: Category[];
+  /** Present only when fetched with ?with_counts=true */
+  activeListingsCount?: number;
 }
 
 /**
@@ -37,6 +39,13 @@ export function localizedCategoryName(cat: LocalizedNames, lang: string): string
 export const categoriesAPI = {
   getCategories: async (): Promise<Category[]> => {
     const response = await http.get("/categories");
+    return (response.data.categories ?? []).map(
+      (c: Record<string, unknown>) => convertKeysToCamel(c) as Category
+    );
+  },
+
+  getCategoriesWithCounts: async (): Promise<Category[]> => {
+    const response = await http.get("/categories?with_counts=true");
     return (response.data.categories ?? []).map(
       (c: Record<string, unknown>) => convertKeysToCamel(c) as Category
     );

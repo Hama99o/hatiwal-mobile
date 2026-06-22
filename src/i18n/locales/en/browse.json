@@ -45,6 +45,18 @@
     "newest": "Newest first",
     "oldest": "Oldest first",
     "priceAsc": "Price: low to high",
-    "priceDesc": "Price: high to low"
-  }
+    "priceDesc": "Price: high to low",
+    "mostViewed": "Most viewed"
+  },
+  "browseCategories": "Browse categories",
+  "sellerActivity": "Seller activity",
+  "activeSellers": "Active sellers",
+  "activeSellersHint": "Show only listings from sellers who signed in within the last 7 days",
+  "newMatches_one": "{{count}} new",
+  "newMatches_other": "{{count}} new",
+  "subcategoryFilter": "Subcategory: {{name}}",
+  "clearSubcategory": "Clear subcategory",
+  "filtersActive_one": "{{count}} filter active",
+  "filtersActive_other": "{{count}} filters active",
+  "clearAllFilters": "Clear all"
 }

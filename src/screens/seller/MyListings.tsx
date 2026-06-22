@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { View, ScrollView, Pressable } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useRouter, useFocusEffect } from "expo-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, Plus, LayoutGrid, List, Search, X } from "lucide-react-native";
+import { ListingsIllustration } from "@/components/common/empty-illustrations";
 
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
@@ -12,11 +15,18 @@ import { listingsAPI, type Listing } from "@/api/listings";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { SellerListingCard } from "./my-listings/SellerListingCard";
+import { useModeStore } from "@/stores/mode.store";
+import { useAuthStore } from "@/stores/auth.store";
 
 // "expired" is a virtual filter (active listings past their 30-day clock),
 // resolved server-side — not a real status enum value.
 type StatusFilter = "all" | Listing["status"] | "expired";
 const STATUS_TABS: StatusFilter[] = ["all", "draft", "active", "expired", "reserved", "sold"];
+
+// Visual height of the FloatingTabBar above the safe-area inset:
+// wrap paddingTop (8) + bar height (60). The bar's own paddingBottom is the
+// safe-area inset, which we add separately. Keep in sync with FloatingTabBar.tsx.
+const TAB_BAR_HEIGHT = 68;
 
 // ─── Compact Header ───────────────────────────────────────────────────────────
 //
@@ -28,11 +38,21 @@ const STATUS_TABS: StatusFilter[] = ["all", "draft", "active", "expired", "reser
 //   Row 2 — Status tabs (~44px):
 //     [All] [Draft] [Active] [Expired] [Reserved] [Sold]
 //
-// The "Post a listing" action moves to a FAB (bottom-right).
+//   Row 1 also ends with a "+" New-listing button (primary action).
+//
 // The category-chip filter row (ListingFiltersBar) is intentionally omitted
 // from My Shop: filtering one's own inventory by category is rarely useful
 // and was consuming ~110px of precious above-the-fold space.
 // ListingFiltersBar.tsx is NOT modified — UserProfile.tsx keeps using it.
+
+type StatusCounts = {
+  all: number;
+  draft: number;
+  active: number;
+  expired: number;
+  reserved: number;
+  sold: number;
+};
 
 interface CompactHeaderProps {
   search: string;
@@ -41,7 +61,9 @@ interface CompactHeaderProps {
   onTabChange: (t: StatusFilter) => void;
   viewMode: ListingFeedViewMode;
   onViewModeChange: (m: ListingFeedViewMode) => void;
+  onNewListing: () => void;
   totalCount?: number;
+  statusCounts?: StatusCounts;
   isRtl: boolean;
   colors: ReturnType<typeof useColors>;
   t: (key: string, opts?: Record<string, unknown>) => string;
@@ -54,7 +76,9 @@ function CompactHeader({
   onTabChange,
   viewMode,
   onViewModeChange,
+  onNewListing,
   totalCount,
+  statusCounts,
   isRtl,
   colors,
   t,
@@ -182,6 +206,34 @@ function CompactHeader({
             />
           </Pressable>
         </View>
+
+        {/* New listing — primary action, in the toolbar row (always visible,
+            normal layout flow). Icon + "New" label so it's obvious it creates a
+            listing. Uses a PLAIN OBJECT style (not a function) — the grid/list
+            toggle next to it does the same; the function form of `style` gets
+            dropped by NativeWind here, leaving an invisible button. Explicit
+            useColors() tokens → respects light/dark. */}
+        <Pressable
+          onPress={onNewListing}
+          accessibilityRole="button"
+          accessibilityLabel={t("listing.postListing")}
+          android_ripple={{ color: colors.primaryForeground, borderless: false }}
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            height: 38,
+            paddingHorizontal: 12,
+            borderRadius: 10,
+            backgroundColor: colors.primary,
+          }}
+        >
+          <Plus size={18} color={colors.primaryForeground} strokeWidth={2.5} />
+          <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primaryForeground }}>
+            {t("listing.new")}
+          </Text>
+        </Pressable>
       </View>
 
       {/* ── Row 2: status filter tabs ───────────────────────────────────── */}
@@ -206,6 +258,8 @@ function CompactHeader({
         >
           {STATUS_TABS.map((tab) => {
             const isActive = activeTab === tab;
+            const count = statusCounts?.[tab as keyof StatusCounts];
+            const hasCount = count !== undefined;
             return (
               <Pressable
                 key={tab}
@@ -220,9 +274,20 @@ function CompactHeader({
                   borderColor: isActive ? colors.primary : colors.border,
                   minHeight: 30,
                   justifyContent: "center",
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 4,
                 }}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isActive }}
+                accessibilityLabel={
+                  hasCount
+                    ? t("listing.filter.countA11y", {
+                        label: t(`listing.filter.${tab}`),
+                        count,
+                      })
+                    : t(`listing.filter.${tab}`)
+                }
               >
                 <Text
                   style={{
@@ -233,6 +298,18 @@ function CompactHeader({
                 >
                   {t(`listing.filter.${tab}`)}
                 </Text>
+                {hasCount && (
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: "700",
+                      color: isActive ? colors.primaryForeground : colors.mutedForeground,
+                      opacity: isActive ? 0.85 : 0.7,
+                    }}
+                  >
+                    {count}
+                  </Text>
+                )}
               </Pressable>
             );
           })}
@@ -245,46 +322,6 @@ function CompactHeader({
   );
 }
 
-// ─── FAB ─────────────────────────────────────────────────────────────────────
-
-interface FABProps {
-  onPress: () => void;
-  colors: ReturnType<typeof useColors>;
-  label: string;
-}
-
-function PostListingFAB({ onPress, colors, label }: FABProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => ({
-        position: "absolute",
-        bottom: 24,
-        // We use a fixed offset from right; RTL mirrors are handled via
-        // absolute position — FAB is always on the trailing corner.
-        right: 20,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: colors.primary,
-        justifyContent: "center",
-        alignItems: "center",
-        // Elevation / shadow
-        shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 8,
-        opacity: pressed ? 0.85 : 1,
-      })}
-    >
-      <Plus size={24} color={colors.primaryForeground} strokeWidth={2.5} />
-    </Pressable>
-  );
-}
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function MyListingsScreen() {
@@ -292,6 +329,13 @@ export default function MyListingsScreen() {
   const { isRtl } = useLocalization();
   const colors = useColors();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  // Bottom padding so the list clears the floating tab bar: bar height + its
+  // safe-area padding (insets.bottom, or 12 when there's no inset) + a 16px gap.
+  const tabBarClearance = TAB_BAR_HEIGHT + (insets.bottom > 0 ? insets.bottom : 12) + 16;
+
+  const qc = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<StatusFilter>("all");
   const [viewMode, setViewMode] = useState<ListingFeedViewMode>("list");
@@ -300,18 +344,63 @@ export default function MyListingsScreen() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
 
+  // Per-status counts for the tab pills — fetched once and refreshed on focus
+  // and after every lifecycle mutation that changes a listing's status.
+  const { data: statusCounts } = useQuery({
+    queryKey: ["myListingStatusCounts"],
+    queryFn: listingsAPI.getMyListingStatusCounts,
+    staleTime: 0,
+  });
+
   // Debounce search input (400ms)
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Bump refetchKey on focus — causes UniversalList to re-mount and re-fetch
-  // so newly created / edited listings appear immediately without a stale list.
+  // Silent background refresh on focus so newly created / edited listings
+  // appear immediately without a stale list, and the status-count pills stay
+  // in sync. We guard against mode/auth so that this effect is a no-op when
+  // MyListingsScreen is kept mounted but hidden in buyer mode (browse.tsx
+  // renders it with display:"none" to prevent state-reset remounts).
   useFocusEffect(
     useCallback(() => {
+      // Read store state directly (no subscription) — avoids stale closure and
+      // prevents API calls when this screen is mounted-but-hidden in buyer mode.
+      if (
+        useModeStore.getState().mode !== "seller" ||
+        !useAuthStore.getState().isAuthenticated
+      ) return;
       setRefetchKey((k) => k + 1);
+      qc.invalidateQueries({ queryKey: ["myListingStatusCounts"] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+  );
+
+  const goToNewListing = useCallback(() => {
+    router.push("/(main)/listing/new" as never);
+  }, [router]);
+
+  // Stable callbacks so ListingFeed's renderItem useCallback never changes its
+  // reference between renders — an unstable renderListItem/onPressListing causes
+  // FlashList to re-render all cells, unmounting Image components and producing
+  // a visible blink every time the screen gains focus.
+  const handleMutated = useCallback(() => {
+    setRefetchKey((k) => k + 1);
+  }, []);
+
+  const handlePressListing = useCallback(
+    (item: Listing) => router.push(`/(main)/my-listings/${item.id}` as never),
+    [router]
+  );
+
+  const renderSellerListItem = useCallback(
+    ({ item }: { item: Listing }) => (
+      <View style={{ paddingBottom: 16 }}>
+        <SellerListingCard listing={item} onMutated={handleMutated} />
+      </View>
+    ),
+    [handleMutated]
   );
 
   const ListHeader = (
@@ -322,7 +411,9 @@ export default function MyListingsScreen() {
       onTabChange={setActiveTab}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      onNewListing={goToNewListing}
       totalCount={totalCount}
+      statusCounts={statusCounts}
       isRtl={isRtl}
       colors={colors}
       t={t}
@@ -354,6 +445,10 @@ export default function MyListingsScreen() {
 
   return (
     <ScreenContainer scrollable={false} padded={false}>
+      {/* Header pinned ABOVE the feed — same pattern as Browse/Bazar. This keeps
+          the search + filter row above the loading skeleton (not below it) and
+          keeps the search Input mounted so the keyboard never drops mid-typing. */}
+      {ListHeader}
       <ListingFeed
         id={`my-listings-${activeTab}-${debouncedSearch}-${viewMode}`}
         refreshKey={refetchKey}
@@ -361,13 +456,10 @@ export default function MyListingsScreen() {
         viewMode={viewMode}
         showStatus
         skeletonCount={3}
-        renderListItem={({ item }) => (
-          <View style={{ paddingBottom: 16 }}>
-            <SellerListingCard listing={item} />
-          </View>
-        )}
-        ListHeaderComponent={ListHeader}
+        onPressListing={handlePressListing}
+        renderListItem={renderSellerListItem}
         emptyIcon={ShoppingBag}
+        emptyIllustration={activeTab === "all" ? <ListingsIllustration size={96} /> : undefined}
         emptyTitle={
           activeTab === "all"
             ? t("listing.emptyAll.title")
@@ -380,17 +472,11 @@ export default function MyListingsScreen() {
         }
         emptyAction={
           activeTab === "all"
-            ? { label: t("listing.postListing"), onPress: () => router.push("/(main)/listing/new" as never) }
+            ? { label: t("listing.postListing"), onPress: goToNewListing }
             : undefined
         }
-        contentPaddingBottom={88}
-      />
-
-      {/* Floating action button — "Post a listing" */}
-      <PostListingFAB
-        onPress={() => router.push("/(main)/listing/new" as never)}
-        colors={colors}
-        label={t("listing.postListing")}
+        // Clear the floating tab bar so the last card never hides behind it.
+        contentPaddingBottom={tabBarClearance}
       />
     </ScreenContainer>
   );

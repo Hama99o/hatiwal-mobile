@@ -20,5 +20,26 @@
     "duplicate": "You have already reported this.",
     "generic": "Could not submit report. Please try again."
   },
-  "reasonRequired": "Please select a reason."
+  "reasonRequired": "Please select a reason.",
+  "block": {
+    "title": "Block this user?",
+    "body": "Do you also want to block this user so they can't contact you or see your listings?",
+    "confirmCta": "Yes, block them",
+    "cancel": "Not now",
+    "success": "User blocked successfully.",
+    "error": "Could not block user. Please try again."
+  },
+  "myReports": {
+    "title": "My Reports",
+    "empty": "You haven't reported anything yet.",
+    "statusLabel": "Status",
+    "targetLabel": "Reported",
+    "reportedOn": "Reported on {{date}}"
+  },
+  "status": {
+    "pending": "Pending",
+    "reviewed": "Reviewed",
+    "resolved": "Resolved",
+    "dismissed": "Dismissed"
+  }
 }

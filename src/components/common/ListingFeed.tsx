@@ -89,6 +89,12 @@ export interface ListingFeedProps {
   ListHeaderComponent?: React.ReactElement | null;
 
   emptyIcon?: React.ComponentType<{ size?: number; color?: string }>;
+  /**
+   * Inline SVG illustration node for the EmptyState.
+   * When provided, replaces the bare icon. Use components from
+   * `src/components/common/empty-illustrations/`.
+   */
+  emptyIllustration?: React.ReactNode;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: { label: string; onPress: () => void };
@@ -110,6 +116,7 @@ export function ListingFeed({
   skeletonCount = 6,
   ListHeaderComponent,
   emptyIcon,
+  emptyIllustration,
   emptyTitle,
   emptyDescription,
   emptyAction,
@@ -183,6 +190,7 @@ export function ListingFeed({
     SkeletonComponent:
       viewMode === "list" ? ListingCardListSkeleton : ListingCardSkeleton,
     emptyIcon,
+    emptyIllustration,
     emptyTitle,
     emptyDescription,
     emptyAction,

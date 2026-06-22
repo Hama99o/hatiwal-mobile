@@ -534,6 +534,34 @@ colors.secondaryForeground
 - `loadSavedTheme()` — called at module level in `_layout.tsx` for early AsyncStorage load
 - `setColorScheme` is only available as a method from `useColorScheme()` hook — NOT a standalone import
 
+### Pressable `style` — CRITICAL RULE (invisible-button trap)
+
+> **Never pass a FUNCTION to `style` on `Pressable`/Touchable.** In this project NativeWind's
+> `cssInterop` silently **drops** the function form `style={({ pressed }) => ({...})}` — the returned
+> `backgroundColor`, `width`, `height`, `borderRadius` etc. never apply. The result is an
+> **invisible button**: the touch area exists but there's no fill and the (white) icon vanishes
+> on the background. This bit us repeatedly on the "New listing" button.
+
+- ❌ Broken — renders an empty, colorless button (iOS **and** Android):
+  ```tsx
+  <Pressable style={({ pressed }) => ({ backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 })}>
+  ```
+- ✅ Correct — plain **object** (or array) `style`; press feedback via `android_ripple` / `activeOpacity`:
+  ```tsx
+  <Pressable
+    onPress={...}
+    android_ripple={{ color: colors.primaryForeground }}
+    style={{ width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: colors.primary }}
+  >
+    <Plus size={20} color={colors.primaryForeground} />
+  </Pressable>
+  ```
+
+Rule of thumb: every button that renders correctly in the app (grid/list toggle, tab pills, filter
+pills) uses a plain object `style`. If you need a pressed state, use `android_ripple`, `activeOpacity`
+(on Touchable), or drive it from local state — **not** a function `style`. Colors still come from
+`useColors()` inline (see the Theming rule above). This applies to **both iOS and Android**.
+
 ---
 
 ## 6) RTL Layout

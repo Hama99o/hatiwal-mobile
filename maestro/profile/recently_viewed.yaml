@@ -1,0 +1,41 @@
+appId: com.hatiwal.app
+---
+# Recently Viewed — open from Profile, verify list renders and empty state
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+
+# Navigate to Profile tab
+- tapOn: "Profile"
+- waitForAnimationToEnd
+
+# Scroll down to find the "Recently Viewed" row in the Activity section
+- scrollUntilVisible:
+    element: "Recently Viewed"
+    direction: DOWN
+- tapOn: "Recently Viewed"
+- waitForAnimationToEnd
+
+# Verify the screen title is shown in the native header
+- assertVisible: "Recently Viewed"
+
+# Verify the list renders (may show empty state if no views yet)
+# The screen shows either a list of listings or the empty state
+- waitForAnimationToEnd
+
+# If empty state is shown, verify browse CTA inline (no runFlow needed)
+- runFlow:
+    when:
+      visible: "Nothing viewed yet"
+    commands:
+      - assertVisible: "Browse Listings"
+
+# Go back to Profile
+- back
+- assertVisible: "Profile"

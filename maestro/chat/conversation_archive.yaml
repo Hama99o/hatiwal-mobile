@@ -1,0 +1,68 @@
+appId: com.hatiwal.app
+---
+# Archive / Unarchive conversation flow:
+#   1. Open the Chats tab — Inbox tab is visible by default.
+#   2. Long-press the first conversation row to open the action menu.
+#   3. Tap "Archive" — row optimistically disappears from inbox.
+#   4. Switch to Archived tab — archived conversation appears.
+#   5. Open the action menu on the archived row — "Unarchive" is shown.
+#   6. Tap "Unarchive" — row disappears from Archived tab.
+#   7. Switch back to Inbox — conversation is restored.
+
+- runFlow: ../_helpers/login.yaml
+
+# Navigate to Chats tab
+- tapOn:
+    text: "Chats"
+- waitForAnimationToEnd
+
+# Inbox is the default tab
+- assertVisible: "Inbox"
+- assertVisible: "Archived"
+
+# Long-press first conversation row to open the action menu
+- longPressOn:
+    id: "conversation-row-0"
+- waitForAnimationToEnd
+
+# Action menu is open — Archive option must be visible (inbox context)
+- assertVisible: "Archive"
+- assertNotVisible: "Unarchive"
+
+# Tap Archive
+- tapOn:
+    text: "Archive"
+- waitForAnimationToEnd
+
+# Switch to the Archived tab
+- tapOn:
+    id: "tab-archived"
+- waitForAnimationToEnd
+
+# Archived conversation now appears in the Archived tab
+- assertVisible:
+    id: "conversation-row-0"
+
+# Open the archived conversation's action menu
+- tapOn:
+    id: "conversation-options-0"
+- waitForAnimationToEnd
+
+# Unarchive option must be present (archived context), Archive must not
+- assertVisible: "Unarchive"
+- assertNotVisible: "Archive"
+
+# Tap Unarchive
+- tapOn:
+    text: "Unarchive"
+- waitForAnimationToEnd
+
+# Archived tab should now be empty (the row was removed)
+- assertVisible: "No archived chats"
+
+# Switch back to Inbox — conversation should be restored
+- tapOn:
+    id: "tab-inbox"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "conversation-row-0"

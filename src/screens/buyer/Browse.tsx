@@ -15,14 +15,16 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react-native";
+import { NoResultsIllustration } from "@/components/common/empty-illustrations";
 
 import { ListingFeed } from "@/components/common/ListingFeed";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import { BrowseHeader } from "./browse/BrowseHeader";
+import { computeActiveFilterCount } from "@/utils/browseFilters";
 
 import { listingsAPI, type Listing, type ListingCondition, type ListingSort } from "@/api/listings";
 import type { ListQuery, ListFetchResult } from "@/components/common/UniversalList";
@@ -37,6 +39,7 @@ import type { MapCanvasCoords } from "@/components/common/map/MapCanvas.types";
 export default function BrowseScreen() {
   const { t } = useTranslation();
   const colors = useColors();
+  const router = useRouter();
 
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -48,10 +51,23 @@ export default function BrowseScreen() {
   // ── Search history — persisted locally ───────────────────────────────────
   const addToSearchHistory = useSearchHistoryStore((s) => s.add);
 
+  // ── URL params — support pre-filtering via ?categoryId=<n> (from category hub) ──
+  // subcategoryName is passed when the user tapped a subcategory chip in the hub,
+  // so Browse can show a labelled removable active-filter chip in the header.
+  const { categoryId: categoryIdParam, subcategoryName: subcategoryNameParam } =
+    useLocalSearchParams<{ categoryId?: string; subcategoryName?: string }>();
+
   // ── Filter state ──────────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categoryId, setCategoryId] = useState<number | null>(
+    categoryIdParam ? Number(categoryIdParam) : null
+  );
+  // subcategoryLabel is non-null only when a subcategory (leaf) filter is active;
+  // clearing it (via the X chip) reverts to showing all listings.
+  const [subcategoryLabel, setSubcategoryLabel] = useState<string | null>(
+    subcategoryNameParam ?? null
+  );
   const [location, setLocation] = useState<string | null>(null);
   const [coordinates, setCoordinates] = useState<MapCanvasCoords | null>(null);
   const [distance, setDistance] = useState<number>(5);
@@ -59,6 +75,7 @@ export default function BrowseScreen() {
   const [priceMax, setPriceMax] = useState<string>("");
   const [condition, setCondition] = useState<ListingCondition | null>(null);
   const [sort, setSort] = useState<ListingSort | null>(null);
+  const [sellerActiveDays, setSellerActiveDays] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
@@ -72,6 +89,32 @@ export default function BrowseScreen() {
       setRefetchKey((k) => k + 1);
     }, [])
   );
+
+  // ── Sync category from URL param when navigated to from the category hub ──
+  // Browse is a tab and stays mounted, so router.push with params won't
+  // re-mount the screen. useLocalSearchParams updates reactively, and this
+  // effect applies the category param whenever it changes.
+  //
+  // IMPORTANT: after applying the param we immediately clear it via
+  // router.setParams so that the dependency [categoryIdParam] transitions
+  // from "5" → undefined. Without this clear, a second tap on the SAME
+  // category card in the hub produces a push with an identical param value;
+  // the effect dependency has not changed, the effect does NOT re-fire, and
+  // the category filter is silently not re-applied.
+  useEffect(() => {
+    if (categoryIdParam) {
+      setCategoryId(Number(categoryIdParam));
+      // When a subcategoryName param is present the filter is a subcategory leaf.
+      // Store its label so BrowseHeader can show a removable chip with the name.
+      // When absent the buyer tapped a top-level card → clear any prior subcategory label.
+      setSubcategoryLabel(subcategoryNameParam ?? null);
+      // Clear params so the next hub-tap (same or different id) is always a
+      // genuine param transition that re-fires this effect.
+      router.setParams({ categoryId: undefined, subcategoryName: undefined });
+    }
+    // Intentionally NOT clearing the filter state when param is absent — the
+    // user may still have set a category through the inline chip row.
+  }, [categoryIdParam, subcategoryNameParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Search debounce ───────────────────────────────────────────────────────
   // Once a search term settles, record it in history so BrowseHeader's "recent
@@ -168,6 +211,7 @@ export default function BrowseScreen() {
     setSearch("");
     setDebouncedSearch("");
     setCategoryId(null);
+    setSubcategoryLabel(null);
     setLocation(null);
     setCoordinates(null);
     setDistance(5);
@@ -175,12 +219,13 @@ export default function BrowseScreen() {
     setPriceMax("");
     setCondition(null);
     setSort(null);
+    setSellerActiveDays(null);
   }, []);
 
   // ── UniversalList fetcher key (triggers page reset on filter/mode change) ──
   // viewMode is included so FlashList re-mounts cleanly when switching grid↔list
   // (numColumns change requires a full re-layout, not just a re-render).
-  const fetcherKey = `${debouncedSearch}|${categoryId}|${condition}|${priceMin}|${priceMax}|${coordinates?.latitude}|${coordinates?.longitude}|${distance}|${location}|${sort}|${viewMode}`;
+  const fetcherKey = `${debouncedSearch}|${categoryId}|${condition}|${priceMin}|${priceMax}|${coordinates?.latitude}|${coordinates?.longitude}|${distance}|${location}|${sort}|${sellerActiveDays}|${viewMode}`;
 
   const fetcher = useCallback(
     async (query: ListQuery): Promise<ListFetchResult<Listing>> => {
@@ -197,6 +242,7 @@ export default function BrowseScreen() {
         longitude: coordinates?.longitude,
         radius: coordinates ? distance : undefined,
         sort: sort ?? undefined,
+        sellerActiveDays: sellerActiveDays ?? undefined,
       });
 
       // Seed saved map from server data without overwriting optimistic state
@@ -221,8 +267,22 @@ export default function BrowseScreen() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const hasActiveFilters = !!(
-    debouncedSearch || categoryId !== null || location || priceMin || priceMax || condition
+    debouncedSearch || categoryId !== null || location || priceMin || priceMax || condition || sellerActiveDays
   );
+
+  // Count of individually-active filters/sorts for the summary pill.
+  // Default sort (null = newest) is NOT counted. subcategoryLabel is counted
+  // via categoryId (subcategory filter always implies a categoryId).
+  const activeFilterCount = computeActiveFilterCount({
+    debouncedSearch,
+    categoryId,
+    condition,
+    priceMin,
+    priceMax,
+    coordinates,
+    sellerActiveDays,
+    sort,
+  });
 
   const listHeader = (
     <BrowseHeader
@@ -243,12 +303,25 @@ export default function BrowseScreen() {
       onConditionChange={setCondition}
       categories={categories}
       categoryId={categoryId}
-      onCategoryChange={setCategoryId}
+      onCategoryChange={(id) => {
+        // Changing the top-level category from the chip row clears the subcategory label
+        setCategoryId(id);
+        setSubcategoryLabel(null);
+      }}
       onSelectSavedSearch={handleApplySavedSearch}
       sort={sort}
       onSortChange={setSort}
+      sellerActiveDays={sellerActiveDays}
+      onSellerActiveDaysChange={setSellerActiveDays}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
+      subcategoryLabel={subcategoryLabel}
+      onClearSubcategory={() => {
+        setCategoryId(null);
+        setSubcategoryLabel(null);
+      }}
+      activeFilterCount={activeFilterCount}
+      onClearAllFilters={handleReset}
     />
   );
 
@@ -274,6 +347,7 @@ export default function BrowseScreen() {
         )}
         onSaveToggle={handleSaveToggle}
         skeletonCount={6}
+        emptyIllustration={<NoResultsIllustration size={96} />}
         emptyIcon={Search}
         emptyTitle={hasActiveFilters ? t("browse.noResults") : t("browse.empty.title")}
         emptyDescription={

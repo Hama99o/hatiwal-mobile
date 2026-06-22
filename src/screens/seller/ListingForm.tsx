@@ -29,7 +29,7 @@ import {
   StyleSheet,
   Pressable,
 } from "react-native";
-import { ChevronRight, MapPin, Coins, Check } from "lucide-react-native";
+import { ChevronRight, MapPin, Coins, Check, ToggleRight } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
@@ -50,14 +50,15 @@ import { useColors } from "@/hooks/useColors";
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
 import { Textarea } from "@/components/reusables/textarea";
-import { Button } from "@/components/reusables/button";
 import { Label } from "@/components/reusables/label";
 import { Separator } from "@/components/reusables/separator";
+import { Switch } from "@/components/reusables/switch";
 
 import { PhotosSection, PhotoItem } from "./listing-form/PhotosSection";
 import { CategoryPicker } from "@/components/common/CategoryPicker";
 import { ConditionChips } from "@/components/common/ConditionChips";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
+import { BackButton } from "@/components/common/BackButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ---------------------------------------------------------------------------
@@ -81,6 +82,8 @@ const listingSchema = z.object({
   // finite() rejects undefined→NaN and Infinity, making these effectively required.
   latitude: z.coerce.number().finite(),
   longitude: z.coerce.number().finite(),
+  // negotiable: whether the seller accepts price offers. Default: true.
+  negotiable: z.boolean().default(true),
 });
 
 type ListingFormValues = z.infer<typeof listingSchema>;
@@ -155,6 +158,7 @@ export default function ListingFormScreen() {
     resolver: zodResolver(listingSchema),
     defaultValues: {
       currency: "AFN",
+      negotiable: true,
     },
   });
 
@@ -183,6 +187,8 @@ export default function ListingFormScreen() {
         address: existingListing.address ?? "",
         latitude: existingListing.latitude ?? undefined,
         longitude: existingListing.longitude ?? undefined,
+        // Backend may return null for older listings before the column was added; treat as true.
+        negotiable: existingListing.negotiable !== false,
       });
       if (existingListing.category) {
         setSelectedCategory(existingListing.category as any);
@@ -371,6 +377,66 @@ export default function ListingFormScreen() {
   // ---------------------------------------------------------------------------
   return (
     <ScreenContainer scrollable={false} padded={false}>
+    {/* -------------------------------------------------------------------- */}
+    {/* Top toolbar — back button + primary actions. Always visible at the    */}
+    {/* top (no scrolling to reach Save/Publish). Plain object-style          */}
+    {/* Pressables (a function `style` is dropped by NativeWind → invisible   */}
+    {/* button); colors via useColors() so it respects light/dark.           */}
+    {/* -------------------------------------------------------------------- */}
+    <View
+      style={{
+        flexDirection: isRtl ? "row-reverse" : "row",
+        alignItems: "center",
+        gap: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 8,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.border,
+        backgroundColor: colors.card,
+      }}
+    >
+      <BackButton onPress={onCancel} />
+      <View style={{ flex: 1 }} />
+      {isPublished ? (
+        // Editing a published listing → just save the changes (status unchanged)
+        <Pressable
+          onPress={onSaveDraft}
+          disabled={isLoading}
+          accessibilityRole="button"
+          android_ripple={{ color: colors.primaryForeground }}
+          style={[styles.topBtn, { backgroundColor: colors.primary, opacity: isLoading ? 0.6 : 1 }]}
+        >
+          <Text style={[styles.topBtnLabel, { color: colors.primaryForeground }]}>
+            {isLoading ? t("common.loading") : t("common.save")}
+          </Text>
+        </Pressable>
+      ) : (
+        <>
+          <Pressable
+            onPress={onSaveDraft}
+            disabled={isLoading}
+            accessibilityRole="button"
+            android_ripple={{ color: colors.muted }}
+            style={[styles.topBtnOutline, { borderColor: colors.border, opacity: isLoading ? 0.5 : 1 }]}
+          >
+            <Text style={[styles.topBtnLabel, { color: colors.foreground }]}>
+              {t("listing.form.saveDraft")}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={onPublish}
+            disabled={isLoading}
+            accessibilityRole="button"
+            android_ripple={{ color: colors.primaryForeground }}
+            style={[styles.topBtn, { backgroundColor: colors.primary, opacity: isLoading ? 0.6 : 1 }]}
+          >
+            <Text style={[styles.topBtnLabel, { color: colors.primaryForeground }]}>
+              {isLoading && isSubmittingPublish ? t("common.loading") : t("listing.publish")}
+            </Text>
+          </Pressable>
+        </>
+      )}
+    </View>
     <KeyboardAvoidingView
       style={styles.flex}
       // Platform audit (2026-06-18):
@@ -519,6 +585,37 @@ export default function ListingFormScreen() {
               {t("listing.form.priceRequired")}
             </Text>
           )}
+
+          {/* Negotiable toggle — placed inline below price so seller sees the pairing */}
+          <View
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginTop: 12,
+              paddingVertical: 8,
+              paddingHorizontal: 4,
+              borderRadius: 8,
+            }}
+          >
+            <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 8, flex: 1 }}>
+              <ToggleRight size={16} color={colors.mutedForeground} />
+              <Text className="text-sm" style={{ color: colors.foreground, textAlign: isRtl ? "right" : "left" }}>
+                {t("listing.form.negotiableLabel")}
+              </Text>
+            </View>
+            <Controller
+              control={control}
+              name="negotiable"
+              render={({ field }) => (
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  accessibilityLabel={t("listing.form.negotiableLabel")}
+                />
+              )}
+            />
+          </View>
         </View>
 
         {/* ------------------------------------------------------------------ */}
@@ -651,7 +748,7 @@ export default function ListingFormScreen() {
         {/* ------------------------------------------------------------------ */}
         {/* 7. Address                                                          */}
         {/* ------------------------------------------------------------------ */}
-        <View style={[styles.field, { marginBottom: 120 }]}>
+        <View style={styles.field}>
           <Label className="mb-1">{t("listing.form.addressLabel")}</Label>
           <Controller
             control={control}
@@ -670,61 +767,8 @@ export default function ListingFormScreen() {
             {t("listing.form.addressHint")}
           </Text>
         </View>
-      </ScrollView>
 
-      {/* -------------------------------------------------------------------- */}
-      {/* Sticky submit bar                                                     */}
-      {/* -------------------------------------------------------------------- */}
-      <View
-        style={[
-          styles.submitBar,
-          {
-            backgroundColor: colors.background,
-            borderTopColor: colors.border,
-            flexDirection: isRtl ? "row-reverse" : "row",
-            paddingBottom: Math.max(insets.bottom, 12),
-          },
-        ]}
-      >
-        <Button
-          variant="ghost"
-          onPress={onCancel}
-          disabled={isLoading}
-          style={styles.submitBtn}
-        >
-          <Text style={{ color: colors.destructive }}>{t("listing.form.discard")}</Text>
-        </Button>
-        {isPublished ? (
-          // Editing a published listing → just save the changes (status unchanged)
-          <Button
-            variant="default"
-            onPress={onSaveDraft}
-            disabled={isLoading}
-            style={[styles.submitBtn, { flex: 2 }]}
-          >
-            <Text>{isLoading ? t("common.loading") : t("common.save")}</Text>
-          </Button>
-        ) : (
-          <>
-            <Button
-              variant="outline"
-              onPress={onSaveDraft}
-              disabled={isLoading}
-              style={styles.submitBtn}
-            >
-              <Text>{t("listing.form.saveDraft")}</Text>
-            </Button>
-            <Button
-              variant="default"
-              onPress={onPublish}
-              disabled={isLoading}
-              style={styles.submitBtn}
-            >
-              <Text>{isLoading && isSubmittingPublish ? t("common.loading") : t("listing.publish")}</Text>
-            </Button>
-          </>
-        )}
-      </View>
+      </ScrollView>
 
       {/* -------------------------------------------------------------------- */}
       {/* Category picker sheet                                                 */}
@@ -835,6 +879,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 20,
+    paddingBottom: 40,
   },
   field: {
     marginBottom: 20,
@@ -899,20 +944,25 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
   },
-  submitBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+  topBtn: {
+    minHeight: 40,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    // Platform audit (2026-06-18): iOS home indicator height is ~28pt on modern devices;
-    // Android has no bottom safe-area equivalent → 12pt is the correct fallback.
-    paddingBottom: Platform.OS === "ios" ? 28 : 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
-  submitBtn: {
-    flex: 1,
+  topBtnOutline: {
+    minHeight: 40,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  topBtnLabel: {
+    fontSize: 14,
+    fontWeight: "700",
   },
 });

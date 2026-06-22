@@ -29,7 +29,10 @@ import {
   Dimensions,
   Modal,
   Share,
+  Platform,
+  RefreshControl,
 } from "react-native";
+import * as Linking from "expo-linking";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -82,7 +85,12 @@ import { OfferSheet } from "./listing-detail/OfferSheet";
 import { DetailSkeleton } from "./listing-detail/DetailSkeleton";
 import { SellerPhoneReveal } from "./listing-detail/SellerPhoneReveal";
 import { PriceDropBadge } from "@/components/common/PriceDropBadge";
+import { Badge } from "@/components/reusables/badge";
+import { ResponseRateBadge } from "@/components/common/ResponseRateBadge";
+import { AwayBanner } from "@/components/common/AwayBanner";
 import { useReduceMotion } from "@/lib/animation";
+import { getActiveLabelText } from "@/utils/activeLabelUtil";
+import { resolveShareUrl } from "@/utils/shareUtils";
 
 const { width: SW } = Dimensions.get("window");
 const GALLERY_COLLAPSE_RATIO = 0.65;
@@ -203,11 +211,22 @@ export default function ListingDetailScreen() {
   }));
 
   // ── Data fetching ──────────────────────────────────────────────────────────
-  const { data: listing, isLoading } = useQuery({
+  const { data: listing, isLoading, refetch } = useQuery({
     queryKey: ["listing", id],
     queryFn: () => listingsAPI.getListing(Number(id)),
     enabled: !!id,
   });
+
+  // Pull-to-refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refetch]);
 
   // Refetch whenever the screen regains focus (e.g. returning from conversation)
   useFocusEffect(
@@ -216,12 +235,12 @@ export default function ListingDetailScreen() {
     }, [id, qc])
   );
 
-  // Similar listings (same category, exclude current, max 6)
+  // Similar listings — dedicated endpoint: same category, excludes current listing,
+  // browsable only (draft/sold/expired never leak), ordered by recency, max 8.
   const { data: similar } = useQuery({
-    queryKey: ["listings-similar", listing?.categoryId],
-    queryFn: () => listingsAPI.getListings({ categoryId: listing!.categoryId, pageSize: 10 }),
-    enabled: !!listing?.categoryId,
-    select: (data) => data.items.filter((l) => l.id !== Number(id)).slice(0, 6),
+    queryKey: ["listings-similar", Number(id)],
+    queryFn: () => listingsAPI.getSimilarListings(Number(id)),
+    enabled: !!id,
   });
 
   // Sync saved state from API response
@@ -309,13 +328,34 @@ export default function ListingDetailScreen() {
 
   const handleShare = useCallback(async () => {
     setShowMoreSheet(false);
+    if (!listing) return;
     try {
-      await Share.share({
-        title: listing?.title ?? "",
-        message: `${listing?.title} — ${formatCurrency(listing?.price ?? 0, listing?.currency ?? "AFN")}`,
+      // Prefer the server-supplied https share URL; fall back to a hatiwal:// deep link
+      // so the share always carries a tappable link regardless of backend config.
+      // createURL("listing/<id>") with scheme "hatiwal" → "hatiwal://listing/<id>"
+      // which Expo Router resolves to app/(main)/listing/[id].tsx.
+      const url = resolveShareUrl(
+        listing.shareUrl,
+        listing.id,
+        (path) => Linking.createURL(path)
+      );
+      const price = formatCurrency(listing.price, listing.currency);
+      const message = t("listing.share.body", {
+        title: listing.title,
+        price,
+        url,
       });
+      // On iOS, passing both `message` (which already embeds the URL) and a
+      // separate `url` field causes some share targets to render the link twice
+      // or drop the message body entirely. Pass `url` only on Android where the
+      // field is used as a standalone attachment rather than concatenated text.
+      await Share.share(
+        Platform.OS === "ios"
+          ? { title: listing.title, message }
+          : { title: listing.title, message, url }
+      );
     } catch {}
-  }, [listing, formatCurrency]);
+  }, [listing, formatCurrency, t]);
 
   const handleReport = useCallback(() => {
     setShowMoreSheet(false);
@@ -338,6 +378,10 @@ export default function ListingDetailScreen() {
   const isOwnListing = !!currentUser && currentUser.id === listing.seller?.id;
   // CTA only shown for active listings the current user does NOT own
   const canContact = listing.status === "active" && !isOwnListing;
+  // TASK-G083 / TASK-N071: treat missing/undefined negotiable as true (negotiable by default).
+  // When the backend ships the negotiable flag and it is explicitly false, hide the
+  // "Make an Offer" button and OfferSheet entirely.
+  const isNegotiable = listing.negotiable !== false;
   const isBusy = offerMutation.isPending;
 
   return (
@@ -352,11 +396,18 @@ export default function ListingDetailScreen() {
         style={styles.flex}
         contentContainerStyle={{ paddingBottom: 100, paddingTop: insets.top }}
         showsVerticalScrollIndicator={false}
-        bounces={false}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         automaticallyAdjustContentInsets={false}
         contentInsetAdjustmentBehavior="never"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
         {/* Gallery collapses gently as user scrolls */}
         <Animated.View style={galleryHeightAnim}>
@@ -393,6 +444,19 @@ export default function ListingDetailScreen() {
           {/* Price-drop badge — subtle pill below price, only when a recent drop exists */}
           {listing.priceDropPercent != null && listing.priceDropPercent > 0 && (
             <PriceDropBadge percent={listing.priceDropPercent} variant="detail" />
+          )}
+
+          {/* Firm-price badge — quiet trust signal when negotiable is false */}
+          {listing.negotiable === false && (
+            <View
+              testID="firm-price-badge-detail"
+              style={{ alignSelf: isRtl ? "flex-end" : "flex-start", marginTop: 4 }}
+            >
+              <Badge
+                label={t("listing.firmPrice")}
+                variant="muted"
+              />
+            </View>
           )}
 
           {/* Title — directly below price, strong but secondary */}
@@ -521,30 +585,24 @@ export default function ListingDetailScreen() {
                 testID="seller-profile-link"
                 onPress={() => router.push(`/(main)/seller/${listing.seller.id}` as never)}
               />
-              {/* Response badge — reply rate and/or typical response time. Shown
-                  when the seller has met the threshold (rate != null), even if
-                  the time label is nil (e.g. a 0% never-replied seller). */}
-              {(listing.seller.responseRatePercent != null || listing.seller.responseTimeLabel != null) && (
+              {/* Response rate badge — suppressed when rate is null or 0 (false trust signal). */}
+              <ResponseRateBadge
+                responseRatePercent={listing.seller.responseRatePercent}
+                responseTimeLabel={listing.seller.responseTimeLabel}
+              />
+              {/* Last-active recency label — quiet trust signal; omitted when null. */}
+              {!!getActiveLabelText(listing.seller.lastActiveLabel, t) && (
                 <View
                   style={{
                     flexDirection: isRtl ? "row-reverse" : "row",
                     alignItems: "center",
-                    gap: 4,
+                    gap: 5,
                     marginTop: 4,
                   }}
                 >
                   <Clock size={12} color={colors.mutedForeground} />
                   <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                    {[
-                      listing.seller.responseRatePercent != null
-                        ? t("profile.sellerProfile.responseRate", { percent: listing.seller.responseRatePercent })
-                        : null,
-                      listing.seller.responseTimeLabel != null
-                        ? t(`profile.sellerProfile.responseTime.${listing.seller.responseTimeLabel}`)
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
+                    {getActiveLabelText(listing.seller.lastActiveLabel, t)}
                   </Text>
                 </View>
               )}
@@ -565,6 +623,14 @@ export default function ListingDetailScreen() {
               authReturnTo={authReturnTo}
             />
           ) : null}
+
+          {/* Away banner — shown only when seller is currently away and buyer is not the owner */}
+          {!isOwnListing && listing.seller.sellerIsAway && (
+            <AwayBanner
+              awayUntil={listing.seller.sellerAwayUntil}
+              style={{ marginTop: 12 }}
+            />
+          )}
         </AnimatedSection>
 
         {/* ── Similar listings ─────────────────────────────────────────── */}
@@ -649,6 +715,7 @@ export default function ListingDetailScreen() {
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel={t("listing.detail.moreOptions")}
+            testID="more-options-button"
           >
             <MoreHorizontal size={20} color={colors.overlayForeground} strokeWidth={2} />
           </Pressable>
@@ -662,41 +729,64 @@ export default function ListingDetailScreen() {
           {
             backgroundColor: colors.background,
             borderTopColor: colors.border,
-            flexDirection: isRtl ? "row-reverse" : "row",
             paddingBottom: Math.max(insets.bottom, 16),
           },
         ]}
       >
         {canContact ? (
           <>
-            {/* Make an Offer — secondary, narrower */}
-            <Button
-              variant="outline"
-              onPress={handleOpenOffer}
-              style={[styles.actionBtn, styles.actionBtnSecondary]}
-              disabled={isBusy}
-            >
-              <Text style={{ fontSize: 14, fontWeight: "600" }}>
-                {t("listing.detail.makeOffer")}
-              </Text>
-            </Button>
-            {/* Contact Seller — primary, wider, taller */}
-            <Button
-              variant="default"
-              onPress={handleMessageSeller}
-              disabled={isBusy}
-              style={[styles.actionBtn, styles.actionBtnPrimary]}
-            >
+            {/* Firm-price notice — shown when offer button is hidden so buyer
+                understands why the offer option is absent (trust signal). */}
+            {!isNegotiable && (
               <Text
                 style={{
-                  fontSize: 15,
-                  fontWeight: "700",
-                  color: colors.primaryForeground,
+                  fontSize: 12,
+                  color: colors.mutedForeground,
+                  textAlign: isRtl ? "right" : "left",
+                  marginBottom: 4,
                 }}
+                testID="firm-notice-caption"
               >
-                {t("listing.detail.contactSeller")}
+                {t("chat.offer.firmNotice")}
               </Text>
-            </Button>
+            )}
+            <View
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                gap: 10,
+              }}
+            >
+              {/* Make an Offer — secondary, narrower. Hidden if listing is non-negotiable. */}
+              {isNegotiable && (
+                <Button
+                  variant="outline"
+                  onPress={handleOpenOffer}
+                  style={[styles.actionBtn, styles.actionBtnSecondary]}
+                  disabled={isBusy}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: "600" }}>
+                    {t("listing.detail.makeOffer")}
+                  </Text>
+                </Button>
+              )}
+              {/* Contact Seller — primary, wider, taller */}
+              <Button
+                variant="default"
+                onPress={handleMessageSeller}
+                disabled={isBusy}
+                style={[styles.actionBtn, styles.actionBtnPrimary]}
+              >
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: "700",
+                    color: colors.primaryForeground,
+                  }}
+                >
+                  {t("listing.detail.contactSeller")}
+                </Text>
+              </Button>
+            </View>
           </>
         ) : (
           /* Sold / reserved / own listing → informational notice only */
@@ -761,8 +851,8 @@ export default function ListingDetailScreen() {
         </View>
       </Modal>
 
-      {/* ── Make an offer sheet ──────────────────────────────────────────── */}
-      <OfferSheet
+      {/* ── Make an offer sheet — only rendered when listing is negotiable ─── */}
+      {isNegotiable && <OfferSheet
         visible={showOfferSheet}
         onClose={() => setShowOfferSheet(false)}
         onSend={handleSendOffer}
@@ -771,7 +861,7 @@ export default function ListingDetailScreen() {
         currency={listing.currency}
         price={listing.price}
         isBusy={isBusy}
-      />
+      />}
 
       {/* ── First message sheet — D2 start flow ─────────────────────────── */}
       {listing && (

@@ -1,21 +1,24 @@
 appId: com.hatiwal.app
 ---
 # Seller response-rate badge — TASK-N805
-# Verifies the "Usually responds within …" trust signal appears on:
+# Verifies the "Usually responds within …" trust signal AND the
+# response-rate percentage appear on:
 #   1. The public seller profile page (SellerProfile screen)
 #   2. The seller card inside a listing detail page (ListingDetail screen)
 #
-# CI seed data must include a seller with >=5 conversations and at least one reply
-# so that both the response-time badge AND the response-rate percent are rendered.
+# CI seed guarantee: db/seeds/e2e.rb seeds seller@hatiwal.test with >=6
+# conversations (each with a quick reply < 30 min), so the badge always
+# renders in CI.  Login as the buyer who has a conversation with this seller
+# so the first listing in the feed is seller@hatiwal.test's listing.
 #
-# Happy path — both badges visible
+# Happy path — both badge rows visible
 
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
-# ── Listing Detail: seller card response-time row ──────────────────────────────
-# Open first listing
+# ── Listing Detail: seller card response-time + rate rows ────────────────────
+# Open first listing (seller@hatiwal.test's active listing is first in feed)
 - tapOn:
     index: 0
     testID: "listing-card"
@@ -28,29 +31,29 @@ appId: com.hatiwal.app
     direction: DOWN
     timeout: 5000
 
-# The badge should contain one of the three response-time strings
+# The badge should contain the response-time string
 - assertVisible:
-    regex: "Usually responds within.*"
+    text: "Usually responds within.*"
 
-# The response-rate percent is also rendered (e.g. "85% reply rate")
+# The response-rate percent must also be rendered (e.g. "100% reply rate")
 - assertVisible:
-    text: "\\d+% reply rate"
+    text: "[0-9]+% reply rate"
 
-# ── Seller Profile: response-time and response-rate rows ──────────────────────
-# Tap the seller row to open their public profile
+# ── Seller Profile: both badge rows visible ──────────────────────────────────
+# Tap the seller identity row to open their public profile
 - tapOn:
     testID: "seller-profile-link"
 - waitForAnimationToEnd
 
-# The same response-time string should appear under the seller avatar
+# The response-time string must appear under the seller avatar
 - assertVisible:
-    regex: "Usually responds within.*"
+    text: "Usually responds within.*"
 
-# The response-rate percent should also appear on the seller profile
+# The response-rate percent must appear on the seller profile too
 - assertVisible:
-    text: "\\d+% reply rate"
+    text: "[0-9]+% reply rate"
 
-# Back to listing detail
+# Back to listing detail — sticky bar should still be visible
 - back
 - waitForAnimationToEnd
 - assertVisible: "Contact Seller"

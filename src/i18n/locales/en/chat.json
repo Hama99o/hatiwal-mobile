@@ -1,4 +1,5 @@
 {
+  "listingDeleted": "This listing has been removed",
   "title": "Messages",
   "searchPlaceholder": "Search conversations...",
   "messagePlaceholder": "Type a message...",
@@ -25,6 +26,7 @@
     "offer": "Offer: {{amount}} {{currency}}",
     "offerAccepted": "Offer accepted",
     "offerDeclined": "Offer declined",
+    "offerCounter": "Counter offer: {{amount}} {{currency}}",
     "photo": "Photo",
     "file": "File"
   },
@@ -71,9 +73,28 @@
     "sending": "Sending..."
   },
   "attachFile": "Attach file",
+  "attachPhoto": "Attach photo",
   "document": {
     "tap": "Tap to open",
     "notAvailable": "File not available"
+  },
+  "photo": {
+    "uploadFailed": "Failed to send photo. Please try again.",
+    "permissionDenied": "Photo library permission is required to send photos.",
+    "notAvailable": "Photo not available",
+    "loading": "Loading photo...",
+    "viewFullscreen": "View photo fullscreen"
+  },
+  "tabs": {
+    "inbox": "Inbox",
+    "archived": "Archived"
+  },
+  "archive": {
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "empty": "No archived chats",
+    "emptyDescription": "Conversations you archive will appear here.",
+    "error": "Could not update archive status. Please try again."
   },
   "filter": {
     "all": "All",
@@ -92,7 +113,18 @@
     "accepted": "Offer accepted",
     "declined": "Offer declined",
     "acceptedToast": "You accepted the offer",
-    "declinedToast": "You declined the offer"
+    "declinedToast": "You declined the offer",
+    "counter": "Counter",
+    "counterTitle": "Counter Offer",
+    "counterLabel": "Counter Offer",
+    "buyerOfferedAt": "Buyer offered {{price}}",
+    "yourCounterOffer": "Your Counter Price",
+    "counterNote": "No payment — this counter is a price suggestion. Meet in person to finalize.",
+    "sendCounter": "Send Counter",
+    "counteredAt": "Counter Price",
+    "counterSentToast": "Counter offer sent!",
+    "quickChipsHint": "Quick amounts",
+    "firmNotice": "Seller's price is firm — offers not accepted"
   },
   "block": {
     "blockUser": "Block User",
@@ -110,5 +142,49 @@
     "matchCount": "{{current}} of {{total}}",
     "partialResults": "Showing results in loaded messages only",
     "noResults": "No messages match your search"
+  },
+  "actions": {
+    "markRead": "Mark as read",
+    "markUnread": "Mark as unread",
+    "options": "Conversation options",
+    "markReadError": "Could not update read status. Please try again."
+  },
+  "listingActions": {
+    "reserve": "Reserve",
+    "markSold": "Mark Sold",
+    "reserveSuccess": "Listing marked as reserved",
+    "markSoldSuccess": "Listing marked as sold",
+    "reserveFailed": "Could not reserve the listing. Please try again.",
+    "markSoldFailed": "Could not mark as sold. Please try again.",
+    "markSoldConfirmTitle": "Mark as sold?",
+    "markSoldConfirmBody": "This will mark the item as sold and close the listing.",
+    "markSoldConfirmCta": "Yes, mark sold"
+  },
+  "message": {
+    "deleted": "Message deleted",
+    "deleteAction": "Delete message",
+    "deleteConfirm": "Delete this message?",
+    "deleteConfirmCta": "Delete"
+  },
+  "report": {
+    "action": "Report user",
+    "menuTitle": "Report this user"
+  },
+  "quickReplies": {
+    "toolbarLabel": "Quick replies",
+    "buyer": {
+      "stillAvailable": "Is this still available?",
+      "lowestPrice": "What's your lowest price?",
+      "whereMeet": "Where can we meet?",
+      "morePhotos": "Can I see more photos?",
+      "negotiable": "Is the price negotiable?"
+    },
+    "seller": {
+      "yesAvailable": "Yes, it's available",
+      "meetAtPlace": "Let's meet at [place]",
+      "priceFirm": "The price is firm",
+      "whenFree": "When are you free to meet?",
+      "sendMorePhotos": "I can send more photos"
+    }
   }
 }

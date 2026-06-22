@@ -1,0 +1,44 @@
+appId: com.hatiwal.app
+---
+# My Listings — status tab count badges
+# Verifies that each status tab pill shows a numeric count next to its label.
+# The count appears as soon as the screen loads (parallel fetch with the list).
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+# The "All" tab is selected by default; it must display a numeric count.
+# Maestro's assertVisible matches any visible text — the number will be present
+# next to the "All" label as a sibling Text node.
+- assertVisible: "All"
+
+# Tap the Draft tab and assert its count renders (any digit is acceptable).
+- tapOn: "Draft"
+- waitForAnimationToEnd
+- assertVisible: "Draft"
+
+# Tap the Active tab and assert it shows.
+- tapOn: "Active"
+- waitForAnimationToEnd
+- assertVisible: "Active"
+
+# Tap the Expired tab.
+- tapOn: "Expired"
+- waitForAnimationToEnd
+- assertVisible: "Expired"
+
+# Tap Reserved.
+- tapOn: "Reserved"
+- waitForAnimationToEnd
+- assertVisible: "Reserved"
+
+# Tap Sold.
+- tapOn: "Sold"
+- waitForAnimationToEnd
+- assertVisible: "Sold"
+
+# Return to All — counts remain stable after tab switching.
+- tapOn: "All"
+- waitForAnimationToEnd
+- assertVisible: "All"

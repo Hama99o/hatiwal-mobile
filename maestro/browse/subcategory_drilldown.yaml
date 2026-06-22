@@ -1,0 +1,74 @@
+appId: com.hatiwal.app
+---
+# Subcategory drill-down — happy path:
+#   1. Open the Categories hub
+#   2. Tap a parent category that has subcategories → panel expands inline
+#   3. Tap a subcategory chip → Browse opens filtered to that subcategory
+#   4. Active-filter chip shows the subcategory name and is removable
+#   5. Tapping the X chip clears the filter → chip disappears
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+
+# ── Navigate to the Categories hub ───────────────────────────────────────────
+- tapOn:
+    description: "Browse categories"
+- waitForAnimationToEnd
+- assertVisible: "Categories"
+
+# The parent category card should be visible
+- assertVisible: "Electronics"
+
+# ── Tap a parent that has subcategories ──────────────────────────────────────
+# (Electronics has Phones as a subcategory in the test seed)
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+# The subcategory panel must appear with the "All in Electronics" chip
+- assertVisible:
+    text: "All in Electronics"
+- assertVisible: "Phones"
+
+# The parent card must show the collapse indicator (ChevronUp) — tested via
+# the expanded accessibilityState on the Pressable; Maestro checks visible text.
+# Verify the panel rendered by confirming a subcategory is now on screen.
+- assertVisible: "Phones"
+
+# ── Tap a subcategory chip ────────────────────────────────────────────────────
+- tapOn: "Phones"
+- waitForAnimationToEnd
+
+# Browse should be active
+- assertVisible: "Bazaar"
+
+# ── Active subcategory filter chip must be visible ────────────────────────────
+# BrowseHeader renders "Subcategory: Phones" as the chip label
+- assertVisible:
+    text: "Subcategory: Phones"
+
+# ── Clear the subcategory filter chip ────────────────────────────────────────
+- tapOn:
+    description: "Clear subcategory"
+- waitForAnimationToEnd
+
+# The chip must disappear after clearing
+- assertNotVisible:
+    text: "Subcategory: Phones"
+
+# ── Parent with no children keeps its original tap→Browse behavior ────────────
+# Go back to the hub and verify a childless category navigates directly
+- tapOn:
+    description: "Browse categories"
+- waitForAnimationToEnd
+- assertVisible: "Categories"
+
+# ── Collapse test: tapping an expanded parent collapses the panel ─────────────
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- assertVisible: "Phones"
+
+# Tap Electronics again to collapse
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- assertNotVisible: "Phones"

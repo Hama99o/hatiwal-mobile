@@ -1,0 +1,49 @@
+appId: com.hatiwal.app
+---
+# TASK-M913: Soft-delete a sent message — tombstone bubble appears, original text gone.
+#
+# Happy path:
+#   1. Send a message
+#   2. Long-press on it → bottom-sheet appears with "Delete message"
+#   3. Confirm deletion → tombstone "Message deleted" appears
+#   4. Original text is gone from the thread
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+
+# Open first conversation
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+
+# Send a unique message we'll delete
+- tapOn: "Type a message..."
+- inputText: "Test message to delete"
+- tapOn: "Send"
+- waitForAnimationToEnd
+
+# Verify the message appears
+- assertVisible: "Test message to delete"
+
+# Long-press the message bubble to trigger the delete action sheet
+- longPressOn: "Test message to delete"
+- waitForAnimationToEnd
+
+# Delete action sheet should be visible
+- assertVisible: "Delete message"
+
+# Tap delete
+- tapOn: "Delete message"
+- waitForAnimationToEnd
+
+# Confirm deletion in the alert
+- assertVisible: "Delete this message?"
+- tapOn: "Delete"
+- waitForAnimationToEnd
+
+# Tombstone should appear
+- assertVisible: "Message deleted"
+
+# Original text should be gone
+- assertNotVisible: "Test message to delete"

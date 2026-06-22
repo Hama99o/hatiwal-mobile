@@ -121,6 +121,15 @@ const listingsHandlers = [
     })
   ),
 
+  http.get(`${BASE}/listings/:id/similar`, ({ params }) =>
+    HttpResponse.json({
+      listings: [
+        { ...MOCK_LISTING, id: Number(params.id) + 1 },
+        { ...MOCK_LISTING, id: Number(params.id) + 2 },
+      ],
+    })
+  ),
+
   http.get(`${BASE}/listings/:id`, ({ params }) =>
     HttpResponse.json({ listing: { ...MOCK_LISTING, id: Number(params.id) } })
   ),
@@ -198,12 +207,47 @@ const listingsHandlers = [
   http.get(`${BASE}/my/saved_listings`, () =>
     HttpResponse.json({
       listings: [MOCK_LISTING],
-      meta: { total_count: 1 },
+      meta: {
+        pagination: {
+          current_page: 1,
+          next_page: null,
+          prev_page: null,
+          total_count: 1,
+          total_pages: 1,
+        },
+      },
+    })
+  ),
+
+  http.get(`${BASE}/my/viewed_listings`, () =>
+    HttpResponse.json({
+      listings: [MOCK_LISTING],
+      meta: {
+        pagination: {
+          current_page: 1,
+          next_page: null,
+          prev_page: null,
+          total_count: 1,
+          total_pages: 1,
+        },
+      },
     })
   ),
 ];
 
 // ─── Categories handlers ─────────────────────────────────────────────────────
+
+export const MOCK_SUBCATEGORY = {
+  id: 11,
+  slug: "phones",
+  name_en: "Phones",
+  name_ps: "موبایلونه",
+  name_fa: "تلفن‌ها",
+  icon: "📱",
+  position: 1,
+  parent_id: 1,
+  subcategories: [],
+};
 
 export const MOCK_CATEGORY = {
   id: 1,
@@ -214,13 +258,27 @@ export const MOCK_CATEGORY = {
   icon: "laptop",
   position: 1,
   parent_id: null,
+  subcategories: [MOCK_SUBCATEGORY],
+};
+
+export const MOCK_CATEGORY_EMPTY_SUBCATEGORIES = {
+  ...MOCK_CATEGORY,
   subcategories: [],
 };
 
+export const MOCK_CATEGORY_WITH_COUNT = {
+  ...MOCK_CATEGORY,
+  active_listings_count: 5,
+};
+
 const categoriesHandlers = [
-  http.get(`${BASE}/categories`, () =>
-    HttpResponse.json({ categories: [MOCK_CATEGORY] })
-  ),
+  http.get(`${BASE}/categories`, ({ request }) => {
+    const url = new URL(request.url);
+    if (url.searchParams.get("with_counts") === "true") {
+      return HttpResponse.json({ categories: [MOCK_CATEGORY_WITH_COUNT] });
+    }
+    return HttpResponse.json({ categories: [MOCK_CATEGORY] });
+  }),
 ];
 
 // ─── Conversations handlers ──────────────────────────────────────────────────
@@ -289,14 +347,71 @@ const conversationsHandlers = [
     new HttpResponse(null, { status: 204 })
   ),
 
+  http.put(`${BASE}/conversations/:id/mark_read`, () =>
+    new HttpResponse(null, { status: 204 })
+  ),
+
+  http.put(`${BASE}/conversations/:id/mark_unread`, () =>
+    new HttpResponse(null, { status: 204 })
+  ),
+
+  http.put(`${BASE}/conversations/:id/archive`, () =>
+    new HttpResponse(null, { status: 204 })
+  ),
+
+  http.put(`${BASE}/conversations/:id/unarchive`, () =>
+    new HttpResponse(null, { status: 204 })
+  ),
+
   http.delete(`${BASE}/conversations/:id`, () =>
     new HttpResponse(null, { status: 204 })
+  ),
+
+  // TASK-M913: soft-delete a message
+  http.delete(`${BASE}/conversations/:convId/messages/:msgId`, ({ params }) =>
+    HttpResponse.json({
+      message: {
+        ...MOCK_MESSAGE,
+        id: Number(params.msgId),
+        body: null,
+        attachment_url: null,
+        deleted: true,
+        deleted_at: "2026-06-27T12:00:00Z",
+      },
+    })
   ),
 ];
 
 // ─── Reports handlers ────────────────────────────────────────────────────────
 
+export const MOCK_REPORT = {
+  id: 1,
+  reason: "spam",
+  status: "pending",
+  description: "Looks like a scam",
+  created_at: "2026-06-01T10:00:00.000Z",
+  reportable_type: "Listing",
+  reportable_id: 5,
+  reportable_label: "Old Phone For Sale",
+};
+
+export const MOCK_REPORTS_RESPONSE = {
+  reports: [MOCK_REPORT],
+  meta: {
+    pagination: {
+      current_page: 1,
+      next_page: null,
+      prev_page: null,
+      total_count: 1,
+      total_pages: 1,
+    },
+  },
+};
+
 const reportsHandlers = [
+  http.get(`${BASE}/reports`, () =>
+    HttpResponse.json(MOCK_REPORTS_RESPONSE, { status: 200 })
+  ),
   http.post(`${BASE}/reports`, () =>
     HttpResponse.json({ message: "Report submitted successfully." }, { status: 201 })
   ),
@@ -318,11 +433,16 @@ export const MOCK_PUBLIC_PROFILE = {
   blocked: false,
   response_rate_percent: 80,
   response_time_label: "within_one_hour",
+  last_active_label: "today",
 };
 
 const usersHandlers = [
   http.get(`${BASE}/users/:id/public_profile`, ({ params }) =>
     HttpResponse.json({ user: { ...MOCK_PUBLIC_PROFILE, id: Number(params.id) } })
+  ),
+
+  http.get(`${BASE}/blocks`, () =>
+    HttpResponse.json({ users: [MOCK_PUBLIC_PROFILE] })
   ),
 
   http.post(`${BASE}/users/:id/block`, () =>

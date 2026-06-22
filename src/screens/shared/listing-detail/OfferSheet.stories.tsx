@@ -158,3 +158,54 @@ export const BusySubmitting: Story = {
     isBusy: true,
   },
 };
+
+// ─── TASK-G083: Quick-amount chips — chips visible, none selected ─────────────
+// Demonstrates the three suggestion chips (95%, 90%, 85% of asking price).
+// No chip is pre-selected (offerAmount is empty).
+
+export const WithQuickChips: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onSend: () => {},
+    offerAmount: "",
+    onChangeAmount: () => {},
+    currency: "AFN",
+    price: 25000,
+    isBusy: false,
+  },
+};
+
+// ─── TASK-G083: Quick-amount chips — 90% chip selected ───────────────────────
+// offerAmount already matches the 90% chip value (22500), so that chip renders
+// in its selected/highlighted state.
+
+export const WithChipSelected: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onSend: () => {},
+    offerAmount: "22500",
+    onChangeAmount: () => {},
+    currency: "AFN",
+    price: 25000,
+    isBusy: false,
+  },
+};
+
+// ─── TASK-G083: Quick-amount chips hidden — isBusy = true ────────────────────
+// When an offer submission is in flight, chips are hidden (same as BusySubmitting
+// above but explicitly named to document the TASK-G083 isBusy-hides-chips rule).
+
+export const ChipsHiddenWhenBusy: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onSend: () => {},
+    offerAmount: "22500",
+    onChangeAmount: () => {},
+    currency: "AFN",
+    price: 25000,
+    isBusy: true,
+  },
+};

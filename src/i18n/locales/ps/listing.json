@@ -75,7 +75,8 @@
     "active": "فعال",
     "expired": "نیټه تېره",
     "reserved": "خوندي شوی",
-    "sold": "خرڅ شوی"
+    "sold": "خرڅ شوی",
+    "countA11y": "{{label}}، {{count}} اعلانونه"
   },
   "emptyFiltered": {
     "title": "{{status}} اعلانونه نشته",
@@ -89,9 +90,12 @@
   "shopCount_other": "{{count}} اعلانونه",
   "noPhoto": "انځور نشته",
   "seen": "لیدل شوی",
+  "share": {
+    "body": "{{title}} — {{price}}\n{{url}}"
+  },
   "priceDrop": {
     "badge": "{{percent}}٪ د نرخ کمښت",
-    "badgeCardShort": "-{{percent}}٪"
+    "badgeCardShort": "↓{{percent}}٪"
   },
   "detail": {
     "contactSeller": "پلورونکي سره اړیکه",
@@ -184,7 +188,12 @@
     "discardTitle": "بدلونونه لغوه شي؟",
     "discardMessage": "ستاسو ناخوندي شوي بدلونونه به له لاسه لاړ شي.",
     "discardConfirm": "لغوه کول",
-    "locationRequired": "موقعیت اړین دی — پیرودونکي د سیمې له مخې فلټر کوي"
+    "locationRequired": "موقعیت اړین دی — پیرودونکي د سیمې له مخې فلټر کوي",
+    "negotiableLabel": "قیمت د خبرو وړ دی"
   },
-  "shopCount_one": "{{count}} اعلان"
+  "shopCount_one": "{{count}} اعلان",
+  "firmPrice": "ثابت قیمت",
+  "card": {
+    "verifiedSeller": "تایید شوی خرڅوونکی"
+  }
 }

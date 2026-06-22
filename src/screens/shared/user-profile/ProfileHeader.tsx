@@ -5,13 +5,16 @@
 
 import React from "react";
 import { View } from "react-native";
+import { Clock } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { Separator } from "@/components/reusables/separator";
 import { UserIdentity } from "@/components/common/UserIdentity";
+import { AwayBanner } from "@/components/common/AwayBanner";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useTranslation } from "react-i18next";
 import { type PublicProfile } from "@/api/users";
+import { getActiveLabelText } from "@/utils/activeLabelUtil";
 
 interface ProfileHeaderProps {
   profile: PublicProfile;
@@ -66,6 +69,7 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
   // Re-parsing it through new Date() is fragile and produces English month names
   // regardless of locale. Display the string verbatim; the backend is the authority.
   const memberDate = profile.memberSince ?? "—";
+  const activeLabelText = getActiveLabelText(profile.lastActiveLabel, t);
 
   return (
     <View style={{ paddingHorizontal: 16 }}>
@@ -86,7 +90,7 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
       <View
         style={{
           flexDirection: isRtl ? "row-reverse" : "row",
-          marginBottom: 16,
+          marginBottom: activeLabelText ? 8 : 16,
           backgroundColor: colors.card,
           borderRadius: 12,
           borderWidth: 1,
@@ -113,6 +117,38 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
           compact
         />
       </View>
+
+      {/* Last-active recency label — quiet meta row; omitted when null */}
+      {!!activeLabelText && (
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 16,
+            paddingHorizontal: 4,
+          }}
+        >
+          <Clock size={13} color={colors.mutedForeground} />
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.mutedForeground,
+              textAlign: isRtl ? "right" : "left",
+            }}
+          >
+            {activeLabelText}
+          </Text>
+        </View>
+      )}
+
+      {/* Away banner — rendered when the seller is currently away */}
+      {!!profile.isAway && (
+        <AwayBanner
+          awayUntil={profile.awayUntil ?? null}
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
       {/* Bio */}
       {!!profile.bio && (

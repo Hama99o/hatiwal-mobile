@@ -1,0 +1,50 @@
+appId: com.hatiwal.app
+---
+# TASK-L824 — Deep link: launch app via hatiwal://listing/<id> (cold start)
+#
+# Tests that a hatiwal:// custom-scheme URL opens the listing detail screen
+# without requiring a login wall (guest browsing is supported).
+#
+# Prerequisites:
+#   - The app is NOT running (cold start scenario).
+#   - At least one active listing exists in the database with a known id.
+#   - Set LISTING_ID env var before running:
+#       LISTING_ID=1 maestro test maestro/share/open_listing_deep_link.yaml
+#
+# Universal-link (https://) verification is out of scope for this test —
+# it requires real domain infra and Apple/Google domain-verification files.
+# See TASK-L824 notes for the follow-up universal-link task.
+
+- launchApp:
+    clearState: false
+    stopApp: true
+
+# Open the app via the custom deep-link scheme
+- openLink: "hatiwal://listing/${LISTING_ID:-1}"
+
+# The listing detail screen should render without a login wall.
+# We assert on testIDs / text that the detail screen renders.
+- assertVisible:
+    id: "seller-profile-link"
+    label: "Listing detail seller card visible after deep link"
+
+# Verify the more-options button (share button) is visible (overlay row)
+- assertVisible:
+    id: "more-options-button"
+    optional: true
+
+# Warm-start scenario: app is already running, open a different listing
+- openLink: "hatiwal://listing/${LISTING_ID:-1}"
+
+# Detail screen should still render — no crash on warm start
+- assertVisible:
+    id: "seller-profile-link"
+    label: "Listing detail still renders on warm start"
+
+# Guest can view the listing without being redirected to login.
+# Assert that the login screen title ("Welcome to Hatiwal") is NOT visible —
+# this text renders in the Login screen header and would appear if a login wall
+# blocked the guest. "auth.login.title" is a raw i18n key (never rendered on screen).
+- assertNotVisible:
+    text: "Welcome to Hatiwal"
+    label: "No login wall for guest viewing a listing via deep link"

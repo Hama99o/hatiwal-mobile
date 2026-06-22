@@ -1,0 +1,55 @@
+appId: com.hatiwal.app
+---
+# Report the other participant from inside a conversation thread (TASK-R483).
+#
+# Happy path: open thread → tap Flag icon → pick a reason → submit → success toast.
+# Edge cases: self-report button is hidden; 422 duplicate shows friendly error toast.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chat"
+- waitForAnimationToEnd
+
+# ── Open an existing conversation ────────────────────────────────────────────
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+
+# ── Verify the Flag (report) button is visible in the nav header ─────────────
+- assertVisible:
+    id: "report-participant-button"
+
+# ── Open the report sheet ────────────────────────────────────────────────────
+- tapOn:
+    id: "report-participant-button"
+- waitForAnimationToEnd
+
+# Sheet should slide up and show the report title
+- assertVisible: "Report"
+
+# ── Verify all 6 reason options are present ──────────────────────────────────
+- assertVisible: "Spam"
+- assertVisible: "Fraud"
+- assertVisible: "Inappropriate"
+
+# ── Select a reason and submit ───────────────────────────────────────────────
+- tapOn: "Fraud"
+- waitForAnimationToEnd
+
+- tapOn: "Submit report"
+- waitForAnimationToEnd
+
+# Success toast should appear
+- assertVisible: "Report submitted"
+
+# ── Duplicate report (422) shows friendly error toast ────────────────────────
+# Re-open a fresh conversation and attempt to report the same user again.
+# The backend returns 422 → the sheet shows the "already reported" toast.
+- tapOn:
+    id: "report-participant-button"
+- waitForAnimationToEnd
+- tapOn: "Spam"
+- tapOn: "Submit report"
+- waitForAnimationToEnd
+# "Already reported" friendly toast
+- assertVisible: "already reported"

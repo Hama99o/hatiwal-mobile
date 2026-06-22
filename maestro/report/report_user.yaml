@@ -1,6 +1,6 @@
 appId: com.hatiwal.app
 ---
-# Report a user from their seller profile
+# Report a user from their seller profile — happy path (decline block)
 
 - runFlow: ../_helpers/login.yaml
 - waitForAnimationToEnd
@@ -18,4 +18,11 @@ appId: com.hatiwal.app
 - tapOn: "Fraud or scam"
 - tapOn: "Submit Report"
 - waitForAnimationToEnd
+# Success toast appears
 - assertVisible: "Report submitted. Thank you."
+- waitForAnimationToEnd
+# Block follow-up dialog appears — decline it
+- assertVisible: "Block this user?"
+- tapOn: "Not now"
+- waitForAnimationToEnd
+# Sheet is closed; no block toast

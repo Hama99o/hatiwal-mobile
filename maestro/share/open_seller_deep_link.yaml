@@ -1,0 +1,47 @@
+appId: com.hatiwal.app
+---
+# TASK-S392 — Deep link: launch app via hatiwal://seller/<id> (cold + warm start)
+#
+# Tests that a hatiwal:// custom-scheme seller URL opens the public seller profile
+# screen without requiring a login wall (guest browsing is supported).
+#
+# Prerequisites:
+#   - The app is NOT running initially (cold start scenario).
+#   - At least one publicly-active seller exists in the database with a known id.
+#   - Set SELLER_ID env var before running:
+#       SELLER_ID=1 maestro test maestro/share/open_seller_deep_link.yaml
+#
+# Universal-link (https://...) verification is out of scope for this test —
+# it requires real domain infra and Apple/Google domain-verification files.
+# See TASK-S392 notes for the follow-up universal-link task.
+
+- launchApp:
+    clearState: false
+    stopApp: true
+
+# Open the app via the custom deep-link scheme
+- openLink: "hatiwal://seller/${SELLER_ID:-1}"
+
+# The public seller profile screen should render.
+# UserProfileScreen shows a back button and the seller's name in the header.
+# Assert on the MoreVertical options button which is visible when not viewing own profile.
+- assertVisible:
+    id: "more-options-button"
+    optional: true
+    label: "Seller profile header visible after deep link"
+
+# Assert the loading skeleton resolves — the profile header should be visible.
+# We use a broad text assertion: the seller profile renders user-facing text.
+# (A more specific testId would require adding testID="seller-profile-header" to
+#  the UserIdentity component — documented as a follow-up enhancement.)
+- assertNotVisible:
+    text: "Welcome to Hatiwal"
+    label: "No login wall for guest viewing a seller profile via deep link (cold start)"
+
+# Warm-start scenario: app is already running, open the same deep link again
+- openLink: "hatiwal://seller/${SELLER_ID:-1}"
+
+# Detail screen should still render — no crash on warm start
+- assertNotVisible:
+    text: "Welcome to Hatiwal"
+    label: "No login wall for guest viewing a seller profile via deep link (warm start)"

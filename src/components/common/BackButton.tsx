@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 
 interface BackButtonProps {
@@ -12,6 +13,7 @@ interface BackButtonProps {
 export function BackButton({ onPress, color, size = 24 }: BackButtonProps) {
   const router = useRouter();
   const colors = useColors();
+  const { t } = useTranslation();
 
   const handlePress = onPress ?? (() => {
     if (router.canGoBack()) router.back();
@@ -23,6 +25,8 @@ export function BackButton({ onPress, color, size = 24 }: BackButtonProps) {
       style={styles.btn}
       hitSlop={16}
       accessibilityRole="button"
+      accessibilityLabel={t("common.goBack")}
+      testID="back_button"
     >
       <ChevronLeft size={size} color={color ?? colors.foreground} />
     </Pressable>

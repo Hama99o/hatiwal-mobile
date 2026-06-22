@@ -58,11 +58,16 @@ export interface Listing {
   conversationsCount?: number;
   isSaved?: boolean;
   isViewed?: boolean;
+  /** TASK-N071: true by default; when explicitly false the offer composer is hidden. */
+  negotiable?: boolean | null;
   expiresAt?: string | null;
   expired?: boolean;
-  // Price-drop badge — only present on :detailed view; both null if no recent drop.
+  // Price-drop badge — present on :list, :seller_list, and :detailed views; both null if no recent drop.
   priceDroppedAt?: string | null;
   priceDropPercent?: number | null;
+  // Canonical share URL — https when PUBLIC_SHARE_BASE_URL is configured on the backend, else nil.
+  // Only present on the :detailed view. Mobile falls back to hatiwal://listing/:id when absent.
+  shareUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   seller: {
@@ -76,6 +81,18 @@ export interface Listing {
     responseRatePercent?: number | null;
     /** One of: "within_one_hour" | "within_a_day" | "within_a_few_days" — or null. */
     responseTimeLabel?: "within_one_hour" | "within_a_day" | "within_a_few_days" | null;
+    /** Privacy-safe recency label: "today" | "this_week" | "this_month" | null. */
+    lastActiveLabel?: "today" | "this_week" | "this_month" | null;
+    /**
+     * True when the seller has set an away_until date that is still in the future.
+     * Only present on the :detailed view.
+     */
+    sellerIsAway?: boolean;
+    /**
+     * ISO-8601 datetime string when the seller is currently away; null otherwise.
+     * Only present on the :detailed view when sellerIsAway is true.
+     */
+    sellerAwayUntil?: string | null;
   };
   category: {
     id: number;
@@ -97,7 +114,7 @@ export interface ListingsResponse {
   };
 }
 
-export type ListingSort = "newest" | "oldest" | "price_asc" | "price_desc";
+export type ListingSort = "newest" | "oldest" | "price_asc" | "price_desc" | "most_viewed";
 
 export interface ListingParams {
   pageNumber?: number;
@@ -114,6 +131,8 @@ export interface ListingParams {
   longitude?: number;
   radius?: number;
   sort?: ListingSort;
+  /** When set, restricts results to listings whose seller's last_sign_in_at is within this many days. */
+  sellerActiveDays?: number;
 }
 
 export const listingsAPI = {
@@ -136,6 +155,7 @@ export const listingsAPI = {
       query.append("location", params.location);
     }
     if (params?.sort && params.sort !== "newest") query.append("sort", params.sort);
+    if (params?.sellerActiveDays != null) query.append("seller_active_days", String(params.sellerActiveDays));
 
     const response = await http.get(`/listings?${query}`);
     return {
@@ -153,6 +173,15 @@ export const listingsAPI = {
     const raw = convertKeysToCamel(response.data.listing) as Listing;
     // is_saved comes from backend as boolean; camelCase converts it correctly
     return raw;
+  },
+
+  // GET /listings/:id/similar — returns up to 8 browsable, same-category listings
+  // excluding the source listing. Public — works without authentication.
+  getSimilarListings: async (id: number): Promise<Listing[]> => {
+    const response = await http.get(`/listings/${id}/similar`);
+    return (response.data.listings ?? []).map(
+      (l: Record<string, unknown>) => convertKeysToCamel(l) as Listing
+    );
   },
 
   getMyListing: async (id: number): Promise<Listing> => {
@@ -207,6 +236,7 @@ export const listingsAPI = {
       address?: string;
       latitude?: number;
       longitude?: number;
+      negotiable?: boolean;
     },
     imageUris: string[]
   ): Promise<Listing> => {
@@ -221,6 +251,8 @@ export const listingsAPI = {
     if (data.address) form.append("listing[address]", data.address);
     if (data.latitude != null) form.append("listing[latitude]", String(data.latitude));
     if (data.longitude != null) form.append("listing[longitude]", String(data.longitude));
+    // Always send negotiable so the backend receives an explicit boolean rather than defaulting
+    form.append("listing[negotiable]", String(data.negotiable ?? true));
 
     await Promise.all(imageUris.map((uri) => appendImageUri(form, uri, "listing[images][]")));
 
@@ -241,6 +273,7 @@ export const listingsAPI = {
       address?: string;
       latitude?: number;
       longitude?: number;
+      negotiable?: boolean;
     },
     imageUris: string[],
     // signed_ids of existing photos the user removed — purged server-side.
@@ -257,6 +290,7 @@ export const listingsAPI = {
     if (data.address) form.append("listing[address]", data.address);
     if (data.latitude != null) form.append("listing[latitude]", String(data.latitude));
     if (data.longitude != null) form.append("listing[longitude]", String(data.longitude));
+    form.append("listing[negotiable]", String(data.negotiable ?? true));
 
     await Promise.all(imageUris.map((uri) => appendImageUri(form, uri, "listing[images][]")));
     removedImageIds.forEach((sid) => form.append("listing[removed_image_ids][]", sid));
@@ -272,13 +306,38 @@ export const listingsAPI = {
     return convertKeysToCamel(response.data.listing) as Listing;
   },
 
-  getSavedListings: async (): Promise<{ items: Listing[]; totalCount: number }> => {
-    const response = await http.get("/my/saved_listings");
+  // GET /users/:userId/sold_listings — public, works for guests.
+  // Returns a paginated list of sold listings for a given seller.
+  getSoldListings: async (
+    userId: number,
+    page?: number
+  ): Promise<ListingsResponse> => {
+    const query = new URLSearchParams();
+    if (page) query.append("page[number]", String(page));
+
+    const response = await http.get(`/users/${userId}/sold_listings?${query}`);
     return {
       items: (response.data.listings ?? []).map(
         (l: Record<string, unknown>) => convertKeysToCamel(l) as Listing
       ),
-      totalCount: response.data.meta?.total_count ?? 0,
+      pagination: convertKeysToCamel(
+        response.data.meta.pagination
+      ) as ListingsResponse["pagination"],
+    };
+  },
+
+  getSavedListings: async (page?: number): Promise<ListingsResponse> => {
+    const query = new URLSearchParams();
+    if (page) query.append("page[number]", String(page));
+
+    const response = await http.get(`/my/saved_listings?${query}`);
+    return {
+      items: (response.data.listings ?? []).map(
+        (l: Record<string, unknown>) => convertKeysToCamel(l) as Listing
+      ),
+      pagination: convertKeysToCamel(
+        response.data.meta.pagination
+      ) as ListingsResponse["pagination"],
     };
   },
 
@@ -326,6 +385,48 @@ export const listingsAPI = {
     const raw = (response.data.analytics ?? []) as Array<{ date: string; count: number }>;
     return {
       entries: raw.map((entry) => convertKeysToCamel(entry) as ListingAnalyticsEntry),
+    };
+  },
+
+  // GET /my/listings/status_counts — returns per-status listing counts for the
+  // signed-in seller. One fast grouped query on the backend; no N+1.
+  // The "active" count excludes expired-active listings (mirrors for_status_filter).
+  // The "expired" bucket counts active listings that have passed their 30-day clock.
+  getMyListingStatusCounts: async (): Promise<{
+    all: number;
+    draft: number;
+    active: number;
+    expired: number;
+    reserved: number;
+    sold: number;
+  }> => {
+    const response = await http.get("/my/listings/status_counts");
+    return convertKeysToCamel(response.data) as {
+      all: number;
+      draft: number;
+      active: number;
+      expired: number;
+      reserved: number;
+      sold: number;
+    };
+  },
+
+  // GET /my/viewed_listings — paginated list of listings the current user has
+  // previously opened, ordered by last_viewed_at desc (most recent first).
+  // Requires authentication. Browsable-only: draft/sold/reserved/expired/removed
+  // listings are excluded server-side.
+  getViewedListings: async (page?: number): Promise<ListingsResponse> => {
+    const query = new URLSearchParams();
+    if (page) query.append("page[number]", String(page));
+
+    const response = await http.get(`/my/viewed_listings?${query}`);
+    return {
+      items: (response.data.listings ?? []).map(
+        (l: Record<string, unknown>) => convertKeysToCamel(l) as Listing
+      ),
+      pagination: convertKeysToCamel(
+        response.data.meta.pagination
+      ) as ListingsResponse["pagination"],
     };
   },
 };

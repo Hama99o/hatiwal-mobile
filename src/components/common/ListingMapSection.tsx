@@ -198,7 +198,6 @@ export function ListingMapSection({ latitude, longitude, location, address }: Pr
             primaryColor={colors.primary}
             dark={dark}
             secondaryPin={userLocation ?? undefined}
-            readonly
             interactive
             gesturesEnabled
           />

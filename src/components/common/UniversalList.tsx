@@ -113,8 +113,15 @@ export interface UniversalListConfig<T> {
    */
   SkeletonComponent?: React.ComponentType;
 
-  /** Icon shown in EmptyState. */
+  /** Icon shown in EmptyState (fallback when emptyIllustration is not provided). */
   emptyIcon?: IconComponent;
+
+  /**
+   * Inline SVG illustration node for the EmptyState.
+   * When provided, replaces the bare icon. Use components from
+   * `src/components/common/empty-illustrations/`.
+   */
+  emptyIllustration?: React.ReactNode;
 
   /** Title in the EmptyState. */
   emptyTitle?: string;
@@ -161,6 +168,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     skeletonCount = 6,
     SkeletonComponent,
     emptyIcon,
+    emptyIllustration,
     emptyTitle,
     emptyDescription,
     emptyAction,
@@ -210,8 +218,15 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   );
 
   // ── Initial load / config id change ────────────────────────────────────────
+  // idLoadingRef is a ref (not state) that tracks whether loadFirst is running.
+  // The refreshKey effect reads it to avoid a double-fetch race: on fast
+  // networks the initial load can complete and set isLoading=false before the
+  // refreshKey effect's closure sees the update, causing both effects to fire.
+  // A ref is always the current value — no stale closure problem.
+  const idLoadingRef = useRef(false);
   useEffect(() => {
     const loadFirst = async () => {
+      idLoadingRef.current = true;  // synchronous — refreshKey effect reads this instantly
       setIsLoading(true);
       setItems([]);
       setCurrentPage(1);
@@ -219,6 +234,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
       setError(null);
       await fetchPage(1, true);
       setIsLoading(false);
+      idLoadingRef.current = false;
     };
 
     idRef.current = id;
@@ -236,8 +252,9 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     if (refreshKey === refreshKeyRef.current) return;
     refreshKeyRef.current = refreshKey;
     if (refreshKey == null || refreshKey === 0) return;
-    // Don't run if a full reset is in progress.
-    if (isLoading) return;
+    // Guard with idLoadingRef (a ref, always current) instead of the isLoading
+    // state value (captured by closure, can be stale on fast networks).
+    if (idLoadingRef.current) return;
     fetchPage(1, true).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
@@ -379,7 +396,8 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     if (items.length === 0) {
       return (
         <EmptyState
-          icon={emptyIcon ?? RotateCcw}
+          illustration={emptyIllustration}
+          icon={emptyIllustration ? undefined : (emptyIcon ?? RotateCcw)}
           title={emptyTitle ?? t("common.noResults")}
           description={emptyDescription}
           action={emptyAction}

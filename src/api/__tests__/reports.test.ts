@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { server } from "../../__tests__/mocks/server";
+import { MOCK_REPORTS_RESPONSE } from "../../__tests__/mocks/handlers";
 import { reportsAPI } from "../reports";
 
 jest.mock("@/utils/secure-storage", () => ({
@@ -10,6 +11,50 @@ jest.mock("@/utils/secure-storage", () => ({
     clearAuthHeaders: jest.fn().mockResolvedValue(undefined),
   },
 }));
+
+describe("reportsAPI.getMyReports", () => {
+  it("returns camelCase reports and pagination", async () => {
+    const result = await reportsAPI.getMyReports();
+    expect(result.reports).toHaveLength(1);
+    const report = result.reports[0];
+    expect(report.id).toBe(1);
+    expect(report.reason).toBe("spam");
+    expect(report.status).toBe("pending");
+    expect(report.createdAt).toBe("2026-06-01T10:00:00.000Z");
+    expect(report.reportableType).toBe("Listing");
+    expect(report.reportableId).toBe(5);
+    expect(report.reportableLabel).toBe("Old Phone For Sale");
+  });
+
+  it("includes pagination metadata", async () => {
+    const result = await reportsAPI.getMyReports();
+    expect(result.pagination.currentPage).toBe(1);
+    expect(result.pagination.totalCount).toBe(1);
+    expect(result.pagination.totalPages).toBe(1);
+    expect(result.pagination.nextPage).toBeNull();
+  });
+
+  it("passes the page parameter as a query string", async () => {
+    let capturedUrl: string | undefined;
+    server.use(
+      http.get("http://localhost:3007/api/v1/reports", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json(MOCK_REPORTS_RESPONSE, { status: 200 });
+      })
+    );
+    await reportsAPI.getMyReports(3);
+    expect(capturedUrl).toContain("page%5Bnumber%5D=3");
+  });
+
+  it("throws on 401 (unauthenticated)", async () => {
+    server.use(
+      http.get("http://localhost:3007/api/v1/reports", () =>
+        HttpResponse.json({ error: "Unauthorized" }, { status: 401 })
+      )
+    );
+    await expect(reportsAPI.getMyReports()).rejects.toThrow();
+  });
+});
 
 describe("reportsAPI.createReport", () => {
   it("reports a listing and returns success message", async () => {

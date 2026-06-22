@@ -31,6 +31,16 @@ export interface User {
   pushToken?: string | null;
   /** Set when the account is in its 30-day deletion grace window (recoverable). */
   deletionScheduledAt?: string | null;
+  /**
+   * True when away_until is set and in the future. Read from :me view.
+   * Omit the banner in the seller's own profile when editing.
+   */
+  isAway?: boolean;
+  /**
+   * ISO-8601 datetime string of the away-mode expiry, or null when not away.
+   * Set via PUT /users/me { user: { away_until: "<iso>" | null } }.
+   */
+  awayUntil?: string | null;
 }
 
 export interface LoginParams {
@@ -122,6 +132,23 @@ export const authAPI = {
    */
   validateToken: async (): Promise<User> => {
     const response = await http.get("/auth/validate_token");
+    return convertKeysToCamel(response.data.data) as User;
+  },
+
+  forgotPassword: async (email: string): Promise<void> => {
+    await http.post("/auth/password", { email });
+  },
+
+  googleSignIn: async (idToken: string): Promise<User> => {
+    const response = await http.post("/auth/google", { id_token: idToken });
+    // Google auth returns tokens in the response body (not headers)
+    await secureStorage.saveAuthHeaders({
+      "access-token": response.data["access-token"] || "",
+      client: response.data.client || "",
+      uid: response.data.uid || "",
+      "token-type": response.data["token-type"] || "Bearer",
+      expiry: String(response.data.expiry || ""),
+    });
     return convertKeysToCamel(response.data.data) as User;
   },
 };

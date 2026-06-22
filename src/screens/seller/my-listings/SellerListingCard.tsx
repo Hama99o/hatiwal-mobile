@@ -20,6 +20,7 @@ import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 
 const MY_LISTINGS_QK = "my-listings";
+const STATUS_COUNTS_QK = "myListingStatusCounts";
 
 /** Animated shimmer shown behind each photo until it finishes loading.
  *  Uses usePulse() so the shimmer is skipped when Reduce Motion is enabled. */
@@ -55,9 +56,11 @@ function PhotoSlide({ uri, width, bgColor }: PhotoSlideProps) {
 
 interface SellerListingCardProps {
   listing: Listing;
+  /** Called after any successful mutation so the parent list can refresh immediately. */
+  onMutated?: () => void;
 }
 
-export function SellerListingCard({ listing }: SellerListingCardProps) {
+export function SellerListingCard({ listing, onMutated }: SellerListingCardProps) {
   const { t } = useTranslation();
   const { isRtl, formatNumber } = useLocalization();
   const colors = useColors();
@@ -77,10 +80,18 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
 
   // ── Mutations ───────────────────────────────────────────────────────────────
 
+  // Invalidate both the listing feed and the status-count pills after any
+  // lifecycle action so the tab badges stay accurate without a manual refresh.
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+    qc.invalidateQueries({ queryKey: [STATUS_COUNTS_QK] });
+    onMutated?.();
+  };
+
   const publish = useMutation({
     mutationFn: () => listingsAPI.publishListing(listing.id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      invalidateAll();
       toast.success(t("listing.publishSuccess"));
     },
     onError: () => toast.error(t("common.error")),
@@ -89,7 +100,7 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
   const reserve = useMutation({
     mutationFn: () => listingsAPI.reserveListing(listing.id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      invalidateAll();
       toast.success(t("listing.reserveSuccess"));
     },
     onError: () => toast.error(t("common.error")),
@@ -98,7 +109,7 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
   const markSold = useMutation({
     mutationFn: () => listingsAPI.markSold(listing.id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      invalidateAll();
       toast.success(t("listing.markSoldSuccess"));
     },
     onError: () => toast.error(t("common.error")),
@@ -107,7 +118,7 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
   const unpublish = useMutation({
     mutationFn: () => listingsAPI.unpublishListing(listing.id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      invalidateAll();
       toast.success(t("listing.unpublishSuccess"));
     },
     onError: () => toast.error(t("common.error")),
@@ -116,7 +127,7 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
   const activate = useMutation({
     mutationFn: () => listingsAPI.activateListing(listing.id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      invalidateAll();
       toast.success(t("listing.activateSuccess"));
     },
     onError: () => toast.error(t("common.error")),
@@ -125,7 +136,7 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
   const renew = useMutation({
     mutationFn: () => listingsAPI.renewListing(listing.id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      invalidateAll();
       toast.success(t("listing.renewSuccess"));
     },
     onError: () => toast.error(t("common.error")),
@@ -134,7 +145,7 @@ export function SellerListingCard({ listing }: SellerListingCardProps) {
   const deleteListing = useMutation({
     mutationFn: () => listingsAPI.deleteListing(listing.id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      invalidateAll();
       toast.success(t("listing.deleteSuccess"));
     },
     onError: () => toast.error(t("common.error")),

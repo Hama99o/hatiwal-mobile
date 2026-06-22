@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { View, FlatList, Pressable, Modal } from "react-native";
+import { View, FlatList, Pressable, Modal, Platform, Share } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ChevronLeft, MoreVertical, Search, X, Flag, ShieldBan, Store, Clock } from "lucide-react-native";
+import { ChevronLeft, MoreVertical, Search, X, Flag, ShieldBan, Store, Share2 } from "lucide-react-native";
+import * as Linking from "expo-linking";
 import { toast } from "sonner-native";
 
 import { Text } from "@/components/reusables/text";
@@ -16,9 +17,12 @@ import { UserIdentity } from "@/components/common/UserIdentity";
 import { ReportSheet } from "@/components/common/ReportSheet";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ProfileHeaderSkeleton } from "@/screens/shared/user-profile/ProfileHeaderSkeleton";
+import { ResponseRateBadge } from "@/components/common/ResponseRateBadge";
+import { AwayBanner } from "@/components/common/AwayBanner";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { confirmAlert } from "@/utils/alert";
+import { resolveProfileShareUrl } from "@/utils/shareUtils";
 import { useListItemEntering } from "@/lib/animation";
 import { usersAPI } from "@/api/users";
 import { listingsAPI, type Listing } from "@/api/listings";
@@ -145,6 +149,27 @@ export function SellerProfileScreen() {
     setReportVisible(true);
   };
 
+  const handleShareProfile = useCallback(async () => {
+    setMenuVisible(false);
+    if (!profile) return;
+    try {
+      const url = resolveProfileShareUrl(
+        profile.shareUrl,
+        userId,
+        (path) => Linking.createURL(path)
+      );
+      const name = profile.name;
+      const message = t("profile.sellerProfile.share.body", { name, url });
+      await Share.share(
+        Platform.OS === "ios"
+          ? { title: t("profile.sellerProfile.share.title"), message }
+          : { title: t("profile.sellerProfile.share.title"), message, url }
+      );
+    } catch {
+      // User dismissed the share sheet — no-op.
+    }
+  }, [profile, userId, t]);
+
   const isMe = currentUser && currentUser.id === userId;
 
   if (isLoading && !profile) {
@@ -267,33 +292,11 @@ export function SellerProfileScreen() {
                 nameSize={20}
                 layout="stacked"
               />
-              {/* Response badge — reply rate and/or typical response time.
-                  Shown whenever the seller has met the threshold (rate != null),
-                  even if the time label is nil (e.g. a 0% never-replied seller). */}
-              {(profile.responseRatePercent != null || profile.responseTimeLabel != null) && (
-                <View
-                  style={{
-                    flexDirection: isRtl ? "row-reverse" : "row",
-                    alignItems: "center",
-                    gap: 4,
-                    marginTop: 4,
-                  }}
-                >
-                  <Clock size={12} color={colors.mutedForeground} />
-                  <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                    {[
-                      profile.responseRatePercent != null
-                        ? t("profile.sellerProfile.responseRate", { percent: profile.responseRatePercent })
-                        : null,
-                      profile.responseTimeLabel != null
-                        ? t(`profile.sellerProfile.responseTime.${profile.responseTimeLabel}`)
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </Text>
-                </View>
-              )}
+              {/* Response rate badge — suppressed when rate is null or 0 (false trust signal). */}
+              <ResponseRateBadge
+                responseRatePercent={profile.responseRatePercent}
+                responseTimeLabel={profile.responseTimeLabel}
+              />
             </View>
 
             {/* Stats Row */}
@@ -346,6 +349,14 @@ export function SellerProfileScreen() {
                   {profile.bio}
                 </Text>
               </View>
+            )}
+
+            {/* Away banner — shown when seller is currently away (not the seller themselves) */}
+            {!!profile.isAway && !isMe && (
+              <AwayBanner
+                awayUntil={profile.awayUntil ?? null}
+                style={{ marginBottom: 16 }}
+              />
             )}
 
             {/* Search Bar */}
@@ -466,6 +477,7 @@ export function SellerProfileScreen() {
         onClose={() => setReportVisible(false)}
         reportableType="User"
         reportableId={userId}
+        onBlocked={() => setIsBlocked(true)}
       />
 
       {/* Menu Modal - Slides up from bottom */}
@@ -498,6 +510,29 @@ export function SellerProfileScreen() {
 
             {/* Menu Items */}
             <View style={{ paddingHorizontal: 16, gap: 12 }}>
+              {/* Share Option */}
+              {!isMe && (
+                <Pressable
+                  onPress={handleShareProfile}
+                  style={{
+                    flexDirection: isRtl ? "row-reverse" : "row",
+                    alignItems: "center",
+                    paddingVertical: 14,
+                    paddingHorizontal: 14,
+                    borderRadius: 12,
+                    gap: 12,
+                    backgroundColor: colors.background,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Share2 size={20} color={colors.foreground} />
+                  <Text style={{ fontSize: 15, color: colors.foreground, fontWeight: "600", flex: 1 }}>
+                    {t("profile.sellerProfile.share.title")}
+                  </Text>
+                </Pressable>
+              )}
+
               {/* Block/Unblock Option */}
               <Pressable
                 onPress={() => {

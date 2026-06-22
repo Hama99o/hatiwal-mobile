@@ -1,0 +1,59 @@
+appId: com.hatiwal.app
+---
+# Composer draft persistence — per conversation, survives navigation
+#
+# Happy path: type → navigate away → reopen same thread → assert text still there
+# Send path:  send → reopen thread → assert input is empty
+
+- runFlow: ../_helpers/login.yaml
+
+# ── Step 1: Open the first conversation ──────────────────────────────────────
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+
+# ── Step 2: Type a draft message but do NOT send ──────────────────────────────
+- tapOn: "Type a message..."
+- inputText: "Draft that must survive navigation"
+- assertVisible: "Draft that must survive navigation"
+
+# ── Step 3: Navigate back to the conversations list ───────────────────────────
+- tapOn:
+    id: "back_button"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+# ── Step 4: Reopen the SAME conversation ─────────────────────────────────────
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+
+# ── Step 5: Assert the draft text is restored in the composer ────────────────
+- assertVisible: "Draft that must survive navigation"
+
+# ── Step 6: Send the message ──────────────────────────────────────────────────
+- tapOn: "Send"
+- waitForAnimationToEnd
+# The sent message appears in the thread
+- assertVisible: "Draft that must survive navigation"
+
+# ── Step 7: Navigate back then reopen to verify composer is now empty ─────────
+- tapOn:
+    id: "back_button"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+
+# After a successful send the draft must be gone — composer is empty
+- assertNotVisible: "Draft that must survive navigation"
+- assertVisible: "Type a message..."
+
+# ── Error state: send failure keeps the draft ─────────────────────────────────
+# (This scenario requires simulating a network error; skip in standard CI.
+#  The unit tests in useComposerDraft.test.ts cover this contract.)

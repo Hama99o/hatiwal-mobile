@@ -1,5 +1,6 @@
 /**
  * RNR Input — NativeWind-aware TextInput wrapper.
+ * Uses forwardRef so callers can programmatically focus the input.
  */
 import React from "react";
 import { TextInput, type TextInputProps, StyleSheet, StyleProp, TextStyle } from "react-native";
@@ -10,25 +11,28 @@ interface InputProps extends Omit<TextInputProps, "style"> {
   style?: StyleProp<TextStyle>;
 }
 
-export function Input({ className, style, ...props }: InputProps) {
-  const colors = useColors();
+export const Input = React.forwardRef<TextInput, InputProps>(
+  function Input({ className, style, ...props }, ref) {
+    const colors = useColors();
 
-  return (
-    <TextInput
-      placeholderTextColor={colors.mutedForeground}
-      style={[
-        styles.base,
-        {
-          borderColor: colors.border,
-          backgroundColor: colors.background,
-          color: colors.foreground,
-        },
-        style,
-      ]}
-      {...props}
-    />
-  );
-}
+    return (
+      <TextInput
+        ref={ref}
+        placeholderTextColor={colors.mutedForeground}
+        style={[
+          styles.base,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.background,
+            color: colors.foreground,
+          },
+          style,
+        ]}
+        {...props}
+      />
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   base: {

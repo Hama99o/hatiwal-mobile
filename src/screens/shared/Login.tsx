@@ -4,7 +4,7 @@ import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
 import { Button } from "@/components/reusables/button";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { authAPI, type User } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
@@ -16,6 +16,11 @@ import { useColors } from "@/hooks/useColors";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher";
 import { registerPushToken } from "@/utils/push-token";
 import { confirmAlert } from "@/utils/alert";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import Constants from "expo-constants";
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -36,6 +41,50 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const googleClientId =
+    Constants.expoConfig?.extra?.googleClientId ??
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+
+  // iOS-specific OAuth client (bundle ID: com.hatiwal.app, created in Google Console).
+  // Falls back to web client ID when not set (Expo Go — Google Sign-In won't complete there).
+  const googleIosClientId =
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? googleClientId;
+
+  const placeholderOrId = googleClientId ?? "not_configured";
+  const placeholderOrIosId = googleIosClientId ?? placeholderOrId;
+
+  // Google iOS OAuth clients require the reversed client ID as the redirect URI:
+  //   com.googleusercontent.apps.{id}:/oauthredirect
+  // This scheme is registered in app.json CFBundleURLTypes so iOS opens the app.
+  // When the iOS client ID isn't configured (Expo Go), redirectUri stays undefined
+  // and expo-auth-session falls back to exp://... which Google rejects — expected.
+  const iosReversedScheme = googleIosClientId
+    ? `com.googleusercontent.apps.${googleIosClientId.replace(".apps.googleusercontent.com", "")}`
+    : undefined;
+
+  const [googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
+    webClientId: placeholderOrId,
+    iosClientId: placeholderOrIosId,
+    androidClientId: placeholderOrId,
+    redirectUri: iosReversedScheme ? `${iosReversedScheme}:/oauthredirect` : undefined,
+  });
+
+  useEffect(() => {
+    if (!googleClientId) return;
+    if (googleResponse?.type === "success") {
+      const idToken = googleResponse.authentication?.idToken;
+      if (idToken) {
+        handleGoogleSignIn(idToken);
+      } else {
+        setError(t("auth.googleSignInFailed"));
+      }
+    } else if (googleResponse?.type === "error") {
+      setError(t("auth.googleSignInFailed"));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [googleResponse]);
 
   // Build the localized "you are blocked" message (+ admin reason, if any) from
   // the notice. Localized here rather than using the API's English string.
@@ -122,6 +171,26 @@ export default function LoginScreen() {
     }
   };
 
+  const handleGoogleSignIn = async (idToken: string) => {
+    setGoogleLoading(true);
+    setError(null);
+    setBlockedNotice(null);
+    try {
+      const user = await authAPI.googleSignIn(idToken);
+      enterApp(user);
+    } catch (err: any) {
+      const httpStatus = err?.response?.status;
+      const data = err?.response?.data;
+      const isBlocked =
+        httpStatus === 403 && (data?.status === "banned" || data?.status === "suspended");
+      if (!isBlocked) {
+        setError(t("auth.googleSignInFailed"));
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -205,12 +274,95 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
-          style={{ marginBottom: 24, textAlign: isRtl ? "right" : "left" }}
+          style={{ marginBottom: 12, textAlign: isRtl ? "right" : "left" }}
         />
+
+        <Pressable
+          onPress={() => router.push("/(auth)/forgot-password")}
+          accessibilityRole="button"
+          style={{
+            alignSelf: isRtl ? "flex-start" : "flex-end",
+            paddingVertical: 4,
+            marginBottom: 20,
+          }}
+          android_ripple={{ color: colors.muted, radius: 80, borderless: true }}
+        >
+          <Text style={{ color: colors.primary, fontSize: 13 }}>
+            {t("auth.forgotPassword")}
+          </Text>
+        </Pressable>
 
         <Button onPress={handleLogin} disabled={loading} style={{ marginBottom: 16 }}>
           <Text>{loading ? t("common.loading") : t("auth.loginButton")}</Text>
         </Button>
+
+        {/* Google Sign-In — only shown when a client ID is configured */}
+        {!!googleClientId && (
+          <>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+              <Text
+                style={{
+                  marginHorizontal: 12,
+                  fontSize: 12,
+                  color: colors.mutedForeground,
+                }}
+              >
+                {t("auth.orDivider")}
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+            </View>
+
+            <Pressable
+              onPress={() => promptGoogleAsync()}
+              disabled={googleLoading || !googleRequest}
+              accessibilityRole="button"
+              accessibilityLabel={t("auth.signInWithGoogle")}
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 10,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 8,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                marginBottom: 16,
+                opacity: (googleLoading || !googleRequest) ? 0.4 : 1,
+                backgroundColor: colors.background,
+              }}
+              android_ripple={{ color: colors.muted }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "700",
+                  color: "#4285F4",
+                  width: 20,
+                  textAlign: "center",
+                }}
+              >
+                G
+              </Text>
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontWeight: "500",
+                  color: colors.foreground,
+                }}
+              >
+                {googleLoading ? t("common.loading") : t("auth.signInWithGoogle")}
+              </Text>
+            </Pressable>
+          </>
+        )}
 
         <Button variant="ghost" onPress={() => router.push({ pathname: "/(auth)/register", params: returnTo ? { returnTo } : {} })}>
           <Text style={{ color: colors.primary }}>{t("auth.noAccount")} {t("auth.registerButton")}</Text>

@@ -27,12 +27,15 @@ import {
   ChevronRight,
   ChevronLeft,
   Trash2,
+  Flag,
+  History,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { clearCachedPushToken } from "@/utils/push-token";
 import { authAPI, type User } from "@/api/auth";
 import { warningsAPI } from "@/api/warnings";
 import { WarningBanner } from "@/components/common/WarningBanner";
+import { AwayBanner } from "@/components/common/AwayBanner";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { useAuthStore } from "@/stores/auth.store";
@@ -352,9 +355,13 @@ function ProfileContent({
 
 function ProfileSkeleton() {
   const colors = useColors();
+  // Mirror the loaded screen's wrapper exactly (ScreenContainer scrollable,
+  // padded={false}) so the safe-area top inset is applied and the hero/content
+  // skeletons land in the SAME position as the real components — otherwise the
+  // skeleton renders flush under the status bar, higher than the loaded layout.
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Hero skeleton */}
+    <ScreenContainer scrollable padded={false}>
+      {/* Hero skeleton — matches the loaded hero header block */}
       <View
         style={{
           backgroundColor: colors.card,
@@ -374,12 +381,12 @@ function ProfileSkeleton() {
         <Skeleton style={{ width: 180, height: 14, borderRadius: 6 }} />
         <Skeleton style={{ width: 160, height: 36, borderRadius: 24 }} />
       </View>
-      {/* Content skeleton */}
+      {/* Content skeleton — matches ProfileContent's padding */}
       <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 12 }}>
         <Skeleton style={{ width: "100%", height: 80, borderRadius: 16 }} />
         <Skeleton style={{ width: "100%", height: 120, borderRadius: 16 }} />
       </View>
-    </View>
+    </ScreenContainer>
   );
 }
 
@@ -539,7 +546,16 @@ export default function ProfileScreen() {
     : null;
 
   return (
-    <ScreenContainer scrollable padded={false}>
+    <ScreenContainer
+      scrollable
+      padded={false}
+      onRefresh={() =>
+        Promise.all([
+          qc.invalidateQueries({ queryKey: ["me"] }),
+          qc.invalidateQueries({ queryKey: ["warnings"] }),
+        ])
+      }
+    >
       {/* ── Hero Header ─────────────────────────────────────────────── */}
       <View
         style={{
@@ -622,17 +638,17 @@ export default function ProfileScreen() {
             paddingVertical: 10,
             borderRadius: 24,
             borderWidth: 1.5,
-            borderColor: isSeller ? colors.warning : colors.primary,
-            backgroundColor: isSeller ? colors.warningAlpha : colors.primaryAlpha,
+            borderColor: isSeller ? colors.seller : colors.primary,
+            backgroundColor: isSeller ? colors.sellerAlpha : colors.primaryAlpha,
             minHeight: 44,
           }}
         >
           {isSeller ? (
-            <Store size={16} color={colors.warning} />
+            <Store size={16} color={colors.seller} />
           ) : (
             <ShoppingBag size={16} color={colors.primary} />
           )}
-          <Text className="text-sm font-semibold" style={{ color: isSeller ? colors.warning : colors.primary }}>
+          <Text className="text-sm font-semibold" style={{ color: isSeller ? colors.seller : colors.primary }}>
             {isSeller ? t("profile.switchToBuyer") : t("profile.switchToSeller")}
           </Text>
         </Button>
@@ -645,6 +661,16 @@ export default function ProfileScreen() {
             activeCount={warningsData.activeCount}
             threshold={warningsData.threshold}
             warnings={warningsData.warnings.filter((w) => w.active)}
+          />
+        </View>
+      )}
+
+      {/* ── Away status row — shown to the seller on their own profile when away ── */}
+      {user?.isAway && user?.awayUntil && (
+        <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+          <AwayBanner
+            awayUntil={user.awayUntil}
+            messageKey="profile.away.youAreAway"
           />
         </View>
       )}
@@ -741,7 +767,40 @@ export default function ProfileScreen() {
           </View>
         </SectionCard>
 
-        {/* Privacy — blocked users management */}
+        {/* Activity — recently viewed listings */}
+        <SectionCard>
+          <SectionHeader
+            title={t("profile.activity").toUpperCase()}
+            icon={<History size={15} color={colors.mutedForeground} />}
+          />
+          <Button
+            variant="ghost"
+            onPress={() => router.push("/(main)/recently-viewed" as never)}
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              borderRadius: 0,
+              minHeight: 44,
+            }}
+          >
+            <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
+              <History size={16} color={colors.mutedForeground} />
+              <Text className="text-base" style={{ color: colors.foreground }}>
+                {t("profile.recentlyViewed")}
+              </Text>
+            </View>
+            {isRtl ? (
+              <ChevronLeft size={18} color={colors.mutedForeground} />
+            ) : (
+              <ChevronRight size={18} color={colors.mutedForeground} />
+            )}
+          </Button>
+        </SectionCard>
+
+        {/* Privacy — blocked users + my reports */}
         <SectionCard>
           <SectionHeader
             title={t("profile.privacy").toUpperCase()}
@@ -769,12 +828,37 @@ export default function ProfileScreen() {
               <ChevronRight size={18} color={colors.mutedForeground} />
             )}
           </Button>
+          <Separator />
+          <Button
+            variant="ghost"
+            onPress={() => router.push("/(main)/profile/my-reports" as never)}
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              borderRadius: 0,
+              minHeight: 44,
+            }}
+          >
+            <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
+              <Flag size={16} color={colors.mutedForeground} />
+              <Text className="text-base" style={{ color: colors.foreground }}>
+                {t("profile.myReports")}
+              </Text>
+            </View>
+            {isRtl ? (
+              <ChevronLeft size={18} color={colors.mutedForeground} />
+            ) : (
+              <ChevronRight size={18} color={colors.mutedForeground} />
+            )}
+          </Button>
         </SectionCard>
 
-        {/* Privacy Policy — opens the public web policy (required for store review).
-            TODO(ops): replace hatiwal.app with the deployed web domain. */}
+        {/* Privacy Policy — opens the public web policy (required for store review). */}
         <Pressable
-          onPress={() => Linking.openURL(`https://hatiwal.app/${i18n.language}/privacy`)}
+          onPress={() => Linking.openURL(`https://hatiwal.multimagics.com/${i18n.language}/privacy`)}
           accessibilityRole="link"
           accessibilityLabel={t("profile.privacyPolicy")}
           style={{ alignItems: "center", justifyContent: "center", paddingVertical: 10, minHeight: 44 }}

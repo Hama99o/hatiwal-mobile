@@ -17,6 +17,8 @@ import { type Listing } from "@/api/listings";
 import { PriceTag } from "./PriceTag";
 import { StatusBadge } from "./StatusBadge";
 import { PriceDropBadge } from "./PriceDropBadge";
+import { VerifiedBadge } from "./VerifiedBadge";
+import { Badge } from "@/components/reusables/badge";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 
@@ -219,6 +221,19 @@ export function ListingCard({
               <PriceDropBadge percent={listing.priceDropPercent} variant="card" />
             )}
 
+            {/* Firm-price badge in list mode */}
+            {listing.negotiable === false && (
+              <View
+                testID="firm-price-badge"
+                style={{ alignSelf: isRtl ? "flex-end" : "flex-start" }}
+              >
+                <Badge
+                  label={t("listing.firmPrice")}
+                  variant="muted"
+                />
+              </View>
+            )}
+
             {/* Title */}
             <Text
               style={{
@@ -233,8 +248,8 @@ export function ListingCard({
               {listing.title}
             </Text>
 
-            {/* Meta row: location + StatusBadge */}
-            {(listingLocation || showStatus) ? (
+            {/* Meta row: location + VerifiedBadge + StatusBadge */}
+            {(listingLocation || showStatus || listing.seller?.verified) ? (
               <View
                 style={{
                   flexDirection: metaRowDirection,
@@ -261,6 +276,9 @@ export function ListingCard({
                     </Text>
                   </View>
                 ) : null}
+                {listing.seller?.verified && (
+                  <VerifiedBadge size={12} accessibilityLabel={t("listing.card.verifiedSeller")} />
+                )}
                 {showStatus && <StatusBadge status={listing.status} />}
               </View>
             ) : null}
@@ -418,6 +436,19 @@ export function ListingCard({
             size="md"
           />
 
+          {/* Firm-price badge — only when negotiable is explicitly false */}
+          {listing.negotiable === false && (
+            <View
+              testID="firm-price-badge"
+              style={{ alignSelf: isRtl ? "flex-end" : "flex-start" }}
+            >
+              <Badge
+                label={t("listing.firmPrice")}
+                variant="muted"
+              />
+            </View>
+          )}
+
           {/* Title — secondary to price */}
           <Text
             style={{
@@ -432,23 +463,38 @@ export function ListingCard({
             {listing.title}
           </Text>
 
-          {/* Meta row: listing location */}
-          {listingLocation ? (
+          {/* Meta row: listing location + VerifiedBadge */}
+          {(listingLocation || listing.seller?.verified) ? (
             <View
               style={{
                 flexDirection: metaRowDirection,
                 alignItems: "center",
-                gap: 2,
+                gap: 4,
                 marginTop: 2,
+                flexWrap: "wrap",
               }}
             >
-              <MapPin size={10} color={colors.mutedForeground} />
-              <Text
-                style={{ fontSize: 11, color: colors.mutedForeground, flex: 1 }}
-                numberOfLines={1}
-              >
-                {listingLocation}
-              </Text>
+              {listingLocation ? (
+                <View
+                  style={{
+                    flexDirection: metaRowDirection,
+                    alignItems: "center",
+                    gap: 2,
+                    flex: 1,
+                  }}
+                >
+                  <MapPin size={10} color={colors.mutedForeground} />
+                  <Text
+                    style={{ fontSize: 11, color: colors.mutedForeground, flex: 1 }}
+                    numberOfLines={1}
+                  >
+                    {listingLocation}
+                  </Text>
+                </View>
+              ) : null}
+              {listing.seller?.verified && (
+                <VerifiedBadge size={12} accessibilityLabel={t("listing.card.verifiedSeller")} />
+              )}
             </View>
           ) : null}
         </View>
@@ -526,7 +572,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Price-drop badge corner overlay — bottom-right (LTR) / bottom-left (RTL)
+  // Price-drop badge corner overlay — bottom-right (LTR) / bottom-left (RTL).
+  // IMPORTANT: seenBadge sits at bottom-LEFT (LTR) / bottom-RIGHT (RTL), and
+  // priceDropOverlay sits at bottom-RIGHT (LTR) / bottom-LEFT (RTL) — opposite
+  // corners intentionally so they never overlap.  If either badge is ever moved
+  // to the same corner as the other, add a vertical offset to prevent collision.
   priceDropOverlay: {
     position: "absolute",
     bottom: 8,

@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# Recently Viewed — empty state: verify CTA and navigation back to browse
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Email"
+- inputText: "newbuyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+
+# Navigate to Profile and open Recently Viewed
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element: "Recently Viewed"
+    direction: DOWN
+- tapOn: "Recently Viewed"
+- waitForAnimationToEnd
+
+# Verify empty state is shown for a new account
+- assertVisible: "Nothing viewed yet"
+- assertVisible: "Browse Listings"
+
+# Tap the Browse CTA — should navigate to Browse
+- tapOn: "Browse Listings"
+- waitForAnimationToEnd
+- assertVisible: "Bazaar"

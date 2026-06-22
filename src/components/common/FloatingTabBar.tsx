@@ -2,15 +2,16 @@
  * FloatingTabBar — Hatiwal's custom bottom navigation.
  *
  * A rounded "pill" bar that floats above the screen bottom (detached from the
- * edges, with a soft shadow) instead of the stock edge-to-edge tab bar. The
- * active tab expands into a filled accent pill showing its icon + label; the
- * rest show icon-only. This gives the app a distinct, non-generic navigation
- * look while keeping every behaviour the previous bar had:
+ * edges, with a soft shadow) instead of the stock edge-to-edge tab bar. Every
+ * tab shows its icon over a small label (Apple-News style); the active tab is
+ * tinted with the accent color and sits in a soft accent-tinted pill. This
+ * gives the app a distinct, non-generic navigation look while keeping every
+ * behaviour the previous bar had:
  *
  *   • Hidden tabs (Expo Router sets `options.href = null`) are not rendered, so
  *     buyer/seller/guest visibility logic in the layout still drives the bar.
- *   • Seller mode swaps the accent from primary → warning (and adds a subtle
- *     warning outline) so the mode is always legible.
+ *   • Seller mode swaps the accent from buyer-blue `primary` → emerald `seller`
+ *     (and adds a subtle seller-tinted outline) so the mode is always legible.
  *   • The chat unread badge (`options.tabBarBadge`) renders on the icon.
  *   • Guest login-redirect listeners still fire — onPress emits a cancelable
  *     `tabPress`, so a screen listener can preventDefault and redirect.
@@ -37,8 +38,10 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const insets = useSafeAreaInsets();
   const isSeller = useModeStore((s) => s.mode) === "seller";
 
-  const accent = isSeller ? colors.warning : colors.primary;
-  const accentFg = isSeller ? colors.warningForeground : colors.primaryForeground;
+  // Buyer → blue `primary`; seller → emerald `seller`. The soft alpha tint sits
+  // behind the active tab so the current screen + the active role are both clear.
+  const accent = isSeller ? colors.seller : colors.primary;
+  const accentAlpha = isSeller ? colors.sellerAlpha : colors.primaryAlpha;
 
   return (
     <View
@@ -55,8 +58,9 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
           styles.bar,
           {
             backgroundColor: colors.card,
+            // Subtle seller-tinted outline in seller mode; hairline otherwise.
             borderColor: isSeller ? accent : colors.border,
-            borderWidth: isSeller ? 1.5 : 1,
+            borderWidth: isSeller ? 1.5 : StyleSheet.hairlineWidth,
             flexDirection: isRtl ? "row-reverse" : "row",
           },
         ]}
@@ -79,7 +83,8 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
           const label =
             typeof options.title === "string" ? options.title : route.name;
           const badge = options.tabBarBadge;
-          const contentColor = isFocused ? accentFg : colors.mutedForeground;
+          // Icon + label tint: accent when active, muted otherwise (Apple-News style).
+          const contentColor = isFocused ? accent : colors.mutedForeground;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -105,18 +110,13 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
               accessibilityLabel={label}
               onPress={onPress}
               onLongPress={onLongPress}
-              // The focused tab grows so its icon + label pill never clips,
-              // even with four tabs on a narrow screen.
-              style={[styles.item, { flexGrow: isFocused ? 1.7 : 1 }]}
+              style={styles.item}
             >
               <View
                 style={[
                   styles.itemInner,
-                  {
-                    flexDirection: isRtl ? "row-reverse" : "row",
-                    backgroundColor: isFocused ? accent : "transparent",
-                    paddingHorizontal: isFocused ? 14 : 0,
-                  },
+                  // Active tab sits in a soft accent-tinted pill.
+                  isFocused ? { backgroundColor: accentAlpha } : null,
                 ]}
               >
                 <View>
@@ -126,22 +126,23 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                     size: ICON_SIZE,
                   })}
                   {badge != null && badge !== "" ? (
-                    <View style={[styles.badge, { backgroundColor: colors.warning, borderColor: colors.card }]}>
-                      <Text style={[styles.badgeText, { color: colors.warningForeground }]} numberOfLines={1}>
+                    <View style={[styles.badge, { backgroundColor: colors.destructive, borderColor: colors.card }]}>
+                      <Text style={[styles.badgeText, { color: colors.destructiveForeground }]} numberOfLines={1}>
                         {typeof badge === "number" && badge > 99 ? "99+" : String(badge)}
                       </Text>
                     </View>
                   ) : null}
                 </View>
 
-                {isFocused ? (
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.label, { color: accentFg }]}
-                  >
-                    {label}
-                  </Text>
-                ) : null}
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.label,
+                    { color: contentColor, fontWeight: isFocused ? "700" : "500" },
+                  ]}
+                >
+                  {label}
+                </Text>
               </View>
             </Pressable>
           );
@@ -157,36 +158,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   bar: {
-    height: 60,
-    borderRadius: 24,
+    minHeight: 64,
+    borderRadius: 30,
     alignItems: "center",
     justifyContent: "space-around",
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     // Soft floating shadow
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    elevation: 10,
   },
   item: {
-    flexBasis: 0,
-    flexShrink: 1,
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    height: "100%",
+    paddingHorizontal: 2,
   },
   itemInner: {
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    height: 44,
-    borderRadius: 22,
+    gap: 3,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 18,
+    minWidth: 54,
   },
   label: {
-    fontSize: 13,
-    fontWeight: "700",
-    maxWidth: 92,
+    fontSize: 10.5,
+    maxWidth: 76,
   },
   badge: {
     position: "absolute",

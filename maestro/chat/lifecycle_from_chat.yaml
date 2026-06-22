@@ -1,0 +1,80 @@
+appId: com.hatiwal.app
+---
+# Lifecycle actions from the chat thread pinned listing header (seller owner only)
+#
+# Covers:
+#   1. Happy path: seller opens conversation → taps Reserve on active listing → badge updates to Reserved
+#   2. Happy path: seller taps Mark Sold on reserved listing → confirms → badge updates to Sold, input closes
+#   3. Buyer perspective: no Reserve / Mark Sold button visible in the same conversation
+
+# ─── Scenario 1: Owner taps Reserve (active → reserved) ───────────────────────
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+# Open the first conversation where the seller owns the listing
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# The pinned listing header is visible at the top of the thread
+- assertVisible: "View Listing"
+# The Reserve button is visible (listing is active, user is the owner)
+- assertVisible: "Reserve"
+# The Mark Sold button is NOT visible yet
+- assertNotVisible: "Mark Sold"
+# Tap Reserve — no confirm dialog, fires directly
+- tapOn: "Reserve"
+- waitForAnimationToEnd
+# Success toast appears
+- assertVisible: "Listing marked as reserved"
+# StatusBadge in the pinned header updates to Reserved
+- assertVisible: "Reserved"
+# Reserve button is gone; Mark Sold appears instead
+- assertNotVisible: "Reserve"
+- assertVisible: "Mark Sold"
+
+# ─── Scenario 2: Owner taps Mark Sold (reserved → sold) ───────────────────────
+
+# (continuing from scenario 1 — listing is now reserved)
+- tapOn: "Mark Sold"
+- waitForAnimationToEnd
+# confirmAlert fires — title and body visible
+- assertVisible: "Mark as sold?"
+- assertVisible: "This will mark the item as sold and close the listing."
+# Tap the destructive confirm button (distinct label avoids ambiguity with the header button)
+- tapOn: "Yes, mark sold"
+- waitForAnimationToEnd
+# Success toast
+- assertVisible: "Listing marked as sold"
+# StatusBadge updates to Sold
+- assertVisible: "Sold"
+# No lifecycle button remains (sold is terminal)
+- assertNotVisible: "Reserve"
+- assertNotVisible: "Mark Sold"
+# Conversation is now closed — input is disabled
+- assertNotVisible: "Type a message..."
+- assertVisible: "This conversation is closed."
+
+# ─── Scenario 3: Buyer sees no Reserve / Mark Sold button ─────────────────────
+
+- launchApp:
+    clearState: true
+# Log in as a buyer
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Email"
+- inputText: ${EMAIL:-"buyer@hatiwal.test"}
+- tapOn: "Password"
+- inputText: ${PASSWORD:-"Password123!"}
+- tapOn: "Sign In"
+- assertVisible: "Bazaar"
+- tapOn: "Chats"
+- waitForAnimationToEnd
+# Open the same conversation (buyer's view)
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Pinned listing header is visible
+- assertVisible: "View Listing"
+# Buyer must NOT see Reserve or Mark Sold
+- assertNotVisible: "Reserve"
+- assertNotVisible: "Mark Sold"

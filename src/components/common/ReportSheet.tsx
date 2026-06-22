@@ -35,6 +35,7 @@ import { useMutation } from "@tanstack/react-query";
 import { X, Flag } from "lucide-react-native";
 
 import { reportsAPI, ReportableType, ReportReason } from "@/api/reports";
+import { usersAPI } from "@/api/users";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { Textarea } from "@/components/reusables/textarea";
@@ -42,6 +43,7 @@ import { Separator } from "@/components/reusables/separator";
 import { Label } from "@/components/reusables/label";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
+import { confirmAlert } from "@/utils/alert";
 
 // ─── types ──────────────────────────────────────────────────────────────────
 
@@ -50,6 +52,14 @@ interface ReportSheetProps {
   onClose: () => void;
   reportableType: ReportableType;
   reportableId: number;
+  /**
+   * Called when the sheet successfully blocks the reported user.
+   * Host screens (UserProfile, SellerProfile) use this to sync their own
+   * local `isBlocked` flag so the Block/Unblock button stays in the correct
+   * state without a full refetch.
+   * Only invoked when reportableType === "User" and the user confirmed block.
+   */
+  onBlocked?: () => void;
 }
 
 const REASONS: ReportReason[] = [
@@ -68,6 +78,7 @@ export function ReportSheet({
   onClose,
   reportableType,
   reportableId,
+  onBlocked,
 }: ReportSheetProps) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
@@ -106,7 +117,48 @@ export function ReportSheet({
     },
     onSuccess: () => {
       toast.success(t("report.success"));
-      handleClose();
+      // For User reports, offer to also block the reported user.
+      // For Listing reports, just close — no block prompt.
+      if (reportableType === "User") {
+        handleClose();
+        // Defer confirmAlert to next tick so the Modal has started its dismiss
+        // animation before the Alert is presented. Presenting an Alert while a
+        // Modal is still animating out is a known iOS footgun where the Alert
+        // can be silently dropped.
+        setTimeout(() => {
+          confirmAlert(
+            t("report.block.title"),
+            t("report.block.body"),
+            [
+              {
+                text: t("report.block.cancel"),
+                style: "cancel",
+              },
+              {
+                text: t("report.block.confirmCta"),
+                style: "destructive",
+                onPress: () => {
+                  usersAPI
+                    .blockUser(reportableId)
+                    .then(() => {
+                      toast.success(t("report.block.success"));
+                      // Notify the host screen so its local isBlocked flag
+                      // stays in sync with the server state — prevents a
+                      // subsequent tap on the host's Block button re-POSTing
+                      // /block when the user is already blocked.
+                      onBlocked?.();
+                    })
+                    .catch(() => {
+                      toast.error(t("report.block.error"));
+                    });
+                },
+              },
+            ]
+          );
+        }, 0);
+      } else {
+        handleClose();
+      }
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { status?: number; data?: { errors?: string[] } } };

@@ -1,0 +1,17 @@
+{
+  "hubTitle": "ډلې",
+  "itemCount_one": "{{count}} توکی",
+  "itemCount_other": "{{count}} توکي",
+  "itemCount": "{{count}} توکي",
+  "itemCountZero": "هیڅ توکي نشته",
+  "empty": {
+    "title": "لاهم هیڅ ډلې نشته",
+    "description": "ډلې به دلته ښکاره شي کله چې زیاتې شي."
+  },
+  "browseAll": "ټولې ډلې وګورئ",
+  "viewAll": "ټول وګورئ",
+  "subcategories": "فرعي ډلې",
+  "allIn": "ټول د {{name}} کې",
+  "tapToExpand": "د فرعي ډلو لیدو لپاره ټک وکړئ",
+  "collapseSubcategories": "فرعي ډلې پټې کړئ"
+}

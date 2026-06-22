@@ -22,6 +22,7 @@
     "unblockTitle": "رفع مسدودیت کاربر؟",
     "unblockMessage": "{{name}} دوباره می‌تواند به شما پیام دهد و درباره آگهی‌های شما تماس بگیرد.",
     "unblockAction": "رفع مسدودیت",
+    "unblockConfirm": "بله، رفع مسدودیت",
     "emptyTitle": "هیچ کاربر مسدودی نیست",
     "emptyDescription": "افرادی که مسدود می‌کنید نمی‌توانند به شما پیام دهند یا درباره آگهی‌هایتان تماس بگیرند. هنوز کسی را مسدود نکرده‌اید."
   },
@@ -46,7 +47,11 @@
       "within_a_day": "معمولاً در عرض یک روز پاسخ می‌دهد",
       "within_a_few_days": "معمولاً در عرض چند روز پاسخ می‌دهد"
     },
-    "responseRate": "{{percent}}٪ نرخ پاسخ"
+    "responseRate": "{{percent}}٪ نرخ پاسخ",
+    "share": {
+      "title": "اشتراک‌گذاری پروفایل فروشنده",
+      "body": "{{name}} را در هاتیوال ببینید\n{{url}}"
+    }
   },
   "userProfile": {
     "title": "پروفایل فروشنده",
@@ -66,7 +71,18 @@
     "unblockSuccess": "مسدودیت کاربر برداشته شد",
     "unblockFailed": "رفع مسدودیت کاربر ناموفق بود",
     "searchListings": "جستجوی آگهی‌ها...",
-    "listingsCount": "{{count}} آگهی"
+    "listingsCount": "{{count}} آگهی",
+    "tabs": {
+      "active": "فعال",
+      "sold": "فروخته شده"
+    },
+    "sold": {
+      "emptyTitle": "هنوز هیچ آگهی فروخته‌ای وجود ندارد",
+      "emptyDescription": "اشیایی که این فروشنده فروخته اینجا نمایش داده می‌شوند."
+    },
+    "activeToday": "امروز فعال",
+    "activeThisWeek": "این هفته فعال",
+    "activeThisMonth": "این ماه فعال"
   },
   "sellerDashboard": "داشبورد فروشنده",
   "buyerProfile": "پروفایل خریدار",
@@ -131,5 +147,14 @@
   "deleteAccountConfirm": "حذف حساب",
   "deleteAccountSuccess": "حساب شما حذف شد.",
   "deleteAccountError": "حذف حساب ممکن نشد. لطفاً دوباره تلاش کنید.",
-  "privacyPolicy": "سیاست حفظ حریم خصوصی"
+  "privacyPolicy": "سیاست حفظ حریم خصوصی",
+  "myReports": "گزارش‌های من",
+  "activity": "فعالیت",
+  "recentlyViewed": "اخیراً مشاهده‌شده",
+  "away": {
+    "toggle": "من غیرحاضر هستم (موقتاً در دسترس نیستم)",
+    "untilLabel": "غیرحاضر تا (YYYY-MM-DD)",
+    "sectionTitle": "حالت غیرحضور",
+    "youAreAway": "شما تا {{date}} غیرحاضر هستید — خریداران اطلاعیه غیرحضور را می‌بینند"
+  }
 }

@@ -13,6 +13,8 @@ export interface SavedSearch {
   radius: number | null;
   locationBased: boolean;
   createdAt: string;
+  lastViewedAt: string | null;
+  newMatchesCount: number;
 }
 
 export interface SavedSearchesResponse {
@@ -52,5 +54,10 @@ export const savedSearchesAPI = {
 
   delete: async (id: number): Promise<void> => {
     await http.delete(`/users/saved_searches/${id}`);
+  },
+
+  markSeen: async (id: number): Promise<SavedSearch> => {
+    const response = await http.put(`/users/saved_searches/${id}/mark_seen`);
+    return convertKeysToCamel(response.data.saved_search) as SavedSearch;
   },
 };

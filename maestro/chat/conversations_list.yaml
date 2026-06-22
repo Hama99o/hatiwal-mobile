@@ -1,15 +1,30 @@
 appId: com.hatiwal.app
 ---
-# Conversations list — rows visible, tap opens thread
+# Conversations list — UniversalList migration verification
+# Tests: row render, filter tabs, empty state, tap opens thread
 
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Chats"
 - waitForAnimationToEnd
-# Either conversations visible or empty state
+# Header title visible
 - assertVisible: "Messages"
-# If conversations exist, tap one
+
+# Filter tabs present
+- assertVisible: "All"
+- assertVisible: "Unread"
+- assertVisible: "Read"
+
+# If conversations exist, first row is visible and tappable
 - tapOn:
     index: 0
     optional: true
 - waitForAnimationToEnd
 - back
+
+# Tap Unread filter
+- tapOn: "Unread"
+- waitForAnimationToEnd
+
+# Tap back to All filter
+- tapOn: "All"
+- waitForAnimationToEnd

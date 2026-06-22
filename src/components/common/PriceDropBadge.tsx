@@ -5,7 +5,7 @@
  *   'detail'  — shown beside the PriceTag on the ListingDetail screen.
  *               Displays: TrendingDown icon + "15% price drop"
  *   'card'    — tiny corner overlay on a ListingCard thumbnail.
- *               Displays: "-15%" text pill (no icon, very small)
+ *               Displays: "↓15%" text pill (no icon, very small)
  *
  * Design rules (from TASK-N804):
  *   - Subtlety is key: must not overshadow the price.
@@ -40,24 +40,26 @@ export function PriceDropBadge({ percent, variant = "detail" }: PriceDropBadgePr
   if (percent <= 0) return null;
 
   if (variant === "card") {
-    // Compact corner overlay — tiny pill, no icon
+    // Compact corner overlay — solid opaque pill so the badge is always legible
+    // on busy/bright/green photos.  Every other on-photo element (StatusBadge,
+    // seenBadge, heart scrim) uses an opaque or near-opaque fill for the same
+    // reason.  successAlpha (~12 % opacity) is intentionally NOT used here —
+    // it is fine for the detail variant which sits on the solid card body, but
+    // over a photo it can disappear against matching-hue or bright backgrounds.
     return (
       <View
         style={{
-          backgroundColor: colors.successAlpha,
+          backgroundColor: colors.success,
           borderRadius: 999,
           paddingHorizontal: 5,
           paddingVertical: 2,
-          borderWidth: 1,
-          borderColor: colors.success,
         }}
       >
         <Text
           style={{
             fontSize: 10,
             fontWeight: "700",
-            color: colors.success,
-            textAlign: isRtl ? "right" : "left",
+            color: colors.successForeground,
           }}
         >
           {t("listing.priceDrop.badgeCardShort", { percent })}

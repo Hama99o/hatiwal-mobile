@@ -1,9 +1,10 @@
-import { http } from "./http";
+import { http, BASE_URL } from "./http";
 import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
+import { secureStorage } from "@/utils/secure-storage";
 
 export interface Message {
   id: number;
-  body: string;
+  body: string | null;
   kind:
     | "text"
     | "meetup_proposal"
@@ -13,6 +14,7 @@ export interface Message {
     | "offer"
     | "offer_accepted"
     | "offer_declined"
+    | "offer_counter"
     | "document"
     | "image_message";
   readAt: string | null;
@@ -21,6 +23,19 @@ export interface Message {
   attachmentUrl?: string | null;
   /** For a meetup accept/decline: the proposal message id it answers. */
   respondsToId?: number | null;
+  /**
+   * Pre-parsed offer amount — populated by the serializer for `offer` and
+   * `offer_counter` kinds.  Use this instead of splitting `body` manually.
+   */
+  offerAmount?: number | null;
+  /** Currency code (e.g. "AFN") — populated for `offer` and `offer_counter` kinds. */
+  offerCurrency?: string | null;
+  /**
+   * True when the message has been soft-deleted by its author.
+   * Body, attachment_url, offer_amount and offer_currency are null when deleted.
+   */
+  deleted?: boolean;
+  deletedAt?: string | null;
 }
 
 export interface Conversation {
@@ -28,6 +43,8 @@ export interface Conversation {
   status: "open" | "closed";
   lastMessageAt: string | null;
   createdAt: string;
+  /** True when the associated listing has been removed or deleted. */
+  listingDeleted?: boolean;
   listing: {
     id: number;
     title: string;
@@ -36,7 +53,13 @@ export interface Conversation {
     price?: number;
     currency?: string;
     location?: string;
-  };
+    /**
+     * Whether the seller accepts price offers for this listing.
+     * true (default) — offer affordance is shown in the conversation.
+     * false — "Firm price" notice shown; offer entry point hidden.
+     */
+    negotiable?: boolean;
+  } | null;
   buyer?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
   seller?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
   otherParticipant?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
@@ -62,8 +85,8 @@ export interface ConversationsResponse {
  *
  * - Sums each conversation's `unreadCount` (treats undefined as 0).
  * - Returns 0 for an empty list or when every conversation has no unread messages.
- * - Caps the returned value at 99; conversations with a combined total above 99
- *   return 99 so callers can display a "99+" badge label if desired.
+ * - Caps the returned value at 99; render sites that display this value should
+ *   show "99+" when the returned value equals 99 (i.e. `count >= 99 ? "99+" : count`).
  */
 export function getUnreadTotal(conversations: Pick<Conversation, "unreadCount">[]): number {
   const total = conversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
@@ -75,11 +98,14 @@ export const conversationsAPI = {
     pageNumber?: number;
     pageSize?: number;
     listingId?: number;
+    /** When true, returns archived conversations instead of the active inbox. */
+    archived?: boolean;
   }): Promise<ConversationsResponse> => {
     const query = new URLSearchParams();
     if (params?.pageNumber) query.append("page[number]", String(params.pageNumber));
     if (params?.pageSize)   query.append("page[size]",   String(params.pageSize));
     if (params?.listingId)  query.append("listing_id",   String(params.listingId));
+    if (params?.archived !== undefined) query.append("archived", String(params.archived));
 
     const response = await http.get(`/conversations?${query}`);
     return {
@@ -136,7 +162,8 @@ export const conversationsAPI = {
       | "meetup_declined"
       | "offer"
       | "offer_accepted"
-      | "offer_declined" = "text",
+      | "offer_declined"
+      | "offer_counter" = "text",
     respondsToId?: number
   ): Promise<Message> => {
     const response = await http.post(
@@ -150,8 +177,57 @@ export const conversationsAPI = {
     await http.put(`/conversations/${conversationId}/messages/mark_read`);
   },
 
+  /**
+   * Mark all inbound messages in a conversation as read (unread badge → 0).
+   * PUT /conversations/:id/mark_read
+   */
+  markRead: async (id: number): Promise<void> => {
+    await http.put(`/conversations/${id}/mark_read`);
+  },
+
+  /**
+   * Restore the most recent inbound message to unread so the row re-shows
+   * the unread badge.
+   * PUT /conversations/:id/mark_unread
+   */
+  markUnread: async (id: number): Promise<void> => {
+    await http.put(`/conversations/${id}/mark_unread`);
+  },
+
   deleteConversation: async (id: number): Promise<void> => {
     await http.delete(`/conversations/${id}`);
+  },
+
+  /**
+   * Archive a conversation for the current user.
+   * The conversation moves out of the default inbox but the history is preserved.
+   * PUT /conversations/:id/archive
+   */
+  archiveConversation: async (id: number): Promise<void> => {
+    await http.put(`/conversations/${id}/archive`);
+  },
+
+  /**
+   * Unarchive a conversation — restores it to the default inbox.
+   * PUT /conversations/:id/unarchive
+   */
+  unarchiveConversation: async (id: number): Promise<void> => {
+    await http.put(`/conversations/${id}/unarchive`);
+  },
+
+  /**
+   * Soft-delete a message you sent.
+   * DELETE /conversations/:conversationId/messages/:messageId
+   * Only the author may call this — returns 403 for other participants.
+   */
+  deleteMessage: async (
+    conversationId: number,
+    messageId: number
+  ): Promise<Message> => {
+    const response = await http.delete(
+      `/conversations/${conversationId}/messages/${messageId}`
+    );
+    return convertKeysToCamel(response.data.message) as Message;
   },
 
   sendFile: async (
@@ -160,16 +236,34 @@ export const conversationsAPI = {
     fileName: string,
     mimeType: string
   ): Promise<Message> => {
+    return conversationsAPI._sendMultipart(conversationId, "document", fileUri, fileName, mimeType);
+  },
+
+  sendImage: async (
+    conversationId: number,
+    imageUri: string,
+    fileName: string,
+    mimeType: string
+  ): Promise<Message> => {
+    return conversationsAPI._sendMultipart(conversationId, "image_message", imageUri, fileName, mimeType);
+  },
+
+  /** @internal Shared multipart upload helper used by sendFile and sendImage. */
+  _sendMultipart: async (
+    conversationId: number,
+    kind: "document" | "image_message",
+    fileUri: string,
+    fileName: string,
+    mimeType: string
+  ): Promise<Message> => {
     const form = new FormData();
-    form.append("kind", "document");
+    form.append("kind", kind);
     form.append("body", fileName);
     (form as any).append("attachment", { uri: fileUri, name: fileName, type: mimeType });
 
-    const { secureStorage } = await import("@/utils/secure-storage");
     const accessToken = await secureStorage.getItem("access-token");
     const client      = await secureStorage.getItem("client");
     const uid         = await secureStorage.getItem("uid");
-    const { BASE_URL } = await import("./http");
 
     const res = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`, {
       method: "POST",
@@ -183,7 +277,6 @@ export const conversationsAPI = {
     });
     if (!res.ok) throw new Error("Upload failed");
     const json = await res.json();
-    const { convertKeysToCamel } = await import("@/utils/case-styles");
     return convertKeysToCamel(json.message) as Message;
   },
 };

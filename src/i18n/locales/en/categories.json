@@ -1,0 +1,17 @@
+{
+  "hubTitle": "Categories",
+  "itemCount_one": "{{count}} listing",
+  "itemCount_other": "{{count}} listings",
+  "itemCount": "{{count}} listings",
+  "itemCountZero": "No listings",
+  "empty": {
+    "title": "No categories yet",
+    "description": "Categories will appear here once added."
+  },
+  "browseAll": "Browse all categories",
+  "viewAll": "View all",
+  "subcategories": "Subcategories",
+  "allIn": "All in {{name}}",
+  "tapToExpand": "Tap to see subcategories",
+  "collapseSubcategories": "Collapse subcategories"
+}

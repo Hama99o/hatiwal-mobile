@@ -8,13 +8,18 @@ import { useLocalization } from "@/hooks/useLocalization";
 /**
  * Trust badge for a verified seller. Icon-only by default; pass `withLabel`
  * to render the "Verified" text beside it (e.g. on the profile header).
+ * Pass `accessibilityLabel` to override the default "Verified" screen-reader label
+ * (e.g. the card context uses "listing.card.verifiedSeller" for more specificity).
  */
 export function VerifiedBadge({
   size = 16,
   withLabel = false,
+  accessibilityLabel: accessibilityLabelProp,
 }: {
   size?: number;
   withLabel?: boolean;
+  /** Overrides the default "Verified" screen-reader label. */
+  accessibilityLabel?: string;
 }) {
   const colors = useColors();
   const { t } = useTranslation();
@@ -25,7 +30,7 @@ export function VerifiedBadge({
       <BadgeCheck
         size={size}
         color={colors.primary}
-        accessibilityLabel={t("common.verified")}
+        accessibilityLabel={accessibilityLabelProp ?? t("common.verified")}
       />
     );
   }

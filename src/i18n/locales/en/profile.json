@@ -22,6 +22,7 @@
     "unblockTitle": "Unblock user?",
     "unblockMessage": "{{name}} will be able to message you and contact you about your listings again.",
     "unblockAction": "Unblock",
+    "unblockConfirm": "Yes, unblock",
     "emptyTitle": "No blocked users",
     "emptyDescription": "People you block can't message you or contact you about your listings. You haven't blocked anyone yet."
   },
@@ -46,7 +47,11 @@
       "within_a_day": "Usually responds within a day",
       "within_a_few_days": "Usually responds within a few days"
     },
-    "responseRate": "{{percent}}% reply rate"
+    "responseRate": "{{percent}}% reply rate",
+    "share": {
+      "title": "Share Seller Profile",
+      "body": "Check out {{name}} on Hatiwal\n{{url}}"
+    }
   },
   "userProfile": {
     "title": "Seller Profile",
@@ -66,7 +71,18 @@
     "unblockSuccess": "User unblocked",
     "unblockFailed": "Could not unblock user",
     "searchListings": "Search listings...",
-    "listingsCount": "{{count}} listings"
+    "listingsCount": "{{count}} listings",
+    "tabs": {
+      "active": "Active",
+      "sold": "Sold"
+    },
+    "sold": {
+      "emptyTitle": "No sold items yet",
+      "emptyDescription": "Items this seller has sold will appear here."
+    },
+    "activeToday": "Active today",
+    "activeThisWeek": "Active this week",
+    "activeThisMonth": "Active this month"
   },
   "sellerDashboard": "Seller Dashboard",
   "buyerProfile": "Buyer Profile",
@@ -131,5 +147,14 @@
   "deleteAccountConfirm": "Delete account",
   "deleteAccountSuccess": "Your account has been deleted.",
   "deleteAccountError": "Couldn't delete your account. Please try again.",
-  "privacyPolicy": "Privacy Policy"
+  "privacyPolicy": "Privacy Policy",
+  "myReports": "My Reports",
+  "activity": "Activity",
+  "recentlyViewed": "Recently Viewed",
+  "away": {
+    "toggle": "I'm away (temporarily unavailable)",
+    "untilLabel": "Away until (YYYY-MM-DD)",
+    "sectionTitle": "Away Mode",
+    "youAreAway": "You're marked away until {{date}} — buyers see the away notice"
+  }
 }

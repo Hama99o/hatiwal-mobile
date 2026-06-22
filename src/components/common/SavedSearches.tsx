@@ -37,6 +37,33 @@ export function SavedSearches({ onSelectSearch }: SavedSearchesProps) {
     onSettled: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
   });
 
+  // Optimistically zero out the badge as soon as the chip is tapped, then
+  // fire mark_seen in the background and re-fetch to get the true server state.
+  const markSeenMutation = useMutation({
+    mutationFn: (id: number) => savedSearchesAPI.markSeen(id),
+    onMutate: async (id: number) => {
+      await qc.cancelQueries({ queryKey: ["saved-searches"] });
+      const previous = qc.getQueryData<SavedSearch[]>(["saved-searches"]);
+      qc.setQueryData<SavedSearch[]>(["saved-searches"], (old: SavedSearch[] | undefined) =>
+        (old ?? []).map((s: SavedSearch) =>
+          s.id === id ? { ...s, newMatchesCount: 0 } : s
+        )
+      );
+      return { previous };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.previous) qc.setQueryData(["saved-searches"], ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
+  });
+
+  const handleSelectSearch = (search: SavedSearch) => {
+    onSelectSearch(search);
+    if (search.newMatchesCount > 0) {
+      markSeenMutation.mutate(search.id);
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={{ padding: 12, alignItems: "center" }}>
@@ -63,7 +90,7 @@ export function SavedSearches({ onSelectSearch }: SavedSearchesProps) {
           <SavedSearchItem
             key={search.id}
             search={search}
-            onPress={() => onSelectSearch(search)}
+            onPress={() => handleSelectSearch(search)}
             onDelete={() => deleteMutation.mutate(search.id)}
           />
         ))}

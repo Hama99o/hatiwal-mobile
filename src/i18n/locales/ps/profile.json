@@ -22,6 +22,7 @@
     "unblockTitle": "کاروونکی خلاص کړئ؟",
     "unblockMessage": "{{name}} به بیا وکولی شي تاسو ته پیغام درکړي او ستاسو د لیست په اړه اړیکه ونیسي.",
     "unblockAction": "خلاصول",
+    "unblockConfirm": "هو، خلاص کړئ",
     "emptyTitle": "هیڅ بلاک شوی کاروونکی نشته",
     "emptyDescription": "هغه کسان چې تاسو یې بلاک کوئ نشي کولی تاسو ته پیغام درکړي یا ستاسو د لیستونو په اړه اړیکه ونیسي. تاسو تر اوسه څوک نه دي بلاک کړي."
   },
@@ -46,7 +47,11 @@
       "within_a_day": "معمولاً د یوه ورځ دننه ځواب ورکوي",
       "within_a_few_days": "معمولاً د څو ورځو دننه ځواب ورکوي"
     },
-    "responseRate": "{{percent}}٪ د ځواب کچه"
+    "responseRate": "{{percent}}٪ د ځواب کچه",
+    "share": {
+      "title": "د پلورونکي پروفایل شریک کړئ",
+      "body": "د هاتیوال پر {{name}} وګورئ\n{{url}}"
+    }
   },
   "userProfile": {
     "title": "د پلورونکي پروفایل",
@@ -66,7 +71,18 @@
     "unblockSuccess": "کاروونکی خلاص شو",
     "unblockFailed": "کاروونکی خلاصولو کې ستونزه وه",
     "searchListings": "اعلانونه لټول...",
-    "listingsCount": "{{count}} اعلانونه"
+    "listingsCount": "{{count}} اعلانونه",
+    "tabs": {
+      "active": "فعال",
+      "sold": "پلورل شوي"
+    },
+    "sold": {
+      "emptyTitle": "لا هیڅ پلورل شوی توکی نشته",
+      "emptyDescription": "هغه توکي چې دا پلورونکی یې پلورلي دلته به ښکاره شي."
+    },
+    "activeToday": "نن فعال",
+    "activeThisWeek": "دا اونۍ فعال",
+    "activeThisMonth": "دا میاشت فعال"
   },
   "sellerDashboard": "د پلورونکي ډیش بورډ",
   "buyerProfile": "د اخیستونکي پروفایل",
@@ -131,5 +147,14 @@
   "deleteAccountConfirm": "ګڼون ړنګول",
   "deleteAccountSuccess": "ستاسو ګڼون ړنګ شو.",
   "deleteAccountError": "ستاسو ګڼون ړنګ نشو. مهرباني وکړئ بیا هڅه وکړئ.",
-  "privacyPolicy": "د محرمیت تګلاره"
+  "privacyPolicy": "د محرمیت تګلاره",
+  "myReports": "زما راپورونه",
+  "activity": "فعالیت",
+  "recentlyViewed": "وروستي لیدل شوي",
+  "away": {
+    "toggle": "زه غایب یم (لنډمهاله موجود نه یم)",
+    "untilLabel": "تر کله پورې غایب (YYYY-MM-DD)",
+    "sectionTitle": "غیر حاضري حالت",
+    "youAreAway": "تاسو تر {{date}} پورې غایب یاست — پیرودونکي د غیر حاضري اطلاع ویني"
+  }
 }

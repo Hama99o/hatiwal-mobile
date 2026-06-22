@@ -62,6 +62,14 @@ jest.mock("@/lib/animation", () => ({
 // ─── Mock react-native-reanimated ─────────────────────────────────────────────
 // Override the setup.ts require mock with a complete stub that covers
 // useSharedValue / useAnimatedStyle used inside ListingCard + skeleton.
+// Also stubs out the entering-animation builders (FadeIn, ZoomIn) used by
+// EmptyState so that calling .duration().delay() returns the mock itself.
+const makeAnimMock = () => {
+  const self: Record<string, unknown> = {};
+  ["duration","delay","springify","damping","stiffness","easing","withCallback","randomDelay","withInitialValues","reduceMotion","mass","restDisplacementThreshold","restSpeedThreshold","overshootClamping"].forEach((m) => { self[m] = () => self; });
+  return self;
+};
+
 jest.mock("react-native-reanimated", () => {
   const RN = require("react-native");
   return {
@@ -95,6 +103,13 @@ jest.mock("react-native-reanimated", () => {
     cancelAnimation: jest.fn(),
     Easing: { linear: (v: unknown) => v, ease: (v: unknown) => v, bezier: () => (v: unknown) => v },
     createAnimatedComponent: (C: React.ComponentType) => C,
+    // Entering animation builders — EmptyState uses FadeIn + ZoomIn
+    FadeIn: makeAnimMock(),
+    ZoomIn: makeAnimMock(),
+    FadeInDown: makeAnimMock(),
+    FadeOut: makeAnimMock(),
+    FadeInLeft: makeAnimMock(),
+    FadeInRight: makeAnimMock(),
   };
 });
 

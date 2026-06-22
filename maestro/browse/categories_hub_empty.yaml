@@ -1,0 +1,16 @@
+appId: com.hatiwal.app
+---
+# Categories hub — empty state: when API returns no categories
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+
+- tapOn:
+    description: "Browse categories"
+- waitForAnimationToEnd
+
+- assertVisible: "Categories"
+# Empty state should show when there are no categories
+# (relies on the mock/seed returning an empty list for this flow)
+- assertVisible: "No categories yet"

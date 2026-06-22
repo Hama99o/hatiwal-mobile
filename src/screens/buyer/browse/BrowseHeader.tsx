@@ -20,6 +20,7 @@ import {
   LayoutGrid,
   List,
   History,
+  UserCheck,
 } from "lucide-react-native";
 import type { BrowseViewMode } from "@/stores/browseViewMode.store";
 import { AnimatedPressable } from "@/lib/animation";
@@ -61,15 +62,27 @@ interface BrowseHeaderProps {
   onSelectSavedSearch: (search: SavedSearch) => void;
   sort: ListingSort | null;
   onSortChange: (val: ListingSort | null) => void;
+  /** When non-null, only listings from sellers active within this many days are shown. */
+  sellerActiveDays: number | null;
+  onSellerActiveDaysChange: (val: number | null) => void;
   viewMode: BrowseViewMode;
   onViewModeChange: (mode: BrowseViewMode) => void;
+  /** Non-null when Browse is filtered to a specific subcategory (leaf node).
+   *  Shown as a removable active-filter chip below the category chip row. */
+  subcategoryLabel: string | null;
+  onClearSubcategory: () => void;
+  /** Total number of currently-active filters/sorts (0 when default Browse). */
+  activeFilterCount: number;
+  /** Resets every filter to its default in one tap. */
+  onClearAllFilters: () => void;
 }
 
 const SORT_OPTIONS: { key: ListingSort; labelKey: string }[] = [
-  { key: "newest",     labelKey: "browse.sort.newest" },
-  { key: "oldest",     labelKey: "browse.sort.oldest" },
-  { key: "price_asc",  labelKey: "browse.sort.priceAsc" },
-  { key: "price_desc", labelKey: "browse.sort.priceDesc" },
+  { key: "newest",      labelKey: "browse.sort.newest" },
+  { key: "oldest",      labelKey: "browse.sort.oldest" },
+  { key: "price_asc",   labelKey: "browse.sort.priceAsc" },
+  { key: "price_desc",  labelKey: "browse.sort.priceDesc" },
+  { key: "most_viewed", labelKey: "browse.sort.mostViewed" },
 ];
 
 export function BrowseHeader({
@@ -94,16 +107,22 @@ export function BrowseHeader({
   onSelectSavedSearch,
   sort,
   onSortChange,
+  sellerActiveDays,
+  onSellerActiveDaysChange,
   viewMode,
   onViewModeChange,
+  subcategoryLabel,
+  onClearSubcategory,
+  activeFilterCount,
+  onClearAllFilters,
 }: BrowseHeaderProps) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
 
-  const history        = useSearchHistoryStore((s) => s.history);
+  const history           = useSearchHistoryStore((s) => s.history);
   const removeFromHistory = useSearchHistoryStore((s) => s.remove);
-  const clearHistory   = useSearchHistoryStore((s) => s.clear);
+  const clearHistory      = useSearchHistoryStore((s) => s.clear);
 
   return (
     <View style={{ marginBottom: 4 }}>
@@ -510,10 +529,17 @@ export function BrowseHeader({
                   {t("browse.sort.label")}
                 </Text>
               </View>
-              <View
-                style={{
+              {/* Horizontal scroll keeps all 5 pills readable at their
+                  natural width — no flex-shrink, no multi-line truncation.
+                  RTL: content wrapper uses row-reverse so the leading pill
+                  (Newest first) stays on the start edge in ps/fa. */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{
                   flexDirection: isRtl ? "row-reverse" : "row",
                   gap: 8,
+                  paddingHorizontal: 2,
                 }}
               >
                 {SORT_OPTIONS.map((opt) => {
@@ -525,10 +551,9 @@ export function BrowseHeader({
                       // default newest order), mirroring the condition chips.
                       onPress={() => onSortChange(isActive ? null : opt.key)}
                       style={{
-                        flex: 1,
                         paddingVertical: 9,
-                        paddingHorizontal: 6,
-                        borderRadius: 10,
+                        paddingHorizontal: 14,
+                        borderRadius: 20,
                         borderWidth: 1.5,
                         backgroundColor: isActive ? colors.primary : "transparent",
                         borderColor: isActive ? colors.primary : colors.border,
@@ -540,31 +565,220 @@ export function BrowseHeader({
                     >
                       <Text
                         style={{
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: "600",
                           color: isActive ? colors.primaryForeground : colors.foreground,
-                          textAlign: "center",
                         }}
-                        numberOfLines={2}
                       >
                         {t(opt.labelKey)}
                       </Text>
                     </Pressable>
                   );
                 })}
+              </ScrollView>
+            </View>
+
+            {/* Active sellers chip */}
+            <View style={{ gap: 6 }}>
+              <View
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <UserCheck size={14} color={colors.mutedForeground} />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: colors.mutedForeground,
+                  }}
+                >
+                  {t("browse.sellerActivity")}
+                </Text>
               </View>
+              <Pressable
+                onPress={() =>
+                  onSellerActiveDaysChange(sellerActiveDays === 7 ? null : 7)
+                }
+                style={{
+                  alignSelf: isRtl ? "flex-end" : "flex-start",
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingVertical: 9,
+                  paddingHorizontal: 14,
+                  borderRadius: 20,
+                  borderWidth: 1.5,
+                  backgroundColor:
+                    sellerActiveDays === 7 ? colors.primary : "transparent",
+                  borderColor:
+                    sellerActiveDays === 7 ? colors.primary : colors.border,
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: sellerActiveDays === 7 }}
+                accessibilityHint={t("browse.activeSellersHint")}
+              >
+                <UserCheck
+                  size={14}
+                  color={
+                    sellerActiveDays === 7
+                      ? colors.primaryForeground
+                      : colors.mutedForeground
+                  }
+                />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "600",
+                    color:
+                      sellerActiveDays === 7
+                        ? colors.primaryForeground
+                        : colors.foreground,
+                  }}
+                >
+                  {t("browse.activeSellers")}
+                </Text>
+                {sellerActiveDays === 7 && (
+                  <X size={12} color={colors.primaryForeground} />
+                )}
+              </Pressable>
             </View>
           </View>
         )}
       </View>
 
-      {/* ── Category chip row ──────────────────────────────────────────── */}
+      {/* ── Category chip row ─────────────────────────────────────────────
+          The full categories hub is reached from the dedicated Categories tab
+          in the bottom navbar, so no in-header "browse categories" button. */}
       <CategoryChipRow
         categories={categories}
         selectedId={categoryId}
         onSelect={onCategoryChange}
         isRtl={isRtl}
       />
+
+      {/* ── Active subcategory filter chip ────────────────────────────────
+          Shown only when Browse is narrowed to a specific subcategory (leaf).
+          Displays the subcategory's English name (set via URL param from the
+          Categories hub) and an X button to clear the narrowing. */}
+      {subcategoryLabel !== null && (
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            backgroundColor: colors.card,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              gap: 6,
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderRadius: 20,
+              borderWidth: 1.5,
+              borderColor: colors.primary,
+              backgroundColor: colors.primaryAlpha,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                color: colors.primary,
+              }}
+              numberOfLines={1}
+            >
+              {t("browse.subcategoryFilter", { name: subcategoryLabel })}
+            </Text>
+            <Pressable
+              onPress={onClearSubcategory}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={t("browse.clearSubcategory")}
+            >
+              <X size={14} color={colors.primary} />
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* ── Active-filters summary pill ──────────────────────────────────
+           Shown only when at least one filter/sort is non-default. Presents
+           the total count and a one-tap "Clear all" affordance. RTL-safe. */}
+      {activeFilterCount > 0 && (
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(160)}
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            backgroundColor: colors.card,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+        >
+          {/* Count pill */}
+          <View
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              gap: 6,
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderRadius: 20,
+              borderWidth: 1.5,
+              borderColor: colors.primary,
+              backgroundColor: colors.primaryAlpha,
+            }}
+          >
+            <Sliders size={13} color={colors.primary} />
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                color: colors.primary,
+              }}
+            >
+              {t("browse.filtersActive", { count: activeFilterCount })}
+            </Text>
+          </View>
+
+          {/* Clear all button */}
+          <Pressable
+            onPress={onClearAllFilters}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              gap: 4,
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t("browse.clearAllFilters")}
+          >
+            <X size={14} color={colors.destructive} />
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                color: colors.destructive,
+              }}
+            >
+              {t("browse.clearAllFilters")}
+            </Text>
+          </Pressable>
+        </Animated.View>
+      )}
 
       {/* ── Saved searches ─────────────────────────────────────────────── */}
       <SavedSearches onSelectSearch={onSelectSavedSearch} />

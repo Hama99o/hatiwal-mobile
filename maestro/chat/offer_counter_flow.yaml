@@ -1,0 +1,56 @@
+appId: com.hatiwal.app
+---
+# Counter-offer flow (TASK-O829):
+#   1. Buyer makes an offer
+#   2. Seller sends a counter-offer with a higher price
+#   3. Buyer accepts the counter
+#   4. Both sides show the accepted outcome badge on the counter card
+
+# ── Step 1: buyer sends an offer ────────────────────────────────────────────
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Message Seller"
+- waitForAnimationToEnd
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- assertVisible: "Send Offer"
+- tapOn: "Offer Amount"
+- inputText: "8000"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+
+# Offer bubble is visible in thread
+- assertVisible: "8,000"
+- assertVisible: "Price Offer"
+
+# ── Step 2: seller counters with a new price ─────────────────────────────────
+# Seller is already the other participant; the offer card shows Counter button
+- tapOn: "Counter"
+- waitForAnimationToEnd
+
+# Counter sheet is open
+- assertVisible: "Counter Offer"
+- assertVisible: "Buyer offered"
+
+# Clear pre-filled amount and enter counter price
+- clearText
+- inputText: "9500"
+- tapOn: "Send Counter"
+- waitForAnimationToEnd
+
+# Counter-offer card is visible
+- assertVisible: "Counter Offer"
+- assertVisible: "9,500"
+
+# ── Step 3: buyer accepts the counter ────────────────────────────────────────
+# Buyer is the other participant; the counter card shows Accept/Decline
+- assertVisible: "Accept offer"
+- tapOn: "Accept offer"
+- waitForAnimationToEnd
+
+# ── Step 4: accepted outcome badge shown on counter card ─────────────────────
+- assertVisible: "Offer accepted"

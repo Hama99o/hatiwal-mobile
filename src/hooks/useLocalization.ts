@@ -40,6 +40,34 @@ export function useLocalization() {
     return `${formatDateShort(date)} ${formatTime(date)}`;
   };
 
+  /**
+   * Returns just the abbreviated weekday name (Mon, Tue … / شنبه …) for the
+   * given date, localised via the centralised getLocale() mapping.
+   */
+  const formatWeekday = (date: string | Date | null | undefined): string => {
+    if (!date) return "";
+    const d = typeof date === "string" ? new Date(date) : date;
+    return d.toLocaleDateString(getLocale(lang), { weekday: "short" });
+  };
+
+  /**
+   * Smart relative timestamp used in conversation-list rows:
+   *   • same calendar day  → time only  (e.g. "2:30 PM")
+   *   • within last 7 days → weekday    (e.g. "Mon")
+   *   • older             → short date  (e.g. "Jun 12")
+   * Uses the centralised locale mapping — never duplicates getLocale().
+   */
+  const formatSmartTime = (date: string | Date | null | undefined): string => {
+    if (!date) return "";
+    const d         = typeof date === "string" ? new Date(date) : date;
+    const now       = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (d >= todayStart) return formatTime(d);
+    const weekAgo = new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
+    if (d >= weekAgo)    return formatWeekday(d);
+    return formatDateShort(d);
+  };
+
   const formatCurrency = (amount: number | null | undefined, currency = "AFN"): string => {
     if (amount == null) return "";
     return new Intl.NumberFormat(getLocale(lang), {
@@ -59,6 +87,8 @@ export function useLocalization() {
     formatDateShort,
     formatTime,
     formatDateTime,
+    formatWeekday,
+    formatSmartTime,
     formatCurrency,
     formatNumber,
     isRtl,

@@ -1,4 +1,5 @@
 {
+  "listingDeleted": "این آگهی حذف شده است",
   "title": "پیام‌ها",
   "searchPlaceholder": "جستجوی گفتگوها...",
   "messagePlaceholder": "پیام بنویسید...",
@@ -25,6 +26,7 @@
     "offer": "پیشنهاد: {{amount}} {{currency}}",
     "offerAccepted": "پیشنهاد پذیرفته شد",
     "offerDeclined": "پیشنهاد رد شد",
+    "offerCounter": "پیشنهاد متقابل: {{amount}} {{currency}}",
     "photo": "عکس",
     "file": "فایل"
   },
@@ -71,9 +73,28 @@
     "sending": "در حال ارسال..."
   },
   "attachFile": "پیوست فایل",
+  "attachPhoto": "پیوست عکس",
   "document": {
     "tap": "برای باز کردن لمس کنید",
     "notAvailable": "فایل در دسترس نیست"
+  },
+  "photo": {
+    "uploadFailed": "ارسال عکس ناموفق بود. دوباره امتحان کنید.",
+    "permissionDenied": "برای ارسال عکس، دسترسی به کتابخانه عکس لازم است.",
+    "notAvailable": "عکس در دسترس نیست",
+    "loading": "در حال بارگذاری عکس...",
+    "viewFullscreen": "مشاهده عکس در تمام صفحه"
+  },
+  "tabs": {
+    "inbox": "صندوق ورودی",
+    "archived": "بایگانی‌شده"
+  },
+  "archive": {
+    "archive": "بایگانی",
+    "unarchive": "خارج از بایگانی",
+    "empty": "هیچ گفتگوی بایگانی‌شده‌ای وجود ندارد",
+    "emptyDescription": "گفتگوهایی که بایگانی می‌کنید اینجا نشان داده می‌شوند.",
+    "error": "وضعیت بایگانی به‌روزرسانی نشد. دوباره امتحان کنید."
   },
   "filter": {
     "all": "همه",
@@ -92,7 +113,18 @@
     "accepted": "پیشنهاد پذیرفته شد",
     "declined": "پیشنهاد رد شد",
     "acceptedToast": "شما پیشنهاد را پذیرفتید",
-    "declinedToast": "شما پیشنهاد را رد کردید"
+    "declinedToast": "شما پیشنهاد را رد کردید",
+    "counter": "پیشنهاد متقابل",
+    "counterTitle": "پیشنهاد قیمت متقابل",
+    "counterLabel": "پیشنهاد متقابل",
+    "buyerOfferedAt": "خریدار {{price}} پیشنهاد داد",
+    "yourCounterOffer": "قیمت متقابل شما",
+    "counterNote": "بدون پرداخت — این فقط یک پیشنهاد قیمت است. برای نهایی کردن حضوری ملاقات کنید.",
+    "sendCounter": "ارسال پیشنهاد متقابل",
+    "counteredAt": "قیمت متقابل",
+    "counterSentToast": "پیشنهاد متقابل ارسال شد!",
+    "quickChipsHint": "مبالغ سریع",
+    "firmNotice": "قیمت فروشنده ثابت است — پیشنهادات پذیرفته نمی‌شوند"
   },
   "block": {
     "blockUser": "مسدود کردن کاربر",
@@ -110,5 +142,49 @@
     "matchCount": "{{current}} از {{total}}",
     "partialResults": "نتایج فقط در پیام‌های بارگذاری‌شده نشان داده می‌شود",
     "noResults": "هیچ پیامی با جستجوی شما مطابقت ندارد"
+  },
+  "actions": {
+    "markRead": "علامت‌گذاری به عنوان خوانده شده",
+    "markUnread": "علامت‌گذاری به عنوان خوانده نشده",
+    "options": "گزینه‌های گفتگو",
+    "markReadError": "وضعیت خواندن به‌روزرسانی نشد. دوباره امتحان کنید."
+  },
+  "listingActions": {
+    "reserve": "رزرو",
+    "markSold": "فروخته شد",
+    "reserveSuccess": "آگهی به عنوان رزرو شده علامت‌گذاری شد",
+    "markSoldSuccess": "آگهی به عنوان فروخته شده علامت‌گذاری شد",
+    "reserveFailed": "رزرو کردن آگهی ناموفق بود. دوباره امتحان کنید.",
+    "markSoldFailed": "علامت‌گذاری به عنوان فروخته شده ناموفق بود. دوباره امتحان کنید.",
+    "markSoldConfirmTitle": "به عنوان فروخته شده علامت بزنید؟",
+    "markSoldConfirmBody": "این کالا را به عنوان فروخته شده علامت می‌زند و آگهی بسته می‌شود.",
+    "markSoldConfirmCta": "بله، فروخته شد"
+  },
+  "message": {
+    "deleted": "پیام حذف شد",
+    "deleteAction": "حذف پیام",
+    "deleteConfirm": "این پیام را حذف کنید؟",
+    "deleteConfirmCta": "حذف"
+  },
+  "report": {
+    "action": "گزارش کاربر",
+    "menuTitle": "گزارش این کاربر"
+  },
+  "quickReplies": {
+    "toolbarLabel": "پاسخ‌های سریع",
+    "buyer": {
+      "stillAvailable": "آیا هنوز موجود است؟",
+      "lowestPrice": "کمترین قیمت شما چقدر است؟",
+      "whereMeet": "کجا می‌توانیم ملاقات کنیم؟",
+      "morePhotos": "می‌توانم عکس‌های بیشتری ببینم؟",
+      "negotiable": "آیا قیمت قابل مذاکره است؟"
+    },
+    "seller": {
+      "yesAvailable": "بله، موجود است",
+      "meetAtPlace": "بیایید در [مکان] ملاقات کنیم",
+      "priceFirm": "قیمت ثابت است",
+      "whenFree": "کِی برای ملاقات آزاد هستید؟",
+      "sendMorePhotos": "می‌توانم عکس‌های بیشتری بفرستم"
+    }
   }
 }

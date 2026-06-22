@@ -6,7 +6,7 @@
 import React from "react";
 import { View, Pressable, Modal } from "react-native";
 import { Text } from "@/components/reusables/text";
-import { Flag, ShieldBan } from "lucide-react-native";
+import { Flag, Share2, ShieldBan } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -17,6 +17,7 @@ interface ActionMenuProps {
   onClose: () => void;
   onBlock: () => void;
   onReport: () => void;
+  onShare?: () => void;
 }
 
 export function ActionMenu({
@@ -25,6 +26,7 @@ export function ActionMenu({
   onClose,
   onBlock,
   onReport,
+  onShare,
 }: ActionMenuProps) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
@@ -68,6 +70,37 @@ export function ActionMenu({
           </View>
 
           <View style={{ paddingHorizontal: 16, gap: 10 }}>
+            {/* Share */}
+            {onShare && (
+              <Pressable
+                onPress={onShare}
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  paddingVertical: 14,
+                  paddingHorizontal: 14,
+                  borderRadius: 12,
+                  gap: 12,
+                  backgroundColor: colors.background,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+                android_ripple={{ color: colors.muted }}
+              >
+                <Share2 size={20} color={colors.foreground} />
+                <Text
+                  style={{
+                    fontSize: 15,
+                    color: colors.foreground,
+                    fontWeight: "600",
+                    flex: 1,
+                  }}
+                >
+                  {t("profile.sellerProfile.share.title")}
+                </Text>
+              </Pressable>
+            )}
+
             {/* Block / Unblock */}
             <Pressable
               onPress={onBlock}

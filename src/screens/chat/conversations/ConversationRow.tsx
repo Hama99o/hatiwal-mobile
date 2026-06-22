@@ -1,5 +1,5 @@
-import { View, Pressable, StyleSheet } from "react-native";
-import { useCallback, useEffect } from "react";
+import { View, Pressable, StyleSheet, Modal, Text as RNText } from "react-native";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Image } from "expo-image";
@@ -10,7 +10,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { Camera, MapPin, Tag, FileText } from "lucide-react-native";
+import { Camera, MapPin, Tag, FileText, Trash2, CheckCheck, MailOpen, MoreVertical, Archive, ArchiveRestore } from "lucide-react-native";
 import { useReduceMotion } from "@/lib/animation";
 
 import { type Conversation } from "@/api/conversations";
@@ -19,25 +19,11 @@ import { useColors } from "@/hooks/useColors";
 import { Text } from "@/components/reusables/text";
 import { Badge } from "@/components/reusables/badge";
 import { StatusBadge, type ListingStatus } from "@/components/common/StatusBadge";
-import { VerifiedBadge } from "@/components/common/VerifiedBadge";
+import { UserIdentity } from "@/components/common/UserIdentity";
 import { confirmAlert } from "@/utils/alert";
 
 const THUMB = 54;
 
-function smartTime(dateStr: string, lang: string): string {
-  const d          = new Date(dateStr);
-  const now        = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const locale     = lang === "ps" ? "fa-AF" : lang === "fa" ? "fa-IR" : "en-US";
-  if (d >= todayStart) {
-    return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
-  }
-  const weekAgo = new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
-  if (d >= weekAgo) {
-    return d.toLocaleDateString(locale, { weekday: "short" });
-  }
-  return d.toLocaleDateString(locale, { month: "short", day: "numeric" });
-}
 
 function PulsingBadge({ count, testID }: { count: number; testID?: string }) {
   const reduceMotion = useReduceMotion();
@@ -62,15 +48,31 @@ function PulsingBadge({ count, testID }: { count: number; testID?: string }) {
 
 interface ConversationRowProps {
   item: Conversation;
+  /** "inbox" (default) or "archived" — controls which menu items appear */
+  tabMode?: "inbox" | "archived";
   onDelete: (id: number) => void;
+  onMarkRead?: (id: number) => void;
+  onMarkUnread?: (id: number) => void;
+  onArchive?: (id: number) => void;
+  onUnarchive?: (id: number) => void;
   index?: number;
 }
 
-export function ConversationRow({ item, onDelete, index = 0 }: ConversationRowProps) {
-  const router          = useRouter();
-  const { isRtl, lang } = useLocalization();
-  const { t }           = useTranslation();
-  const colors          = useColors();
+export function ConversationRow({
+  item,
+  tabMode = "inbox",
+  onDelete,
+  onMarkRead,
+  onMarkUnread,
+  onArchive,
+  onUnarchive,
+  index = 0,
+}: ConversationRowProps) {
+  const router                         = useRouter();
+  const { isRtl, formatSmartTime }     = useLocalization();
+  const { t }                          = useTranslation();
+  const colors                         = useColors();
+  const [menuVisible, setMenuVisible]  = useState(false);
 
   const other     = item.otherParticipant;
   const otherName = other?.name ?? "";
@@ -79,6 +81,7 @@ export function ConversationRow({ item, onDelete, index = 0 }: ConversationRowPr
     item.listing?.status === "sold" || item.listing?.status === "reserved";
 
   // ── Preview ───────────────────────────────────────────────────────────────
+
   let PreviewIcon: typeof MapPin | null = null;
   let previewText = item.lastMessageBody ?? t("chat.noMessages");
   if (item.lastMessageBody) {
@@ -100,13 +103,38 @@ export function ConversationRow({ item, onDelete, index = 0 }: ConversationRowPr
   }
 
   const handleLongPress = useCallback(() => {
+    setMenuVisible(true);
+  }, []);
+
+  const handleDelete = useCallback(() => {
+    setMenuVisible(false);
     confirmAlert(t("chat.deleteConversation"), t("chat.deleteConversationDescription"), [
       { text: t("common.cancel"),  style: "cancel" },
       { text: t("common.delete"),  style: "destructive", onPress: () => onDelete(item.id) },
     ]);
   }, [t, onDelete, item.id]);
 
-  const timeLabel = item.lastMessageAt ? smartTime(item.lastMessageAt, lang) : "";
+  const handleMarkRead = useCallback(() => {
+    setMenuVisible(false);
+    onMarkRead?.(item.id);
+  }, [onMarkRead, item.id]);
+
+  const handleMarkUnread = useCallback(() => {
+    setMenuVisible(false);
+    onMarkUnread?.(item.id);
+  }, [onMarkUnread, item.id]);
+
+  const handleArchive = useCallback(() => {
+    setMenuVisible(false);
+    onArchive?.(item.id);
+  }, [onArchive, item.id]);
+
+  const handleUnarchive = useCallback(() => {
+    setMenuVisible(false);
+    onUnarchive?.(item.id);
+  }, [onUnarchive, item.id]);
+
+  const timeLabel = item.lastMessageAt ? formatSmartTime(item.lastMessageAt) : "";
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -123,17 +151,24 @@ export function ConversationRow({ item, onDelete, index = 0 }: ConversationRowPr
         />
       )}
 
-      <Pressable
-        onPress={() => router.push(`/(main)/conversation/${item.id}` as never)}
-        onLongPress={handleLongPress}
-        android_ripple={{ color: colors.muted }}
+      <View
         style={[
-          styles.row,
+          styles.rowWrap,
           {
             flexDirection:     isRtl ? "row-reverse" : "row",
             backgroundColor:   unread > 0 ? colors.primaryAlpha : colors.background,
             borderBottomColor: colors.border,
           },
+        ]}
+      >
+      <Pressable
+        onPress={() => router.push(`/(main)/conversation/${item.id}` as never)}
+        onLongPress={handleLongPress}
+        android_ripple={{ color: colors.muted }}
+        testID={`conversation-row-${index}`}
+        style={[
+          styles.row,
+          { flexDirection: isRtl ? "row-reverse" : "row" },
         ]}
       >
         {/* ── Thumbnail: fixed 54×54 container, image fills via absoluteFillObject ── */}
@@ -187,13 +222,16 @@ export function ConversationRow({ item, onDelete, index = 0 }: ConversationRowPr
             ) : null}
           </View>
 
-          {/* Participant name + verified */}
+          {/* Participant name + verified — via shared UserIdentity (never hand-roll) */}
           {otherName ? (
             <View style={[styles.row2, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
-              <Text numberOfLines={1} style={[styles.name, { color: colors.mutedForeground }]}>
-                {otherName}
-              </Text>
-              {other?.verified && <VerifiedBadge size={12} />}
+              <UserIdentity
+                name={otherName}
+                verified={other?.verified ?? false}
+                showAvatar={false}
+                size={28}
+                nameSize={12}
+              />
             </View>
           ) : null}
 
@@ -219,6 +257,157 @@ export function ConversationRow({ item, onDelete, index = 0 }: ConversationRowPr
 
         </View>
       </Pressable>
+
+        {/* Visible options button — makes mark-read/unread + delete discoverable
+            (long-press on the row still opens the same menu for power users). */}
+        <Pressable
+          onPress={() => setMenuVisible(true)}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={t("chat.actions.options")}
+          android_ripple={{ color: colors.muted, borderless: true }}
+          style={styles.kebab}
+          testID={`conversation-options-${index}`}
+        >
+          <MoreVertical size={20} color={colors.mutedForeground} />
+        </Pressable>
+      </View>
+
+      {/* ── Action menu (bottom-slide Modal) ───────────────────────────────── */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMenuVisible(false)}
+        testID="conversation-action-menu"
+      >
+        <View
+          style={{ flex: 1, backgroundColor: colors.darkScrim }}
+          onTouchEnd={() => setMenuVisible(false)}
+        >
+          <View
+            style={{
+              position:            "absolute",
+              bottom:              0,
+              left:                0,
+              right:               0,
+              backgroundColor:     colors.card,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              paddingTop:          12,
+              paddingBottom:       32,
+            }}
+            onTouchEnd={(e) => e.stopPropagation()}
+          >
+            {/* Handle bar */}
+            <View style={{ alignItems: "center", marginBottom: 16 }}>
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+            </View>
+
+            <View style={{ paddingHorizontal: 16, gap: 4 }}>
+              {/* Mark as read / unread — non-destructive */}
+              {unread > 0 ? (
+                <Pressable
+                  onPress={handleMarkRead}
+                  testID="menu-mark-read"
+                  android_ripple={{ color: colors.muted }}
+                  style={{
+                    flexDirection:  isRtl ? "row-reverse" : "row",
+                    alignItems:     "center",
+                    paddingVertical: 14,
+                    paddingHorizontal: 4,
+                    gap:            12,
+                  }}
+                >
+                  <CheckCheck size={20} color={colors.foreground} />
+                  <RNText style={{ fontSize: 15, color: colors.foreground, fontWeight: "500", flex: 1 }}>
+                    {t("chat.actions.markRead")}
+                  </RNText>
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={handleMarkUnread}
+                  testID="menu-mark-unread"
+                  android_ripple={{ color: colors.muted }}
+                  style={{
+                    flexDirection:  isRtl ? "row-reverse" : "row",
+                    alignItems:     "center",
+                    paddingVertical: 14,
+                    paddingHorizontal: 4,
+                    gap:            12,
+                  }}
+                >
+                  <MailOpen size={20} color={colors.foreground} />
+                  <RNText style={{ fontSize: 15, color: colors.foreground, fontWeight: "500", flex: 1 }}>
+                    {t("chat.actions.markUnread")}
+                  </RNText>
+                </Pressable>
+              )}
+
+              {/* Archive / Unarchive */}
+              {tabMode === "inbox" ? (
+                <Pressable
+                  onPress={handleArchive}
+                  testID="menu-archive"
+                  android_ripple={{ color: colors.muted }}
+                  style={{
+                    flexDirection:  isRtl ? "row-reverse" : "row",
+                    alignItems:     "center",
+                    paddingVertical: 14,
+                    paddingHorizontal: 4,
+                    gap:            12,
+                  }}
+                >
+                  <Archive size={20} color={colors.foreground} />
+                  <RNText style={{ fontSize: 15, color: colors.foreground, fontWeight: "500", flex: 1 }}>
+                    {t("chat.archive.archive")}
+                  </RNText>
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={handleUnarchive}
+                  testID="menu-unarchive"
+                  android_ripple={{ color: colors.muted }}
+                  style={{
+                    flexDirection:  isRtl ? "row-reverse" : "row",
+                    alignItems:     "center",
+                    paddingVertical: 14,
+                    paddingHorizontal: 4,
+                    gap:            12,
+                  }}
+                >
+                  <ArchiveRestore size={20} color={colors.foreground} />
+                  <RNText style={{ fontSize: 15, color: colors.foreground, fontWeight: "500", flex: 1 }}>
+                    {t("chat.archive.unarchive")}
+                  </RNText>
+                </Pressable>
+              )}
+
+              {/* Divider */}
+              <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 4 }} />
+
+              {/* Delete — destructive */}
+              <Pressable
+                onPress={handleDelete}
+                testID="menu-delete"
+                android_ripple={{ color: colors.muted }}
+                style={{
+                  flexDirection:  isRtl ? "row-reverse" : "row",
+                  alignItems:     "center",
+                  paddingVertical: 14,
+                  paddingHorizontal: 4,
+                  gap:            12,
+                }}
+              >
+                <Trash2 size={20} color={colors.destructive} />
+                <RNText style={{ fontSize: 15, color: colors.destructive, fontWeight: "600", flex: 1 }}>
+                  {t("chat.deleteConversation")}
+                </RNText>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -228,12 +417,25 @@ const styles = StyleSheet.create({
   accentLeft:  { left: 0 },
   accentRight: { right: 0 },
 
+  // Wrapper holds the row background + bottom border and lays the tap area and
+  // the options (⋮) button side by side.
+  rowWrap: {
+    alignItems:        "center",
+    borderBottomWidth: 1,
+  },
   row: {
+    flex:              1,
     alignItems:        "center",
     paddingHorizontal: 16,
     paddingVertical:   12,
-    borderBottomWidth: 1,
     gap:               12,
+  },
+  // Always-visible options button at the trailing edge.
+  kebab: {
+    alignSelf:         "stretch",
+    paddingHorizontal: 10,
+    alignItems:        "center",
+    justifyContent:    "center",
   },
 
   // Fixed 54×54 square — layout engine enforces this, expo-image fills via absoluteFillObject
@@ -254,7 +456,6 @@ const styles = StyleSheet.create({
   time:  { fontSize: 11, flexShrink: 0, marginTop: 1 },
 
   row2:  { alignItems: "center", gap: 4, marginBottom: 3 },
-  name:  { fontSize: 12, fontWeight: "500", flexShrink: 1 },
 
   row3:        { alignItems: "center", justifyContent: "space-between" },
   previewInner:{ flex: 1, alignItems: "center", gap: 4 },

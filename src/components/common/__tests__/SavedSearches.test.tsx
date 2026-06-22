@@ -23,6 +23,18 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+// ── Mock @/lib/animation ──────────────────────────────────────────────────────
+// SavedSearchItem uses useReduceMotion from this module.  Mock it to avoid
+// calling AccessibilityInfo (a native module) in the Jest environment.
+jest.mock("@/lib/animation", () => ({
+  useReduceMotion: () => false,
+  usePulse: () => ({ opacity: 1 }),
+  triggerHaptic: jest.fn(),
+  AnimatedPressable: ({ children }: { children: React.ReactNode }) => children,
+  getListItemEntering: () => null,
+  useListItemEntering: () => null,
+}));
+
 // ── Mock lucide-react-native ──────────────────────────────────────────────────
 jest.mock("lucide-react-native", () => ({
   X: "X",
@@ -32,11 +44,13 @@ jest.mock("lucide-react-native", () => ({
 // We control what list() resolves to in each test group.
 const mockList = jest.fn();
 const mockDelete = jest.fn();
+const mockMarkSeen = jest.fn();
 
 jest.mock("@/api/saved-searches", () => ({
   savedSearchesAPI: {
     list: (...args: unknown[]) => mockList(...args),
     delete: (...args: unknown[]) => mockDelete(...args),
+    markSeen: (...args: unknown[]) => mockMarkSeen(...args),
   },
 }));
 
@@ -64,6 +78,8 @@ const BASE_SEARCH: SavedSearch = {
   radius: null,
   locationBased: false,
   createdAt: "2025-01-01T00:00:00.000Z",
+  lastViewedAt: null,
+  newMatchesCount: 0,
 };
 
 function makeSearch(overrides: Partial<SavedSearch> = {}): SavedSearch {
@@ -102,6 +118,8 @@ function renderComponent(onSelectSearch = jest.fn(), qc = makeQueryClient()) {
 beforeEach(() => {
   mockList.mockReset();
   mockDelete.mockReset();
+  mockMarkSeen.mockReset();
+  mockMarkSeen.mockResolvedValue(undefined);
 });
 
 // ── 1. Loading state ──────────────────────────────────────────────────────────
@@ -364,5 +382,45 @@ describe("SavedSearches — smoke tests", () => {
       expect(mockList).toHaveBeenCalled();
     });
     expect(mockList).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── 7. New-matches badge ──────────────────────────────────────────────────────
+
+describe("SavedSearches — new-matches badge", () => {
+  it("calls markSeen when a chip with newMatchesCount > 0 is tapped", async () => {
+    const search = makeSearch({ id: 20, location: "Kabul", newMatchesCount: 3 });
+    mockList.mockResolvedValue([search]);
+    mockMarkSeen.mockResolvedValue({ ...search, newMatchesCount: 0 });
+
+    const { onSelectSearch } = renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText("Kabul")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText("Kabul"));
+
+    expect(onSelectSearch).toHaveBeenCalledWith(search);
+    await waitFor(() => {
+      expect(mockMarkSeen).toHaveBeenCalledWith(20);
+    });
+  });
+
+  it("does NOT call markSeen when newMatchesCount is 0", async () => {
+    const search = makeSearch({ id: 21, location: "Herat", newMatchesCount: 0 });
+    mockList.mockResolvedValue([search]);
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText("Herat")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText("Herat"));
+
+    await waitFor(() => {
+      expect(mockMarkSeen).not.toHaveBeenCalled();
+    });
   });
 });

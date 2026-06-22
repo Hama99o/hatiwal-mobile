@@ -27,6 +27,14 @@ export function useColors() {
     primaryForeground:     "hsl(0, 0%, 100%)" as string,
     primaryAlpha:          dark ? "rgba(59,130,246,0.12)"  : "rgba(37,99,235,0.10)",
 
+    // Seller accent — emerald. Seller mode (My Shop, mode-switch button, the
+    // bottom bar in seller mode) uses this instead of the buyer blue `primary`,
+    // so the active role is always legible. Green reads as commerce/“sell”,
+    // is clearly distinct from buyer-blue, and looks good in both themes.
+    seller:                dark ? "hsl(160, 70%, 45%)"   : "hsl(160, 84%, 39%)",
+    sellerForeground:      "hsl(0, 0%, 100%)" as string,
+    sellerAlpha:           dark ? "rgba(16,185,129,0.16)" : "rgba(5,150,105,0.12)",
+
     // Secondary — soft neutral
     secondary:             dark ? "hsl(217, 33%, 17%)"  : "hsl(214, 32%, 91%)",
     secondaryForeground:   dark ? "hsl(210, 40%, 98%)"  : "hsl(222, 47%, 11%)",

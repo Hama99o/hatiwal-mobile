@@ -1,0 +1,58 @@
+appId: com.hatiwal.app
+---
+# Send a photo in an existing conversation and verify the inline image bubble appears.
+# Covers: pick photo from library → optimistic bubble → server response → bubble renders.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+
+# Open the first conversation in the list
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+
+# Thread is open and input bar visible
+- assertVisible: "Type a message..."
+
+# Tap the photo attach button (ImageIcon)
+- tapOn:
+    accessibilityLabel: "Attach photo"
+- waitForAnimationToEnd
+
+# Expo ImagePicker sheet should open — pick first photo from the library
+# On the system photo picker, pick the first available asset
+- tapOn:
+    id: "com.apple.Photos"
+    optional: true
+- tapOn:
+    index: 0
+    optional: true
+- waitForAnimationToEnd
+
+# Dismiss any permission dialogs
+- tapOn:
+    text: "Allow Access to All Photos"
+    optional: true
+- waitForAnimationToEnd
+
+# After returning to the app, an image bubble should appear in the thread.
+# The bubble has accessibilityRole="imagebutton" set on the Pressable.
+- assertVisible:
+    accessibilityLabel: "View photo fullscreen"
+
+# Tapping the bubble opens the fullscreen viewer
+- tapOn:
+    accessibilityLabel: "View photo fullscreen"
+- waitForAnimationToEnd
+
+# Fullscreen viewer is open — close button (X) must be visible
+- assertVisible:
+    accessibilityLabel: "common.close"
+- tapOn:
+    accessibilityLabel: "common.close"
+- waitForAnimationToEnd
+
+# We are back in the thread — image bubble is still present
+- assertVisible:
+    accessibilityLabel: "View photo fullscreen"

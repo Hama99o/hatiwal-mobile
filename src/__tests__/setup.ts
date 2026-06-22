@@ -53,6 +53,8 @@ jest.mock("@/hooks/useLocalization", () => ({
     formatDateShort: (d: string) => d,
     formatTime: (d: string) => d,
     formatDateTime: (d: string) => d,
+    formatWeekday: (d: string) => d,
+    formatSmartTime: (d: string) => d,
     formatNumber: (n: number) => String(n),
     isRtl: false,
     lang: "en",

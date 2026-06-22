@@ -1,0 +1,77 @@
+appId: com.hatiwal.app
+name: "Mark conversation read/unread from conversations list"
+tags:
+  - chat
+  - mark_read
+
+---
+
+# ── Setup: log in and navigate to the Chat tab ─────────────────────────────
+- runFlow: ../auth/login.yaml
+
+- tapOn:
+    id: "tab-chat"
+
+# ── Happy path: mark a conversation as read ────────────────────────────────
+# Wait for the conversations list to load
+- waitForAnimationToEnd
+
+# Verify we're on the conversations screen
+- assertVisible:
+    text: "Messages"
+
+# Long-press the first conversation row to open the action menu.
+# The row Pressable has testID="conversation-row-0" (index suffix added in ConversationRow).
+- longPressOn:
+    testID: "conversation-row-0"
+
+# The bottom-sheet action menu should appear
+- waitForAnimationToEnd
+
+# Tap "Mark as read" if it is visible (conversation has unread messages)
+- runFlow:
+    when:
+      visible:
+        testID: "menu-mark-read"
+    commands:
+      - tapOn:
+          testID: "menu-mark-read"
+      # Badge should clear after marking as read
+      - waitForAnimationToEnd
+      - assertNotVisible:
+          testID: "menu-mark-read"
+
+# ── Mark as unread flow ────────────────────────────────────────────────────
+# Long-press the same row again via the options button (always visible)
+- tapOn:
+    testID: "conversation-options-0"
+
+- waitForAnimationToEnd
+
+# Now "Mark as unread" should be available (row was just marked read)
+- runFlow:
+    when:
+      visible:
+        testID: "menu-mark-unread"
+    commands:
+      - tapOn:
+          testID: "menu-mark-unread"
+      - waitForAnimationToEnd
+      # Badge should reappear
+      - assertVisible:
+          testID: "unread-badge-0"
+
+# ── Verify existing Delete action still works ──────────────────────────────
+- tapOn:
+    testID: "conversation-options-0"
+
+- waitForAnimationToEnd
+
+- assertVisible:
+    testID: "menu-delete"
+
+# Dismiss menu without deleting
+- tapOn:
+    point: "50%, 20%"
+
+- waitForAnimationToEnd

@@ -34,6 +34,8 @@ const BASE: SavedSearch = {
   radius: null,
   locationBased: false,
   createdAt: "2025-01-01T00:00:00.000Z",
+  lastViewedAt: null,
+  newMatchesCount: 0,
 };
 
 function makeSearch(id: number, overrides: Partial<SavedSearch> = {}): SavedSearch {
@@ -119,6 +121,24 @@ export const Single: Story = {
     },
   },
   decorators: [withPreseededCache(ONE_SEARCH)],
+};
+
+/**
+ * WithNewMatches — chips that have a new-matches badge (count > 0).
+ */
+export const WithNewMatches: Story = {
+  args: {
+    onSelectSearch: (search: SavedSearch) => {
+      console.log("Selected search:", search);
+    },
+  },
+  decorators: [
+    withPreseededCache([
+      makeSearch(1, { location: "Kabul", newMatchesCount: 3 }),
+      makeSearch(2, { categoryName: "Electronics", newMatchesCount: 1 }),
+      makeSearch(3, { location: "Herat", newMatchesCount: 0 }),
+    ]),
+  ],
 };
 
 /**

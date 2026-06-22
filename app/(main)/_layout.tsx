@@ -87,6 +87,54 @@ export default function MainLayout() {
           ...themedHeader,
         }}
       />
+      <Stack.Screen
+        name="profile/blocked-users"
+        options={{
+          headerShown: true,
+          headerTitle: t("profile.blockedUsers"),
+          headerLeft: () => (
+            <BackButton
+              onPress={() => {
+                if (router.canGoBack()) router.back();
+                else router.replace("/(main)/(tabs)/profile" as any);
+              }}
+            />
+          ),
+          ...themedHeader,
+        }}
+      />
+      <Stack.Screen
+        name="profile/my-reports"
+        options={{
+          headerShown: true,
+          headerTitle: t("report.myReports.title"),
+          headerLeft: () => (
+            <BackButton
+              onPress={() => {
+                if (router.canGoBack()) router.back();
+                else router.replace("/(main)/(tabs)/profile" as any);
+              }}
+            />
+          ),
+          ...themedHeader,
+        }}
+      />
+      <Stack.Screen
+        name="recently-viewed"
+        options={{
+          headerShown: true,
+          headerTitle: t("recentlyViewed.title"),
+          headerLeft: () => (
+            <BackButton
+              onPress={() => {
+                if (router.canGoBack()) router.back();
+                else router.replace("/(main)/(tabs)/profile" as any);
+              }}
+            />
+          ),
+          ...themedHeader,
+        }}
+      />
     </Stack>
   );
 }

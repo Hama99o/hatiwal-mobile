@@ -298,6 +298,92 @@ export const ListVariantViewed: Story = {
   ],
 };
 
+// ── Verified / unverified seller stories ─────────────────────────────────────
+
+export const VerifiedSeller: Story = {
+  args: {
+    listing: makeListing({
+      seller: { id: 42, name: "Ahmad Karimi", city: "Kabul", verified: true, avatarUrl: null },
+    }),
+    showStatus: false,
+    isSaved: false,
+    onSaveToggle: action("save-toggle"),
+    onPress: action("card-pressed"),
+  },
+};
+
+export const UnverifiedSeller: Story = {
+  args: {
+    listing: makeListing({
+      seller: { id: 43, name: "Nasir Shah", city: "Kabul", verified: false, avatarUrl: null },
+    }),
+    showStatus: false,
+    isSaved: false,
+    onSaveToggle: action("save-toggle"),
+    onPress: action("card-pressed"),
+  },
+};
+
+// ── Negotiable / firm-price stories ──────────────────────────────────────────
+
+export const FirmPrice: Story = {
+  args: {
+    listing: makeListing({ negotiable: false }),
+    showStatus: false,
+    isSaved: false,
+    onSaveToggle: action("save-toggle"),
+    onPress: action("card-pressed"),
+  },
+};
+
+export const NegotiableDefault: Story = {
+  args: {
+    listing: makeListing({ negotiable: true }),
+    showStatus: false,
+    isSaved: false,
+    onSaveToggle: action("save-toggle"),
+    onPress: action("card-pressed"),
+  },
+};
+
+export const FirmPriceListVariant: Story = {
+  args: {
+    listing: makeListing({ negotiable: false }),
+    variant: "list",
+    showStatus: false,
+    isSaved: false,
+    onSaveToggle: action("save-toggle"),
+    onPress: action("card-pressed"),
+  },
+  decorators: [
+    (Story) => (
+      <View style={{ padding: 16 }}>
+        <Story />
+      </View>
+    ),
+  ],
+};
+
+export const VerifiedSellerListVariant: Story = {
+  args: {
+    listing: makeListing({
+      seller: { id: 42, name: "Ahmad Karimi", city: "Kabul", verified: true, avatarUrl: null },
+    }),
+    variant: "list",
+    showStatus: false,
+    isSaved: false,
+    onSaveToggle: action("save-toggle"),
+    onPress: action("card-pressed"),
+  },
+  decorators: [
+    (Story) => (
+      <View style={{ padding: 16 }}>
+        <Story />
+      </View>
+    ),
+  ],
+};
+
 // Feed of list-mode cards as it appears in Browse list mode
 export const ListFeed: Story = {
   decorators: [

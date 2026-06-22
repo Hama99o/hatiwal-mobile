@@ -5,21 +5,25 @@
  *   - Large avatar + name + verified badge (UserIdentity, stacked)
  *   - City subtitle, member-since date (formatDate), stats (active / sold)
  *   - Bio (if present)
- *   - Grid of active listings (UniversalList, 2-column, ListingCard tap → detail)
+ *   - Active / Sold segmented control (RNR Button-based)
+ *   - Active tab: grid of active listings with search + category filter
+ *   - Sold tab: grid of sold listings (dimmed StatusBadge) — empty state when none
  *   - Three-dot menu → ReportSheet (G1) + Block/Unblock (confirmAlert)
  *
  * Route: app/(main)/user/[id].tsx
  * API:   GET /api/v1/users/:id/public_profile  (view :public)
- *        GET /api/v1/listings?user_id=:id&status=active
+ *        GET /api/v1/listings?user_id=:id          (active tab)
+ *        GET /api/v1/users/:id/sold_listings        (sold tab)
  */
 
 import React, { useCallback, useEffect, useState } from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, Platform, Share } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, MoreVertical } from "lucide-react-native";
+import * as Linking from "expo-linking";
 import { toast } from "sonner-native";
 
 import { Text } from "@/components/reusables/text";
@@ -37,11 +41,16 @@ import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useAuthStore } from "@/stores/auth.store";
 import { confirmAlert } from "@/utils/alert";
+import { resolveProfileShareUrl } from "@/utils/shareUtils";
 
 import { usersAPI } from "@/api/users";
 import { listingsAPI, type Listing } from "@/api/listings";
 import { useCategories } from "@/hooks/useCategories";
 import { ListingFiltersBar } from "@/components/common/ListingFiltersBar";
+
+// ─── Tab type ────────────────────────────────────────────────────────────────
+
+type ProfileTab = "active" | "sold";
 
 // ─── component ───────────────────────────────────────────────────────────────
 
@@ -62,6 +71,7 @@ export function UserProfileScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [refetchKey, setRefetchKey] = useState(0);
+  const [activeTab, setActiveTab] = useState<ProfileTab>("active");
   const [viewMode, setViewMode] = useState<ListingFeedViewMode>("grid");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -90,9 +100,6 @@ export function UserProfileScreen() {
   }, [search]);
 
   // ── Seed isBlocked from profile response ─────────────────────────────────
-  // The backend :public view does not yet include a `blocked` field (tracked as
-  // a backend gap in PublicProfile interface). Once the serializer exposes it,
-  // this effect will correctly initialize the toggle without any further change.
   useEffect(() => {
     if (profile?.blocked !== undefined) {
       setIsBlocked(!!profile.blocked);
@@ -107,8 +114,8 @@ export function UserProfileScreen() {
     }, [userId, qc])
   );
 
-  // ── listings fetcher ───────────────────────────────────────────────────────
-  const listingsFetcher = useCallback(
+  // ── active listings fetcher ────────────────────────────────────────────────
+  const activeListingsFetcher = useCallback(
     async (query: ListQuery): Promise<ListFetchResult<Listing>> => {
       const result = await listingsAPI.getListings({
         userId,
@@ -126,6 +133,20 @@ export function UserProfileScreen() {
       };
     },
     [userId, debouncedSearch, categoryId]
+  );
+
+  // ── sold listings fetcher ─────────────────────────────────────────────────
+  const soldListingsFetcher = useCallback(
+    async (query: ListQuery): Promise<ListFetchResult<Listing>> => {
+      const result = await listingsAPI.getSoldListings(userId, query.page);
+      return {
+        items: result.items,
+        totalCount: result.pagination.totalCount,
+        totalPages: result.pagination.totalPages,
+        currentPage: result.pagination.currentPage,
+      };
+    },
+    [userId]
   );
 
   // ── block / unblock ────────────────────────────────────────────────────────
@@ -174,8 +195,50 @@ export function UserProfileScreen() {
     setReportVisible(true);
   }, []);
 
+  const handleShareProfile = useCallback(async () => {
+    setMenuVisible(false);
+    if (!profile) return;
+    try {
+      // Prefer the server-supplied https share URL; fall back to a hatiwal://seller/<id>
+      // deep link so the share always carries a tappable link regardless of backend config.
+      const url = resolveProfileShareUrl(
+        profile.shareUrl,
+        userId,
+        (path) => Linking.createURL(path)
+      );
+      const name = profile.name;
+      const message = t("profile.sellerProfile.share.body", { name, url });
+      // On iOS, passing both `message` (which already embeds the URL) and a
+      // separate `url` field causes some share targets to render the link twice
+      // or drop the message body. Pass `url` only on Android.
+      await Share.share(
+        Platform.OS === "ios"
+          ? { title: t("profile.sellerProfile.share.title"), message }
+          : { title: t("profile.sellerProfile.share.title"), message, url }
+      );
+    } catch {
+      // User dismissed the share sheet — no-op.
+    }
+  }, [profile, userId, t]);
+
   const isMe = !!currentUser && currentUser.id === userId;
 
+  // ── tab switch helpers ─────────────────────────────────────────────────────
+  const handleTabChange = useCallback(
+    (tab: ProfileTab) => {
+      if (tab === activeTab) return;
+      setActiveTab(tab);
+      // Reset filters when switching tabs so the new feed is clean
+      setSearch("");
+      setDebouncedSearch("");
+      setCategoryId(null);
+      // Sold tab is a photo-first showcase — always grid. Reset to grid on every switch.
+      if (tab === "sold") {
+        setViewMode("grid");
+      }
+    },
+    [activeTab]
+  );
 
   // ── loading state — skeleton header + card skeletons (no bare spinner) ──────
   if (profileLoading) {
@@ -239,6 +302,40 @@ export function UserProfileScreen() {
     );
   }
 
+  // ── derived feed key — changes whenever any filter or tab changes ─────────
+  const activeFeedId = `user-profile-active-${userId}-${debouncedSearch}-${categoryId}-${viewMode}`;
+  const soldFeedId   = `user-profile-sold-${userId}`;
+
+  // ── shared ListHeaderComponent ─────────────────────────────────────────────
+  // Rendered at the top of whichever tab is active.
+  const ListHeaderComponent = (
+    <View>
+      <ProfileHeader profile={profile} />
+      {/* Active / Sold segmented tab control */}
+      <TabBar
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        isRtl={isRtl}
+        colors={colors}
+        labelActive={t("profile.userProfile.tabs.active")}
+        labelSold={t("profile.userProfile.tabs.sold")}
+      />
+      {/* Filter bar — only shown on the Active tab */}
+      {activeTab === "active" && (
+        <ListingFiltersBar
+          search={search}
+          onSearchChange={setSearch}
+          categories={categories}
+          categoryId={categoryId}
+          onCategoryChange={setCategoryId}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          placeholder={t("profile.userProfile.searchListings")}
+        />
+      )}
+    </View>
+  );
+
   // ── main render ────────────────────────────────────────────────────────────
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -262,44 +359,43 @@ export function UserProfileScreen() {
         }
       />
 
-      {/* Listings grid — ListingFeed manages scroll, view mode, and spacing */}
       <ScreenContainer scrollable={false} padded={false} safeArea={[]} style={{ flex: 1 }}>
-        <ListingFeed
-          id={`user-profile-listings-${userId}-${debouncedSearch}-${categoryId}-${viewMode}`}
-          refreshKey={refetchKey}
-          fetcher={listingsFetcher}
-          viewMode={viewMode}
-          skeletonCount={6}
-          ListHeaderComponent={
-            profile ? (
-              <View>
-                <ProfileHeader profile={profile} />
-                <ListingFiltersBar
-                  search={search}
-                  onSearchChange={setSearch}
-                  categories={categories}
-                  categoryId={categoryId}
-                  onCategoryChange={setCategoryId}
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                  placeholder={t("profile.userProfile.searchListings")}
-                />
-              </View>
-            ) : null
-          }
-          emptyTitle={t("profile.userProfile.noListings")}
-          emptyDescription={t("profile.userProfile.noListingsDescription")}
-          contentPaddingBottom={40}
-        />
+        {activeTab === "active" ? (
+          <ListingFeed
+            id={activeFeedId}
+            refreshKey={refetchKey}
+            fetcher={activeListingsFetcher}
+            viewMode={viewMode}
+            skeletonCount={6}
+            ListHeaderComponent={ListHeaderComponent}
+            emptyTitle={t("profile.userProfile.noListings")}
+            emptyDescription={t("profile.userProfile.noListingsDescription")}
+            contentPaddingBottom={40}
+          />
+        ) : (
+          <ListingFeed
+            id={soldFeedId}
+            refreshKey={refetchKey}
+            fetcher={soldListingsFetcher}
+            viewMode={viewMode}
+            showStatus={true}
+            skeletonCount={6}
+            ListHeaderComponent={ListHeaderComponent}
+            emptyTitle={t("profile.userProfile.sold.emptyTitle")}
+            emptyDescription={t("profile.userProfile.sold.emptyDescription")}
+            contentPaddingBottom={40}
+          />
+        )}
       </ScreenContainer>
 
-      {/* Block / report action sheet */}
+      {/* Block / report / share action sheet */}
       <ActionMenu
         visible={menuVisible}
         isBlocked={isBlocked}
         onClose={() => setMenuVisible(false)}
         onBlock={handleBlockPress}
         onReport={handleReportPress}
+        onShare={!isMe ? handleShareProfile : undefined}
       />
 
       {/* Report sheet (G1) */}
@@ -308,8 +404,92 @@ export function UserProfileScreen() {
         onClose={() => setReportVisible(false)}
         reportableType="User"
         reportableId={userId}
+        onBlocked={() => setIsBlocked(true)}
       />
     </View>
+  );
+}
+
+// ─── TabBar (private) ─────────────────────────────────────────────────────────
+
+interface TabBarProps {
+  activeTab: ProfileTab;
+  onTabChange: (tab: ProfileTab) => void;
+  isRtl: boolean;
+  colors: ReturnType<typeof useColors>;
+  labelActive: string;
+  labelSold: string;
+}
+
+function TabBar({ activeTab, onTabChange, isRtl, colors, labelActive, labelSold }: TabBarProps) {
+  return (
+    <View
+      style={{
+        flexDirection: isRtl ? "row-reverse" : "row",
+        marginHorizontal: 16,
+        marginBottom: 12,
+        backgroundColor: colors.muted,
+        borderRadius: 10,
+        padding: 3,
+      }}
+    >
+      <TabPill
+        label={labelActive}
+        active={activeTab === "active"}
+        onPress={() => onTabChange("active")}
+        colors={colors}
+      />
+      <TabPill
+        label={labelSold}
+        active={activeTab === "sold"}
+        onPress={() => onTabChange("sold")}
+        colors={colors}
+      />
+    </View>
+  );
+}
+
+interface TabPillProps {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  colors: ReturnType<typeof useColors>;
+}
+
+function TabPill({ label, active, onPress, colors }: TabPillProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: "center",
+        borderRadius: 8,
+        backgroundColor: active ? colors.card : "transparent",
+        // Subtle shadow when active so the pill appears raised
+        ...(active
+          ? {
+              shadowColor: colors.foreground,
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.08,
+              shadowRadius: 2,
+              elevation: 2,
+            }
+          : {}),
+      }}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+    >
+      <Text
+        style={{
+          fontSize: 14,
+          fontWeight: active ? "600" : "400",
+          color: active ? colors.foreground : colors.mutedForeground,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 

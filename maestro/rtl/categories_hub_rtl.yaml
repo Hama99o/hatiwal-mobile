@@ -1,0 +1,37 @@
+appId: com.hatiwal.app
+---
+# Categories hub — RTL layout check with Pashto language
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+
+# Switch to Pashto to enable RTL
+- tapOn:
+    description: "Me"
+- waitForAnimationToEnd
+- tapOn: "Language"
+- waitForAnimationToEnd
+- tapOn: "پښتو"
+- waitForAnimationToEnd
+
+# Navigate back to Browse tab
+- tapOn:
+    description: "بازار"
+- waitForAnimationToEnd
+
+# Open the categories hub via the grid-icon affordance
+- tapOn:
+    description: "ډلې وګورئ"
+- waitForAnimationToEnd
+
+# Hub title in Pashto
+- assertVisible: "ډلې"
+
+# Category cards should render localized names
+- assertVisible: "برقی وسایل"
+
+# Back button returns to Browse
+- tapOn:
+    description: "Back"
+- waitForAnimationToEnd
+- assertVisible: "بازار"

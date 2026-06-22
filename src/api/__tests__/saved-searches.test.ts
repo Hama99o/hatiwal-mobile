@@ -27,6 +27,8 @@ const MOCK_SAVED_SEARCH_SNAKE = {
   radius: 10,
   location_based: true,
   created_at: "2026-01-01T00:00:00Z",
+  last_viewed_at: null,
+  new_matches_count: 2,
 };
 
 const MOCK_SAVED_SEARCH_CAMEL = {
@@ -41,6 +43,8 @@ const MOCK_SAVED_SEARCH_CAMEL = {
   radius: 10,
   locationBased: true,
   createdAt: "2026-01-01T00:00:00Z",
+  lastViewedAt: null,
+  newMatchesCount: 2,
 };
 
 // ─── savedSearchesAPI.list ────────────────────────────────────────────────────
@@ -66,10 +70,14 @@ describe("savedSearchesAPI.list", () => {
     expect(item.priceMax).toBe(50000);
     expect(item.locationBased).toBe(true);
     expect(item.createdAt).toBe("2026-01-01T00:00:00Z");
+    expect(item.newMatchesCount).toBe(2);
+    expect(item.lastViewedAt).toBeNull();
     // no snake_case keys leak through
     expect((item as Record<string, unknown>).category_id).toBeUndefined();
     expect((item as Record<string, unknown>).price_min).toBeUndefined();
     expect((item as Record<string, unknown>).location_based).toBeUndefined();
+    expect((item as Record<string, unknown>).new_matches_count).toBeUndefined();
+    expect((item as Record<string, unknown>).last_viewed_at).toBeUndefined();
   });
 
   it("returns multiple items in order", async () => {
@@ -261,5 +269,66 @@ describe("savedSearchesAPI.delete", () => {
     );
 
     await expect(savedSearchesAPI.delete(999)).rejects.toThrow();
+  });
+});
+
+// ─── savedSearchesAPI.markSeen ────────────────────────────────────────────────
+
+const MOCK_AFTER_MARK_SEEN = {
+  ...MOCK_SAVED_SEARCH_SNAKE,
+  new_matches_count: 0,
+  last_viewed_at: "2026-06-26T10:00:00Z",
+};
+
+describe("savedSearchesAPI.markSeen", () => {
+  it("issues PUT to /users/saved_searches/:id/mark_seen and returns camelCased record", async () => {
+    server.use(
+      http.put(`${BASE}/users/saved_searches/:id/mark_seen`, () =>
+        HttpResponse.json({ saved_search: MOCK_AFTER_MARK_SEEN })
+      )
+    );
+
+    const result = await savedSearchesAPI.markSeen(1);
+
+    expect(result.id).toBe(1);
+    expect(result.newMatchesCount).toBe(0);
+    expect(result.lastViewedAt).toBe("2026-06-26T10:00:00Z");
+    // No snake_case keys
+    expect((result as Record<string, unknown>).new_matches_count).toBeUndefined();
+    expect((result as Record<string, unknown>).last_viewed_at).toBeUndefined();
+  });
+
+  it("uses the correct id in the URL path", async () => {
+    let capturedId = "";
+    server.use(
+      http.put(`${BASE}/users/saved_searches/:id/mark_seen`, ({ params }) => {
+        capturedId = String(params.id);
+        return HttpResponse.json({ saved_search: MOCK_AFTER_MARK_SEEN });
+      })
+    );
+
+    await savedSearchesAPI.markSeen(42);
+
+    expect(capturedId).toBe("42");
+  });
+
+  it("throws on 403 (not owner)", async () => {
+    server.use(
+      http.put(`${BASE}/users/saved_searches/:id/mark_seen`, () =>
+        HttpResponse.json({ error: "Forbidden" }, { status: 403 })
+      )
+    );
+
+    await expect(savedSearchesAPI.markSeen(1)).rejects.toThrow();
+  });
+
+  it("throws on 401 (unauthenticated)", async () => {
+    server.use(
+      http.put(`${BASE}/users/saved_searches/:id/mark_seen`, () =>
+        HttpResponse.json({ error: "Unauthorized" }, { status: 401 })
+      )
+    );
+
+    await expect(savedSearchesAPI.markSeen(1)).rejects.toThrow();
   });
 });

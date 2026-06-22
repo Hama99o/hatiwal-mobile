@@ -167,6 +167,69 @@ export const MeetupNoTime: Story = {
   },
 };
 
+// ── Image message bubbles ─────────────────────────────────────────────────────
+
+export const ImageMessageMine: Story = {
+  args: {
+    message: makeMsg({
+      kind: "image_message",
+      body: "photo.jpg",
+      attachmentUrl: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400",
+    }),
+    isMine: true,
+  },
+};
+
+export const ImageMessageTheirs: Story = {
+  args: {
+    message: makeMsg({
+      kind: "image_message",
+      body: "photo.jpg",
+      attachmentUrl: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400",
+    }),
+    isMine: false,
+  },
+};
+
+export const ImageMessageLoading: Story = {
+  args: {
+    message: makeMsg({
+      kind: "image_message",
+      body: "photo.jpg",
+      attachmentUrl: null,
+    }),
+    isMine: true,
+  },
+};
+
+export const ImageMessageRead: Story = {
+  args: {
+    message: makeMsg({
+      kind: "image_message",
+      body: "photo.jpg",
+      attachmentUrl: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400",
+      readAt: now,
+    }),
+    isMine: true,
+  },
+};
+
+// ── Deleted (tombstone) messages — TASK-M913 ─────────────────────────────────
+
+export const DeletedMine: Story = {
+  args: {
+    message: makeMsg({ body: null, deleted: true }),
+    isMine: true,
+  },
+};
+
+export const DeletedTheirs: Story = {
+  args: {
+    message: makeMsg({ body: null, deleted: true }),
+    isMine: false,
+  },
+};
+
 // ── Accepted/declined response messages — these return null ──────────────────
 
 export const MeetupAcceptedResponse_RendersNull: Story = {
@@ -199,6 +262,15 @@ export const FullThread: Story = {
         message={makeMsg({ id: 4, kind: "meetup_proposal", body: "Share Naw | Tomorrow 5pm" })}
         isMine={true}
         meetupOutcome="accepted"
+      />
+      <MessageBubble
+        message={makeMsg({
+          id: 5,
+          kind: "image_message",
+          body: "item_photo.jpg",
+          attachmentUrl: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400",
+        })}
+        isMine={false}
       />
     </View>
   ),

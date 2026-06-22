@@ -22,6 +22,7 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
@@ -97,6 +98,7 @@ export default function MyListingDetailScreen() {
   const reduceMotion = useReduceMotion();
 
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: listing, isLoading, isError, refetch } = useQuery({
@@ -104,6 +106,16 @@ export default function MyListingDetailScreen() {
     queryFn: () => listingsAPI.getMyListing(Number(id)),
     enabled: !!id,
   });
+
+  // Pull-to-refresh
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refetch]);
 
   // Refetch whenever this screen regains focus (mandatory per mobile.prompt.md §12)
   useFocusEffect(
@@ -381,6 +393,14 @@ export default function MyListingDetailScreen() {
         contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
         testID="my-listing-detail-scroll"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
         {/* 1 — Photo gallery */}
         <ListingGallery photos={photos} aspectRatio={4 / 3} />

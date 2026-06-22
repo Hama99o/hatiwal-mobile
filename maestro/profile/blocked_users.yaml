@@ -1,0 +1,76 @@
+appId: com.hatiwal.app
+---
+# Blocked Users management — E2E flow
+# Covers:
+#   1. Happy path: navigate from Profile > Privacy > Blocked Users
+#   2. Screen renders with header "Blocked Users"
+#   3. Empty state renders when no users are blocked
+#   4. Unblock action: tap Unblock (by testID), confirm dialog appears, confirm unblocks user
+#
+# Prerequisites: logged in as buyer@hatiwal.test (no blocked users by default).
+
+- runFlow: ../_helpers/login.yaml
+
+# Navigate to Profile tab
+- tapOn: "Me"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+
+# Scroll down to Privacy section
+- scroll
+
+# Tap "Blocked Users" row
+- tapOn: "Blocked Users"
+- waitForAnimationToEnd
+
+# ── Screen renders ──────────────────────────────────────────────────────────────
+# The screen header should say "Blocked Users"
+- assertVisible: "Blocked Users"
+
+# ── Empty state ─────────────────────────────────────────────────────────────────
+# When no one has been blocked the empty state should be visible
+- assertVisible: "No blocked users"
+
+# Navigate back to Profile — BackButton renders testID="back_button"
+- tapOn:
+    id: "back_button"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+
+---
+# Blocked Users — unblock flow (requires a blocked user to exist)
+# This section is run separately against a test account that has a blocked user.
+# Prerequisites: the blocked user must have id=1 in the test database so
+# testID="unblock_button_1" is present on the row.
+
+appId: com.hatiwal.app
+---
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Me"
+- waitForAnimationToEnd
+- scroll
+- tapOn: "Blocked Users"
+- waitForAnimationToEnd
+
+# Confirm the blocked user's row is visible by its testID (avoids fragile text matching)
+- assertVisible:
+    id: "unblock_button_1"
+
+# Tap the row-level Unblock button by its testID so the tap is unambiguous even
+# when the row label text ("Unblock") also appears on the screen.
+- tapOn:
+    id: "unblock_button_1"
+- waitForAnimationToEnd
+
+# Assert the confirmAlert dialog is visible
+- assertVisible: "Unblock user?"
+
+# Tap the dialog's confirm button using its unique label "Yes, unblock".
+# This text is distinct from the row button label ("Unblock") so Maestro's
+# substring match cannot accidentally hit the row button or the dialog title.
+- tapOn:
+    text: "Yes, unblock"
+- waitForAnimationToEnd
+
+# Success toast should appear
+- assertVisible: "User unblocked"

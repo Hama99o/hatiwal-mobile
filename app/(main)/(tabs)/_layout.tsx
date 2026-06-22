@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useModeStore } from "@/stores/mode.store";
 import { useAuthStore } from "@/stores/auth.store";
 import { useChatStore } from "@/stores/chat.store";
-import { Store, MessageCircle, Package, User, Heart, LogIn } from "lucide-react-native";
+import { Store, MessageCircle, Package, User, Heart, LogIn, LayoutGrid } from "lucide-react-native";
 import { FloatingTabBar } from "@/components/common/FloatingTabBar";
 
 export default function TabsLayout() {
@@ -49,6 +49,18 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* Categories hub — a BUYER-only tab right after the home tab (browse by
+          category is a buyer activity; sellers manage their shop, so it is
+          hidden in seller mode). Guests still see it so they can browse. */}
+      <Tabs.Screen
+        name="categories"
+        options={{
+          href: isSeller ? null : undefined,
+          title: t("sidebar.categories"),
+          tabBarIcon: ({ color, size }) => <LayoutGrid size={size} color={color} />,
+        }}
+      />
+
       {/* My Listings route still exists (reached from Profile / post-create
           flows) but its TAB is always hidden — the home tab above is the
           seller's My Shop. A visible duplicate here would sit unfocused on
@@ -83,7 +95,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
           tabBarBadge:
             isAuthenticated && unreadMessageTotal > 0
-              ? unreadMessageTotal
+              ? unreadMessageTotal >= 99 ? "99+" : unreadMessageTotal
               : undefined,
         }}
       />

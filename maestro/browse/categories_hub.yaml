@@ -1,0 +1,63 @@
+appId: com.hatiwal.app
+---
+# Categories hub — happy path: grid loads, counts visible, tap navigates to Browse
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+
+# Tap the "Browse categories" grid-icon affordance in the BrowseHeader
+- tapOn:
+    description: "Browse categories"
+- waitForAnimationToEnd
+
+# Hub screen is shown
+- assertVisible: "Categories"
+
+# Category cards should render with names and listing counts
+- assertVisible: "Electronics"
+
+# Tap a category card to navigate to Browse pre-filtered
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+# Back on Browse — verify the Electronics category chip is actively selected.
+# If the categoryId param was dropped (broken routing), this chip will be
+# unselected and the assertion fails, catching the regression.
+- assertVisible: "Bazaar"
+- assertVisible:
+    text: "Electronics"
+    selected: true
+
+# ── Re-selection regression path ──────────────────────────────────────────────
+# This second leg specifically tests the re-entry bug where tapping the SAME
+# category from the hub a second time would fail to re-apply the filter because
+# the URL param value was identical (unchanged dependency → effect did not fire).
+# With the param-clear fix in Browse.tsx this leg must pass.
+
+# Step 1: tap 'All' (or any other chip) to clear the Electronics selection
+- tapOn:
+    text: "All"
+- waitForAnimationToEnd
+
+# Verify Electronics is no longer selected
+- assertNotVisible:
+    text: "Electronics"
+    selected: true
+
+# Step 2: go back to the hub
+- tapOn:
+    description: "Browse categories"
+- waitForAnimationToEnd
+- assertVisible: "Categories"
+
+# Step 3: tap Electronics again — this is the re-selection path
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+# The filter must be re-applied: Electronics chip must be selected again.
+# Without the param-clear fix this assertion fails (param unchanged → no re-fire).
+- assertVisible: "Bazaar"
+- assertVisible:
+    text: "Electronics"
+    selected: true

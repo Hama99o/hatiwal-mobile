@@ -2,20 +2,20 @@
  * SavedScreen — buyer's favorited listings.
  *
  * Design contract:
- *   - GET /my/saved_listings (no pagination — all items returned at once)
+ *   - GET /my/saved_listings?page[number]=N (paginated via Pagy, meta.pagination)
+ *   - Infinite scroll via UniversalList (FlashList onEndReached → next page)
  *   - Optimistic unsave: heart toggles instantly; card disappears immediately;
  *     sonner-native toast on error + card restored
  *   - UniversalList (FlashList) 2-column grid with ListingCardSkeleton
  *   - ListingCard with animated heart (handled inside ListingCard)
  *   - Skeleton grid while loading, EmptyState + Browse CTA when empty
- *   - useFocusEffect refetch (refetchKey bump → UniversalList re-mounts)
+ *   - useFocusEffect resets to page 1 via refreshKey bump
  *   - RTL-safe, dark-mode correct (all colors via useColors())
  *
  * Optimistic removal architecture:
- *   serverItemsRef caches the last successful server fetch so that local
- *   unsave operations can immediately re-filter and re-render via refetchKey
- *   without hitting the network again. A real network refetch only happens on:
- *     (a) first mount, (b) focus return, (c) pull-to-refresh.
+ *   unsavedSetRef tracks listing ids the user has unsaved in this session.
+ *   The fetcher filters them out before returning items to UniversalList.
+ *   The set is cleared on focus-refetch so it stays in sync with the server.
  */
 
 import React, { useState, useCallback, useRef } from "react";
@@ -24,6 +24,7 @@ import { useTranslation } from "react-i18next";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
 import { Heart } from "lucide-react-native";
+import { SavedIllustration } from "@/components/common/empty-illustrations";
 import { toast } from "sonner-native";
 
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
@@ -41,11 +42,6 @@ import { listingsAPI, type Listing } from "@/api/listings";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-// Set of listing ids the user has unsaved locally in this session (hide from list).
-type UnsavedSet = Set<number>;
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function SavedScreen() {
@@ -54,26 +50,17 @@ export default function SavedScreen() {
   const colors = useColors();
   const router = useRouter();
 
-  // Server-fetched items cached locally so optimistic removal can re-filter
-  // without a network round-trip.
-  const serverItemsRef = useRef<Listing[]>([]);
-
   // Set of listing ids that the user has unsaved in this session.
   // Stored in a ref so the fetcher closure always reads the latest version
-  // without needing to be re-created.
-  const unsavedSetRef = useRef<UnsavedSet>(new Set());
+  // without needing to be re-created on every render.
+  const unsavedSetRef = useRef<Set<number>>(new Set());
 
   // React state version of unsavedSet — used for renderItem isSaved check.
   const [unsavedIds, setUnsavedIds] = useState<Set<number>>(new Set());
 
-  // refetchKey — bumped to trigger UniversalList id change → full re-mount.
-  //   • On focus: forces a real server fetch (clears cached data first).
-  //   • On unsave: forces a local re-filter (cached data available instantly).
-  const [refetchKey, setRefetchKey] = useState(0);
-
-  // Track whether the current refetchKey bump is a "local" re-filter (no
-  // network needed) or a "remote" re-fetch (clears cache first).
-  const localRefetchRef = useRef(false);
+  // refreshKey — bumped on focus to silently re-fetch page 1 in the background
+  // (UniversalList keeps items visible until fresh data arrives).
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Re-fetch from server on every focus.
   // Also resets the optimistic-unsave state so the Set doesn't grow unbounded
@@ -81,59 +68,50 @@ export default function SavedScreen() {
   // actually returns.
   useFocusEffect(
     useCallback(() => {
-      localRefetchRef.current = false;        // server fetch
-      serverItemsRef.current = [];            // clear cache → fetcher will hit network
-      unsavedSetRef.current = new Set();      // reset optimistic unsave tracking
-      setUnsavedIds(new Set());              // reset visible-state unsave set
-      setRefetchKey((k) => k + 1);
+      unsavedSetRef.current = new Set();
+      setUnsavedIds(new Set());
+      setRefreshKey((k) => k + 1);
     }, [])
   );
 
   // ── Fetcher ─────────────────────────────────────────────────────────────────
-  // Passed to UniversalList. On a local re-filter it returns the cached server
-  // items (filtered) synchronously-ish. On a real refetch it hits the network.
+  // Passed to UniversalList. Uses the page param from ListQuery to fetch the
+  // correct page from the paginated API. Filters out optimistically-unsaved
+  // items before returning so the list updates without a network round-trip.
   const fetcher = useCallback(
-    async (_query: ListQuery): Promise<ListFetchResult<Listing>> => {
-      let items: Listing[];
-
-      if (localRefetchRef.current && serverItemsRef.current.length > 0) {
-        // Local re-filter — use cached server data, no network call
-        items = serverItemsRef.current;
-      } else {
-        // Network fetch
-        const result = await listingsAPI.getSavedListings();
-        items = result.items;
-        serverItemsRef.current = items;
-      }
+    async (query: ListQuery): Promise<ListFetchResult<Listing>> => {
+      const result = await listingsAPI.getSavedListings(query.page);
 
       // Apply optimistic unsave filter
-      const visible = items.filter((l) => !unsavedSetRef.current.has(l.id));
+      const visible = result.items.filter(
+        (l) => !unsavedSetRef.current.has(l.id)
+      );
 
       return {
         items: visible,
-        totalCount: visible.length,
-        totalPages: 1,
-        currentPage: 1,
+        totalCount: result.pagination.totalCount,
+        totalPages: result.pagination.totalPages,
+        currentPage: result.pagination.currentPage,
       };
     },
+    // fetcher identity is stable — unsavedSetRef is a ref, not state.
+    // refreshKey is not in deps because UniversalList uses `refreshKey` prop
+    // (not config.id) for silent background re-fetches.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [refetchKey] // rebuild fetcher on each refetch so UniversalList detects the change
+    []
   );
 
   // ── Unsave mutation ──────────────────────────────────────────────────────────
   const unsaveMutation = useMutation({
     mutationFn: (id: number) => listingsAPI.unsaveListing(id),
     onError: (_err, id) => {
-      // Roll back: remove from unsaved set → card reappears
+      // Roll back: remove from unsaved set → card reappears on next render
       unsavedSetRef.current.delete(id);
       setUnsavedIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
-      // Trigger local re-filter to restore the card
-      localRefetchRef.current = true;
-      setRefetchKey((k) => k + 1);
       toast.error(t("saved.unsaveError"));
     },
   });
@@ -145,8 +123,6 @@ export default function SavedScreen() {
       // Roll back: mark as unsaved again
       unsavedSetRef.current.add(id);
       setUnsavedIds((prev) => new Set([...prev, id]));
-      localRefetchRef.current = true;
-      setRefetchKey((k) => k + 1);
       toast.error(t("saved.saveError"));
     },
   });
@@ -156,11 +132,9 @@ export default function SavedScreen() {
   const handleSaveToggle = useCallback(
     (listingId: number, newValue: boolean) => {
       if (!newValue) {
-        // Optimistic removal: add to unsaved set → trigger local re-filter
+        // Optimistic removal: add to unsaved set → triggers re-render via state
         unsavedSetRef.current.add(listingId);
         setUnsavedIds((prev) => new Set([...prev, listingId]));
-        localRefetchRef.current = true;
-        setRefetchKey((k) => k + 1);
         unsaveMutation.mutate(listingId);
       } else {
         // Re-save: remove from unsaved set → card reappears
@@ -170,8 +144,6 @@ export default function SavedScreen() {
           next.delete(listingId);
           return next;
         });
-        localRefetchRef.current = true;
-        setRefetchKey((k) => k + 1);
         saveMutation.mutate(listingId);
       }
     },
@@ -180,14 +152,15 @@ export default function SavedScreen() {
 
   // ── UniversalList config ─────────────────────────────────────────────────────
   const config: UniversalListConfig<Listing> = {
-    id: `buyer-saved`,
-    refreshKey: refetchKey,
+    id: "buyer-saved",
+    refreshKey,
     fetcher,
     keyExtractor: (item) => String(item.id),
     numColumns: 2,
     skeletonCount: 6,
     SkeletonComponent: ListingCardSkeleton,
     emptyIcon: Heart,
+    emptyIllustration: <SavedIllustration size={96} />,
     emptyTitle: t("saved.empty"),
     emptyDescription: t("saved.emptyDescription"),
     emptyAction: {
@@ -199,7 +172,7 @@ export default function SavedScreen() {
         <ListingCard
           listing={item}
           index={index}
-          // isSaved = true unless the user just unsaved it
+          // isSaved = true unless the user just unsaved it in this session
           isSaved={!unsavedIds.has(item.id)}
           onSaveToggle={handleSaveToggle}
           onPress={() =>

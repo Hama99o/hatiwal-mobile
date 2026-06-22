@@ -37,7 +37,7 @@ export function Badge({ label, variant = "default", style }: BadgeProps) {
       style={[
         {
           backgroundColor: backgroundMap[variant],
-          borderRadius: 10,
+          borderRadius: 999,
           minWidth: 20,
           height: 20,
           alignItems: "center",

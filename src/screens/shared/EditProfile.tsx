@@ -15,7 +15,7 @@
  * Toast feedback via sonner-native. No raw Alert.alert.
  */
 import React, { useCallback, useEffect } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, Switch as RNSwitch } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import { toast } from "sonner-native";
-import { MapPin, ChevronRight, ChevronLeft, User, Phone, Globe, Check } from "lucide-react-native";
+import { MapPin, ChevronRight, ChevronLeft, User, Phone, Globe, Check, PlaneTakeoff } from "lucide-react-native";
 
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
@@ -51,6 +51,9 @@ const schema = z.object({
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
   preferredLanguage: z.enum(["en", "ps", "fa"]),
+  // Away mode — ISO date string (e.g. "2026-07-15") or null to clear
+  awayUntilDate: z.string().optional().or(z.literal("")),
+  isAwayToggle: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -179,6 +182,8 @@ export default function EditProfileScreen() {
       latitude: null,
       longitude: null,
       preferredLanguage: "en",
+      awayUntilDate: "",
+      isAwayToggle: false,
     },
   });
 
@@ -194,6 +199,12 @@ export default function EditProfileScreen() {
       const n = Number(v);
       return Number.isFinite(n) ? n : null;
     };
+    // Parse existing awayUntil — show date portion only (YYYY-MM-DD)
+    const existingAwayDate = user.awayUntil
+      ? user.awayUntil.substring(0, 10)
+      : "";
+    const isCurrentlyAway = !!user.isAway;
+
     reset({
       firstname: user.firstname ?? "",
       lastname: user.lastname ?? "",
@@ -204,6 +215,8 @@ export default function EditProfileScreen() {
       latitude: toNum(user.latitude),
       longitude: toNum(user.longitude),
       preferredLanguage: (user.preferredLanguage as LanguageCode) ?? "en",
+      awayUntilDate: existingAwayDate,
+      isAwayToggle: isCurrentlyAway,
     });
   }, [user, reset]);
 
@@ -211,11 +224,23 @@ export default function EditProfileScreen() {
   const longitude = watch("longitude");
   const city = watch("city");
   const selectedLanguage = watch("preferredLanguage");
+  const isAwayToggle = watch("isAwayToggle");
+  const awayUntilDate = watch("awayUntilDate");
 
   // Save mutation
   const saveMutation = useMutation({
-    mutationFn: (values: FormValues) =>
-      authAPI.updateMe({
+    mutationFn: (values: FormValues) => {
+      // Compute away_until: if toggle is on and a date is entered, build an ISO datetime
+      // string set to end-of-day; if toggle is off, send null to clear.
+      let awayUntil: string | null | undefined;
+      if (values.isAwayToggle && values.awayUntilDate) {
+        // Set to end of the chosen day (23:59:59 UTC+4:30 → simplified as T23:59:59Z)
+        awayUntil = `${values.awayUntilDate}T23:59:59.000Z`;
+      } else if (!values.isAwayToggle) {
+        awayUntil = null; // explicit null clears the column
+      }
+      // If toggle is on but no date entered, omit awayUntil so we don't overwrite existing
+      return authAPI.updateMe({
         firstname: values.firstname,
         lastname: values.lastname,
         phone: values.phone || undefined,
@@ -225,7 +250,9 @@ export default function EditProfileScreen() {
         latitude: values.latitude ?? undefined,
         longitude: values.longitude ?? undefined,
         preferredLanguage: values.preferredLanguage,
-      }),
+        ...(awayUntil !== undefined ? { awayUntil } : {}),
+      });
+    },
     onSuccess: async (updatedUser, values) => {
       // Persist language change immediately — updates i18n + AsyncStorage + backend
       if (values.preferredLanguage !== i18n.language) {
@@ -476,7 +503,81 @@ export default function EditProfileScreen() {
           </Pressable>
         </FormSection>
 
-        {/* ── Section 4: Preferred Language ─────────────────────── */}
+        {/* ── Section 4: Away Mode ─────────────────────────────── */}
+        <FormSection>
+          <SectionHeader
+            title={t("profile.away.toggle")}
+            icon={<PlaneTakeoff size={15} color={colors.mutedForeground} />}
+          />
+
+          {/* Toggle row */}
+          <View
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: 4,
+              marginBottom: isAwayToggle ? 14 : 0,
+            }}
+          >
+            <Text style={{ fontSize: 15, color: colors.foreground, flex: 1 }}>
+              {t("profile.away.toggle")}
+            </Text>
+            <Controller
+              control={control}
+              name="isAwayToggle"
+              render={({ field: { value, onChange } }) => (
+                <RNSwitch
+                  value={!!value}
+                  onValueChange={(checked: boolean) => {
+                    onChange(checked);
+                    // When toggling off, clear the date field too
+                    if (!checked) {
+                      setValue("awayUntilDate", "", { shouldDirty: true });
+                    }
+                  }}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.primaryForeground}
+                  ios_backgroundColor={colors.border}
+                />
+              )}
+            />
+          </View>
+
+          {/* Date input — only shown when toggle is ON */}
+          {!!isAwayToggle && (
+            <FieldRow>
+              <Label style={{ marginBottom: 6 }}>
+                {t("profile.away.untilLabel")}
+              </Label>
+              <Controller
+                control={control}
+                name="awayUntilDate"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <Input
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="YYYY-MM-DD"
+                    keyboardType="numeric"
+                    maxLength={10}
+                    style={{
+                      textAlign: isRtl ? "right" : "left",
+                    }}
+                  />
+                )}
+              />
+              {/* Show current away date when already set */}
+              {!!awayUntilDate && (
+                <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 4 }}>
+                  {t("profile.away.untilLabel")}: {awayUntilDate}
+                </Text>
+              )}
+            </FieldRow>
+          )}
+        </FormSection>
+
+        {/* ── Section 5: Preferred Language ─────────────────────── */}
         <FormSection>
           <SectionHeader
             title={t("profile.edit.sections.language")}

@@ -75,7 +75,8 @@
     "active": "فعال",
     "expired": "منقضی",
     "reserved": "رزرو شده",
-    "sold": "فروخته شده"
+    "sold": "فروخته شده",
+    "countA11y": "{{label}}، {{count}} آگهی"
   },
   "emptyFiltered": {
     "title": "آگهی {{status}} ندارید",
@@ -89,9 +90,12 @@
   "shopCount_other": "{{count}} آگهی",
   "noPhoto": "عکس ندارد",
   "seen": "دیده‌شده",
+  "share": {
+    "body": "{{title}} — {{price}}\n{{url}}"
+  },
   "priceDrop": {
     "badge": "{{percent}}٪ کاهش قیمت",
-    "badgeCardShort": "-{{percent}}٪"
+    "badgeCardShort": "↓{{percent}}٪"
   },
   "detail": {
     "contactSeller": "تماس با فروشنده",
@@ -184,7 +188,12 @@
     "discardTitle": "تغییرات نادیده گرفته شود؟",
     "discardMessage": "تغییرات ذخیره‌نشده شما از دست خواهد رفت.",
     "discardConfirm": "انصراف",
-    "locationRequired": "موقعیت الزامی است — خریداران بر اساس منطقه فیلتر می‌کنند"
+    "locationRequired": "موقعیت الزامی است — خریداران بر اساس منطقه فیلتر می‌کنند",
+    "negotiableLabel": "قیمت قابل مذاکره است"
   },
-  "shopCount_one": "{{count}} آگهی"
+  "shopCount_one": "{{count}} آگهی",
+  "firmPrice": "قیمت ثابت",
+  "card": {
+    "verifiedSeller": "فروشنده تأیید شده"
+  }
 }

@@ -12,6 +12,7 @@ jest.mock("@/utils/secure-storage", () => ({
   },
 }));
 
+
 describe("conversationsAPI.getConversations", () => {
   it("returns camelCased conversations and pagination", async () => {
     const result = await conversationsAPI.getConversations();
@@ -74,6 +75,51 @@ describe("conversationsAPI.getConversations", () => {
     );
     await conversationsAPI.getConversations({ listingId: 10 });
     expect(capturedUrl).toContain("listing_id=10");
+  });
+
+  it("passes archived=true query param when archived option is true", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/conversations", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({
+          conversations: [],
+          meta: { pagination: MOCK_PAGINATION },
+        });
+      })
+    );
+    await conversationsAPI.getConversations({ archived: true });
+    expect(capturedUrl).toContain("archived=true");
+  });
+
+  it("passes archived=false query param when archived option is false", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/conversations", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({
+          conversations: [],
+          meta: { pagination: MOCK_PAGINATION },
+        });
+      })
+    );
+    await conversationsAPI.getConversations({ archived: false });
+    expect(capturedUrl).toContain("archived=false");
+  });
+
+  it("does NOT append archived param when option is omitted", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/conversations", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({
+          conversations: [],
+          meta: { pagination: MOCK_PAGINATION },
+        });
+      })
+    );
+    await conversationsAPI.getConversations();
+    expect(capturedUrl).not.toContain("archived");
   });
 });
 
@@ -223,6 +269,67 @@ describe("conversationsAPI.sendMessage", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// offer_counter kind — TASK-O829
+// ---------------------------------------------------------------------------
+
+describe("conversationsAPI.sendMessage — offer_counter", () => {
+  it("sends offer_counter kind with responds_to_id and returns camelCased message", async () => {
+    let capturedBody: unknown;
+    server.use(
+      http.post("http://localhost:3007/api/v1/conversations/50/messages", async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json({
+          message: {
+            ...MOCK_MESSAGE,
+            kind: "offer_counter",
+            body: "9500|AFN|10000",
+            responds_to_id: 100,
+            offer_amount: 9500.0,
+            offer_currency: "AFN",
+          },
+        }, { status: 201 });
+      })
+    );
+    const msg = await conversationsAPI.sendMessage(50, "9500|AFN|10000", "offer_counter", 100);
+    expect(msg.kind).toBe("offer_counter");
+    expect(msg.respondsToId).toBe(100);
+    expect(msg.offerAmount).toBe(9500.0);
+    expect(msg.offerCurrency).toBe("AFN");
+    expect((capturedBody as any).kind).toBe("offer_counter");
+    expect((capturedBody as any).responds_to_id).toBe(100);
+  });
+
+  it("maps offer_amount and offer_currency to camelCase on received messages", async () => {
+    server.use(
+      http.get("http://localhost:3007/api/v1/conversations/50/messages", () =>
+        HttpResponse.json({
+          messages: [
+            {
+              ...MOCK_MESSAGE,
+              kind: "offer_counter",
+              body: "9500|AFN|10000",
+              responds_to_id: 99,
+              offer_amount: 9500.0,
+              offer_currency: "AFN",
+            },
+          ],
+          meta: { pagination: MOCK_PAGINATION },
+        })
+      )
+    );
+    const result = await conversationsAPI.getMessages(50);
+    const msg = result.items[0];
+    expect(msg.kind).toBe("offer_counter");
+    expect(msg.offerAmount).toBe(9500.0);
+    expect(msg.offerCurrency).toBe("AFN");
+    expect(msg.respondsToId).toBe(99);
+    // Raw snake_case keys must not leak through
+    expect((msg as Record<string, unknown>)["offer_amount"]).toBeUndefined();
+    expect((msg as Record<string, unknown>)["offer_currency"]).toBeUndefined();
+  });
+});
+
 describe("conversationsAPI.markMessagesRead", () => {
   it("resolves without errors on 204", async () => {
     await expect(conversationsAPI.markMessagesRead(50)).resolves.toBeUndefined();
@@ -267,6 +374,90 @@ describe("conversationsAPI.markMessagesRead", () => {
   });
 });
 
+describe("conversationsAPI.markRead", () => {
+  it("resolves without errors on 204", async () => {
+    await expect(conversationsAPI.markRead(50)).resolves.toBeUndefined();
+  });
+
+  it("sends a PUT request to the correct mark_read endpoint", async () => {
+    let capturedMethod = "";
+    let capturedUrl = "";
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/50/mark_read", ({ request }) => {
+        capturedMethod = request.method;
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    await conversationsAPI.markRead(50);
+    expect(capturedMethod).toBe("PUT");
+    expect(capturedUrl).toContain("/conversations/50/mark_read");
+  });
+
+  it("uses the conversation id in the endpoint path", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/77/mark_read", ({ request }) => {
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    await conversationsAPI.markRead(77);
+    expect(capturedUrl).toContain("/conversations/77/mark_read");
+  });
+
+  it("throws on 401 (unauthenticated)", async () => {
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/50/mark_read", () =>
+        HttpResponse.json({ error: "Unauthorized" }, { status: 401 })
+      )
+    );
+    await expect(conversationsAPI.markRead(50)).rejects.toThrow();
+  });
+});
+
+describe("conversationsAPI.markUnread", () => {
+  it("resolves without errors on 204", async () => {
+    await expect(conversationsAPI.markUnread(50)).resolves.toBeUndefined();
+  });
+
+  it("sends a PUT request to the correct mark_unread endpoint", async () => {
+    let capturedMethod = "";
+    let capturedUrl = "";
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/50/mark_unread", ({ request }) => {
+        capturedMethod = request.method;
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    await conversationsAPI.markUnread(50);
+    expect(capturedMethod).toBe("PUT");
+    expect(capturedUrl).toContain("/conversations/50/mark_unread");
+  });
+
+  it("uses the conversation id in the endpoint path", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/88/mark_unread", ({ request }) => {
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    await conversationsAPI.markUnread(88);
+    expect(capturedUrl).toContain("/conversations/88/mark_unread");
+  });
+
+  it("throws on 401 (unauthenticated)", async () => {
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/50/mark_unread", () =>
+        HttpResponse.json({ error: "Unauthorized" }, { status: 401 })
+      )
+    );
+    await expect(conversationsAPI.markUnread(50)).rejects.toThrow();
+  });
+});
+
 describe("conversationsAPI.deleteConversation", () => {
   it("resolves on 204", async () => {
     await expect(conversationsAPI.deleteConversation(50)).resolves.toBeUndefined();
@@ -279,6 +470,90 @@ describe("conversationsAPI.deleteConversation", () => {
       )
     );
     await expect(conversationsAPI.deleteConversation(999)).rejects.toThrow();
+  });
+});
+
+describe("conversationsAPI.archiveConversation", () => {
+  it("resolves without errors on 204", async () => {
+    await expect(conversationsAPI.archiveConversation(50)).resolves.toBeUndefined();
+  });
+
+  it("sends PUT to the correct archive endpoint", async () => {
+    let capturedMethod = "";
+    let capturedUrl = "";
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/50/archive", ({ request }) => {
+        capturedMethod = request.method;
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    await conversationsAPI.archiveConversation(50);
+    expect(capturedMethod).toBe("PUT");
+    expect(capturedUrl).toContain("/conversations/50/archive");
+  });
+
+  it("uses the conversation id in the endpoint path", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/77/archive", ({ request }) => {
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    await conversationsAPI.archiveConversation(77);
+    expect(capturedUrl).toContain("/conversations/77/archive");
+  });
+
+  it("throws on 401 (unauthenticated)", async () => {
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/50/archive", () =>
+        HttpResponse.json({ error: "Unauthorized" }, { status: 401 })
+      )
+    );
+    await expect(conversationsAPI.archiveConversation(50)).rejects.toThrow();
+  });
+});
+
+describe("conversationsAPI.unarchiveConversation", () => {
+  it("resolves without errors on 204", async () => {
+    await expect(conversationsAPI.unarchiveConversation(50)).resolves.toBeUndefined();
+  });
+
+  it("sends PUT to the correct unarchive endpoint", async () => {
+    let capturedMethod = "";
+    let capturedUrl = "";
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/50/unarchive", ({ request }) => {
+        capturedMethod = request.method;
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    await conversationsAPI.unarchiveConversation(50);
+    expect(capturedMethod).toBe("PUT");
+    expect(capturedUrl).toContain("/conversations/50/unarchive");
+  });
+
+  it("uses the conversation id in the endpoint path", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/88/unarchive", ({ request }) => {
+        capturedUrl = request.url;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    await conversationsAPI.unarchiveConversation(88);
+    expect(capturedUrl).toContain("/conversations/88/unarchive");
+  });
+
+  it("throws on 401 (unauthenticated)", async () => {
+    server.use(
+      http.put("http://localhost:3007/api/v1/conversations/50/unarchive", () =>
+        HttpResponse.json({ error: "Unauthorized" }, { status: 401 })
+      )
+    );
+    await expect(conversationsAPI.unarchiveConversation(50)).rejects.toThrow();
   });
 });
 
@@ -348,5 +623,53 @@ describe("getUnreadTotal", () => {
   it("returns 99 for a single conversation with unreadCount above the cap", () => {
     const conversations = [{ unreadCount: 150 }];
     expect(getUnreadTotal(conversations)).toBe(99);
+  });
+});
+
+// ── TASK-M913: deleteMessage ──────────────────────────────────────────────────
+describe("conversationsAPI.deleteMessage", () => {
+  it("hits DELETE /conversations/:convId/messages/:msgId", async () => {
+    let capturedMethod = "";
+    let capturedUrl    = "";
+    server.use(
+      http.delete("http://localhost:3007/api/v1/conversations/50/messages/100", ({ request }) => {
+        capturedMethod = request.method;
+        capturedUrl    = request.url;
+        return HttpResponse.json({
+          message: {
+            id: 100,
+            body: null,
+            kind: "text",
+            read_at: null,
+            created_at: "2026-01-01T10:00:00Z",
+            sender: { id: 1, name: "Ahmad Karimi" },
+            attachment_url: null,
+            responds_to_id: null,
+            deleted: true,
+            deleted_at: "2026-06-27T12:00:00Z",
+          },
+        });
+      })
+    );
+
+    await conversationsAPI.deleteMessage(50, 100);
+
+    expect(capturedMethod).toBe("DELETE");
+    expect(capturedUrl).toContain("/conversations/50/messages/100");
+  });
+
+  it("returns a Message with deleted=true and null body", async () => {
+    const result = await conversationsAPI.deleteMessage(50, 100);
+    expect(result.deleted).toBe(true);
+    expect(result.body).toBeNull();
+    expect(result.attachmentUrl).toBeNull();
+    expect(result.id).toBe(100);
+  });
+
+  it("converts snake_case response fields to camelCase", async () => {
+    const result = await conversationsAPI.deleteMessage(50, 100);
+    // deleted_at → deletedAt
+    expect(result.deletedAt).toBeDefined();
+    expect((result as Record<string, unknown>)["deleted_at"]).toBeUndefined();
   });
 });

@@ -45,6 +45,18 @@
     "newest": "لومړی نوی",
     "oldest": "لومړی زوړ",
     "priceAsc": "نرخ: لږ لومړی",
-    "priceDesc": "نرخ: ډیر لومړی"
-  }
+    "priceDesc": "نرخ: ډیر لومړی",
+    "mostViewed": "ډیر لیدل شوي"
+  },
+  "browseCategories": "ډلې وګورئ",
+  "sellerActivity": "د پلورونکي فعالیت",
+  "activeSellers": "فعال پلورونکي",
+  "activeSellersHint": "یوازې هغه توکي وګورئ چې پلورونکي یې د تېرو ۷ ورځو کې ننوتلي وي",
+  "newMatches_one": "{{count}} نوی",
+  "newMatches_other": "{{count}} نوي",
+  "subcategoryFilter": "فرعي ډله: {{name}}",
+  "clearSubcategory": "فرعي ډله پاکه کړئ",
+  "filtersActive_one": "{{count}} فلټر فعال",
+  "filtersActive_other": "{{count}} فلټرونه فعال",
+  "clearAllFilters": "ټول پاک کړئ"
 }

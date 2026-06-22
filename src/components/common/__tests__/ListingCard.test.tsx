@@ -347,7 +347,93 @@ describe("ListingCard — no-photo fallback", () => {
   });
 });
 
-// ── 8. Renders without crashing for all status values ────────────────────────
+// ── 8. VerifiedBadge — conditional on seller.verified ────────────────────────
+
+describe("ListingCard — VerifiedBadge (seller trust signal)", () => {
+  // The BadgeCheck icon is mocked as the string "BadgeCheck" in the lucide mock
+  // above. In RNTL we query it by the accessibilityLabel that ListingCard passes
+  // to VerifiedBadge: t('listing.card.verifiedSeller') — more specific than
+  // the default 'common.verified' so screen readers say "Verified seller" on cards.
+  // t() in tests returns the key as-is: "listing.card.verifiedSeller".
+  it("renders VerifiedBadge when seller.verified is true (grid variant)", () => {
+    render(
+      <ListingCard
+        listing={makeListing({ seller: { id: 99, name: "Ahmad", city: "Kabul", verified: true, avatarUrl: null } })}
+      />
+    );
+    expect(screen.getByLabelText("listing.card.verifiedSeller")).toBeTruthy();
+  });
+
+  it("does NOT render VerifiedBadge when seller.verified is false (grid variant)", () => {
+    render(
+      <ListingCard
+        listing={makeListing({ seller: { id: 99, name: "Ahmad", city: "Kabul", verified: false, avatarUrl: null } })}
+      />
+    );
+    expect(screen.queryByLabelText("listing.card.verifiedSeller")).toBeNull();
+  });
+
+  it("does NOT render VerifiedBadge when seller.verified is undefined (grid variant)", () => {
+    render(
+      <ListingCard
+        listing={makeListing({ seller: { id: 99, name: "Ahmad", city: null } })}
+      />
+    );
+    expect(screen.queryByLabelText("listing.card.verifiedSeller")).toBeNull();
+  });
+
+  it("renders VerifiedBadge when seller.verified is true (list variant)", () => {
+    render(
+      <ListingCard
+        listing={makeListing({ seller: { id: 99, name: "Ahmad", city: "Kabul", verified: true, avatarUrl: null } })}
+        variant="list"
+      />
+    );
+    expect(screen.getByLabelText("listing.card.verifiedSeller")).toBeTruthy();
+  });
+
+  it("does NOT render VerifiedBadge when seller.verified is false (list variant)", () => {
+    render(
+      <ListingCard
+        listing={makeListing({ seller: { id: 99, name: "Ahmad", city: "Kabul", verified: false, avatarUrl: null } })}
+        variant="list"
+      />
+    );
+    expect(screen.queryByLabelText("listing.card.verifiedSeller")).toBeNull();
+  });
+});
+
+// ── 9. Negotiable / Firm-price badge (TASK-N071) ─────────────────────────────
+
+describe("ListingCard — firm-price badge (negotiable)", () => {
+  it("renders firm-price badge when negotiable is false (grid variant)", () => {
+    render(<ListingCard listing={makeListing({ negotiable: false })} />);
+    // t('listing.firmPrice') returns 'listing.firmPrice' in tests
+    expect(screen.getByTestId("firm-price-badge")).toBeTruthy();
+  });
+
+  it("does NOT render firm-price badge when negotiable is true (grid variant)", () => {
+    render(<ListingCard listing={makeListing({ negotiable: true })} />);
+    expect(screen.queryByTestId("firm-price-badge")).toBeNull();
+  });
+
+  it("does NOT render firm-price badge when negotiable is undefined (defaults to negotiable)", () => {
+    render(<ListingCard listing={makeListing()} />);
+    expect(screen.queryByTestId("firm-price-badge")).toBeNull();
+  });
+
+  it("renders firm-price badge when negotiable is false (list variant)", () => {
+    render(<ListingCard listing={makeListing({ negotiable: false })} variant="list" />);
+    expect(screen.getByTestId("firm-price-badge")).toBeTruthy();
+  });
+
+  it("does NOT render firm-price badge when negotiable is true (list variant)", () => {
+    render(<ListingCard listing={makeListing({ negotiable: true })} variant="list" />);
+    expect(screen.queryByTestId("firm-price-badge")).toBeNull();
+  });
+});
+
+// ── 10. Renders without crashing for all status values ───────────────────────
 
 describe("ListingCard — smoke tests", () => {
   it.each(["active", "draft", "reserved", "sold"] as const)(
@@ -375,7 +461,7 @@ describe("ListingCard — smoke tests", () => {
   });
 });
 
-// ── 9. List variant (variant="list") ─────────────────────────────────────────
+// ── 11. List variant (variant="list") ────────────────────────────────────────
 
 describe("ListingCard — list variant", () => {
   it("renders the listing title in list mode", () => {

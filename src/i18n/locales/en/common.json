@@ -45,6 +45,7 @@
   "notFound": "Not found",
   "required": "is required",
   "comingSoon": "Coming soon",
+  "goBack": "Go back",
   "splash": {
     "validating": "Checking your session…"
   }

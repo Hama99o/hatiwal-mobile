@@ -19,6 +19,17 @@ import React from "react";
 import { View } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 
+// @/lib/animation — mock useReduceMotion so animation hooks are no-ops in tests.
+// react-native-reanimated itself is already mocked via setup.ts (reanimated/mock).
+jest.mock("@/lib/animation", () => ({
+  useReduceMotion: () => false,
+  usePulse: () => ({ opacity: 1 }),
+  triggerHaptic: jest.fn(),
+  AnimatedPressable: ({ children }: { children: React.ReactNode }) => children,
+  getListItemEntering: () => null,
+  useListItemEntering: () => null,
+}));
+
 // Mutable categories data so we can verify the saved search localizes via its
 // stored categoryId relation when the category is loaded, and falls back to the
 // English categoryName snapshot otherwise. Default: not loaded (fallback path).
@@ -48,6 +59,8 @@ const BASE_SEARCH: SavedSearch = {
   radius: null,
   locationBased: false,
   createdAt: "2025-01-01T00:00:00.000Z",
+  lastViewedAt: null,
+  newMatchesCount: 0,
 };
 
 function makeSearch(overrides: Partial<SavedSearch> = {}): SavedSearch {
@@ -351,5 +364,28 @@ describe("SavedSearchItem — smoke tests", () => {
 
   it("renders without throwing with a bare search (all nulls)", () => {
     expect(() => renderItem(makeSearch())).not.toThrow();
+  });
+});
+
+// ── 10. New-matches badge ────────────────────────────────────────────────────
+
+describe("SavedSearchItem — new-matches badge", () => {
+  it("renders the badge label when newMatchesCount > 0", () => {
+    // t("browse.newMatches", { count: 3 }) returns the key in test stubs
+    renderItem(makeSearch({ location: "Kabul", newMatchesCount: 3 }));
+    expect(screen.getByText("browse.newMatches")).toBeTruthy();
+  });
+
+  it("does not render a badge when newMatchesCount is 0", () => {
+    renderItem(makeSearch({ location: "Kabul", newMatchesCount: 0 }));
+    expect(screen.queryByText("browse.newMatches")).toBeNull();
+  });
+
+  it("does not render a badge when newMatchesCount is undefined (legacy server)", () => {
+    const search = makeSearch({ location: "Kabul" });
+    // Simulate a server response before the field was added
+    (search as Record<string, unknown>).newMatchesCount = undefined;
+    renderItem(search);
+    expect(screen.queryByText("browse.newMatches")).toBeNull();
   });
 });

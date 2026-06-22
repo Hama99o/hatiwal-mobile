@@ -117,7 +117,7 @@ describe("FloatingTabBar — tab visibility (guest/mode security)", () => {
     expect(screen.getByLabelText("Me")).toBeTruthy();
   });
 
-  it("shows the label only for the focused tab (active pill)", () => {
+  it("renders a label for every tab (active tab highlighted, Apple-News style)", () => {
     render(
       <FloatingTabBar
         {...makeProps([
@@ -127,10 +127,10 @@ describe("FloatingTabBar — tab visibility (guest/mode security)", () => {
       />
     );
 
-    // Focused tab renders its visible label text; inactive tab is icon-only
-    // (still reachable by its accessibilityLabel).
+    // Every tab shows its icon + label; the active tab is tinted / sits in a
+    // pill (a visual distinction), so both labels are present in the tree.
     expect(screen.getByText("Bazaar")).toBeTruthy();
-    expect(screen.queryByText("Me")).toBeNull();
+    expect(screen.getByText("Me")).toBeTruthy();
     expect(screen.getByLabelText("Me")).toBeTruthy();
   });
 });

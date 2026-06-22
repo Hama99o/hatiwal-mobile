@@ -23,6 +23,28 @@ export interface PublicProfile {
    * null when responseRatePercent is null.
    */
   responseTimeLabel: "within_one_hour" | "within_a_day" | "within_a_few_days" | null;
+  /**
+   * Privacy-safe coarse recency label derived from last_sign_in_at.
+   * "today" = signed in < 24h ago; "this_week" = < 7d; "this_month" = < 30d.
+   * null = no recent sign-in (> 30d ago) or no sign-in on record — omit the row.
+   */
+  lastActiveLabel?: "today" | "this_week" | "this_month" | null;
+  /**
+   * Canonical https share URL for this seller profile.
+   * Present when PUBLIC_SHARE_BASE_URL is configured on the backend (e.g. "https://hatiwal.example.com/u/42").
+   * null/undefined when the env var is unset — the mobile app falls back to a hatiwal://seller/<id> deep link.
+   */
+  shareUrl?: string | null;
+  /**
+   * True when the seller has set an away_until date that is still in the future.
+   * Auto-expires server-side — a past date returns false. Omit the banner when false.
+   */
+  isAway?: boolean;
+  /**
+   * ISO-8601 datetime string when the seller is currently away; null otherwise.
+   * Only present on the :public view when isAway is true.
+   */
+  awayUntil?: string | null;
 }
 
 export const usersAPI = {

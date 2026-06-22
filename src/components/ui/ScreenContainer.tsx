@@ -4,11 +4,13 @@
 // color token), the device safe-area insets, optional padding, and optionally
 // wraps children in a ScrollView.
 
+import { useState, useCallback } from "react";
 import {
   View,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   type ViewStyle,
   type ViewProps,
 } from "react-native";
@@ -44,6 +46,12 @@ interface ScreenContainerProps extends Pick<ViewProps, "accessible" | "accessibi
    * Extra styles applied to the innermost container View.
    */
   style?: ViewStyle;
+  /**
+   * Enable pull-to-refresh. Provide an async (or sync) callback that re-fetches
+   * the screen's data; ScreenContainer manages the spinner state itself. Only
+   * applies to scrollable screens (a RefreshControl needs a ScrollView).
+   */
+  onRefresh?: () => void | Promise<unknown>;
 }
 
 export function ScreenContainer({
@@ -56,9 +64,23 @@ export function ScreenContainer({
   accessibilityLabel,
   accessibilityRole,
   testID,
+  onRefresh,
 }: ScreenContainerProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+
+  // Pull-to-refresh: ScreenContainer owns the spinner state so callers only
+  // pass a refetch callback.
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    if (!onRefresh) return;
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [onRefresh]);
 
   const safeAreaPadding: ViewStyle = {
     ...(safeArea.includes("top") ? { paddingTop: insets.top } : {}),
@@ -101,6 +123,16 @@ export function ScreenContainer({
           contentContainerStyle={scrollContentStyle}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            ) : undefined
+          }
           {...a11yProps}
         >
           {children}

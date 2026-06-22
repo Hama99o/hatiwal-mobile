@@ -1,0 +1,34 @@
+appId: com.hatiwal.app
+---
+# Report a user then confirm the block follow-up (TASK-R612)
+# Uses the distinct confirm label "Yes, block them" to make the tap unambiguous.
+
+- runFlow: ../_helpers/login.yaml
+- waitForAnimationToEnd
+# Open a listing and navigate to the seller's profile
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    text: "Seller"
+- tapOn: "Seller"
+- waitForAnimationToEnd
+# On seller profile — open the Report sheet
+- tapOn: "Report User"
+- waitForAnimationToEnd
+- assertVisible: "Why are you reporting this?"
+# Select a reason and submit
+- tapOn: "Fraud or scam"
+- tapOn: "Submit Report"
+- waitForAnimationToEnd
+# Report success toast appears
+- assertVisible: "Report submitted. Thank you."
+- waitForAnimationToEnd
+# Block follow-up dialog appears
+- assertVisible: "Block this user?"
+- assertVisible: "Yes, block them"
+- assertVisible: "Not now"
+# Confirm the block
+- tapOn: "Yes, block them"
+- waitForAnimationToEnd
+# Block success toast appears
+- assertVisible: "User blocked successfully."

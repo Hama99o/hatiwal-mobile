@@ -1,0 +1,38 @@
+appId: com.hatiwal.app
+---
+# Seller public profile — Active/Sold tab showcase
+# Tests: happy path, tab switching, sold empty state, RTL label check
+
+- runFlow: ../_helpers/login.yaml
+
+# Navigate to a public seller profile (tap a listing, then tap seller name)
+- tapOn: "Browse"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Tap the seller identity row to open their public profile
+- tapOn:
+    id: "seller-identity"
+- waitForAnimationToEnd
+
+# ── Active tab (default) ─────────────────────────────────────────────────────
+- assertVisible: "Active"
+- assertVisible: "Sold"
+
+# Active tab should be selected by default
+- assertVisible:
+    text: "Active"
+
+# ── Switch to Sold tab ───────────────────────────────────────────────────────
+- tapOn: "Sold"
+- waitForAnimationToEnd
+
+# Should show either a sold listing card or the empty state
+- assertTrue:
+    condition: ${visible("No sold items yet") || visible("Old Phone")}
+
+# ── Switch back to Active tab ─────────────────────────────────────────────────
+- tapOn: "Active"
+- waitForAnimationToEnd
+- assertVisible: "Search listings..."

@@ -1,0 +1,40 @@
+appId: com.hatiwal.app
+---
+# TASK-Q374 — Quick-reply chips in the chat composer
+# Flow: open a conversation → tap a quick-reply chip → assert text is in the
+#        composer → edit it → tap Send → assert the message bubble appears.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+
+# Open the first available conversation
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+
+# The quick-reply chip row should be visible (conversation is open)
+# Tap the first buyer chip: "Is this still available?"
+- tapOn: "Is this still available?"
+- waitForAnimationToEnd
+
+# The phrase should now be in the composer input
+- assertVisible: "Is this still available?"
+
+# The user can edit the draft — add extra text
+- tapOn: "Is this still available?"
+- typeText: " Please let me know."
+- waitForAnimationToEnd
+
+# Tap the existing Send button — identified by its accessibility label (the button
+# renders only a lucide Send icon with no visible text, so we match by label)
+- tapOn:
+    accessibilityLabel: "Send"
+- waitForAnimationToEnd
+
+# The message bubble should appear in the thread
+- assertVisible: "Is this still available? Please let me know."
+
+# ── Error / empty state ───────────────────────────────────────────────────────
+# (If no conversations exist the screen shows an empty state — already covered
+# by conversations_empty_state.yaml. This flow requires at least one thread.)

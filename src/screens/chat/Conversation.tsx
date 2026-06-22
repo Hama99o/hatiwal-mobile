@@ -21,12 +21,13 @@ import {
   ActivityIndicator,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  TextInput,
 } from "react-native";
 import { confirmAlert } from "@/utils/alert";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Send, Calendar, Paperclip, ShieldBan, User, Search, X } from "lucide-react-native";
+import { Send, Calendar, Paperclip, ShieldBan, Search, X, ImageIcon, Flag } from "lucide-react-native";
 import { toast } from "sonner-native";
 
 import { Text } from "@/components/reusables/text";
@@ -38,13 +39,18 @@ import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { BackButton } from "@/components/common/BackButton";
 import { ListingHeader } from "./conversation/ListingHeader";
 import { MessageBubble } from "./conversation/MessageBubble";
 import { MeetupSheet } from "./conversation/MeetupSheet";
+import { CounterOfferSheet } from "./conversation/CounterOfferSheet";
+import { ReportSheet } from "@/components/common/ReportSheet";
+import { UserIdentity } from "@/components/common/UserIdentity";
 import { useConversationCable } from "@/hooks/useConversationCable";
+import { QuickReplies } from "@/components/common/QuickReplies";
+import { useComposerDraft } from "@/hooks/useComposerDraft";
 
 // ── Reanimated imports for search bar animation ───────────────────────────────
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate, Extrapolation } from "react-native-reanimated";
@@ -92,6 +98,7 @@ export function ConversationScreen() {
   const colors = useColors();
   const { isRtl } = useLocalization();
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
   const storeUser = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   // Fallback: if the store is empty (e.g. web page refresh before Splash hydrates),
@@ -121,10 +128,39 @@ export function ConversationScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const [messageText, setMessageText] = useState(initialMessage);
   const [meetupSheetVisible, setMeetupSheetVisible] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(conversationId);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [reportSheetVisible, setReportSheetVisible] = useState(false);
+
+  // ── Composer draft persistence ───────────────────────────────────────────
+  // The draft hook owns AsyncStorage persistence keyed per conversation.
+  // `messageText` and `setMessageText` are aliased from the hook so the rest
+  // of the component doesn't need renaming.
+  const {
+    draft: messageText,
+    setDraft: setMessageText,
+    clearDraft,
+  } = useComposerDraft(currentConversationId);
+
+  // Seed the composer with the deep-link initialMessage ONCE on first mount.
+  // We only do this when there's an initialMessage and no stored draft for
+  // this conversation (the hook starts as "" until storage is hydrated, so
+  // checking for "" is safe here because storage hydration is async and the
+  // effect below runs after the hook's own hydration effect).
+  useEffect(() => {
+    if (initialMessage && messageText === "") {
+      setMessageText(initialMessage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Counter-offer sheet state
+  const [counterSheetVisible, setCounterSheetVisible] = useState(false);
+  const [counterOfferAmount, setCounterOfferAmount] = useState("");
+  // The original offer message the counter is responding to
+  const [counterOfferTarget, setCounterOfferTarget] = useState<Message | null>(null);
+  const [isSendingCounter, setIsSendingCounter] = useState(false);
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -184,6 +220,7 @@ export function ConversationScreen() {
     : 0;
 
   const flatListRef = useRef<FlatList>(null);
+  const inputRef = useRef<TextInput>(null);
   const isNearBottomRef = useRef(true);
   const isLoadingMoreRef = useRef(false);
 
@@ -291,6 +328,8 @@ export function ConversationScreen() {
       const conv = await conversationsAPI.startConversation(listingId, messageText.trim());
       setCurrentConversationId(conv.id);
       setMessageText("");
+      // No clearDraft() here because the draft hook was a no-op while
+      // currentConversationId was null. The setMessageText("") call is enough.
       await load(conv.id);
     } catch (err: unknown) {
       const httpStatus = (err as { response?: { status?: number } })?.response?.status;
@@ -321,7 +360,10 @@ export function ConversationScreen() {
     const convId = currentConversationId;
     if (!convId || !messageText.trim() || isSending) return;
     const text = messageText.trim();
+    // Clear the composer immediately — also wipes the persisted draft key.
+    // If the send fails, we restore the text and the draft (via setMessageText).
     setMessageText("");
+    clearDraft();
     setIsSending(true);
 
     // Optimistic append — always scroll to bottom when user sends
@@ -341,14 +383,17 @@ export function ConversationScreen() {
     try {
       const sent = await conversationsAPI.sendMessage(convId, text, "text");
       setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? sent : m)));
+      // Draft was already cleared above; nothing else needed on success.
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      // Restore the draft text on failure — this also re-persists it to storage
+      // (debounced) so the user doesn't lose their message.
       setMessageText(text);
       toast.error(t("chat.thread.sendFailed"));
     } finally {
       setIsSending(false);
     }
-  }, [currentConversationId, messageText, isSending, currentUser, t]);
+  }, [currentConversationId, messageText, isSending, currentUser, clearDraft, t]);
 
   // ── Send meetup proposal ─────────────────────────────────────────────────
   const handleProposeMeetup = useCallback(async (place: string, time: string) => {
@@ -411,6 +456,50 @@ export function ConversationScreen() {
     [currentConversationId, t]
   );
 
+  // ── Open counter-offer sheet (seller) ────────────────────────────────────
+  const handleOpenCounterSheet = useCallback((offer: Message) => {
+    setCounterOfferTarget(offer);
+    // Pre-fill with the buyer's offer amount so the seller can edit from there
+    const parts = offer.body.split("|");
+    const buyerAmount = offer.offerAmount ?? Number(parts[0] ?? 0);
+    setCounterOfferAmount(String(buyerAmount > 0 ? buyerAmount : ""));
+    setCounterSheetVisible(true);
+  }, []);
+
+  // ── Send a counter-offer (seller) ─────────────────────────────────────────
+  const handleSendCounter = useCallback(
+    async (amountStr: string) => {
+      const convId = currentConversationId;
+      if (!convId || !counterOfferTarget || !amountStr.trim()) return;
+      setIsSendingCounter(true);
+
+      const parts = counterOfferTarget.body.split("|");
+      const currency = counterOfferTarget.offerCurrency ?? parts[1] ?? "AFN";
+      const listedPrice = parts[2] ?? "0";
+      const body = `${amountStr.trim()}|${currency}|${listedPrice}`;
+
+      try {
+        const sent = await conversationsAPI.sendMessage(
+          convId,
+          body,
+          "offer_counter",
+          counterOfferTarget.id
+        );
+        isNearBottomRef.current = true;
+        setMessages((prev) => [...prev, sent]);
+        setCounterSheetVisible(false);
+        setCounterOfferTarget(null);
+        setCounterOfferAmount("");
+        toast.success(t("chat.offer.counterSentToast"));
+      } catch {
+        toast.error(t("chat.thread.sendFailed"));
+      } finally {
+        setIsSendingCounter(false);
+      }
+    },
+    [currentConversationId, counterOfferTarget, t]
+  );
+
   // ── Send file attachment ─────────────────────────────────────────────────
   const handleAttachment = useCallback(async () => {
     const convId = currentConversationId;
@@ -435,6 +524,90 @@ export function ConversationScreen() {
       }
     }
   }, [currentConversationId, t]);
+
+  // ── Send photo from camera or library ───────────────────────────────────
+  const [isSendingPhoto, setIsSendingPhoto] = useState(false);
+
+  const handlePhotoAttachment = useCallback(async () => {
+    const convId = currentConversationId;
+    if (!convId || isSendingPhoto) return;
+
+    try {
+      const ImagePicker = await import("expo-image-picker");
+
+      // Ask user: library or camera — use an ActionSheet-style bottom modal
+      // We'll default to library if platform doesn't support camera (Expo Go / web)
+      const libraryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!libraryPermission.granted) {
+        toast.error(t("chat.photo.permissionDenied"));
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        quality: 0.85,
+        allowsMultipleSelection: false,
+      });
+
+      if (pickerResult.canceled || !pickerResult.assets?.length) return;
+      const asset = pickerResult.assets[0];
+      const uri = asset.uri;
+      const fileName = asset.fileName ?? `photo_${Date.now()}.jpg`;
+      const mimeType = asset.mimeType ?? "image/jpeg";
+
+      setIsSendingPhoto(true);
+
+      // Optimistic insert — show a placeholder bubble while uploading
+      const optimistic: Message = {
+        id: -Date.now(),
+        body: fileName,
+        kind: "image_message",
+        readAt: null,
+        createdAt: new Date().toISOString(),
+        sender: { id: currentUser?.id ?? 0, name: currentUser?.fullName ?? "" },
+        attachmentUrl: uri, // local URI for immediate preview
+      };
+      isNearBottomRef.current = true;
+      setMessages((prev) => [...prev, optimistic]);
+
+      try {
+        const sent = await conversationsAPI.sendImage(convId, uri, fileName, mimeType);
+        setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? sent : m)));
+      } catch {
+        // Rollback optimistic insert
+        setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+        toast.error(t("chat.photo.uploadFailed"));
+      } finally {
+        setIsSendingPhoto(false);
+      }
+    } catch (err: unknown) {
+      setIsSendingPhoto(false);
+      toast.error(t("chat.photo.uploadFailed"));
+    }
+  }, [currentConversationId, isSendingPhoto, currentUser, t]);
+
+  // ── Soft-delete a message (author only) ──────────────────────────────────
+  const handleDeleteMessage = useCallback(
+    async (msg: Message) => {
+      const convId = currentConversationId;
+      if (!convId) return;
+
+      // Optimistic update: flip the bubble to tombstone immediately
+      const tombstone: Message = { ...msg, deleted: true, body: null, attachmentUrl: null };
+      setMessages((prev) => prev.map((m) => (m.id === msg.id ? tombstone : m)));
+
+      try {
+        const updated = await conversationsAPI.deleteMessage(convId, msg.id);
+        setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      } catch {
+        // Rollback on failure
+        setMessages((prev) => prev.map((m) => (m.id === msg.id ? msg : m)));
+        toast.error(t("chat.thread.sendFailed"));
+      }
+    },
+    [currentConversationId, t]
+  );
 
   // ── Block / unblock the other participant ────────────────────────────────
   const otherParticipant = conversation?.otherParticipant;
@@ -477,9 +650,36 @@ export function ConversationScreen() {
     }
   }, [otherParticipant, isBlocked, blockMutation, unblockMutation, t]);
 
+  // ── Quick-reply chip insert ──────────────────────────────────────────────
+  // Appends the selected phrase to the current draft (with a leading space if
+  // the draft is non-empty), then focuses the input so the user can edit
+  // before sending. Does NOT auto-send.
+  const handleQuickReplySelect = useCallback((phrase: string) => {
+    // Build the new text from the current draft value, then call setDraft (aliased
+    // as setMessageText) which persists it to AsyncStorage and updates the UI state.
+    const trimmed = messageText.trimEnd();
+    const next = trimmed.length > 0 ? `${trimmed} ${phrase}` : phrase;
+    setMessageText(next);
+    // Focus the text input so the keyboard opens and cursor lands at the end
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, [messageText, setMessageText]);
+
   // ── Live updates via ActionCable ─────────────────────────────────────────
   useConversationCable(currentConversationId, useCallback((incoming: Message) => {
-    // Skip messages from the current user — they're already handled by
+    // If the incoming broadcast carries deleted:true, flip any existing bubble
+    // with that id to tombstone — this handles the remote participant seeing the
+    // delete in real time. Skip the sender-guard for deletes so the author's own
+    // optimistic tombstone can be confirmed by the cable broadcast.
+    if (incoming.deleted) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === incoming.id ? { ...m, deleted: true, body: null, attachmentUrl: null } : m
+        )
+      );
+      return;
+    }
+
+    // Skip new messages from the current user — they're already handled by
     // the optimistic update + HTTP response. Without this check the cable
     // broadcast (which goes to ALL participants including the sender) would
     // race with the HTTP response and produce a duplicate.
@@ -497,6 +697,12 @@ export function ConversationScreen() {
   const isClosed = conversation?.status === "closed";
   const canSend = !isClosed && !!currentConversationId;
   const isStartMode = !currentConversationId && !!listingId;
+  // isOwner: true when the current user is the seller of the listing in this
+  // conversation. Used to pick the seller vs buyer quick-reply phrase set.
+  const isOwner =
+    !!currentUser &&
+    !!conversation?.seller &&
+    Number(conversation.seller.id) === Number(currentUser.id);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -521,30 +727,22 @@ export function ConversationScreen() {
         />
 
         {/* Tappable participant info → seller profile */}
-        <Pressable
-          onPress={
-            otherParticipant
-              ? () => router.push(`/(main)/seller/${otherParticipant.id}` as never)
-              : undefined
-          }
-          style={[styles.navCenter, { flexDirection: isRtl ? "row-reverse" : "row" }]}
-        >
+        <View style={[styles.navCenter, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
           {otherParticipant ? (
-            <>
-              <User size={14} color={colors.mutedForeground} />
-              <Text
-                style={[styles.navTitle, { color: colors.foreground, textAlign: isRtl ? "right" : "left" }]}
-                numberOfLines={1}
-              >
-                {otherParticipant.name}
-              </Text>
-            </>
+            <UserIdentity
+              name={otherParticipant.name}
+              avatarUrl={otherParticipant.avatarUrl}
+              verified={otherParticipant.verified ?? false}
+              size={32}
+              layout="row"
+              onPress={() => router.push(`/(main)/seller/${otherParticipant.id}` as never)}
+            />
           ) : (
             <Text style={[styles.navTitle, { color: colors.foreground }]} numberOfLines={1}>
               {conversation?.listing?.title ?? t("chat.title")}
             </Text>
           )}
-        </Pressable>
+        </View>
 
         {/* Search toggle */}
         <Pressable
@@ -563,8 +761,23 @@ export function ConversationScreen() {
             disabled={blockMutation.isPending || unblockMutation.isPending}
             hitSlop={8}
             style={styles.navAction}
+            accessibilityLabel={isBlocked ? t("chat.block.unblockUser") : t("chat.block.blockUser")}
           >
             <ShieldBan size={18} color={isBlocked ? colors.destructive : colors.mutedForeground} />
+          </Pressable>
+        )}
+
+        {/* Report participant — only shown when there is another participant
+            and it is not the current user (defensive guard against self-report) */}
+        {otherParticipant && currentUser && Number(otherParticipant.id) !== Number(currentUser.id) && (
+          <Pressable
+            onPress={() => setReportSheetVisible(true)}
+            hitSlop={8}
+            style={styles.navAction}
+            accessibilityLabel={t("chat.report.action")}
+            testID="report-participant-button"
+          >
+            <Flag size={18} color={colors.mutedForeground} />
           </Pressable>
         )}
       </View>
@@ -612,11 +825,45 @@ export function ConversationScreen() {
       {/* ── Loaded content ───────────────────────────────────────────────── */}
       {!isLoading && <>
 
-      {/* Pinned listing header */}
-      {conversation?.listing && (
+      {/* Listing-deleted notice — shown when the listing has been removed */}
+      {conversation?.listingDeleted && (
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            backgroundColor: colors.muted,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ fontSize: 12, color: colors.mutedForeground, textAlign: "center" }}>
+            {t("chat.listingDeleted")}
+          </Text>
+        </View>
+      )}
+
+      {/* Pinned listing header — hidden when listing is deleted */}
+      {conversation?.listing && !conversation.listingDeleted && (
         <ListingHeader
           listing={conversation.listing}
-          onPress={() => router.push(`/(main)/listing/${conversation.listing.id}` as never)}
+          onPress={() => router.push(`/(main)/listing/${conversation.listing!.id}` as never)}
+          isOwner={
+            !!currentUser &&
+            !!conversation.seller &&
+            Number(conversation.seller.id) === Number(currentUser.id)
+          }
+          onLifecycleDone={() => {
+            // Invalidate the conversation so the listing's StatusBadge
+            // and pinned header reflect the new status immediately.
+            if (currentConversationId) {
+              qc.invalidateQueries({ queryKey: ["conversation", currentConversationId] });
+            }
+            // Reload the conversation state in local state as well
+            if (currentConversationId) {
+              load(currentConversationId);
+            }
+          }}
         />
       )}
 
@@ -660,6 +907,26 @@ export function ConversationScreen() {
               );
               if (r) meetupOutcome = r.kind === "meetup_accepted" ? "accepted" : "declined";
             } else if (item.kind === "offer") {
+              // Check if a counter was sent in response to this offer; if so the
+              // offer itself is "countered" — we do NOT show an outcome badge on
+              // the offer (the counter card shows its own outcome). Only show the
+              // direct accept/decline outcome if it points straight at this offer.
+              const directResponse = messages.find(
+                (m) =>
+                  (m.kind === "offer_accepted" || m.kind === "offer_declined") &&
+                  m.respondsToId === item.id
+              );
+              const hasCounter = messages.some(
+                (m) => m.kind === "offer_counter" && m.respondsToId === item.id
+              );
+              if (directResponse) {
+                offerOutcome = directResponse.kind === "offer_accepted" ? "accepted" : "declined";
+              } else if (hasCounter) {
+                // Offer has been countered — show "countered" state so the original
+                // offer card no longer shows action buttons (the counter card does).
+                offerOutcome = null; // null = no outcome badge; action buttons suppressed below
+              }
+            } else if (item.kind === "offer_counter") {
               const r = messages.find(
                 (m) =>
                   (m.kind === "offer_accepted" || m.kind === "offer_declined") &&
@@ -667,6 +934,17 @@ export function ConversationScreen() {
               );
               if (r) offerOutcome = r.kind === "offer_accepted" ? "accepted" : "declined";
             }
+
+            // Determine whether this offer has been countered (suppress action buttons)
+            const isOfferCountered =
+              item.kind === "offer" &&
+              messages.some((m) => m.kind === "offer_counter" && m.respondsToId === item.id);
+
+            const isSeller =
+              !!currentUser &&
+              !!conversation?.seller &&
+              Number(currentUser.id) === Number(conversation.seller.id);
+
             return (
               <MessageBubble
                 message={item}
@@ -679,9 +957,31 @@ export function ConversationScreen() {
                 }
                 offerOutcome={offerOutcome}
                 onOfferRespond={
-                  item.kind === "offer" ? (accepted) => handleOfferRespond(item, accepted) : undefined
+                  // Offer: seller can respond (not mine, not already countered)
+                  (item.kind === "offer" && !isOfferCountered)
+                    ? (accepted) => handleOfferRespond(item, accepted)
+                    // Counter: buyer can respond (not mine)
+                    : item.kind === "offer_counter"
+                    ? (accepted) => handleOfferRespond(item, accepted)
+                    : undefined
+                }
+                onOfferCounter={
+                  // Counter button only for seller on buyer's offer, before any response
+                  item.kind === "offer" && !isOfferCountered && isSeller
+                    ? () => handleOpenCounterSheet(item)
+                    : undefined
                 }
                 searchQuery={searchVisible ? searchQuery.trim() : undefined}
+                onDeleteMessage={
+                  // Only the author of a non-deleted text-like message can delete it.
+                  // Offer / meetup / system messages are excluded — only text+image+document.
+                  !!currentUser &&
+                  Number(item.sender.id) === Number(currentUser.id) &&
+                  !item.deleted &&
+                  (item.kind === "text" || item.kind === "image_message" || item.kind === "document")
+                    ? () => handleDeleteMessage(item)
+                    : undefined
+                }
               />
             );
           }}
@@ -733,6 +1033,7 @@ export function ConversationScreen() {
             ]}
           >
             <Input
+              ref={inputRef}
               value={messageText}
               onChangeText={setMessageText}
               placeholder={t("chat.startConversation.placeholder")}
@@ -758,7 +1059,13 @@ export function ConversationScreen() {
             </Button>
           </View>
         ) : canSend ? (
-          // Normal send input with meetup button
+          // Normal send input with meetup button and quick-reply chips
+          <>
+            {/* Quick-reply chip row — above the composer, hidden when closed */}
+            <QuickReplies
+              role={isOwner ? "seller" : "buyer"}
+              onSelect={handleQuickReplySelect}
+            />
           <View
             style={[
               styles.inputBar,
@@ -781,7 +1088,17 @@ export function ConversationScreen() {
             >
               <Paperclip size={20} color={colors.mutedForeground} />
             </Pressable>
+            <Pressable
+              onPress={handlePhotoAttachment}
+              disabled={isSendingPhoto}
+              style={styles.meetupButton}
+              hitSlop={8}
+              accessibilityLabel={t("chat.attachPhoto")}
+            >
+              <ImageIcon size={20} color={isSendingPhoto ? colors.mutedForeground : colors.primary} />
+            </Pressable>
             <Input
+              ref={inputRef}
               value={messageText}
               onChangeText={setMessageText}
               placeholder={t("chat.messagePlaceholder")}
@@ -794,6 +1111,7 @@ export function ConversationScreen() {
               onPress={handleSend}
               disabled={!messageText.trim() || isSending}
               style={{ marginLeft: 8 }}
+              accessibilityLabel={t("chat.send")}
             >
               {isSending ? (
                 <ActivityIndicator color={colors.primaryForeground} size="small" />
@@ -806,6 +1124,7 @@ export function ConversationScreen() {
               )}
             </Button>
           </View>
+          </>
         ) : (
           // Closed notice in input area
           <View
@@ -827,6 +1146,46 @@ export function ConversationScreen() {
         onClose={() => setMeetupSheetVisible(false)}
         onPropose={handleProposeMeetup}
       />
+
+      {/* Counter-offer sheet — seller responds to buyer's offer with new price */}
+      <CounterOfferSheet
+        visible={counterSheetVisible}
+        onClose={() => {
+          setCounterSheetVisible(false);
+          setCounterOfferTarget(null);
+          setCounterOfferAmount("");
+        }}
+        onSend={handleSendCounter}
+        counterAmount={counterOfferAmount}
+        onChangeAmount={setCounterOfferAmount}
+        currency={
+          counterOfferTarget?.offerCurrency ??
+          counterOfferTarget?.body.split("|")[1] ??
+          "AFN"
+        }
+        buyerOfferAmount={
+          counterOfferTarget?.offerAmount ??
+          Number(counterOfferTarget?.body.split("|")[0] ?? 0)
+        }
+        isBusy={isSendingCounter}
+      />
+
+      {/* Report participant sheet — surfaces the existing ReportSheet pre-targeted
+          at the other participant. Only renders when we have a valid participant id
+          that is not the current user (the guard is also on the trigger button). */}
+      {otherParticipant && currentUser && Number(otherParticipant.id) !== Number(currentUser.id) && (
+        <ReportSheet
+          visible={reportSheetVisible}
+          onClose={() => setReportSheetVisible(false)}
+          reportableType="User"
+          reportableId={otherParticipant.id}
+          onBlocked={() => {
+            // Sync local block state so the ShieldBan icon reflects reality
+            // immediately without a full conversation reload.
+            setIsBlocked(true);
+          }}
+        />
+      )}
       </>}
 
     </View>

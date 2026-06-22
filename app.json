@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Hatiwal",
-    "slug": "hatiwal",
+    "slug": "hatiwal-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,9 +16,16 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hatiwal.app",
-      "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.hatiwal.app",
+              "com.googleusercontent.apps.1090253359225-rkd9q458daerb2venp697gq7gelfcrhr"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -32,9 +39,12 @@
         "android.permission.VIBRATE"
       ],
       "package": "com.hatiwal.app",
-      "versionCode": 1
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
-
     "plugins": [
       "expo-router",
       "expo-secure-store",
@@ -67,10 +77,18 @@
           "color": "#E8B23A",
           "sounds": []
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e75a387d-5ee9-460a-bbd5-2ba973529931"
+      }
+    },
+    "owner": "hama990"
   }
 }

@@ -134,4 +134,41 @@ describe("authAPI.updateMe", () => {
     // Body should be snake_case wrapped in `user`
     expect((capturedBody as any).user.firstname).toBe("NewName");
   });
+
+  it("sends away_until (snake_case) when awayUntil is provided", async () => {
+    const futureDate = "2026-08-01T23:59:59.000Z";
+    let capturedBody: unknown;
+    server.use(
+      http.put("http://localhost:3007/api/v1/users/me", async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json({
+          user: { ...MOCK_USER, away_until: futureDate, is_away: true },
+        });
+      })
+    );
+    const user = await authAPI.updateMe({ awayUntil: futureDate });
+    // Body must have snake_case key
+    expect((capturedBody as any).user.away_until).toBe(futureDate);
+    // Response is camelCased
+    expect(user.awayUntil).toBe(futureDate);
+    expect(user.isAway).toBe(true);
+  });
+
+  it("sends away_until: null (to clear) when awayUntil is null", async () => {
+    let capturedBody: unknown;
+    server.use(
+      http.put("http://localhost:3007/api/v1/users/me", async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json({
+          user: { ...MOCK_USER, away_until: null, is_away: false },
+        });
+      })
+    );
+    const user = await authAPI.updateMe({ awayUntil: null });
+    // Explicit null must be sent so the backend clears the column
+    expect((capturedBody as any).user).toHaveProperty("away_until");
+    expect((capturedBody as any).user.away_until).toBeNull();
+    expect(user.isAway).toBe(false);
+    expect(user.awayUntil).toBeNull();
+  });
 });

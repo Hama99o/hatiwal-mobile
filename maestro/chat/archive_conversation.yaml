@@ -1,0 +1,75 @@
+appId: com.hatiwal.app
+---
+# Archive a conversation from Inbox -> assert gone -> open Archived tab
+# -> assert present -> unarchive -> back in Inbox
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+# ── Confirm we are on the Inbox tab ────────────────────────────────────
+- assertVisible:
+    id: "tab-inbox"
+
+# ── Long-press the first conversation row to open the action menu ──────
+- longPressOn:
+    index: 0
+    id: "conversation-row-0"
+- waitForAnimationToEnd
+
+# The Archive option should be visible (inbox tab shows Archive, not Unarchive)
+- assertVisible: "Archive"
+- assertNotVisible: "Unarchive"
+
+# ── Archive it ──────────────────────────────────────────────────────────
+- tapOn: "Archive"
+- waitForAnimationToEnd
+
+# ── Conversation should be gone from the inbox list ─────────────────────
+# (optimistic removal — the row vanishes immediately)
+# We assert the archive empty-state only if the list is now empty:
+# If more conversations exist the list simply shrinks. Check tab is still Inbox.
+- assertVisible:
+    id: "tab-inbox"
+
+# ── Switch to Archived tab ─────────────────────────────────────────────
+- tapOn:
+    id: "tab-archived"
+- waitForAnimationToEnd
+- assertVisible: "Archived"
+
+# The archived conversation row should now appear
+- assertVisible:
+    index: 0
+    id: "conversation-row-0"
+
+# ── Long-press to open the action menu in Archived tab ─────────────────
+- longPressOn:
+    index: 0
+    id: "conversation-row-0"
+- waitForAnimationToEnd
+
+# Unarchive option should be visible (archived tab shows Unarchive, not Archive)
+- assertVisible: "Unarchive"
+- assertNotVisible: "Archive"
+
+# ── Unarchive it ────────────────────────────────────────────────────────
+- tapOn: "Unarchive"
+- waitForAnimationToEnd
+
+# Archived tab should now be empty (or show the empty state)
+- assertNotVisible:
+    index: 0
+    id: "conversation-row-0"
+
+# ── Switch back to Inbox ────────────────────────────────────────────────
+- tapOn:
+    id: "tab-inbox"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+# The conversation is back in the inbox
+- assertVisible:
+    index: 0
+    id: "conversation-row-0"
