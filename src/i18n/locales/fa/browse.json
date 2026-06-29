@@ -46,8 +46,10 @@
     "oldest": "قدیمی‌ترین اول",
     "priceAsc": "قیمت: کم به زیاد",
     "priceDesc": "قیمت: زیاد به کم",
-    "mostViewed": "پربازدیدترین"
+    "mostViewed": "پربازدیدترین",
+    "nearest": "نزدیک‌ترین اول"
   },
+  "nearestLocationLoading": "در حال یافتن مکان شما…",
   "browseCategories": "مشاهده دسته‌بندی‌ها",
   "sellerActivity": "فعالیت فروشنده",
   "activeSellers": "فروشندگان فعال",

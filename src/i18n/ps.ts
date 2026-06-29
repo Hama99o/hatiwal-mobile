@@ -11,6 +11,7 @@ import ps_warning          from "./locales/ps/warning.json";
 import ps_categories       from "./locales/ps/categories.json";
 import ps_recentlyViewed   from "./locales/ps/recentlyViewed.json";
 import ps_seller           from "./locales/ps/seller.json";
+import ps_onboarding       from "./locales/ps/onboarding.json";
 
 export const psTranslations = {
   common:          ps_common,
@@ -26,4 +27,5 @@ export const psTranslations = {
   categories:      ps_categories,
   recentlyViewed:  ps_recentlyViewed,
   seller:          ps_seller,
+  onboarding:      ps_onboarding,
 };

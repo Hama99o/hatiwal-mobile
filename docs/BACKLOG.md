@@ -1132,6 +1132,20 @@ Examples:
 
 ---
 
+### T702 — React Query everywhere + persistent cache (never lose data) ⬜
+
+- **Board card ID:** 228 · **Priority:** P1 (data-layer standard) · **Owner:** _unassigned_ → `feature-builder` · **Sprint:** MVP Core (2)
+- **Why:** `@tanstack/react-query` v5 is installed and the `QueryClientProvider` lives in `app/_layout.tsx`, but many screens (MyListings, EditProfile, UserProfile, ListingForm, MyListingDetail, …) still fetch manually with `useState` + `useFocusEffect` — their data is lost on every navigation and app restart. Screens already on `useQuery` still lose cache on restart because there is no persister.
+- **What to build:**
+  1. `@tanstack/query-async-storage-persister` + `PersistQueryClientProvider` backed by AsyncStorage in `app/_layout.tsx` (keep existing defaults; `gcTime` ≥ 24h for persisted queries).
+  2. Shared query-key factory `src/api/queryKeys.ts` so invalidation is consistent across screens.
+  3. Migrate every manual-fetch screen to `useQuery`/`useMutation` + `invalidateQueries`.
+  4. Clear persisted cache on logout (extends the logout-reset rule).
+- **Standing rule (already in `prompts/mobile.prompt.md` §12 + CLAUDE.md):** every future build that shows server data MUST use React Query — no manual `useState` fetching, ever.
+- **Acceptance:** kill app → reopen → previously viewed lists/details render instantly from cache, then refresh in background. No screen left on manual fetch. Cache cleared on logout.
+
+---
+
 ### N801 — Push notification groundwork ⬜
 
 - **Board card ID:** 163 · **Priority:** P2 post-MVP prep · **Owner:** _unassigned_ → `feature-builder` · **Sprint:** MVP Core (2)

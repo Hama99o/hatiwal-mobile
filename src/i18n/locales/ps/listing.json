@@ -61,6 +61,8 @@
   "postedAgo": "خپور شو {{date}}",
   "viewsCount": "{{count}} لیدنې",
   "conversationsCount": "{{count}} خبرې",
+  "savesCount_one": "د {{count}} کس لخوا خوندي شوی",
+  "savesCount_other": "د {{count}} کسانو لخوا خوندي شوی",
   "publishSuccess": "اعلان خپور شو!",
   "reserveSuccess": "اعلان خوندي شوی ښودل شو",
   "markSoldSuccess": "اعلان خرڅ شوی ښودل شو",

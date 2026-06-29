@@ -84,7 +84,9 @@ export function ConversationRow({
 
   let PreviewIcon: typeof MapPin | null = null;
   let previewText = item.lastMessageBody ?? t("chat.noMessages");
-  if (item.lastMessageBody) {
+  if (item.lastMessageDeleted) {
+    previewText = t("chat.message.deleted");
+  } else if (item.lastMessageBody) {
     switch (item.lastMessageKind) {
       case "meetup_proposal":  PreviewIcon = MapPin;   previewText = t("chat.preview.meetup");         break;
       case "meetup_accepted":  PreviewIcon = MapPin;   previewText = t("chat.preview.meetupAccepted"); break;

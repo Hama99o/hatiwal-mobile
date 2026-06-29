@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { View, Pressable, ScrollView, StyleSheet } from "react-native";
+import { View, Pressable, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import {
@@ -21,6 +21,7 @@ import {
   List,
   History,
   UserCheck,
+  Navigation,
 } from "lucide-react-native";
 import type { BrowseViewMode } from "@/stores/browseViewMode.store";
 import { AnimatedPressable } from "@/lib/animation";
@@ -62,6 +63,10 @@ interface BrowseHeaderProps {
   onSelectSavedSearch: (search: SavedSearch) => void;
   sort: ListingSort | null;
   onSortChange: (val: ListingSort | null) => void;
+  /** True while the "Nearest" chip is acquiring the device's GPS location. */
+  nearestLoading: boolean;
+  /** Tapping the "Nearest" chip — parent acquires location, sets/clears sort=nearest, toasts on failure. */
+  onToggleNearest: () => void;
   /** When non-null, only listings from sellers active within this many days are shown. */
   sellerActiveDays: number | null;
   onSellerActiveDaysChange: (val: number | null) => void;
@@ -107,6 +112,8 @@ export function BrowseHeader({
   onSelectSavedSearch,
   sort,
   onSortChange,
+  nearestLoading,
+  onToggleNearest,
   sellerActiveDays,
   onSellerActiveDaysChange,
   viewMode,
@@ -575,6 +582,50 @@ export function BrowseHeader({
                     </Pressable>
                   );
                 })}
+
+                {/* "Nearest" chip — acquires the device's GPS location on tap
+                    (via expo-location, see Browse.tsx `handleToggleNearest`)
+                    instead of being a plain value like the pills above. */}
+                <Pressable
+                  onPress={onToggleNearest}
+                  disabled={nearestLoading}
+                  style={{
+                    flexDirection: isRtl ? "row-reverse" : "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingVertical: 9,
+                    paddingHorizontal: 14,
+                    borderRadius: 20,
+                    borderWidth: 1.5,
+                    backgroundColor: sort === "nearest" ? colors.primary : "transparent",
+                    borderColor: sort === "nearest" ? colors.primary : colors.border,
+                    opacity: nearestLoading ? 0.7 : 1,
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: sort === "nearest", busy: nearestLoading }}
+                  accessibilityLabel={t("browse.sort.nearest")}
+                >
+                  {nearestLoading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={sort === "nearest" ? colors.primaryForeground : colors.mutedForeground}
+                    />
+                  ) : (
+                    <Navigation
+                      size={13}
+                      color={sort === "nearest" ? colors.primaryForeground : colors.mutedForeground}
+                    />
+                  )}
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "600",
+                      color: sort === "nearest" ? colors.primaryForeground : colors.foreground,
+                    }}
+                  >
+                    {t("browse.sort.nearest")}
+                  </Text>
+                </Pressable>
               </ScrollView>
             </View>
 

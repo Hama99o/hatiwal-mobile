@@ -11,6 +11,7 @@ import en_warning          from "./locales/en/warning.json";
 import en_categories       from "./locales/en/categories.json";
 import en_recentlyViewed   from "./locales/en/recentlyViewed.json";
 import en_seller           from "./locales/en/seller.json";
+import en_onboarding       from "./locales/en/onboarding.json";
 
 export const enTranslations = {
   common:          en_common,
@@ -26,4 +27,5 @@ export const enTranslations = {
   categories:      en_categories,
   recentlyViewed:  en_recentlyViewed,
   seller:          en_seller,
+  onboarding:      en_onboarding,
 };

@@ -99,6 +99,50 @@ describe("listingsAPI.getListings", () => {
     expect(capturedUrl).not.toContain("sort=");
   });
 
+  it("passes sort=nearest with latitude/longitude when coordinates are present", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/listings", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ listings: [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 0, total_pages: 0 } } });
+      })
+    );
+    await listingsAPI.getListings({ sort: "nearest", latitude: 34.5553, longitude: 69.2075 });
+    expect(capturedUrl).toContain("sort=nearest");
+    expect(capturedUrl).toContain("latitude=34.5553");
+    expect(capturedUrl).toContain("longitude=69.2075");
+    expect(capturedUrl).not.toContain("radius=");
+  });
+
+  it("does NOT append latitude/longitude for sort=nearest when coordinates are absent", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/listings", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ listings: [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 0, total_pages: 0 } } });
+      })
+    );
+    await listingsAPI.getListings({ sort: "nearest" });
+    expect(capturedUrl).toContain("sort=nearest");
+    expect(capturedUrl).not.toContain("latitude=");
+    expect(capturedUrl).not.toContain("longitude=");
+  });
+
+  it("composes sort=nearest with radius when both latitude/longitude and radius are present", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/listings", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ listings: [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 0, total_pages: 0 } } });
+      })
+    );
+    await listingsAPI.getListings({ sort: "nearest", latitude: 34.5553, longitude: 69.2075, radius: 10 });
+    expect(capturedUrl).toContain("sort=nearest");
+    expect(capturedUrl).toContain("latitude=34.5553");
+    expect(capturedUrl).toContain("longitude=69.2075");
+    expect(capturedUrl).toContain("radius=10");
+  });
+
   it("returns empty items on empty response", async () => {
     server.use(
       http.get("http://localhost:3007/api/v1/listings", () =>
@@ -155,6 +199,23 @@ describe("listingsAPI.getListing", () => {
     expect(listing.id).toBe(10);
     expect(listing.isSaved).toBe(false);
     expect(listing.seller.avatarUrl).toBeNull();
+  });
+
+  it("maps saves_count to savesCount (camelCase conversion)", async () => {
+    const listing = await listingsAPI.getListing(10);
+    expect(listing.savesCount).toBe(3);
+  });
+
+  it("returns savesCount as 0 when nobody has saved the listing", async () => {
+    server.use(
+      http.get("http://localhost:3007/api/v1/listings/44", () =>
+        HttpResponse.json({
+          listing: { ...MOCK_LISTING, id: 44, saves_count: 0 },
+        })
+      )
+    );
+    const listing = await listingsAPI.getListing(44);
+    expect(listing.savesCount).toBe(0);
   });
 
   it("maps share_url to shareUrl (camelCase conversion)", async () => {

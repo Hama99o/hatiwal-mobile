@@ -45,6 +45,7 @@ import {
   MoreHorizontal,
   MapPin,
   Eye,
+  Bookmark,
   Ban,
   Clock,
 } from "lucide-react-native";
@@ -498,7 +499,7 @@ export default function ListingDetailScreen() {
             </View>
           ) : null}
 
-          {/* Views + posted date — muted meta row at the bottom */}
+          {/* Views + saved-by + posted date — muted meta row at the bottom */}
           <View
             style={[
               styles.row,
@@ -515,6 +516,21 @@ export default function ListingDetailScreen() {
               </Text>
             ) : null}
           </View>
+
+          {/* Saved-by-N social proof — only shown when at least one save exists */}
+          {listing.savesCount && listing.savesCount > 0 ? (
+            <View
+              style={[
+                styles.row,
+                { flexDirection: isRtl ? "row-reverse" : "row", marginTop: 4 },
+              ]}
+            >
+              <Bookmark size={12} color={colors.mutedForeground} />
+              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                {t("listing.savesCount", { count: listing.savesCount })}
+              </Text>
+            </View>
+          ) : null}
         </AnimatedSection>
 
         {/* ── Description ─────────────────────────────────────────────── */}

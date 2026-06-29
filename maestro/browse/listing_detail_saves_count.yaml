@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# Listing detail — Saved-by-N social-proof count (TASK-V259)
+# Only shown in the meta row once at least one user has saved the listing.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Save the listing via the heart button so saves_count becomes >= 1
+- tapOn:
+    id: "save-toggle-button"
+- waitForAnimationToEnd
+# Scroll down to the meta row where the saved-by count is shown
+- scroll
+- waitForAnimationToEnd
+# "Saved by N person/people" label is now visible
+- assertVisible: "Saved by"
+# Unsave — go back and re-open to confirm the row still reflects a valid state
+# (no crash, no negative/undefined count rendered)
+- tapOn:
+    id: "save-toggle-button"
+- waitForAnimationToEnd
+- back
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd

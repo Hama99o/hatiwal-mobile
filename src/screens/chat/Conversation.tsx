@@ -210,6 +210,8 @@ export function ConversationScreen() {
   const filteredMessages = searchVisible && searchQuery.trim()
     ? messages.filter((m) =>
         m.kind === "text" &&
+        !m.deleted &&
+        !!m.body &&
         m.body.toLowerCase().includes(searchQuery.trim().toLowerCase())
       )
     : messages;
@@ -416,7 +418,7 @@ export function ConversationScreen() {
   const handleMeetupRespond = useCallback(
     async (proposal: Message, accepted: boolean) => {
       const convId = currentConversationId;
-      if (!convId) return;
+      if (!convId || !proposal.body) return;
       try {
         const sent = await conversationsAPI.sendMessage(
           convId,
@@ -438,7 +440,7 @@ export function ConversationScreen() {
   const handleOfferRespond = useCallback(
     async (offer: Message, accepted: boolean) => {
       const convId = currentConversationId;
-      if (!convId) return;
+      if (!convId || !offer.body) return;
       try {
         const sent = await conversationsAPI.sendMessage(
           convId,
@@ -458,6 +460,7 @@ export function ConversationScreen() {
 
   // ── Open counter-offer sheet (seller) ────────────────────────────────────
   const handleOpenCounterSheet = useCallback((offer: Message) => {
+    if (!offer.body) return;
     setCounterOfferTarget(offer);
     // Pre-fill with the buyer's offer amount so the seller can edit from there
     const parts = offer.body.split("|");
@@ -470,7 +473,7 @@ export function ConversationScreen() {
   const handleSendCounter = useCallback(
     async (amountStr: string) => {
       const convId = currentConversationId;
-      if (!convId || !counterOfferTarget || !amountStr.trim()) return;
+      if (!convId || !counterOfferTarget?.body || !amountStr.trim()) return;
       setIsSendingCounter(true);
 
       const parts = counterOfferTarget.body.split("|");
@@ -1160,12 +1163,12 @@ export function ConversationScreen() {
         onChangeAmount={setCounterOfferAmount}
         currency={
           counterOfferTarget?.offerCurrency ??
-          counterOfferTarget?.body.split("|")[1] ??
+          counterOfferTarget?.body?.split("|")[1] ??
           "AFN"
         }
         buyerOfferAmount={
           counterOfferTarget?.offerAmount ??
-          Number(counterOfferTarget?.body.split("|")[0] ?? 0)
+          Number(counterOfferTarget?.body?.split("|")[0] ?? 0)
         }
         isBusy={isSendingCounter}
       />

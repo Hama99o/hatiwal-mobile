@@ -47,6 +47,7 @@ export const MOCK_LISTING = {
   image_urls: [],
   views_count: 10,
   conversations_count: 2,
+  saves_count: 3,
   is_saved: false,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",

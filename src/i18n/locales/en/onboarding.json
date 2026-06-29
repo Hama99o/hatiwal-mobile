@@ -1,0 +1,19 @@
+{
+  "skip": "Skip",
+  "next": "Next",
+  "getStarted": "Get started",
+  "slides": {
+    "welcome": {
+      "title": "Welcome to Hatiwal",
+      "description": "Your local marketplace to buy and sell — no fees, no shipping, just people nearby."
+    },
+    "modes": {
+      "title": "Buy or sell — your choice",
+      "description": "One account for both. Switch between buyer and seller mode anytime."
+    },
+    "meetups": {
+      "title": "Meet safely, in person",
+      "description": "Chat with buyers and sellers first, then arrange a safe place to meet — no online payments needed."
+    }
+  }
+}

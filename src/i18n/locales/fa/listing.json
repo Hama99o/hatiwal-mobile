@@ -61,6 +61,8 @@
   "postedAgo": "ارسال شده {{date}}",
   "viewsCount": "{{count}} بازدید",
   "conversationsCount": "{{count}} گفتگو",
+  "savesCount_one": "ذخیره شده توسط {{count}} نفر",
+  "savesCount_other": "ذخیره شده توسط {{count}} نفر",
   "publishSuccess": "آگهی منتشر شد!",
   "reserveSuccess": "آگهی به عنوان رزرو شده علامت‌گذاری شد",
   "markSoldSuccess": "آگهی به عنوان فروخته شده علامت‌گذاری شد",

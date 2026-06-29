@@ -56,6 +56,11 @@ export interface Listing {
   imageAttachments?: { id: string; url: string }[];
   viewsCount: number;
   conversationsCount?: number;
+  /**
+   * Total number of users who have saved/bookmarked this listing — an
+   * integer only, no saver identities. Only present on the :detailed view.
+   */
+  savesCount?: number;
   isSaved?: boolean;
   isViewed?: boolean;
   /** TASK-N071: true by default; when explicitly false the offer composer is hidden. */
@@ -114,7 +119,13 @@ export interface ListingsResponse {
   };
 }
 
-export type ListingSort = "newest" | "oldest" | "price_asc" | "price_desc" | "most_viewed";
+export type ListingSort =
+  | "newest"
+  | "oldest"
+  | "price_asc"
+  | "price_desc"
+  | "most_viewed"
+  | "nearest";
 
 export interface ListingParams {
   pageNumber?: number;
@@ -151,6 +162,10 @@ export const listingsAPI = {
       query.append("latitude",  String(params.latitude));
       query.append("longitude", String(params.longitude));
       query.append("radius",    String(params.radius));
+    } else if (params?.sort === "nearest" && params?.latitude != null && params?.longitude != null) {
+      // sort=nearest works across the whole feed too — radius is optional.
+      query.append("latitude",  String(params.latitude));
+      query.append("longitude", String(params.longitude));
     } else if (params?.location) {
       query.append("location", params.location);
     }

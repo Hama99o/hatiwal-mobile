@@ -1,0 +1,46 @@
+appId: com.hatiwal.app
+---
+# TASK-D583 — Verify the "Nearest first" sort chip appears in the Browse filter
+# panel, acquires the device location on tap, re-fetches the feed sorted by
+# distance, and can be toggled off (cleared) cleanly.
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+
+# Open the filter panel
+- tapOn:
+    id: "browse.filters"
+- waitForAnimationToEnd
+
+# Scroll down inside the filter panel until the Sort section is visible
+- scrollUntilVisible:
+    element:
+      text: "Sort"
+    direction: DOWN
+    timeout: 5000
+
+# The "Nearest first" chip should be visible alongside the other sort pills
+- assertVisible: "Nearest first"
+
+# Tap "Nearest first" — this triggers the OS location permission prompt on a
+# fresh install/emulator. Dismiss it by allowing access so the fix succeeds.
+- tapOn: "Nearest first"
+- tapOn:
+    text: "While using the app"
+    optional: true
+- tapOn:
+    text: "Allow"
+    optional: true
+- tapOn:
+    text: "Allow once"
+    optional: true
+- waitForAnimationToEnd
+
+# The feed re-fetches sorted by distance — wait for the loading spinner
+# on the chip to clear and the list to settle.
+- waitForAnimationToEnd
+
+# Tap "Nearest first" again to toggle it off (back to default newest order)
+- tapOn: "Nearest first"
+- waitForAnimationToEnd

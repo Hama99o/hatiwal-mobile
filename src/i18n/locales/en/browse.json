@@ -46,8 +46,10 @@
     "oldest": "Oldest first",
     "priceAsc": "Price: low to high",
     "priceDesc": "Price: high to low",
-    "mostViewed": "Most viewed"
+    "mostViewed": "Most viewed",
+    "nearest": "Nearest first"
   },
+  "nearestLocationLoading": "Finding your location…",
   "browseCategories": "Browse categories",
   "sellerActivity": "Seller activity",
   "activeSellers": "Active sellers",

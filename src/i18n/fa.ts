@@ -11,6 +11,7 @@ import fa_warning          from "./locales/fa/warning.json";
 import fa_categories       from "./locales/fa/categories.json";
 import fa_recentlyViewed   from "./locales/fa/recentlyViewed.json";
 import fa_seller           from "./locales/fa/seller.json";
+import fa_onboarding       from "./locales/fa/onboarding.json";
 
 export const faTranslations = {
   common:          fa_common,
@@ -26,4 +27,5 @@ export const faTranslations = {
   categories:      fa_categories,
   recentlyViewed:  fa_recentlyViewed,
   seller:          fa_seller,
+  onboarding:      fa_onboarding,
 };

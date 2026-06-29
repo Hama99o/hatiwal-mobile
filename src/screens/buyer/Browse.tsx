@@ -19,6 +19,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react-native";
+import { toast } from "sonner-native";
 import { NoResultsIllustration } from "@/components/common/empty-illustrations";
 
 import { ListingFeed } from "@/components/common/ListingFeed";
@@ -34,6 +35,7 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useColors } from "@/hooks/useColors";
 import { useBrowseViewModeStore } from "@/stores/browseViewMode.store";
 import { useSearchHistoryStore } from "@/stores/searchHistory.store";
+import { getCurrentLocation, type GeoErrorCode } from "@/utils/geolocation";
 import type { MapCanvasCoords } from "@/components/common/map/MapCanvas.types";
 
 export default function BrowseScreen() {
@@ -75,6 +77,11 @@ export default function BrowseScreen() {
   const [priceMax, setPriceMax] = useState<string>("");
   const [condition, setCondition] = useState<ListingCondition | null>(null);
   const [sort, setSort] = useState<ListingSort | null>(null);
+  // Coordinates the "Nearest" sort chip acquired via expo-location — separate
+  // from `coordinates` (the manual radius/location filter) so the two don't
+  // fight over the same point; sort=nearest always uses a fresh GPS fix.
+  const [nearestCoords, setNearestCoords] = useState<MapCanvasCoords | null>(null);
+  const [nearestLoading, setNearestLoading] = useState(false);
   const [sellerActiveDays, setSellerActiveDays] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
@@ -190,6 +197,44 @@ export default function BrowseScreen() {
     setDistance(5);
   }, []);
 
+  // ── "Nearest" sort chip — acquires the device's GPS location on tap ────────
+  const geoErrorMessageKey = (code?: GeoErrorCode): string => {
+    switch (code) {
+      case "denied":      return "browse.locationDenied";
+      case "timeout":     return "browse.locationTimeout";
+      case "unsupported": return "browse.locationUnsupported";
+      default:            return "browse.locationUnavailable";
+    }
+  };
+
+  const handleToggleNearest = useCallback(async () => {
+    if (sort === "nearest") {
+      // Deselect — clears back to the default order and drops the fix cleanly.
+      setSort(null);
+      setNearestCoords(null);
+      return;
+    }
+
+    setNearestLoading(true);
+    const result = await getCurrentLocation();
+    setNearestLoading(false);
+
+    if (result.coords) {
+      setNearestCoords({ latitude: result.coords.latitude, longitude: result.coords.longitude });
+      setSort("nearest");
+    } else {
+      toast.error(t(geoErrorMessageKey(result.error)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort, t]);
+
+  // Any manual sort pill (or "newest" default) drops the GPS fix so it isn't
+  // left dangling once the buyer moves away from "Nearest".
+  const handleSortChange = useCallback((val: ListingSort | null) => {
+    setSort(val);
+    if (val !== "nearest") setNearestCoords(null);
+  }, []);
+
   // ── Saved search apply ────────────────────────────────────────────────────
   const handleApplySavedSearch = useCallback((saved: SavedSearch) => {
     setCategoryId(saved.categoryId ?? null);
@@ -219,13 +264,16 @@ export default function BrowseScreen() {
     setPriceMax("");
     setCondition(null);
     setSort(null);
+    setNearestCoords(null);
     setSellerActiveDays(null);
   }, []);
 
   // ── UniversalList fetcher key (triggers page reset on filter/mode change) ──
   // viewMode is included so FlashList re-mounts cleanly when switching grid↔list
   // (numColumns change requires a full re-layout, not just a re-render).
-  const fetcherKey = `${debouncedSearch}|${categoryId}|${condition}|${priceMin}|${priceMax}|${coordinates?.latitude}|${coordinates?.longitude}|${distance}|${location}|${sort}|${sellerActiveDays}|${viewMode}`;
+  const fetcherKey = `${debouncedSearch}|${categoryId}|${condition}|${priceMin}|${priceMax}|${coordinates?.latitude}|${coordinates?.longitude}|${distance}|${location}|${sort}|${nearestCoords?.latitude}|${nearestCoords?.longitude}|${sellerActiveDays}|${viewMode}`;
+
+  const isNearest = sort === "nearest";
 
   const fetcher = useCallback(
     async (query: ListQuery): Promise<ListFetchResult<Listing>> => {
@@ -237,10 +285,13 @@ export default function BrowseScreen() {
         condition: condition ?? undefined,
         priceMin: priceMin ? parseInt(priceMin) : undefined,
         priceMax: priceMax ? parseInt(priceMax) : undefined,
-        location: coordinates ? undefined : (location ?? undefined),
-        latitude: coordinates?.latitude,
-        longitude: coordinates?.longitude,
-        radius: coordinates ? distance : undefined,
+        // sort=nearest always uses its own fresh GPS fix — it takes over the
+        // location params entirely instead of composing with the manual
+        // radius/location filter, which stays untouched for when it's cleared.
+        location: isNearest || coordinates ? undefined : (location ?? undefined),
+        latitude: isNearest ? nearestCoords?.latitude : coordinates?.latitude,
+        longitude: isNearest ? nearestCoords?.longitude : coordinates?.longitude,
+        radius: isNearest ? undefined : (coordinates ? distance : undefined),
         sort: sort ?? undefined,
         sellerActiveDays: sellerActiveDays ?? undefined,
       });
@@ -310,7 +361,9 @@ export default function BrowseScreen() {
       }}
       onSelectSavedSearch={handleApplySavedSearch}
       sort={sort}
-      onSortChange={setSort}
+      onSortChange={handleSortChange}
+      nearestLoading={nearestLoading}
+      onToggleNearest={handleToggleNearest}
       sellerActiveDays={sellerActiveDays}
       onSellerActiveDaysChange={setSellerActiveDays}
       viewMode={viewMode}

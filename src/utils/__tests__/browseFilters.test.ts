@@ -97,7 +97,7 @@ describe("computeActiveFilterCount", () => {
   });
 
   it("counts each non-default sort variant as 1", () => {
-    const sorts = ["oldest", "price_asc", "price_desc", "most_viewed"] as const;
+    const sorts = ["oldest", "price_asc", "price_desc", "most_viewed", "nearest"] as const;
     sorts.forEach((s) => {
       expect(
         computeActiveFilterCount({ ...defaults, sort: s })

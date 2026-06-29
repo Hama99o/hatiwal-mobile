@@ -46,8 +46,10 @@
     "oldest": "لومړی زوړ",
     "priceAsc": "نرخ: لږ لومړی",
     "priceDesc": "نرخ: ډیر لومړی",
-    "mostViewed": "ډیر لیدل شوي"
+    "mostViewed": "ډیر لیدل شوي",
+    "nearest": "نږدې لومړی"
   },
+  "nearestLocationLoading": "ستاسو ځای موندل کیږي…",
   "browseCategories": "ډلې وګورئ",
   "sellerActivity": "د پلورونکي فعالیت",
   "activeSellers": "فعال پلورونکي",

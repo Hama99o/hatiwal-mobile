@@ -827,11 +827,37 @@ import { useModeStore } from '@/stores/mode.store';
 const mode = useModeStore((s) => s.mode);  // 'buyer' | 'seller'
 ```
 
+### Data Fetching — React Query (MANDATORY, board card #228)
+
+**Every screen that shows server data MUST fetch it through TanStack React Query
+(`useQuery` / `useInfiniteQuery`), and every write MUST go through `useMutation`
++ `invalidateQueries`.** Never hand-roll `useState` + `useEffect`/`useFocusEffect`
+fetching — cached data must survive navigation (and, once the persister ships,
+app restarts) so the user never loses what was already loaded.
+
+```tsx
+import { useQuery } from '@tanstack/react-query';
+import { getListing } from '@/api/listings';
+
+const { data: listing, isPending, error, refetch } = useQuery({
+  queryKey: ['listing', id],
+  queryFn: () => getListing(id),
+});
+```
+
+- Query keys: use a stable array key per domain (`['listings', filters]`,
+  `['listing', id]`, `['conversations']`, …) — reuse existing keys so screens
+  share the cache instead of refetching.
+- After a mutation, `invalidateQueries` the affected keys — never manually
+  re-call the API and `setState`.
+- Show cached data instantly while refetching in the background (default RQ
+  behavior) — do NOT blank the screen behind a spinner if `data` already exists.
+- The `QueryClient` lives in `app/_layout.tsx`. Do not create new clients in screens.
+
 ### Data Freshness — Focus Refetch (MANDATORY)
 
-Every screen **must** re-fetch its data when the user navigates back to it.
-
-**Rule: add `useFocusEffect` to every screen that displays server data.**
+Every screen **must** re-fetch its data when the user navigates back to it —
+via React Query invalidation on focus, not by remounting or manual fetching.
 
 #### List screens
 
@@ -872,7 +898,8 @@ useFocusEffect(useCallback(() => {
    - ALL UI from react-native-reusables
    - No hardcoded strings — every text through `t('...')`
    - RTL layout with `useLocalization().isRtl`
-   - Focus refetch with `useFocusEffect`
+   - All server data through `useQuery`/`useMutation` (React Query — see §12)
+   - Focus refetch with `useFocusEffect` + `invalidateQueries`
 
 3. **Route** — create `app/(main)/(tabs)/your-feature.tsx`
    - Content: only `import YourFeatureScreen ... export default YourFeatureScreen`

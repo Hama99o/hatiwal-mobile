@@ -226,6 +226,7 @@ function ImageMessageBubble({
   readColor,
   colors,
   enteringAnimation,
+  onLongPress,
 }: {
   message: Message;
   isMine: boolean;
@@ -234,6 +235,8 @@ function ImageMessageBubble({
   readColor: string;
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
   enteringAnimation: any;
+  /** Long-press handler that opens the delete action sheet for own messages. */
+  onLongPress?: () => void;
 }) {
   const { t } = useTranslation();
   const { isRtl, formatTime } = useLocalization();
@@ -255,6 +258,8 @@ function ImageMessageBubble({
               toast.error(t("chat.photo.notAvailable"));
             }
           }}
+          onLongPress={onLongPress}
+          delayLongPress={400}
           android_ripple={{ color: colors.primaryAlpha }}
           style={{
             maxWidth: maxImageWidth,
@@ -445,6 +450,62 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
     );
   };
 
+  // Shared bottom-slide "delete message" action sheet — reused by every
+  // deletable bubble kind (text, document, image_message) so long-press
+  // delete is not silently text-only.
+  const deleteSheetModal = isMine && onDeleteMessage && (
+    <Modal
+      visible={deleteMenuVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setDeleteMenuVisible(false)}
+    >
+      <View
+        style={{ flex: 1, backgroundColor: colors.darkScrim }}
+        onTouchEnd={() => setDeleteMenuVisible(false)}
+      >
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: colors.card,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            paddingTop: 12,
+            paddingBottom: 32,
+          }}
+          onTouchEnd={(e) => e.stopPropagation()}
+        >
+          {/* Handle bar */}
+          <View style={{ alignItems: "center", marginBottom: 16 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+          </View>
+          <View style={{ paddingHorizontal: 16, gap: 4 }}>
+            <Pressable
+              onPress={handleConfirmDelete}
+              android_ripple={{ color: colors.destructiveAlpha }}
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                alignItems: "center",
+                paddingVertical: 14,
+                gap: 12,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t("chat.message.deleteAction")}
+            >
+              <Trash2 size={20} color={colors.destructive} />
+              <RNText style={{ fontSize: 15, color: colors.destructive, fontWeight: "600", flex: 1 }}>
+                {t("chat.message.deleteAction")}
+              </RNText>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   if (message.kind === "system") {
     // System messages center-align with a fade-in; no directional slide.
     return (
@@ -461,7 +522,8 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
 
   if (message.kind === "offer") {
     // Body format: "amount|currency|listedPrice"
-    const parts = message.body.split("|");
+    // message.body is only null for a deleted message, already handled above.
+    const parts = (message.body ?? "").split("|");
     const amount = Number(parts[0] ?? 0);
     const currency = parts[1] ?? "AFN";
     const listedPrice = Number(parts[2] ?? 0);
@@ -678,7 +740,8 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
     // Counter-offer card — same pipe-encoded body format as regular offer:
     // "amount|currency|listedPrice"
     // Prefer the pre-parsed fields exposed by the serializer when available.
-    const parts = message.body.split("|");
+    // message.body is only null for a deleted message, already handled above.
+    const parts = (message.body ?? "").split("|");
     const amount = message.offerAmount ?? Number(parts[0] ?? 0);
     const currency = message.offerCurrency ?? parts[1] ?? "AFN";
     const formattedCounter = formatCurrency(amount, currency);
@@ -847,8 +910,9 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
 
   if (message.kind === "meetup_proposal") {
     // Parse "place | time" format
-    const parts = message.body.split("|").map((s) => s.trim());
-    const place = parts[0] ?? message.body;
+    // message.body is only null for a deleted message, already handled above.
+    const parts = (message.body ?? "").split("|").map((s) => s.trim());
+    const place = parts[0] ?? message.body ?? "";
     const time = parts[1] ?? "";
 
     return (
@@ -964,16 +1028,18 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
     );
   }
 
-  // Document/file bubble
+  // Document/file bubble — long-pressable for own messages to delete
   if (message.kind === "document") {
     const fileName = message.body || "file";
     const attachmentUrl = (message as any).attachmentUrl as string | null;
 
     return (
-      <Animated.View
-        entering={enteringAnimation}
-        style={{ alignItems: bubbleAlign, marginVertical: 2, marginHorizontal: 16 }}
-      >
+      <>
+        {deleteSheetModal}
+        <Animated.View
+          entering={enteringAnimation}
+          style={{ alignItems: bubbleAlign, marginVertical: 2, marginHorizontal: 16 }}
+        >
         <Pressable
           android_ripple={{ color: colors.primaryAlpha }}
           onPress={() => {
@@ -983,6 +1049,9 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
               toast.error(t("chat.document.notAvailable"));
             }
           }}
+          onLongPress={handleLongPress}
+          delayLongPress={400}
+          testID="message-bubble-document-pressable"
           style={{
             maxWidth: "78%",
             borderRadius: 14,
@@ -1012,22 +1081,27 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             {isMine ? (message.readAt ? <ReadReceipt color={readColor} /> : <Check size={11} color={metaColor} />) : null}
           </View>
         </Pressable>
-      </Animated.View>
+        </Animated.View>
+      </>
     );
   }
 
-  // Image message bubble — tap to open fullscreen
+  // Image message bubble — tap to open fullscreen, long-press to delete (own messages)
   if (message.kind === "image_message") {
     return (
-      <ImageMessageBubble
-        message={message}
-        isMine={isMine}
-        bubbleAlign={bubbleAlign}
-        metaColor={metaColor}
-        readColor={readColor}
-        colors={colors}
-        enteringAnimation={enteringAnimation}
-      />
+      <>
+        {deleteSheetModal}
+        <ImageMessageBubble
+          message={message}
+          isMine={isMine}
+          bubbleAlign={bubbleAlign}
+          metaColor={metaColor}
+          readColor={readColor}
+          colors={colors}
+          enteringAnimation={enteringAnimation}
+          onLongPress={handleLongPress}
+        />
+      </>
     );
   }
 
@@ -1035,58 +1109,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
   return (
     <>
       {/* Delete action bottom-sheet modal */}
-      {isMine && onDeleteMessage && (
-        <Modal
-          visible={deleteMenuVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setDeleteMenuVisible(false)}
-        >
-          <View
-            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }}
-            onTouchEnd={() => setDeleteMenuVisible(false)}
-          >
-            <View
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                backgroundColor: colors.card,
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                paddingTop: 12,
-                paddingBottom: 32,
-              }}
-              onTouchEnd={(e) => e.stopPropagation()}
-            >
-              {/* Handle bar */}
-              <View style={{ alignItems: "center", marginBottom: 16 }}>
-                <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
-              </View>
-              <View style={{ paddingHorizontal: 16, gap: 4 }}>
-                <Pressable
-                  onPress={handleConfirmDelete}
-                  android_ripple={{ color: colors.destructiveAlpha }}
-                  style={{
-                    flexDirection: isRtl ? "row-reverse" : "row",
-                    alignItems: "center",
-                    paddingVertical: 14,
-                    gap: 12,
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("chat.message.deleteAction")}
-                >
-                  <Trash2 size={20} color={colors.destructive} />
-                  <RNText style={{ fontSize: 15, color: colors.destructive, fontWeight: "600", flex: 1 }}>
-                    {t("chat.message.deleteAction")}
-                  </RNText>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
+      {deleteSheetModal}
 
       <Animated.View
         entering={enteringAnimation}

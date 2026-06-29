@@ -26,7 +26,6 @@ import {
   ShieldOff,
   ChevronRight,
   ChevronLeft,
-  Trash2,
   Flag,
   History,
 } from "lucide-react-native";
@@ -1028,60 +1027,25 @@ function SettingsSection({
         </Text>
       </Button>
 
-      {/* ── Danger Zone — visually isolated, 28px gap from Sign Out ── */}
-      <View style={{ marginTop: 20 }}>
-        <View
+      {/* ── Delete Account — tiny, barely-visible link at the very bottom ── */}
+      <Pressable
+        onPress={handleDeleteAccount}
+        accessibilityRole="button"
+        accessibilityLabel={t("profile.deleteAccount")}
+        android_ripple={{ color: colors.muted, borderless: true, radius: 80 }}
+        style={{ alignItems: "center", paddingVertical: 12, marginTop: 4 }}
+      >
+        <Text
           style={{
-            backgroundColor: colors.destructiveAlpha,
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: colors.destructive,
-            overflow: "hidden",
+            fontSize: 12,
+            color: colors.mutedForeground,
+            opacity: 0.6,
+            textDecorationLine: "underline",
           }}
         >
-          {/* Danger label */}
-          <View
-            style={{
-              paddingHorizontal: 16,
-              paddingTop: 12,
-              paddingBottom: 4,
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <Trash2 size={13} color={colors.destructive} />
-            <Text
-              className="text-xs font-semibold"
-              style={{ color: colors.destructive, letterSpacing: 0.5 }}
-            >
-              {t("profile.dangerZone").toUpperCase()}
-            </Text>
-          </View>
-
-          {/* Delete Account button inside the danger card */}
-          <Button
-            variant="ghost"
-            onPress={handleDeleteAccount}
-            accessibilityLabel={t("profile.deleteAccount")}
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              paddingVertical: 14,
-              paddingHorizontal: 16,
-              borderRadius: 0,
-              minHeight: 44,
-              marginBottom: 4,
-            }}
-          >
-            <Text className="text-base font-medium" style={{ color: colors.destructive }}>
-              {t("profile.deleteAccount")}
-            </Text>
-          </Button>
-        </View>
-      </View>
+          {t("profile.deleteAccount")}
+        </Text>
+      </Pressable>
 
     </View>
   );

@@ -61,6 +61,8 @@
   "postedAgo": "posted {{date}}",
   "viewsCount": "{{count}} views",
   "conversationsCount": "{{count}} chats",
+  "savesCount_one": "Saved by {{count}} person",
+  "savesCount_other": "Saved by {{count}} people",
   "publishSuccess": "Listing published!",
   "reserveSuccess": "Listing marked as reserved",
   "markSoldSuccess": "Listing marked as sold",

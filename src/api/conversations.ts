@@ -66,6 +66,8 @@ export interface Conversation {
   blockedWithParticipant?: boolean;
   lastMessageBody?: string | null;
   lastMessageKind?: Message["kind"] | null;
+  /** True when the last message was retracted (soft-deleted) by its author. */
+  lastMessageDeleted?: boolean;
   unreadCount?: number;
 }
 

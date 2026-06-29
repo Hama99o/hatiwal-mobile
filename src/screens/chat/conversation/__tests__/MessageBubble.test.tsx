@@ -443,6 +443,62 @@ describe("MessageBubble — delete action (TASK-M913)", () => {
     // After long press, the delete action label should be visible in the modal
     expect(screen.getByText("chat.message.deleteAction")).toBeTruthy();
   });
+
+  // TASK-M913 review fix: document and image_message bubbles must also wire
+  // long-press delete — it was previously text-only.
+  it("shows the delete action sheet from a long press on a document bubble (own message)", () => {
+    const onDelete = jest.fn();
+    render(
+      <MessageBubble
+        message={makeMsg({
+          kind: "document",
+          body: "receipt.pdf",
+          attachmentUrl: "https://cdn.example.com/receipt.pdf",
+        })}
+        isMine={true}
+        onDeleteMessage={onDelete}
+      />
+    );
+    const longPressable = screen.getByTestId("message-bubble-document-pressable");
+    fireEvent(longPressable, "longPress");
+    expect(screen.getByText("chat.message.deleteAction")).toBeTruthy();
+  });
+
+  it("shows the delete action sheet from a long press on an image_message bubble (own message)", () => {
+    const onDelete = jest.fn();
+    render(
+      <MessageBubble
+        message={makeMsg({
+          kind: "image_message",
+          body: null,
+          attachmentUrl: "https://cdn.example.com/photo.jpg",
+        })}
+        isMine={true}
+        onDeleteMessage={onDelete}
+      />
+    );
+    const longPressable = screen.getByRole("imagebutton");
+    fireEvent(longPressable, "longPress");
+    expect(screen.getByText("chat.message.deleteAction")).toBeTruthy();
+  });
+
+  it("does NOT show a delete action sheet from a document/image long press when isMine is false", () => {
+    const onDelete = jest.fn();
+    render(
+      <MessageBubble
+        message={makeMsg({
+          kind: "document",
+          body: "receipt.pdf",
+          attachmentUrl: "https://cdn.example.com/receipt.pdf",
+        })}
+        isMine={false}
+        onDeleteMessage={onDelete}
+      />
+    );
+    const longPressable = screen.getByTestId("message-bubble-document-pressable");
+    fireEvent(longPressable, "longPress");
+    expect(screen.queryByText("chat.message.deleteAction")).toBeNull();
+  });
 });
 
 describe("MessageBubble — offer with Counter button (TASK-O829)", () => {
