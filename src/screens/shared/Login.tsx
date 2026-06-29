@@ -19,6 +19,7 @@ import { confirmAlert } from "@/utils/alert";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import Constants from "expo-constants";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -36,6 +37,8 @@ export default function LoginScreen() {
   // this login attempt or when the user was blocked mid-session and bounced here.
   const blockedNotice = useAuthStore((s) => s.blockedNotice);
   const setBlockedNotice = useAuthStore((s) => s.setBlockedNotice);
+
+  const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -209,7 +212,7 @@ export default function LoginScreen() {
         accessibilityLabel={t("auth.continueBrowsing")}
         style={({ pressed }) => ({
           position: "absolute",
-          top: 52,
+          top: insets.top + 12,
           zIndex: 1,
           ...(isRtl ? { right: 20 } : { left: 20 }),
           flexDirection: isRtl ? "row-reverse" : "row",
@@ -237,7 +240,7 @@ export default function LoginScreen() {
         // browsing" pill). NOT justifyContent:center — on web that clips the
         // bottom (the Sign in button) when content is taller than the viewport
         // and won't scroll to it. Top-aligned flow keeps the button reachable.
-        contentContainerStyle={{ padding: 24, paddingTop: 104, paddingBottom: 48 }}
+        contentContainerStyle={{ padding: 24, paddingTop: insets.top + 64, paddingBottom: 48 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
