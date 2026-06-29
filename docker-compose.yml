@@ -49,4 +49,5 @@ services:
     # --clear wipes Metro's cache on start. The cache lives in the node_modules
     # volume, which survives `docker compose down`, so without this a stale JS
     # bundle keeps getting served to Expo Go even after restarts/dep changes.
-    command: ["npx", "expo", "start", "--port", "3008", "--clear", "--offline"]
+    # --go forces Expo Go mode even when expo-dev-client is installed (needed for EAS dev builds).
+    command: ["npx", "expo", "start", "--port", "3008", "--clear", "--offline", "--go"]
