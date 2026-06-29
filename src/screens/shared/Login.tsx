@@ -210,7 +210,7 @@ export default function LoginScreen() {
         onPress={() => router.replace("/(main)/(tabs)/browse")}
         accessibilityRole="button"
         accessibilityLabel={t("auth.continueBrowsing")}
-        style={({ pressed }) => ({
+        style={{
           position: "absolute",
           top: insets.top + 12,
           zIndex: 1,
@@ -222,8 +222,8 @@ export default function LoginScreen() {
           paddingHorizontal: 14,
           borderRadius: 999,
           backgroundColor: colors.muted,
-          opacity: pressed ? 0.7 : 1,
-        })}
+        }}
+        android_ripple={{ color: colors.border, borderless: true, radius: 80 }}
       >
         <ShoppingBag size={16} color={colors.primary} />
         <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary }}>
