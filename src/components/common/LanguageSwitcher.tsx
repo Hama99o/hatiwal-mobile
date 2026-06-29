@@ -4,13 +4,21 @@ import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { SUPPORTED_LANGUAGES, setLanguage, type LanguageCode } from "@/i18n";
 
-export default function LanguageSwitcher() {
+type LanguageSwitcherProps = {
+  // "sm" — compact pills (default, used in Profile settings inline picker)
+  // "lg" — larger touch targets and text (used on Login screen)
+  size?: "sm" | "lg";
+};
+
+export default function LanguageSwitcher({ size = "sm" }: LanguageSwitcherProps) {
   const { i18n } = useTranslation();
   const colors = useColors();
   const current = i18n.language;
 
+  const isLg = size === "lg";
+
   return (
-    <View style={{ flexDirection: "row", justifyContent: "center", gap: 8 }}>
+    <View style={{ flexDirection: "row", justifyContent: "center", gap: isLg ? 10 : 8 }}>
       {SUPPORTED_LANGUAGES.map((lang) => {
         const active = current === lang.code;
         return (
@@ -18,17 +26,23 @@ export default function LanguageSwitcher() {
             key={lang.code}
             onPress={() => setLanguage(lang.code as LanguageCode)}
             android_ripple={{ color: colors.muted, borderless: false }}
-            style={({ pressed }) => ({
-              paddingVertical: 8,
-              paddingHorizontal: 16,
-              borderRadius: 8,
+            accessibilityRole="button"
+            style={{
+              paddingVertical: isLg ? 12 : 8,
+              paddingHorizontal: isLg ? 20 : 16,
+              borderRadius: isLg ? 10 : 8,
               borderWidth: 1,
               borderColor: active ? colors.primary : colors.border,
               backgroundColor: active ? colors.primary : "transparent",
-              opacity: pressed ? 0.75 : 1,
-            })}
+            }}
           >
-            <Text style={{ color: active ? colors.primaryForeground : colors.foreground, fontWeight: active ? "700" : "400" }}>
+            <Text
+              style={{
+                color: active ? colors.primaryForeground : colors.foreground,
+                fontWeight: active ? "700" : "400",
+                fontSize: isLg ? 16 : 14,
+              }}
+            >
               {lang.label}
             </Text>
           </Pressable>

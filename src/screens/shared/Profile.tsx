@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Pressable, ActivityIndicator, Linking } from "react-native";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
@@ -678,61 +678,159 @@ export default function ProfileScreen() {
       {/* ── Content — one unified layout; mode only changes stats + actions ── */}
       {user && <ProfileContent user={user} isSeller={isSeller} handleEdit={startEdit} />}
 
-      {/* ── Settings (Appearance & Language) ────────────────────── */}
-      <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 }}>
-        {/* Appearance */}
-        <SectionCard>
-          <SectionHeader title={t("profile.theme").toUpperCase()} />
+      {/* ── Settings ────────────────────────────────────────────── */}
+      <SettingsSection
+        isRtl={isRtl}
+        colors={colors}
+        t={t}
+        i18n={i18n}
+        theme={theme}
+        setTheme={setTheme}
+        handleLogout={handleLogout}
+        handleDeleteAccount={handleDeleteAccount}
+        router={router}
+      />
+    </ScreenContainer>
+  );
+}
+
+// ── Settings Section ──────────────────────────────────────────────────────────
+// Extracted to keep the main return clean. Receives only the values it needs.
+
+function SettingsSection({
+  isRtl,
+  colors,
+  t,
+  i18n,
+  theme,
+  setTheme,
+  handleLogout,
+  handleDeleteAccount,
+  router,
+}: {
+  isRtl: boolean;
+  colors: ReturnType<typeof useColors>;
+  t: (key: string) => string;
+  i18n: { language: string };
+  theme: ThemePreference;
+  setTheme: (v: ThemePreference) => void;
+  handleLogout: () => void;
+  handleDeleteAccount: () => void;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const [languageOpen, setLanguageOpen] = useState(false);
+
+  const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language);
+  const currentLangLabel = currentLang?.label ?? i18n.language;
+
+  const ChevronNav = isRtl ? ChevronLeft : ChevronRight;
+
+  return (
+    <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 }}>
+
+      {/* ── Preferences card: Appearance + Language in one compact card ── */}
+      <SectionCard>
+        {/* Appearance row — icon | label | [pill pill pill] */}
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            minHeight: 48,
+          }}
+        >
+          <Sun size={16} color={colors.mutedForeground} style={{ marginEnd: 10 }} />
+          <Text
+            className="text-sm font-medium"
+            style={{ color: colors.foreground, flex: 1 }}
+          >
+            {t("profile.theme")}
+          </Text>
+          {/* Three icon-only pill buttons inline on the right */}
           <View
             style={{
               flexDirection: isRtl ? "row-reverse" : "row",
-              padding: 12,
-              gap: 8,
+              gap: 4,
             }}
           >
-            {THEME_OPTIONS.map(({ value, Icon, labelKey }) => {
+            {THEME_OPTIONS.map(({ value, Icon }) => {
               const isActive = theme === value;
               return (
-                <Button
+                <Pressable
                   key={value}
-                  variant={isActive ? "default" : "ghost"}
                   onPress={() => setTheme(value)}
+                  android_ripple={{ color: colors.muted, borderless: false }}
+                  accessibilityRole="button"
                   style={{
-                    flex: 1,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
                     alignItems: "center",
-                    flexDirection: "column",
-                    paddingVertical: 14,
-                    borderRadius: 12,
-                    gap: 6,
+                    justifyContent: "center",
                     borderWidth: 1.5,
                     borderColor: isActive ? colors.primary : colors.border,
                     backgroundColor: isActive ? colors.primaryAlpha : "transparent",
-                    minHeight: 44,
                   }}
                 >
                   <Icon
-                    size={20}
+                    size={16}
                     color={isActive ? colors.primary : colors.mutedForeground}
                   />
-                  <Text
-                    className={isActive ? "text-xs font-bold" : "text-xs font-medium"}
-                    style={{ color: isActive ? colors.primary : colors.mutedForeground }}
-                  >
-                    {t(labelKey)}
-                  </Text>
-                </Button>
+                </Pressable>
               );
             })}
           </View>
-        </SectionCard>
+        </View>
 
-        {/* Language */}
-        <SectionCard>
-          <SectionHeader
-            title={t("profile.language").toUpperCase()}
-            icon={<Globe size={15} color={colors.mutedForeground} />}
-          />
-          <View style={{ paddingVertical: 4 }}>
+        <Separator />
+
+        {/* Language row — tappable, expands inline */}
+        <Pressable
+          onPress={() => setLanguageOpen((v) => !v)}
+          android_ripple={{ color: colors.muted, borderless: false }}
+          accessibilityRole="button"
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            minHeight: 48,
+          }}
+        >
+          <Globe size={16} color={colors.mutedForeground} style={{ marginEnd: 10 }} />
+          <Text
+            className="text-sm font-medium"
+            style={{ color: colors.foreground, flex: 1 }}
+          >
+            {t("profile.language")}
+          </Text>
+          <Text
+            className="text-sm"
+            style={{ color: colors.mutedForeground, marginEnd: 6 }}
+          >
+            {currentLangLabel}
+          </Text>
+          {languageOpen ? (
+            <ChevronLeft
+              size={16}
+              color={colors.mutedForeground}
+              style={{ transform: [{ rotate: isRtl ? "90deg" : "-90deg" }] }}
+            />
+          ) : (
+            <ChevronNav size={16} color={colors.mutedForeground} />
+          )}
+        </Pressable>
+
+        {/* Inline language picker — expands below the row */}
+        {languageOpen && (
+          <View
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+              paddingVertical: 4,
+            }}
+          >
             {SUPPORTED_LANGUAGES.map(({ code, label }, index) => {
               const isActive = i18n.language === code;
               const isLast = index === SUPPORTED_LANGUAGES.length - 1;
@@ -745,174 +843,246 @@ export default function ProfileScreen() {
                       flexDirection: isRtl ? "row-reverse" : "row",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      paddingHorizontal: 16,
-                      paddingVertical: 14,
+                      paddingHorizontal: 20,
+                      paddingVertical: 11,
                       backgroundColor: isActive ? colors.primaryAlpha : "transparent",
                       borderRadius: 0,
                       minHeight: 44,
                     }}
                   >
                     <Text
-                      className={isActive ? "text-base font-semibold" : "text-base"}
+                      className={isActive ? "text-sm font-semibold" : "text-sm"}
                       style={{ color: isActive ? colors.primary : colors.foreground }}
                     >
                       {label}
                     </Text>
-                    {isActive && <Check size={16} color={colors.primary} />}
+                    {isActive && <Check size={15} color={colors.primary} />}
                   </Button>
                   {!isLast && <Separator />}
                 </React.Fragment>
               );
             })}
           </View>
-        </SectionCard>
+        )}
+      </SectionCard>
 
-        {/* Activity — recently viewed listings */}
-        <SectionCard>
-          <SectionHeader
-            title={t("profile.activity").toUpperCase()}
-            icon={<History size={15} color={colors.mutedForeground} />}
-          />
-          <Button
-            variant="ghost"
-            onPress={() => router.push("/(main)/recently-viewed" as never)}
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-              borderRadius: 0,
-              minHeight: 44,
-            }}
+      {/* ── Activity + Privacy combined card ─────────────────────── */}
+      <SectionCard>
+        {/* Activity sub-label */}
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: 4,
+          }}
+        >
+          <Text
+            className="text-xs font-semibold"
+            style={{ color: colors.mutedForeground, letterSpacing: 0.4 }}
           >
-            <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
-              <History size={16} color={colors.mutedForeground} />
-              <Text className="text-base" style={{ color: colors.foreground }}>
-                {t("profile.recentlyViewed")}
-              </Text>
-            </View>
-            {isRtl ? (
-              <ChevronLeft size={18} color={colors.mutedForeground} />
-            ) : (
-              <ChevronRight size={18} color={colors.mutedForeground} />
-            )}
-          </Button>
-        </SectionCard>
+            {t("profile.activity").toUpperCase()}
+          </Text>
+        </View>
 
-        {/* Privacy — blocked users + my reports */}
-        <SectionCard>
-          <SectionHeader
-            title={t("profile.privacy").toUpperCase()}
-            icon={<ShieldOff size={15} color={colors.mutedForeground} />}
-          />
-          <Button
-            variant="ghost"
-            onPress={() => router.push("/(main)/blocked-users" as never)}
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-              borderRadius: 0,
-              minHeight: 44,
-            }}
+        <Button
+          variant="ghost"
+          onPress={() => router.push("/(main)/recently-viewed" as never)}
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 0,
+            minHeight: 44,
+          }}
+        >
+          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
+            <History size={16} color={colors.mutedForeground} />
+            <Text className="text-sm" style={{ color: colors.foreground }}>
+              {t("profile.recentlyViewed")}
+            </Text>
+          </View>
+          <ChevronNav size={16} color={colors.mutedForeground} />
+        </Button>
+
+        <Separator />
+
+        {/* Privacy sub-label */}
+        <View
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: 4,
+          }}
+        >
+          <Text
+            className="text-xs font-semibold"
+            style={{ color: colors.mutedForeground, letterSpacing: 0.4 }}
           >
-            <Text className="text-base" style={{ color: colors.foreground }}>
+            {t("profile.privacy").toUpperCase()}
+          </Text>
+        </View>
+
+        <Button
+          variant="ghost"
+          onPress={() => router.push("/(main)/blocked-users" as never)}
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 0,
+            minHeight: 44,
+          }}
+        >
+          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
+            <ShieldOff size={16} color={colors.mutedForeground} />
+            <Text className="text-sm" style={{ color: colors.foreground }}>
               {t("profile.blockedUsers")}
             </Text>
-            {isRtl ? (
-              <ChevronLeft size={18} color={colors.mutedForeground} />
-            ) : (
-              <ChevronRight size={18} color={colors.mutedForeground} />
-            )}
-          </Button>
-          <Separator />
-          <Button
-            variant="ghost"
-            onPress={() => router.push("/(main)/profile/my-reports" as never)}
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-              borderRadius: 0,
-              minHeight: 44,
-            }}
-          >
-            <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
-              <Flag size={16} color={colors.mutedForeground} />
-              <Text className="text-base" style={{ color: colors.foreground }}>
-                {t("profile.myReports")}
-              </Text>
-            </View>
-            {isRtl ? (
-              <ChevronLeft size={18} color={colors.mutedForeground} />
-            ) : (
-              <ChevronRight size={18} color={colors.mutedForeground} />
-            )}
-          </Button>
-        </SectionCard>
+          </View>
+          <ChevronNav size={16} color={colors.mutedForeground} />
+        </Button>
 
-        {/* Privacy Policy — opens the public web policy (required for store review). */}
+        <Separator />
+
+        <Button
+          variant="ghost"
+          onPress={() => router.push("/(main)/profile/my-reports" as never)}
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 0,
+            minHeight: 44,
+          }}
+        >
+          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
+            <Flag size={16} color={colors.mutedForeground} />
+            <Text className="text-sm" style={{ color: colors.foreground }}>
+              {t("profile.myReports")}
+            </Text>
+          </View>
+          <ChevronNav size={16} color={colors.mutedForeground} />
+        </Button>
+
+        <Separator />
+
+        {/* Privacy Policy — row inside card (required for store review) */}
         <Pressable
           onPress={() => Linking.openURL(`https://hatiwal.multimagics.com/${i18n.language}/privacy`)}
           accessibilityRole="link"
           accessibilityLabel={t("profile.privacyPolicy")}
-          style={{ alignItems: "center", justifyContent: "center", paddingVertical: 10, minHeight: 44 }}
+          android_ripple={{ color: colors.muted, borderless: false }}
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            minHeight: 44,
+            marginBottom: 4,
+          }}
         >
-          <Text className="text-sm" style={{ color: colors.mutedForeground, textDecorationLine: "underline" }}>
+          <Text
+            className="text-sm"
+            style={{
+              flex: 1,
+              color: colors.mutedForeground,
+              textDecorationLine: "underline",
+              textAlign: isRtl ? "right" : "left",
+            }}
+          >
             {t("profile.privacyPolicy")}
           </Text>
+          <ChevronNav size={16} color={colors.mutedForeground} />
         </Pressable>
+      </SectionCard>
 
-        {/* Sign Out — subdued ghost action, not a high-visibility destructive button */}
-        <Button
-          variant="ghost"
-          onPress={handleLogout}
+      {/* ── Sign Out — standalone subdued ghost row ───────────────── */}
+      <Button
+        variant="ghost"
+        onPress={handleLogout}
+        style={{
+          flexDirection: isRtl ? "row-reverse" : "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          marginTop: 4,
+          marginBottom: 8,
+          paddingVertical: 14,
+          borderRadius: 12,
+          minHeight: 44,
+        }}
+      >
+        <LogOut size={18} color={colors.mutedForeground} />
+        <Text className="text-base font-medium" style={{ color: colors.mutedForeground }}>
+          {t("profile.logout")}
+        </Text>
+      </Button>
+
+      {/* ── Danger Zone — visually isolated, 28px gap from Sign Out ── */}
+      <View style={{ marginTop: 20 }}>
+        <View
           style={{
-            flexDirection: isRtl ? "row-reverse" : "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            marginTop: 4,
-            marginBottom: 8,
-            paddingVertical: 14,
-            borderRadius: 12,
-            minHeight: 44,
+            backgroundColor: colors.destructiveAlpha,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: colors.destructive,
+            overflow: "hidden",
           }}
         >
-          <LogOut size={18} color={colors.mutedForeground} />
-          <Text className="text-base font-medium" style={{ color: colors.mutedForeground }}>
-            {t("profile.logout")}
-          </Text>
-        </Button>
+          {/* Danger label */}
+          <View
+            style={{
+              paddingHorizontal: 16,
+              paddingTop: 12,
+              paddingBottom: 4,
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Trash2 size={13} color={colors.destructive} />
+            <Text
+              className="text-xs font-semibold"
+              style={{ color: colors.destructive, letterSpacing: 0.5 }}
+            >
+              {t("profile.dangerZone").toUpperCase()}
+            </Text>
+          </View>
 
-        {/* Delete account — destructive, kept visually distinct from Sign Out.
-            Required for App Store / Google Play approval (in-app account deletion). */}
-        <Button
-          variant="ghost"
-          onPress={handleDeleteAccount}
-          accessibilityLabel={t("profile.deleteAccount")}
-          style={{
-            flexDirection: isRtl ? "row-reverse" : "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            marginBottom: 8,
-            paddingVertical: 14,
-            borderRadius: 12,
-            minHeight: 44,
-          }}
-        >
-          <Trash2 size={18} color={colors.destructive} />
-          <Text className="text-base font-medium" style={{ color: colors.destructive }}>
-            {t("profile.deleteAccount")}
-          </Text>
-        </Button>
+          {/* Delete Account button inside the danger card */}
+          <Button
+            variant="ghost"
+            onPress={handleDeleteAccount}
+            accessibilityLabel={t("profile.deleteAccount")}
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              paddingVertical: 14,
+              paddingHorizontal: 16,
+              borderRadius: 0,
+              minHeight: 44,
+              marginBottom: 4,
+            }}
+          >
+            <Text className="text-base font-medium" style={{ color: colors.destructive }}>
+              {t("profile.deleteAccount")}
+            </Text>
+          </Button>
+        </View>
       </View>
-    </ScreenContainer>
+
+    </View>
   );
 }

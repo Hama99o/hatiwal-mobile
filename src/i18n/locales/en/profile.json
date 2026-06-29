@@ -141,6 +141,7 @@
     "saving": "Saving…",
     "province": "Province"
   },
+  "dangerZone": "Danger Zone",
   "deleteAccount": "Delete account",
   "deleteAccountTitle": "Delete your account?",
   "deleteAccountMessage": "Your account will be scheduled for deletion and hidden right away, then permanently deleted after 30 days. You can restore it by logging back in within 30 days.",

@@ -372,7 +372,7 @@ export default function LoginScreen() {
         </Button>
 
         <View style={{ marginTop: 32 }}>
-          <LanguageSwitcher />
+          <LanguageSwitcher size="lg" />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
