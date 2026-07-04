@@ -12,14 +12,16 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://hatiwal-api.multimagics.com/api/v1",
-        "EXPO_PUBLIC_CABLE_URL": "wss://hatiwal-api.multimagics.com/hatiwal-cable"
+        "EXPO_PUBLIC_CABLE_URL": "wss://hatiwal-api.multimagics.com/hatiwal-cable",
+        "EXPO_PUBLIC_WEB_URL": "https://hatiwal.multimagics.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://hatiwal-api.multimagics.com/api/v1",
-        "EXPO_PUBLIC_CABLE_URL": "wss://hatiwal-api.multimagics.com/hatiwal-cable"
+        "EXPO_PUBLIC_CABLE_URL": "wss://hatiwal-api.multimagics.com/hatiwal-cable",
+        "EXPO_PUBLIC_WEB_URL": "https://hatiwal.multimagics.com"
       }
     }
   },

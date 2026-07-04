@@ -996,34 +996,43 @@ function SettingsSection({
 
         <Separator />
 
-        {/* Privacy Policy — row inside card (required for store review) */}
-        <Pressable
-          onPress={() => Linking.openURL(`https://hatiwal.multimagics.com/${i18n.language}/privacy`)}
-          accessibilityRole="link"
-          accessibilityLabel={t("profile.privacyPolicy")}
-          android_ripple={{ color: colors.muted, borderless: false }}
-          style={{
-            flexDirection: isRtl ? "row-reverse" : "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            minHeight: 44,
-            marginBottom: 4,
-          }}
-        >
-          <Text
-            className="text-sm"
+        {/* Privacy Policy — row inside card (required for store review).
+            Web base URL comes from env (EXPO_PUBLIC_WEB_URL — no hardcoded
+            domain, house rule); row hides if the var is missing rather than
+            pointing at a wrong host. */}
+        {process.env.EXPO_PUBLIC_WEB_URL ? (
+          <Pressable
+            onPress={() =>
+              Linking.openURL(
+                `${process.env.EXPO_PUBLIC_WEB_URL}/${i18n.language}/privacy`
+              )
+            }
+            accessibilityRole="link"
+            accessibilityLabel={t("profile.privacyPolicy")}
+            android_ripple={{ color: colors.muted, borderless: false }}
             style={{
-              flex: 1,
-              color: colors.mutedForeground,
-              textDecorationLine: "underline",
-              textAlign: isRtl ? "right" : "left",
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              minHeight: 44,
+              marginBottom: 4,
             }}
           >
-            {t("profile.privacyPolicy")}
-          </Text>
-          <ChevronNav size={16} color={colors.mutedForeground} />
-        </Pressable>
+            <Text
+              className="text-sm"
+              style={{
+                flex: 1,
+                color: colors.mutedForeground,
+                textDecorationLine: "underline",
+                textAlign: isRtl ? "right" : "left",
+              }}
+            >
+              {t("profile.privacyPolicy")}
+            </Text>
+            <ChevronNav size={16} color={colors.mutedForeground} />
+          </Pressable>
+        ) : null}
       </SectionCard>
 
       {/* ── Sign Out — standalone subdued ghost row ───────────────── */}

@@ -37,6 +37,7 @@ services:
       - EXPO_PUBLIC_APP_NAME=Hatiwal
       # Google OAuth client ids — values live in the gitignored .env (compose
       # interpolation), never hardcoded here.
+      - EXPO_PUBLIC_WEB_URL=${EXPO_PUBLIC_WEB_URL:-}
       - EXPO_PUBLIC_GOOGLE_CLIENT_ID=${EXPO_PUBLIC_GOOGLE_CLIENT_ID:-}
       - EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=${EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID:-}
       - EXPO_PUBLIC_DEFAULT_LANG=en
