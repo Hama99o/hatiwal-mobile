@@ -92,6 +92,13 @@ jest.mock("expo-image", () => ({
 // Mock react-native-reanimated
 jest.mock("react-native-reanimated", () => require("react-native-reanimated/mock"));
 
+// RN's built-in Animated with `useNativeDriver: true` throws "Unable to locate
+// attached view in the native tree" under react-test-renderer (there is no host
+// view to attach to). Auto-mocking the native helper makes native-driven
+// animations no-op in tests — e.g. the Switch thumb spring. The module moved to
+// src/private/animated in React Native 0.79.
+jest.mock("react-native/src/private/animated/NativeAnimatedHelper");
+
 // Mock @react-native-async-storage/async-storage
 jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock")

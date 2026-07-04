@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast unit gate — lint, types, and the Jest suite (API modules, shared
+  # components, screen logic). This is what catches regressions like a broken
+  # save toggle before they ship.
+  test:
+    name: Lint · Types · Jest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 20: Expo SDK 54 + Metro's toReversed() need Node >= 20 (Node 18 breaks).
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # --legacy-peer-deps: the RN/Expo/react-native-reusables peer graph has
+      # intentional version skews that npm's strict peer resolver rejects.
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests (Jest)
+        run: npm test

@@ -11,6 +11,9 @@ module.exports = {
     // Jest doesn't support package.json "exports" field — map msw subpaths to CJS
     "^msw/node$": "<rootDir>/node_modules/msw/lib/node/index.js",
     "^msw$": "<rootDir>/node_modules/msw/lib/core/index.js",
+    // Font packages export require()'d .ttf assets — stub them so tests never
+    // load native font files (used by src/lib/fonts.ts via the shared Text).
+    "^@expo-google-fonts/.*$": "<rootDir>/src/__tests__/mocks/expoGoogleFontsStub.js",
   },
   // Transform .js/.ts AND .mjs files.
   // .mjs is required because MSW's transitive deps (rettime, until-async,
