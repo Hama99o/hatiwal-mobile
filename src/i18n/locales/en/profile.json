@@ -152,6 +152,7 @@
   "myReports": "My Reports",
   "activity": "Activity",
   "recentlyViewed": "Recently Viewed",
+  "hiddenListings": "Hidden Listings",
   "away": {
     "toggle": "I'm away (temporarily unavailable)",
     "untilLabel": "Away until (YYYY-MM-DD)",

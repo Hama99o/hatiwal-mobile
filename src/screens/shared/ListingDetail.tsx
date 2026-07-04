@@ -45,9 +45,9 @@ import {
   MoreHorizontal,
   MapPin,
   Eye,
-  Bookmark,
   Ban,
   Clock,
+  ShieldCheck,
 } from "lucide-react-native";
 import Animated, {
   useSharedValue,
@@ -68,7 +68,7 @@ import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useCategoryName } from "@/hooks/useCategoryName";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { listingsAPI } from "@/api/listings";
+import { listingsAPI, type Listing } from "@/api/listings";
 import { conversationsAPI } from "@/api/conversations";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -78,6 +78,7 @@ import { UserIdentity } from "@/components/common/UserIdentity";
 import { ListingCard } from "@/components/common/ListingCard";
 import { ListingMapSection } from "@/components/common/ListingMapSection";
 import { ReportSheet } from "@/components/common/ReportSheet";
+import { SafetyTipsSheet } from "@/components/common/SafetyTipsSheet";
 import { useAuthStore } from "@/stores/auth.store";
 
 import { ListingGallery } from "./listing-detail/ListingGallery";
@@ -184,6 +185,7 @@ export default function ListingDetailScreen() {
   const [showMessageSheet, setShowMessageSheet] = useState(false);
   const [showOfferSheet, setShowOfferSheet] = useState(false);
   const [showReportSheet, setShowReportSheet] = useState(false);
+  const [showSafetyTips, setShowSafetyTips] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
 
   // ── Animations ─────────────────────────────────────────────────────────────
@@ -244,6 +246,20 @@ export default function ListingDetailScreen() {
     enabled: !!id,
   });
 
+  // More from this seller — reuses the general listings endpoint filtered to
+  // the seller's OTHER active listings (TASK-M547). Guarded on a resolved
+  // sellerId; the current listing is filtered out client-side and the rail
+  // is capped at 8 items.
+  const sellerId = listing?.seller?.id;
+  const { data: sellerListingsResponse } = useQuery({
+    queryKey: ["listings-by-seller", sellerId],
+    queryFn: () => listingsAPI.getListings({ userId: sellerId, status: "active" }),
+    enabled: !!sellerId,
+  });
+  const sellerListings: Listing[] = (sellerListingsResponse?.items ?? [])
+    .filter((item: Listing) => item.id !== Number(id))
+    .slice(0, 8);
+
   // Sync saved state from API response
   useEffect(() => {
     if (listing?.isSaved !== undefined) setIsSaved(listing.isSaved);
@@ -251,21 +267,34 @@ export default function ListingDetailScreen() {
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const saveMutation = useMutation({
-    mutationFn: () =>
-      isSaved
+    // The desired direction is passed as the mutate() argument (captured at tap
+    // time) — NOT read from `isSaved` state. onMutate flips that state, and React
+    // Query reads mutationFn from the re-rendered component, so reading the state
+    // here would fire the OPPOSITE operation (the save→unsave bug).
+    mutationFn: (currentlySaved: boolean) =>
+      currentlySaved
         ? listingsAPI.unsaveListing(Number(id))
         : listingsAPI.saveListing(Number(id)),
-    onMutate: () => {
-      setIsSaved((prev) => !prev);
+    onMutate: (currentlySaved: boolean) => {
+      setIsSaved(!currentlySaved);
       if (!reduceMotion) {
         heartScale.value = withSpring(1.45, { damping: 4, stiffness: 320 }, () => {
           heartScale.value = withSpring(1, { damping: 6, stiffness: 200 });
         });
       }
     },
-    onError: () => {
-      setIsSaved((prev) => !prev);
+    onError: (_err, currentlySaved) => {
+      setIsSaved(currentlySaved); // revert to the pre-tap state
       toast.error(t("common.error"));
+    },
+    onSuccess: () => {
+      // Sync every cache that reflects saved state so the change actually sticks:
+      // the detail query (re-opening this listing must not show the stale
+      // "unsaved" cache), plus the Saved list and browse feed. Without this the
+      // optimistic heart reverts on the next refetch and looks like it never saved.
+      if (id) qc.invalidateQueries({ queryKey: ["listing", id] });
+      qc.invalidateQueries({ queryKey: ["saved-listings"] });
+      if (sellerId) qc.invalidateQueries({ queryKey: ["listings-by-seller", sellerId] });
     },
   });
 
@@ -308,8 +337,9 @@ export default function ListingDetailScreen() {
   }, [requireAuth, authReturnTo]);
 
   const handleSaveToggle = useCallback(() => {
-    requireAuth(() => saveMutation.mutate(), authReturnTo);
-  }, [requireAuth, authReturnTo, saveMutation]);
+    // Capture the current saved state at tap time and pass it to the mutation.
+    requireAuth(() => saveMutation.mutate(isSaved), authReturnTo);
+  }, [requireAuth, authReturnTo, saveMutation, isSaved]);
 
   const handleOpenOffer = useCallback(() => {
     requireAuth(() => setShowOfferSheet(true), authReturnTo);
@@ -350,6 +380,9 @@ export default function ListingDetailScreen() {
       // separate `url` field causes some share targets to render the link twice
       // or drop the message body entirely. Pass `url` only on Android where the
       // field is used as a standalone attachment rather than concatenated text.
+      // Q3 platform audit (2026-07-03): both branches are intentional — iOS omits
+      // `url`, every non-iOS platform (i.e. Android, the only other target) gets it.
+      // No silent omission on either side.
       await Share.share(
         Platform.OS === "ios"
           ? { title: listing.title, message }
@@ -525,7 +558,7 @@ export default function ListingDetailScreen() {
                 { flexDirection: isRtl ? "row-reverse" : "row", marginTop: 4 },
               ]}
             >
-              <Bookmark size={12} color={colors.mutedForeground} />
+              <Heart size={12} color={colors.mutedForeground} />
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
                 {t("listing.savesCount", { count: listing.savesCount })}
               </Text>
@@ -576,6 +609,35 @@ export default function ListingDetailScreen() {
             </AnimatedSection>
           </>
         )}
+
+        {/* ── Meetup safety tips — quiet link near location ───────────────
+            Not gated on lat/long: every listing ends in an in-person meetup,
+            so the reminder should always be reachable here regardless of
+            whether a map is shown above. Kept small/muted so it never
+            competes with the sticky "Message Seller" CTA below. */}
+        <View style={[styles.section, { paddingTop: 0, paddingBottom: 4 }]}>
+          <Pressable
+            onPress={() => setShowSafetyTips(true)}
+            style={[
+              styles.safetyLinkRow,
+              { flexDirection: isRtl ? "row-reverse" : "row", alignSelf: isRtl ? "flex-end" : "flex-start" },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={t("safety.link.listingDetail")}
+            testID="safety-tips-link"
+          >
+            <ShieldCheck size={14} color={colors.mutedForeground} />
+            <Text
+              style={{
+                fontSize: 13,
+                color: colors.mutedForeground,
+                textDecorationLine: "underline",
+              }}
+            >
+              {t("safety.link.listingDetail")}
+            </Text>
+          </Pressable>
+        </View>
 
         {/* ── Seller card ──────────────────────────────────────────────── */}
         <Separator />
@@ -669,6 +731,42 @@ export default function ListingDetailScreen() {
               </Text>
               <FlatList
                 data={similar}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 12, gap: 10, paddingBottom: 16 }}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={({ item }) => (
+                  <ListingCard
+                    listing={item}
+                    style={{ width: 160 }}
+                    onPress={() => router.replace(`/(main)/listing/${item.id}` as never)}
+                  />
+                )}
+              />
+            </AnimatedSection>
+          </>
+        ) : null}
+
+        {/* ── More from this seller ────────────────────────────────────── */}
+        {!isOwnListing && sellerListings.length > 0 ? (
+          <>
+            <Separator />
+            <AnimatedSection delay={300} style={{ paddingTop: 16 }} reduceMotion={reduceMotion}>
+              <Text
+                style={[
+                  styles.sectionHead,
+                  {
+                    color: colors.foreground,
+                    paddingHorizontal: 16,
+                    marginBottom: 12,
+                    textAlign: isRtl ? "right" : "left",
+                  },
+                ]}
+              >
+                {t("listing.detail.moreFromSeller")}
+              </Text>
+              <FlatList
+                data={sellerListings}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 12, gap: 10, paddingBottom: 16 }}
@@ -898,6 +996,12 @@ export default function ListingDetailScreen() {
         reportableType="Listing"
         reportableId={Number(id)}
       />
+
+      {/* ── Meetup safety tips sheet ─────────────────────────────────────── */}
+      <SafetyTipsSheet
+        visible={showSafetyTips}
+        onClose={() => setShowSafetyTips(false)}
+      />
     </ScreenContainer>
   );
 }
@@ -949,6 +1053,10 @@ const styles = StyleSheet.create({
   sellerRow: {
     gap: 12,
     alignItems: "center",
+  },
+  safetyLinkRow: {
+    alignItems: "center",
+    gap: 6,
   },
   actionBar: {
     paddingHorizontal: 16,

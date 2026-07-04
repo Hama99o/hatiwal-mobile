@@ -89,7 +89,11 @@ export default function SplashScreen() {
       if (cancelled) return;
 
       if (!authHeaders && !onboardingSeen) {
-        router.replace("/onboarding");
+        // `as never` — typed-routes' generated union (.expo/types/router.d.ts)
+        // is only refreshed by the Metro dev server, so a route added since the
+        // last `expo start` isn't recognized yet by a standalone `tsc` run.
+        // Same escape hatch used elsewhere in this file / Login.tsx.
+        router.replace("/onboarding" as never);
         return;
       }
 

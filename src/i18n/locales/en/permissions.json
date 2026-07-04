@@ -1,0 +1,8 @@
+{
+  "permissionNeededTitle": "Permission Needed",
+  "photosDenied": "Hatiwal needs access to your photos to add pictures. Please allow photo access in Settings.",
+  "photosLimited": "You've allowed access to only some photos. To choose from your full library, allow full access in Settings.",
+  "cameraDenied": "Hatiwal needs access to your camera to take a photo. Please allow camera access in Settings.",
+  "locationDenied": "Hatiwal needs your location to show nearby listings and set a pickup spot. Please allow location access in Settings.",
+  "openSettings": "Open Settings"
+}

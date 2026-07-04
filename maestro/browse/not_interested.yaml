@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# "Not interested" — TASK-H528
+# Long-press a Browse card, tap "Not interested" to hide it, verify the card
+# is gone and an Undo toast appears; tapping Undo restores it to the feed.
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+
+# ── Long-press the first card to open the action menu ───────────────────────
+- longPressOn:
+    index: 0
+    id: "listing-card"
+- waitForAnimationToEnd
+
+# The "Not interested" row should appear in the bottom-slide menu
+- assertVisible: "Not interested"
+- tapOn: "Not interested"
+- waitForAnimationToEnd
+
+# ── The undo toast appears ───────────────────────────────────────────────────
+- assertVisible: "Undo"
+
+# ── Tap Undo — the hide is reverted ─────────────────────────────────────────
+- tapOn: "Undo"
+- waitForAnimationToEnd
+
+# Feed still visible and usable after the undo round-trip
+- assertVisible: "Bazaar"

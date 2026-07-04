@@ -24,7 +24,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RemoteImage } from "@/components/common/RemoteImage";
-import { confirmAlert } from "@/utils/alert";
+import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/permissions";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
 import { Text } from "@/components/reusables/text";
@@ -73,18 +73,16 @@ export function PhotosSection({
     //   MediaLibraryPermissionResponse object.
     //   • "granted" + accessPrivileges "all"     → full library access; proceed silently.
     //   • "granted" + accessPrivileges "limited"  → partial access; inform user, continue.
-    //   • "denied" / "none"                       → block and show Settings CTA.
+    //   • "denied" / "none"                       → block and show Settings CTA (centralized
+    //     helper — see src/lib/permissions.ts).
     if (permResult.status !== "granted") {
-      confirmAlert(t("listing.form.permissionRequired"), t("listing.form.galleryPermission"));
+      showPermissionDeniedAlert("photos", t);
       return;
     }
     if (permResult.accessPrivileges === "limited") {
       // Show a friendly notice about partial access, then continue launching the picker
       // (the user can still pick from their allowed subset of photos).
-      confirmAlert(
-        t("listing.form.permissionRequired"),
-        t("listing.form.galleryLimitedPermission")
-      );
+      showLimitedPhotoAccessAlert(t);
       // Intentionally fall through — proceed to launchImageLibraryAsync so the user can
       // still select photos from their allowed subset. Returning here would block them
       // entirely, which is worse than proceeding with partial access.
@@ -105,9 +103,10 @@ export function PhotosSection({
     // Platform audit (2026-06-18):
     //   Camera permission only has "granted" / "denied" / "undetermined" on both iOS and
     //   Android — there is no "limited" state for camera. This check is correct on both
-    //   platforms. Intentional fallback: non-granted → show Settings prompt.
+    //   platforms. Intentional fallback: non-granted → show Settings prompt (centralized
+    //   helper — see src/lib/permissions.ts).
     if (status !== "granted") {
-      confirmAlert(t("listing.form.permissionRequired"), t("listing.form.cameraPermission"));
+      showPermissionDeniedAlert("camera", t);
       return;
     }
     const result = await ImagePicker.launchCameraAsync({ quality: 0.85 });

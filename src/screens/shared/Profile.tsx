@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   Flag,
   History,
+  EyeOff,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { clearCachedPushToken } from "@/utils/push-token";
@@ -43,6 +44,7 @@ import { useThemeStore, ThemePreference, resetTheme } from "@/stores/theme.store
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { confirmAlert } from "@/utils/alert";
+import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/permissions";
 import { setLanguage, resetLanguage, SUPPORTED_LANGUAGES, LanguageCode } from "@/i18n";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 
@@ -435,23 +437,18 @@ export default function ProfileScreen() {
     //   `accessPrivileges === "limited"` on MediaLibraryPermissionResponse.
     //   • "granted" + accessPrivileges "all"     → full library; proceed silently.
     //   • "granted" + accessPrivileges "limited"  → partial access; inform user, continue.
-    //   • status "denied"                         → block, show Settings CTA.
+    //   • status "denied"                         → block, show Settings CTA (centralized
+    //     helper — see src/lib/permissions.ts).
     //   No Platform.OS guard needed here — accessPrivileges is cross-platform (undefined
     //   on older OS versions, which means full access was granted the traditional way).
     if (permResult.status !== "granted") {
-      confirmAlert(
-        t("listing.form.permissionRequired"),
-        t("listing.form.galleryPermission")
-      );
+      showPermissionDeniedAlert("photos", t);
       return;
     }
     if (permResult.accessPrivileges === "limited") {
       // Inform about partial access but continue — user can still pick their avatar
       // from the photos they already allowed.
-      confirmAlert(
-        t("listing.form.permissionRequired"),
-        t("listing.form.galleryLimitedPermission")
-      );
+      showLimitedPhotoAccessAlert(t);
       // Intentionally fall through to launchImageLibraryAsync.
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -902,6 +899,30 @@ function SettingsSection({
             <History size={16} color={colors.mutedForeground} />
             <Text className="text-sm" style={{ color: colors.foreground }}>
               {t("profile.recentlyViewed")}
+            </Text>
+          </View>
+          <ChevronNav size={16} color={colors.mutedForeground} />
+        </Button>
+
+        <Separator />
+
+        <Button
+          variant="ghost"
+          onPress={() => router.push("/(main)/hidden-listings" as never)}
+          style={{
+            flexDirection: isRtl ? "row-reverse" : "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 0,
+            minHeight: 44,
+          }}
+        >
+          <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
+            <EyeOff size={16} color={colors.mutedForeground} />
+            <Text className="text-sm" style={{ color: colors.foreground }}>
+              {t("profile.hiddenListings")}
             </Text>
           </View>
           <ChevronNav size={16} color={colors.mutedForeground} />

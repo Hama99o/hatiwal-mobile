@@ -152,6 +152,7 @@
   "myReports": "گزارش‌های من",
   "activity": "فعالیت",
   "recentlyViewed": "اخیراً مشاهده‌شده",
+  "hiddenListings": "آگهی‌های پنهان‌شده",
   "away": {
     "toggle": "من غیرحاضر هستم (موقتاً در دسترس نیستم)",
     "untilLabel": "غیرحاضر تا (YYYY-MM-DD)",

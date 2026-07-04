@@ -29,7 +29,7 @@ import {
   StyleSheet,
   Pressable,
 } from "react-native";
-import { ChevronRight, MapPin, Coins, Check, ToggleRight } from "lucide-react-native";
+import { ChevronRight, MapPin, Coins, Check, ToggleRight, Copy } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
@@ -109,11 +109,18 @@ export default function ListingFormScreen() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{ id?: string; duplicateFrom?: string }>();
   const qc = useQueryClient();
 
   const isEdit = !!params.id;
   const listingId = isEdit ? Number(params.id) : null;
+
+  // Duplicate / relist — opens this same create form prefilled from an
+  // existing listing's text fields as a fresh DRAFT (photos are never
+  // copied — Active Storage blobs can't be cloned client-side).
+  const isDuplicate = !isEdit && !!params.duplicateFrom;
+  const duplicateFromId = isDuplicate ? Number(params.duplicateFrom) : null;
+  const [duplicateNoticeVisible, setDuplicateNoticeVisible] = useState(false);
 
   // Photos state (managed outside react-hook-form because not a primitive field)
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
@@ -131,6 +138,16 @@ export default function ListingFormScreen() {
     queryKey: ["my-listing", listingId],
     queryFn: () => listingsAPI.getMyListing(listingId!),
     enabled: isEdit && !!listingId,
+  });
+
+  // ---------------------------------------------------------------------------
+  // Load the source listing to duplicate (text fields only — see below)
+  // ---------------------------------------------------------------------------
+  const { data: duplicateSource, isError: isDuplicateSourceError } = useQuery({
+    queryKey: ["my-listing", duplicateFromId],
+    queryFn: () => listingsAPI.getMyListing(duplicateFromId!),
+    enabled: isDuplicate && !!duplicateFromId,
+    retry: false,
   });
 
   // Refetch the listing every time the edit form comes into focus so the
@@ -205,10 +222,45 @@ export default function ListingFormScreen() {
     }
   }, [existingListing, isEdit, reset]);
 
+  // Prefill from the duplicate source once loaded — text fields only, NEVER
+  // photos, and no id is set so submit always goes through the create
+  // (POST /my/listings) path as a brand-new draft.
+  useEffect(() => {
+    if (isDuplicate && duplicateSource) {
+      reset({
+        title: duplicateSource.title,
+        price: Number(duplicateSource.price),
+        currency: duplicateSource.currency,
+        condition: duplicateSource.condition ?? undefined,
+        categoryId: Number(duplicateSource.categoryId),
+        description: duplicateSource.description ?? "",
+        location: duplicateSource.location ?? "",
+        address: duplicateSource.address ?? "",
+        latitude: duplicateSource.latitude ?? undefined,
+        longitude: duplicateSource.longitude ?? undefined,
+        negotiable: duplicateSource.negotiable !== false,
+      });
+      if (duplicateSource.category) {
+        setSelectedCategory(duplicateSource.category as any);
+      }
+      setMapLabel(duplicateSource.location ?? null);
+      setDuplicateNoticeVisible(true);
+      // Photos intentionally left empty — seller re-adds them.
+    }
+  }, [isDuplicate, duplicateSource, reset]);
+
+  // If the source listing can't be loaded (deleted, 404, network error) —
+  // degrade gracefully to a blank draft form instead of crashing.
+  useEffect(() => {
+    if (isDuplicate && isDuplicateSourceError) {
+      toast.error(t("listing.form.duplicateLoadError"));
+    }
+  }, [isDuplicate, isDuplicateSourceError, t]);
+
   // ── Draft autosave (new listings only) ─────────────────────────────────────
   // Offer to restore a previously saved draft on first open.
   useEffect(() => {
-    if (isEdit) return;
+    if (isEdit || isDuplicate) return;
     let active = true;
     AsyncStorage.getItem(DRAFT_KEY).then((raw) => {
       if (!active || !raw) return;
@@ -227,7 +279,7 @@ export default function ListingFormScreen() {
 
   // Persist the form (debounced) as the user types.
   useEffect(() => {
-    if (isEdit) return;
+    if (isEdit || isDuplicate) return;
     let handle: ReturnType<typeof setTimeout> | null = null;
     const sub = watch((values) => {
       if (handle) clearTimeout(handle);
@@ -456,6 +508,32 @@ export default function ListingFormScreen() {
         <Text className="text-2xl font-bold" style={{ marginBottom: 24, color: colors.foreground }}>
           {isEdit ? t("listing.edit") : t("listing.create")}
         </Text>
+
+        {/* Duplicated-from notice — shown once the source listing's fields are loaded */}
+        {duplicateNoticeVisible && (
+          <View
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              gap: 10,
+              backgroundColor: colors.primaryAlpha,
+              borderWidth: 1,
+              borderColor: colors.primary,
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 20,
+            }}
+            testID="listing-form-duplicated-notice"
+          >
+            <Copy size={16} color={colors.primary} />
+            <Text
+              className="text-sm"
+              style={{ flex: 1, color: colors.foreground, textAlign: isRtl ? "right" : "left" }}
+            >
+              {t("listing.form.duplicatedNotice")}
+            </Text>
+          </View>
+        )}
 
         {/* Restore unsaved draft */}
         {restorableDraft && (

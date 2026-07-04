@@ -50,7 +50,7 @@
 | **Q0** | **Pre-Deployment Mobile Audit** — parent ticket; systematically identify web-specific code that breaks on iOS/Android  | ✅ Done (2026-06-17)                     | `feature-builder` | CRITICAL     | cross-cutting                   |
 | **Q1** | **Web APIs & Browser Compatibility** — localStorage, window.*, document.*, web-only patterns                          | ✅ Done (2026-06-17)                     | `feature-builder` | CRITICAL     | `src/utils/`, `src/i18n/`       |
 | **Q2** | **Web-Only Dependencies** — react-dom, react-native-web, expo-web-browser removed from package.json                   | ✅ Done (2026-06-17)                     | `feature-builder` | CRITICAL     | `package.json`                  |
-| **Q3** | **Platform-Specific Code (iOS vs Android)** — Platform.select guards, permissions, native module fallbacks            | ⬜ Not started                           | _unassigned_     | CRITICAL     | `src/` cross-cutting            |
+| **Q3** | **Platform-Specific Code (iOS vs Android)** — Platform.select guards, permissions, native module fallbacks            | ✅ Done (2026-07-03)                     | `feature-builder` | CRITICAL     | `src/` cross-cutting            |
 | **Q4** | **Build & Configuration** — web output in app.json, .web.tsx files, entry point isolation, Expo config for mobile     | ✅ Done (2026-06-17)                     | `feature-builder` | CRITICAL     | `app.json`, `*.web.tsx`         |
 | **Q5** | **Testing on Real Devices** — full flow on iOS and Android, camera/location/storage/permissions, performance          | ⬜ Not started                           | _unassigned_     | CRITICAL     | all screens                     |
 | **R0** | **Agent Coordination & Concurrency Management** — parent ticket; safe multi-agent parallel work with zero conflicts   | ⬜ Not started                           | _unassigned_     | CRITICAL     | process/docs                    |
@@ -61,6 +61,7 @@
 | **R5** | **Session Isolation (Worktree Strategy)** — git worktrees per agent; filesystem-level isolation; cleanup/recovery    | ⬜ Not started                           | _unassigned_     | CRITICAL     | git worktrees                   |
 | **R6** | **Communication & Handoff Protocol** — before/during/completion rules; blocker escalation; agent-to-agent handoffs   | ⬜ Not started                           | _unassigned_     | CRITICAL     | process/docs                    |
 | **T701** | **Android CI: Maestro E2E GitHub Actions pipeline** — wire existing 151 flows into a PR-blocking workflow             | ⬜ Not started                           | _unassigned_     | P2           | `.github/workflows/`            |
+| **T703** | **Fix pre-existing auth Maestro flows** — clearState no longer lands on Login (guest-browsing + onboarding both route elsewhere) | ⬜ Not started                           | _unassigned_     | P2           | `maestro/auth/`, `maestro/_helpers/` |
 | **N801** | **Push notification groundwork** — expo-notifications token registration + backend push_token column                  | ⬜ Not started                           | _unassigned_     | P2 post-MVP prep | `src/utils/push-token.ts`   |
 | **N802** | **Seller listing analytics sparkline** — 7-day view counts chart on MyListingDetail                                   | ⬜ Not started                           | _unassigned_     | P2           | `src/screens/seller/MyListingDetail.tsx` |
 | **N803** | **Conversation message search** — client-side keyword filter + highlight within a chat thread                          | ⬜ Not started                           | _unassigned_     | P2           | `src/screens/chat/Conversation.tsx` |
@@ -534,7 +535,7 @@
 ### Q0 — Pre-Deployment Mobile Audit (Parent Ticket) ✅
 
 - **Owner:** `feature-builder`
-- **Status:** Done — 2026-06-17. Q1, Q2, Q4 complete. Q3 (iOS vs Android) and Q5 (device testing) remain.
+- **Status:** Q1, Q2, Q3, Q4 all Done. Q5 (device testing) remains — Q0 stays open until Q5 closes.
 - **Scope:** This is the umbrella ticket. It tracks overall audit completion. It is marked Done only when Q1 through Q5 are all Done.
 - **Why this exists:** The project was developed with Expo's web runner active (`expo start --web`) for faster iteration. As a result, several web-specific code paths accumulated:
   - `Platform.OS === "web"` branches with `localStorage`, `window.confirm`, `document.*` calls
@@ -551,7 +552,7 @@
 - [x] Q1 — web browser APIs removed ✅
 - [x] Q2 — web-only packages removed ✅
 - [x] Q4 — build config web blocks removed ✅
-- [ ] Q3 — iOS vs Android Platform guards reviewed
+- [x] Q3 — iOS vs Android Platform guards reviewed ✅ (2026-07-03)
 - [ ] Q5 — full flow tested on real devices
 - [x] No `Platform.OS === "web"` branch remains that touches `localStorage`, `window`, or `document` ✅
 
@@ -618,43 +619,40 @@
 
 ---
 
-### Q3 — Platform-Specific Code (iOS vs Android) ⬜
+### Q3 — Platform-Specific Code (iOS vs Android) ✅
 
-- **Owner:** _unassigned_ -> `feature-builder`
-- **Status:** Not started
+- **Owner:** `feature-builder` · **Task:** TASK-Q683 (closes out the remaining checkboxes left by the earlier TASK-Q301 audit pass, board card 156, Done 2026-06-18)
+- **Status:** Done — 2026-07-03
 - **Scope:** Verify that any `Platform.select()` or `Platform.OS` branches are correct and complete for both iOS and Android. The web branch is handled in Q1; this ticket is about iOS-vs-Android differences.
 
 - **Files with Platform usage (known from audit):**
-  - `src/screens/chat/Conversation.tsx`
-  - `src/screens/buyer/ListingDetail.tsx`
-  - `src/screens/chat/conversation/MessageBubble.tsx`
-  - `src/screens/chat/conversation/MeetupSheet.tsx`
-  - `src/api/auth.ts`
-  - `src/screens/seller/listing-form/PhotosSection.tsx`
-  - `src/screens/seller/ListingForm.tsx`
+  - `src/screens/chat/Conversation.tsx` — `KeyboardAvoidingView` iOS `"padding"` / Android `"height"` (audited 2026-06-18, both branches correct); photo-attachment permission flow (fixed 2026-07-03, see below)
+  - `src/screens/shared/ListingDetail.tsx` — `Share.share()` iOS/Android payload branch (audit comment added 2026-07-03; both branches intentional, no omission)
+  - `src/screens/chat/conversation/MessageBubble.tsx` — `openInMaps()` android `geo:` / iOS `maps:` / catch-all default, each with a web-fallback URL (audited 2026-06-18, all three branches correct)
+  - `src/screens/chat/conversation/MeetupSheet.tsx` — `KeyboardAvoidingView` iOS `"padding"` / Android `"height"` (audited 2026-06-18, correct)
+  - `src/api/auth.ts` — re-confirmed 2026-07-03: contains **zero** `Platform` branches (the old `Platform.OS === "web"` localStorage path was already removed in Q1); all `secureStorage` calls are async-only — nothing to fix
+  - `src/screens/seller/listing-form/PhotosSection.tsx` — iOS 14+ "limited" photo access + camera/library denial (rewired 2026-07-03 to the centralized helper, see below)
+  - `src/screens/seller/ListingForm.tsx` — `KeyboardAvoidingView` iOS/Android branch (audited 2026-06-18, correct); composes `PhotosSection` + `LocationRangePicker`, both fixed below
+- **No `Platform.select()` calls exist anywhere in `src/`** (confirmed via repo-wide grep, 2026-07-03) — nothing to fix for the "safe default" checklist item.
 
-- **Checklist per file:**
-  - Does the `Platform.OS === "ios"` branch have a matching `else` for Android, or is Android silently missing?
-  - Does the `Platform.OS === "android"` branch have a matching `else` for iOS?
-  - Any `Platform.select({ ios: ..., android: ..., default: ... })` — is `default` safe?
-
-- **Permissions handling (known iOS/Android differences):**
-  - `expo-image-picker`: `requestMediaLibraryPermissionsAsync()` behaves differently on iOS 14+ (limited photo access) vs Android. Confirm the `PhotosSection.tsx` handles `granted` and `limited` statuses correctly on both platforms.
-  - `expo-location`: `requestForegroundPermissionsAsync()` must handle denial gracefully on both platforms. Confirm the map/location picker shows a clear "permission denied" state rather than crashing or hanging.
-  - Camera permission: same pattern — confirm graceful denial handling.
-
-- **Native module calls:**
-  - `expo-secure-store`: confirmed to work on iOS and Android. Verify the app does not call `SecureStore` methods synchronously (they are all async).
-  - `expo-haptics` (if installed for P1): gated behind a try/catch or availability check — some Android devices may not support all haptic feedback types.
+- **Permission-denial UX (the substantive fix, 2026-07-03 — TASK-Q683):**
+  - New centralized helper `src/lib/permissions.ts` — `showPermissionDeniedAlert(kind, t)` and `showLimitedPhotoAccessAlert(t)`. Always routes through `confirmAlert` (never raw `Alert.alert`), always offers an **Open Settings** action via `Linking.openSettings()` instead of a silent dead end.
+  - `PhotosSection.tsx` (listing photos) — library + camera denial now call the helper; iOS 14+/Android 14+ `limited` access still lets the user pick from their allowed subset (unchanged behavior, now via the shared helper).
+  - `Profile.tsx` avatar picker — same duplicated pattern found and fixed (denied/limited handling now shares the helper instead of forking its own copy).
+  - `Conversation.tsx` photo-message attachment — was previously a bare `toast.error()` with no recovery path; now uses the centralized helper (denied) and also surfaces the `limited` notice (previously not handled at all in this call site).
+  - `LocationRangePicker.tsx` ("Use my location") and `Browse.tsx` ("Nearest" sort) — on `denied` specifically, now also fire the centralized alert with Open Settings; non-permission errors (timeout/unavailable/unsupported) keep their existing inline banner/toast since Settings wouldn't help there.
+  - Found and fixed a **leftover web-specific string** in `browse.locationDenied` (all 3 locales) that told mobile users to "tap the lock/location icon in the address bar" — a dead instruction on a mobile-only app, missed by the Q1 web-string sweep.
+  - New `permissions` i18n namespace (`en`/`ps`/`fa`) with `permissionNeededTitle`, `photosDenied`, `photosLimited`, `cameraDenied`, `locationDenied`, `openSettings` — registered in `en.ts`/`ps.ts`/`fa.ts`.
+  - Unit test: `src/lib/__tests__/permissions.test.ts` (7 tests — message-key resolution per kind, confirmAlert-only invocation, Open Settings wiring).
 
 **Acceptance criteria:**
-- [ ] Every `Platform.OS === "ios"` branch has been reviewed; Android fallback is intentional (not an accidental omission).
-- [ ] Every `Platform.OS === "android"` branch has been reviewed; iOS fallback is intentional.
-- [ ] Image picker handles `limited` permission status on iOS 14+.
-- [ ] Location permission denial shows a graceful UI state on both platforms.
-- [ ] Camera permission denial shows a graceful UI state on both platforms.
-- [ ] `expo-secure-store` is called only asynchronously.
-- [ ] All `Platform.OS === "web"` branches removed (covered in Q1 — cross-reference).
+- [x] Every `Platform.OS === "ios"` branch has been reviewed; Android fallback is intentional (not an accidental omission).
+- [x] Every `Platform.OS === "android"` branch has been reviewed; iOS fallback is intentional.
+- [x] Image picker handles `limited` permission status on iOS 14+ (and now consistently across all three photo-picker call sites).
+- [x] Location permission denial shows a graceful UI state on both platforms (persistent inline banner/toast + centralized Open-Settings alert on `denied`).
+- [x] Camera permission denial shows a graceful UI state on both platforms (centralized Open-Settings alert).
+- [x] `expo-secure-store` is called only asynchronously (verified in `secure-storage.ts` and all `auth.ts` call sites).
+- [x] All `Platform.OS === "web"` branches removed (covered in Q1 — cross-reference; re-confirmed no regressions).
 
 ---
 
@@ -1048,9 +1046,10 @@ Examples:
 
 ---
 
-### Q3 — Platform-Specific Code (iOS vs Android) — TASK-Q301 ⬜
+### Q3 — Platform-Specific Code (iOS vs Android) — TASK-Q301 ✅
 
-- **Board card ID:** 156 · **Priority:** CRITICAL · **Owner:** _unassigned_ → `feature-builder` · **Sprint:** Pre-Deployment (4)
+- **Board card ID:** 156 · **Priority:** CRITICAL · **Owner:** `feature-builder` · **Sprint:** Pre-Deployment (4)
+- **Status:** Done — 2026-06-18 (Platform-branch annotation pass) + 2026-07-03 (TASK-Q683 closed the remaining permission-denial UX gaps — see the detailed §Q3 write-up above for the full list of files touched, the new `src/lib/permissions.ts` centralized helper, and the `permissions` i18n namespace).
 - **Why:** Several screens use `Platform.OS` branches. An unreviewed Android fallback means features work on iOS but silently break on Android.
 - **Files with known Platform usage:**
   - `src/screens/chat/Conversation.tsx` — KeyboardAvoidingView behavior
@@ -1060,7 +1059,7 @@ Examples:
   - `src/api/auth.ts`
   - `src/screens/seller/ListingForm.tsx`
 - **What to audit:** Every `Platform.OS === "ios"` must have a correct Android fallback. Every `Platform.OS === "android"` must have a correct iOS fallback. `Platform.select` defaults must be safe. iOS 14+ `limited` photo permission status must show a friendly partial-access explanation (not silence). Location and camera permission denial must show a graceful UI state.
-- **Acceptance:** Every Platform branch annotated with a comment. Limited photo access handled. Permission denial shows graceful UI. No `Platform.OS === "web"` branches remain.
+- **Acceptance:** ✅ Every Platform branch annotated with a comment. ✅ Limited photo access handled (consistently, across all 3 photo-picker call sites). ✅ Permission denial shows graceful UI with an Open-Settings action via the centralized helper. ✅ No `Platform.OS === "web"` branches remain.
 
 ---
 
@@ -1190,6 +1189,15 @@ Examples:
 - **Backend:** Add `response_rate_percent` (integer or null) and `response_time_label` (string or null) computed attributes to `User` model. Definition: percent of conversations (last 90 days, where user is seller) where seller replied within 24h. Only show if seller has had 5+ conversations. `response_time_label` maps median first-response time to one of three strings: "Usually responds within 1 hour" / "Usually responds within a day" / "Usually responds within a few days". Add to `:public` serializer. RSpec tests for computation.
 - **Mobile:** In `SellerProfile` and `ListingDetail` seller card: if `response_time_label` present, show a row below name — clock icon + label string. `text-xs`, `mutedForeground`. 3-locale translations (`en/ps/fa`) for all label variants. RTL row direction.
 - **Acceptance:** Computation correct per definition. Null if threshold not met. Shown on SellerProfile and ListingDetail. Translations in all 3 locales. RSpec tests for: no convos, under threshold, fast responder, slow responder.
+
+---
+
+### T703 — Fix pre-existing auth Maestro flows: clearState no longer lands on Login ⬜
+
+- **Board card ID:** 229 · **Priority:** P2 · **Owner:** _unassigned_ → `feature-builder` · **Surfaced by:** TASK-W924 (onboarding) code review, 2026-07-03
+- **Context:** ~18–21 Maestro flows under `maestro/auth/` (`login.yaml`, `logout.yaml`, `sign_up*.yaml`, etc.) plus `maestro/_helpers/login.yaml` do `launchApp: {clearState: true}` and then immediately `assertVisible: "Welcome to Hatiwal"` / interact with Email+Password fields, assuming a fully-cleared app state lands on the Login screen. That assumption broke when guest browsing shipped (**A4**, 2026-06-14) — `Splash.tsx` now routes a token-less launch straight to Bazaar (Browse), never a login wall. TASK-W924's onboarding carousel compounds this further: a truly fresh `clearState: true` launch now shows the onboarding carousel first (whose slide 1 happens to also be titled "Welcome to Hatiwal", so the very first assertion may still pass) before landing on Bazaar — so every one of these flows now hangs/fails on the next step (`tapOn: "Email"`) regardless.
+- **What to build:** Update each affected flow to either (1) run through onboarding first (`tapOn: "Skip"`) and navigate to the Me/Profile tab to reach Login explicitly instead of relying on a bare `clearState` launch landing there, or (2) seed the `hatiwal:onboarding-seen` AsyncStorage flag via a test-only mechanism before asserting Login.
+- **Acceptance:** All affected flows pass against current Splash/onboarding behavior; `maestro/_helpers/login.yaml` (used by many other flows via `runFlow`) fixed first since it's the highest-leverage file.
 
 ---
 

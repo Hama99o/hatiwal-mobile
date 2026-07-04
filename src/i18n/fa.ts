@@ -10,8 +10,11 @@ import fa_saved            from "./locales/fa/saved.json";
 import fa_warning          from "./locales/fa/warning.json";
 import fa_categories       from "./locales/fa/categories.json";
 import fa_recentlyViewed   from "./locales/fa/recentlyViewed.json";
+import fa_hiddenListings   from "./locales/fa/hiddenListings.json";
 import fa_seller           from "./locales/fa/seller.json";
 import fa_onboarding       from "./locales/fa/onboarding.json";
+import fa_permissions      from "./locales/fa/permissions.json";
+import fa_safety           from "./locales/fa/safety.json";
 
 export const faTranslations = {
   common:          fa_common,
@@ -26,6 +29,9 @@ export const faTranslations = {
   warning:         fa_warning,
   categories:      fa_categories,
   recentlyViewed:  fa_recentlyViewed,
+  hiddenListings:  fa_hiddenListings,
   seller:          fa_seller,
   onboarding:      fa_onboarding,
+  permissions:     fa_permissions,
+  safety:          fa_safety,
 };

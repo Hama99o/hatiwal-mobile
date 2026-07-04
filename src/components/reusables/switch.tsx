@@ -3,6 +3,11 @@ import { Animated } from "react-native";
 import * as SwitchPrimitive from "@rn-primitives/switch";
 import { useColors } from "@/hooks/useColors";
 
+// The thumb transform is driven by an Animated.Value, so the receiving component
+// must be an animated component — a plain View can't resolve an Animated.Value and
+// throws "Transform with key of translateX must be number or a percentage".
+const AnimatedThumb = Animated.createAnimatedComponent(SwitchPrimitive.Thumb);
+
 interface SwitchProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
@@ -37,7 +42,7 @@ export function Switch({ checked, onCheckedChange, disabled, accessibilityLabel 
         opacity: disabled ? 0.5 : 1,
       }}
     >
-      <SwitchPrimitive.Thumb
+      <AnimatedThumb
         style={[
           {
             width: 20,

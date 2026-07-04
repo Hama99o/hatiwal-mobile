@@ -15,6 +15,7 @@ import { useLocalization } from "@/hooks/useLocalization";
 import { useColorScheme } from "nativewind";
 import { useColors } from "@/hooks/useColors";
 import { getCurrentLocation, type GeoErrorCode } from "@/utils/geolocation";
+import { showPermissionDeniedAlert } from "@/lib/permissions";
 import { searchPlaces, reverseGeocode, type GeocodeResult } from "@/utils/geocoding";
 import MapCanvas from "./map/MapCanvas";
 import { DEFAULT_CENTER, type MapCanvasCoords } from "./map/MapCanvas.types";
@@ -142,7 +143,16 @@ export function LocationRangePicker({
         setCoords({ latitude: result.coords.latitude, longitude: result.coords.longitude });
         setSelectedLabel(null);
       } else if (result.error) {
+        // Persistent inline banner (below) always shows the "location permission
+        // needed" state so it never depends on the user noticing a transient alert —
+        // no crash/hang either way. For the specifically-actionable "denied" case we
+        // additionally surface the centralized, localized alert with an Open Settings
+        // shortcut (Q3 audit, 2026-07-03) — timeout/unavailable/unsupported are not
+        // permission issues, so Settings wouldn't help there.
         setGeoError(result.error);
+        if (result.error === "denied") {
+          showPermissionDeniedAlert("location", t);
+        }
       }
     } finally {
       setGpsLoading(false);

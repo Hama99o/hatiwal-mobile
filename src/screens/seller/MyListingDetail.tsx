@@ -37,6 +37,7 @@ import {
   MapPin,
   Pencil,
   Trash2,
+  Copy,
   ChevronRight,
 } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -287,6 +288,13 @@ export default function MyListingDetailScreen() {
     router.push(`/(main)/listing/edit/${id}` as never);
   }, [router, id]);
 
+  // Quiet secondary action, distinct from Edit — opens a fresh DRAFT create
+  // form prefilled from this listing's text fields (photos are NOT copied;
+  // Active Storage blobs can't be cloned client-side).
+  const handleDuplicate = useCallback(() => {
+    router.push(`/(main)/listing/new?duplicateFrom=${id}` as never);
+  }, [router, id]);
+
   const handleViewConversations = useCallback(() => {
     router.push({
       pathname: "/(main)/listing-conversations/[id]" as never,
@@ -358,8 +366,10 @@ export default function MyListingDetailScreen() {
   if (listing.status === "reserved") {
     secondaryActions.push({ key: "activate",  label: t("listing.activate"),    onPress: handleActivate });
   }
-  secondaryActions.push({ key: "edit",   label: t("common.edit"),   onPress: handleEdit });
-  secondaryActions.push({ key: "delete", label: t("common.delete"), onPress: handleDelete, danger: true });
+  secondaryActions.push({ key: "edit",      label: t("common.edit"),      onPress: handleEdit });
+  // Available for ANY status — sellers may want to relist a sold/expired item too.
+  secondaryActions.push({ key: "duplicate", label: t("listing.duplicate"), onPress: handleDuplicate });
+  secondaryActions.push({ key: "delete",    label: t("common.delete"),    onPress: handleDelete, danger: true });
 
   const rowDir = isRtl ? "row-reverse" : "row";
 
@@ -589,6 +599,13 @@ export default function MyListingDetailScreen() {
                 {a.key === "edit" ? (
                   <View style={{ flexDirection: rowDir, alignItems: "center", gap: 4 }}>
                     <Pencil size={13} color={colors.foreground} />
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }}>
+                      {a.label}
+                    </Text>
+                  </View>
+                ) : a.key === "duplicate" ? (
+                  <View style={{ flexDirection: rowDir, alignItems: "center", gap: 4 }}>
+                    <Copy size={13} color={colors.foreground} />
                     <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }}>
                       {a.label}
                     </Text>

@@ -49,7 +49,7 @@ cd hatiwal-api && bundle exec rails db:seed:reset_e2e
 
 ## Flow Index
 
-151 flows across 14 folders. All use English locale strings as selectors.
+152 flows across 15 folders. All use English locale strings as selectors.
 
 ```
 _helpers/
@@ -219,6 +219,9 @@ dark_mode/
   chat_dark.yaml            ← dark theme, chat thread and input
   profile_dark.yaml         ← dark theme, profile screen
   my_listings_dark.yaml     ← dark theme, My Listings cards
+
+onboarding/
+  first_run.yaml  ← fresh install shows 3-slide carousel + language switcher, Skip/Get started both set the seen flag and land on Bazaar, flag persists across relaunch
 ```
 
 ## Adding Tests for a New Feature

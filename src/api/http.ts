@@ -68,9 +68,17 @@ http.interceptors.request.use(async (config) => {
 http.interceptors.response.use(
   async (response) => {
     // DeviseTokenAuth rotates the token on each request — persist the new one.
-    const accessToken = response.headers["access-token"];
-    const client = response.headers["client"];
-    const uid = response.headers["uid"];
+    // When several requests share one token in a short window (e.g. a screen
+    // firing multiple queries on mount), DeviseTokenAuth's batch-request
+    // guard intentionally sends back a single-space " " placeholder for
+    // access-token/expiry instead of a real value, to avoid invalidating the
+    // token mid-flight. A bare `if (accessToken)` treats " " as truthy and
+    // would overwrite the real stored token with that placeholder, breaking
+    // every request after it — so blank/whitespace-only values must be
+    // ignored here, not persisted.
+    const accessToken = response.headers["access-token"]?.trim();
+    const client = response.headers["client"]?.trim();
+    const uid = response.headers["uid"]?.trim();
 
     if (accessToken) await secureStorage.setItem("access-token", accessToken);
     if (client) await secureStorage.setItem("client", client);

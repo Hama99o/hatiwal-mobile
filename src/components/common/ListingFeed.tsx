@@ -67,6 +67,12 @@ export interface ListingFeedProps {
   /** Called when the user taps the heart on a card. */
   onSaveToggle?: (listingId: number, newValue: boolean) => void;
 
+  /**
+   * "Not interested" — when provided, cards expose a long-press action menu
+   * that dismisses the listing from the current user's own feed.
+   */
+  onHide?: (listingId: number) => void;
+
   /** Called when the user taps a card. Defaults to routing to listing detail. */
   onPressListing?: (listing: Listing) => void;
 
@@ -111,6 +117,7 @@ export function ListingFeed({
   showStatus = false,
   savedMap,
   onSaveToggle,
+  onHide,
   onPressListing,
   renderListItem,
   skeletonCount = 6,
@@ -146,6 +153,7 @@ export function ListingFeed({
               showStatus={showStatus}
               isSaved={saved}
               onSaveToggle={onSaveToggle}
+              onHide={onHide}
               onPress={handlePress}
             />
           </View>
@@ -162,12 +170,13 @@ export function ListingFeed({
             showStatus={showStatus}
             isSaved={saved}
             onSaveToggle={onSaveToggle}
+            onHide={onHide}
             onPress={handlePress}
           />
         </View>
       );
     },
-    [viewMode, showStatus, savedMap, onSaveToggle, onPressListing, renderListItem, router]
+    [viewMode, showStatus, savedMap, onSaveToggle, onHide, onPressListing, renderListItem, router]
   );
 
   // ── Combined header: pass through caller's header ────────────────────────

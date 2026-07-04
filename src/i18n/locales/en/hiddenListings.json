@@ -1,0 +1,9 @@
+{
+  "title": "Hidden Listings",
+  "empty": "No hidden listings",
+  "emptyDescription": "Listings you mark \"Not interested\" will appear here so you can restore them anytime.",
+  "browseButton": "Browse Listings",
+  "restore": "Restore",
+  "restoreSuccess": "Listing restored to your feed",
+  "restoreError": "Couldn't restore this listing — please try again."
+}

@@ -36,6 +36,7 @@ import { useColors } from "@/hooks/useColors";
 import { useBrowseViewModeStore } from "@/stores/browseViewMode.store";
 import { useSearchHistoryStore } from "@/stores/searchHistory.store";
 import { getCurrentLocation, type GeoErrorCode } from "@/utils/geolocation";
+import { showPermissionDeniedAlert } from "@/lib/permissions";
 import type { MapCanvasCoords } from "@/components/common/map/MapCanvas.types";
 
 export default function BrowseScreen() {
@@ -83,16 +84,27 @@ export default function BrowseScreen() {
   const [nearestCoords, setNearestCoords] = useState<MapCanvasCoords | null>(null);
   const [nearestLoading, setNearestLoading] = useState(false);
   const [sellerActiveDays, setSellerActiveDays] = useState<number | null>(null);
+  // TASK-B384: "Deals" filter — session-local only (not persisted/saved-search).
+  const [priceDropped, setPriceDropped] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   // ── Optimistic save state: listingId → boolean ────────────────────────────
   const [savedMap, setSavedMap] = useState<Record<number, boolean>>({});
 
+  // ── "Not interested" — hidden listing ids dismissed this session ──────────
+  // Kept in a ref so the fetcher closure always reads the latest value without
+  // needing to be re-created; filters the feed client-side so the card is
+  // excluded immediately, even before the hide POST has persisted server-side.
+  const hiddenIdsRef = useRef<Set<number>>(new Set());
+
   // ── Focus refetch ─────────────────────────────────────────────────────────
   const [refetchKey, setRefetchKey] = useState(0);
   useFocusEffect(
     useCallback(() => {
+      // Server state is the source of truth again on focus — drop any local
+      // optimistic hides so a stale client-side exclusion doesn't linger.
+      hiddenIdsRef.current = new Set();
       setRefetchKey((k) => k + 1);
     }, [])
   );
@@ -159,6 +171,51 @@ export default function BrowseScreen() {
     [requireAuth, saveMutation, unsaveMutation]
   );
 
+  // ── "Not interested" — hide / unhide mutations ────────────────────────────
+  const hideMutation = useMutation({
+    mutationFn: (id: number) => listingsAPI.hideListing(id),
+    onError: (_e, id) => {
+      // Roll back: restore to the feed and let the user know.
+      hiddenIdsRef.current.delete(id);
+      setRefetchKey((k) => k + 1);
+      toast.error(t("listing.hideError"));
+    },
+  });
+
+  const unhideMutation = useMutation({
+    mutationFn: (id: number) => listingsAPI.unhideListing(id),
+    onError: (_e, id) => {
+      // Undo failed — keep it hidden and let the user know.
+      hiddenIdsRef.current.add(id);
+      setRefetchKey((k) => k + 1);
+      toast.error(t("listing.unhideError"));
+    },
+  });
+
+  const handleHide = useCallback(
+    (listingId: number) => {
+      requireAuth(() => {
+        // Optimistic removal — excluded from the very next (silent) refetch,
+        // even before the hide POST resolves server-side.
+        hiddenIdsRef.current.add(listingId);
+        setRefetchKey((k) => k + 1);
+        hideMutation.mutate(listingId);
+
+        toast(t("listing.hiddenUndo"), {
+          action: {
+            label: t("common.undo"),
+            onClick: () => {
+              hiddenIdsRef.current.delete(listingId);
+              setRefetchKey((k) => k + 1);
+              unhideMutation.mutate(listingId);
+            },
+          },
+        });
+      }, "/(main)/(tabs)/browse");
+    },
+    [requireAuth, hideMutation, unhideMutation, t]
+  );
+
   // ── Auto-save filter combos ───────────────────────────────────────────────
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -222,7 +279,14 @@ export default function BrowseScreen() {
     if (result.coords) {
       setNearestCoords({ latitude: result.coords.latitude, longitude: result.coords.longitude });
       setSort("nearest");
+    } else if (result.error === "denied") {
+      // Q3 audit (2026-07-03): permission denial is actionable — use the centralized,
+      // localized alert with an Open Settings shortcut instead of a toast that just
+      // disappears with no next step.
+      showPermissionDeniedAlert("location", t);
     } else {
+      // Non-permission errors (timeout/unavailable/unsupported) — Settings wouldn't
+      // help, so a transient toast is the right, non-blocking signal here.
       toast.error(t(geoErrorMessageKey(result.error)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -266,12 +330,17 @@ export default function BrowseScreen() {
     setSort(null);
     setNearestCoords(null);
     setSellerActiveDays(null);
+    setPriceDropped(false);
+  }, []);
+
+  const handleTogglePriceDropped = useCallback(() => {
+    setPriceDropped((v) => !v);
   }, []);
 
   // ── UniversalList fetcher key (triggers page reset on filter/mode change) ──
   // viewMode is included so FlashList re-mounts cleanly when switching grid↔list
   // (numColumns change requires a full re-layout, not just a re-render).
-  const fetcherKey = `${debouncedSearch}|${categoryId}|${condition}|${priceMin}|${priceMax}|${coordinates?.latitude}|${coordinates?.longitude}|${distance}|${location}|${sort}|${nearestCoords?.latitude}|${nearestCoords?.longitude}|${sellerActiveDays}|${viewMode}`;
+  const fetcherKey = `${debouncedSearch}|${categoryId}|${condition}|${priceMin}|${priceMax}|${coordinates?.latitude}|${coordinates?.longitude}|${distance}|${location}|${sort}|${nearestCoords?.latitude}|${nearestCoords?.longitude}|${sellerActiveDays}|${priceDropped}|${viewMode}`;
 
   const isNearest = sort === "nearest";
 
@@ -294,6 +363,7 @@ export default function BrowseScreen() {
         radius: isNearest ? undefined : (coordinates ? distance : undefined),
         sort: sort ?? undefined,
         sellerActiveDays: sellerActiveDays ?? undefined,
+        priceDropped: priceDropped || undefined,
       });
 
       // Seed saved map from server data without overwriting optimistic state
@@ -305,8 +375,12 @@ export default function BrowseScreen() {
         return { ...defaults, ...prev };
       });
 
+      // "Not interested" — strip any listing hidden this session, even if the
+      // hide POST hasn't persisted server-side yet (see hiddenIdsRef above).
+      const visible = result.items.filter((l) => !hiddenIdsRef.current.has(l.id));
+
       return {
-        items: result.items,
+        items: visible,
         totalCount: result.pagination.totalCount,
         totalPages: result.pagination.totalPages,
         currentPage: result.pagination.currentPage,
@@ -318,7 +392,7 @@ export default function BrowseScreen() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const hasActiveFilters = !!(
-    debouncedSearch || categoryId !== null || location || priceMin || priceMax || condition || sellerActiveDays
+    debouncedSearch || categoryId !== null || location || priceMin || priceMax || condition || sellerActiveDays || priceDropped
   );
 
   // Count of individually-active filters/sorts for the summary pill.
@@ -333,6 +407,7 @@ export default function BrowseScreen() {
     coordinates,
     sellerActiveDays,
     sort,
+    priceDropped,
   });
 
   const listHeader = (
@@ -366,6 +441,8 @@ export default function BrowseScreen() {
       onToggleNearest={handleToggleNearest}
       sellerActiveDays={sellerActiveDays}
       onSellerActiveDaysChange={setSellerActiveDays}
+      priceDropped={priceDropped}
+      onTogglePriceDropped={handleTogglePriceDropped}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       subcategoryLabel={subcategoryLabel}
@@ -399,6 +476,7 @@ export default function BrowseScreen() {
           Object.entries(savedMap).map(([k, v]) => [Number(k), v])
         )}
         onSaveToggle={handleSaveToggle}
+        onHide={handleHide}
         skeletonCount={6}
         emptyIllustration={<NoResultsIllustration size={96} />}
         emptyIcon={Search}

@@ -152,6 +152,7 @@
   "myReports": "زما راپورونه",
   "activity": "فعالیت",
   "recentlyViewed": "وروستي لیدل شوي",
+  "hiddenListings": "پټ شوي اعلانونه",
   "away": {
     "toggle": "زه غایب یم (لنډمهاله موجود نه یم)",
     "untilLabel": "تر کله پورې غایب (YYYY-MM-DD)",

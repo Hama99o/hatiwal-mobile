@@ -39,6 +39,19 @@ describe("listingsAPI.getListings", () => {
     expect(capturedUrl).toContain("page%5Bnumber%5D=2");
   });
 
+  it("passes user_id and status filters together (TASK-M547: more-from-this-seller rail)", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/listings", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ listings: [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 0, total_pages: 0 } } });
+      })
+    );
+    await listingsAPI.getListings({ userId: 42, status: "active" });
+    expect(capturedUrl).toContain("user_id=42");
+    expect(capturedUrl).toContain("status=active");
+  });
+
   it("passes category_id filter", async () => {
     let capturedUrl = "";
     server.use(
@@ -191,6 +204,57 @@ describe("listingsAPI.getListings", () => {
     expect(capturedUrl).toContain("category_id=2");
     expect(capturedUrl).toContain("search=bike");
   });
+
+  // TASK-B384 — Deals filter (price_dropped)
+  it("passes price_dropped=true as query param when priceDropped is true", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/listings", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ listings: [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 0, total_pages: 0 } } });
+      })
+    );
+    await listingsAPI.getListings({ priceDropped: true });
+    expect(capturedUrl).toContain("price_dropped=true");
+  });
+
+  it("does NOT append price_dropped when priceDropped is false", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/listings", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ listings: [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 0, total_pages: 0 } } });
+      })
+    );
+    await listingsAPI.getListings({ priceDropped: false });
+    expect(capturedUrl).not.toContain("price_dropped");
+  });
+
+  it("does NOT append price_dropped when priceDropped is undefined", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/listings", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ listings: [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 0, total_pages: 0 } } });
+      })
+    );
+    await listingsAPI.getListings({ search: "phone" });
+    expect(capturedUrl).not.toContain("price_dropped");
+  });
+
+  it("composes priceDropped with other filters", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/listings", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ listings: [], meta: { pagination: { current_page: 1, next_page: null, prev_page: null, total_count: 0, total_pages: 0 } } });
+      })
+    );
+    await listingsAPI.getListings({ priceDropped: true, categoryId: 2, search: "bike" });
+    expect(capturedUrl).toContain("price_dropped=true");
+    expect(capturedUrl).toContain("category_id=2");
+    expect(capturedUrl).toContain("search=bike");
+  });
 });
 
 describe("listingsAPI.getListing", () => {
@@ -324,6 +388,60 @@ describe("listingsAPI.saveListing / unsaveListing", () => {
 
   it("unsaveListing resolves on 200", async () => {
     await expect(listingsAPI.unsaveListing(10)).resolves.toBeUndefined();
+  });
+});
+
+// ─── TASK-H528 — "Not interested" hide / unhide ──────────────────────────────
+
+describe("listingsAPI.hideListing / unhideListing", () => {
+  it("hideListing POSTs to /listings/:id/hide and resolves on 200", async () => {
+    await expect(listingsAPI.hideListing(10)).resolves.toBeUndefined();
+  });
+
+  it("hideListing calls the correct endpoint URL", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.post("http://localhost:3007/api/v1/listings/42/hide", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ hidden: true, id: 1 });
+      })
+    );
+    await listingsAPI.hideListing(42);
+    expect(capturedUrl).toContain("/listings/42/hide");
+  });
+
+  it("unhideListing DELETEs to /listings/:id/unhide and resolves on 200", async () => {
+    await expect(listingsAPI.unhideListing(10)).resolves.toBeUndefined();
+  });
+
+  it("unhideListing calls the correct endpoint URL", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.delete("http://localhost:3007/api/v1/listings/42/unhide", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ hidden: false });
+      })
+    );
+    await listingsAPI.unhideListing(42);
+    expect(capturedUrl).toContain("/listings/42/unhide");
+  });
+
+  it("hideListing throws on 401 (unauthenticated)", async () => {
+    server.use(
+      http.post("http://localhost:3007/api/v1/listings/10/hide", () =>
+        HttpResponse.json({ error: "Unauthorized" }, { status: 401 })
+      )
+    );
+    await expect(listingsAPI.hideListing(10)).rejects.toThrow();
+  });
+
+  it("unhideListing throws on 401 (unauthenticated)", async () => {
+    server.use(
+      http.delete("http://localhost:3007/api/v1/listings/10/unhide", () =>
+        HttpResponse.json({ error: "Unauthorized" }, { status: 401 })
+      )
+    );
+    await expect(listingsAPI.unhideListing(10)).rejects.toThrow();
   });
 });
 
@@ -1121,6 +1239,98 @@ describe("listingsAPI.getViewedListings", () => {
     expect(item.viewsCount).toBe(10);
     expect(item.thumbnailUrl).toBeNull();
     expect(item.categoryId).toBe(1);
+  });
+});
+
+// ─── TASK-H528 — getHiddenListings ────────────────────────────────────────────
+
+describe("listingsAPI.getHiddenListings", () => {
+  it("returns camelCased items and pagination", async () => {
+    const result = await listingsAPI.getHiddenListings();
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].id).toBe(10);
+    expect(result.pagination.currentPage).toBe(1);
+    expect(result.pagination.totalCount).toBe(1);
+    expect(result.pagination.totalPages).toBe(1);
+    expect(result.pagination.nextPage).toBeNull();
+  });
+
+  it("passes page[number] param when page is provided", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/my/hidden_listings", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({
+          listings: [],
+          meta: {
+            pagination: {
+              current_page: 2,
+              next_page: null,
+              prev_page: 1,
+              total_count: 25,
+              total_pages: 2,
+            },
+          },
+        });
+      })
+    );
+    const result = await listingsAPI.getHiddenListings(2);
+    expect(capturedUrl).toContain("page%5Bnumber%5D=2");
+    expect(result.pagination.currentPage).toBe(2);
+    expect(result.pagination.prevPage).toBe(1);
+  });
+
+  it("does not append page param when page is not provided", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/my/hidden_listings", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({
+          listings: [],
+          meta: {
+            pagination: {
+              current_page: 1,
+              next_page: null,
+              prev_page: null,
+              total_count: 0,
+              total_pages: 1,
+            },
+          },
+        });
+      })
+    );
+    await listingsAPI.getHiddenListings();
+    expect(capturedUrl).not.toContain("page%5Bnumber%5D");
+  });
+
+  it("returns an empty items array when nothing is hidden", async () => {
+    server.use(
+      http.get("http://localhost:3007/api/v1/my/hidden_listings", () =>
+        HttpResponse.json({
+          listings: [],
+          meta: {
+            pagination: {
+              current_page: 1,
+              next_page: null,
+              prev_page: null,
+              total_count: 0,
+              total_pages: 0,
+            },
+          },
+        })
+      )
+    );
+    const result = await listingsAPI.getHiddenListings();
+    expect(result.items).toEqual([]);
+  });
+
+  it("throws on 401 (unauthenticated)", async () => {
+    server.use(
+      http.get("http://localhost:3007/api/v1/my/hidden_listings", () =>
+        HttpResponse.json({ error: "Unauthorized" }, { status: 401 })
+      )
+    );
+    await expect(listingsAPI.getHiddenListings()).rejects.toThrow();
   });
 });
 

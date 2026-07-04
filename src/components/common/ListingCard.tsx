@@ -1,7 +1,8 @@
-import { View, Pressable, StyleSheet, ViewStyle } from "react-native";
+import { View, Pressable, StyleSheet, ViewStyle, Modal, Text as RNText } from "react-native";
+import { useState } from "react";
 import { Text } from "@/components/reusables/text";
 import { RemoteImage } from "./RemoteImage";
-import { Heart, MapPin, Camera, Eye } from "lucide-react-native";
+import { Heart, MapPin, Camera, Eye, EyeOff } from "lucide-react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -32,6 +33,12 @@ export interface ListingCardProps {
   isSaved?: boolean;
   onSaveToggle?: (listingId: number, newValue: boolean) => void;
   onPress?: () => void;
+  /**
+   * "Not interested" — when provided, a long-press on the card opens a small
+   * action menu with a single "Not interested" row that dismisses the listing
+   * from the current user's own feed. Distinct from the save-heart.
+   */
+  onHide?: (listingId: number) => void;
   style?: ViewStyle;
   /**
    * Layout variant:
@@ -62,6 +69,7 @@ export function ListingCard({
   isSaved,
   onSaveToggle,
   onPress,
+  onHide,
   style,
   variant = "grid",
 }: ListingCardProps) {
@@ -73,6 +81,17 @@ export function ListingCard({
   // Reduce-motion aware entering animation factory — returns undefined when
   // the OS "Reduce Motion" setting is on, so Reanimated skips the transition.
   const getEntering = useListItemEntering();
+
+  // ── "Not interested" action menu ─────────────────────────────────────────
+  const [menuVisible, setMenuVisible] = useState(false);
+  const handleLongPress = useCallback(() => {
+    if (!onHide) return;
+    setMenuVisible(true);
+  }, [onHide]);
+  const handleHide = useCallback(() => {
+    setMenuVisible(false);
+    onHide?.(listing.id);
+  }, [onHide, listing.id]);
 
   // ── Heart animation ──────────────────────────────────────────────────────
   const heartScale = useSharedValue(1);
@@ -128,6 +147,7 @@ export function ListingCard({
   if (variant === "list") {
     // In RTL the photo sits on the right — achieved by row-reverse.
     return (
+      <>
       <Animated.View
         entering={index !== undefined ? getEntering(index) : undefined}
         style={[
@@ -146,6 +166,7 @@ export function ListingCard({
           onPress={handlePress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
+          onLongPress={onHide ? handleLongPress : undefined}
           android_ripple={{ color: colors.muted, foreground: false }}
           accessibilityRole="button"
           accessibilityLabel={listing.title}
@@ -313,11 +334,20 @@ export function ListingCard({
           )}
         </Pressable>
       </Animated.View>
+      {onHide && (
+        <NotInterestedMenu
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
+          onHide={handleHide}
+        />
+      )}
+      </>
     );
   }
 
   // ── Grid variant (default — vertical card) ───────────────────────────────
   return (
+    <>
     <Animated.View
       entering={index !== undefined ? getEntering(index) : undefined}
       style={[
@@ -336,9 +366,11 @@ export function ListingCard({
         onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
+        onLongPress={onHide ? handleLongPress : undefined}
         android_ripple={{ color: colors.muted, foreground: false }}
         accessibilityRole="button"
         accessibilityLabel={listing.title}
+        testID="listing-card"
         style={styles.card}
       >
         {/* ── Photo ──────────────────────────────────────────────────── */}
@@ -500,6 +532,83 @@ export function ListingCard({
         </View>
       </Pressable>
     </Animated.View>
+    {onHide && (
+      <NotInterestedMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onHide={handleHide}
+      />
+    )}
+    </>
+  );
+}
+
+/**
+ * NotInterestedMenu — bottom-slide action menu with a single "Not interested"
+ * row. Mirrors the ConversationRow action-menu pattern (RNText for labels).
+ */
+function NotInterestedMenu({
+  visible,
+  onClose,
+  onHide,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onHide: () => void;
+}) {
+  const { t } = useTranslation();
+  const { isRtl } = useLocalization();
+  const colors = useColors();
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      testID="listing-not-interested-menu"
+    >
+      <View style={{ flex: 1, backgroundColor: colors.darkScrim }} onTouchEnd={onClose}>
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: colors.card,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            paddingTop: 12,
+            paddingBottom: 32,
+          }}
+          onTouchEnd={(e) => e.stopPropagation()}
+        >
+          <View style={{ alignItems: "center", marginBottom: 16 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+          </View>
+
+          <View style={{ paddingHorizontal: 16 }}>
+            <Pressable
+              onPress={onHide}
+              testID="menu-not-interested"
+              android_ripple={{ color: colors.muted }}
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                alignItems: "center",
+                paddingVertical: 14,
+                paddingHorizontal: 4,
+                gap: 12,
+              }}
+            >
+              <EyeOff size={20} color={colors.foreground} />
+              <RNText style={{ fontSize: 15, color: colors.foreground, fontWeight: "500", flex: 1 }}>
+                {t("listing.notInterested")}
+              </RNText>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 

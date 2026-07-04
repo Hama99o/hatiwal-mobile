@@ -10,8 +10,11 @@ import en_saved            from "./locales/en/saved.json";
 import en_warning          from "./locales/en/warning.json";
 import en_categories       from "./locales/en/categories.json";
 import en_recentlyViewed   from "./locales/en/recentlyViewed.json";
+import en_hiddenListings   from "./locales/en/hiddenListings.json";
 import en_seller           from "./locales/en/seller.json";
 import en_onboarding       from "./locales/en/onboarding.json";
+import en_permissions      from "./locales/en/permissions.json";
+import en_safety           from "./locales/en/safety.json";
 
 export const enTranslations = {
   common:          en_common,
@@ -26,6 +29,9 @@ export const enTranslations = {
   warning:         en_warning,
   categories:      en_categories,
   recentlyViewed:  en_recentlyViewed,
+  hiddenListings:  en_hiddenListings,
   seller:          en_seller,
   onboarding:      en_onboarding,
+  permissions:     en_permissions,
+  safety:          en_safety,
 };

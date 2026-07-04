@@ -224,6 +224,11 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   // refreshKey effect's closure sees the update, causing both effects to fire.
   // A ref is always the current value — no stale closure problem.
   const idLoadingRef = useRef(false);
+  // Set when a refresh arrives while the initial load is still in flight —
+  // otherwise that refresh is silently dropped (refreshKeyRef already marks it
+  // "seen") and the list is stuck showing whatever the initial load returned
+  // until the next focus bump. Consumed by loadFirst once it completes.
+  const pendingRefreshRef = useRef(false);
   useEffect(() => {
     const loadFirst = async () => {
       idLoadingRef.current = true;  // synchronous — refreshKey effect reads this instantly
@@ -233,8 +238,12 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
       setTotalPages(1);
       setError(null);
       await fetchPage(1, true);
-      setIsLoading(false);
       idLoadingRef.current = false;
+      setIsLoading(false);
+      if (pendingRefreshRef.current) {
+        pendingRefreshRef.current = false;
+        fetchPage(1, true).catch(() => {});
+      }
     };
 
     idRef.current = id;
@@ -254,7 +263,12 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     if (refreshKey == null || refreshKey === 0) return;
     // Guard with idLoadingRef (a ref, always current) instead of the isLoading
     // state value (captured by closure, can be stale on fast networks).
-    if (idLoadingRef.current) return;
+    if (idLoadingRef.current) {
+      // Initial load is still running — queue this refresh instead of
+      // dropping it, so the list still picks up fresh data once it finishes.
+      pendingRefreshRef.current = true;
+      return;
+    }
     fetchPage(1, true).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);

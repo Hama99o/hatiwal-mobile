@@ -1,0 +1,76 @@
+appId: com.hatiwal.app
+---
+# Hidden Listings management — E2E flow (TASK-H528)
+# Covers:
+#   1. Happy path: navigate from Profile > Activity > Hidden Listings
+#   2. Screen renders with header "Hidden Listings"
+#   3. Empty state renders when nothing has been hidden
+#
+# Prerequisites: logged in as buyer@hatiwal.test (no hidden listings by default).
+
+- runFlow: ../_helpers/login.yaml
+
+# Navigate to the Profile tab
+- tapOn: "Me"
+- waitForAnimationToEnd
+
+# Scroll down to the Activity section
+- scroll
+
+# Tap "Hidden Listings" row
+- tapOn: "Hidden Listings"
+- waitForAnimationToEnd
+
+# ── Screen renders ───────────────────────────────────────────────────────────
+- assertVisible: "Hidden Listings"
+
+# ── Empty state ──────────────────────────────────────────────────────────────
+- assertVisible: "No hidden listings"
+
+# Navigate back to Profile
+- tapOn:
+    id: "back_button"
+- waitForAnimationToEnd
+
+---
+appId: com.hatiwal.app
+---
+# Hidden Listings — hide from Browse, then restore from the management screen.
+# End-to-end round trip across the two surfaces the feature touches.
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+
+# Hide the first card from Browse
+- longPressOn:
+    index: 0
+    id: "listing-card"
+- waitForAnimationToEnd
+- tapOn: "Not interested"
+- waitForAnimationToEnd
+- assertVisible: "Undo"
+
+# Navigate to the Hidden Listings management screen
+- tapOn: "Me"
+- waitForAnimationToEnd
+- scroll
+- tapOn: "Hidden Listings"
+- waitForAnimationToEnd
+- assertVisible: "Hidden Listings"
+
+# The hidden listing should now appear here with a Restore action
+- assertVisible: "Restore"
+
+# Restore it
+- tapOn: "Restore"
+- waitForAnimationToEnd
+- assertVisible: "restored"
+
+# Go back to Browse — the listing is visible again
+- tapOn:
+    id: "back_button"
+- waitForAnimationToEnd
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- assertVisible: "Bazaar"

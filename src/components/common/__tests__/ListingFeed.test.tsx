@@ -42,6 +42,7 @@ jest.mock("lucide-react-native", () => ({
   MapPin: "MapPin",
   Camera: "Camera",
   Eye: "Eye",
+  EyeOff: "EyeOff",
   BadgeCheck: "BadgeCheck",
   WifiOff: "WifiOff",
   RotateCcw: "RotateCcw",
@@ -638,6 +639,74 @@ describe("ListingFeed — savedMap and onSaveToggle passthrough", () => {
     fireEvent.press(screen.getByRole("togglebutton"));
     expect(onSaveToggle).toHaveBeenCalledTimes(1);
     expect(onSaveToggle).toHaveBeenCalledWith(20, false); // was true → toggled to false
+  });
+});
+
+// ─── 9b. onHide ("Not interested") passed through — TASK-H528 ────────────────
+
+describe("ListingFeed — onHide passthrough", () => {
+  it("opens the 'Not interested' menu on long-press and calls onHide (grid mode)", async () => {
+    const onHide = jest.fn();
+    const listing = makeListing({ id: 30, title: "Kabul Bicycle" });
+
+    render(
+      <ListingFeed
+        {...buildProps({
+          id: "feed-hide-grid",
+          fetcher: resolvingFetcher([listing]),
+          viewMode: "grid",
+          onHide,
+        })}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByText("Kabul Bicycle")).toBeTruthy());
+
+    fireEvent(screen.getByRole("button", { name: "Kabul Bicycle" }), "longPress");
+    fireEvent.press(screen.getByTestId("menu-not-interested"));
+    expect(onHide).toHaveBeenCalledTimes(1);
+    expect(onHide).toHaveBeenCalledWith(30);
+  });
+
+  it("opens the 'Not interested' menu on long-press and calls onHide (list mode)", async () => {
+    const onHide = jest.fn();
+    const listing = makeListing({ id: 31, title: "Herat Rug" });
+
+    render(
+      <ListingFeed
+        {...buildProps({
+          id: "feed-hide-list",
+          fetcher: resolvingFetcher([listing]),
+          viewMode: "list",
+          onHide,
+        })}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByText("Herat Rug")).toBeTruthy());
+
+    fireEvent(screen.getByTestId("listing-card"), "longPress");
+    fireEvent.press(screen.getByTestId("menu-not-interested"));
+    expect(onHide).toHaveBeenCalledWith(31);
+  });
+
+  it("does NOT render the 'Not interested' menu affordance when onHide is not provided", async () => {
+    const listing = makeListing({ id: 32, title: "Mazar Jacket" });
+
+    render(
+      <ListingFeed
+        {...buildProps({
+          id: "feed-no-hide",
+          fetcher: resolvingFetcher([listing]),
+          viewMode: "grid",
+        })}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByText("Mazar Jacket")).toBeTruthy());
+
+    fireEvent(screen.getByRole("button", { name: "Mazar Jacket" }), "longPress");
+    expect(screen.queryByTestId("listing-not-interested-menu")).toBeNull();
   });
 });
 

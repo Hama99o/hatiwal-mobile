@@ -19,6 +19,8 @@ export interface BrowseFilterState {
   sellerActiveDays: number | null;
   /** null means the server default (newest-first) — NOT counted as an active filter. */
   sort: ListingSort | null;
+  /** TASK-B384: true when the buyer has toggled the "Deals" (price-drop) chip. */
+  priceDropped?: boolean;
 }
 
 /**
@@ -38,7 +40,8 @@ export function computeActiveFilterCount(state: BrowseFilterState): number {
     (state.priceMax ? 1 : 0) +
     (state.coordinates !== null ? 1 : 0) +
     (state.sellerActiveDays !== null ? 1 : 0) +
-    (state.sort !== null ? 1 : 0)
+    (state.sort !== null ? 1 : 0) +
+    (state.priceDropped ? 1 : 0)
   );
 }
 
@@ -52,4 +55,5 @@ export const DEFAULT_BROWSE_FILTER_STATE: BrowseFilterState = {
   coordinates: null,
   sellerActiveDays: null,
   sort: null,
+  priceDropped: false,
 };

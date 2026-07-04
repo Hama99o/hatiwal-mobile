@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# Meetup safety tips — link inside the chat meetup-proposal sheet opens the
+# same shared sheet on top, then closing it restores the meetup sheet with
+# the in-progress fields intact (no stacking glitches).
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Propose Meetup"
+- waitForAnimationToEnd
+- assertVisible: "Propose a Meetup"
+
+# Fill in the place field before checking the tips, so we can confirm it
+# survives the safety-tips round trip
+- tapOn: "Where? (e.g. Shahr-e-Naw market)"
+- inputText: "Shahr-e-Naw market"
+
+# Open the safety-tips link from inside the meetup sheet
+- tapOn: "Safety tips"
+- waitForAnimationToEnd
+- assertVisible: "Meetup Safety Tips"
+- assertVisible: "Trust your instincts"
+
+# Close — meetup sheet reappears with the place field preserved
+- tapOn: "Close"
+- waitForAnimationToEnd
+- assertVisible: "Propose a Meetup"
+- assertVisible: "Shahr-e-Naw market"

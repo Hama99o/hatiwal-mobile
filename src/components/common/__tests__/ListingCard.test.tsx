@@ -49,6 +49,7 @@ jest.mock("lucide-react-native", () => ({
   MapPin: "MapPin",
   Camera: "Camera",
   Eye: "Eye",
+  EyeOff: "EyeOff",
   BadgeCheck: "BadgeCheck",
 }));
 
@@ -532,5 +533,55 @@ describe("ListingCard — list variant", () => {
     // just confirm no crash and title present
     render(<ListingCard listing={makeListing()} />);
     expect(screen.getByText("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
+  });
+});
+
+// ── 12. "Not interested" action menu (onHide) — TASK-H528 ───────────────────
+
+describe("ListingCard — 'Not interested' (onHide)", () => {
+  it("does NOT open the menu on long-press when onHide is not provided", () => {
+    render(<ListingCard listing={makeListing({ id: 5 })} />);
+    fireEvent(screen.getByRole("button", { name: "Lenovo ThinkPad X1 Carbon" }), "longPress");
+    expect(screen.queryByTestId("listing-not-interested-menu")).toBeNull();
+  });
+
+  it("opens the action menu on long-press when onHide is provided (grid variant)", () => {
+    const onHide = jest.fn();
+    render(<ListingCard listing={makeListing({ id: 7 })} onHide={onHide} />);
+    fireEvent(screen.getByRole("button", { name: "Lenovo ThinkPad X1 Carbon" }), "longPress");
+    expect(screen.getByTestId("menu-not-interested")).toBeTruthy();
+  });
+
+  it("calls onHide with the listing id when 'Not interested' is tapped", () => {
+    const onHide = jest.fn();
+    render(<ListingCard listing={makeListing({ id: 7 })} onHide={onHide} />);
+    fireEvent(screen.getByRole("button", { name: "Lenovo ThinkPad X1 Carbon" }), "longPress");
+    fireEvent.press(screen.getByTestId("menu-not-interested"));
+    expect(onHide).toHaveBeenCalledTimes(1);
+    expect(onHide).toHaveBeenCalledWith(7);
+  });
+
+  it("opens the action menu on long-press in list variant too", () => {
+    const onHide = jest.fn();
+    render(<ListingCard listing={makeListing({ id: 9 })} variant="list" onHide={onHide} />);
+    fireEvent(screen.getByTestId("listing-card"), "longPress");
+    fireEvent.press(screen.getByTestId("menu-not-interested"));
+    expect(onHide).toHaveBeenCalledWith(9);
+  });
+
+  it("does not disturb the save heart when both onHide and onSaveToggle are provided", () => {
+    const onHide = jest.fn();
+    const onSaveToggle = jest.fn();
+    render(
+      <ListingCard
+        listing={makeListing({ id: 3 })}
+        isSaved={false}
+        onSaveToggle={onSaveToggle}
+        onHide={onHide}
+      />
+    );
+    fireEvent.press(screen.getByRole("togglebutton"));
+    expect(onSaveToggle).toHaveBeenCalledWith(3, true);
+    expect(onHide).not.toHaveBeenCalled();
   });
 });

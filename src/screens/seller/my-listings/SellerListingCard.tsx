@@ -238,6 +238,13 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
     router.push(`/(main)/listing/edit/${listing.id}` as never);
   }, [router, listing.id]);
 
+  // Quiet secondary action, distinct from Edit — opens a fresh DRAFT create
+  // form prefilled from this listing's text fields (photos are NOT copied;
+  // Active Storage blobs can't be cloned client-side).
+  const handleDuplicate = useCallback(() => {
+    router.push(`/(main)/listing/new?duplicateFrom=${listing.id}` as never);
+  }, [router, listing.id]);
+
   const handleOpenDetail = useCallback(() => {
     router.push(`/(main)/my-listings/${listing.id}` as never);
   }, [router, listing.id]);
@@ -283,6 +290,8 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
     secondaryActions.push({ key: "activate", label: t("listing.activate"), onPress: handleActivate });
   }
   secondaryActions.push({ key: "edit", label: t("common.edit"), onPress: handleEdit });
+  // Available for ANY status — sellers may want to relist a sold/expired item too.
+  secondaryActions.push({ key: "duplicate", label: t("listing.duplicate"), onPress: handleDuplicate });
   secondaryActions.push({ key: "delete", label: t("common.delete"), onPress: handleDelete, danger: true });
 
   // ── Render ──────────────────────────────────────────────────────────────────

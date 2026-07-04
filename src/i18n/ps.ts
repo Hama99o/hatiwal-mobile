@@ -10,8 +10,11 @@ import ps_saved            from "./locales/ps/saved.json";
 import ps_warning          from "./locales/ps/warning.json";
 import ps_categories       from "./locales/ps/categories.json";
 import ps_recentlyViewed   from "./locales/ps/recentlyViewed.json";
+import ps_hiddenListings   from "./locales/ps/hiddenListings.json";
 import ps_seller           from "./locales/ps/seller.json";
 import ps_onboarding       from "./locales/ps/onboarding.json";
+import ps_permissions      from "./locales/ps/permissions.json";
+import ps_safety           from "./locales/ps/safety.json";
 
 export const psTranslations = {
   common:          ps_common,
@@ -26,6 +29,9 @@ export const psTranslations = {
   warning:         ps_warning,
   categories:      ps_categories,
   recentlyViewed:  ps_recentlyViewed,
+  hiddenListings:  ps_hiddenListings,
   seller:          ps_seller,
   onboarding:      ps_onboarding,
+  permissions:     ps_permissions,
+  safety:          ps_safety,
 };

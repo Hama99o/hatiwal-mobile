@@ -135,6 +135,22 @@ export default function MainLayout() {
           ...themedHeader,
         }}
       />
+      <Stack.Screen
+        name="hidden-listings"
+        options={{
+          headerShown: true,
+          headerTitle: t("hiddenListings.title"),
+          headerLeft: () => (
+            <BackButton
+              onPress={() => {
+                if (router.canGoBack()) router.back();
+                else router.replace("/(main)/(tabs)/profile" as any);
+              }}
+            />
+          ),
+          ...themedHeader,
+        }}
+      />
     </Stack>
   );
 }

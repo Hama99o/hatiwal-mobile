@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# Meetup safety tips — quiet link on listing detail opens the sheet, shows
+# localized tips, and closes cleanly without crowding the Message Seller CTA.
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+# Open a listing detail
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+# Sticky CTA is present and not obscured
+- assertVisible: "Message Seller"
+# Quiet safety-tips link near location
+- tapOn: "Meetup safety tips"
+- waitForAnimationToEnd
+# Sheet opens with localized tips
+- assertVisible: "Meetup Safety Tips"
+- assertVisible: "Meet in a busy, public place"
+- assertVisible: "Never pay in advance"
+- assertVisible: "Report suspicious users"
+# Close the sheet
+- tapOn: "Close"
+- waitForAnimationToEnd
+# Back on listing detail — CTA still intact
+- assertVisible: "Message Seller"

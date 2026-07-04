@@ -144,6 +144,8 @@ export interface ListingParams {
   sort?: ListingSort;
   /** When set, restricts results to listings whose seller's last_sign_in_at is within this many days. */
   sellerActiveDays?: number;
+  /** TASK-B384: when true, restricts results to listings with a recent price drop (the "Deals" filter). */
+  priceDropped?: boolean;
 }
 
 export const listingsAPI = {
@@ -171,6 +173,7 @@ export const listingsAPI = {
     }
     if (params?.sort && params.sort !== "newest") query.append("sort", params.sort);
     if (params?.sellerActiveDays != null) query.append("seller_active_days", String(params.sellerActiveDays));
+    if (params?.priceDropped) query.append("price_dropped", "true");
 
     const response = await http.get(`/listings?${query}`);
     return {
@@ -210,6 +213,16 @@ export const listingsAPI = {
 
   unsaveListing: async (id: number): Promise<void> => {
     await http.delete(`/listings/${id}/unsave`);
+  },
+
+  // "Not interested" — hides a listing from the current user's own Browse
+  // feed only. Distinct from save/unsave and from the seen/viewed badge.
+  hideListing: async (id: number): Promise<void> => {
+    await http.post(`/listings/${id}/hide`);
+  },
+
+  unhideListing: async (id: number): Promise<void> => {
+    await http.delete(`/listings/${id}/unhide`);
   },
 
   // Seller (my listings)
@@ -346,6 +359,23 @@ export const listingsAPI = {
     if (page) query.append("page[number]", String(page));
 
     const response = await http.get(`/my/saved_listings?${query}`);
+    return {
+      items: (response.data.listings ?? []).map(
+        (l: Record<string, unknown>) => convertKeysToCamel(l) as Listing
+      ),
+      pagination: convertKeysToCamel(
+        response.data.meta.pagination
+      ) as ListingsResponse["pagination"],
+    };
+  },
+
+  // GET /my/hidden_listings — paginated list of listings the current user has
+  // dismissed via "Not interested". Mirrors getSavedListings.
+  getHiddenListings: async (page?: number): Promise<ListingsResponse> => {
+    const query = new URLSearchParams();
+    if (page) query.append("page[number]", String(page));
+
+    const response = await http.get(`/my/hidden_listings?${query}`);
     return {
       items: (response.data.listings ?? []).map(
         (l: Record<string, unknown>) => convertKeysToCamel(l) as Listing

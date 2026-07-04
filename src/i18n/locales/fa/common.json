@@ -46,6 +46,7 @@
   "required": "الزامی است",
   "comingSoon": "به زودی",
   "goBack": "بازگشت",
+  "undo": "بازگردانی",
   "splash": {
     "validating": "در حال بررسی نشست شما…"
   }

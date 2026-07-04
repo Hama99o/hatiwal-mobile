@@ -24,6 +24,7 @@ import {
   TextInput,
 } from "react-native";
 import { confirmAlert } from "@/utils/alert";
+import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/permissions";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -47,6 +48,7 @@ import { MessageBubble } from "./conversation/MessageBubble";
 import { MeetupSheet } from "./conversation/MeetupSheet";
 import { CounterOfferSheet } from "./conversation/CounterOfferSheet";
 import { ReportSheet } from "@/components/common/ReportSheet";
+import { SafetyTipsSheet } from "@/components/common/SafetyTipsSheet";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { useConversationCable } from "@/hooks/useConversationCable";
 import { QuickReplies } from "@/components/common/QuickReplies";
@@ -132,6 +134,12 @@ export function ConversationScreen() {
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(conversationId);
   const [isBlocked, setIsBlocked] = useState(false);
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
+  // Safety tips sheet is hoisted here (single instance) rather than owned by
+  // MeetupSheet, so opening it never stacks a second native <Modal> on top of
+  // the meetup sheet's. Tapping the link inside MeetupSheet hides the meetup
+  // modal (without resetting its place/time fields — the component stays
+  // mounted) and shows this one; closing it restores the meetup sheet.
+  const [safetyTipsVisible, setSafetyTipsVisible] = useState(false);
 
   // ── Composer draft persistence ───────────────────────────────────────────
   // The draft hook owns AsyncStorage persistence keyed per conversation.
@@ -538,12 +546,18 @@ export function ConversationScreen() {
     try {
       const ImagePicker = await import("expo-image-picker");
 
-      // Ask user: library or camera — use an ActionSheet-style bottom modal
-      // We'll default to library if platform doesn't support camera (Expo Go / web)
+      // Platform audit (2026-07-03): same "limited" access rule as PhotosSection /
+      // Profile avatar picker — status stays "granted" while accessPrivileges can be
+      // "limited" (iOS 14+ / Android 14+ partial photo access). Denied → centralized,
+      // localized alert with an Open Settings action (never a silent toast dead-end).
       const libraryPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!libraryPermission.granted) {
-        toast.error(t("chat.photo.permissionDenied"));
+        showPermissionDeniedAlert("photos", t);
         return;
+      }
+      if (libraryPermission.accessPrivileges === "limited") {
+        showLimitedPhotoAccessAlert(t);
+        // Intentionally fall through — the user can still pick from their allowed subset.
       }
 
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
@@ -1148,6 +1162,24 @@ export function ConversationScreen() {
         visible={meetupSheetVisible}
         onClose={() => setMeetupSheetVisible(false)}
         onPropose={handleProposeMeetup}
+        onOpenSafetyTips={() => {
+          // Hide the meetup modal (place/time fields are preserved — the
+          // component stays mounted, only its `visible` prop toggles) and
+          // show the safety-tips sheet on top; closing it restores this one.
+          setMeetupSheetVisible(false);
+          setSafetyTipsVisible(true);
+        }}
+      />
+
+      {/* Meetup safety tips sheet — single hoisted instance (see state comment
+          above). Reopens the meetup sheet on close so the in-progress place/time
+          the user was entering is never lost. */}
+      <SafetyTipsSheet
+        visible={safetyTipsVisible}
+        onClose={() => {
+          setSafetyTipsVisible(false);
+          setMeetupSheetVisible(true);
+        }}
       />
 
       {/* Counter-offer sheet — seller responds to buyer's offer with new price */}

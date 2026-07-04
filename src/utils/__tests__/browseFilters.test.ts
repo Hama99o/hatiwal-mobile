@@ -84,6 +84,24 @@ describe("computeActiveFilterCount", () => {
     ).toBe(1);
   });
 
+  it("counts priceDropped=true as 1", () => {
+    expect(
+      computeActiveFilterCount({ ...defaults, priceDropped: true })
+    ).toBe(1);
+  });
+
+  it("does NOT count priceDropped=false", () => {
+    expect(
+      computeActiveFilterCount({ ...defaults, priceDropped: false })
+    ).toBe(0);
+  });
+
+  it("does NOT count priceDropped when undefined", () => {
+    expect(
+      computeActiveFilterCount({ ...defaults, priceDropped: undefined })
+    ).toBe(0);
+  });
+
   it("does NOT count null sort (default newest-first)", () => {
     expect(
       computeActiveFilterCount({ ...defaults, sort: null })
@@ -122,7 +140,7 @@ describe("computeActiveFilterCount", () => {
     ).toBe(3);
   });
 
-  it("all eight filters active → count is 8", () => {
+  it("all nine filters active → count is 9", () => {
     const allActive: BrowseFilterState = {
       debouncedSearch: "test",
       categoryId: 5,
@@ -132,8 +150,9 @@ describe("computeActiveFilterCount", () => {
       coordinates: { latitude: 34.0, longitude: 70.0 },
       sellerActiveDays: 7,
       sort: "most_viewed",
+      priceDropped: true,
     };
-    expect(computeActiveFilterCount(allActive)).toBe(8);
+    expect(computeActiveFilterCount(allActive)).toBe(9);
   });
 
   it("subcategoryLabel paired with categoryId → only categoryId counted (no double-count)", () => {

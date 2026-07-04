@@ -143,6 +143,15 @@ const listingsHandlers = [
     HttpResponse.json({}, { status: 200 })
   ),
 
+  // TASK-H528 — "Not interested" hide / unhide
+  http.post(`${BASE}/listings/:id/hide`, () =>
+    HttpResponse.json({ hidden: true, id: 1 }, { status: 200 })
+  ),
+
+  http.delete(`${BASE}/listings/:id/unhide`, () =>
+    HttpResponse.json({ hidden: false }, { status: 200 })
+  ),
+
   // My listings
   http.get(`${BASE}/my/listings`, () =>
     HttpResponse.json({
@@ -221,6 +230,22 @@ const listingsHandlers = [
   ),
 
   http.get(`${BASE}/my/viewed_listings`, () =>
+    HttpResponse.json({
+      listings: [MOCK_LISTING],
+      meta: {
+        pagination: {
+          current_page: 1,
+          next_page: null,
+          prev_page: null,
+          total_count: 1,
+          total_pages: 1,
+        },
+      },
+    })
+  ),
+
+  // TASK-H528 — hidden listings management list
+  http.get(`${BASE}/my/hidden_listings`, () =>
     HttpResponse.json({
       listings: [MOCK_LISTING],
       meta: {

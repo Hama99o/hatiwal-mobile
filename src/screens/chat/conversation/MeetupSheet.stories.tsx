@@ -29,6 +29,7 @@ function MeetupSheetDemo({ isSubmitting = false }: { isSubmitting?: boolean }) {
           setVisible(false);
         }}
         isSubmitting={isSubmitting}
+        onOpenSafetyTips={() => console.log("open safety tips")}
       />
     </View>
   );
@@ -38,13 +39,14 @@ export const Default: Story = {
   render: () => <MeetupSheetDemo />,
 };
 
-// Pre-opened for visual inspection
+// Pre-opened for visual inspection — includes the safety-tips link (TASK-M617)
 export const Open: Story = {
   args: {
     visible: true,
     onClose: () => {},
     onPropose: async () => {},
     isSubmitting: false,
+    onOpenSafetyTips: () => {},
   },
 };
 
@@ -55,5 +57,17 @@ export const Submitting: Story = {
     onClose: () => {},
     onPropose: async () => {},
     isSubmitting: true,
+    onOpenSafetyTips: () => {},
+  },
+};
+
+// No safety-tips callback provided — link is hidden (host screen didn't wire
+// it). Confirms the link is fully optional and doesn't break the sheet.
+export const WithoutSafetyTipsLink: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onPropose: async () => {},
+    isSubmitting: false,
   },
 };

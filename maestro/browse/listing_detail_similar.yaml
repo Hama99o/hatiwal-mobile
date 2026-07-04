@@ -25,3 +25,11 @@ appId: com.hatiwal.app
 - back
 - waitForAnimationToEnd
 - assertVisible: "Similar Listings"
+
+# More from this seller — scroll further and optionally verify the rail
+# (only present when the seller has other active listings; hidden otherwise)
+- scroll
+- waitForAnimationToEnd
+- assertVisible:
+    text: "More from this Seller"
+    optional: true

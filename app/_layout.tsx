@@ -12,6 +12,9 @@ import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner-native";
 import { bootstrapAuth } from "@/stores/auth.bootstrap";
+// @ts-ignore — expo-font is installed in the Docker container; not resolvable on host
+import { useFonts } from "expo-font";
+import { FONT_ASSETS } from "@/lib/fonts";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,7 +46,11 @@ function ThemeManager({ onReady }: { onReady: () => void }) {
 export default function RootLayout() {
   const [themeReady, setThemeReady] = useState(false);
   const [authReady, setAuthReady] = useState(false);
-  const ready = themeReady && authReady;
+  // Load brand fonts before showing UI so text never flashes in the system font.
+  // useFonts also returns an error we tolerate — if a font fails, RN falls back
+  // to system rather than blocking the app forever.
+  const [fontsLoaded, fontError] = useFonts(FONT_ASSETS);
+  const ready = themeReady && authReady && (fontsLoaded || !!fontError);
 
   // Restore the auth session on EVERY app load (any route) before showing the
   // UI — so a logged-in user reloading on a deep route is never flashed the

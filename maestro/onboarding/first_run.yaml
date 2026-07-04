@@ -1,0 +1,86 @@
+appId: com.hatiwal.app
+---
+# First-run onboarding welcome carousel (TASK-W924)
+#
+# Covers:
+#   1. A genuinely fresh install (no auth token, no onboarding-seen flag)
+#      shows the 3-slide carousel with the language switcher, "Skip", and a
+#      primary action button visible on slide 1.
+#   2. The language switcher works inside onboarding — switching to Pashto
+#      renders the Pashto slide title (RTL), switching back to English
+#      restores it.
+#   3. Advancing via "Next" walks all 3 slides in order (welcome → modes →
+#      meetups); the primary button only reads "Get started" on the last
+#      slide.
+#   4. Tapping "Get started" marks onboarding as seen and lands on Bazaar
+#      (guest browsing — never a login wall).
+#   5. Relaunching afterward (clearState: false) never shows onboarding again
+#      — the app lands straight on Bazaar.
+#   6. A second fresh install exercises the "Skip" path instead of "Get
+#      started" — also lands on Bazaar and sets the seen flag, verified by
+#      another relaunch.
+
+# ─── Scenario 1: fresh install shows the carousel ─────────────────────────────
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+- assertVisible: "Welcome to Hatiwal"
+- assertVisible: "Skip"
+- assertVisible: "Next"
+
+# ─── Scenario 2: language switcher works inside onboarding (RTL) ──────────────
+
+- tapOn: "پښتو"
+- waitForAnimationToEnd
+- assertVisible: "هاتیوال ته ښه راغلاست"
+- tapOn: "English"
+- waitForAnimationToEnd
+- assertVisible: "Welcome to Hatiwal"
+
+# ─── Scenario 3: advance through all 3 slides via Next ────────────────────────
+
+- tapOn: "Next"
+- waitForAnimationToEnd
+- assertVisible: "Buy or sell — your choice"
+- assertVisible: "Next"
+
+- tapOn: "Next"
+- waitForAnimationToEnd
+- assertVisible: "Meet safely, in person"
+# Last slide — primary button now reads "Get started" instead of "Next"
+- assertVisible: "Get started"
+- assertNotVisible: "Next"
+
+# ─── Scenario 4: "Get started" marks onboarding seen and lands on Bazaar ──────
+
+- tapOn: "Get started"
+- waitForAnimationToEnd
+- assertVisible: "Bazaar"
+- assertNotVisible: "Welcome to Hatiwal"
+
+# ─── Scenario 5: relaunch never re-shows onboarding ───────────────────────────
+
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- assertVisible: "Bazaar"
+- assertNotVisible: "Skip"
+- assertNotVisible: "Get started"
+
+# ─── Scenario 6: the "Skip" path also sets the flag on a fresh install ────────
+
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Skip"
+- waitForAnimationToEnd
+- assertVisible: "Bazaar"
+
+# Relaunch again — Skip's flag persists just like "Get started"'s did
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- assertVisible: "Bazaar"
+- assertNotVisible: "Skip"

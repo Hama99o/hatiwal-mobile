@@ -1,0 +1,19 @@
+{
+  "meetup": {
+    "title": "Meetup Safety Tips",
+    "subtitle": "This is a local marketplace — every deal is completed in person. Keep these tips in mind.",
+    "tips": {
+      "publicPlace": "Meet in a busy, public place — markets, mosques, or shopping areas are safest.",
+      "daylight": "Choose daylight hours whenever possible.",
+      "bringFriend": "Bring a friend, or tell someone where you're going and who you're meeting.",
+      "inspectItem": "Inspect the item carefully before paying — make sure it works as described.",
+      "noAdvancePayment": "Never pay in advance or send money before seeing the item in person.",
+      "trustInstincts": "Trust your instincts — if something feels wrong, walk away.",
+      "reportSuspicious": "Report suspicious users or listings so we can keep the community safe."
+    }
+  },
+  "link": {
+    "listingDetail": "Meetup safety tips",
+    "meetupSheet": "Safety tips"
+  }
+}

@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { Modal, View, KeyboardAvoidingView, Platform, Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ShieldCheck } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { Input } from "@/components/reusables/input";
@@ -18,9 +19,16 @@ interface MeetupSheetProps {
   onClose: () => void;
   onPropose: (place: string, time: string) => Promise<void>;
   isSubmitting?: boolean;
+  /**
+   * Opens the shared SafetyTipsSheet. Owned/rendered by the host screen
+   * (Conversation.tsx) as a single hoisted instance — MeetupSheet only
+   * triggers it, it never renders its own SafetyTipsSheet, so the two
+   * sheets never stack as two simultaneous native <Modal>s.
+   */
+  onOpenSafetyTips?: () => void;
 }
 
-export function MeetupSheet({ visible, onClose, onPropose, isSubmitting }: MeetupSheetProps) {
+export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenSafetyTips }: MeetupSheetProps) {
   const { t } = useTranslation();
   const colors = useColors();
   const { isRtl } = useLocalization();
@@ -86,11 +94,41 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting }: Meetu
           {/* Handle */}
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
-          <Text
-            style={{ fontSize: 18, fontWeight: "600", marginBottom: 16, textAlign: isRtl ? "right" : "left" }}
+          <View
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 16,
+            }}
           >
-            {t("chat.meetup.title")}
-          </Text>
+            <Text style={{ fontSize: 18, fontWeight: "600", textAlign: isRtl ? "right" : "left" }}>
+              {t("chat.meetup.title")}
+            </Text>
+
+            {/* Quiet safety-tips link — small, secondary, never competes with
+                the primary Place/Time fields or the Propose action below. */}
+            {onOpenSafetyTips && (
+              <Pressable
+                onPress={onOpenSafetyTips}
+                style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 4 }}
+                accessibilityRole="button"
+                accessibilityLabel={t("safety.link.meetupSheet")}
+                testID="meetup-safety-tips-link"
+              >
+                <ShieldCheck size={13} color={colors.mutedForeground} />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.mutedForeground,
+                    textDecorationLine: "underline",
+                  }}
+                >
+                  {t("safety.link.meetupSheet")}
+                </Text>
+              </Pressable>
+            )}
+          </View>
 
           {/* Place field */}
           <Text

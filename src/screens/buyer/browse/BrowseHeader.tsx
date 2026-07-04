@@ -22,6 +22,7 @@ import {
   History,
   UserCheck,
   Navigation,
+  TrendingDown,
 } from "lucide-react-native";
 import type { BrowseViewMode } from "@/stores/browseViewMode.store";
 import { AnimatedPressable } from "@/lib/animation";
@@ -70,6 +71,9 @@ interface BrowseHeaderProps {
   /** When non-null, only listings from sellers active within this many days are shown. */
   sellerActiveDays: number | null;
   onSellerActiveDaysChange: (val: number | null) => void;
+  /** TASK-B384: true when the "Deals" (recent price-drop) chip is toggled on. */
+  priceDropped: boolean;
+  onTogglePriceDropped: () => void;
   viewMode: BrowseViewMode;
   onViewModeChange: (mode: BrowseViewMode) => void;
   /** Non-null when Browse is filtered to a specific subcategory (leaf node).
@@ -116,6 +120,8 @@ export function BrowseHeader({
   onToggleNearest,
   sellerActiveDays,
   onSellerActiveDaysChange,
+  priceDropped,
+  onTogglePriceDropped,
   viewMode,
   onViewModeChange,
   subcategoryLabel,
@@ -263,7 +269,7 @@ export function BrowseHeader({
               alignItems: "center",
             }}
             accessibilityRole="button"
-            accessibilityLabel={t("browse.filters")}
+            accessibilityLabel={t("browse.filtersToggle")}
             accessibilityState={{ expanded: showFilters }}
           >
             <Sliders
@@ -607,7 +613,7 @@ export function BrowseHeader({
                 >
                   {nearestLoading ? (
                     <ActivityIndicator
-                      size="small"
+                      size={13}
                       color={sort === "nearest" ? colors.primaryForeground : colors.mutedForeground}
                     />
                   ) : (
@@ -623,7 +629,7 @@ export function BrowseHeader({
                       color: sort === "nearest" ? colors.primaryForeground : colors.foreground,
                     }}
                   >
-                    {t("browse.sort.nearest")}
+                    {nearestLoading ? t("browse.nearestLocationLoading") : t("browse.sort.nearest")}
                   </Text>
                 </Pressable>
               </ScrollView>
@@ -694,6 +700,61 @@ export function BrowseHeader({
                 {sellerActiveDays === 7 && (
                   <X size={12} color={colors.primaryForeground} />
                 )}
+              </Pressable>
+            </View>
+
+            {/* Deals chip — TASK-B384: toggles the recent price-drop filter */}
+            <View style={{ gap: 6 }}>
+              <View
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <TrendingDown size={14} color={colors.mutedForeground} />
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: colors.mutedForeground,
+                  }}
+                >
+                  {t("browse.filters.dealsLabel")}
+                </Text>
+              </View>
+              <Pressable
+                onPress={onTogglePriceDropped}
+                style={{
+                  alignSelf: isRtl ? "flex-end" : "flex-start",
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingVertical: 9,
+                  paddingHorizontal: 14,
+                  borderRadius: 20,
+                  borderWidth: 1.5,
+                  backgroundColor: priceDropped ? colors.primary : "transparent",
+                  borderColor: priceDropped ? colors.primary : colors.border,
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: priceDropped }}
+                accessibilityHint={t("browse.filters.dealsHint")}
+              >
+                <TrendingDown
+                  size={14}
+                  color={priceDropped ? colors.primaryForeground : colors.mutedForeground}
+                />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "600",
+                    color: priceDropped ? colors.primaryForeground : colors.foreground,
+                  }}
+                >
+                  {t("browse.filters.deals")}
+                </Text>
+                {priceDropped && <X size={12} color={colors.primaryForeground} />}
               </Pressable>
             </View>
           </View>

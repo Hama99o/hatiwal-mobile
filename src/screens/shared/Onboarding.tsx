@@ -26,6 +26,7 @@ import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
+import { useReduceMotion } from "@/lib/animation";
 import { markOnboardingSeen } from "@/utils/onboarding";
 import {
   OnboardingSlide,
@@ -38,6 +39,7 @@ export default function OnboardingScreen() {
   const colors = useColors();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const reduceMotion = useReduceMotion();
 
   const carouselRef = useRef<ICarouselInstance>(null);
   const progress = useSharedValue(0);
@@ -53,17 +55,17 @@ export default function OnboardingScreen() {
     if (isLastSlide) {
       finishOnboarding();
     } else {
-      carouselRef.current?.next();
+      // Respect the OS "Reduce Motion" setting for the programmatic advance —
+      // snap instantly instead of animating the slide transition.
+      carouselRef.current?.next({ animated: !reduceMotion });
     }
-  }, [isLastSlide, finishOnboarding]);
+  }, [isLastSlide, finishOnboarding, reduceMotion]);
 
   return (
     <ScreenContainer
       scrollable={false}
       padded={false}
       safeArea={["top", "bottom"]}
-      accessible
-      accessibilityLabel={t("onboarding.slides.welcome.title")}
     >
       {/* Top bar — language switcher + Skip, mirrored for RTL */}
       <View
@@ -102,7 +104,9 @@ export default function OnboardingScreen() {
         />
       </View>
 
-      {/* Page dots */}
+      {/* Page dots — the library's own container hardcodes flexDirection:
+          "row" with no RTL awareness, so it's overridden here to keep the
+          dots reading in the same direction as the mirrored top bar/text. */}
       <Pagination.Basic
         progress={progress}
         data={ONBOARDING_SLIDE_KEYS}
@@ -113,8 +117,14 @@ export default function OnboardingScreen() {
           backgroundColor: colors.border,
         }}
         activeDotStyle={{ backgroundColor: colors.primary }}
-        containerStyle={{ gap: 8, marginBottom: 24 }}
-        onPress={(index) => carouselRef.current?.scrollTo({ index, animated: true })}
+        containerStyle={{
+          gap: 8,
+          marginBottom: 24,
+          flexDirection: isRtl ? "row-reverse" : "row",
+        }}
+        onPress={(index) =>
+          carouselRef.current?.scrollTo({ index, animated: !reduceMotion })
+        }
       />
 
       {/* Primary action */}

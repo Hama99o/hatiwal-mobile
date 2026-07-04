@@ -46,6 +46,7 @@
   "required": "is required",
   "comingSoon": "Coming soon",
   "goBack": "Go back",
+  "undo": "Undo",
   "splash": {
     "validating": "Checking your session…"
   }

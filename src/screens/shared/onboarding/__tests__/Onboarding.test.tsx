@@ -17,7 +17,7 @@
  */
 
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -51,6 +51,16 @@ jest.mock("@/components/common/LanguageSwitcher", () => {
 const mockMarkOnboardingSeen = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/utils/onboarding", () => ({
   markOnboardingSeen: (...args: unknown[]) => mockMarkOnboardingSeen(...args),
+}));
+
+// @/lib/animation — same convention as ListingCard.test.tsx / SavedSearches.test.tsx:
+// useReduceMotion() normally resolves AccessibilityInfo.isReduceMotionEnabled()
+// asynchronously, which updates state after RNTL's render() has already returned
+// and trips a "not wrapped in act(...)" console.error. Mocking it to a
+// synchronous `false` keeps the animation code path exercised without the
+// unmocked async state update.
+jest.mock("@/lib/animation", () => ({
+  useReduceMotion: () => false,
 }));
 
 // Minimal Carousel test double — renders every item via renderItem (no swipe
@@ -137,6 +147,11 @@ describe("OnboardingScreen", () => {
     fireEvent.press(screen.getByText("onboarding.skip"));
 
     expect(mockMarkOnboardingSeen).toHaveBeenCalledTimes(1);
-    expect(mockReplace).toHaveBeenCalledWith("/(main)/(tabs)/browse");
+    // finishOnboarding awaits markOnboardingSeen() before calling router.replace,
+    // so the navigation call lands on a later microtask — wait for it rather than
+    // asserting synchronously (this was flaky/failing before the fix).
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/(main)/(tabs)/browse");
+    });
   });
 });
