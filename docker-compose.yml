@@ -35,8 +35,10 @@ services:
       # Phone reaches the cable server over the LAN too — same HOST_IP, port 3098
       - EXPO_PUBLIC_CABLE_URL=ws://${HOST_IP:-localhost}:3098/hatiwal-cable
       - EXPO_PUBLIC_APP_NAME=Hatiwal
-      - EXPO_PUBLIC_GOOGLE_CLIENT_ID=1090253359225-k3eobrph3t1e99q3aq2r252jk4ob9i6v.apps.googleusercontent.com
-      - EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=1090253359225-rkd9q458daerb2venp697gq7gelfcrhr.apps.googleusercontent.com
+      # Google OAuth client ids — values live in the gitignored .env (compose
+      # interpolation), never hardcoded here.
+      - EXPO_PUBLIC_GOOGLE_CLIENT_ID=${EXPO_PUBLIC_GOOGLE_CLIENT_ID:-}
+      - EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=${EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID:-}
       - EXPO_PUBLIC_DEFAULT_LANG=en
       - EXPO_PUBLIC_DEFAULT_THEME=system
       - EXPO_NO_TELEMETRY=1
