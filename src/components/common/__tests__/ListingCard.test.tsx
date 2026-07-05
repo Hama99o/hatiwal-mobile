@@ -43,7 +43,8 @@ jest.mock("react-native-reanimated", () => {
   };
 });
 
-// Lucide icons used by ListingCard — mock them all to null so they don't crash
+// Lucide icons used by ListingCard (+ the PriceDropBadge it composes) — mocked
+// to plain strings so they don't crash without pulling in the real SVG deps.
 jest.mock("lucide-react-native", () => ({
   Heart: "Heart",
   MapPin: "MapPin",
@@ -51,6 +52,8 @@ jest.mock("lucide-react-native", () => ({
   Eye: "Eye",
   EyeOff: "EyeOff",
   BadgeCheck: "BadgeCheck",
+  TrendingDown: "TrendingDown",
+  ArrowRight: "ArrowRight",
 }));
 
 // @/lib/animation — mock so useListItemEntering + triggerHaptic are no-ops.
@@ -431,6 +434,95 @@ describe("ListingCard — firm-price badge (negotiable)", () => {
   it("does NOT render firm-price badge when negotiable is true (list variant)", () => {
     render(<ListingCard listing={makeListing({ negotiable: true })} variant="list" />);
     expect(screen.queryByTestId("firm-price-badge")).toBeNull();
+  });
+});
+
+// ── 9b. Per-buyer "price dropped since you saved it" badge (TASK-Y316) ───────
+// Distinct from the priceDropPercent corner overlay (TASK-N804, the listing's
+// own price-history badge shown to every buyer) — this one is only present on
+// the Saved screen's GET /my/saved_listings response.
+
+describe("ListingCard — saved price-drop badge (TASK-Y316)", () => {
+  it("renders the PriceDropBadge (saved variant, compact) when priceDropped is true (grid variant)", () => {
+    render(
+      <ListingCard
+        listing={makeListing({ priceDropped: true, priceAtSave: 100000, price: 85000 })}
+      />
+    );
+    expect(screen.getByTestId("price-drop-badge-saved")).toBeTruthy();
+    // Grid variant uses the compact form: struck-through old price + drop amount —
+    // NOT the full "Price dropped" label (that's reserved for the wider list row).
+    expect(screen.getByText("AFN 100000")).toBeTruthy();
+    expect(screen.getByText("-AFN 15000")).toBeTruthy();
+    expect(screen.queryByText(/listing\.priceDrop\.savedBadge$/)).toBeNull();
+  });
+
+  it("does NOT render the saved price-drop badge when priceDropped is false", () => {
+    render(
+      <ListingCard
+        listing={makeListing({ priceDropped: false, priceAtSave: 85000, price: 85000 })}
+      />
+    );
+    expect(screen.queryByTestId("price-drop-badge-saved")).toBeNull();
+  });
+
+  it("does NOT render the saved price-drop badge when priceDropped is undefined (non-Saved screens)", () => {
+    render(<ListingCard listing={makeListing()} />);
+    expect(screen.queryByTestId("price-drop-badge-saved")).toBeNull();
+  });
+
+  it("renders the full (non-compact) saved price-drop badge with its label in list variant too", () => {
+    render(
+      <ListingCard
+        listing={makeListing({ priceDropped: true, priceAtSave: 100000, price: 85000 })}
+        variant="list"
+      />
+    );
+    expect(screen.getByTestId("price-drop-badge-saved")).toBeTruthy();
+    expect(screen.getByText(/listing\.priceDrop\.savedBadge/)).toBeTruthy();
+  });
+
+  it("suppresses the priceDropPercent corner overlay (grid) when the per-buyer saved badge is showing — avoids a double price-drop signal on one card", () => {
+    render(
+      <ListingCard
+        listing={makeListing({
+          priceDropped: true,
+          priceAtSave: 100000,
+          price: 85000,
+          priceDropPercent: 15,
+        })}
+      />
+    );
+    // The saved badge (compact) is present...
+    expect(screen.getByTestId("price-drop-badge-saved")).toBeTruthy();
+    // ...but the listing-wide percent pill must NOT also render.
+    expect(screen.queryByText(/listing\.priceDrop\.badgeCardShort/)).toBeNull();
+  });
+
+  it("suppresses the priceDropPercent pill (list) when the per-buyer saved badge is showing", () => {
+    render(
+      <ListingCard
+        listing={makeListing({
+          priceDropped: true,
+          priceAtSave: 100000,
+          price: 85000,
+          priceDropPercent: 15,
+        })}
+        variant="list"
+      />
+    );
+    expect(screen.getByTestId("price-drop-badge-saved")).toBeTruthy();
+    expect(screen.queryByText(/listing\.priceDrop\.badgeCardShort/)).toBeNull();
+  });
+
+  it("still renders the priceDropPercent corner overlay when priceDropped is false/undefined (listing's own history signal, unaffected by TASK-Y316)", () => {
+    render(
+      <ListingCard
+        listing={makeListing({ priceDropped: false, priceDropPercent: 15, price: 85000 })}
+      />
+    );
+    expect(screen.getByText(/listing\.priceDrop\.badgeCardShort/)).toBeTruthy();
+    expect(screen.queryByTestId("price-drop-badge-saved")).toBeNull();
   });
 });
 

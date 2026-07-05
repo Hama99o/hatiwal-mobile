@@ -8,9 +8,11 @@
  *  3. "Mark Sold" button shown for owner + reserved listing
  *  4. No lifecycle button for owner + sold listing (terminal state)
  *  5. No lifecycle button for owner + draft listing
- *  6. Tapping Reserve calls listingsAPI.reserveListing and fires onLifecycleDone + toast.success
- *  7. Tapping Mark Sold opens confirmAlert; confirming calls listingsAPI.markSold + onLifecycleDone + toast.success
- *  8. Cancelling Mark Sold confirmAlert does NOT call listingsAPI.markSold
+ *  6. (TASK-TX01) Tapping Reserve opens the BuyerPickerSheet; confirming calls
+ *     listingsAPI.reserveListing(id, result) and fires onLifecycleDone + toast.success
+ *  7. (TASK-TX01) Tapping Mark Sold opens the BuyerPickerSheet; confirming calls
+ *     listingsAPI.markSold(id, result) + onLifecycleDone + toast.success
+ *  8. Closing the sheet does NOT call listingsAPI.markSold
  *  9. API error fires toast.error and does NOT call onLifecycleDone
  * 10. Tapping the outer Pressable calls onPress (open listing) when no action is shown
  * 11. (TASK-N071) Firm-price notice visibility — buyer vs owner, negotiable flag variants
@@ -61,6 +63,34 @@ jest.mock("sonner-native", () => ({
   },
 }));
 
+// BuyerPickerSheet (TASK-TX01) — minimal stand-in exposing a "confirm-skip"
+// button (legacy no-buyer path) and a "close" button. Real sheet behavior is
+// covered by its own unit tests.
+jest.mock("@/components/common/BuyerPickerSheet", () => {
+  const { Pressable, Text } = require("react-native");
+  return {
+    BuyerPickerSheet: ({ visible, onConfirm, onClose, action }: {
+      visible: boolean;
+      onConfirm: (r: { buyerId?: number; finalPrice?: number }) => void;
+      onClose: () => void;
+      action: string;
+    }) => {
+      if (!visible) return null;
+      return (
+        <>
+          <Text testID={`buyer-picker-visible-${action}`}>buyer-picker-open</Text>
+          <Pressable onPress={() => onConfirm({})} testID="confirm-skip">
+            <Text>confirm-skip</Text>
+          </Pressable>
+          <Pressable onPress={onClose} testID="picker-close">
+            <Text>close</Text>
+          </Pressable>
+        </>
+      );
+    },
+  };
+});
+
 // Import AFTER mocks
 import { ListingHeader } from "../ListingHeader";
 import { listingsAPI }   from "@/api/listings";
@@ -84,26 +114,6 @@ const baseListing = {
   status: "active",
   location: "Kabul",
 };
-
-function simulateConfirm() {
-  expect(mockConfirmAlert).toHaveBeenCalledTimes(1);
-  const buttons = mockConfirmAlert.mock.calls[0][2] as Array<{
-    text: string;
-    style?: string;
-    onPress?: () => void;
-  }>;
-  const confirmBtn = buttons.find((b) => b.style !== "cancel");
-  confirmBtn?.onPress?.();
-}
-
-function simulateCancel() {
-  const buttons = mockConfirmAlert.mock.calls[0][2] as Array<{
-    style?: string;
-    onPress?: () => void;
-  }>;
-  const cancelBtn = buttons.find((b) => b.style === "cancel");
-  cancelBtn?.onPress?.();
-}
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -199,10 +209,24 @@ describe("ListingHeader — owner + sold or draft listing (no action)", () => {
   );
 });
 
-// ── 6. Reserve mutation ────────────────────────────────────────────────────────
+// ── 6. Reserve action (TASK-TX01: opens BuyerPickerSheet) ──────────────────────
 
 describe("ListingHeader — Reserve action", () => {
-  it("calls listingsAPI.reserveListing with listing id when tapped", async () => {
+  it("opens the BuyerPickerSheet (not confirmAlert) when tapped", () => {
+    render(
+      <ListingHeader
+        listing={{ ...baseListing, id: 7, status: "active" }}
+        isOwner={true}
+      />
+    );
+
+    fireEvent.press(screen.getByText("chat.listingActions.reserve"));
+
+    expect(mockConfirmAlert).not.toHaveBeenCalled();
+    expect(screen.getByTestId("buyer-picker-visible-reserve")).toBeTruthy();
+  });
+
+  it("calls listingsAPI.reserveListing with listing id + result on picker confirm", async () => {
     mockListingsAPI.reserveListing.mockResolvedValueOnce({} as any);
     const onLifecycleDone = jest.fn();
 
@@ -215,9 +239,10 @@ describe("ListingHeader — Reserve action", () => {
     );
 
     fireEvent.press(screen.getByText("chat.listingActions.reserve"));
+    fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
-      expect(mockListingsAPI.reserveListing).toHaveBeenCalledWith(7);
+      expect(mockListingsAPI.reserveListing).toHaveBeenCalledWith(7, {});
     });
   });
 
@@ -234,6 +259,7 @@ describe("ListingHeader — Reserve action", () => {
     );
 
     fireEvent.press(screen.getByText("chat.listingActions.reserve"));
+    fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
       expect(onLifecycleDone).toHaveBeenCalledTimes(1);
@@ -254,32 +280,19 @@ describe("ListingHeader — Reserve action", () => {
     );
 
     fireEvent.press(screen.getByText("chat.listingActions.reserve"));
+    fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
       expect(mockToast.error).toHaveBeenCalledWith("chat.listingActions.reserveFailed");
       expect(onLifecycleDone).not.toHaveBeenCalled();
     });
   });
-
-  it("does NOT open a confirmAlert for Reserve (not destructive)", () => {
-    mockListingsAPI.reserveListing.mockResolvedValueOnce({} as any);
-
-    render(
-      <ListingHeader
-        listing={{ ...baseListing, status: "active" }}
-        isOwner={true}
-      />
-    );
-
-    fireEvent.press(screen.getByText("chat.listingActions.reserve"));
-    expect(mockConfirmAlert).not.toHaveBeenCalled();
-  });
 });
 
-// ── 7. Mark Sold — confirm then mutate ───────────────────────────────────────
+// ── 7. Mark Sold action (TASK-TX01: opens BuyerPickerSheet) ────────────────────
 
-describe("ListingHeader — Mark Sold action (confirmAlert gating)", () => {
-  it("opens confirmAlert when Mark Sold is tapped", () => {
+describe("ListingHeader — Mark Sold action", () => {
+  it("opens the BuyerPickerSheet (not confirmAlert) when tapped", () => {
     render(
       <ListingHeader
         listing={{ ...baseListing, status: "reserved" }}
@@ -289,21 +302,11 @@ describe("ListingHeader — Mark Sold action (confirmAlert gating)", () => {
 
     fireEvent.press(screen.getByText("chat.listingActions.markSold"));
 
-    expect(mockConfirmAlert).toHaveBeenCalledTimes(1);
-    expect(mockConfirmAlert).toHaveBeenCalledWith(
-      "chat.listingActions.markSoldConfirmTitle",
-      "chat.listingActions.markSoldConfirmBody",
-      expect.arrayContaining([
-        expect.objectContaining({ style: "cancel" }),
-        expect.objectContaining({
-          text: "chat.listingActions.markSoldConfirmCta",
-          style: "destructive",
-        }),
-      ])
-    );
+    expect(mockConfirmAlert).not.toHaveBeenCalled();
+    expect(screen.getByTestId("buyer-picker-visible-sold")).toBeTruthy();
   });
 
-  it("calls listingsAPI.markSold with listing id on confirm", async () => {
+  it("calls listingsAPI.markSold with listing id + result on picker confirm", async () => {
     mockListingsAPI.markSold.mockResolvedValueOnce({} as any);
 
     render(
@@ -314,10 +317,10 @@ describe("ListingHeader — Mark Sold action (confirmAlert gating)", () => {
     );
 
     fireEvent.press(screen.getByText("chat.listingActions.markSold"));
-    simulateConfirm();
+    fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
-      expect(mockListingsAPI.markSold).toHaveBeenCalledWith(7);
+      expect(mockListingsAPI.markSold).toHaveBeenCalledWith(7, {});
     });
   });
 
@@ -334,7 +337,7 @@ describe("ListingHeader — Mark Sold action (confirmAlert gating)", () => {
     );
 
     fireEvent.press(screen.getByText("chat.listingActions.markSold"));
-    simulateConfirm();
+    fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
       expect(onLifecycleDone).toHaveBeenCalledTimes(1);
@@ -355,7 +358,7 @@ describe("ListingHeader — Mark Sold action (confirmAlert gating)", () => {
     );
 
     fireEvent.press(screen.getByText("chat.listingActions.markSold"));
-    simulateConfirm();
+    fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
       expect(mockToast.error).toHaveBeenCalledWith("chat.listingActions.markSoldFailed");
@@ -364,10 +367,10 @@ describe("ListingHeader — Mark Sold action (confirmAlert gating)", () => {
   });
 });
 
-// ── 8. Cancel Mark Sold ───────────────────────────────────────────────────────
+// ── 8. Closing the picker ───────────────────────────────────────────────────────
 
-describe("ListingHeader — cancelling Mark Sold", () => {
-  it("does NOT call listingsAPI.markSold when cancel is pressed", () => {
+describe("ListingHeader — closing the BuyerPickerSheet", () => {
+  it("does NOT call listingsAPI.markSold when the sheet is closed without confirming", () => {
     render(
       <ListingHeader
         listing={{ ...baseListing, status: "reserved" }}
@@ -376,7 +379,7 @@ describe("ListingHeader — cancelling Mark Sold", () => {
     );
 
     fireEvent.press(screen.getByText("chat.listingActions.markSold"));
-    simulateCancel();
+    fireEvent.press(screen.getByTestId("picker-close"));
 
     expect(mockListingsAPI.markSold).not.toHaveBeenCalled();
   });

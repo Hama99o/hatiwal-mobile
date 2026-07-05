@@ -64,7 +64,11 @@
     "accepted": "لیدنه ومنل شوه",
     "declined": "لیدنه رد شوه",
     "acceptedToast": "تاسو لیدنه ومنله",
-    "declinedToast": "تاسو لیدنه رد کړه"
+    "declinedToast": "تاسو لیدنه رد کړه",
+    "pickOnMap": "په نقشه کې وټاکئ",
+    "locationSet": "دقیق موقعیت وټاکل شو",
+    "clearLocation": "پین لرې کړئ",
+    "openInMaps": "په نقشه کې خلاصول"
   },
   "startConversation": {
     "title": "پلورونکي ته پیغام",

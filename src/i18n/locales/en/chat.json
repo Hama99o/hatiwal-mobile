@@ -64,7 +64,11 @@
     "accepted": "Meetup accepted",
     "declined": "Meetup declined",
     "acceptedToast": "You accepted the meetup",
-    "declinedToast": "You declined the meetup"
+    "declinedToast": "You declined the meetup",
+    "pickOnMap": "Pick on map",
+    "locationSet": "Exact location set",
+    "clearLocation": "Remove pin",
+    "openInMaps": "Open in Maps"
   },
   "startConversation": {
     "title": "Message Seller",

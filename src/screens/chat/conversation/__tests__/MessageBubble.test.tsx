@@ -501,6 +501,101 @@ describe("MessageBubble — delete action (TASK-M913)", () => {
   });
 });
 
+// ── TASK-M263: meetup proposal with a precise map pin ─────────────────────────
+describe("MessageBubble — meetup_proposal with precise coords (TASK-M263)", () => {
+  it("renders place and time for a legacy 2-part body", () => {
+    render(
+      <MessageBubble
+        message={makeMsg({ kind: "meetup_proposal", body: "Kabul City Center | Fri 3pm" })}
+        isMine={false}
+      />
+    );
+    expect(screen.getByText("Kabul City Center")).toBeTruthy();
+    expect(screen.getByText("Fri 3pm")).toBeTruthy();
+  });
+
+  it("does NOT show the precise-pin badge for a legacy 2-part body", () => {
+    render(
+      <MessageBubble
+        message={makeMsg({ kind: "meetup_proposal", body: "Kabul City Center | Fri 3pm" })}
+        isMine={false}
+      />
+    );
+    expect(screen.queryByTestId("meetup-precise-pin-badge")).toBeNull();
+  });
+
+  it("shows the precise-pin badge when a 3-part body with valid coords is present", () => {
+    render(
+      <MessageBubble
+        message={makeMsg({
+          kind: "meetup_proposal",
+          body: "Kabul City Center | Fri 3pm | 34.5553,69.2075",
+        })}
+        isMine={false}
+      />
+    );
+    expect(screen.getByTestId("meetup-precise-pin-badge")).toBeTruthy();
+  });
+
+  it("does NOT show the precise-pin badge when the 3rd segment is malformed", () => {
+    render(
+      <MessageBubble
+        message={makeMsg({
+          kind: "meetup_proposal",
+          body: "Kabul City Center | Fri 3pm | not-a-coordinate",
+        })}
+        isMine={false}
+      />
+    );
+    expect(screen.queryByTestId("meetup-precise-pin-badge")).toBeNull();
+  });
+
+  it("opens maps with a coordinate URL when a precise pin is attached", () => {
+    const { Linking } = require("react-native");
+    const openURLSpy = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+
+    render(
+      <MessageBubble
+        message={makeMsg({
+          kind: "meetup_proposal",
+          body: "Kabul City Center | Fri 3pm | 34.5553,69.2075",
+        })}
+        isMine={false}
+      />
+    );
+
+    fireEvent.press(screen.getByLabelText("chat.meetup.openInMaps"));
+
+    expect(openURLSpy).toHaveBeenCalled();
+    const calledUrl = openURLSpy.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("34.5553,69.2075");
+
+    openURLSpy.mockRestore();
+  });
+
+  it("falls back to a fuzzy text-query URL for a legacy 2-part body (no coords)", () => {
+    const { Linking } = require("react-native");
+    const openURLSpy = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+
+    render(
+      <MessageBubble
+        message={makeMsg({ kind: "meetup_proposal", body: "Kabul City Center | Fri 3pm" })}
+        isMine={false}
+      />
+    );
+
+    fireEvent.press(screen.getByLabelText("chat.meetup.openInMaps"));
+
+    expect(openURLSpy).toHaveBeenCalled();
+    const calledUrl = openURLSpy.mock.calls[0][0] as string;
+    // No coordinates known — must fall back to a text search containing the place name.
+    expect(calledUrl).toContain(encodeURIComponent("Kabul City Center"));
+    expect(calledUrl).not.toContain("34.5553");
+
+    openURLSpy.mockRestore();
+  });
+});
+
 describe("MessageBubble — offer with Counter button (TASK-O829)", () => {
   const offerMsg = makeMsg({
     kind: "offer",

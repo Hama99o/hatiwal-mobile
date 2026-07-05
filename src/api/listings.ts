@@ -1,5 +1,6 @@
 import { http } from "./http";
 import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
+import type { Transaction } from "./transactions";
 
 // Analytics types
 export interface ListingAnalyticsEntry {
@@ -70,6 +71,15 @@ export interface Listing {
   // Price-drop badge — present on :list, :seller_list, and :detailed views; both null if no recent drop.
   priceDroppedAt?: string | null;
   priceDropPercent?: number | null;
+  /**
+   * Per-buyer "price dropped since you saved it" data (TASK-Y316) — only
+   * present on GET /my/saved_listings (:list view + saved_by_listing_id
+   * option). Distinct from priceDropPercent/priceDroppedAt above, which are
+   * the listing's own price-history badge (TASK-N804) shown to every buyer.
+   */
+  priceAtSave?: number | null;
+  priceDropped?: boolean;
+  priceDropAmount?: number | null;
   // Canonical share URL — https when PUBLIC_SHARE_BASE_URL is configured on the backend, else nil.
   // Only present on the :detailed view. Mobile falls back to hatiwal://listing/:id when absent.
   shareUrl?: string | null;
@@ -401,9 +411,24 @@ export const listingsAPI = {
     return convertKeysToCamel(response.data.listing) as Listing;
   },
 
-  reserveListing: async (id: number): Promise<Listing> => {
-    const response = await http.put(`/my/listings/${id}/reserve`);
-    return convertKeysToCamel(response.data.listing) as Listing;
+  // TASK-TX01: `opts.buyerId` (+ optional `opts.finalPrice`) identifies the
+  // buyer from one of the listing's conversations — when given, the backend
+  // creates/advances a Transaction and the response includes it. Omitting
+  // `opts` preserves the legacy bare-call behavior (no Transaction).
+  reserveListing: async (
+    id: number,
+    opts?: { buyerId?: number; finalPrice?: number }
+  ): Promise<{ listing: Listing; transaction?: Transaction }> => {
+    const response = await http.put(
+      `/my/listings/${id}/reserve`,
+      opts?.buyerId ? convertKeysToSnake({ buyerId: opts.buyerId, finalPrice: opts.finalPrice }) : undefined
+    );
+    return {
+      listing: convertKeysToCamel(response.data.listing) as Listing,
+      transaction: response.data.transaction
+        ? (convertKeysToCamel(response.data.transaction) as Transaction)
+        : undefined,
+    };
   },
 
   // reserved → active (undo a reservation)
@@ -412,9 +437,21 @@ export const listingsAPI = {
     return convertKeysToCamel(response.data.listing) as Listing;
   },
 
-  markSold: async (id: number): Promise<Listing> => {
-    const response = await http.put(`/my/listings/${id}/sold`);
-    return convertKeysToCamel(response.data.listing) as Listing;
+  // TASK-TX01: see reserveListing — same optional buyer_id/final_price contract.
+  markSold: async (
+    id: number,
+    opts?: { buyerId?: number; finalPrice?: number }
+  ): Promise<{ listing: Listing; transaction?: Transaction }> => {
+    const response = await http.put(
+      `/my/listings/${id}/sold`,
+      opts?.buyerId ? convertKeysToSnake({ buyerId: opts.buyerId, finalPrice: opts.finalPrice }) : undefined
+    );
+    return {
+      listing: convertKeysToCamel(response.data.listing) as Listing,
+      transaction: response.data.transaction
+        ? (convertKeysToCamel(response.data.transaction) as Transaction)
+        : undefined,
+    };
   },
 
   // Restart the 30-day expiry clock on an active (possibly expired) listing.

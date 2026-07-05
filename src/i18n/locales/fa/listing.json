@@ -98,7 +98,10 @@
   },
   "priceDrop": {
     "badge": "{{percent}}٪ کاهش قیمت",
-    "badgeCardShort": "↓{{percent}}٪"
+    "badgeCardShort": "↓{{percent}}٪",
+    "savedBadge": "قیمت کاهش یافت",
+    "savedBadgeA11y": "قیمت از {{oldPrice}} به {{newPrice}} کاهش یافت",
+    "savedBadgeCompactA11y": "قیمت از {{oldPrice}} کاهش یافت، {{dropAmount}} تخفیف"
   },
   "detail": {
     "contactSeller": "تماس با فروشنده",

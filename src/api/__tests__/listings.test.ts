@@ -497,9 +497,10 @@ describe("listingsAPI lifecycle transitions", () => {
     expect(listing.status).toBe("draft");
   });
 
-  it("reserveListing returns reserved listing", async () => {
-    const listing = await listingsAPI.reserveListing(10);
+  it("reserveListing returns { listing } with no transaction when called bare (legacy)", async () => {
+    const { listing, transaction } = await listingsAPI.reserveListing(10);
     expect(listing.status).toBe("reserved");
+    expect(transaction).toBeUndefined();
   });
 
   it("activateListing returns active listing", async () => {
@@ -507,9 +508,84 @@ describe("listingsAPI lifecycle transitions", () => {
     expect(listing.status).toBe("active");
   });
 
-  it("markSold returns sold listing", async () => {
-    const listing = await listingsAPI.markSold(10);
+  it("markSold returns { listing } with no transaction when called bare (legacy)", async () => {
+    const { listing, transaction } = await listingsAPI.markSold(10);
     expect(listing.status).toBe("sold");
+    expect(transaction).toBeUndefined();
+  });
+
+  // ── TASK-TX01 ──────────────────────────────────────────────────────────────
+  it("reserveListing sends buyer_id/final_price and returns the transaction when given", async () => {
+    let capturedBody: Record<string, unknown> = {};
+    server.use(
+      http.put(`http://localhost:3007/api/v1/my/listings/:id/reserve`, async ({ request, params }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          listing: { ...MOCK_LISTING, id: Number(params.id), status: "reserved" },
+          transaction: {
+            id: 1,
+            status: "reserved",
+            final_price: 12345,
+            currency: "AFN",
+            completed_at: null,
+            created_at: "2026-07-01T00:00:00Z",
+            listing: { id: Number(params.id), title: "Item", thumbnail_url: null, price: 25000, currency: "AFN" },
+            buyer: { id: 42, name: "Ahmad", avatar_url: null },
+            seller: { id: 1, name: "Seller", avatar_url: null },
+          },
+        });
+      })
+    );
+
+    const { transaction } = await listingsAPI.reserveListing(10, { buyerId: 42, finalPrice: 12345 });
+
+    expect(capturedBody).toEqual({ buyer_id: 42, final_price: 12345 });
+    expect(transaction?.id).toBe(1);
+    expect(transaction?.buyer.id).toBe(42);
+    expect(transaction?.finalPrice).toBe(12345);
+  });
+
+  it("reserveListing sends no body when buyerId is omitted (legacy path)", async () => {
+    let sawBody = true;
+    server.use(
+      http.put(`http://localhost:3007/api/v1/my/listings/:id/reserve`, async ({ request, params }) => {
+        const text = await request.text();
+        sawBody = text.length > 0;
+        return HttpResponse.json({ listing: { ...MOCK_LISTING, id: Number(params.id), status: "reserved" } });
+      })
+    );
+
+    await listingsAPI.reserveListing(10);
+    expect(sawBody).toBe(false);
+  });
+
+  it("markSold sends buyer_id/final_price and returns the transaction when given", async () => {
+    let capturedBody: Record<string, unknown> = {};
+    server.use(
+      http.put(`http://localhost:3007/api/v1/my/listings/:id/sold`, async ({ request, params }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({
+          listing: { ...MOCK_LISTING, id: Number(params.id), status: "sold" },
+          transaction: {
+            id: 2,
+            status: "sold",
+            final_price: 12345,
+            currency: "AFN",
+            completed_at: "2026-07-02T00:00:00Z",
+            created_at: "2026-07-01T00:00:00Z",
+            listing: { id: Number(params.id), title: "Item", thumbnail_url: null, price: 25000, currency: "AFN" },
+            buyer: { id: 42, name: "Ahmad", avatar_url: null },
+            seller: { id: 1, name: "Seller", avatar_url: null },
+          },
+        });
+      })
+    );
+
+    const { transaction } = await listingsAPI.markSold(10, { buyerId: 42, finalPrice: 12345 });
+
+    expect(capturedBody).toEqual({ buyer_id: 42, final_price: 12345 });
+    expect(transaction?.status).toBe("sold");
+    expect(transaction?.completedAt).toBe("2026-07-02T00:00:00Z");
   });
 });
 
@@ -522,6 +598,14 @@ describe("listingsAPI.getSavedListings", () => {
     expect(result.pagination.totalCount).toBe(1);
     expect(result.pagination.totalPages).toBe(1);
     expect(result.pagination.nextPage).toBeNull();
+  });
+
+  // TASK-Y316: per-buyer price-drop fields, camelCased from the API response.
+  it("returns priceAtSave / priceDropped / priceDropAmount camelCased", async () => {
+    const result = await listingsAPI.getSavedListings();
+    expect(result.items[0].priceAtSave).toBe(30000);
+    expect(result.items[0].priceDropped).toBe(true);
+    expect(result.items[0].priceDropAmount).toBe(5000);
   });
 
   it("passes page[number] param when page is provided", async () => {

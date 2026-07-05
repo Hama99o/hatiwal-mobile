@@ -64,7 +64,11 @@
     "accepted": "ملاقات پذیرفته شد",
     "declined": "ملاقات رد شد",
     "acceptedToast": "شما ملاقات را پذیرفتید",
-    "declinedToast": "شما ملاقات را رد کردید"
+    "declinedToast": "شما ملاقات را رد کردید",
+    "pickOnMap": "انتخاب روی نقشه",
+    "locationSet": "موقعیت دقیق تنظیم شد",
+    "clearLocation": "حذف پین",
+    "openInMaps": "باز کردن در نقشه"
   },
   "startConversation": {
     "title": "پیام به فروشنده",

@@ -1,0 +1,19 @@
+{
+  "reserveTitle": "دا توکی څوک اخلي؟",
+  "soldTitle": "دا توکی چا واخیست؟",
+  "subtitle": "د دې اعلان له خبرو اترو څخه یو غوره کړئ.",
+  "loading": "خبرې اترې پورته کیږي...",
+  "noConversations": "پدې اعلان کې تر اوسه هیڅ خبرې اترې نشته.",
+  "someoneElse": "بل چا / پرېږده",
+  "someoneElseHint": "پرته د اخیستونکي ثبت کولو دوام ورکړئ",
+  "finalPriceLabel": "وروستنۍ بیه (اختیاري)",
+  "finalPricePlaceholder": "لیست شوې بیه",
+  "confirmReserve": "ساتنه تایید کړئ",
+  "confirmSold": "خرڅلاو تایید کړئ",
+  "cancel": "لغوه کول",
+  "noMessages": "تر اوسه هیڅ پیغام نشته",
+  "errors": {
+    "invalidPrice": "سمه بیه دننه کړئ",
+    "generic": "یو څه غلط شول. مهرباني وکړئ بیا هڅه وکړئ."
+  }
+}

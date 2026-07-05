@@ -1,6 +1,11 @@
 appId: com.hatiwal.app
 ---
 # Lifecycle: reserved → sold
+#
+# TASK-TX01: "Mark as Sold" now opens the BuyerPickerSheet instead of a plain
+# confirmAlert. This flow exercises the legacy "Someone else / skip" path
+# (no buyer recorded) — the buyer-recorded path is covered by
+# ../seller/mark_sold_with_buyer.yaml.
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
@@ -10,9 +15,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Mark as Sold"
 - waitForAnimationToEnd
-# Confirm dialog
-- assertVisible: "Mark as sold?"
-- tapOn: "Confirm"
+# BuyerPickerSheet opens
+- assertVisible: "Who bought this item?"
+- tapOn: "Someone else / skip"
+- tapOn: "Confirm sold"
 - waitForAnimationToEnd
 # Status changed
 - assertVisible: "Listing marked as sold"

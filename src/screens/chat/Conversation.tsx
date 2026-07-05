@@ -53,6 +53,7 @@ import { UserIdentity } from "@/components/common/UserIdentity";
 import { useConversationCable } from "@/hooks/useConversationCable";
 import { QuickReplies } from "@/components/common/QuickReplies";
 import { useComposerDraft } from "@/hooks/useComposerDraft";
+import { encodeMeetupBody, type MeetupCoords } from "./conversation/meetupBody";
 
 // ── Reanimated imports for search bar animation ───────────────────────────────
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate, Extrapolation } from "react-native-reanimated";
@@ -406,10 +407,13 @@ export function ConversationScreen() {
   }, [currentConversationId, messageText, isSending, currentUser, clearDraft, t]);
 
   // ── Send meetup proposal ─────────────────────────────────────────────────
-  const handleProposeMeetup = useCallback(async (place: string, time: string) => {
+  // Body encoding is backward compatible (see meetupBody.ts): coords are only
+  // appended as a 3rd "lat,long" segment when the proposer picked an exact
+  // spot on the map — legacy 2-part "place | time" messages keep working.
+  const handleProposeMeetup = useCallback(async (place: string, time: string, coords?: MeetupCoords) => {
     const convId = currentConversationId;
     if (!convId) return;
-    const body = `${place} | ${time}`;
+    const body = encodeMeetupBody(place, time, coords);
 
     try {
       const sent = await conversationsAPI.sendMessage(convId, body, "meetup_proposal");

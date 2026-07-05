@@ -7,17 +7,19 @@ import React, { useState } from "react";
 import { Modal, View, KeyboardAvoidingView, Platform, Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ShieldCheck } from "lucide-react-native";
+import { ShieldCheck, MapPin, X } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { Input } from "@/components/reusables/input";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
+import { LocationRangePicker } from "@/components/common/LocationRangePicker";
+import type { MeetupCoords } from "./meetupBody";
 
 interface MeetupSheetProps {
   visible: boolean;
   onClose: () => void;
-  onPropose: (place: string, time: string) => Promise<void>;
+  onPropose: (place: string, time: string, coords?: MeetupCoords) => Promise<void>;
   isSubmitting?: boolean;
   /**
    * Opens the shared SafetyTipsSheet. Owned/rendered by the host screen
@@ -38,6 +40,11 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
   const [time, setTime] = useState("");
   const [placeError, setPlaceError] = useState("");
   const [timeError, setTimeError] = useState("");
+  // Optional exact pin — set via "Pick on map" (LocationRangePicker point mode).
+  // Backward compatible: when null, the encoded body stays the legacy 2-part
+  // "place | time" format (see meetupBody.ts).
+  const [coords, setCoords] = useState<MeetupCoords | null>(null);
+  const [mapPickerVisible, setMapPickerVisible] = useState(false);
 
   const handlePropose = async () => {
     let valid = true;
@@ -55,9 +62,10 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
     }
     if (!valid) return;
 
-    await onPropose(place.trim(), time.trim());
+    await onPropose(place.trim(), time.trim(), coords ?? undefined);
     setPlace("");
     setTime("");
+    setCoords(null);
   };
 
   const handleClose = () => {
@@ -65,12 +73,18 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
     setTime("");
     setPlaceError("");
     setTimeError("");
+    setCoords(null);
     onClose();
   };
 
   return (
+    <>
+    {/* Outer sheet Modal is hidden (not unmounted) while the map picker is
+        open — same "one native Modal visible at a time" rule used for the
+        safety-tips sheet (see onOpenSafetyTips docs above). Place/Time/coords
+        state is preserved because the component itself never unmounts. */}
     <Modal
-      visible={visible}
+      visible={visible && !mapPickerVisible}
       transparent
       animationType="slide"
       onRequestClose={handleClose}
@@ -147,6 +161,55 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
             <Text style={{ fontSize: 12, color: colors.destructive, marginTop: 4 }}>{placeError}</Text>
           ) : null}
 
+          {/* Optional exact pin — reuses LocationRangePicker in "point" mode
+              (same geocoding flow as EditProfile). Fully optional: Place/Time
+              text entry keeps working without ever opening the map. */}
+          <Pressable
+            onPress={() => setMapPickerVisible(true)}
+            disabled={isSubmitting}
+            accessibilityRole="button"
+            accessibilityLabel={t("chat.meetup.pickOnMap")}
+            hitSlop={12}
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 8,
+              alignSelf: isRtl ? "flex-end" : "flex-start",
+              minHeight: 44,
+              minWidth: 44,
+              paddingVertical: 8,
+              paddingHorizontal: 4,
+            }}
+          >
+            <MapPin size={14} color={coords ? colors.primary : colors.mutedForeground} />
+            <Text style={{ fontSize: 13, fontWeight: "600", color: coords ? colors.primary : colors.mutedForeground }}>
+              {coords ? t("chat.meetup.locationSet") : t("chat.meetup.pickOnMap")}
+            </Text>
+            {coords ? (
+              // Design review fix (TASK-M263): the icon alone is only 13px — give the
+              // Pressable an explicit ≥44pt box (design system §"Touch targets ≥44px")
+              // instead of relying on hitSlop alone to pad a near-zero-size view.
+              <Pressable
+                onPress={() => setCoords(null)}
+                disabled={isSubmitting}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t("chat.meetup.clearLocation")}
+                style={{
+                  minWidth: 44,
+                  minHeight: 44,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginLeft: isRtl ? 0 : -10,
+                  marginRight: isRtl ? -10 : 0,
+                }}
+              >
+                <X size={13} color={colors.mutedForeground} />
+              </Pressable>
+            ) : null}
+          </Pressable>
+
           <View style={{ height: 12 }} />
 
           {/* Time field */}
@@ -191,6 +254,25 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
         </View>
       </KeyboardAvoidingView>
     </Modal>
+
+    {/* Exact-location picker — point mode (seller/EditProfile pattern).
+        Rendered as a sibling <Modal>, never nested inside the sheet's own
+        Modal, so only one native Modal is ever visible at once (the sheet's
+        `visible` prop above is toggled off while this one is open). */}
+    <LocationRangePicker
+      visible={mapPickerVisible}
+      mode="point"
+      initialCoords={coords ? { latitude: coords.lat, longitude: coords.long } : null}
+      initialRadius={5}
+      initialLabel={place || null}
+      onClose={() => setMapPickerVisible(false)}
+      onConfirm={({ coords: picked, label }) => {
+        setCoords({ lat: picked.latitude, long: picked.longitude });
+        if (label) setPlace(label);
+        setMapPickerVisible(false);
+      }}
+    />
+    </>
   );
 }
 

@@ -18,19 +18,51 @@ import { useReduceMotion } from "@/lib/animation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { confirmAlert } from "@/utils/alert";
 import type { Message } from "@/api/conversations";
+import { parseMeetupBody, type MeetupCoords } from "./meetupBody";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
-// Platform audit (2026-06-18):
+// Platform audit (2026-06-18, extended TASK-M263 2026-07-04):
+//   When `coords` is present (an exact pin was set via "Pick on map"),
+//   openInMaps drops the REAL pin instead of doing a fuzzy text search:
+//     Android: "geo:<lat>,<long>?q=<lat>,<long>(<label>)" — the parenthesized
+//       label is the standard Android geo URI convention for a named pin.
+//     iOS: "maps:?ll=<lat>,<long>&q=<label>" — Apple Maps ll= param centers
+//       exactly on the coordinate, q= supplies the pin label.
+//   When `coords` is absent (legacy 2-part meetup message, no pin was set),
+//   falls back to the original fuzzy text-query behavior — never breaks old
+//   messages.
 //   Android: "geo:" URI opens the system maps chooser (Google Maps, HERE, etc.).
 //     Fallback: Google Maps web URL when no handler is registered (e.g. bare emulator).
 //   iOS: "maps:" URI opens Apple Maps natively.
 //     Fallback: Google Maps web URL if Apple Maps is not installed (rare but safe).
 //   else branch: intentional catch-all for any future platform additions; web was
 //     removed in Q1 so this is not dead code — it is a forward-safe guard.
-//   All three branches have correct, tested fallbacks.
-function openInMaps(place: string) {
+//   All branches have correct, tested fallbacks.
+function openInMaps(place: string, coords?: MeetupCoords | null) {
   const encoded = encodeURIComponent(place);
+
+  if (coords) {
+    const { lat, long } = coords;
+    if (Platform.OS === "android") {
+      const query = encodeURIComponent(`${lat},${long}(${place})`);
+      Linking.openURL(`geo:${lat},${long}?q=${query}`).catch(() =>
+        Linking.openURL(`https://maps.google.com/?q=${lat},${long}`)
+      );
+      return;
+    } else if (Platform.OS === "ios") {
+      Linking.openURL(`maps:?ll=${lat},${long}&q=${encoded}`).catch(() =>
+        Linking.openURL(`https://maps.google.com/?q=${lat},${long}`)
+      );
+      return;
+    } else {
+      // Intentional catch-all: Google Maps web URL works universally.
+      Linking.openURL(`https://maps.google.com/?q=${lat},${long}`);
+      return;
+    }
+  }
+
+  // Legacy fallback — no precise coordinates attached, fuzzy text search.
   if (Platform.OS === "android") {
     Linking.openURL(`geo:0,0?q=${encoded}`).catch(() =>
       Linking.openURL(`https://maps.google.com/?q=${encoded}`)
@@ -909,11 +941,10 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
   }
 
   if (message.kind === "meetup_proposal") {
-    // Parse "place | time" format
+    // Parse "place | time" (legacy) or "place | time | lat,long" (TASK-M263)
+    // via the shared, tested helper — tolerates malformed/missing coords.
     // message.body is only null for a deleted message, already handled above.
-    const parts = (message.body ?? "").split("|").map((s) => s.trim());
-    const place = parts[0] ?? message.body ?? "";
-    const time = parts[1] ?? "";
+    const { place, time, coords } = parseMeetupBody(message.body);
 
     return (
       <Animated.View
@@ -931,20 +962,42 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             overflow: "hidden",
           }}
         >
-          {/* Header */}
+          {/* Header — a small filled pin badge appears when the proposer
+              attached a precise map pin (TASK-M263), distinguishing this
+              from a legacy text-only place name. */}
           <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: isMine ? colors.primaryAlpha : colors.muted }}>
             <MapPin size={13} color={isMine ? colors.primary : colors.mutedForeground} />
             <Text style={{ fontSize: 11, fontWeight: "700", letterSpacing: 0.5, color: isMine ? colors.primary : colors.mutedForeground, flex: 1, textAlign: isRtl ? "right" : "left" }}>
               {t("chat.meetup.proposed").toUpperCase()}
             </Text>
+            {coords ? (
+              <View
+                accessibilityLabel={t("chat.meetup.locationSet")}
+                testID="meetup-precise-pin-badge"
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 3,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 999,
+                  backgroundColor: isMine ? colors.primary : colors.primaryAlpha,
+                }}
+              >
+                <MapPin size={10} color={isMine ? colors.primaryForeground : colors.primary} fill={isMine ? colors.primaryForeground : colors.primary} />
+              </View>
+            ) : null}
           </View>
 
           <View style={{ padding: 12, gap: 6 }}>
-            {/* Place — tappable → opens maps */}
+            {/* Place — tappable → opens maps. Uses REAL coordinates when a
+                pin is attached; falls back to a fuzzy text search for
+                legacy 2-part meetup messages. */}
             <Pressable
-              onPress={() => openInMaps(place)}
+              onPress={() => openInMaps(place, coords)}
               android_ripple={{ color: colors.primaryAlpha }}
               style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 6 }}
+              accessibilityLabel={t("chat.meetup.openInMaps")}
             >
               <MapPin size={14} color={colors.primary} />
               <Text style={{ flex: 1, textAlign: isRtl ? "right" : "left", fontSize: 14, color: colors.primary, textDecorationLine: "underline" }}>

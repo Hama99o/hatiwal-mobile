@@ -98,7 +98,10 @@
   },
   "priceDrop": {
     "badge": "{{percent}}٪ د نرخ کمښت",
-    "badgeCardShort": "↓{{percent}}٪"
+    "badgeCardShort": "↓{{percent}}٪",
+    "savedBadge": "نرخ کم شو",
+    "savedBadgeA11y": "نرخ له {{oldPrice}} څخه {{newPrice}} ته راټیټ شو",
+    "savedBadgeCompactA11y": "نرخ له {{oldPrice}} څخه راټیټ شو، {{dropAmount}} تخفیف"
   },
   "detail": {
     "contactSeller": "پلورونکي سره اړیکه",

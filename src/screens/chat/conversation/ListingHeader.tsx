@@ -5,10 +5,11 @@
  *
  * When `isOwner` is true and the listing status allows a lifecycle
  * transition (active → reserve, reserved → mark sold), a compact
- * secondary action button is shown inline. Touching it either fires
- * the mutation directly (Reserve) or shows a confirmAlert first (Mark
- * Sold), then calls `onLifecycleDone` on success so the parent can
- * invalidate queries and refresh the StatusBadge in place.
+ * secondary action button is shown inline. Touching it opens the
+ * BuyerPickerSheet (TASK-TX01) so the seller can identify the real buyer
+ * from this listing's conversations (its own Confirm button is the
+ * confirmation step) — then calls `onLifecycleDone` on success so the
+ * parent can invalidate queries and refresh the StatusBadge in place.
  *
  * TASK-N071: when `listing.negotiable === false` and the current user
  * is NOT the owner, a quiet "Firm price" pill is shown and the offer
@@ -24,9 +25,9 @@ import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Badge } from "@/components/reusables/badge";
 import type { ListingStatus } from "@/components/common/StatusBadge";
+import { BuyerPickerSheet, type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
-import { confirmAlert } from "@/utils/alert";
 import { listingsAPI } from "@/api/listings";
 import { toast } from "sonner-native";
 
@@ -68,6 +69,8 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
   const { isRtl } = useLocalization();
   const colors = useColors();
   const [isLifecycleLoading, setIsLifecycleLoading] = useState(false);
+  // TASK-TX01: which lifecycle action opened the buyer picker, if any.
+  const [buyerPickerAction, setBuyerPickerAction] = useState<"reserve" | "sold" | null>(null);
 
   const validStatuses: ListingStatus[] = ["draft", "active", "reserved", "sold"];
   const status = validStatuses.includes(listing.status as ListingStatus)
@@ -84,43 +87,27 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
   // TASK-N071: firm price notice — shown to the buyer (non-owner) only
   const isFirmPrice = listing.negotiable === false && !isOwner;
 
-  const handleReserve = async () => {
+  const handleBuyerPickerConfirm = async (result: BuyerPickerResult) => {
     setIsLifecycleLoading(true);
     try {
-      await listingsAPI.reserveListing(listing.id);
-      toast.success(t("chat.listingActions.reserveSuccess"));
+      if (buyerPickerAction === "reserve") {
+        await listingsAPI.reserveListing(listing.id, result);
+        toast.success(t("chat.listingActions.reserveSuccess"));
+      } else if (buyerPickerAction === "sold") {
+        await listingsAPI.markSold(listing.id, result);
+        toast.success(t("chat.listingActions.markSoldSuccess"));
+      }
+      setBuyerPickerAction(null);
       onLifecycleDone?.();
     } catch {
-      toast.error(t("chat.listingActions.reserveFailed"));
+      toast.error(
+        buyerPickerAction === "sold"
+          ? t("chat.listingActions.markSoldFailed")
+          : t("chat.listingActions.reserveFailed")
+      );
     } finally {
       setIsLifecycleLoading(false);
     }
-  };
-
-  const handleMarkSold = () => {
-    confirmAlert(
-      t("chat.listingActions.markSoldConfirmTitle"),
-      t("chat.listingActions.markSoldConfirmBody"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("chat.listingActions.markSoldConfirmCta"),
-          style: "destructive",
-          onPress: async () => {
-            setIsLifecycleLoading(true);
-            try {
-              await listingsAPI.markSold(listing.id);
-              toast.success(t("chat.listingActions.markSoldSuccess"));
-              onLifecycleDone?.();
-            } catch {
-              toast.error(t("chat.listingActions.markSoldFailed"));
-            } finally {
-              setIsLifecycleLoading(false);
-            }
-          },
-        },
-      ]
-    );
   };
 
   return (
@@ -205,11 +192,7 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
               if (e && typeof e.stopPropagation === "function") {
                 e.stopPropagation();
               }
-              if (showReserve) {
-                handleReserve();
-              } else {
-                handleMarkSold();
-              }
+              setBuyerPickerAction(showReserve ? "reserve" : "sold");
             }}
             disabled={isLifecycleLoading}
             hitSlop={4}
@@ -278,6 +261,18 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
           </Text>
         </View>
       )}
+
+      {/* TASK-TX01 / TASK-F084: buyer picker for Reserve / Mark-sold from chat */}
+      <BuyerPickerSheet
+        visible={buyerPickerAction !== null}
+        onClose={() => setBuyerPickerAction(null)}
+        listingId={listing.id}
+        price={listing.price ?? 0}
+        currency={listing.currency ?? "AFN"}
+        action={buyerPickerAction ?? "reserve"}
+        onConfirm={handleBuyerPickerConfirm}
+        isSubmitting={isLifecycleLoading}
+      />
     </View>
   );
 }

@@ -15,6 +15,7 @@ import ps_seller           from "./locales/ps/seller.json";
 import ps_onboarding       from "./locales/ps/onboarding.json";
 import ps_permissions      from "./locales/ps/permissions.json";
 import ps_safety           from "./locales/ps/safety.json";
+import ps_buyerPicker      from "./locales/ps/buyerPicker.json";
 
 export const psTranslations = {
   common:          ps_common,
@@ -34,4 +35,5 @@ export const psTranslations = {
   onboarding:      ps_onboarding,
   permissions:     ps_permissions,
   safety:          ps_safety,
+  buyerPicker:     ps_buyerPicker,
 };

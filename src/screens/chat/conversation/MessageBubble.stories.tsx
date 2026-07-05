@@ -167,6 +167,21 @@ export const MeetupNoTime: Story = {
   },
 };
 
+// TASK-M263 — meetup proposal with an exact map pin attached. Body carries
+// the backward-compatible 3rd "lat,long" segment; the bubble shows a small
+// precise-pin badge and "Open in Maps" drops the real coordinate.
+export const MeetupWithPrecisePin: Story = {
+  args: {
+    message: makeMsg({
+      kind: "meetup_proposal",
+      body: "Shahr-e-Naw Market | Tomorrow at 4 PM | 34.5553,69.2075",
+    }),
+    isMine: false,
+    meetupOutcome: null,
+    onMeetupRespond: (accepted) => console.log("meetup respond", accepted),
+  },
+};
+
 // ── Image message bubbles ─────────────────────────────────────────────────────
 
 export const ImageMessageMine: Story = {

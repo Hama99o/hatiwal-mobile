@@ -2,12 +2,20 @@ appId: com.hatiwal.app
 ---
 # Lifecycle actions from the chat thread pinned listing header (seller owner only)
 #
+# TASK-TX01: Reserve / Mark Sold from the chat header now open the
+# BuyerPickerSheet (listing this listing's conversations, incl. the one the
+# seller is currently in) instead of firing directly / a plain confirmAlert.
+#
 # Covers:
-#   1. Happy path: seller opens conversation → taps Reserve on active listing → badge updates to Reserved
-#   2. Happy path: seller taps Mark Sold on reserved listing → confirms → badge updates to Sold, input closes
+#   1. Happy path: seller opens conversation → taps Reserve on active listing
+#      → BuyerPickerSheet opens → skip (legacy path) → badge updates to Reserved
+#      (picking a specific buyer from the picker is covered end-to-end by
+#      ../seller/mark_sold_with_buyer.yaml, which targets a known seeded listing)
+#   2. Happy path: seller taps Mark Sold on reserved listing → BuyerPickerSheet
+#      → skip → badge updates to Sold, input closes
 #   3. Buyer perspective: no Reserve / Mark Sold button visible in the same conversation
 
-# ─── Scenario 1: Owner taps Reserve (active → reserved) ───────────────────────
+# ─── Scenario 1: Owner taps Reserve (active → reserved) ──────────────────────
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "Chats"
@@ -22,8 +30,13 @@ appId: com.hatiwal.app
 - assertVisible: "Reserve"
 # The Mark Sold button is NOT visible yet
 - assertNotVisible: "Mark Sold"
-# Tap Reserve — no confirm dialog, fires directly
+# Tap Reserve — opens the BuyerPickerSheet (TASK-TX01) instead of firing directly
 - tapOn: "Reserve"
+- waitForAnimationToEnd
+- assertVisible: "Who's buying this item?"
+- assertVisible: "Someone else / skip"
+- tapOn: "Someone else / skip"
+- tapOn: "Confirm reserve"
 - waitForAnimationToEnd
 # Success toast appears
 - assertVisible: "Listing marked as reserved"
@@ -33,16 +46,15 @@ appId: com.hatiwal.app
 - assertNotVisible: "Reserve"
 - assertVisible: "Mark Sold"
 
-# ─── Scenario 2: Owner taps Mark Sold (reserved → sold) ───────────────────────
+# ─── Scenario 2: Owner taps Mark Sold (reserved → sold), skips buyer pick ─────
 
 # (continuing from scenario 1 — listing is now reserved)
 - tapOn: "Mark Sold"
 - waitForAnimationToEnd
-# confirmAlert fires — title and body visible
-- assertVisible: "Mark as sold?"
-- assertVisible: "This will mark the item as sold and close the listing."
-# Tap the destructive confirm button (distinct label avoids ambiguity with the header button)
-- tapOn: "Yes, mark sold"
+# BuyerPickerSheet fires instead of a plain confirmAlert
+- assertVisible: "Who bought this item?"
+- tapOn: "Someone else / skip"
+- tapOn: "Confirm sold"
 - waitForAnimationToEnd
 # Success toast
 - assertVisible: "Listing marked as sold"

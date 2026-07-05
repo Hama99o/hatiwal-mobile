@@ -95,7 +95,10 @@
   "seen": "Seen",
   "priceDrop": {
     "badge": "{{percent}}% price drop",
-    "badgeCardShort": "↓{{percent}}%"
+    "badgeCardShort": "↓{{percent}}%",
+    "savedBadge": "Price dropped",
+    "savedBadgeA11y": "Price dropped from {{oldPrice}} to {{newPrice}}",
+    "savedBadgeCompactA11y": "Price dropped from {{oldPrice}}, {{dropAmount}} off"
   },
   "share": {
     "body": "{{title}} — {{price}}\n{{url}}"

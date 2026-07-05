@@ -1,0 +1,19 @@
+{
+  "reserveTitle": "Who's buying this item?",
+  "soldTitle": "Who bought this item?",
+  "subtitle": "Select from your conversations on this listing.",
+  "loading": "Loading conversations...",
+  "noConversations": "No conversations yet on this listing.",
+  "someoneElse": "Someone else / skip",
+  "someoneElseHint": "Continue without recording a buyer",
+  "finalPriceLabel": "Final price (optional)",
+  "finalPricePlaceholder": "Listed price",
+  "confirmReserve": "Confirm reserve",
+  "confirmSold": "Confirm sold",
+  "cancel": "Cancel",
+  "noMessages": "No messages yet",
+  "errors": {
+    "invalidPrice": "Enter a valid price",
+    "generic": "Something went wrong. Please try again."
+  }
+}

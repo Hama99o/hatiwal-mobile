@@ -14,6 +14,7 @@ import { Button } from "@/components/reusables/button";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
+import { BuyerPickerSheet, type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 import { listingsAPI, type Listing } from "@/api/listings";
 import { confirmAlert } from "@/utils/alert";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -68,6 +69,8 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
   const qc = useQueryClient();
   const flatListRef = useRef<FlatList>(null);
   const [activeSlide, setActiveSlide] = useState(0);
+  // TASK-TX01: which lifecycle action opened the buyer picker, if any.
+  const [buyerPickerAction, setBuyerPickerAction] = useState<"reserve" | "sold" | null>(null);
 
   const rowDirection = isRtl ? "row-reverse" : "row";
   const photos: string[] = listing.imageUrls?.length
@@ -80,11 +83,14 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
 
   // ── Mutations ───────────────────────────────────────────────────────────────
 
-  // Invalidate both the listing feed and the status-count pills after any
-  // lifecycle action so the tab badges stay accurate without a manual refresh.
+  // Invalidate the listing feed, status-count pills, and (TASK-TX01) the
+  // listing's conversations — a buyer-recorded reserve/sold changes what the
+  // conversation list shows (e.g. "reserved for you") — after any lifecycle
+  // action so everything stays accurate without a manual refresh.
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
     qc.invalidateQueries({ queryKey: [STATUS_COUNTS_QK] });
+    qc.invalidateQueries({ queryKey: ["conversations", listing.id] });
     onMutated?.();
   };
 
@@ -98,18 +104,20 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
   });
 
   const reserve = useMutation({
-    mutationFn: () => listingsAPI.reserveListing(listing.id),
+    mutationFn: (opts?: BuyerPickerResult) => listingsAPI.reserveListing(listing.id, opts),
     onSuccess: () => {
       invalidateAll();
+      setBuyerPickerAction(null);
       toast.success(t("listing.reserveSuccess"));
     },
     onError: () => toast.error(t("common.error")),
   });
 
   const markSold = useMutation({
-    mutationFn: () => listingsAPI.markSold(listing.id),
+    mutationFn: (opts?: BuyerPickerResult) => listingsAPI.markSold(listing.id, opts),
     onSuccess: () => {
       invalidateAll();
+      setBuyerPickerAction(null);
       toast.success(t("listing.markSoldSuccess"));
     },
     onError: () => toast.error(t("common.error")),
@@ -164,27 +172,27 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
     );
   }, [t, publish]);
 
+  // TASK-TX01: Reserve/Mark-sold open the BuyerPickerSheet so the seller can
+  // identify the real buyer from this listing's conversations. The sheet's
+  // own Confirm button is the confirmation step (no extra confirmAlert).
   const handleReserve = useCallback(() => {
-    confirmAlert(
-      t("listing.confirmReserve"),
-      t("listing.confirmReserveDescription"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: t("listing.markReserved"), onPress: () => reserve.mutate() },
-      ]
-    );
-  }, [t, reserve]);
+    setBuyerPickerAction("reserve");
+  }, []);
 
   const handleMarkSold = useCallback(() => {
-    confirmAlert(
-      t("listing.confirmMarkSold"),
-      t("listing.markSoldConfirm"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: t("listing.markSold"), onPress: () => markSold.mutate() },
-      ]
-    );
-  }, [t, markSold]);
+    setBuyerPickerAction("sold");
+  }, []);
+
+  const handleBuyerPickerConfirm = useCallback(
+    (result: BuyerPickerResult) => {
+      if (buyerPickerAction === "reserve") {
+        reserve.mutate(result);
+      } else if (buyerPickerAction === "sold") {
+        markSold.mutate(result);
+      }
+    },
+    [buyerPickerAction, reserve, markSold]
+  );
 
   const handleDelete = useCallback(() => {
     confirmAlert(
@@ -466,6 +474,18 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
           ))}
         </View>
       </View>
+
+      {/* TASK-TX01: buyer picker for Reserve / Mark-sold */}
+      <BuyerPickerSheet
+        visible={buyerPickerAction !== null}
+        onClose={() => setBuyerPickerAction(null)}
+        listingId={listing.id}
+        price={listing.price}
+        currency={listing.currency}
+        action={buyerPickerAction ?? "reserve"}
+        onConfirm={handleBuyerPickerConfirm}
+        isSubmitting={reserve.isPending || markSold.isPending}
+      />
     </View>
   );
 }

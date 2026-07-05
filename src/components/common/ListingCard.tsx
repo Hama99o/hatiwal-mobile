@@ -237,9 +237,24 @@ export function ListingCard({
               size="md"
             />
 
-            {/* Price-drop badge in list mode — tiny pill after price */}
-            {listing.priceDropPercent != null && listing.priceDropPercent > 0 && (
-              <PriceDropBadge percent={listing.priceDropPercent} variant="card" />
+            {/* Price-drop badge in list mode — tiny pill after price. Suppressed when
+                the per-buyer saved badge below is already showing a drop signal for
+                this card — showing both is a redundant, competing "price dropped"
+                message (TASK-Y316 review). */}
+            {listing.priceDropPercent != null &&
+              listing.priceDropPercent > 0 &&
+              !listing.priceDropped && (
+                <PriceDropBadge percent={listing.priceDropPercent} variant="card" />
+              )}
+
+            {/* Per-buyer "price dropped since you saved it" badge — Saved screen only (TASK-Y316) */}
+            {listing.priceDropped && (
+              <PriceDropBadge
+                variant="saved"
+                oldPrice={listing.priceAtSave ?? undefined}
+                newPrice={listing.price}
+                currency={listing.currency}
+              />
             )}
 
             {/* Firm-price badge in list mode */}
@@ -417,17 +432,23 @@ export function ListingCard({
             </View>
           )}
 
-          {/* Price-drop corner badge — bottom-right (LTR) / bottom-left (RTL) overlay */}
-          {listing.priceDropPercent != null && listing.priceDropPercent > 0 && (
-            <View
-              style={[
-                styles.priceDropOverlay,
-                isRtl ? styles.priceDropOverlayRtl : styles.priceDropOverlayLtr,
-              ]}
-            >
-              <PriceDropBadge percent={listing.priceDropPercent} variant="card" />
-            </View>
-          )}
+          {/* Price-drop corner badge — bottom-right (LTR) / bottom-left (RTL) overlay.
+              Suppressed when the per-buyer saved badge in the card body is already
+              showing a drop signal for this card (TASK-Y316 review) — two green
+              "price dropped" cues on one card reads as clutter and undermines the
+              single clear signal the north star wants. */}
+          {listing.priceDropPercent != null &&
+            listing.priceDropPercent > 0 &&
+            !listing.priceDropped && (
+              <View
+                style={[
+                  styles.priceDropOverlay,
+                  isRtl ? styles.priceDropOverlayRtl : styles.priceDropOverlayLtr,
+                ]}
+              >
+                <PriceDropBadge percent={listing.priceDropPercent} variant="card" />
+              </View>
+            )}
 
           {/* Save heart — outer 44px Pressable (touch target), inner 36px scrim circle */}
           {isSaved !== undefined && onSaveToggle && (
@@ -467,6 +488,22 @@ export function ListingCard({
             currency={listing.currency}
             size="md"
           />
+
+          {/* Per-buyer "price dropped since you saved it" badge — Saved screen only
+              (TASK-Y316). Distinct from the corner priceDropPercent overlay above,
+              which is the listing's own price-history signal shown to every buyer.
+              compact: the grid card is narrow (2-column) and the PriceTag hero right
+              above already shows the current price, so the compact form drops the
+              label text + duplicated current price to avoid wrapping/clutter. */}
+          {listing.priceDropped && (
+            <PriceDropBadge
+              variant="saved"
+              compact
+              oldPrice={listing.priceAtSave ?? undefined}
+              newPrice={listing.price}
+              currency={listing.currency}
+            />
+          )}
 
           {/* Firm-price badge — only when negotiable is explicitly false */}
           {listing.negotiable === false && (

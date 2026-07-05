@@ -1,6 +1,11 @@
 appId: com.hatiwal.app
 ---
 # Lifecycle: active → reserved
+#
+# TASK-TX01: "Mark as Reserved" now opens the BuyerPickerSheet instead of a
+# plain confirmAlert. This flow exercises the legacy "Someone else / skip"
+# path (no buyer recorded) — the buyer-recorded path is covered by
+# ../seller/mark_sold_with_buyer.yaml.
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
@@ -10,10 +15,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Mark as Reserved"
 - waitForAnimationToEnd
-# Confirm dialog
-- assertVisible: "Mark as reserved?"
-- assertVisible: "This marks the item as reserved for a buyer."
-- tapOn: "Confirm"
+# BuyerPickerSheet opens
+- assertVisible: "Who's buying this item?"
+- tapOn: "Someone else / skip"
+- tapOn: "Confirm reserve"
 - waitForAnimationToEnd
 # Status changed
 - assertVisible: "Listing marked as reserved"

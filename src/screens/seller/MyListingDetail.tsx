@@ -56,6 +56,7 @@ import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
 import { ListingMapSection } from "@/components/common/ListingMapSection";
+import { BuyerPickerSheet, type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 
 import { ListingGallery } from "@/screens/shared/listing-detail/ListingGallery";
 import { DetailSkeleton } from "@/screens/shared/listing-detail/DetailSkeleton";
@@ -100,6 +101,8 @@ export default function MyListingDetailScreen() {
 
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // TASK-TX01: which lifecycle action opened the buyer picker, if any.
+  const [buyerPickerAction, setBuyerPickerAction] = useState<"reserve" | "sold" | null>(null);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: listing, isLoading, isError, refetch } = useQuery({
@@ -143,9 +146,12 @@ export default function MyListingDetailScreen() {
 
   // ── Mutations ──────────────────────────────────────────────────────────────
 
+  // TASK-TX01: also invalidate the listing's conversations — a buyer-recorded
+  // reserve/sold can change what the conversation list shows.
   const invalidate = useCallback(() => {
     qc.invalidateQueries({ queryKey: [MY_LISTING_QK, id] });
     qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+    qc.invalidateQueries({ queryKey: ["conversations", Number(id)] });
   }, [qc, id]);
 
   const publish = useMutation({
@@ -156,15 +162,15 @@ export default function MyListingDetailScreen() {
   });
 
   const reserve = useMutation({
-    mutationFn: () => listingsAPI.reserveListing(Number(id)),
-    onSuccess: () => { invalidate(); toast.success(t("listing.reserveSuccess")); },
+    mutationFn: (opts?: BuyerPickerResult) => listingsAPI.reserveListing(Number(id), opts),
+    onSuccess: () => { invalidate(); setBuyerPickerAction(null); toast.success(t("listing.reserveSuccess")); },
     onError: () => toast.error(t("common.error")),
     onSettled: () => setIsActionLoading(false),
   });
 
   const markSold = useMutation({
-    mutationFn: () => listingsAPI.markSold(Number(id)),
-    onSuccess: () => { invalidate(); toast.success(t("listing.markSoldSuccess")); },
+    mutationFn: (opts?: BuyerPickerResult) => listingsAPI.markSold(Number(id), opts),
+    onSuccess: () => { invalidate(); setBuyerPickerAction(null); toast.success(t("listing.markSoldSuccess")); },
     onError: () => toast.error(t("common.error")),
     onSettled: () => setIsActionLoading(false),
   });
@@ -214,27 +220,28 @@ export default function MyListingDetailScreen() {
     );
   }, [t, publish]);
 
+  // TASK-TX01: Reserve/Mark-sold open the BuyerPickerSheet so the seller can
+  // identify the real buyer from this listing's conversations. The sheet's
+  // own Confirm button is the confirmation step (no extra confirmAlert).
   const handleReserve = useCallback(() => {
-    confirmAlert(
-      t("listing.confirmReserve"),
-      t("listing.confirmReserveDescription"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: t("listing.markReserved"), onPress: () => { setIsActionLoading(true); reserve.mutate(); } },
-      ]
-    );
-  }, [t, reserve]);
+    setBuyerPickerAction("reserve");
+  }, []);
 
   const handleMarkSold = useCallback(() => {
-    confirmAlert(
-      t("listing.confirmMarkSold"),
-      t("listing.markSoldConfirm"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: t("listing.markSold"), onPress: () => { setIsActionLoading(true); markSold.mutate(); } },
-      ]
-    );
-  }, [t, markSold]);
+    setBuyerPickerAction("sold");
+  }, []);
+
+  const handleBuyerPickerConfirm = useCallback(
+    (result: BuyerPickerResult) => {
+      setIsActionLoading(true);
+      if (buyerPickerAction === "reserve") {
+        reserve.mutate(result);
+      } else if (buyerPickerAction === "sold") {
+        markSold.mutate(result);
+      }
+    },
+    [buyerPickerAction, reserve, markSold]
+  );
 
   const handleUnpublish = useCallback(() => {
     confirmAlert(
@@ -672,6 +679,18 @@ export default function MyListingDetailScreen() {
           </Pressable>
         </Section>
       </ScrollView>
+
+      {/* TASK-TX01: buyer picker for Reserve / Mark-sold */}
+      <BuyerPickerSheet
+        visible={buyerPickerAction !== null}
+        onClose={() => setBuyerPickerAction(null)}
+        listingId={Number(id)}
+        price={listing.price}
+        currency={listing.currency}
+        action={buyerPickerAction ?? "reserve"}
+        onConfirm={handleBuyerPickerConfirm}
+        isSubmitting={reserve.isPending || markSold.isPending}
+      />
     </ScreenContainer>
   );
 }

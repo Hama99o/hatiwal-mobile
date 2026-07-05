@@ -1,0 +1,19 @@
+{
+  "reserveTitle": "این کالا را چه کسی می‌خرد؟",
+  "soldTitle": "این کالا را چه کسی خرید؟",
+  "subtitle": "از گفتگوهای این آگهی یک نفر را انتخاب کنید.",
+  "loading": "در حال بارگذاری گفتگوها...",
+  "noConversations": "هنوز گفتگویی برای این آگهی وجود ندارد.",
+  "someoneElse": "شخص دیگر / رد شدن",
+  "someoneElseHint": "ادامه بدون ثبت خریدار",
+  "finalPriceLabel": "قیمت نهایی (اختیاری)",
+  "finalPricePlaceholder": "قیمت اعلان‌شده",
+  "confirmReserve": "تایید رزرو",
+  "confirmSold": "تایید فروش",
+  "cancel": "لغو",
+  "noMessages": "هنوز پیامی نیست",
+  "errors": {
+    "invalidPrice": "یک قیمت معتبر وارد کنید",
+    "generic": "مشکلی پیش آمد. لطفاً دوباره تلاش کنید."
+  }
+}

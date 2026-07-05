@@ -121,6 +121,34 @@ jest.mock("@/components/common/ExpiryBadge", () => ({
   ExpiryBadge: () => null,
 }));
 
+// BuyerPickerSheet (TASK-TX01) — replace with a minimal stand-in exposing
+// two test-only buttons: "confirm-skip" (legacy no-buyer path) and
+// "confirm-buyer-42" (buyer_id: 42). Real sheet behavior is covered by its
+// own unit tests.
+jest.mock("@/components/common/BuyerPickerSheet", () => {
+  const { Pressable, Text } = require("react-native");
+  return {
+    BuyerPickerSheet: ({ visible, onConfirm, action }: {
+      visible: boolean;
+      onConfirm: (r: { buyerId?: number; finalPrice?: number }) => void;
+      action: string;
+    }) => {
+      if (!visible) return null;
+      return (
+        <>
+          <Text testID={`buyer-picker-visible-${action}`}>buyer-picker-open</Text>
+          <Pressable onPress={() => onConfirm({})} testID="confirm-skip">
+            <Text>confirm-skip</Text>
+          </Pressable>
+          <Pressable onPress={() => onConfirm({ buyerId: 42 })} testID="confirm-buyer-42">
+            <Text>confirm-buyer-42</Text>
+          </Pressable>
+        </>
+      );
+    },
+  };
+});
+
 // Import AFTER mocks
 import { SellerListingCard } from "../SellerListingCard";
 import { listingsAPI } from "@/api/listings";
@@ -309,7 +337,7 @@ describe("SellerListingCard — publish action", () => {
   });
 });
 
-// ── 3. Reserve mutation ────────────────────────────────────────────────────────
+// ── 3. Reserve mutation (TASK-TX01: opens the BuyerPickerSheet) ────────────────
 
 describe("SellerListingCard — reserve action", () => {
   it("shows 'listing.markReserved' as a secondary action for active status", () => {
@@ -317,41 +345,46 @@ describe("SellerListingCard — reserve action", () => {
     expect(screen.getByText("listing.markReserved")).toBeTruthy();
   });
 
-  it("calls confirmAlert when Mark Reserved button is tapped", () => {
+  it("opens the BuyerPickerSheet (not confirmAlert) when Mark Reserved is tapped", () => {
     renderCard(makeListing({ status: "active" }));
     fireEvent.press(screen.getByText("listing.markReserved"));
-    expect(mockConfirmAlert).toHaveBeenCalledTimes(1);
-    expect(mockConfirmAlert).toHaveBeenCalledWith(
-      "listing.confirmReserve",
-      "listing.confirmReserveDescription",
-      expect.arrayContaining([
-        expect.objectContaining({ style: "cancel" }),
-        expect.objectContaining({ text: "listing.markReserved" }),
-      ])
-    );
+    expect(mockConfirmAlert).not.toHaveBeenCalled();
+    expect(screen.getByTestId("buyer-picker-visible-reserve")).toBeTruthy();
   });
 
-  it("calls listingsAPI.reserveListing with the listing id on confirm", async () => {
-    mockListingsAPI.reserveListing.mockResolvedValueOnce(makeListing({ status: "reserved" }));
+  it("calls listingsAPI.reserveListing with the listing id + result on picker confirm (skip)", async () => {
+    mockListingsAPI.reserveListing.mockResolvedValueOnce({ listing: makeListing({ status: "reserved" }) });
     renderCard(makeListing({ status: "active", id: 10 }));
 
     fireEvent.press(screen.getByText("listing.markReserved"));
-    simulateConfirm();
+    fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
-      expect(mockListingsAPI.reserveListing).toHaveBeenCalledWith(10);
+      expect(mockListingsAPI.reserveListing).toHaveBeenCalledWith(10, {});
+    });
+  });
+
+  it("calls listingsAPI.reserveListing with a buyerId when a buyer is picked", async () => {
+    mockListingsAPI.reserveListing.mockResolvedValueOnce({ listing: makeListing({ status: "reserved" }) });
+    renderCard(makeListing({ status: "active", id: 10 }));
+
+    fireEvent.press(screen.getByText("listing.markReserved"));
+    fireEvent.press(screen.getByTestId("confirm-buyer-42"));
+
+    await waitFor(() => {
+      expect(mockListingsAPI.reserveListing).toHaveBeenCalledWith(10, { buyerId: 42 });
     });
   });
 
   it("invalidates 'my-listings' and fires toast.success on reserve success", async () => {
-    mockListingsAPI.reserveListing.mockResolvedValueOnce(makeListing({ status: "reserved" }));
+    mockListingsAPI.reserveListing.mockResolvedValueOnce({ listing: makeListing({ status: "reserved" }) });
     const qc = makeQueryClient();
     const invalidateSpy = jest.spyOn(qc, "invalidateQueries");
 
     renderCard(makeListing({ status: "active", id: 10 }), qc);
 
     fireEvent.press(screen.getByText("listing.markReserved"));
-    simulateConfirm();
+    fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith(
@@ -362,55 +395,49 @@ describe("SellerListingCard — reserve action", () => {
   });
 });
 
-// ── 4. Mark Sold mutation ──────────────────────────────────────────────────────
+// ── 4. Mark Sold mutation (TASK-TX01: opens the BuyerPickerSheet) ──────────────
 
 describe("SellerListingCard — mark sold action", () => {
-  it("calls confirmAlert when Mark Sold button is tapped (active status)", () => {
+  it("opens the BuyerPickerSheet (not confirmAlert) when Mark Sold is tapped (active status)", () => {
     renderCard(makeListing({ status: "active" }));
     fireEvent.press(screen.getByText("listing.markSold"));
-    expect(mockConfirmAlert).toHaveBeenCalledWith(
-      "listing.confirmMarkSold",
-      "listing.markSoldConfirm",
-      expect.arrayContaining([
-        expect.objectContaining({ style: "cancel" }),
-        expect.objectContaining({ text: "listing.markSold" }),
-      ])
-    );
+    expect(mockConfirmAlert).not.toHaveBeenCalled();
+    expect(screen.getByTestId("buyer-picker-visible-sold")).toBeTruthy();
   });
 
-  it("calls listingsAPI.markSold with the listing id on confirm (active)", async () => {
-    mockListingsAPI.markSold.mockResolvedValueOnce(makeListing({ status: "sold" }));
+  it("calls listingsAPI.markSold with the listing id + result on picker confirm (active)", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({ listing: makeListing({ status: "sold" }) });
     renderCard(makeListing({ status: "active", id: 10 }));
 
     fireEvent.press(screen.getByText("listing.markSold"));
-    simulateConfirm();
+    fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
-      expect(mockListingsAPI.markSold).toHaveBeenCalledWith(10);
+      expect(mockListingsAPI.markSold).toHaveBeenCalledWith(10, {});
     });
   });
 
-  it("calls listingsAPI.markSold with the listing id on confirm (reserved)", async () => {
-    mockListingsAPI.markSold.mockResolvedValueOnce(makeListing({ status: "sold" }));
+  it("calls listingsAPI.markSold with the listing id + result on picker confirm (reserved)", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({ listing: makeListing({ status: "sold" }) });
     renderCard(makeListing({ status: "reserved", id: 10 }));
 
     fireEvent.press(screen.getByText("listing.markSold"));
-    simulateConfirm();
+    fireEvent.press(screen.getByTestId("confirm-buyer-42"));
 
     await waitFor(() => {
-      expect(mockListingsAPI.markSold).toHaveBeenCalledWith(10);
+      expect(mockListingsAPI.markSold).toHaveBeenCalledWith(10, { buyerId: 42 });
     });
   });
 
   it("invalidates 'my-listings' and fires toast.success on mark sold success", async () => {
-    mockListingsAPI.markSold.mockResolvedValueOnce(makeListing({ status: "sold" }));
+    mockListingsAPI.markSold.mockResolvedValueOnce({ listing: makeListing({ status: "sold" }) });
     const qc = makeQueryClient();
     const invalidateSpy = jest.spyOn(qc, "invalidateQueries");
 
     renderCard(makeListing({ status: "active", id: 10 }), qc);
 
     fireEvent.press(screen.getByText("listing.markSold"));
-    simulateConfirm();
+    fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith(

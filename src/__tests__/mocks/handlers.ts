@@ -216,7 +216,15 @@ const listingsHandlers = [
 
   http.get(`${BASE}/my/saved_listings`, () =>
     HttpResponse.json({
-      listings: [MOCK_LISTING],
+      // TASK-Y316: per-buyer price-drop fields, only present on this endpoint.
+      listings: [
+        {
+          ...MOCK_LISTING,
+          price_at_save: 30000,
+          price_dropped: true,
+          price_drop_amount: 5000,
+        },
+      ],
       meta: {
         pagination: {
           current_page: 1,

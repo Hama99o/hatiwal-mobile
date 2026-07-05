@@ -49,7 +49,7 @@ cd hatiwal-api && bundle exec rails db:seed:reset_e2e
 
 ## Flow Index
 
-152 flows across 15 folders. All use English locale strings as selectors.
+153 flows across 16 folders. All use English locale strings as selectors.
 
 ```
 _helpers/
@@ -222,6 +222,9 @@ dark_mode/
 
 onboarding/
   first_run.yaml  ← fresh install shows 3-slide carousel + language switcher, Skip/Get started both set the seen flag and land on Bazaar, flag persists across relaunch
+
+seller/
+  mark_sold_with_buyer.yaml  ← TASK-TX01: Mark Sold on an active listing opens the BuyerPickerSheet, seller picks the real buyer from the listing's conversations, listing flips to Sold
 ```
 
 ## Adding Tests for a New Feature
