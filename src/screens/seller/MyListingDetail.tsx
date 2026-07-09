@@ -57,6 +57,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
 import { ListingMapSection } from "@/components/common/ListingMapSection";
 import { BuyerPickerSheet, type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
+import { ReviewPromptSheet } from "@/components/common/ReviewPromptSheet";
 
 import { ListingGallery } from "@/screens/shared/listing-detail/ListingGallery";
 import { DetailSkeleton } from "@/screens/shared/listing-detail/DetailSkeleton";
@@ -103,6 +104,12 @@ export default function MyListingDetailScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   // TASK-TX01: which lifecycle action opened the buyer picker, if any.
   const [buyerPickerAction, setBuyerPickerAction] = useState<"reserve" | "sold" | null>(null);
+  // REV2: after a sold sale records a real buyer, prompt the seller to rate them.
+  const [reviewPrompt, setReviewPrompt] = useState<{
+    transactionId: number;
+    buyerName: string;
+    buyerAvatarUrl: string | null;
+  } | null>(null);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: listing, isLoading, isError, refetch } = useQuery({
@@ -170,7 +177,21 @@ export default function MyListingDetailScreen() {
 
   const markSold = useMutation({
     mutationFn: (opts?: BuyerPickerResult) => listingsAPI.markSold(Number(id), opts),
-    onSuccess: () => { invalidate(); setBuyerPickerAction(null); toast.success(t("listing.markSoldSuccess")); },
+    onSuccess: (data) => {
+      invalidate();
+      setBuyerPickerAction(null);
+      toast.success(t("listing.markSoldSuccess"));
+      // REV2: a recorded buyer means a real sold Transaction exists — invite
+      // the seller to rate them right away (double-blind, so it stays hidden
+      // until the buyer reviews back too).
+      if (data.transaction?.buyer) {
+        setReviewPrompt({
+          transactionId: data.transaction.id,
+          buyerName: data.transaction.buyer.name,
+          buyerAvatarUrl: data.transaction.buyer.avatarUrl,
+        });
+      }
+    },
     onError: () => toast.error(t("common.error")),
     onSettled: () => setIsActionLoading(false),
   });
@@ -690,6 +711,16 @@ export default function MyListingDetailScreen() {
         action={buyerPickerAction ?? "reserve"}
         onConfirm={handleBuyerPickerConfirm}
         isSubmitting={reserve.isPending || markSold.isPending}
+      />
+
+      {/* REV2: rate the buyer right after a sold sale records them */}
+      <ReviewPromptSheet
+        visible={reviewPrompt !== null}
+        onClose={() => setReviewPrompt(null)}
+        transactionId={reviewPrompt?.transactionId ?? 0}
+        callerRole="seller"
+        counterpartyName={reviewPrompt?.buyerName ?? ""}
+        counterpartyAvatarUrl={reviewPrompt?.buyerAvatarUrl ?? null}
       />
     </ScreenContainer>
   );

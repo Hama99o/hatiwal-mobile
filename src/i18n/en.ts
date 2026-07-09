@@ -16,6 +16,7 @@ import en_onboarding       from "./locales/en/onboarding.json";
 import en_permissions      from "./locales/en/permissions.json";
 import en_safety           from "./locales/en/safety.json";
 import en_buyerPicker      from "./locales/en/buyerPicker.json";
+import en_reviews          from "./locales/en/reviews.json";
 
 export const enTranslations = {
   common:          en_common,
@@ -36,4 +37,5 @@ export const enTranslations = {
   permissions:     en_permissions,
   safety:          en_safety,
   buyerPicker:     en_buyerPicker,
+  reviews:         en_reviews,
 };

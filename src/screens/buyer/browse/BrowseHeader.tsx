@@ -1,41 +1,32 @@
 /**
- * BrowseHeader — search bar, filter panel, category chips, saved searches.
+ * BrowseHeader — search bar, category chips, saved searches.
  *
  * Rendered as the `ListHeaderComponent` of UniversalList so it scrolls with
  * the list. All state lives in Browse.tsx and is passed down as props.
+ *
+ * The filter controls used to live inline here as a collapsible panel; they
+ * now live in the FilterSheet bottom-sheet modal (rendered by Browse.tsx),
+ * opened via the Filter (Sliders) button below. This header only owns the
+ * toggle button + its active/expanded visual state.
  */
 
 import React from "react";
-import { View, Pressable, ScrollView, StyleSheet, ActivityIndicator, useWindowDimensions } from "react-native";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from "react-native-reanimated";
+import { View, Pressable, ScrollView, StyleSheet } from "react-native";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import {
   Sliders,
-  MapPin,
-  ChevronRight,
-  ChevronLeft,
   Search,
   X,
-  ArrowUpDown,
   LayoutGrid,
   List,
   History,
-  UserCheck,
-  Navigation,
-  TrendingDown,
 } from "lucide-react-native";
 import type { BrowseViewMode } from "@/stores/browseViewMode.store";
 import { AnimatedPressable } from "@/lib/animation";
 
 import { Input } from "@/components/reusables/input";
 import { Text } from "@/components/reusables/text";
-import { ConditionChips } from "@/components/common/ConditionChips";
 import { CategoryChipRow } from "@/components/common/CategoryChipRow";
 import { SavedSearches } from "@/components/common/SavedSearches";
 
@@ -43,43 +34,19 @@ import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { useSearchHistoryStore } from "@/stores/searchHistory.store";
 import type { Category } from "@/api/categories";
-import type { ListingCondition, ListingSort } from "@/api/listings";
 import type { SavedSearch } from "@/api/saved-searches";
-import type { MapCanvasCoords } from "@/components/common/map/MapCanvas.types";
 
 interface BrowseHeaderProps {
   search: string;
   onSearchChange: (val: string) => void;
+  /** True while the filter bottom-sheet is open — drives the toggle button's active state. */
   showFilters: boolean;
+  /** Opens the filter bottom-sheet (rendered by the parent Browse screen). */
   onToggleFilters: () => void;
-  coordinates: MapCanvasCoords | null;
-  distance: number;
-  /** City/text location label — displayed when coordinates are set */
-  location: string | null;
-  priceMin: string;
-  priceMax: string;
-  condition: ListingCondition | null;
-  onOpenLocationPicker: () => void;
-  onClearLocation: () => void;
-  onPriceMinChange: (val: string) => void;
-  onPriceMaxChange: (val: string) => void;
-  onConditionChange: (val: ListingCondition | null) => void;
   categories: Category[] | undefined;
   categoryId: number | null;
   onCategoryChange: (id: number | null) => void;
   onSelectSavedSearch: (search: SavedSearch) => void;
-  sort: ListingSort | null;
-  onSortChange: (val: ListingSort | null) => void;
-  /** True while the "Nearest" chip is acquiring the device's GPS location. */
-  nearestLoading: boolean;
-  /** Tapping the "Nearest" chip — parent acquires location, sets/clears sort=nearest, toasts on failure. */
-  onToggleNearest: () => void;
-  /** When non-null, only listings from sellers active within this many days are shown. */
-  sellerActiveDays: number | null;
-  onSellerActiveDaysChange: (val: number | null) => void;
-  /** TASK-B384: true when the "Deals" (recent price-drop) chip is toggled on. */
-  priceDropped: boolean;
-  onTogglePriceDropped: () => void;
   viewMode: BrowseViewMode;
   onViewModeChange: (mode: BrowseViewMode) => void;
   /** Non-null when Browse is filtered to a specific subcategory (leaf node).
@@ -92,42 +59,15 @@ interface BrowseHeaderProps {
   onClearAllFilters: () => void;
 }
 
-const SORT_OPTIONS: { key: ListingSort; labelKey: string }[] = [
-  { key: "newest",      labelKey: "browse.sort.newest" },
-  { key: "oldest",      labelKey: "browse.sort.oldest" },
-  { key: "price_asc",   labelKey: "browse.sort.priceAsc" },
-  { key: "price_desc",  labelKey: "browse.sort.priceDesc" },
-  { key: "most_viewed", labelKey: "browse.sort.mostViewed" },
-];
-
 export function BrowseHeader({
   search,
   onSearchChange,
   showFilters,
   onToggleFilters,
-  coordinates,
-  distance,
-  location: locationLabel,
-  priceMin,
-  priceMax,
-  condition,
-  onOpenLocationPicker,
-  onClearLocation,
-  onPriceMinChange,
-  onPriceMaxChange,
-  onConditionChange,
   categories,
   categoryId,
   onCategoryChange,
   onSelectSavedSearch,
-  sort,
-  onSortChange,
-  nearestLoading,
-  onToggleNearest,
-  sellerActiveDays,
-  onSellerActiveDaysChange,
-  priceDropped,
-  onTogglePriceDropped,
   viewMode,
   onViewModeChange,
   subcategoryLabel,
@@ -138,22 +78,6 @@ export function BrowseHeader({
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
-  const { height: windowHeight } = useWindowDimensions();
-
-  // Animate the filter panel open/close on the UI thread. LayoutAnimation and
-  // Reanimated entering/exiting are both unreliable on the New Architecture, so
-  // we drive maxHeight + opacity from a shared value instead — this collapses
-  // the panel smoothly (and slides the feed up) on both iOS and Android.
-  const FILTER_MAX_HEIGHT = windowHeight * 0.55;
-  const filterProgress = useSharedValue(showFilters ? 1 : 0);
-  React.useEffect(() => {
-    filterProgress.value = withTiming(showFilters ? 1 : 0, { duration: 240 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showFilters]);
-  const filterPanelStyle = useAnimatedStyle(() => ({
-    maxHeight: filterProgress.value * FILTER_MAX_HEIGHT,
-    opacity: filterProgress.value,
-  }));
 
   const history           = useSearchHistoryStore((s) => s.history);
   const removeFromHistory = useSearchHistoryStore((s) => s.remove);
@@ -376,423 +300,6 @@ export function BrowseHeader({
             </ScrollView>
           </View>
         )}
-
-        {/* ── Filter panel (collapsible) ─────────────────────────────── */}
-        {/* Scrolls INTERNALLY (capped at ~55% of screen height) so a tall
-            expanded panel never pushes the feed down or overflows off-screen —
-            and the header still sizes to its content when filters are closed. */}
-        <Animated.View
-          style={[{ overflow: "hidden" }, filterPanelStyle]}
-          pointerEvents={showFilters ? "auto" : "none"}
-        >
-          <ScrollView
-            style={{
-              maxHeight: FILTER_MAX_HEIGHT,
-              borderTopWidth: 1,
-              borderTopColor: colors.border,
-            }}
-            contentContainerStyle={{ gap: 12, paddingVertical: 8 }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            nestedScrollEnabled
-          >
-            {/* Location & range */}
-            <View style={{ gap: 6 }}>
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "600",
-                  color: colors.mutedForeground,
-                  textAlign: isRtl ? "right" : "left",
-                }}
-              >
-                {t("browse.location")}
-              </Text>
-              <Pressable
-                onPress={onOpenLocationPicker}
-                style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  alignItems: "center",
-                  gap: 10,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  borderRadius: 10,
-                  paddingHorizontal: 12,
-                  paddingVertical: 12,
-                  backgroundColor: colors.background,
-                }}
-                accessibilityRole="button"
-              >
-                <MapPin
-                  size={18}
-                  color={
-                    coordinates ? colors.primary : colors.mutedForeground
-                  }
-                />
-                <View style={{ flex: 1 }}>
-                  {coordinates ? (
-                    <>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "600",
-                          color: colors.foreground,
-                          textAlign: isRtl ? "right" : "left",
-                        }}
-                      >
-                        {t("browse.withinRadius", { km: distance })}
-                      </Text>
-                      {locationLabel ? (
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: colors.mutedForeground,
-                            textAlign: isRtl ? "right" : "left",
-                          }}
-                          numberOfLines={1}
-                        >
-                          {locationLabel}
-                        </Text>
-                      ) : null}
-                    </>
-                  ) : (
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        color: colors.mutedForeground,
-                        textAlign: isRtl ? "right" : "left",
-                      }}
-                    >
-                      {t("browse.setLocationRange")}
-                    </Text>
-                  )}
-                </View>
-                {coordinates ? (
-                  <Pressable
-                    onPress={onClearLocation}
-                    hitSlop={10}
-                    style={{ padding: 2 }}
-                    accessibilityRole="button"
-                    accessibilityLabel={t("common.clear")}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "600",
-                        color: colors.primary,
-                      }}
-                    >
-                      {t("common.clear")}
-                    </Text>
-                  </Pressable>
-                ) : isRtl ? (
-                  <ChevronLeft size={18} color={colors.mutedForeground} />
-                ) : (
-                  <ChevronRight size={18} color={colors.mutedForeground} />
-                )}
-              </Pressable>
-            </View>
-
-            {/* Price range */}
-            <View
-              style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 10 }}
-            >
-              <View style={{ flex: 1, gap: 6 }}>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: colors.mutedForeground,
-                    textAlign: isRtl ? "right" : "left",
-                  }}
-                >
-                  {t("browse.priceMin")}
-                </Text>
-                <Input
-                  value={priceMin}
-                  onChangeText={onPriceMinChange}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  style={{ textAlign: isRtl ? "right" : "left" }}
-                />
-              </View>
-              <View style={{ flex: 1, gap: 6 }}>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: colors.mutedForeground,
-                    textAlign: isRtl ? "right" : "left",
-                  }}
-                >
-                  {t("browse.priceMax")}
-                </Text>
-                <Input
-                  value={priceMax}
-                  onChangeText={onPriceMaxChange}
-                  placeholder="∞"
-                  keyboardType="numeric"
-                  style={{ textAlign: isRtl ? "right" : "left" }}
-                />
-              </View>
-            </View>
-
-            {/* Condition */}
-            <View style={{ gap: 6 }}>
-              <Text
-                style={{
-                  fontSize: 12,
-                  fontWeight: "600",
-                  color: colors.mutedForeground,
-                  textAlign: isRtl ? "right" : "left",
-                }}
-              >
-                {t("listing.condition.label")}
-              </Text>
-              <ConditionChips
-                value={condition}
-                onChange={onConditionChange}
-                allowClear
-              />
-            </View>
-
-            {/* Sort */}
-            <View style={{ gap: 6 }}>
-              <View
-                style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <ArrowUpDown size={14} color={colors.mutedForeground} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: colors.mutedForeground,
-                  }}
-                >
-                  {t("browse.sort.label")}
-                </Text>
-              </View>
-              {/* Horizontal scroll keeps all 5 pills readable at their
-                  natural width — no flex-shrink, no multi-line truncation.
-                  RTL: content wrapper uses row-reverse so the leading pill
-                  (Newest first) stays on the start edge in ps/fa. */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  gap: 8,
-                  paddingHorizontal: 2,
-                }}
-              >
-                {SORT_OPTIONS.map((opt) => {
-                  const isActive = sort === opt.key;
-                  return (
-                    <Pressable
-                      key={opt.key}
-                      // Toggle: tapping the active sort clears it (back to the
-                      // default newest order), mirroring the condition chips.
-                      onPress={() => onSortChange(isActive ? null : opt.key)}
-                      style={{
-                        paddingVertical: 9,
-                        paddingHorizontal: 14,
-                        borderRadius: 20,
-                        borderWidth: 1.5,
-                        backgroundColor: isActive ? colors.primary : "transparent",
-                        borderColor: isActive ? colors.primary : colors.border,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: isActive }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 13,
-                          fontWeight: "600",
-                          color: isActive ? colors.primaryForeground : colors.foreground,
-                        }}
-                      >
-                        {t(opt.labelKey)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-
-                {/* "Nearest" chip — acquires the device's GPS location on tap
-                    (via expo-location, see Browse.tsx `handleToggleNearest`)
-                    instead of being a plain value like the pills above. */}
-                <Pressable
-                  onPress={onToggleNearest}
-                  disabled={nearestLoading}
-                  style={{
-                    flexDirection: isRtl ? "row-reverse" : "row",
-                    alignItems: "center",
-                    gap: 6,
-                    paddingVertical: 9,
-                    paddingHorizontal: 14,
-                    borderRadius: 20,
-                    borderWidth: 1.5,
-                    backgroundColor: sort === "nearest" ? colors.primary : "transparent",
-                    borderColor: sort === "nearest" ? colors.primary : colors.border,
-                    opacity: nearestLoading ? 0.7 : 1,
-                  }}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: sort === "nearest", busy: nearestLoading }}
-                  accessibilityLabel={t("browse.sort.nearest")}
-                >
-                  {nearestLoading ? (
-                    <ActivityIndicator
-                      size={13}
-                      color={sort === "nearest" ? colors.primaryForeground : colors.mutedForeground}
-                    />
-                  ) : (
-                    <Navigation
-                      size={13}
-                      color={sort === "nearest" ? colors.primaryForeground : colors.mutedForeground}
-                    />
-                  )}
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "600",
-                      color: sort === "nearest" ? colors.primaryForeground : colors.foreground,
-                    }}
-                  >
-                    {nearestLoading ? t("browse.nearestLocationLoading") : t("browse.sort.nearest")}
-                  </Text>
-                </Pressable>
-              </ScrollView>
-            </View>
-
-            {/* Active sellers chip */}
-            <View style={{ gap: 6 }}>
-              <View
-                style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <UserCheck size={14} color={colors.mutedForeground} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: colors.mutedForeground,
-                  }}
-                >
-                  {t("browse.sellerActivity")}
-                </Text>
-              </View>
-              <Pressable
-                onPress={() =>
-                  onSellerActiveDaysChange(sellerActiveDays === 7 ? null : 7)
-                }
-                style={{
-                  alignSelf: isRtl ? "flex-end" : "flex-start",
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  alignItems: "center",
-                  gap: 6,
-                  paddingVertical: 9,
-                  paddingHorizontal: 14,
-                  borderRadius: 20,
-                  borderWidth: 1.5,
-                  backgroundColor:
-                    sellerActiveDays === 7 ? colors.primary : "transparent",
-                  borderColor:
-                    sellerActiveDays === 7 ? colors.primary : colors.border,
-                }}
-                accessibilityRole="button"
-                accessibilityState={{ selected: sellerActiveDays === 7 }}
-                accessibilityHint={t("browse.activeSellersHint")}
-              >
-                <UserCheck
-                  size={14}
-                  color={
-                    sellerActiveDays === 7
-                      ? colors.primaryForeground
-                      : colors.mutedForeground
-                  }
-                />
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: "600",
-                    color:
-                      sellerActiveDays === 7
-                        ? colors.primaryForeground
-                        : colors.foreground,
-                  }}
-                >
-                  {t("browse.activeSellers")}
-                </Text>
-                {sellerActiveDays === 7 && (
-                  <X size={12} color={colors.primaryForeground} />
-                )}
-              </Pressable>
-            </View>
-
-            {/* Deals chip — TASK-B384: toggles the recent price-drop filter */}
-            <View style={{ gap: 6 }}>
-              <View
-                style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <TrendingDown size={14} color={colors.mutedForeground} />
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: colors.mutedForeground,
-                  }}
-                >
-                  {t("browse.filters.dealsLabel")}
-                </Text>
-              </View>
-              <Pressable
-                onPress={onTogglePriceDropped}
-                style={{
-                  alignSelf: isRtl ? "flex-end" : "flex-start",
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  alignItems: "center",
-                  gap: 6,
-                  paddingVertical: 9,
-                  paddingHorizontal: 14,
-                  borderRadius: 20,
-                  borderWidth: 1.5,
-                  backgroundColor: priceDropped ? colors.primary : "transparent",
-                  borderColor: priceDropped ? colors.primary : colors.border,
-                }}
-                accessibilityRole="button"
-                accessibilityState={{ selected: priceDropped }}
-                accessibilityHint={t("browse.filters.dealsHint")}
-              >
-                <TrendingDown
-                  size={14}
-                  color={priceDropped ? colors.primaryForeground : colors.mutedForeground}
-                />
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: "600",
-                    color: priceDropped ? colors.primaryForeground : colors.foreground,
-                  }}
-                >
-                  {t("browse.filters.deals")}
-                </Text>
-                {priceDropped && <X size={12} color={colors.primaryForeground} />}
-              </Pressable>
-            </View>
-          </ScrollView>
-        </Animated.View>
       </View>
 
       {/* ── Category chip row ─────────────────────────────────────────────

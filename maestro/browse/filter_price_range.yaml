@@ -14,14 +14,16 @@ appId: com.hatiwal.app
 # Set max price
 - tapOn: "Max Price"
 - inputText: "50000"
-# Apply filters
-- tapOn: "Apply filters to save search combinations"
+# Apply filters — closes the sheet (filters already apply live)
+- tapOn: "Show results"
 - waitForAnimationToEnd
 # Results show (may be empty or filtered)
 - assertVisible: "Bazaar"
-# Reset filters
+# Reopen sheet and reset via its footer
 - tapOn: "Filters"
 - waitForAnimationToEnd
-- tapOn: "Reset filters"
+- tapOn: "Clear all"
+- waitForAnimationToEnd
+- tapOn: "Show results"
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"

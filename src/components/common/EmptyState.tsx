@@ -57,6 +57,15 @@ interface EmptyStateProps {
   description?: string;
   action?: EmptyStateAction;
   className?: string;
+  /**
+   * Compact mode — for an EmptyState embedded inside a larger scrollable
+   * screen (e.g. the "Ratings & Reviews" preview on a profile header) rather
+   * than owning the whole screen. Shrinks padding/icon/type so it reads as
+   * one calm section among others instead of a big blank void that could
+   * look broken. Full-screen list callers (Browse, Saved, My Listings, Chat)
+   * are unaffected — default is false.
+   */
+  compact?: boolean;
 }
 
 export function EmptyState({
@@ -65,6 +74,7 @@ export function EmptyState({
   title,
   description,
   action,
+  compact = false,
 }: EmptyStateProps) {
   const colors = useColors();
   const reduceMotion = useReduceMotion();
@@ -79,21 +89,23 @@ export function EmptyState({
     ? undefined
     : ZoomIn.duration(350).delay(20).springify().damping(14).stiffness(120);
 
+  const iconCircleSize = compact ? 48 : 72;
+
   return (
     <View
       style={{
-        flex: 1,
+        flex: compact ? undefined : 1,
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 32,
-        paddingVertical: 64,
-        gap: 16,
+        paddingHorizontal: compact ? 16 : 32,
+        paddingVertical: compact ? 24 : 64,
+        gap: compact ? 10 : 16,
       }}
     >
       {/* Illustration or icon — animates in on mount */}
       <Animated.View
         entering={scaleAnimation}
-        style={{ alignItems: "center", justifyContent: "center", marginBottom: 8 }}
+        style={{ alignItems: "center", justifyContent: "center", marginBottom: compact ? 2 : 8 }}
       >
         {illustration ? (
           // Custom SVG illustration — no muted circle background, art fills the space
@@ -104,13 +116,13 @@ export function EmptyState({
             style={{
               alignItems: "center",
               justifyContent: "center",
-              width: 72,
-              height: 72,
-              borderRadius: 36,
+              width: iconCircleSize,
+              height: iconCircleSize,
+              borderRadius: iconCircleSize / 2,
               backgroundColor: colors.muted,
             }}
           >
-            <Icon size={34} color={colors.mutedForeground} strokeWidth={1.5} />
+            <Icon size={compact ? 22 : 34} color={colors.mutedForeground} strokeWidth={1.5} />
           </View>
         ) : null}
       </Animated.View>
@@ -118,12 +130,12 @@ export function EmptyState({
       {/* Title + description — fade in slightly after the illustration */}
       <Animated.View
         entering={enteringAnimation}
-        style={{ alignItems: "center", gap: 8 }}
+        style={{ alignItems: "center", gap: compact ? 4 : 8 }}
       >
         <Text
           style={{
             color: colors.foreground,
-            fontSize: 18,
+            fontSize: compact ? 15 : 18,
             fontWeight: "600",
             textAlign: "center",
           }}
@@ -135,9 +147,9 @@ export function EmptyState({
           <Text
             style={{
               color: colors.mutedForeground,
-              fontSize: 14,
+              fontSize: compact ? 13 : 14,
               textAlign: "center",
-              lineHeight: 20,
+              lineHeight: compact ? 18 : 20,
             }}
           >
             {description}

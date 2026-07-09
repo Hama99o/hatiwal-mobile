@@ -5,16 +5,19 @@
 
 import React from "react";
 import { View } from "react-native";
+import { useRouter } from "expo-router";
 import { Clock } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { Separator } from "@/components/reusables/separator";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { AwayBanner } from "@/components/common/AwayBanner";
+import { RatingDisplay } from "@/components/common/RatingDisplay";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useTranslation } from "react-i18next";
 import { type PublicProfile } from "@/api/users";
 import { getActiveLabelText } from "@/utils/activeLabelUtil";
+import { ReviewsSection } from "./ReviewsSection";
 
 interface ProfileHeaderProps {
   profile: PublicProfile;
@@ -63,6 +66,7 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  const router = useRouter();
 
   // The backend serializer sends member_since as a pre-formatted string via
   // created_at.strftime('%B %Y') (e.g. "June 2026") — NOT an ISO date.
@@ -71,10 +75,13 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
   const memberDate = profile.memberSince ?? "—";
   const activeLabelText = getActiveLabelText(profile.lastActiveLabel, t);
 
+  const goToAllReviews = () =>
+    router.push(`/(main)/user/${profile.id}/reviews` as never);
+
   return (
     <View style={{ paddingHorizontal: 16 }}>
       {/* Avatar + name + verified */}
-      <View style={{ alignItems: "center", paddingTop: 24, paddingBottom: 20 }}>
+      <View style={{ alignItems: "center", paddingTop: 24, paddingBottom: 12, gap: 6 }}>
         <UserIdentity
           name={profile.name}
           avatarUrl={profile.avatarUrl}
@@ -83,6 +90,14 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
           size={80}
           nameSize={22}
           layout="stacked"
+        />
+        {/* REV2 — trust-signal rating, tappable straight to the full reviews list */}
+        <RatingDisplay
+          avgRating={profile.avgRating}
+          reviewCount={profile.reviewCount}
+          size="lg"
+          onPress={goToAllReviews}
+          testID="profile-header-rating"
         />
       </View>
 
@@ -174,6 +189,13 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
           </Text>
         </View>
       )}
+
+      <View style={{ marginBottom: 16 }}>
+        <Separator />
+      </View>
+
+      {/* REV2 — Ratings & Reviews section: summary + first few reviews + "View all" */}
+      <ReviewsSection userId={profile.id} onViewAll={goToAllReviews} />
 
       <View style={{ marginBottom: 16 }}>
         <Separator />

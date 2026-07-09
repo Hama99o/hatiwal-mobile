@@ -104,6 +104,22 @@ export function BrowseScreen() {
 
 For **list screens** (search + infinite scroll), use `UniversalList` — it manages its own scroll, so set `scrollable={false}` on `ScreenContainer`.
 
+### Bottom safe-area — CRITICAL RULE (Android nav bar gap)
+
+The app is **edge-to-edge on Android** (Expo SDK 54 default), so it draws *under* the system navigation bar. **Every pinned/sticky bottom element** — action bars (e.g. "Make an Offer / Contact Seller"), form save/submit bars, bottom-sheet footers, the chat composer, any `position: "absolute"` bar at `bottom: 0`, and any bottom-slide `Modal` sheet — **MUST clear the nav bar with a breathing gap.**
+
+```tsx
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+const insets = useSafeAreaInsets();
+// ✅ correct — clears the nav bar AND leaves a visible 12px gap:
+<View style={{ paddingBottom: Math.max(insets.bottom, 16) + 12 }}>
+```
+
+- ❌ **NEVER** use a flat `paddingBottom: 32` (etc.) on a bottom bar — on Android it sits behind the nav bar and hides the button.
+- ❌ **NEVER** use bare `Math.max(insets.bottom, N)` **without `+ 12`** — on a device *with* a nav bar `insets.bottom` already equals the nav height, so the bar ends up **flush against** the nav (no gap). Always add the `+ 12` breathing gap.
+- The `Math.max(insets.bottom, 16)` floor keeps a sensible minimum on devices with **no** nav bar (where `insets.bottom` is 0).
+- This looks fine on iOS regardless, but **you must test bottom bars on Android** — that's where the mistake shows. Do NOT add the inset to the `FloatingTabBar` a second time (it already handles its own).
+
 ---
 
 ## 3) Mandatory Translations

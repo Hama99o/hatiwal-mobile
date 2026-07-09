@@ -72,6 +72,16 @@ export const EmptyReviews: Story = {
   },
 };
 
+export const EmptyReviewsCompact: Story = {
+  name: "Compact / Reviews preview (embedded in ProfileHeader)",
+  args: {
+    icon: Star,
+    title: "No reviews yet",
+    description: "Reviews appear after a successful transaction.",
+    compact: true,
+  },
+};
+
 // ── Illustration stories (new — one per high-frequency surface) ──────────────
 
 export const IllustrationNoResults: Story = {

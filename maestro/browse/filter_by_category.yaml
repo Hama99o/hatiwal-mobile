@@ -1,18 +1,19 @@
 appId: com.hatiwal.app
 ---
-# Filter by category — bottom sheet opens, selection filters feed, clear resets
+# Filter by category — the category chip row stays visible/reachable
+# regardless of the filter sheet's open state; selection filters the feed.
 
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
-# Open filter panel
+# Open filter sheet, confirm the always-visible category row underneath is untouched
 - tapOn: "Filters"
 - waitForAnimationToEnd
-# Bottom sheet visible
 - assertVisible: "All Categories"
+# Close the sheet — the category chip row lives outside it
+- tapOn: "Show results"
+- waitForAnimationToEnd
 # Select a category (Electronics is common — adjust if seeded differently)
 - tapOn: "Electronics"
-- waitForAnimationToEnd
-- tapOn: "Apply filters to save search combinations"
 - waitForAnimationToEnd
 # Category chip is shown as active
 - assertVisible: "Electronics"

@@ -16,6 +16,7 @@ import fa_onboarding       from "./locales/fa/onboarding.json";
 import fa_permissions      from "./locales/fa/permissions.json";
 import fa_safety           from "./locales/fa/safety.json";
 import fa_buyerPicker      from "./locales/fa/buyerPicker.json";
+import fa_reviews          from "./locales/fa/reviews.json";
 
 export const faTranslations = {
   common:          fa_common,
@@ -36,4 +37,5 @@ export const faTranslations = {
   permissions:     fa_permissions,
   safety:          fa_safety,
   buyerPicker:     fa_buyerPicker,
+  reviews:         fa_reviews,
 };

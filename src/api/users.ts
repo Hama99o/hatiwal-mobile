@@ -11,6 +11,9 @@ export interface PublicProfile {
   memberSince: string;
   soldCount: number;
   listingsCount: number;
+  /** REV2 — combined double-blind rating across both seller/buyer roles. null when reviewCount is 0. */
+  avgRating?: number | null;
+  reviewCount?: number;
   verified?: boolean;
   blocked?: boolean;
   /**

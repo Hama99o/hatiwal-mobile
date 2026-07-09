@@ -34,8 +34,8 @@ appId: com.hatiwal.app
 - tapOn: "Reserve"
 - waitForAnimationToEnd
 - assertVisible: "Who's buying this item?"
-- assertVisible: "Someone else / skip"
-- tapOn: "Someone else / skip"
+- assertVisible: "Sold to someone not on Hatiwal"
+- tapOn: "Sold to someone not on Hatiwal"
 - tapOn: "Confirm reserve"
 - waitForAnimationToEnd
 # Success toast appears
@@ -53,7 +53,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # BuyerPickerSheet fires instead of a plain confirmAlert
 - assertVisible: "Who bought this item?"
-- tapOn: "Someone else / skip"
+- tapOn: "Sold to someone not on Hatiwal"
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
 # Success toast

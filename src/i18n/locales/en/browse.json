@@ -17,6 +17,8 @@
   "noResultsDescription": "Try changing your search or filter.",
   "filtersToggle": "Filters",
   "filters": {
+    "title": "Filters",
+    "apply": "Show results",
     "deals": "Deals",
     "dealsLabel": "Deals",
     "dealsHint": "Show only listings whose price recently dropped"

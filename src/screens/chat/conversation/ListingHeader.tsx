@@ -26,6 +26,7 @@ import { StatusBadge } from "@/components/common/StatusBadge";
 import { Badge } from "@/components/reusables/badge";
 import type { ListingStatus } from "@/components/common/StatusBadge";
 import { BuyerPickerSheet, type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
+import { ReviewPromptSheet } from "@/components/common/ReviewPromptSheet";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { listingsAPI } from "@/api/listings";
@@ -71,6 +72,12 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
   const [isLifecycleLoading, setIsLifecycleLoading] = useState(false);
   // TASK-TX01: which lifecycle action opened the buyer picker, if any.
   const [buyerPickerAction, setBuyerPickerAction] = useState<"reserve" | "sold" | null>(null);
+  // REV2: after a sold sale records a real buyer, prompt the seller to rate them.
+  const [reviewPrompt, setReviewPrompt] = useState<{
+    transactionId: number;
+    buyerName: string;
+    buyerAvatarUrl: string | null;
+  } | null>(null);
 
   const validStatuses: ListingStatus[] = ["draft", "active", "reserved", "sold"];
   const status = validStatuses.includes(listing.status as ListingStatus)
@@ -94,8 +101,18 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
         await listingsAPI.reserveListing(listing.id, result);
         toast.success(t("chat.listingActions.reserveSuccess"));
       } else if (buyerPickerAction === "sold") {
-        await listingsAPI.markSold(listing.id, result);
+        const soldData = await listingsAPI.markSold(listing.id, result);
         toast.success(t("chat.listingActions.markSoldSuccess"));
+        // REV2: a recorded buyer means a real sold Transaction exists —
+        // invite the seller to rate them right away (double-blind, hidden
+        // until the buyer reviews back too).
+        if (soldData.transaction?.buyer) {
+          setReviewPrompt({
+            transactionId: soldData.transaction.id,
+            buyerName: soldData.transaction.buyer.name,
+            buyerAvatarUrl: soldData.transaction.buyer.avatarUrl,
+          });
+        }
       }
       setBuyerPickerAction(null);
       onLifecycleDone?.();
@@ -272,6 +289,16 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
         action={buyerPickerAction ?? "reserve"}
         onConfirm={handleBuyerPickerConfirm}
         isSubmitting={isLifecycleLoading}
+      />
+
+      {/* REV2: rate the buyer right after a sold sale records them */}
+      <ReviewPromptSheet
+        visible={reviewPrompt !== null}
+        onClose={() => setReviewPrompt(null)}
+        transactionId={reviewPrompt?.transactionId ?? 0}
+        callerRole="seller"
+        counterpartyName={reviewPrompt?.buyerName ?? ""}
+        counterpartyAvatarUrl={reviewPrompt?.buyerAvatarUrl ?? null}
       />
     </View>
   );

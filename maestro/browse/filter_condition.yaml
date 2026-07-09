@@ -12,12 +12,14 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Confirm chip is selected (appears highlighted)
 - assertVisible: "Like new"
-# Apply and check results
-- tapOn: "Apply filters to save search combinations"
+# Apply and check results — closes the sheet
+- tapOn: "Show results"
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"
-# Reopen and clear
+# Reopen and clear via the sheet's footer
 - tapOn: "Filters"
 - waitForAnimationToEnd
-- tapOn: "Reset filters"
+- tapOn: "Clear all"
+- waitForAnimationToEnd
+- tapOn: "Show results"
 - waitForAnimationToEnd

@@ -38,6 +38,8 @@ import { WarningBanner } from "@/components/common/WarningBanner";
 import { AwayBanner } from "@/components/common/AwayBanner";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { UserAvatar } from "@/components/common/UserAvatar";
+import { RatingDisplay } from "@/components/common/RatingDisplay";
+import { PendingReviewsNudge } from "@/screens/shared/profile/PendingReviewsNudge";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore, resetMode } from "@/stores/mode.store";
 import { useThemeStore, ThemePreference, resetTheme } from "@/stores/theme.store";
@@ -288,7 +290,7 @@ function ProfileQuickActions({ user, isSeller }: { user: User; isSeller: boolean
             <QuickActionCard
               icon={Award}
               label={t("profile.quickActions.reviews")}
-              onPress={() => toast.info(t("common.comingSoon"))}
+              onPress={() => router.push(`/(main)/user/${user.id}/reviews` as never)}
             />
           </>
         ) : (
@@ -308,6 +310,11 @@ function ProfileQuickActions({ user, isSeller }: { user: User; isSeller: boolean
               label={t("profile.quickActions.messages")}
               onPress={() => router.push("/(main)/(tabs)/chat")}
               badge={user?.unreadMessageCount ?? 0}
+            />
+            <QuickActionCard
+              icon={Award}
+              label={t("profile.quickActions.reviews")}
+              onPress={() => router.push(`/(main)/user/${user.id}/reviews` as never)}
             />
           </>
         )}
@@ -620,6 +627,17 @@ export default function ProfileScreen() {
             nameSize={20}
             layout="stacked"
           />
+          {/* REV2 — combined double-blind rating (seller + buyer roles) */}
+          {user && (
+            <View style={{ marginTop: 6 }}>
+              <RatingDisplay
+                avgRating={user.avgRating}
+                reviewCount={user.reviewCount}
+                onPress={() => router.push(`/(main)/user/${user.id}/reviews` as never)}
+                testID="own-profile-rating"
+              />
+            </View>
+          )}
         </View>
 
         {/* Mode Toggle — RNR Button outline variant */}
@@ -670,6 +688,9 @@ export default function ProfileScreen() {
           />
         </View>
       )}
+
+      {/* ── REV2 — "Rate your recent deals" nudge (renders nothing when empty) ── */}
+      <PendingReviewsNudge />
 
       {/* ── Content — one unified layout; mode only changes stats + actions ── */}
       {user && <ProfileContent user={user} isSeller={isSeller} handleEdit={startEdit} />}

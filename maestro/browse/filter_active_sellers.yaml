@@ -7,7 +7,7 @@ appId: com.hatiwal.app
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
-# Open filter panel
+# Open filter sheet
 - tapOn: "Filters"
 - waitForAnimationToEnd
 
@@ -21,8 +21,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Active sellers"
 
-# Close filter panel and confirm feed reloaded
-- tapOn: "Filters"
+# Close filter sheet and confirm feed reloaded
+- tapOn: "Show results"
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"
 
@@ -35,7 +35,9 @@ appId: com.hatiwal.app
 - tapOn: "Active sellers"
 - waitForAnimationToEnd
 
-# Reset all filters and confirm clean state
-- tapOn: "Reset filters"
+# Reset all filters via the sheet's footer and confirm clean state
+- tapOn: "Clear all"
+- waitForAnimationToEnd
+- tapOn: "Show results"
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"

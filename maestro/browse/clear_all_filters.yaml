@@ -2,15 +2,16 @@ appId: com.hatiwal.app
 ---
 # clear_all_filters — always-visible filter summary pill
 #
-# Scenario: apply a price min filter and a category filter, assert the pill
-# shows "2 filters active", tap "Clear all", assert the pill disappears and
-# the unfiltered Browse feed is visible again.
+# Scenario: apply a price min filter (via the filter bottom-sheet) and a
+# category filter (via the chip row), assert the pill shows "2 filters
+# active", tap "Clear all", assert the pill disappears and the unfiltered
+# Browse feed is visible again.
 
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
-# ── Step 1: Open the filter panel ───────────────────────────────────────────
+# ── Step 1: Open the filter sheet ───────────────────────────────────────────
 - tapOn: "Filters"
 - waitForAnimationToEnd
 
@@ -19,8 +20,8 @@ appId: com.hatiwal.app
 - inputText: "5000"
 - hideKeyboard
 
-# ── Step 3: Close filter panel ──────────────────────────────────────────────
-- tapOn: "Filters"
+# ── Step 3: Close the filter sheet (the category chip row lives outside it) ─
+- tapOn: "Show results"
 - waitForAnimationToEnd
 
 # ── Step 4: Apply a category filter via the chip row ────────────────────────

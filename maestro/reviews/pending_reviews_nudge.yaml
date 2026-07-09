@@ -1,0 +1,55 @@
+appId: com.hatiwal.app
+---
+# REV2 — entry point (b): the "Rate your recent deals" nudge on the buyer's
+# own Profile screen, driven by GET /my/reviews/pending. Chains off
+# rate_buyer_after_sale.yaml so the seller side has already submitted —
+# this flow completes the double-blind pair from the BUYER's side and
+# verifies the SECOND submit reveals both reviews immediately.
+#
+# Covers:
+#   - The nudge only lists the COUNTERPARTY (the seller), never the buyer's
+#     own name, and never leaks the seller's already-submitted rating
+#   - Tapping the row opens the review prompt for that transaction
+#   - Submitting (2nd party) shows the "revealed" thanks state, not pending
+#   - The nudge disappears once there is nothing left to rate
+
+- runFlow: ./rate_buyer_after_sale.yaml
+
+# Switch to the buyer account
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Email"
+- inputText: ${EMAIL:-"buyer@hatiwal.test"}
+- tapOn: "Password"
+- inputText: ${PASSWORD:-"Password123!"}
+- tapOn: "Sign In"
+- assertVisible: "Bazaar"
+
+- tapOn: "Me"
+- waitForAnimationToEnd
+
+# "Rate your recent deals" nudge — lists the SELLER (Omar Noori), never
+# the buyer's own name, and never reveals the seller's pending rating.
+- assertVisible: "Rate your recent deals"
+- assertVisible: "Omar Noori"
+
+- tapOn: "Omar Noori"
+- waitForAnimationToEnd
+
+- assertVisible: "How was Omar Noori as a seller?"
+
+- tapOn:
+    id: "star-rating-4"
+- tapOn: "Submit review"
+- waitForAnimationToEnd
+
+# This is the SECOND submit — both reviews reveal together right now.
+- assertVisible: "Thanks! Your review is posted."
+- assertNotVisible: "Review saved"
+
+- tapOn: "Got it"
+- waitForAnimationToEnd
+
+# Nothing left to rate — the nudge is gone.
+- assertNotVisible: "Rate your recent deals"

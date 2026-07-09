@@ -25,6 +25,7 @@ import { NoResultsIllustration } from "@/components/common/empty-illustrations";
 import { ListingFeed } from "@/components/common/ListingFeed";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import { BrowseHeader } from "./browse/BrowseHeader";
+import { FilterSheet } from "./browse/FilterSheet";
 import { computeActiveFilterCount } from "@/utils/browseFilters";
 
 import { listingsAPI, type Listing, type ListingCondition, type ListingSort } from "@/api/listings";
@@ -415,18 +416,7 @@ export default function BrowseScreen() {
       search={search}
       onSearchChange={setSearch}
       showFilters={showFilters}
-      onToggleFilters={() => setShowFilters((v) => !v)}
-      coordinates={coordinates}
-      distance={distance}
-      location={location}
-      priceMin={priceMin}
-      priceMax={priceMax}
-      condition={condition}
-      onOpenLocationPicker={() => setShowLocationPicker(true)}
-      onClearLocation={handleClearLocation}
-      onPriceMinChange={setPriceMin}
-      onPriceMaxChange={setPriceMax}
-      onConditionChange={setCondition}
+      onToggleFilters={() => setShowFilters(true)}
       categories={categories}
       categoryId={categoryId}
       onCategoryChange={(id) => {
@@ -435,14 +425,6 @@ export default function BrowseScreen() {
         setSubcategoryLabel(null);
       }}
       onSelectSavedSearch={handleApplySavedSearch}
-      sort={sort}
-      onSortChange={handleSortChange}
-      nearestLoading={nearestLoading}
-      onToggleNearest={handleToggleNearest}
-      sellerActiveDays={sellerActiveDays}
-      onSellerActiveDaysChange={setSellerActiveDays}
-      priceDropped={priceDropped}
-      onTogglePriceDropped={handleTogglePriceDropped}
       viewMode={viewMode}
       onViewModeChange={setViewMode}
       subcategoryLabel={subcategoryLabel}
@@ -464,24 +446,13 @@ export default function BrowseScreen() {
   // data-reset cycle. BrowseHeader owns the grid/list toggle — ListingFeed
   // only receives viewMode (no onViewModeChange) so no duplicate toggle appears.
   //
-  // The header sizes to its content (plain View); the expanded filter panel
-  // scrolls INTERNALLY (see BrowseHeader's maxHeight ScrollView) so it never
-  // pushes the feed down or leaves a gap when collapsed.
+  // The filter controls live in FilterSheet, a bottom-sheet Modal rendered
+  // alongside the feed — its dimmed backdrop is the "tap outside to close"
+  // surface, so no responder-capture hack around the feed is needed anymore.
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
       {listHeader}
 
-      <View
-        style={{ flex: 1 }}
-        onStartShouldSetResponderCapture={() => {
-          // Touch-outside-to-close: any tap or scroll-start on the feed area
-          // dismisses an open filter panel (animated in BrowseHeader). Returning
-          // false lets the touch still reach the feed, so scrolling / tapping a
-          // card is never blocked.
-          if (showFilters) setShowFilters(false);
-          return false;
-        }}
-      >
       <ListingFeed
         id={`buyer-browse-${fetcherKey}`}
         refreshKey={refetchKey}
@@ -507,7 +478,34 @@ export default function BrowseScreen() {
         perPage={20}
         contentPaddingBottom={96}
       />
-      </View>
+
+      {/* Filter bottom-sheet — Location, Price, Condition, Sort, Seller
+          activity, Deals. Filters apply live as they change, so its
+          "Show results" action just closes the sheet. */}
+      <FilterSheet
+        visible={showFilters}
+        onClose={() => setShowFilters(false)}
+        coordinates={coordinates}
+        distance={distance}
+        location={location}
+        priceMin={priceMin}
+        priceMax={priceMax}
+        condition={condition}
+        onOpenLocationPicker={() => setShowLocationPicker(true)}
+        onClearLocation={handleClearLocation}
+        onPriceMinChange={setPriceMin}
+        onPriceMaxChange={setPriceMax}
+        onConditionChange={setCondition}
+        sort={sort}
+        onSortChange={handleSortChange}
+        nearestLoading={nearestLoading}
+        onToggleNearest={handleToggleNearest}
+        sellerActiveDays={sellerActiveDays}
+        onSellerActiveDaysChange={setSellerActiveDays}
+        priceDropped={priceDropped}
+        onTogglePriceDropped={handleTogglePriceDropped}
+        onClearAllFilters={handleReset}
+      />
 
       {/* Map-based location & range picker */}
       <LocationRangePicker

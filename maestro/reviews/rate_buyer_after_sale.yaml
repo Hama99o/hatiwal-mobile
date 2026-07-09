@@ -1,0 +1,78 @@
+appId: com.hatiwal.app
+---
+# REV2 — happy path: right after a seller records a sale with a real buyer
+# (TASK-TX01's BuyerPickerSheet), the double-blind ReviewPromptSheet opens
+# automatically inviting the seller to rate the buyer.
+#
+# Self-contained: marks the seeded "Lenovo ThinkPad Laptop Core i5 8GB"
+# listing sold with buyer@hatiwal.test / "Ahmad Karimi" (the ONE seeded
+# buyer-conversation fixture — see ../seller/mark_sold_with_buyer.yaml, which
+# covers the TASK-TX01 mechanic itself and dismisses this same prompt via
+# "Not now"). Do not run both flows in the same suite pass without an E2E DB
+# reset in between — they share this one fixture.
+#
+# Covers:
+#   - Submit is disabled until a star rating is picked (validation/error gate)
+#   - Tapping a star enables Submit; an optional comment can be added
+#   - Submitting calls the review API and shows the double-blind PENDING
+#     confirmation (only the seller has reviewed so far — the buyer hasn't)
+#   - "Got it" dismisses the sheet back to the listing detail
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+- tapOn: "Active"
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    timeout: 8000
+
+- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
+- waitForAnimationToEnd
+
+- tapOn: "Mark as Sold"
+- waitForAnimationToEnd
+
+- assertVisible: "Who bought this item?"
+- tapOn: "Ahmad Karimi"
+- waitForAnimationToEnd
+- tapOn: "Confirm sold"
+- waitForAnimationToEnd
+
+- assertVisible: "Listing marked as sold"
+
+# The double-blind ReviewPromptSheet opened automatically —
+# "How was Ahmad Karimi as a buyer?" (buyer's full name from the seeded conversation).
+- assertVisible: "How was Ahmad Karimi as a buyer?"
+
+# Submit is disabled until a star is picked
+- assertVisible: "Your rating"
+- tapOn: "Submit review"
+- assertVisible: "How was Ahmad Karimi as a buyer?"
+
+# Pick a 5-star rating
+- tapOn:
+    id: "star-rating-5"
+- waitForAnimationToEnd
+
+# Optional comment
+- tapOn: "Share how the meetup and deal went…"
+- inputText: "Smooth meetup, paid in cash as agreed."
+
+- tapOn: "Submit review"
+- waitForAnimationToEnd
+
+# Double-blind — the buyer hasn't reviewed back yet, so this stays PENDING
+# (never shows the buyer's side, never claims the review is public yet).
+- assertVisible: "Review saved"
+- assertNotVisible: "Thanks! Your review is posted."
+
+- tapOn: "Got it"
+- waitForAnimationToEnd
+
+# Back on the (now Sold) listing detail
+- assertVisible: "Sold"

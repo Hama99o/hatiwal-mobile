@@ -1,0 +1,29 @@
+appId: com.hatiwal.app
+---
+# REV2 — empty state: a fresh account with no sold transactions and no
+# reviews at all. Uses newbuyer@hatiwal.test (no listings, no conversations,
+# no transactions — see maestro/README.md) so this flow is independent of
+# rate_buyer_after_sale.yaml / pending_reviews_nudge.yaml and always sees a
+# clean slate regardless of run order.
+#
+# Covers:
+#   - RatingDisplay shows "No reviews yet" instead of a misleading 0.0 score
+#   - The "Rate your recent deals" nudge never renders when there is nothing
+#     pending (no false-positive nudge)
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Email"
+- inputText: ${EMAIL:-"newbuyer@hatiwal.test"}
+- tapOn: "Password"
+- inputText: ${PASSWORD:-"Password123!"}
+- tapOn: "Sign In"
+- assertVisible: "Bazaar"
+
+- tapOn: "Me"
+- waitForAnimationToEnd
+
+- assertVisible: "Profile"
+- assertVisible: "No reviews yet"
+- assertNotVisible: "Rate your recent deals"

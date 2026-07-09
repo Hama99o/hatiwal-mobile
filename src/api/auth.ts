@@ -29,6 +29,9 @@ export interface User {
   itemsBoughtCount?: number;
   createdAt: string;
   pushToken?: string | null;
+  /** REV2 — combined double-blind rating across both seller/buyer roles. null when reviewCount is 0. */
+  avgRating?: number | null;
+  reviewCount?: number;
   /** Set when the account is in its 30-day deletion grace window (recoverable). */
   deletionScheduledAt?: string | null;
   /**

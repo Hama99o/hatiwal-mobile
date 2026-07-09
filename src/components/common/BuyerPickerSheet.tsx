@@ -139,8 +139,21 @@ export function BuyerPickerSheet({
             </Pressable>
           </View>
 
-          <Text className="text-sm" style={{ color: colors.mutedForeground, marginBottom: 12, textAlign: isRtl ? "right" : "left" }}>
+          <Text className="text-sm" style={{ color: colors.mutedForeground, marginBottom: 8, textAlign: isRtl ? "right" : "left" }}>
             {t("buyerPicker.subtitle")}
+          </Text>
+
+          {/* REV2 nudge — makes picking a real buyer attractive: it's the only
+              way for both sides to leave a double-blind review afterward. */}
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.primary,
+              marginBottom: 12,
+              textAlign: isRtl ? "right" : "left",
+            }}
+          >
+            {t("buyerPicker.nudge")}
           </Text>
 
           <Separator className="mb-2" />

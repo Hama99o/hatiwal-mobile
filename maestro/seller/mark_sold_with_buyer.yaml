@@ -10,6 +10,14 @@ appId: com.hatiwal.app
 #   - the sheet opens with the listing's conversations
 #   - selecting a buyer + confirming records the sale
 #   - the listing flips to Sold and the success toast fires
+#
+# REV2: recording a real buyer now also auto-opens the double-blind
+# ReviewPromptSheet ("How was Ahmad Karimi as a buyer?") right after — this
+# flow stays scoped to the TASK-TX01 mechanic and dismisses it via "Not now"
+# before checking the Sold badge. The review-prompt UI itself is covered by
+# maestro/reviews/rate_buyer_after_sale.yaml (self-contained — do not run
+# both flows in the same suite pass without an E2E DB reset in between; they
+# share this one seeded buyer-conversation fixture).
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
@@ -40,7 +48,7 @@ appId: com.hatiwal.app
 - assertVisible: "Hi, is this laptop still available?"
 
 # The legacy skip option is still offered
-- assertVisible: "Someone else / skip"
+- assertVisible: "Sold to someone not on Hatiwal"
 
 # Select the real buyer
 - tapOn: "Ahmad Karimi"
@@ -50,6 +58,14 @@ appId: com.hatiwal.app
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
 
-# Sale recorded — success toast + listing now shows Sold
+# Sale recorded — success toast fires
 - assertVisible: "Listing marked as sold"
+
+# REV2: the double-blind review prompt opens automatically — dismiss it here
+# (out of scope for this flow) so the underlying Sold badge is checkable.
+- assertVisible: "How was Ahmad Karimi as a buyer?"
+- tapOn: "Not now"
+- waitForAnimationToEnd
+
+# Listing now shows Sold
 - assertVisible: "Sold"

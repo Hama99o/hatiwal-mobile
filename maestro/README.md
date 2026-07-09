@@ -49,7 +49,7 @@ cd hatiwal-api && bundle exec rails db:seed:reset_e2e
 
 ## Flow Index
 
-153 flows across 16 folders. All use English locale strings as selectors.
+198 flows across 18 folders. All use English locale strings as selectors.
 
 ```
 _helpers/
@@ -225,6 +225,11 @@ onboarding/
 
 seller/
   mark_sold_with_buyer.yaml  ← TASK-TX01: Mark Sold on an active listing opens the BuyerPickerSheet, seller picks the real buyer from the listing's conversations, listing flips to Sold
+
+reviews/
+  rate_buyer_after_sale.yaml       ← REV2: chains mark_sold_with_buyer, review prompt opens, Submit gated on a star pick, submitting shows the double-blind PENDING state
+  pending_reviews_nudge.yaml       ← REV2: chains rate_buyer_after_sale, buyer's "Rate your recent deals" nudge, 2nd submit reveals both reviews immediately
+  profile_reviews_empty_state.yaml ← REV2: fresh account shows "No reviews yet" instead of a misleading score, no false-positive pending nudge
 ```
 
 ## Adding Tests for a New Feature
