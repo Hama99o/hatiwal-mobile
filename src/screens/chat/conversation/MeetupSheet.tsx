@@ -102,7 +102,7 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
         <View
           style={[
             styles.sheet,
-            { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) },
+            { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) + 12 },
           ]}
         >
           {/* Handle */}

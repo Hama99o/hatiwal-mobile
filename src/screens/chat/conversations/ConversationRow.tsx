@@ -1,5 +1,6 @@
 import { View, Pressable, StyleSheet, Modal, Text as RNText } from "react-native";
 import { useCallback, useEffect, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Image } from "expo-image";
@@ -72,6 +73,7 @@ export function ConversationRow({
   const { isRtl, formatSmartTime }     = useLocalization();
   const { t }                          = useTranslation();
   const colors                         = useColors();
+  const insets                         = useSafeAreaInsets();
   const [menuVisible, setMenuVisible]  = useState(false);
 
   const other     = item.otherParticipant;
@@ -297,7 +299,9 @@ export function ConversationRow({
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
               paddingTop:          12,
-              paddingBottom:       32,
+              // Clear the Android system nav bar — Math.max keeps the existing
+              // 32pt minimum on devices with no bottom inset.
+              paddingBottom:       Math.max(insets.bottom, 32) + 12,
             }}
             onTouchEnd={(e) => e.stopPropagation()}
           >

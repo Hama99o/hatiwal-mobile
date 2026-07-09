@@ -6,8 +6,14 @@
  */
 
 import React from "react";
-import { View, Pressable, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { View, Pressable, ScrollView, StyleSheet, ActivityIndicator, useWindowDimensions } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import {
   Sliders,
@@ -132,6 +138,22 @@ export function BrowseHeader({
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  const { height: windowHeight } = useWindowDimensions();
+
+  // Animate the filter panel open/close on the UI thread. LayoutAnimation and
+  // Reanimated entering/exiting are both unreliable on the New Architecture, so
+  // we drive maxHeight + opacity from a shared value instead — this collapses
+  // the panel smoothly (and slides the feed up) on both iOS and Android.
+  const FILTER_MAX_HEIGHT = windowHeight * 0.55;
+  const filterProgress = useSharedValue(showFilters ? 1 : 0);
+  React.useEffect(() => {
+    filterProgress.value = withTiming(showFilters ? 1 : 0, { duration: 240 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showFilters]);
+  const filterPanelStyle = useAnimatedStyle(() => ({
+    maxHeight: filterProgress.value * FILTER_MAX_HEIGHT,
+    opacity: filterProgress.value,
+  }));
 
   const history           = useSearchHistoryStore((s) => s.history);
   const removeFromHistory = useSearchHistoryStore((s) => s.remove);
@@ -281,8 +303,11 @@ export function BrowseHeader({
           </AnimatedPressable>
         </View>
 
-        {/* ── Recent searches — shown when input is empty and history exists ── */}
-        {!showFilters && search === "" && history.length > 0 && (
+        {/* ── Recent searches — shown when input is empty and history exists.
+             Stays visible even when the filter panel is open (TASK fix: opening
+             filters used to hide the buyer's search history entirely) — only
+             hidden while actively typing a query. ── */}
+        {search === "" && history.length > 0 && (
           <View
             style={{
               borderTopWidth: 1,
@@ -353,14 +378,23 @@ export function BrowseHeader({
         )}
 
         {/* ── Filter panel (collapsible) ─────────────────────────────── */}
-        {showFilters && (
-          <View
+        {/* Scrolls INTERNALLY (capped at ~55% of screen height) so a tall
+            expanded panel never pushes the feed down or overflows off-screen —
+            and the header still sizes to its content when filters are closed. */}
+        <Animated.View
+          style={[{ overflow: "hidden" }, filterPanelStyle]}
+          pointerEvents={showFilters ? "auto" : "none"}
+        >
+          <ScrollView
             style={{
-              gap: 12,
-              paddingVertical: 8,
+              maxHeight: FILTER_MAX_HEIGHT,
               borderTopWidth: 1,
               borderTopColor: colors.border,
             }}
+            contentContainerStyle={{ gap: 12, paddingVertical: 8 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
           >
             {/* Location & range */}
             <View style={{ gap: 6 }}>
@@ -757,8 +791,8 @@ export function BrowseHeader({
                 {priceDropped && <X size={12} color={colors.primaryForeground} />}
               </Pressable>
             </View>
-          </View>
-        )}
+          </ScrollView>
+        </Animated.View>
       </View>
 
       {/* ── Category chip row ─────────────────────────────────────────────

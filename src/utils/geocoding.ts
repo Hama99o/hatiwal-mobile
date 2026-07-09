@@ -10,6 +10,17 @@
 
 const NOMINATIM = "https://nominatim.openstreetmap.org";
 
+// Nominatim's usage policy REQUIRES a descriptive User-Agent identifying the
+// app — requests without one are rejected (which is why search returned nothing
+// on a native build, while the browser worked because it sends its own UA).
+// `accept-language` asks for place names in Pashto/Dari first, then English, so
+// results and labels are localized for Afghan users. Both are sent on every call.
+const NOMINATIM_HEADERS = {
+  Accept: "application/json",
+  "User-Agent": "Hatiwal/1.0 (https://hatiwal.multimagics.com)",
+  "Accept-Language": "ps,fa,en",
+};
+
 export interface GeocodeResult {
   label: string; // short, human-friendly name (e.g. "Jalalabad")
   detail: string; // fuller context (e.g. "Nangarhar, Afghanistan")
@@ -31,10 +42,10 @@ export async function searchPlaces(query: string): Promise<GeocodeResult[]> {
 
   const url =
     `${NOMINATIM}/search?format=jsonv2&addressdetails=0&limit=8` +
-    `&countrycodes=af&q=${encodeURIComponent(q)}`;
+    `&accept-language=ps,fa,en&countrycodes=af&q=${encodeURIComponent(q)}`;
 
   try {
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const res = await fetch(url, { headers: NOMINATIM_HEADERS });
     if (!res.ok) return [];
     const data = await res.json();
     return (Array.isArray(data) ? data : []).map((d: any) => {
@@ -58,9 +69,9 @@ export async function reverseGeocode(
 ): Promise<string | null> {
   const url =
     `${NOMINATIM}/reverse?format=jsonv2&zoom=14&addressdetails=0` +
-    `&lat=${latitude}&lon=${longitude}`;
+    `&accept-language=ps,fa,en&lat=${latitude}&lon=${longitude}`;
   try {
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const res = await fetch(url, { headers: NOMINATIM_HEADERS });
     if (!res.ok) return null;
     const data = await res.json();
     if (!data?.display_name) return null;

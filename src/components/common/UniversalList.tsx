@@ -11,14 +11,16 @@
  *
  * Architecture note:
  *   ListHeaderComponent (which often contains a TextInput) is rendered ONCE in
- *   a stable outer View, ABOVE the body-swap zone. This prevents the header from
- *   being unmounted/remounted when the loading/error/empty/list branch changes —
- *   which would kill keyboard focus mid-typing.
+ *   a stable outer container, ABOVE the body-swap zone. This prevents the header
+ *   from being unmounted/remounted when the loading/error/empty/list branch
+ *   changes — which would kill keyboard focus mid-typing.
  *
  *   For screens that need the header to scroll with the list (e.g. a small list
  *   with few items), the full-data path still passes ListHeaderComponent into
  *   FlashList so it scrolls naturally. The skeleton / error / empty paths render
- *   the header once outside the body — focus is preserved.
+ *   the header once outside the body, wrapped in a ScrollView — focus is
+ *   preserved AND a header taller than the screen (e.g. an expanded filter
+ *   panel with few/no results below it) stays fully reachable by scrolling.
  *
  * Usage:
  *   const config: UniversalListConfig<Listing> = {
@@ -37,7 +39,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { View, RefreshControl, ActivityIndicator } from "react-native";
+import { View, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
 import { FlashList, type ListRenderItemInfo } from "@shopify/flash-list";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
@@ -465,9 +467,31 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   // container, so the TextInput (search bar) is never unmounted.
   const showHeaderAboveBody = isLoading || !!error || items.length === 0;
 
+  if (showHeaderAboveBody) {
+    // The header (e.g. an expandable filter panel) can be taller than the
+    // screen, especially when there are few/no results below it. A plain
+    // View here has no way to reveal content that overflows the screen —
+    // wrap in a ScrollView so the header + body are always fully reachable.
+    // `contentContainerStyle={{ flexGrow: 1 }}` keeps the loading/error/empty
+    // body's own `flex: 1` centering intact when everything fits on screen,
+    // while still allowing the container to grow taller (and scroll) when it
+    // doesn't. The FlashList data path below is untouched — it keeps scrolling
+    // as its own virtualized list.
+    return (
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {ListHeaderComponent}
+        {renderBody()}
+      </ScrollView>
+    );
+  }
+
   return (
     <View style={{ flex: 1 }}>
-      {showHeaderAboveBody && ListHeaderComponent}
       {renderBody()}
     </View>
   );

@@ -51,6 +51,10 @@ export function ListingCardSkeleton() {
       <View style={{ padding: 10, paddingTop: 8, gap: 5 }}>
         {/* Price — 17sp bold, matches PriceTag md */}
         <SkeletonBlock width={80} height={17} />
+        {/* Badge-slot placeholder — mirrors the real card's fixed-height badge
+            slot (firm-price / price-drop badge) so the loading→loaded swap
+            doesn't jump in height. */}
+        <SkeletonBlock width={64} height={18} style={{ borderRadius: 999 }} />
         {/* Title line 1 */}
         <SkeletonBlock height={13} style={{ marginTop: 1 }} />
         {/* Title line 2 — shorter */}

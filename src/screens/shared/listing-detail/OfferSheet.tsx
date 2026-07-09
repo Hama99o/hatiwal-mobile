@@ -93,7 +93,7 @@ export function OfferSheet({
             {
               backgroundColor: colors.card,
               borderTopColor: colors.border,
-              paddingBottom: Math.max(insets.bottom, 24),
+              paddingBottom: Math.max(insets.bottom, 24) + 12,
             },
           ]}
         >

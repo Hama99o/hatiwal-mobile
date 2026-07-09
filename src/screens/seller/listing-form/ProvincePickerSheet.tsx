@@ -6,6 +6,7 @@
 
 import React, { useState, useMemo } from "react";
 import { View, Modal, Pressable, ScrollView, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
 import { Text } from "@/components/reusables/text";
@@ -36,6 +37,7 @@ export function ProvincePickerSheet({
   const { t, i18n } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -67,7 +69,17 @@ export function ProvincePickerSheet({
       onRequestClose={handleClose}
     >
       <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={handleClose} />
-      <View style={[styles.sheet, { backgroundColor: colors.card }]}>
+      <View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.card,
+            // Clear the Android system nav bar — Math.max keeps the existing
+            // 32pt minimum on devices with no bottom inset.
+            paddingBottom: Math.max(insets.bottom, 32) + 12,
+          },
+        ]}
+      >
         {/* Header */}
         <View
           style={[

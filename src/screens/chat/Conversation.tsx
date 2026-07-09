@@ -1050,7 +1050,7 @@ export function ConversationScreen() {
           <View
             style={[
               styles.inputBar,
-              { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 8) },
+              { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 8) + 12 },
             ]}
           >
             <Input
@@ -1090,7 +1090,7 @@ export function ConversationScreen() {
           <View
             style={[
               styles.inputBar,
-              { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 8) },
+              { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 8) + 12 },
             ]}
           >
             <Pressable
@@ -1151,7 +1151,7 @@ export function ConversationScreen() {
           <View
             style={[
               styles.closedInput,
-              { borderTopColor: colors.border, backgroundColor: colors.muted, paddingBottom: Math.max(insets.bottom, 12) },
+              { borderTopColor: colors.border, backgroundColor: colors.muted, paddingBottom: Math.max(insets.bottom, 12) + 12 },
             ]}
           >
             <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center" }}>

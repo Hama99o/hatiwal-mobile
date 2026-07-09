@@ -213,7 +213,7 @@ export function FirstMessageSheet({
             <Text style={{ color: colors.mutedForeground }}>{t("common.cancel")}</Text>
           </Button>
 
-          <View style={{ height: Math.max(insets.bottom, 8) }} />
+          <View style={{ height: Math.max(insets.bottom, 8) + 12 }} />
         </View>
       </KeyboardAvoidingView>
     </Modal>

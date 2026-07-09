@@ -27,6 +27,8 @@ export function RemoteImage({
   blurhash = LISTING_BLURHASH,
   contentFit = "cover",
   transition = 250,
+  recyclingKey,
+  cachePolicy = "memory-disk",
   ...rest
 }: RemoteImageProps) {
   return (
@@ -35,6 +37,14 @@ export function RemoteImage({
       placeholder={blurhash ? { blurhash } : undefined}
       contentFit={contentFit}
       transition={transition}
+      // When FlashList recycles a card view for a different listing, expo-image
+      // otherwise keeps showing the PREVIOUS listing's photo until the new one
+      // downloads (the "wrong image on the wrong card" bug). Keying on the uri
+      // makes expo-image reset to the placeholder immediately on recycle.
+      recyclingKey={recyclingKey ?? uri ?? undefined}
+      // memory-disk cache so re-scrolling shows photos instantly instead of
+      // re-downloading them every time.
+      cachePolicy={cachePolicy}
       {...rest}
     />
   );

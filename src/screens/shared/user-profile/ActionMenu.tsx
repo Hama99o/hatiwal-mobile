@@ -5,6 +5,7 @@
 
 import React from "react";
 import { View, Pressable, Modal } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/reusables/text";
 import { Flag, Share2, ShieldBan } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
@@ -31,6 +32,7 @@ export function ActionMenu({
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal
@@ -53,7 +55,11 @@ export function ActionMenu({
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             paddingTop: 12,
-            paddingBottom: 32,
+            // Android has no system-drawn bottom inset for a translucent gesture/nav
+            // bar the way iOS does — without this the Cancel row sits flush against
+            // (or behind) the nav bar. Math.max keeps the existing 32pt minimum on
+            // devices with no inset (e.g. 3-button nav bars already reserve space).
+            paddingBottom: Math.max(insets.bottom, 32) + 12,
           }}
           onTouchEnd={(e) => e.stopPropagation()}
         >

@@ -1,11 +1,8 @@
 /**
- * MapCanvas — native map built on `react-native-maps` (the house-sanctioned map
- * library, see docs/DESIGN_SYSTEM.md). Replaces the old hand-rolled OSM tile
- * canvas, which suffered from janky pan/zoom, tile pop-in, and blurry labels.
- *
- * Provider is PROVIDER_DEFAULT → Apple Maps on iOS (free, no API key) and Google
- * Maps on Android (needs a free Maps key in app config). The OS renders the map,
- * so zoom/pan/labels are smooth and crisp.
+ * MapCanvas (iOS) — native map on `react-native-maps` with PROVIDER_DEFAULT, which
+ * on iOS is Apple Maps (MapKit): free, no API key, no billing, no usage limits at
+ * any scale, and it works in Expo Go too. Android uses MapLibre/OSM instead — see
+ * MapCanvas.android.tsx. Place search stays on Nominatim (see geocoding.ts).
  *
  * Three modes (same contract as before):
  *   • picker      (!readonly && !interactive) — tap the map or drag the pin to

@@ -17,6 +17,7 @@ import { useColors } from "@/hooks/useColors";
 import { getCurrentLocation, type GeoErrorCode } from "@/utils/geolocation";
 import { showPermissionDeniedAlert } from "@/lib/permissions";
 import { searchPlaces, reverseGeocode, type GeocodeResult } from "@/utils/geocoding";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MapCanvas from "./map/MapCanvas";
 import { DEFAULT_CENTER, type MapCanvasCoords } from "./map/MapCanvas.types";
 
@@ -55,6 +56,7 @@ export function LocationRangePicker({
   const colors = useColors();
   const { colorScheme } = useColorScheme();
   const dark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
 
   const [coords, setCoords] = useState<MapCanvasCoords>(initialCoords ?? DEFAULT_CENTER);
   const [radiusKm, setRadiusKm] = useState<number>(initialRadius || 5);
@@ -299,7 +301,9 @@ export function LocationRangePicker({
             borderTopColor: colors.border,
             paddingHorizontal: 16,
             paddingTop: 14,
-            paddingBottom: 28,
+            // Clear the Android system nav bar with a 12px breathing gap
+            // (28 on devices without a nav bar, matching the original).
+            paddingBottom: Math.max(insets.bottom, 16) + 12,
             gap: 14,
           }}
         >

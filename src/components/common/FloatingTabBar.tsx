@@ -32,6 +32,15 @@ import { useModeStore } from "@/stores/mode.store";
 
 const ICON_SIZE = 22;
 
+// Extra breathing room ABOVE the system nav bar / home indicator so the
+// floating pill never sits flush against it. Devices with a system nav bar
+// (Android 3-button/gesture bar, iOS home indicator) report a non-zero
+// `insets.bottom` — we add this on top of that inset, we don't replace it,
+// otherwise the bar's bottom edge lands exactly on the nav bar's top edge
+// with zero visible gap. Devices with no system nav bar just get the flat
+// 12px fallback (no giant gap).
+const SAFE_AREA_GAP = 8;
+
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const colors = useColors();
   const { isRtl } = useLocalization();
@@ -49,7 +58,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         styles.wrap,
         {
           backgroundColor: colors.background,
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
+          paddingBottom: insets.bottom > 0 ? insets.bottom + SAFE_AREA_GAP : 12,
         },
       ]}
     >

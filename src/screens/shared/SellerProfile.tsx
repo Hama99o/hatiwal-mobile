@@ -499,7 +499,9 @@ export function SellerProfileScreen() {
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
               paddingTop: 12,
-              paddingBottom: 32,
+              // Clear the Android system nav bar — Math.max keeps the existing
+              // 32pt minimum on devices with no bottom inset.
+              paddingBottom: Math.max(insets.bottom, 32) + 12,
             }}
             onTouchEnd={(e) => e.stopPropagation()}
           >

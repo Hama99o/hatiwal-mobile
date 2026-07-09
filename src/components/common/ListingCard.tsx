@@ -1,5 +1,6 @@
 import { View, Pressable, StyleSheet, ViewStyle, Modal, Text as RNText } from "react-native";
 import { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/reusables/text";
 import { RemoteImage } from "./RemoteImage";
 import { Heart, MapPin, Camera, Eye, EyeOff } from "lucide-react-native";
@@ -481,7 +482,19 @@ export function ListingCard({
         </View>
 
         {/* ── Card body ──────────────────────────────────────────────── */}
-        <View style={{ padding: 10, paddingTop: 8, gap: 3, minHeight: 80 }}>
+        {/*
+          Every row below is a FIXED-HEIGHT slot that is ALWAYS rendered — even
+          when its content is empty — so a card's total height never depends on
+          which optional bits (firm-price badge, price-drop badge, a short
+          1-line title, a missing location) happen to apply to THIS listing.
+
+          This matters because @shopify/flash-list's numColumns grid has no
+          `columnWrapperStyle` (that's a FlatList-only prop that stretches row
+          siblings to match height) — so the only way to keep the two cards in
+          every grid row bottom-aligned is to give every card the SAME total
+          height, regardless of content.
+        */}
+        <View style={{ padding: 10, paddingTop: 8, gap: 3 }}>
           {/* Price — hero element: larger, bolder, more vertical space */}
           <PriceTag
             price={listing.price}
@@ -489,41 +502,53 @@ export function ListingCard({
             size="md"
           />
 
-          {/* Per-buyer "price dropped since you saved it" badge — Saved screen only
-              (TASK-Y316). Distinct from the corner priceDropPercent overlay above,
-              which is the listing's own price-history signal shown to every buyer.
-              compact: the grid card is narrow (2-column) and the PriceTag hero right
-              above already shows the current price, so the compact form drops the
-              label text + duplicated current price to avoid wrapping/clutter. */}
-          {listing.priceDropped && (
-            <PriceDropBadge
-              variant="saved"
-              compact
-              oldPrice={listing.priceAtSave ?? undefined}
-              newPrice={listing.price}
-              currency={listing.currency}
-            />
-          )}
-
-          {/* Firm-price badge — only when negotiable is explicitly false */}
-          {listing.negotiable === false && (
-            <View
-              testID="firm-price-badge"
-              style={{ alignSelf: isRtl ? "flex-end" : "flex-start" }}
-            >
-              <Badge
-                label={t("listing.firmPrice")}
-                variant="muted"
+          {/* Badge slot — fixed height, always rendered, holds AT MOST one badge:
+                1. The per-buyer "price dropped since you saved it" badge (Saved
+                   screen only, TASK-Y316) takes priority when present — it's the
+                   more time-sensitive signal.
+                2. Otherwise the static firm-price tag (negotiable === false).
+              Stacking both would reintroduce the height variance this slot exists
+              to prevent, and would put two competing badges on one card — the
+              same clutter the corner price-drop overlay above already avoids by
+              suppressing itself when this per-buyer badge is showing. */}
+          <View
+            style={{
+              height: 26,
+              justifyContent: "center",
+              alignItems: isRtl ? "flex-end" : "flex-start",
+            }}
+          >
+            {listing.priceDropped ? (
+              // compact: the grid card is narrow (2-column) and the PriceTag
+              // hero right above already shows the current price, so the
+              // compact form drops the label text + duplicated current price
+              // to avoid wrapping/clutter.
+              <PriceDropBadge
+                variant="saved"
+                compact
+                oldPrice={listing.priceAtSave ?? undefined}
+                newPrice={listing.price}
+                currency={listing.currency}
               />
-            </View>
-          )}
+            ) : listing.negotiable === false ? (
+              <View testID="firm-price-badge">
+                <Badge
+                  label={t("listing.firmPrice")}
+                  variant="muted"
+                />
+              </View>
+            ) : null}
+          </View>
 
-          {/* Title — secondary to price */}
+          {/* Title — secondary to price. Fixed to exactly 2 lines of height
+              (18 lineHeight × 2 = 36) always, so a short 1-line title doesn't
+              leave the card shorter than a 2-line neighbor. */}
           <Text
             style={{
               fontSize: 13,
               fontWeight: "400",
               lineHeight: 18,
+              height: 36,
               textAlign: isRtl ? "right" : "left",
               color: isViewed ? colors.mutedForeground : colors.foreground,
             }}
@@ -532,40 +557,40 @@ export function ListingCard({
             {listing.title}
           </Text>
 
-          {/* Meta row: listing location + VerifiedBadge */}
-          {(listingLocation || listing.seller?.verified) ? (
-            <View
-              style={{
-                flexDirection: metaRowDirection,
-                alignItems: "center",
-                gap: 4,
-                marginTop: 2,
-                flexWrap: "wrap",
-              }}
-            >
-              {listingLocation ? (
-                <View
-                  style={{
-                    flexDirection: metaRowDirection,
-                    alignItems: "center",
-                    gap: 2,
-                    flex: 1,
-                  }}
+          {/* Meta row slot — listing location + VerifiedBadge. Fixed height,
+              always reserved: `location` is an optional field, so some listings
+              have it and some don't — leaving the row out of the tree entirely
+              when absent would shrink that card versus its row neighbor. */}
+          <View
+            style={{
+              height: 16,
+              flexDirection: metaRowDirection,
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            {listingLocation ? (
+              <View
+                style={{
+                  flexDirection: metaRowDirection,
+                  alignItems: "center",
+                  gap: 2,
+                  flex: 1,
+                }}
+              >
+                <MapPin size={10} color={colors.mutedForeground} />
+                <Text
+                  style={{ fontSize: 11, color: colors.mutedForeground, flex: 1 }}
+                  numberOfLines={1}
                 >
-                  <MapPin size={10} color={colors.mutedForeground} />
-                  <Text
-                    style={{ fontSize: 11, color: colors.mutedForeground, flex: 1 }}
-                    numberOfLines={1}
-                  >
-                    {listingLocation}
-                  </Text>
-                </View>
-              ) : null}
-              {listing.seller?.verified && (
-                <VerifiedBadge size={12} accessibilityLabel={t("listing.card.verifiedSeller")} />
-              )}
-            </View>
-          ) : null}
+                  {listingLocation}
+                </Text>
+              </View>
+            ) : null}
+            {listing.seller?.verified && (
+              <VerifiedBadge size={12} accessibilityLabel={t("listing.card.verifiedSeller")} />
+            )}
+          </View>
         </View>
       </Pressable>
     </Animated.View>
@@ -596,6 +621,7 @@ function NotInterestedMenu({
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal
@@ -616,7 +642,9 @@ function NotInterestedMenu({
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             paddingTop: 12,
-            paddingBottom: 32,
+            // Clear the Android system nav bar — Math.max keeps the existing
+            // 32pt minimum on devices with no bottom inset.
+            paddingBottom: Math.max(insets.bottom, 32) + 12,
           }}
           onTouchEnd={(e) => e.stopPropagation()}
         >

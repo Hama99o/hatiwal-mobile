@@ -78,7 +78,7 @@ export function SafetyTipsSheet({ visible, onClose }: SafetyTipsSheetProps) {
     >
       <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={onClose} />
 
-      <View style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 16) + 12 }]}>
         {/* drag handle */}
         <View style={styles.handleContainer}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />

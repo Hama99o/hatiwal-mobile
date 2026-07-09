@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { authAPI } from "@/api/auth";
+import { reloadApp } from "@/lib/reloadApp";
 
 export type ThemePreference = "light" | "dark" | "system";
 
@@ -11,12 +12,19 @@ interface ThemeState {
 
 const STORAGE_KEY = "app-theme";
 
-export const useThemeStore = create<ThemeState>((set) => ({
+export const useThemeStore = create<ThemeState>((set, get) => ({
   theme: "system",
   setTheme: (theme) => {
+    const changed = get().theme !== theme;
     set({ theme });
-    AsyncStorage.setItem(STORAGE_KEY, theme).catch(() => {});
     authAPI.updateMe({ preferredTheme: theme }).catch(() => null);
+    // Persist BEFORE reloading so the saved theme matches on next launch, then
+    // reload for a clean apply (Android's live theme swap can be janky).
+    AsyncStorage.setItem(STORAGE_KEY, theme)
+      .catch(() => {})
+      .finally(() => {
+        if (changed) reloadApp();
+      });
   },
 }));
 

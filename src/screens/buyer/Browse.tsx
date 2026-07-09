@@ -463,10 +463,25 @@ export default function BrowseScreen() {
   // even when each debounced keystroke flips the feed id and causes a full
   // data-reset cycle. BrowseHeader owns the grid/list toggle — ListingFeed
   // only receives viewMode (no onViewModeChange) so no duplicate toggle appears.
+  //
+  // The header sizes to its content (plain View); the expanded filter panel
+  // scrolls INTERNALLY (see BrowseHeader's maxHeight ScrollView) so it never
+  // pushes the feed down or leaves a gap when collapsed.
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
       {listHeader}
 
+      <View
+        style={{ flex: 1 }}
+        onStartShouldSetResponderCapture={() => {
+          // Touch-outside-to-close: any tap or scroll-start on the feed area
+          // dismisses an open filter panel (animated in BrowseHeader). Returning
+          // false lets the touch still reach the feed, so scrolling / tapping a
+          // card is never blocked.
+          if (showFilters) setShowFilters(false);
+          return false;
+        }}
+      >
       <ListingFeed
         id={`buyer-browse-${fetcherKey}`}
         refreshKey={refetchKey}
@@ -492,6 +507,7 @@ export default function BrowseScreen() {
         perPage={20}
         contentPaddingBottom={96}
       />
+      </View>
 
       {/* Map-based location & range picker */}
       <LocationRangePicker

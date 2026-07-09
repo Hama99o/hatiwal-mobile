@@ -2,6 +2,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { I18nManager } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { reloadApp } from "@/lib/reloadApp";
 import { authAPI } from "@/api/auth";
 import { enTranslations } from "./en";
 import { psTranslations } from "./ps";
@@ -38,47 +39,65 @@ export function isRtlLanguage(lang: string): boolean {
   return RTL_LANGUAGES.includes(lang);
 }
 
-function applyDirection(lang: string) {
-  const rtl = isRtlLanguage(lang);
-  I18nManager.allowRTL(rtl);
-  I18nManager.forceRTL(rtl);
-}
+// Allow RTL globally; the concrete direction is set per-language below.
+I18nManager.allowRTL(true);
 
-// Apply direction for the initial language.
-applyDirection(i18n.language);
-
-// Load the persisted language choice (overrides the env default).
+// Reconcile the persisted language + layout direction on cold start. If the
+// native RTL flag disagrees with the stored language's direction, flip it and
+// restart ONCE. forceRTL() persists natively, so after the restart the flag and
+// the stored language already agree → no restart loop.
 AsyncStorage.getItem(STORAGE_KEY)
   .then((stored) => {
-    if (stored && stored !== i18n.language) {
-      i18n.changeLanguage(stored);
-      applyDirection(stored);
+    const lang = (stored as LanguageCode) || (DEFAULT_LANG as LanguageCode);
+    if (lang !== i18n.language) i18n.changeLanguage(lang);
+    const desiredRtl = isRtlLanguage(lang);
+    if (I18nManager.isRTL !== desiredRtl) {
+      I18nManager.forceRTL(desiredRtl);
+      reloadApp();
     }
   })
   .catch(() => {});
 
 export async function setLanguage(lang: LanguageCode): Promise<void> {
+  const changed = i18n.language !== lang;
   await i18n.changeLanguage(lang);
-  applyDirection(lang);
+  I18nManager.forceRTL(isRtlLanguage(lang));
+  // Persist locally BEFORE restarting so the stored language matches the forced
+  // direction on next launch (otherwise the cold-start reconcile could loop).
   try {
     await AsyncStorage.setItem(STORAGE_KEY, lang);
   } catch {
     // ignore persistence errors
   }
+  // Fire-and-forget backend sync — local storage is authoritative for the UI.
   authAPI.updateMe({ preferredLanguage: lang }).catch(() => null);
+  // Reload on ANY language change — RN's live label/direction update is janky
+  // on Android (text sometimes stays in place); a restart applies it cleanly.
+  if (changed) reloadApp();
 }
 
 /** Apply a language from the backend user object (no API sync — backend is the source). */
 export async function applyLanguageFromUser(lang: LanguageCode): Promise<void> {
+  const flips = isRtlLanguage(lang) !== I18nManager.isRTL;
   await i18n.changeLanguage(lang);
-  applyDirection(lang);
-  AsyncStorage.setItem(STORAGE_KEY, lang).catch(() => {});
+  I18nManager.forceRTL(isRtlLanguage(lang));
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, lang);
+  } catch {
+    // ignore
+  }
+  // On login only reload when the direction actually flips (avoids a needless
+  // restart loop on the splash/login flow for same-direction languages).
+  if (flips) reloadApp();
 }
 
 /** Reset language to English and clear storage — call on logout. */
 export async function resetLanguage(): Promise<void> {
+  // Don't restart here — logout has its own navigation/reset flow; the LTR
+  // direction is applied on the next launch (or the next login via
+  // applyLanguageFromUser). Restarting mid-logout risks racing that flow.
   await i18n.changeLanguage("en");
-  applyDirection("en");
+  I18nManager.forceRTL(false);
   await AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
 }
 

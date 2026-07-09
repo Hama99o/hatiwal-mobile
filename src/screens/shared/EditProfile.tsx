@@ -16,6 +16,7 @@
  */
 import React, { useCallback, useEffect } from "react";
 import { View, ScrollView, Pressable, ActivityIndicator, Switch as RNSwitch } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -145,6 +146,7 @@ export default function EditProfileScreen() {
   const { t, i18n } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const qc = useQueryClient();
 
@@ -629,7 +631,9 @@ export default function EditProfileScreen() {
           left: 0,
           right: 0,
           padding: 16,
-          paddingBottom: 32,
+          // Clear the Android system nav bar — Math.max keeps the existing
+          // 32pt minimum on devices with no bottom inset.
+          paddingBottom: Math.max(insets.bottom, 32) + 12,
           backgroundColor: colors.background,
           borderTopWidth: 1,
           borderTopColor: colors.border,

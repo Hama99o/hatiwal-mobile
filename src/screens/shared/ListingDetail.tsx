@@ -843,7 +843,7 @@ export default function ListingDetailScreen() {
           {
             backgroundColor: colors.background,
             borderTopColor: colors.border,
-            paddingBottom: Math.max(insets.bottom, 16),
+            paddingBottom: Math.max(insets.bottom, 16) + 12,
           },
         ]}
       >
