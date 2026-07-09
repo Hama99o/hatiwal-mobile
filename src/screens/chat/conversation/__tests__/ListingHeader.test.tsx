@@ -63,33 +63,19 @@ jest.mock("sonner-native", () => ({
   },
 }));
 
-// BuyerPickerSheet (TASK-TX01) — minimal stand-in exposing a "confirm-skip"
-// button (legacy no-buyer path) and a "close" button. Real sheet behavior is
-// covered by its own unit tests.
-jest.mock("@/components/common/BuyerPickerSheet", () => {
-  const { Pressable, Text } = require("react-native");
-  return {
-    BuyerPickerSheet: ({ visible, onConfirm, onClose, action }: {
-      visible: boolean;
-      onConfirm: (r: { buyerId?: number; finalPrice?: number }) => void;
-      onClose: () => void;
-      action: string;
-    }) => {
-      if (!visible) return null;
-      return (
-        <>
-          <Text testID={`buyer-picker-visible-${action}`}>buyer-picker-open</Text>
-          <Pressable onPress={() => onConfirm({})} testID="confirm-skip">
-            <Text>confirm-skip</Text>
-          </Pressable>
-          <Pressable onPress={onClose} testID="picker-close">
-            <Text>close</Text>
-          </Pressable>
-        </>
-      );
-    },
-  };
-});
+// BuyerPickerSheet (TASK-TX01) — a minimal stand-in exposing a "confirm-skip"
+// button (legacy no-buyer path) and a "close" button. Uses the manual mock at
+// `src/components/common/__mocks__/BuyerPickerSheet.tsx` — an inline JSX-
+// returning factory crashes babel-plugin-jest-hoist (T704). Real sheet
+// behavior is covered by its own unit tests.
+jest.mock("@/components/common/BuyerPickerSheet");
+
+// ReviewPromptSheet opens after a sale is recorded; it uses react-query
+// (useMutation), which these lifecycle tests don't provide. It has its own
+// tests — stub it out. Null factory (no require/JSX) is babel-hoist-safe.
+jest.mock("@/components/common/ReviewPromptSheet", () => ({
+  ReviewPromptSheet: () => null,
+}));
 
 // Import AFTER mocks
 import { ListingHeader } from "../ListingHeader";
