@@ -14,7 +14,7 @@
       "backgroundColor": "#12224F"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.hatiwal.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
