@@ -1,6 +1,16 @@
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { http } from "./http";
 import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
 import type { Transaction } from "./transactions";
+
+// Uploads: full-res phone photos are ~8 MB each (a 3-photo listing is ~27 MB),
+// which blows past the request timeout on mobile connections and fails the
+// publish. Downscale to a web-friendly size + re-encode as JPEG so a whole
+// listing uploads in seconds instead of minutes.
+const MAX_UPLOAD_WIDTH = 1600;
+const UPLOAD_JPEG_QUALITY = 0.7;
+// Multipart uploads need far more headroom than the default 20s API timeout.
+const UPLOAD_TIMEOUT_MS = 120_000;
 
 // Analytics types
 export interface ListingAnalyticsEntry {
@@ -12,11 +22,22 @@ export interface ListingAnalyticsResponse {
   entries: ListingAnalyticsEntry[]; // 7 entries, oldest → newest
 }
 
-function appendImageUri(form: FormData, uri: string, field: string): void {
-  const filename = uri.split("/").pop()?.split("?")[0] ?? "photo.jpg";
-  const ext = (/\.(\w+)$/.exec(filename) ?? [])[1] ?? "jpg";
-  const type = `image/${ext === "jpg" ? "jpeg" : ext}`;
-  form.append(field, { uri, name: filename, type } as unknown as Blob);
+async function appendImageUri(form: FormData, uri: string, field: string): Promise<void> {
+  // Resize + compress before upload. On failure (e.g. an unusual URI) fall back
+  // to the original so a listing can still be created, just slower.
+  let uploadUri = uri;
+  try {
+    const result = await manipulateAsync(
+      uri,
+      [{ resize: { width: MAX_UPLOAD_WIDTH } }],
+      { compress: UPLOAD_JPEG_QUALITY, format: SaveFormat.JPEG }
+    );
+    uploadUri = result.uri;
+  } catch {
+    uploadUri = uri;
+  }
+  const filename = (uploadUri.split("/").pop()?.split("?")[0] ?? "photo.jpg").replace(/\.\w+$/, ".jpg");
+  form.append(field, { uri: uploadUri, name: filename, type: "image/jpeg" } as unknown as Blob);
 }
 
 async function submitListingMultipart(
@@ -24,10 +45,11 @@ async function submitListingMultipart(
   path: string,
   form: FormData
 ): Promise<{ listing: Record<string, unknown> }> {
-  const res =
-    method === "POST"
-      ? await http.post(path, form, { headers: { "Content-Type": "multipart/form-data" } })
-      : await http.put(path, form, { headers: { "Content-Type": "multipart/form-data" } });
+  const config = {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: UPLOAD_TIMEOUT_MS,
+  };
+  const res = method === "POST" ? await http.post(path, form, config) : await http.put(path, form, config);
   return res.data;
 }
 
