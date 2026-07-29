@@ -299,8 +299,11 @@ export default function LoginScreen() {
           <Text>{loading ? t("common.loading") : t("auth.loginButton")}</Text>
         </Button>
 
-        {/* Google Sign-In — only shown when a client ID is configured */}
-        {!!googleClientId && (
+        {/* Google Sign-In — only shown when a client ID is configured.
+            Hidden on iOS: App Store Guideline 4.8 requires a private-email
+            login (e.g. Sign in with Apple) alongside any third-party login.
+            Keeping Google Android-only avoids triggering that requirement. */}
+        {!!googleClientId && Platform.OS !== "ios" && (
           <>
             <View
               style={{
