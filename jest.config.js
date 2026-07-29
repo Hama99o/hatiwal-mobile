@@ -53,6 +53,7 @@ module.exports = {
       "expo-constants|" +
       "expo-status-bar|" +
       "expo-image-picker|" +
+      "expo-image-manipulator|" +
       "expo-location|" +
       "expo-notifications|" +
       "nativewind|" +
