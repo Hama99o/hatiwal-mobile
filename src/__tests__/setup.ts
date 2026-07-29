@@ -89,6 +89,14 @@ jest.mock("expo-image", () => ({
   Image: "Image",
 }));
 
+// Mock expo-image-manipulator — used by listings.ts to resize photos before
+// upload. The native module isn't available under Jest; the stub just echoes
+// the input URI so the upload helpers can be imported/tested without it.
+jest.mock("expo-image-manipulator", () => ({
+  manipulateAsync: jest.fn(async (uri: string) => ({ uri })),
+  SaveFormat: { JPEG: "jpeg", PNG: "png", WEBP: "webp" },
+}));
+
 // Mock react-native-reanimated
 jest.mock("react-native-reanimated", () => require("react-native-reanimated/mock"));
 
