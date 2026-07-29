@@ -211,6 +211,10 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
         setCurrentPage(result.currentPage);
         setError(null);
       } catch (err) {
+        // A 401 means the session ended (e.g. the user logged out) — the auth
+        // layer handles the redirect, so don't log it or flash a list error.
+        const status = (err as { response?: { status?: number } } | undefined)?.response?.status;
+        if (status === 401) return;
         console.error("[UniversalList] fetch error", err);
         setError(t("common.error"));
       }
