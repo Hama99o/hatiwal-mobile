@@ -19,7 +19,7 @@
  * sonner-native toasts for success/error feedback.
  */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -28,6 +28,7 @@ import {
   Platform,
   StyleSheet,
   Pressable,
+  LayoutChangeEvent,
 } from "react-native";
 import { ChevronRight, MapPin, Coins, Check, ToggleRight, Copy } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
@@ -55,11 +56,23 @@ import { Separator } from "@/components/reusables/separator";
 import { Switch } from "@/components/reusables/switch";
 
 import { PhotosSection, PhotoItem } from "./listing-form/PhotosSection";
+import { getPublishBlockers, PublishBlocker } from "./listing-form/publishReadiness";
 import { CategoryPicker } from "@/components/common/CategoryPicker";
 import { ConditionChips } from "@/components/common/ConditionChips";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import { BackButton } from "@/components/common/BackButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// TASK-P736 — maps each publish blocker to the translation key for its
+// short field name; reused across all 3 locales so the toast list always
+// matches the labels already shown next to the fields themselves.
+const BLOCKER_LABEL_KEY: Record<PublishBlocker, string> = {
+  photos: "common.photos",
+  title: "listing.title",
+  price: "common.price",
+  category: "common.category",
+  location: "common.location",
+};
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -130,6 +143,16 @@ export default function ListingFormScreen() {
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [mapLabel, setMapLabel] = useState<string | null>(null);
   const [isSubmittingPublish, setIsSubmittingPublish] = useState(false);
+
+  // TASK-P736 — publish readiness: block photoless listings and never let
+  // Publish fail silently. `photosError` drives the destructive border +
+  // message on PhotosSection; `sectionYRef` records each field's on-screen
+  // y (via onLayout) so a blocked Publish can scroll straight to the first
+  // missing field instead of leaving the seller stranded on an unrelated
+  // part of the form.
+  const [photosError, setPhotosError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionYRef = useRef<Partial<Record<PublishBlocker, number>>>({});
 
   // ---------------------------------------------------------------------------
   // Load existing listing in edit mode
@@ -396,12 +419,21 @@ export default function ListingFormScreen() {
     },
     onSuccess: (listing) => {
       invalidateListingCaches();
-      toast.success(t("listing.form.published"));
-      // TASK-J952: this is the single highest-intent moment in the app —
-      // land the seller on their OWN listing (never the Browse tab) with a
-      // `published=1` param so the owner detail can show the one-time
-      // PublishSuccessSheet (share / view as buyer / post another).
-      router.replace(`/(main)/my-listings/${listing.id}?published=1` as never);
+      // No toast here — the PublishSuccessSheet on the owner detail screen
+      // (triggered by the `published=1` param below) already communicates
+      // the outcome; a toast on top of it would duplicate the same message.
+      //
+      // TASK-J952 (review fix): use `dismissTo`, not `replace`. When this
+      // form was opened FROM that same owner-detail screen (My Listings →
+      // owner detail → Edit → Publish), `dismissTo` pops back to the
+      // EXISTING owner-detail entry already in the stack and merges the new
+      // `published=1` param into it — instead of pushing a second, stale
+      // owner-detail screen on top of the one already there (which would
+      // require an extra back-tap and briefly show un-refreshed data). When
+      // there is no such screen in the stack (a brand-new listing opened via
+      // "Post a listing"), `dismissTo` falls back to replacing the current
+      // screen — the same single-entry result `replace` gave before.
+      router.dismissTo(`/(main)/my-listings/${listing.id}?published=1` as never);
     },
     onError: () => {
       toast.error(t("listing.form.publishError"));
@@ -409,17 +441,93 @@ export default function ListingFormScreen() {
   });
 
   // ---------------------------------------------------------------------------
+  // TASK-P736 — publish readiness helpers
+  // ---------------------------------------------------------------------------
+
+  // Records each field section's on-screen y position (relative to the
+  // ScrollView's content) as it lays out, so a blocked Publish can scroll
+  // straight to the first missing field.
+  const registerSectionY = useCallback(
+    (blocker: PublishBlocker) => (e: LayoutChangeEvent) => {
+      sectionYRef.current[blocker] = e.nativeEvent.layout.y;
+    },
+    []
+  );
+
+  const scrollToBlocker = useCallback((blocker: PublishBlocker) => {
+    const y = sectionYRef.current[blocker];
+    if (y == null) return;
+    scrollRef.current?.scrollTo({ y: Math.max(y - 12, 0), animated: true });
+  }, []);
+
+  // Single place that turns a list of blockers into the toast + destructive
+  // photo state + scroll — used by BOTH the zod `onInvalid` path and the
+  // photo pre-check inside `onValid` (zod can't see `photos`), so the toast
+  // copy and the scroll target always come from the same source of truth
+  // (`getPublishBlockers`).
+  const handlePublishBlockers = useCallback(
+    (blockers: PublishBlocker[]) => {
+      if (blockers.length === 0) return;
+      setPhotosError(blockers.includes("photos") ? t("listing.form.photoRequired") : null);
+      const fields = blockers.map((b) => t(BLOCKER_LABEL_KEY[b])).join(", ");
+      toast.error(t("listing.form.publishBlocked", { fields }));
+      scrollToBlocker(blockers[0]);
+    },
+    [t, scrollToBlocker]
+  );
+
+  // ---------------------------------------------------------------------------
   // Handlers
   // ---------------------------------------------------------------------------
+  // Save draft stays untouched — drafts may legitimately have no photos and
+  // no onInvalid handler here is intentional (out of scope for TASK-P736).
   const onSaveDraft = handleSubmit((values) => {
     setIsSubmittingPublish(false);
     saveMutation.mutate(values);
   });
 
-  const onPublish = handleSubmit((values) => {
-    setIsSubmittingPublish(true);
-    publishMutation.mutate(values);
-  });
+  // Editing an already-published listing → the single "Save" button must
+  // enforce the same readiness rules as Publish (a live listing can never be
+  // left with zero photos either), reusing the exact toast + scroll UX.
+  const onSavePublished = handleSubmit(
+    (values) => {
+      const blockers = getPublishBlockers({ values, photos, mode: "publish" });
+      if (blockers.length > 0) {
+        handlePublishBlockers(blockers);
+        return;
+      }
+      setPhotosError(null);
+      setIsSubmittingPublish(false);
+      saveMutation.mutate(values);
+    },
+    () => {
+      const blockers = getPublishBlockers({ values: getValues(), photos, mode: "publish" });
+      handlePublishBlockers(blockers);
+    }
+  );
+
+  const onPublish = handleSubmit(
+    (values) => {
+      // zod passed, but photos aren't a form field — check separately here
+      // so both paths funnel through the exact same rule set.
+      const blockers = getPublishBlockers({ values, photos, mode: "publish" });
+      if (blockers.length > 0) {
+        handlePublishBlockers(blockers);
+        return;
+      }
+      setPhotosError(null);
+      setIsSubmittingPublish(true);
+      publishMutation.mutate(values);
+    },
+    () => {
+      // zod rejected before onValid ran (e.g. title/price/category/location
+      // missing) — recompute the FULL blocker list (including photos, which
+      // zod can't see) from the current raw values so the toast + scroll
+      // target are always in sync with what's actually missing.
+      const blockers = getPublishBlockers({ values: getValues(), photos, mode: "publish" });
+      handlePublishBlockers(blockers);
+    }
+  );
 
   const isLoading = saveMutation.isPending || publishMutation.isPending;
 
@@ -485,9 +593,10 @@ export default function ListingFormScreen() {
       <BackButton onPress={onCancel} />
       <View style={{ flex: 1 }} />
       {isPublished ? (
-        // Editing a published listing → just save the changes (status unchanged)
+        // Editing a published listing → save the changes (status unchanged);
+        // TASK-P736: enforces the same photo/field readiness rules as Publish.
         <Pressable
-          onPress={onSaveDraft}
+          onPress={onSavePublished}
           disabled={isLoading}
           accessibilityRole="button"
           android_ripple={{ color: colors.primaryForeground }}
@@ -534,6 +643,7 @@ export default function ListingFormScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
+        ref={scrollRef}
         style={styles.flex}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -613,14 +723,24 @@ export default function ListingFormScreen() {
         {/* ------------------------------------------------------------------ */}
         {/* 1. Photos                                                           */}
         {/* ------------------------------------------------------------------ */}
-        <PhotosSection photos={photos} onChange={setPhotos} />
+        <View onLayout={registerSectionY("photos")} testID="listing-form-field-photos">
+          <PhotosSection
+            photos={photos}
+            onChange={(next) => {
+              setPhotos(next);
+              // Clear the photo-required error as soon as the seller adds one back.
+              if (next.length > 0) setPhotosError(null);
+            }}
+            error={photosError ?? undefined}
+          />
+        </View>
 
         <Separator className="my-6" />
 
         {/* ------------------------------------------------------------------ */}
         {/* 2. Title                                                            */}
         {/* ------------------------------------------------------------------ */}
-        <View style={styles.field}>
+        <View style={styles.field} onLayout={registerSectionY("title")} testID="listing-form-field-title">
           <Label nativeID="title-label" className="mb-1">
             {t("listing.title")}
             <Text style={{ color: colors.destructive }}> *</Text>
@@ -653,7 +773,7 @@ export default function ListingFormScreen() {
         {/* ------------------------------------------------------------------ */}
         {/* 3. Price + Currency                                                 */}
         {/* ------------------------------------------------------------------ */}
-        <View style={styles.field}>
+        <View style={styles.field} onLayout={registerSectionY("price")} testID="listing-form-field-price">
           <Label className="mb-1">
             {t("common.price")}
             <Text style={{ color: colors.destructive }}> *</Text>
@@ -734,7 +854,7 @@ export default function ListingFormScreen() {
         {/* ------------------------------------------------------------------ */}
         {/* 4. Category                                                         */}
         {/* ------------------------------------------------------------------ */}
-        <View style={styles.field}>
+        <View style={styles.field} onLayout={registerSectionY("category")} testID="listing-form-field-category">
           <Label className="mb-1">
             {t("common.category")}
             <Text style={{ color: colors.destructive }}> *</Text>
@@ -813,7 +933,7 @@ export default function ListingFormScreen() {
         {/* ------------------------------------------------------------------ */}
         {/* 6. Location — exact point on the map (search or drop a pin)         */}
         {/* ------------------------------------------------------------------ */}
-        <View style={styles.field}>
+        <View style={styles.field} onLayout={registerSectionY("location")} testID="listing-form-field-location">
           <Label className="mb-1">
             {t("common.location")}
             <Text style={{ color: colors.destructive }}> *</Text>

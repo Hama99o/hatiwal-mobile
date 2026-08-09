@@ -1,0 +1,96 @@
+appId: com.hatiwal.app
+---
+# TASK-J952 (review fix) — publishing a DRAFT via Edit FROM its own
+# owner-detail screen must land back on that SAME owner-detail entry —
+# never push a second, stale owner-detail screen on top of the one already
+# in the stack.
+#
+# Repro without the fix: Save Draft lands on the draft's owner detail
+# (stack: My Shop list → owner detail). Edit → Publish used to do a plain
+# `router.replace(".../my-listings/:id?published=1")`, which pushed a
+# SECOND owner-detail screen on top of the first instead of updating it
+# (stack: My Shop list → owner detail #1 [stale, still "Draft"] → owner
+# detail #2 [fresh, "Active", with the success sheet]). A seller pressing
+# back once from #2 landed on the stale #1 — not the My Shop list — and had
+# to press back twice to actually leave.
+#
+# Fixed via `router.dismissTo`, which pops back to the EXISTING owner-detail
+# entry already in the stack (merging in `published=1`) instead of pushing a
+# duplicate — see ListingForm.tsx publishMutation.onSuccess. This flow
+# proves a SINGLE back-tap after dismissing the sheet lands on My Listings,
+# not on a stale duplicate.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+# ── 1) Create a draft (Save Draft, not Publish) — lands on its OWN owner
+#       detail directly, which is the screen this bug reproduces from ──────
+
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "What are you selling?"
+- inputText: "Owner Detail Publish Regression Item"
+- tapOn: "Enter price"
+- inputText: "8000"
+
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+- assertVisible: "Pick location on map"
+- tapOn: "Search a province…"
+- inputText: "Kabul"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Confirm location"
+- waitForAnimationToEnd
+- assertNotVisible: "Tap to set exact location on map"
+
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertVisible: "Draft"
+- assertVisible: "Owner Detail Publish Regression Item"
+
+# ── 2) Edit → add a photo (TASK-P736 blocks Publish with zero photos) →
+#       Publish FROM this owner-detail screen (not "Post a listing") ─────────
+
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Cover"
+
+- tapOn: "Publish"
+- waitForAnimationToEnd
+
+# ── 3) Success sheet appears on the SAME listing; dismiss it ─────────────────
+
+- assertVisible: "Your listing is live!"
+- assertVisible: "Owner Detail Publish Regression Item"
+- tapOn: "Done"
+- waitForAnimationToEnd
+- assertVisible: "Active"
+- assertVisible: "Owner Detail Publish Regression Item"
+
+# ── 4) A SINGLE back-tap must land on My Listings — no stale duplicate ───────
+# (Before the fix this landed on a second, un-refreshed "Draft" owner-detail
+# screen for the same listing underneath, requiring an extra back-tap.)
+
+- back
+- waitForAnimationToEnd
+- assertVisible: "Search my listings..."

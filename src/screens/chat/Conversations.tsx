@@ -2,7 +2,7 @@ import {
   View,
   Pressable,
 } from "react-native";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,10 +33,12 @@ import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton
 import { ConversationRow } from "./conversations/ConversationRow";
 import { filterConversations } from "./conversations/filterConversations";
 
-// Debounce window for the list-level search (TASK-Z684). Kept short since
-// filtering itself is instant/client-side — this only smooths out the
-// silent-refresh trigger while the user is actively typing.
-const SEARCH_DEBOUNCE_MS = 250;
+// Backend clamps `page[size]` to this (see hatiwal-api ApplicationController::
+// MAX_PAGE_SIZE). Requesting the max in one page means, for the overwhelming
+// majority of users, the ENTIRE inbox/archive is already in memory — so the
+// list-level search (TASK-Z684) below can filter client-side across the
+// whole list, not just whatever the backend's default page size would return.
+const CONVERSATIONS_PAGE_SIZE = 100;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,16 +71,13 @@ export default function ConversationsScreen() {
   const [filter, setFilter]     = useState<FilterMode>("all");
 
   // ── List-level search (TASK-Z684) ───────────────────────────────────────────
-  // Raw text updates instantly (so the input never lags); the debounced value
-  // is what actually drives the fetcher + the silent refresh below. This
-  // deliberately uses `refreshKey` (silent background re-fetch, no skeleton)
-  // rather than folding the term into `listConfig.id` — an `id` change forces
-  // UniversalList's full reset-with-skeleton path, which would flash a
-  // skeleton grid on every debounce tick. Composes with (does not replace)
-  // the tab/filter controls, and never touches the unread badge, which is
-  // always derived from the unfiltered `allConversationsRef`.
+  // `filterItems` (UniversalList) applies `filterConversations` to whatever
+  // is ALREADY loaded in memory, purely at render time — typing never
+  // triggers a re-fetch, so the list stays visible (and searchable) even
+  // offline. Composes with (does not replace) the tab/filter controls below,
+  // and never touches the unread badge, which is always derived from the
+  // unfiltered `allConversationsRef`.
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   // Bump to trigger UniversalList silent background refresh (no skeleton, no setItems([])).
   const [refreshKey, setRefreshKey] = useState(0);
@@ -100,71 +99,58 @@ export default function ConversationsScreen() {
     }, [])
   );
 
-  // Debounce the search term, then trigger a silent refresh so the fetcher
-  // (which closes over `debouncedSearchTerm`) re-applies the filter without
-  // a skeleton flash. Skips the very first render — the initial load is
-  // already handled by UniversalList's `id` effect.
-  const isFirstSearchRender = useRef(true);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  useEffect(() => {
-    if (isFirstSearchRender.current) {
-      isFirstSearchRender.current = false;
-      return;
-    }
-    setRefreshKey((k) => k + 1);
-  }, [debouncedSearchTerm]);
-
   // ── Fetcher ────────────────────────────────────────────────────────────────
-  // For inbox: fetches non-archived conversations, applies client-side
-  //            read/unread filter + search term, and syncs the badge (from
-  //            the UNFILTERED list — search/filter never touch the badge).
-  // For archived: fetches archived conversations, applies the search term only.
+  // For inbox: fetches non-archived conversations, applies the client-side
+  //            read/unread filter, and syncs the badge (from the UNFILTERED
+  //            page-1 result only — search never touches the badge, and a
+  //            deeper page can never skew it either).
+  // For archived: fetches archived conversations, unchanged otherwise.
+  // The search term is intentionally NOT applied here — it's applied by
+  // UniversalList's `filterItems` at render time (see listConfig below), so
+  // typing never re-hits the network.
   const makeFetcher = useCallback(
-    (tab: TabMode, filterMode: FilterMode, term: string) =>
-      async (_query: ListQuery): Promise<ListFetchResult<Conversation>> => {
+    (tab: TabMode, filterMode: FilterMode) =>
+      async (query: ListQuery): Promise<ListFetchResult<Conversation>> => {
         const response = await conversationsAPI.getConversations({
-          archived: tab === "archived",
+          archived:   tab === "archived",
+          pageNumber: query.page,
+          pageSize:   query.perPage,
         });
-        const all = response.items;
+        const page = response.items;
 
         if (tab === "inbox") {
-          // Persist raw items for badge calculation (inbox only) — always the
-          // unfiltered list, so search/filter can never skew the badge total.
-          allConversationsRef.current = all;
-          const total = getUnreadTotal(all);
-          setUnreadMessageTotal(total);
-          setUnreadBadgeCount(total);
+          // Badge total is only meaningful from the first page — a deeper
+          // page fetched via infinite scroll must never overwrite it with a
+          // partial count.
+          if (query.page === 1) {
+            allConversationsRef.current = page;
+            const total = getUnreadTotal(page);
+            setUnreadMessageTotal(total);
+            setUnreadBadgeCount(total);
+          }
 
-          // Apply client-side read/unread filter, then the search term.
-          const readFiltered = all.filter((c) => {
+          // Client-side read/unread filter (search is applied later, at render).
+          const readFiltered = page.filter((c) => {
             const unread = c.unreadCount ?? 0;
             if (filterMode === "unread") return unread > 0;
             if (filterMode === "read")   return unread === 0;
             return true;
           });
-          const filtered = filterConversations(readFiltered, term);
 
           return {
-            items:       filtered,
-            totalCount:  filtered.length,
-            totalPages:  1,
-            currentPage: 1,
+            items:       readFiltered,
+            totalCount:  response.pagination.totalCount,
+            totalPages:  response.pagination.totalPages,
+            currentPage: response.pagination.currentPage,
           };
         }
 
-        // Archived tab — search term only, otherwise unchanged.
-        const filtered = filterConversations(all, term);
+        // Archived tab — unchanged, search applied later at render.
         return {
-          items:       filtered,
-          totalCount:  filtered.length,
-          totalPages:  1,
-          currentPage: 1,
+          items:       page,
+          totalCount:  response.pagination.totalCount,
+          totalPages:  response.pagination.totalPages,
+          currentPage: response.pagination.currentPage,
         };
       },
     [setUnreadMessageTotal]
@@ -287,22 +273,24 @@ export default function ConversationsScreen() {
     [setUnreadMessageTotal, t]
   );
 
-  // Whether the (debounced, trimmed) search term is active — drives the
-  // no-match empty state below. Uses the debounced value so the empty state
-  // text always matches what the fetcher actually filtered on (not a
-  // half-typed in-flight keystroke).
-  const trimmedSearchTerm = debouncedSearchTerm.trim();
+  // Whether the (trimmed) search term is active — drives the no-match empty
+  // state below. `filterConversations` trims internally too, so this always
+  // matches exactly what `filterItems` filtered on.
+  const trimmedSearchTerm = searchTerm.trim();
   const hasSearchTerm = trimmedSearchTerm.length > 0;
 
   // config.id changes only when tab, filter, or resetKey changes — search
-  // deliberately stays OUT of id (see the debounce effect above) so typing
-  // never triggers UniversalList's full skeleton-reset path.
+  // deliberately stays OUT of id (and out of the fetcher entirely) so typing
+  // never triggers a re-fetch or UniversalList's skeleton-reset path; it only
+  // narrows the already-loaded items via `filterItems` below.
   // refreshKey is passed separately so UniversalList silently re-fetches
   // without skeleton flash.
   const listConfig: UniversalListConfig<Conversation> = {
     id:          `conversations-${tabMode}-${filter}-${resetKey}`,
     refreshKey,
-    fetcher:     makeFetcher(tabMode, filter, debouncedSearchTerm),
+    fetcher:     makeFetcher(tabMode, filter),
+    perPage:     CONVERSATIONS_PAGE_SIZE,
+    filterItems: (items) => filterConversations(items, searchTerm),
     keyExtractor: (item) => String(item.id),
     renderItem:  ({ item, index }) => (
       <ConversationRow

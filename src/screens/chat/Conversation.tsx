@@ -28,7 +28,7 @@ import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/pe
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Send, Calendar, Paperclip, ShieldBan, Search, X, ImageIcon, Flag } from "lucide-react-native";
+import { Send, Calendar, Paperclip, ShieldBan, Search, X, ImageIcon, Flag, Tag } from "lucide-react-native";
 import { toast } from "sonner-native";
 
 import { Text } from "@/components/reusables/text";
@@ -45,8 +45,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BackButton } from "@/components/common/BackButton";
 import { ListingHeader } from "./conversation/ListingHeader";
 import { MessageBubble } from "./conversation/MessageBubble";
+import { DaySeparator } from "./conversation/DaySeparator";
+import { buildThreadRows, threadRowKey, type ThreadRow } from "./conversation/groupMessagesByDay";
 import { MeetupSheet } from "./conversation/MeetupSheet";
 import { CounterOfferSheet } from "./conversation/CounterOfferSheet";
+import { OfferSheet } from "@/screens/shared/listing-detail/OfferSheet";
 import { ReportSheet } from "@/components/common/ReportSheet";
 import { SafetyTipsSheet } from "@/components/common/SafetyTipsSheet";
 import { UserIdentity } from "@/components/common/UserIdentity";
@@ -142,6 +145,21 @@ export function ConversationScreen() {
   // modal (without resetting its place/time fields — the component stays
   // mounted) and shows this one; closing it restores the meetup sheet.
   const [safetyTipsVisible, setSafetyTipsVisible] = useState(false);
+  // TASK-O947: guards against a double-tap on Accept/Decline while a response
+  // is already in flight — without this, a fast double-tap could fire two
+  // sendMessage calls (and, on Accept, could trigger the reserve-after-accept
+  // prompt twice). Cleared in handleOfferRespond's `finally`.
+  const [isRespondingToOffer, setIsRespondingToOffer] = useState(false);
+
+  // ── Derived: is the current user the seller of this conversation's listing? ──
+  // Single source of truth — reused by the pinned ListingHeader's `isOwner`
+  // prop, the offer/counter action-button gating in the message list, the
+  // seller-vs-buyer quick-reply set below, AND the reserve-after-accept guard
+  // in handleOfferRespond. Previously hand-duplicated 4x across this file.
+  const isOwner =
+    !!currentUser &&
+    !!conversation?.seller &&
+    Number(conversation.seller.id) === Number(currentUser.id);
 
   // ── Composer draft persistence ───────────────────────────────────────────
   // The draft hook owns AsyncStorage persistence keyed per conversation.
@@ -171,6 +189,13 @@ export function ConversationScreen() {
   // The original offer message the counter is responding to
   const [counterOfferTarget, setCounterOfferTarget] = useState<Message | null>(null);
   const [isSendingCounter, setIsSendingCounter] = useState(false);
+
+  // ── TASK-C381: make/counter an offer without leaving the thread ──────────
+  // Reuses the existing OfferSheet (with its TASK-G083 quick-amount chips) —
+  // the composer's Tag button opens it, prefilled from the pinned listing.
+  const [threadOfferSheetVisible, setThreadOfferSheetVisible] = useState(false);
+  const [threadOfferAmount, setThreadOfferAmount] = useState("");
+  const [isSendingThreadOffer, setIsSendingThreadOffer] = useState(false);
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -235,11 +260,32 @@ export function ConversationScreen() {
   const inputRef = useRef<TextInput>(null);
   const isNearBottomRef = useRef(true);
   const isLoadingMoreRef = useRef(false);
+  // TASK-D428: the "unread messages" divider boundary, captured ONCE from the
+  // first load's conversation.unreadCount — BEFORE markRead fires and zeroes
+  // it server-side. `null` means "not captured yet"; once set it is never
+  // overwritten, so silent refreshes of the same open thread (e.g. refocus
+  // without unmounting) never make the divider reappear or move.
+  const capturedUnreadCountRef = useRef<number | null>(null);
+
+  // TASK-D428: day separators + a single "unread messages" divider, built
+  // from `filteredMessages` so an active chat search recomputes day rows
+  // from the filtered set — and the unread divider is suppressed entirely
+  // while searching (search results are not a timeline). Outcome lookups
+  // in renderItem below intentionally keep using the full `messages` array,
+  // never `threadRows` / `filteredMessages`.
+  const threadRows: ThreadRow[] = buildThreadRows(
+    filteredMessages,
+    searchVisible ? 0 : capturedUnreadCountRef.current ?? 0,
+    currentUser?.id ?? null
+  );
 
   const PAGE_SIZE = 30;
 
   // ── Load conversation + messages (page 1 = newest, backend returns DESC) ─
-  const load = useCallback(async (convId: number) => {
+  // Returns the fetched Conversation (or null on failure) so callers that
+  // need the pre-read state — namely the unread-divider capture below — can
+  // read it before markRead runs.
+  const load = useCallback(async (convId: number): Promise<Conversation | null> => {
     try {
       const [conv, { items, pagination }] = await Promise.all([
         conversationsAPI.getConversation(convId),
@@ -259,8 +305,10 @@ export function ConversationScreen() {
         flatListRef.current?.scrollToEnd({ animated: false });
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100);
       }, 100);
+      return conv;
     } catch {
       toast.error(t("chat.thread.loadFailed"));
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -320,8 +368,16 @@ export function ConversationScreen() {
   useFocusEffect(
     useCallback(() => {
       if (currentConversationId) {
-        load(currentConversationId);
-        markRead(currentConversationId);
+        // TASK-D428: load MUST resolve before markRead fires — markRead
+        // zeroes unread server-side, so calling it first (or in parallel,
+        // as before) would race the unread-divider capture below.
+        (async () => {
+          const conv = await load(currentConversationId);
+          if (capturedUnreadCountRef.current === null) {
+            capturedUnreadCountRef.current = conv?.unreadCount ?? 0;
+          }
+          markRead(currentConversationId);
+        })();
       } else {
         // Start-flow: no existing conversation yet
         setIsLoading(false);
@@ -407,6 +463,56 @@ export function ConversationScreen() {
     }
   }, [currentConversationId, messageText, isSending, currentUser, clearDraft, t]);
 
+  // ── TASK-C381: send a price offer from inside the thread ─────────────────
+  // Reuses the canonical "amount|currency|listedPrice" body encoding parsed
+  // by MessageBubble/ConversationRow, and the same optimistic-append +
+  // rollback pattern as handleSend.
+  const handleSendOfferInThread = useCallback(
+    async (inputAmount: string) => {
+      const convId = currentConversationId;
+      if (!convId) return;
+      const amount = Number(inputAmount);
+      if (!amount || amount <= 0) {
+        toast.error(t("listing.detail.offerInvalid"));
+        return;
+      }
+      const currency = conversation?.listing?.currency ?? "AFN";
+      const listedPrice = conversation?.listing?.price ?? 0;
+      const body = `${amount}|${currency}|${listedPrice}`;
+
+      // Close the sheet immediately — mirrors handleSend clearing the
+      // composer before the request resolves.
+      setThreadOfferSheetVisible(false);
+      setThreadOfferAmount("");
+      setIsSendingThreadOffer(true);
+
+      // Optimistic append — same pattern as handleSend / handleProposeMeetup.
+      const optimistic: Message = {
+        id: -Date.now(),
+        body,
+        kind: "offer",
+        readAt: null,
+        createdAt: new Date().toISOString(),
+        sender: { id: currentUser?.id ?? 0, name: currentUser?.fullName ?? "" },
+      };
+      isNearBottomRef.current = true;
+      setMessages((prev) => [...prev, optimistic]);
+
+      try {
+        const sent = await conversationsAPI.sendMessage(convId, body, "offer");
+        setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? sent : m)));
+      } catch {
+        // Rollback — remove the optimistic bubble; the buyer/seller can
+        // retry from the composer's offer button again.
+        setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+        toast.error(t("chat.thread.sendFailed"));
+      } finally {
+        setIsSendingThreadOffer(false);
+      }
+    },
+    [currentConversationId, conversation, currentUser, t]
+  );
+
   // ── Send meetup proposal ─────────────────────────────────────────────────
   // Body encoding is backward compatible (see meetupBody.ts): coords are only
   // appended as a 3rd "lat,long" segment when the proposer picked an exact
@@ -453,7 +559,10 @@ export function ConversationScreen() {
   const handleOfferRespond = useCallback(
     async (offer: Message, accepted: boolean) => {
       const convId = currentConversationId;
-      if (!convId || !offer.body) return;
+      // TASK-O947: ignore a second tap while a response is already in flight
+      // (see isRespondingToOffer above) — never queue/duplicate the request.
+      if (!convId || !offer.body || isRespondingToOffer) return;
+      setIsRespondingToOffer(true);
       try {
         const sent = await conversationsAPI.sendMessage(
           convId,
@@ -467,19 +576,16 @@ export function ConversationScreen() {
 
         // TASK-O947: after a SUCCESSFUL accept, offer the owner a one-tap
         // reserve for the conversation's buyer at the accepted price — this
-        // never fires on decline, never fires for the buyer (isOwnerNow
-        // guards that), and a reserve failure never touches the accept above.
+        // never fires on decline, never fires for the buyer (the shared
+        // `isOwner` guards that), and a reserve failure never touches the
+        // accept above.
         if (accepted && conversation?.listing) {
-          const isOwnerNow =
-            !!currentUser &&
-            !!conversation.seller &&
-            Number(conversation.seller.id) === Number(currentUser.id);
           const offerAmount =
             offer.offerAmount ?? Number((offer.body ?? "").split("|")[0] ?? 0);
           const listingRef = conversation.listing;
 
           maybeReserveAfterAccept({
-            isOwner: isOwnerNow,
+            isOwner,
             listing: listingRef,
             buyer: conversation.buyer ?? null,
             offerAmount,
@@ -488,8 +594,16 @@ export function ConversationScreen() {
             formatCurrency,
             onReserved: () => {
               qc.invalidateQueries({ queryKey: ["conversation", convId] });
-              qc.invalidateQueries({ queryKey: ["listing", listingRef.id] });
-              qc.invalidateQueries({ queryKey: ["my-listing", listingRef.id] });
+              // Bare (id-less) keys — deliberately broader than an exact
+              // ["listing", id] match. ListingDetail.tsx and
+              // MyListingDetail.tsx key their detail queries by the STRING
+              // route param while this handler only has the numeric
+              // `listingRef.id`; invalidating the whole "listing"/"my-listing"
+              // namespace (React Query's default partial-match) refreshes
+              // both regardless of the id's type instead of silently missing
+              // due to a string/number key mismatch.
+              qc.invalidateQueries({ queryKey: ["listing"] });
+              qc.invalidateQueries({ queryKey: ["my-listing"] });
               qc.invalidateQueries({ queryKey: ["my-listings"] });
               qc.invalidateQueries({ queryKey: ["myListingStatusCounts"] });
               // Reload local conversation state so the pinned ListingHeader
@@ -500,9 +614,11 @@ export function ConversationScreen() {
         }
       } catch {
         toast.error(t("chat.thread.sendFailed"));
+      } finally {
+        setIsRespondingToOffer(false);
       }
     },
-    [currentConversationId, conversation, currentUser, formatCurrency, qc, load, t]
+    [currentConversationId, conversation, isOwner, formatCurrency, qc, load, t, isRespondingToOffer]
   );
 
   // ── Open counter-offer sheet (seller) ────────────────────────────────────
@@ -753,12 +869,16 @@ export function ConversationScreen() {
   const isClosed = conversation?.status === "closed";
   const canSend = !isClosed && !!currentConversationId;
   const isStartMode = !currentConversationId && !!listingId;
-  // isOwner: true when the current user is the seller of the listing in this
-  // conversation. Used to pick the seller vs buyer quick-reply phrase set.
-  const isOwner =
-    !!currentUser &&
-    !!conversation?.seller &&
-    Number(conversation.seller.id) === Number(currentUser.id);
+
+  // TASK-C381: show the composer's offer button only on an open conversation
+  // about a listing that still exists, isn't sold, and is negotiable. Both
+  // roles may tap it — a seller opening one is a proactive discount.
+  const canOfferInThread =
+    canSend &&
+    !!conversation?.listing &&
+    !conversation?.listingDeleted &&
+    conversation.listing.status !== "sold" &&
+    conversation.listing.negotiable !== false;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -904,11 +1024,7 @@ export function ConversationScreen() {
         <ListingHeader
           listing={conversation.listing}
           onPress={() => router.push(`/(main)/listing/${conversation.listing!.id}` as never)}
-          isOwner={
-            !!currentUser &&
-            !!conversation.seller &&
-            Number(conversation.seller.id) === Number(currentUser.id)
-          }
+          isOwner={isOwner}
           onLifecycleDone={() => {
             // Invalidate the conversation so the listing's StatusBadge
             // and pinned header reflect the new status immediately.
@@ -946,9 +1062,17 @@ export function ConversationScreen() {
       >
         <FlatList
           ref={flatListRef}
-          data={filteredMessages}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => {
+          data={threadRows}
+          keyExtractor={threadRowKey}
+          renderItem={({ item: row }) => {
+            // TASK-D428: non-message rows (day separators, unread divider)
+            // render DaySeparator and stop — all bubble logic below only
+            // ever runs for `{ type: "message" }` rows.
+            if (row.type === "day") return <DaySeparator variant="day" iso={row.iso} />;
+            if (row.type === "unread") return <DaySeparator variant="unread" />;
+
+            const item = row.message;
+
             // Outcome for THIS proposal/offer only — matched by the response's
             // link (responds_to_id), so one response never affects another.
             // Use the full messages array (not filtered) for outcome lookups so
@@ -996,15 +1120,14 @@ export function ConversationScreen() {
               item.kind === "offer" &&
               messages.some((m) => m.kind === "offer_counter" && m.respondsToId === item.id);
 
-            const isSeller =
-              !!currentUser &&
-              !!conversation?.seller &&
-              Number(currentUser.id) === Number(conversation.seller.id);
+            // Computed once so both the `isMine` prop and the onOfferCounter
+            // guard below use the exact same value (TASK-C381).
+            const itemIsMine = !!currentUser && Number(item.sender.id) === Number(currentUser.id);
 
             return (
               <MessageBubble
                 message={item}
-                isMine={!!currentUser && Number(item.sender.id) === Number(currentUser.id)}
+                isMine={itemIsMine}
                 meetupOutcome={meetupOutcome}
                 onMeetupRespond={
                   item.kind === "meetup_proposal"
@@ -1022,11 +1145,23 @@ export function ConversationScreen() {
                     : undefined
                 }
                 onOfferCounter={
-                  // Counter button only for seller on buyer's offer, before any response
-                  item.kind === "offer" && !isOfferCountered && isSeller
+                  // Offer: counter button only for the seller on the buyer's
+                  // offer, before any response.
+                  item.kind === "offer" && !isOfferCountered && isOwner
+                    ? () => handleOpenCounterSheet(item)
+                    // Counter: TASK-C381 — the recipient of a seller's counter
+                    // (not mine) can counter back, as long as it hasn't been
+                    // accepted/declined yet. Symmetric guard: works from
+                    // either side, so a negotiation can run more than one round.
+                    : item.kind === "offer_counter" && !itemIsMine && !offerOutcome
                     ? () => handleOpenCounterSheet(item)
                     : undefined
                 }
+                // TASK-O947: disable Accept/Decline while a response for ANY
+                // offer/counter is already in flight — prevents a fast
+                // double-tap from firing two responses (and, on Accept,
+                // triggering the reserve-after-accept prompt twice).
+                offerActionsDisabled={isRespondingToOffer}
                 searchQuery={searchVisible ? searchQuery.trim() : undefined}
                 onDeleteMessage={
                   // Only the author of a non-deleted text-like message can delete it.
@@ -1153,6 +1288,20 @@ export function ConversationScreen() {
             >
               <ImageIcon size={20} color={isSendingPhoto ? colors.mutedForeground : colors.primary} />
             </Pressable>
+            {/* TASK-C381: make/counter an offer without leaving the thread —
+                opens the existing OfferSheet prefilled from the pinned listing. */}
+            {canOfferInThread && (
+              <Pressable
+                onPress={() => setThreadOfferSheetVisible(true)}
+                style={styles.meetupButton}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t("chat.offer.makeOffer")}
+                testID="thread-offer-button"
+              >
+                <Tag size={20} color={colors.warning} />
+              </Pressable>
+            )}
             <Input
               ref={inputRef}
               value={messageText}
@@ -1220,6 +1369,25 @@ export function ConversationScreen() {
           setMeetupSheetVisible(true);
         }}
       />
+
+      {/* TASK-C381: make/counter an offer without leaving the thread — reuses
+          the existing OfferSheet (with its TASK-G083 quick-amount chips),
+          fed the pinned listing's price/currency. */}
+      {canOfferInThread && conversation?.listing && (
+        <OfferSheet
+          visible={threadOfferSheetVisible}
+          onClose={() => {
+            setThreadOfferSheetVisible(false);
+            setThreadOfferAmount("");
+          }}
+          onSend={handleSendOfferInThread}
+          offerAmount={threadOfferAmount}
+          onChangeAmount={setThreadOfferAmount}
+          currency={conversation.listing.currency ?? "AFN"}
+          price={conversation.listing.price ?? 0}
+          isBusy={isSendingThreadOffer}
+        />
+      )}
 
       {/* Counter-offer sheet — seller responds to buyer's offer with new price */}
       <CounterOfferSheet

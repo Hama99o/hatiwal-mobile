@@ -199,6 +199,8 @@
     "discardConfirm": "Discard",
     "locationRequired": "Location is required — buyers filter listings by area",
     "negotiableLabel": "Price is negotiable",
+    "publishBlocked": "Add {{fields}} to publish this listing",
+    "photoRequired": "Add at least one photo before publishing",
     "publishSuccess": {
       "title": "Your listing is live!",
       "subtitle": "Buyers can find it now — share it to sell faster.",

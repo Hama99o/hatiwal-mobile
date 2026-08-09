@@ -43,6 +43,13 @@ interface Props {
   photos: PhotoItem[];
   onChange: (photos: PhotoItem[]) => void;
   maxPhotos?: number;
+  /**
+   * TASK-P736 — set by ListingForm when Publish (or saving an already-
+   * published listing) was blocked because there are zero photos. Renders a
+   * destructive border on the photo card/strip plus the message; the caller
+   * clears it as soon as a photo is added.
+   */
+  error?: string;
 }
 
 const MAX_DEFAULT = 8;
@@ -52,6 +59,7 @@ export function PhotosSection({
   photos,
   onChange,
   maxPhotos = MAX_DEFAULT,
+  error,
 }: Props) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
@@ -195,12 +203,15 @@ export function PhotosSection({
         <Pressable
           style={[
             styles.emptyCard,
-            { borderColor: colors.border, backgroundColor: colors.card },
+            {
+              borderColor: error ? colors.destructive : colors.border,
+              backgroundColor: colors.card,
+            },
           ]}
           onPress={showSourcePicker}
           android_ripple={{ color: colors.muted }}
         >
-          <Camera size={32} color={colors.mutedForeground} />
+          <Camera size={32} color={error ? colors.destructive : colors.mutedForeground} />
           <Text
             className="text-base font-medium"
             style={{ color: colors.foreground, marginTop: 10 }}
@@ -214,6 +225,15 @@ export function PhotosSection({
             {t("listing.form.photosHint")}
           </Text>
         </Pressable>
+
+        {error && (
+          <Text
+            className="text-xs"
+            style={{ color: colors.destructive, textAlign: isRtl ? "right" : "left" }}
+          >
+            {error}
+          </Text>
+        )}
 
         <SourcePickerSheet
           visible={pickerVisible}
@@ -258,7 +278,21 @@ export function PhotosSection({
         </Text>
       )}
 
-      {/* Horizontal strip */}
+      {/* Horizontal strip — destructive border wraps the whole strip when the
+          seller tried to publish/save with zero photos and then re-added
+          some (brief window before the error clears). */}
+      <View
+        style={
+          error
+            ? {
+                borderWidth: 1.5,
+                borderColor: colors.destructive,
+                borderRadius: 12,
+                padding: 6,
+              }
+            : undefined
+        }
+      >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -352,6 +386,16 @@ export function PhotosSection({
           </Pressable>
         )}
       </ScrollView>
+      </View>
+
+      {error && (
+        <Text
+          className="text-xs"
+          style={{ color: colors.destructive, textAlign: isRtl ? "right" : "left" }}
+        >
+          {error}
+        </Text>
+      )}
 
       <SourcePickerSheet
         visible={pickerVisible}

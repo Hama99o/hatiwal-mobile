@@ -1,6 +1,11 @@
 {
   "listingDeleted": "This listing has been removed",
   "title": "Messages",
+  "day": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "unreadDivider": "Unread messages",
   "searchPlaceholder": "Search conversations...",
   "messagePlaceholder": "Type a message...",
   "send": "Send",
@@ -118,6 +123,8 @@
     "declined": "Offer declined",
     "acceptedToast": "You accepted the offer",
     "declinedToast": "You declined the offer",
+    "makeOffer": "Make an offer",
+    "counterBack": "Counter back",
     "counter": "Counter",
     "counterTitle": "Counter Offer",
     "counterLabel": "Counter Offer",
@@ -129,11 +136,12 @@
     "counterSentToast": "Counter offer sent!",
     "quickChipsHint": "Quick amounts",
     "firmNotice": "Seller's price is firm — offers not accepted",
-    "reserveAfterAcceptTitle": "Reserve this listing?",
+    "reserveAfterAcceptTitle": "Reserve this listing for a buyer?",
     "reserveAfterAcceptBody": "Reserve for {{buyerName}} at {{price}}?",
-    "reserveAfterAcceptCta": "Reserve",
-    "reserveAfterAcceptSuccess": "Listing reserved for {{buyerName}}",
-    "reserveAfterAcceptFailed": "Could not reserve the listing. Please try again."
+    "reserveAfterAcceptCta": "Reserve at {{price}}",
+    "reserveAfterAcceptDismiss": "Not now",
+    "reserveAfterAcceptPending": "Reserving listing...",
+    "reserveAfterAcceptSuccess": "Listing reserved for {{buyerName}}"
   },
   "block": {
     "blockUser": "Block User",

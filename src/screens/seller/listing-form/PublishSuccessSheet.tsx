@@ -20,17 +20,20 @@
  * raw Modal; @gorhom/bottom-sheet has native-only platform splits that
  * crash the web dev runner — see BuyerPickerSheet.tsx's header comment).
  *
- * Share reuses the exact same helpers ListingDetail's handleShare uses —
- * `resolveShareUrl` + `buildShareBody` from `@/utils/shareUtils` — and RN's
- * `Share.share`. No new share code.
+ * Share reuses the exact same pattern as ListingDetail's handleShare:
+ * `resolveShareUrl` from `@/utils/shareUtils` for the link, and the
+ * `listing.share.body` i18n template (via `t()`) for the message body — the
+ * SAME localized string ListingDetail builds, so the share text is
+ * translated in ps/fa instead of a hardcoded English JS template. RN's
+ * `Share.share` opens the native sheet. No new share code.
  */
 import React, { useCallback } from "react";
-import { View, Modal, Pressable, Share, Platform, StyleSheet } from "react-native";
+import { View, Modal, Pressable, Share, Platform, StyleSheet, ScrollView } from "react-native";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, Share2, Eye, Plus, X } from "lucide-react-native";
+import { CheckCircle2, Share2, Eye, Plus, X, Camera } from "lucide-react-native";
 import Animated, { ZoomIn } from "react-native-reanimated";
 
 import { Text } from "@/components/reusables/text";
@@ -40,7 +43,7 @@ import { RemoteImage } from "@/components/common/RemoteImage";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useReduceMotion } from "@/lib/animation";
-import { resolveShareUrl, buildShareBody } from "@/utils/shareUtils";
+import { resolveShareUrl } from "@/utils/shareUtils";
 import type { Listing } from "@/api/listings";
 
 export interface PublishSuccessSheetProps {
@@ -58,13 +61,14 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
   const router = useRouter();
   const reduceMotion = useReduceMotion();
 
-  // ── Share — identical helpers/pattern to ListingDetail.handleShare ────────
+  // ── Share — identical pattern to ListingDetail.handleShare, including the
+  // localized `listing.share.body` i18n template (not a hardcoded JS string) ──
   const handleShare = useCallback(async () => {
     if (!listing) return;
     try {
       const url = resolveShareUrl(listing.shareUrl, listing.id, (path) => Linking.createURL(path));
       const price = formatCurrency(listing.price, listing.currency);
-      const message = buildShareBody(listing.title, price, url);
+      const message = t("listing.share.body", { title: listing.title, price, url });
       // Platform split mirrors ListingDetail: iOS omits the separate `url`
       // field (it would duplicate the link already embedded in `message`);
       // every other platform (Android) gets it as a standalone attachment.
@@ -76,7 +80,7 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
     } catch {
       /* user dismissed the native share sheet — not an error */
     }
-  }, [listing, formatCurrency]);
+  }, [listing, formatCurrency, t]);
 
   const handleViewAsBuyer = useCallback(() => {
     if (!listing) return;
@@ -104,7 +108,6 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
           {
             backgroundColor: colors.card,
             borderTopColor: colors.border,
-            paddingBottom: Math.max(insets.bottom, 16) + 12,
           },
         ]}
       >
@@ -112,105 +115,131 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
         </View>
 
-        <View style={[styles.closeRow, { flexDirection: rowDir }]}>
-          <View style={{ flex: 1 }} />
-          <Pressable
-            onPress={onClose}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.close")}
-            android_ripple={{ color: colors.muted, borderless: true }}
-            testID="publish-success-close"
-          >
-            <X size={20} color={colors.mutedForeground} />
-          </Pressable>
-        </View>
-
-        {/* Success icon */}
-        <View style={{ alignItems: "center", marginBottom: 12 }}>
-          <Animated.View
-            entering={reduceMotion ? undefined : ZoomIn.duration(350).springify().damping(14).stiffness(120)}
-            style={[styles.successIcon, { backgroundColor: colors.successAlpha }]}
-          >
-            <CheckCircle2 size={32} color={colors.success} />
-          </Animated.View>
-        </View>
-
-        <Text
-          className="text-lg font-semibold"
-          style={{ color: colors.foreground, textAlign: "center", marginBottom: 4 }}
+        {/* Everything below the drag handle scrolls — at large accessibility
+            font sizes (or a small device) the icon + copy + summary + four
+            buttons can exceed the screen height; `maxHeight` on the outer
+            sheet (below) caps it and this ScrollView makes the overflow
+            reachable instead of clipping it, matching every other sheet in
+            the project (BuyerPickerSheet / ReportSheet / ReviewPromptSheet). */}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 12 }}
+          showsVerticalScrollIndicator={false}
         >
-          {t("listing.form.publishSuccess.title")}
-        </Text>
-        <Text
-          className="text-sm"
-          style={{ color: colors.mutedForeground, textAlign: "center", marginBottom: 20 }}
-        >
-          {t("listing.form.publishSuccess.subtitle")}
-        </Text>
-
-        {/* Listing summary — cover thumbnail + title + PriceTag */}
-        <View
-          style={[
-            styles.summaryRow,
-            { flexDirection: rowDir, backgroundColor: colors.muted, borderColor: colors.border },
-          ]}
-          testID="publish-success-summary"
-        >
-          <RemoteImage uri={thumbnailUri} style={styles.thumb} />
-          <View style={{ flex: 1, marginHorizontal: 10, minWidth: 0 }}>
-            <Text
-              style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, textAlign: isRtl ? "right" : "left" }}
-              numberOfLines={1}
+          <View style={[styles.closeRow, { flexDirection: rowDir }]}>
+            <View style={{ flex: 1 }} />
+            <Pressable
+              onPress={onClose}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.close")}
+              android_ripple={{ color: colors.muted, borderless: true }}
+              testID="publish-success-close"
             >
-              {listing.title}
-            </Text>
-            <PriceTag price={listing.price} currency={listing.currency} size="sm" />
+              <X size={20} color={colors.mutedForeground} />
+            </Pressable>
           </View>
-        </View>
 
-        <View style={{ height: 20 }} />
-
-        <Button variant="default" onPress={handleShare} testID="publish-success-share">
-          <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}>
-            <Share2 size={16} color={colors.primaryForeground} />
-            <Text style={{ color: colors.primaryForeground, fontWeight: "600" }}>
-              {t("listing.form.publishSuccess.share")}
-            </Text>
+          {/* Success icon */}
+          <View style={{ alignItems: "center", marginBottom: 12 }}>
+            <Animated.View
+              entering={reduceMotion ? undefined : ZoomIn.duration(350).springify().damping(14).stiffness(120)}
+              style={[styles.successIcon, { backgroundColor: colors.successAlpha }]}
+            >
+              <CheckCircle2 size={32} color={colors.success} />
+            </Animated.View>
           </View>
-        </Button>
 
-        <Button
-          variant="outline"
-          onPress={handleViewAsBuyer}
-          style={{ marginTop: 10 }}
-          testID="publish-success-view-as-buyer"
-        >
-          <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}>
-            <Eye size={16} color={colors.foreground} />
-            <Text style={{ color: colors.foreground, fontWeight: "600" }}>
-              {t("listing.form.publishSuccess.viewAsBuyer")}
-            </Text>
+          <Text
+            className="text-lg font-semibold"
+            style={{ color: colors.foreground, textAlign: "center", marginBottom: 4 }}
+          >
+            {t("listing.form.publishSuccess.title")}
+          </Text>
+          <Text
+            className="text-sm"
+            style={{ color: colors.mutedForeground, textAlign: "center", marginBottom: 20 }}
+          >
+            {t("listing.form.publishSuccess.subtitle")}
+          </Text>
+
+          {/* Listing summary — cover thumbnail + title + PriceTag */}
+          <View
+            style={[
+              styles.summaryRow,
+              { flexDirection: rowDir, backgroundColor: colors.muted, borderColor: colors.border },
+            ]}
+            testID="publish-success-summary"
+          >
+            {thumbnailUri ? (
+              <RemoteImage uri={thumbnailUri} style={styles.thumb} />
+            ) : (
+              // No real photo — show the same muted icon tile every other
+              // listing thumbnail uses (ListingCard/SellerListingCard/
+              // ConversationRow) instead of RemoteImage's loading blurhash,
+              // which would otherwise sit there forever looking like a photo
+              // that never finished loading.
+              <View
+                style={[styles.thumb, styles.noPhotoThumb, { backgroundColor: colors.muted }]}
+                testID="publish-success-no-photo"
+              >
+                <Camera size={18} color={colors.mutedForeground} />
+              </View>
+            )}
+            <View style={{ flex: 1, marginHorizontal: 10, minWidth: 0 }}>
+              <Text
+                style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, textAlign: isRtl ? "right" : "left" }}
+                numberOfLines={1}
+              >
+                {listing.title}
+              </Text>
+              <PriceTag price={listing.price} currency={listing.currency} size="sm" />
+            </View>
           </View>
-        </Button>
 
-        <Button
-          variant="outline"
-          onPress={handlePostAnother}
-          style={{ marginTop: 10 }}
-          testID="publish-success-post-another"
-        >
-          <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}>
-            <Plus size={16} color={colors.foreground} />
-            <Text style={{ color: colors.foreground, fontWeight: "600" }}>
-              {t("listing.form.publishSuccess.postAnother")}
-            </Text>
-          </View>
-        </Button>
+          <View style={{ height: 20 }} />
 
-        <Button variant="ghost" onPress={onClose} style={{ marginTop: 8 }} testID="publish-success-done">
-          <Text style={{ color: colors.mutedForeground }}>{t("listing.form.publishSuccess.done")}</Text>
-        </Button>
+          <Button variant="default" onPress={handleShare} testID="publish-success-share">
+            <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}>
+              <Share2 size={16} color={colors.primaryForeground} />
+              <Text style={{ color: colors.primaryForeground, fontWeight: "600" }}>
+                {t("listing.form.publishSuccess.share")}
+              </Text>
+            </View>
+          </Button>
+
+          <Button
+            variant="outline"
+            onPress={handleViewAsBuyer}
+            style={{ marginTop: 10 }}
+            testID="publish-success-view-as-buyer"
+          >
+            <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}>
+              <Eye size={16} color={colors.foreground} />
+              <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                {t("listing.form.publishSuccess.viewAsBuyer")}
+              </Text>
+            </View>
+          </Button>
+
+          <Button
+            variant="outline"
+            onPress={handlePostAnother}
+            style={{ marginTop: 10 }}
+            testID="publish-success-post-another"
+          >
+            <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8 }}>
+              <Plus size={16} color={colors.foreground} />
+              <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                {t("listing.form.publishSuccess.postAnother")}
+              </Text>
+            </View>
+          </Button>
+
+          <Button variant="ghost" onPress={onClose} style={{ marginTop: 8 }} testID="publish-success-done">
+            <Text style={{ color: colors.mutedForeground }}>{t("listing.form.publishSuccess.done")}</Text>
+          </Button>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -224,8 +253,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderTopWidth: 1,
-    paddingHorizontal: 20,
     paddingTop: 4,
+    // Caps the sheet so it never grows past ~88% of the screen at large
+    // font sizes — matches BuyerPickerSheet/ReportSheet/ReviewPromptSheet.
+    maxHeight: "88%",
+  },
+  scroll: {
+    flexShrink: 1,
+    paddingHorizontal: 20,
   },
   handleContainer: { alignItems: "center", paddingVertical: 8 },
   handle: { width: 36, height: 4, borderRadius: 2 },
@@ -244,4 +279,5 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   thumb: { width: 48, height: 48, borderRadius: 8 },
+  noPhotoThumb: { alignItems: "center", justifyContent: "center" },
 });

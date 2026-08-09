@@ -19,6 +19,10 @@ appId: com.hatiwal.app
 # schema requires latitude/longitude); the edit step in part 3 relies on
 # that same listing already having a location, so it never needs to touch
 # the location picker again.
+#
+# A photo is added before publishing (TASK-P736 blocks Publish with zero
+# photos) — same "Add Photos → Gallery → first result" sequence as
+# create_listing_with_photos.yaml.
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
@@ -29,6 +33,15 @@ appId: com.hatiwal.app
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
 - assertVisible: "Create Listing"
+
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Cover"
 
 - tapOn: "What are you selling?"
 - inputText: "Publish Success Test Item"

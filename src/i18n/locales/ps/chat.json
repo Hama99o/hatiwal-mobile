@@ -1,6 +1,11 @@
 {
   "listingDeleted": "دا خپرونه لرې شوې ده",
   "title": "پیغامونه",
+  "day": {
+    "today": "نن",
+    "yesterday": "پرون"
+  },
+  "unreadDivider": "نه لوستل شوي پیغامونه",
   "searchPlaceholder": "خبرې لټوئ...",
   "messagePlaceholder": "پیغام ولیکئ...",
   "send": "لیږل",
@@ -118,6 +123,8 @@
     "declined": "وړاندیز رد شو",
     "acceptedToast": "تاسو وړاندیز ومانه",
     "declinedToast": "تاسو وړاندیز رد کړ",
+    "makeOffer": "وړاندیز وکړئ",
+    "counterBack": "بیرته مقابل وړاندیز",
     "counter": "مقابل وړاندیز",
     "counterTitle": "مقابل قیمت وړاندیز",
     "counterLabel": "مقابل قیمت وړاندیز",
@@ -129,11 +136,12 @@
     "counterSentToast": "مقابل قیمت وړاندیز ولیږل شو!",
     "quickChipsHint": "ګړندي مبلغونه",
     "firmNotice": "د پلورونکي قیمت ثابت دی — وړاندیزونه نه منل کیږي",
-    "reserveAfterAcceptTitle": "دا اعلان خوندي کړئ؟",
+    "reserveAfterAcceptTitle": "دا اعلان د یو پیرودونکي لپاره خوندي کړئ؟",
     "reserveAfterAcceptBody": "د {{buyerName}} لپاره په {{price}} کې خوندي کړئ؟",
-    "reserveAfterAcceptCta": "خوندي کول",
-    "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره خوندي شو",
-    "reserveAfterAcceptFailed": "اعلان خوندي نه شو. بیا هڅه وکړئ."
+    "reserveAfterAcceptCta": "په {{price}} کې خوندي کړئ",
+    "reserveAfterAcceptDismiss": "اوس نه",
+    "reserveAfterAcceptPending": "اعلان خوندي کیږي...",
+    "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره خوندي شو"
   },
   "block": {
     "blockUser": "کارونکی بند کړئ",

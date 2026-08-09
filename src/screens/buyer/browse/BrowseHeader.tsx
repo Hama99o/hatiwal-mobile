@@ -102,8 +102,9 @@ export function BrowseHeader({
             gap: 8,
           }}
         >
-          {/* Search input — shared SearchBar (R15); debounce stays owned by
-              Browse.tsx's existing 400ms useEffect, so no debounceMs here. */}
+          {/* Search input — shared SearchBar (R15); SearchBar itself has no
+              built-in debounce (fully controlled), debounce stays owned by
+              Browse.tsx's existing 400ms useEffect before it re-fetches. */}
           <SearchBar
             value={search}
             onChangeText={onSearchChange}

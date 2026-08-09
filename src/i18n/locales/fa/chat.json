@@ -1,6 +1,11 @@
 {
   "listingDeleted": "این آگهی حذف شده است",
   "title": "پیام‌ها",
+  "day": {
+    "today": "امروز",
+    "yesterday": "دیروز"
+  },
+  "unreadDivider": "پیام‌های خوانده‌نشده",
   "searchPlaceholder": "جستجوی گفتگوها...",
   "messagePlaceholder": "پیام بنویسید...",
   "send": "ارسال",
@@ -118,6 +123,8 @@
     "declined": "پیشنهاد رد شد",
     "acceptedToast": "شما پیشنهاد را پذیرفتید",
     "declinedToast": "شما پیشنهاد را رد کردید",
+    "makeOffer": "پیشنهاد قیمت",
+    "counterBack": "پیشنهاد متقابل دیگر",
     "counter": "پیشنهاد متقابل",
     "counterTitle": "پیشنهاد قیمت متقابل",
     "counterLabel": "پیشنهاد متقابل",
@@ -129,11 +136,12 @@
     "counterSentToast": "پیشنهاد متقابل ارسال شد!",
     "quickChipsHint": "مبالغ سریع",
     "firmNotice": "قیمت فروشنده ثابت است — پیشنهادات پذیرفته نمی‌شوند",
-    "reserveAfterAcceptTitle": "این آگهی را رزرو کنید؟",
+    "reserveAfterAcceptTitle": "این آگهی را برای یک خریدار رزرو کنید؟",
     "reserveAfterAcceptBody": "برای {{buyerName}} به قیمت {{price}} رزرو شود؟",
-    "reserveAfterAcceptCta": "رزرو",
-    "reserveAfterAcceptSuccess": "آگهی برای {{buyerName}} رزرو شد",
-    "reserveAfterAcceptFailed": "رزرو کردن آگهی ناموفق بود. دوباره امتحان کنید."
+    "reserveAfterAcceptCta": "رزرو به قیمت {{price}}",
+    "reserveAfterAcceptDismiss": "نه الان",
+    "reserveAfterAcceptPending": "در حال رزرو کردن آگهی...",
+    "reserveAfterAcceptSuccess": "آگهی برای {{buyerName}} رزرو شد"
   },
   "block": {
     "blockUser": "مسدود کردن کاربر",

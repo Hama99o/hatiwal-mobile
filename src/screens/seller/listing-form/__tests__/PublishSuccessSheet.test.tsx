@@ -1,26 +1,34 @@
 /**
- * PublishSuccessSheet unit tests — TASK-J952.
+ * PublishSuccessSheet unit tests — TASK-J952 (+ review-fix pass).
  *
  * Asserts:
  *  - The three actions (Share listing / View as buyer / Post another) and
  *    the Done button render from the `listing.form.publishSuccess.*` i18n
- *    keys (react-i18next's t() mock returns the key unchanged — see
- *    src/__tests__/setup.ts).
+ *    keys (react-i18next's t() mock returns the key unchanged for those —
+ *    see the local override below, which mirrors src/__tests__/setup.ts but
+ *    additionally interpolates `listing.share.body` for the share tests).
  *  - Pressing "Share listing" invokes RN's Share.share with the resolved
- *    share URL — both when the backend provides an https shareUrl and when
- *    it falls back to the hatiwal:// deep link via resolveShareUrl.
+ *    share URL, built from the SAME localized `listing.share.body` i18n
+ *    template ListingDetail.handleShare uses (not a hardcoded JS string) —
+ *    both when the backend provides an https shareUrl and when it falls
+ *    back to the hatiwal:// deep link via resolveShareUrl.
  *  - "View as buyer" pushes the public listing route and closes the sheet.
  *  - "Post another" replaces with the create-form route and closes the sheet.
  *  - Pressing Done / the close (X) icon / the backdrop all call onClose.
  *  - Renders null when listing is null, and null when visible=false.
+ *  - A listing with no photo renders the muted Camera icon tile, never a
+ *    RemoteImage with the loading blurhash standing in as a fake photo.
+ *  - Content is wrapped in a ScrollView so it never clips at large font
+ *    sizes (the sheet also caps itself with `maxHeight`).
  *  - RTL layout (isRtl) does not throw.
  *
- * useLocalization/useColors/react-i18next are mocked globally (setup.ts).
+ * useLocalization/useColors are mocked globally (setup.ts). react-i18next is
+ * re-mocked locally (below) to add real interpolation for `listing.share.body`.
  */
 
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react-native";
-import { Share } from "react-native";
+import { Share, ScrollView } from "react-native";
 import type { Listing } from "@/api/listings";
 
 // ─── Additional mocks (on top of the global setup.ts mocks) ───────────────────
@@ -31,6 +39,7 @@ jest.mock("lucide-react-native", () => ({
   Eye: "Eye",
   Plus: "Plus",
   X: "X",
+  Camera: "Camera",
 }));
 
 const mockPush = jest.fn();
@@ -41,6 +50,23 @@ jest.mock("expo-router", () => ({
 
 jest.mock("expo-linking", () => ({
   createURL: jest.fn((path: string) => `hatiwal://${path}`),
+}));
+
+// react-i18next: same "return the key" behavior as the global setup.ts mock,
+// but `listing.share.body` additionally interpolates — needed to assert the
+// actual share text (title/price/url), which the global mock (key-only)
+// can't exercise. Mirrors the real `"{{title}} — {{price}}\n{{url}}"` template
+// from src/i18n/locales/en/listing.json.
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, opts?: Record<string, unknown>) => {
+      if (key === "listing.share.body" && opts) {
+        return `${opts.title} — ${opts.price}\n${opts.url}`;
+      }
+      return key;
+    },
+    i18n: { language: "en", changeLanguage: jest.fn() },
+  }),
 }));
 
 // ─── Import component AFTER mocks ─────────────────────────────────────────────
@@ -127,6 +153,31 @@ describe("PublishSuccessSheet — rendering", () => {
   it("renders null when visible=false (Modal hides its content)", () => {
     const { toJSON } = render(<PublishSuccessSheet {...buildProps({ visible: false })} />);
     expect(toJSON()).toBeNull();
+  });
+
+  it("wraps its content in a ScrollView so it never clips at large font sizes", () => {
+    const { UNSAFE_getAllByType } = render(<PublishSuccessSheet {...buildProps()} />);
+    expect(UNSAFE_getAllByType(ScrollView).length).toBeGreaterThan(0);
+  });
+});
+
+// ─── No photo — muted icon tile, never a fake-loading blurhash ────────────────
+
+describe("PublishSuccessSheet — no photo", () => {
+  it("renders the muted Camera icon tile when the listing has no photo", () => {
+    render(
+      <PublishSuccessSheet
+        {...buildProps({
+          listing: makeListing({ thumbnailUrl: null, imageUrls: [], images: [] }),
+        })}
+      />
+    );
+    expect(screen.getByTestId("publish-success-no-photo")).toBeTruthy();
+  });
+
+  it("does not render the no-photo tile when the listing has a real thumbnail", () => {
+    render(<PublishSuccessSheet {...buildProps()} />);
+    expect(screen.queryByTestId("publish-success-no-photo")).toBeNull();
   });
 });
 

@@ -5,10 +5,13 @@ appId: com.hatiwal.app
 # CI seed guarantee: db/seeds/e2e.rb attaches a `sold` Transaction between
 # seller@hatiwal.test (seller) and buyer@hatiwal.test (buyer) on the seeded
 # "Xiaomi Redmi Note 11 128GB" sold listing — so seller.sold_count >= 1 and
-# the "Items Sold" stat cell + the combined trust badge are both guaranteed
-# non-empty in every Maestro run. seller.bought_count is 0 (seller has no
-# purchase history), so the badge shows the "sold" half only — no dangling
-# "0 bought".
+# the combined trust badge is guaranteed non-empty in every Maestro run.
+# seller.bought_count is 0 (seller has no purchase history), so the badge
+# shows the "sold" half only — no dangling "0 bought".
+#
+# Review fix: the stats-row "Items Sold" cell was REMOVED — it duplicated
+# the exact same number already shown by the trust badge below it. The
+# stats row now shows only Active Listings + Joined.
 
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
@@ -25,8 +28,8 @@ appId: com.hatiwal.app
 # Seller profile page opens
 - assertVisible: "Seller Profile"
 - assertVisible: "Active Listings"
-- assertVisible: "Items Sold"
 - assertVisible: "Joined"
+- assertNotVisible: "Items Sold"
 
 # The combined trust badge — "N sold" (bought omitted, seller has 0 purchases)
 - assertVisible: "1 sold"

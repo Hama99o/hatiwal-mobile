@@ -101,13 +101,34 @@ function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode 
 }
 
 // ── Stats grid (shared by buyer + seller — same card, different stats) ──────────
+// Exported so the grid-collapse regression (TASK-TX02 review fix) can be
+// covered by a focused unit test without mounting the whole Profile screen.
 
-function ProfileStatsGrid({ stats }: { stats: { label: string; value: string }[] }) {
+export function ProfileStatsGrid({
+  stats,
+  columns,
+}: {
+  stats: { label: string; value: string }[];
+  /**
+   * Reserve this many fixed-width slots regardless of how many stats are
+   * actually populated. Callers that conditionally omit a stat (e.g. a
+   * "Sold"/"Bought" cell hidden when its count is 0 — TASK-TX02) MUST pass
+   * the grid's real slot count here; otherwise `flex: 1` re-distributes the
+   * remaining stat(s) across the whole row and a lone stat stretches to
+   * fill it — collapsing what should read as a balanced N-up grid into one
+   * oversized cell. Defaults to `stats.length` (no-op) for grids that always
+   * render a fixed-size array.
+   */
+  columns?: number;
+}) {
   const colors = useColors();
+  const { isRtl } = useLocalization();
+  const slotCount = columns ?? stats.length;
+  const fillerCount = Math.max(0, slotCount - stats.length);
 
   return (
     <SectionCard>
-      <View style={{ flexDirection: "row", paddingVertical: 16 }}>
+      <View style={{ flexDirection: isRtl ? "row-reverse" : "row", paddingVertical: 16 }}>
         {stats.map((stat, i) => (
           <View
             key={i}
@@ -126,6 +147,11 @@ function ProfileStatsGrid({ stats }: { stats: { label: string; value: string }[]
               {stat.label}
             </Text>
           </View>
+        ))}
+        {/* Invisible filler slots — reserve the width a hidden stat would
+            have occupied so the visible stat(s) never stretch off-balance. */}
+        {Array.from({ length: fillerCount }).map((_, i) => (
+          <View key={`filler-${i}`} style={{ flex: 1 }} testID="profile-stats-filler" />
         ))}
       </View>
     </SectionCard>
@@ -364,7 +390,10 @@ function ProfileContent({
 
   return (
     <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-      <ProfileStatsGrid stats={stats} />
+      {/* columns=2 — this grid is always Sold/Bought + Active/Saved (TASK-TX02).
+          Fixing the slot count keeps the grid balanced even when the
+          Sold/Bought stat is hidden (count is 0) — see ProfileStatsGrid. */}
+      <ProfileStatsGrid stats={stats} columns={2} />
       <ProfileQuickActions user={user} isSeller={isSeller} />
       <PersonalInfoCard user={user} handleEdit={handleEdit} />
     </View>

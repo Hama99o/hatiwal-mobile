@@ -36,6 +36,14 @@
  *     SkeletonComponent: ListingCardSkeleton,
  *   };
  *   return <UniversalList config={config} />;
+ *
+ * Instant client-side search (no re-fetch, works offline):
+ *   Add `filterItems: (items) => items.filter((i) => i.title.includes(term))`
+ *   to the config. It runs on whatever `items` are already loaded, purely at
+ *   render time — never bump `id`/`refreshKey` per keystroke for this, that
+ *   re-hits the network and (while offline) would replace a perfectly good
+ *   already-loaded list with the error state. See Conversations.tsx for a
+ *   real example (TASK-Z684).
  */
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
@@ -151,6 +159,18 @@ export interface UniversalListConfig<T> {
 
   /** Content padding bottom. Default: 80. */
   contentPaddingBottom?: number;
+
+  /**
+   * Optional pure client-side filter applied to whatever `items` are
+   * currently loaded in memory, evaluated at render time. Use this for
+   * instant list-level search (e.g. Conversations, TASK-Z684) instead of
+   * bumping `refreshKey`/`id` on every keystroke — that would re-hit the
+   * network on every debounce tick and, while offline, swap a perfectly
+   * good already-loaded list for the error state. `filterItems` never
+   * triggers a fetch; it only narrows what's rendered from the already
+   * fetched `items`, so typing is instant and works offline.
+   */
+  filterItems?: (items: T[]) => T[];
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -177,6 +197,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     perPage = 20,
     ListHeaderComponent,
     contentPaddingBottom = 80,
+    filterItems,
   } = config;
 
   const colors = useColors();
@@ -195,12 +216,25 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   // we reset to page 1.
   const idRef = useRef(id);
 
+  // Stale-response guard: a monotonically-increasing counter, one tick per
+  // fetchPage call. If a second request is issued before the first settles
+  // (e.g. a fast refreshKey bump racing the initial load, or pull-to-refresh
+  // overlapping a focus refetch), only the LAST-issued request's result is
+  // ever committed to state — an older response that resolves late can never
+  // clobber fresher data.
+  const requestIdRef = useRef(0);
+
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchPage = useCallback(
     async (page: number, reset = false) => {
+      const requestId = ++requestIdRef.current;
       try {
         const query: ListQuery = { page, perPage };
         const result = await fetcher(query);
+
+        // A newer request has been issued since this one started — drop this
+        // (now stale) result instead of overwriting more recent state.
+        if (requestId !== requestIdRef.current) return;
 
         if (reset) {
           setItems(result.items);
@@ -211,6 +245,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
         setCurrentPage(result.currentPage);
         setError(null);
       } catch (err) {
+        if (requestId !== requestIdRef.current) return;
         // A 401 means the session ended (e.g. the user logged out) — the auth
         // layer handles the redirect, so don't log it or flash a list error.
         const status = (err as { response?: { status?: number } } | undefined)?.response?.status;
@@ -293,6 +328,11 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     await fetchPage(currentPage + 1, false);
     setIsFetchingMore(false);
   }, [isFetchingMore, isLoading, currentPage, totalPages, fetchPage]);
+
+  // ── Client-side filter (e.g. instant search) ───────────────────────────────
+  // Applied to whatever `items` are already loaded, purely at render time —
+  // never triggers a fetch. See `filterItems` JSDoc on UniversalListConfig.
+  const visibleItems = filterItems ? filterItems(items) : items;
 
   // ── Skeleton grid ──────────────────────────────────────────────────────────
   // NOTE: The header is rendered OUTSIDE the body branches (skeleton/error/empty/list)
@@ -413,7 +453,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
       );
     }
 
-    if (items.length === 0) {
+    if (visibleItems.length === 0) {
       return (
         <EmptyState
           illustration={emptyIllustration}
@@ -431,7 +471,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     // full device width while list items still get the 12px outer padding.
     return (
       <FlashList
-        data={items}
+        data={visibleItems}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         numColumns={numColumns}
@@ -469,7 +509,9 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
 
   // When loading/error/empty we render the header once in the stable outer
   // container, so the TextInput (search bar) is never unmounted.
-  const showHeaderAboveBody = isLoading || !!error || items.length === 0;
+  // Uses `visibleItems` (post-filter) so a search term with no matches still
+  // shows the stable-header empty-state path, not the FlashList data path.
+  const showHeaderAboveBody = isLoading || !!error || visibleItems.length === 0;
 
   if (showHeaderAboveBody) {
     // The header (e.g. an expandable filter panel) can be taller than the

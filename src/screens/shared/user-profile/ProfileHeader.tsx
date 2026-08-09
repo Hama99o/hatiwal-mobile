@@ -65,7 +65,7 @@ function StatCell({
 
 export function ProfileHeader({ profile }: ProfileHeaderProps) {
   const { t } = useTranslation();
-  const { isRtl, formatNumber } = useLocalization();
+  const { isRtl } = useLocalization();
   const colors = useColors();
   const router = useRouter();
 
@@ -102,7 +102,11 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
         />
       </View>
 
-      {/* Stats row */}
+      {/* Stats row — Active Listings + Joined. The seller's confirmed
+          Sold/Bought trust signal lives ONLY in the TransactionStatsBadge
+          below (TASK-TX02 review fix): this grid used to ALSO show a
+          "sold_count"-backed "Items Sold" cell here, printing the exact same
+          number the badge already shows — a confusing duplicate readout. */}
       <View
         style={{
           flexDirection: isRtl ? "row-reverse" : "row",
@@ -117,12 +121,6 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
         <StatCell
           value={String(profile.listingsCount)}
           label={t("profile.userProfile.activeListings")}
-          colors={colors}
-        />
-        <View style={{ width: 1, backgroundColor: colors.border }} />
-        <StatCell
-          value={formatNumber(profile.soldCount)}
-          label={t("profile.userProfile.soldItems")}
           colors={colors}
         />
         <View style={{ width: 1, backgroundColor: colors.border }} />

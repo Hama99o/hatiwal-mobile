@@ -406,3 +406,116 @@ describe("UniversalList — config.id change resets the list", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });
+
+// ─── 7. filterItems — client-side filter at render (TASK-Z684) ───────────────
+//
+// `filterItems` narrows whatever `items` are already loaded, purely at
+// render time. It must NEVER trigger a new fetch — typing a search term
+// (which only changes the `filterItems` closure via a rerender) must not
+// re-hit the network, so the list stays usable (and searchable) offline.
+
+describe("UniversalList — filterItems (client-side render filter)", () => {
+  it("renders only the items filterItems allows through, without changing the fetch count", async () => {
+    const fetcher = resolvingFetcher(makeResult(ITEMS));
+    const { rerender } = render(
+      <UniversalList config={buildConfig({ fetcher, filterItems: (items) => items })} />
+    );
+
+    await waitFor(() => expect(screen.getByText("Item One")).toBeTruthy());
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    // Simulate the user typing a search term: only `filterItems` changes —
+    // the `id`/`fetcher` stay the same, so no new fetch should occur.
+    await act(async () => {
+      rerender(
+        <UniversalList
+          config={buildConfig({
+            fetcher,
+            filterItems: (items) => items.filter((i) => i.label === "Item Two"),
+          })}
+        />
+      );
+    });
+
+    expect(screen.getByText("Item Two")).toBeTruthy();
+    expect(screen.queryByText("Item One")).toBeNull();
+    expect(screen.queryByText("Item Three")).toBeNull();
+    // Still just the one initial fetch — filtering never re-hits the network.
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows EmptyState when filterItems narrows a non-empty list down to zero", async () => {
+    const fetcher = resolvingFetcher(makeResult(ITEMS));
+    render(
+      <UniversalList
+        config={buildConfig({
+          fetcher,
+          filterItems: () => [],
+          emptyTitle: "No matches",
+        })}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByText("No matches")).toBeTruthy());
+    expect(screen.queryByTestId("item-1")).toBeNull();
+    // The raw fetch itself succeeded with 3 items — only the render is filtered.
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the full list unfiltered when filterItems is not provided", async () => {
+    render(<UniversalList config={buildConfig({ fetcher: resolvingFetcher(makeResult(ITEMS)) })} />);
+
+    await waitFor(() => expect(screen.getByText("Item One")).toBeTruthy());
+    expect(screen.getByText("Item Two")).toBeTruthy();
+    expect(screen.getByText("Item Three")).toBeTruthy();
+  });
+});
+
+// ─── 8. Stale-response guard ──────────────────────────────────────────────────
+//
+// If an older request resolves AFTER a newer one has already been issued
+// (e.g. a fast refreshKey bump racing the initial load), the older response
+// must never clobber the fresher state that already landed.
+
+describe("UniversalList — stale-response guard", () => {
+  it("does not let a slow, older request overwrite a faster, newer one", async () => {
+    let resolveSlow!: (value: ListFetchResult<SimpleItem>) => void;
+    let callCount = 0;
+
+    // Call 1: initial mount, resolves immediately with zero items (settled
+    // starting point). Call 2 (id → "list-2"): hangs — the "older" request.
+    // Call 3 (id → "list-3", issued before call 2 resolves): resolves
+    // immediately — the "newer" request.
+    const fetcher = jest.fn((_query: ListQuery) => {
+      callCount += 1;
+      if (callCount === 1) return Promise.resolve(makeResult([]));
+      if (callCount === 2) {
+        return new Promise<ListFetchResult<SimpleItem>>((res) => { resolveSlow = res; });
+      }
+      return Promise.resolve(makeResult([{ id: 100, label: "Fresh Item" }]));
+    });
+
+    const { rerender } = render(<UniversalList config={buildConfig({ id: "list-1", fetcher })} />);
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    // Issue the older (slow) request — id change #1.
+    await act(async () => {
+      rerender(<UniversalList config={buildConfig({ id: "list-2", fetcher })} />);
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    // Issue the newer (fast) request BEFORE the older one resolves — id change #2.
+    await act(async () => {
+      rerender(<UniversalList config={buildConfig({ id: "list-3", fetcher })} />);
+    });
+
+    await waitFor(() => expect(screen.getByText("Fresh Item")).toBeTruthy());
+
+    // Now let the STALE older request resolve with different data — it must
+    // be dropped rather than clobbering the fresher "Fresh Item" state.
+    await act(async () => { resolveSlow(makeResult(ITEMS)); });
+
+    expect(screen.getByText("Fresh Item")).toBeTruthy();
+    expect(screen.queryByText("Item One")).toBeNull();
+  });
+});

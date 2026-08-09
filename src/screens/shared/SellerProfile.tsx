@@ -5,13 +5,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ChevronLeft, MoreVertical, Search, X, Flag, ShieldBan, Store, Share2 } from "lucide-react-native";
+import { ChevronLeft, MoreVertical, Flag, ShieldBan, Store, Share2 } from "lucide-react-native";
 import * as Linking from "expo-linking";
 import { toast } from "sonner-native";
 
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
-import { Input } from "@/components/reusables/input";
+import { SearchBar } from "@/components/common/SearchBar";
 import { ListingCard } from "@/components/common/ListingCard";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { ReportSheet } from "@/components/common/ReportSheet";
@@ -359,41 +359,16 @@ export function SellerProfileScreen() {
               />
             )}
 
-            {/* Search Bar */}
-            <View
-              style={{
-                flexDirection: isRtl ? "row-reverse" : "row",
-                alignItems: "center",
-                backgroundColor: colors.muted,
-                borderRadius: 12,
-                paddingHorizontal: 12,
-                marginBottom: 16,
-                minHeight: 44,
-                gap: 8,
-              }}
-            >
-              <Search size={16} color={colors.mutedForeground} />
-              <Input
-                placeholder={t("profile.userProfile.searchListings")}
-                placeholderTextColor={colors.mutedForeground}
+            {/* Search Bar — shared SearchBar (R15 retrofit) */}
+            <View style={{ marginBottom: 16 }}>
+              <SearchBar
                 value={searchText}
                 onChangeText={setSearchText}
-                style={{
-                  flex: 1,
-                  fontSize: 14,
-                  borderWidth: 0,
-                  backgroundColor: "transparent",
-                  paddingHorizontal: 0,
-                  paddingVertical: 0,
-                  minHeight: 0,
-                  textAlign: isRtl ? "right" : "left",
-                }}
+                placeholder={t("profile.userProfile.searchListings")}
+                testID="seller-profile-search-bar"
+                inputTestID="seller-profile-search-input"
+                clearTestID="seller-profile-search-clear"
               />
-              {searchText ? (
-                <Pressable onPress={() => setSearchText("")} hitSlop={8}>
-                  <X size={16} color={colors.mutedForeground} />
-                </Pressable>
-              ) : null}
             </View>
 
             {/* Category Filter Tabs */}

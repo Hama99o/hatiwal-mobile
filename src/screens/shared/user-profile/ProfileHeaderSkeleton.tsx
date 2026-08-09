@@ -46,7 +46,8 @@ export function ProfileHeaderSkeleton() {
         />
       </View>
 
-      {/* Stats row — three cells */}
+      {/* Stats row — two cells (Active Listings + Joined). The Sold/Bought
+          trust badge is a separate row below the grid — see ProfileHeader. */}
       <View
         style={{
           flexDirection: "row",
@@ -58,7 +59,7 @@ export function ProfileHeaderSkeleton() {
           overflow: "hidden",
         }}
       >
-        {[0, 1, 2].map((i) => (
+        {[0, 1].map((i) => (
           <React.Fragment key={i}>
             {i > 0 && (
               <View style={{ width: 1, backgroundColor: colors.border }} />
@@ -91,6 +92,18 @@ export function ProfileHeaderSkeleton() {
             </View>
           </React.Fragment>
         ))}
+      </View>
+
+      {/* TransactionStatsBadge placeholder ("Sold N · Bought N") */}
+      <View style={{ paddingHorizontal: 4, marginBottom: 12 }}>
+        <Skeleton
+          style={{
+            width: 90,
+            height: 12,
+            borderRadius: 3,
+            ...skeletonStyle,
+          }}
+        />
       </View>
 
       {/* Separator placeholder */}

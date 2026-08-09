@@ -89,11 +89,20 @@ interface MessageBubbleProps {
   /** Outcome of this offer, if it has been answered. */
   offerOutcome?: "accepted" | "declined" | null;
   /**
-   * Called when the seller taps "Counter" on a buyer's offer bubble.
-   * The seller supplies the new counter amount (string) and the
-   * original offer's listed price and currency for reference.
+   * Called when the recipient taps "Counter" on an `offer` or `offer_counter`
+   * bubble — opens the shared counter-offer sheet pre-filled from this
+   * message. Passed for `offer` (seller countering the buyer) and, since
+   * TASK-C381, for `offer_counter` too (the buyer countering the seller's
+   * counter, so a negotiation can run more than one round).
    */
   onOfferCounter?: () => void;
+  /**
+   * TASK-O947: true while a response to ANY offer/counter in this thread is
+   * already in flight — greys out and disables Accept/Decline/Counter so a
+   * fast double-tap can never fire two responses (and, on Accept, never
+   * triggers the reserve-after-accept prompt twice).
+   */
+  offerActionsDisabled?: boolean;
   /** Active search query — matching substrings in the bubble body get highlighted. */
   searchQuery?: string;
   /**
@@ -382,7 +391,7 @@ function ImageMessageBubble({
   );
 }
 
-export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, onOfferRespond, offerOutcome, onOfferCounter, searchQuery, onDeleteMessage }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, onOfferRespond, offerOutcome, onOfferCounter, offerActionsDisabled, searchQuery, onDeleteMessage }: MessageBubbleProps) {
   const { t } = useTranslation();
   const { isRtl, formatTime, formatCurrency } = useLocalization();
   const colors = useColors();
@@ -694,12 +703,15 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 </Text>
               </View>
             ) : !isMine && onOfferRespond ? (
-              /* Accept / Decline / Counter — seller sees all three actions before responding */
-              <View style={{ gap: 6, marginTop: 8 }}>
+              /* Accept / Decline / Counter — seller sees all three actions before responding.
+                 TASK-O947: all three are disabled + dimmed while ANY offer response in this
+                 thread is in flight (offerActionsDisabled) — never a double-tap. */
+              <View style={{ gap: 6, marginTop: 8, opacity: offerActionsDisabled ? 0.5 : 1 }}>
                 {/* Accept + Decline row */}
                 <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8 }}>
                   <Pressable
                     onPress={() => onOfferRespond(true)}
+                    disabled={offerActionsDisabled}
                     android_ripple={{ color: colors.successAlpha }}
                     style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.success }}
                   >
@@ -709,6 +721,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                   </Pressable>
                   <Pressable
                     onPress={() => onOfferRespond(false)}
+                    disabled={offerActionsDisabled}
                     android_ripple={{ color: colors.muted }}
                     style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
                   >
@@ -721,6 +734,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 {onOfferCounter && (
                   <Pressable
                     onPress={onOfferCounter}
+                    disabled={offerActionsDisabled}
                     android_ripple={{ color: colors.warningAlpha }}
                     style={{
                       alignItems: "center",
@@ -892,26 +906,62 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 </Text>
               </View>
             ) : !isMine && onOfferRespond ? (
-              /* Accept / Decline — buyer sees these buttons on the seller's counter */
-              <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8, marginTop: 8 }}>
-                <Pressable
-                  onPress={() => onOfferRespond(true)}
-                  android_ripple={{ color: colors.successAlpha }}
-                  style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.success }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.successForeground }}>
-                    {t("chat.offer.accept")}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => onOfferRespond(false)}
-                  android_ripple={{ color: colors.muted }}
-                  style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
-                    {t("chat.offer.decline")}
-                  </Text>
-                </Pressable>
+              /* Accept / Decline / Counter — the recipient of a counter-offer sees
+                 all three actions, the same way the original offer does, so a
+                 negotiation can run more than one round (TASK-C381: the buyer can
+                 counter the seller's counter, and vice versa). TASK-O947: all
+                 three are disabled + dimmed while ANY offer response in this
+                 thread is in flight (offerActionsDisabled). */
+              <View style={{ gap: 6, marginTop: 8, opacity: offerActionsDisabled ? 0.5 : 1 }}>
+                {/* Accept + Decline row */}
+                <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8 }}>
+                  <Pressable
+                    onPress={() => onOfferRespond(true)}
+                    disabled={offerActionsDisabled}
+                    android_ripple={{ color: colors.successAlpha }}
+                    style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.success }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.successForeground }}>
+                      {t("chat.offer.accept")}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => onOfferRespond(false)}
+                    disabled={offerActionsDisabled}
+                    android_ripple={{ color: colors.muted }}
+                    style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
+                      {t("chat.offer.decline")}
+                    </Text>
+                  </Pressable>
+                </View>
+                {/* Counter button — full width, below Accept/Decline (TASK-C381) */}
+                {onOfferCounter && (
+                  <Pressable
+                    onPress={onOfferCounter}
+                    disabled={offerActionsDisabled}
+                    android_ripple={{ color: colors.warningAlpha }}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("chat.offer.counterBack")}
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      minHeight: 44,
+                      paddingVertical: 9,
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: colors.warning,
+                      flexDirection: isRtl ? "row-reverse" : "row",
+                      gap: 6,
+                    }}
+                  >
+                    <ArrowLeftRight size={14} color={colors.warning} />
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.warning }}>
+                      {t("chat.offer.counter")}
+                    </Text>
+                  </Pressable>
+                )}
               </View>
             ) : null}
 

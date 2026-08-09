@@ -1,16 +1,17 @@
 /**
  * SearchBar unit tests
  *
- * Covers: rendering placeholder, immediate (no debounceMs) onChangeText,
- * debounced onChangeText, the clear (X) button's appear/disappear + behavior,
- * external value sync, and RTL/smoke rendering.
+ * Covers: rendering placeholder, onChangeText firing on every keystroke
+ * (SearchBar is fully controlled — no built-in debounce), the clear (X)
+ * button's appear/disappear + behavior, external value sync, and RTL/smoke
+ * rendering.
  *
  * react-i18next, useColors and useLocalization are mocked globally in
  * src/__tests__/setup.ts.
  */
 
 import React from "react";
-import { render, screen, fireEvent, act } from "@testing-library/react-native";
+import { render, screen, fireEvent } from "@testing-library/react-native";
 import { SearchBar } from "../SearchBar";
 
 describe("SearchBar — rendering", () => {
@@ -35,7 +36,7 @@ describe("SearchBar — rendering", () => {
   });
 });
 
-describe("SearchBar — immediate mode (no debounceMs)", () => {
+describe("SearchBar — fully controlled (no built-in debounce)", () => {
   it("calls onChangeText on every keystroke", () => {
     const onChangeText = jest.fn();
     render(<SearchBar value="" onChangeText={onChangeText} placeholder="Search..." />);
@@ -43,55 +44,24 @@ describe("SearchBar — immediate mode (no debounceMs)", () => {
     expect(onChangeText).toHaveBeenCalledTimes(1);
     expect(onChangeText).toHaveBeenCalledWith("iph");
   });
-});
 
-describe("SearchBar — debounced mode", () => {
-  beforeEach(() => jest.useFakeTimers());
-  afterEach(() => jest.useRealTimers());
-
-  it("does not call onChangeText immediately when debounceMs is set", () => {
+  it("calls onChangeText once per keystroke with no delay/debounce", () => {
     const onChangeText = jest.fn();
-    render(
-      <SearchBar value="" onChangeText={onChangeText} placeholder="Search..." debounceMs={250} />
-    );
-    fireEvent.changeText(screen.getByPlaceholderText("Search..."), "a");
-    expect(onChangeText).not.toHaveBeenCalled();
-  });
-
-  it("calls onChangeText after the debounce window elapses", () => {
-    const onChangeText = jest.fn();
-    render(
-      <SearchBar value="" onChangeText={onChangeText} placeholder="Search..." debounceMs={250} />
-    );
-    fireEvent.changeText(screen.getByPlaceholderText("Search..."), "a");
-    act(() => {
-      jest.advanceTimersByTime(250);
-    });
-    expect(onChangeText).toHaveBeenCalledWith("a");
-  });
-
-  it("only calls onChangeText once for rapid keystrokes within the window", () => {
-    const onChangeText = jest.fn();
-    render(
-      <SearchBar value="" onChangeText={onChangeText} placeholder="Search..." debounceMs={250} />
-    );
+    render(<SearchBar value="" onChangeText={onChangeText} placeholder="Search..." />);
     const input = screen.getByPlaceholderText("Search...");
     fireEvent.changeText(input, "a");
-    act(() => {
-      jest.advanceTimersByTime(100);
-    });
     fireEvent.changeText(input, "ab");
-    act(() => {
-      jest.advanceTimersByTime(250);
-    });
-    expect(onChangeText).toHaveBeenCalledTimes(1);
-    expect(onChangeText).toHaveBeenCalledWith("ab");
+    expect(onChangeText).toHaveBeenCalledTimes(2);
+    expect(onChangeText).toHaveBeenNthCalledWith(1, "a");
+    expect(onChangeText).toHaveBeenNthCalledWith(2, "ab");
   });
 
-  it("displays every keystroke instantly even while debounced", () => {
-    render(<SearchBar value="" onChangeText={jest.fn()} placeholder="Search..." debounceMs={250} />);
-    const input = screen.getByPlaceholderText("Search...");
-    fireEvent.changeText(input, "ab");
+  it("always displays exactly the controlled `value` (no local echo divergence)", () => {
+    const { rerender } = render(
+      <SearchBar value="a" onChangeText={jest.fn()} placeholder="Search..." />
+    );
+    expect(screen.getByDisplayValue("a")).toBeTruthy();
+    rerender(<SearchBar value="ab" onChangeText={jest.fn()} placeholder="Search..." />);
     expect(screen.getByDisplayValue("ab")).toBeTruthy();
   });
 });
@@ -126,28 +96,20 @@ describe("SearchBar — clear button", () => {
     expect(onClear).toHaveBeenCalledTimes(1);
   });
 
-  it("clears the displayed text immediately, bypassing any pending debounce", () => {
-    jest.useFakeTimers();
+  it("calls onChangeText('') immediately when pressed — no debounce/delay of any kind", () => {
     const onChangeText = jest.fn();
     render(
       <SearchBar
-        value=""
+        value="abc"
         onChangeText={onChangeText}
         placeholder="Search..."
-        debounceMs={250}
         clearTestID="clear-btn"
       />
     );
-    const input = screen.getByPlaceholderText("Search...");
-    fireEvent.changeText(input, "abc");
     fireEvent.press(screen.getByTestId("clear-btn"));
+    // No fake timers / advanceTimersByTime needed — clearing is synchronous.
+    expect(onChangeText).toHaveBeenCalledTimes(1);
     expect(onChangeText).toHaveBeenCalledWith("");
-    act(() => {
-      jest.advanceTimersByTime(250);
-    });
-    // The stale debounced "abc" call must never fire after clear.
-    expect(onChangeText).not.toHaveBeenCalledWith("abc");
-    jest.useRealTimers();
   });
 });
 

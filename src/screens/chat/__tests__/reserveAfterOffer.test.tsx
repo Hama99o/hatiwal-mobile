@@ -25,8 +25,20 @@ jest.mock("@/utils/alert", () => ({
   confirmAlert: jest.fn(),
 }));
 
+// `toast.promise` MUST be part of this mock: the module drives the whole
+// loading → success/error lifecycle through it. A mock missing `promise` makes
+// the call throw before the module can attach its own .catch(), which leaves
+// the rejected reserve promise unhandled and crashes the Jest worker — taking
+// this entire file's results down with it rather than failing one test.
+// The stub swallows the rejection exactly as the real helper does.
 jest.mock("sonner-native", () => ({
-  toast: { success: jest.fn(), error: jest.fn() },
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+    promise: jest.fn((p: Promise<unknown>) => {
+      void Promise.resolve(p).catch(() => undefined);
+    }),
+  },
 }));
 
 jest.mock("@/api/listings", () => ({
@@ -153,7 +165,12 @@ describe("maybeReserveAfterAccept — prompts and reserves for owner + active li
     // buyer picker of any kind.
     expect(buttons).toHaveLength(2);
     expect(buttons[0].style).toBe("cancel");
-    expect(buttons[1].text).toBe("chat.offer.reserveAfterAcceptCta");
+    // The CTA carries the price ("Reserve at {{price}}"), so `t` is called with
+    // interpolation options and the stub returns "<key>|<json>".
+    expect(buttons[1].text).toContain("chat.offer.reserveAfterAcceptCta");
+    expect(buttons[1].text).toContain("12000 AFN");
+    // "Not now", never the generic common.cancel.
+    expect(buttons[0].text).toBe("chat.offer.reserveAfterAcceptDismiss");
   });
 
   it("confirming calls reserveListing with the conversation's buyer id and the accepted price — exactly once", async () => {
@@ -165,9 +182,16 @@ describe("maybeReserveAfterAccept — prompts and reserves for owner + active li
 
     expect(listingsAPI.reserveListing).toHaveBeenCalledTimes(1);
     expect(listingsAPI.reserveListing).toHaveBeenCalledWith(42, { buyerId: 7, finalPrice: 12000 });
-    expect(toast.success).toHaveBeenCalledTimes(1);
-    expect(toast.error).not.toHaveBeenCalled();
     expect(onReserved).toHaveBeenCalledTimes(1);
+
+    // Progress is reported through a single toast.promise lifecycle (the native
+    // alert dismisses instantly, so an in-dialog spinner is impossible) — not
+    // through a bare success toast.
+    expect(toast.promise).toHaveBeenCalledTimes(1);
+    const [, handlers] = (toast.promise as jest.Mock).mock.calls[0];
+    expect(handlers.loading).toBe("chat.offer.reserveAfterAcceptPending");
+    expect(handlers.success()).toContain("chat.offer.reserveAfterAcceptSuccess");
+    expect(handlers.success()).toContain("Ahmad");
   });
 
   it('"Not now" (cancel) is a no-op — never calls reserveListing', () => {
@@ -224,8 +248,12 @@ describe("maybeReserveAfterAccept — reserve failure", () => {
     // by this function (it doesn't touch message state at all).
     await expect(buttons[1].onPress?.()).resolves.toBeUndefined();
 
-    expect(toast.error).toHaveBeenCalledTimes(1);
-    expect(toast.success).not.toHaveBeenCalled();
     expect(onReserved).not.toHaveBeenCalled();
+
+    // The failure is surfaced by the toast.promise error branch, and it reuses
+    // ListingHeader's existing copy rather than a duplicate translation key.
+    expect(toast.promise).toHaveBeenCalledTimes(1);
+    const [, handlers] = (toast.promise as jest.Mock).mock.calls[0];
+    expect(handlers.error()).toBe("chat.listingActions.reserveFailed");
   });
 });

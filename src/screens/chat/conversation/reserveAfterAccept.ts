@@ -10,6 +10,20 @@
  * minimal dependency surface (`confirmAlert`, `listingsAPI`, `toast`) so it —
  * and `handleOfferRespond` in `../Conversation.tsx` which calls it — can be
  * unit tested without mounting the full, deeply-coupled ConversationScreen.
+ *
+ * Review follow-up (CR on the first pass):
+ *  - The failure toast is NOT its own string — it reuses
+ *    `chat.listingActions.reserveFailed` (the identical copy already shown by
+ *    ListingHeader's own reserve action) instead of a duplicate
+ *    `chat.offer.reserveAfterAcceptFailed` key.
+ *  - `confirmAlert`/native `Alert` dismiss instantly on tap, so there is no
+ *    way to show an in-dialog spinner. Instead we drive a sonner-native
+ *    `toast.promise` off the SAME reserve request so the user sees a loading
+ *    → success/error toast the moment the alert closes, rather than dead UI
+ *    on a slow network.
+ *  - The CTA now carries the price ("Reserve at {{price}}") and the cancel
+ *    button reads "Not now" (matching `report.cancel`/`reviews.skip`) instead
+ *    of the generic `common.cancel`.
  */
 import { confirmAlert } from "@/utils/alert";
 import { listingsAPI } from "@/api/listings";
@@ -68,22 +82,33 @@ export function maybeReserveAfterAccept(params: MaybeReserveAfterAcceptParams): 
     t("chat.offer.reserveAfterAcceptTitle"),
     t("chat.offer.reserveAfterAcceptBody", { buyerName: buyer.name, price: formattedPrice }),
     [
-      { text: t("common.cancel"), style: "cancel" },
+      { text: t("chat.offer.reserveAfterAcceptDismiss"), style: "cancel" },
       {
-        text: t("chat.offer.reserveAfterAcceptCta"),
+        text: t("chat.offer.reserveAfterAcceptCta", { price: formattedPrice }),
         // Returns the promise (rather than fire-and-forget) so callers/tests
         // can `await` the full reserve attempt deterministically.
-        onPress: () =>
-          listingsAPI
-            .reserveListing(listing.id, { buyerId: buyer.id, finalPrice: offerAmount })
-            .then(() => {
-              toast.success(t("chat.offer.reserveAfterAcceptSuccess", { buyerName: buyer.name }));
-              onReserved?.();
-            })
-            .catch(() => {
-              // The accept above is never rolled back — only the reserve attempt failed.
-              toast.error(t("chat.offer.reserveAfterAcceptFailed"));
-            }),
+        onPress: () => {
+          const reservePromise = listingsAPI.reserveListing(listing.id, {
+            buyerId: buyer.id,
+            finalPrice: offerAmount,
+          });
+
+          // Single loading → success/error toast lifecycle driven by the
+          // sonner-native promise helper, so the request being in-flight is
+          // never invisible even though the native alert already closed.
+          toast.promise(reservePromise, {
+            loading: t("chat.offer.reserveAfterAcceptPending"),
+            success: () => t("chat.offer.reserveAfterAcceptSuccess", { buyerName: buyer.name }),
+            // Reuses the identical copy ListingHeader's own reserve action
+            // already shows — no duplicate translation key.
+            error: () => t("chat.listingActions.reserveFailed"),
+          });
+
+          // The accept above is never rolled back — only the reserve attempt
+          // failed. Swallow the rejection here (toast.promise already
+          // surfaced it) so this always resolves, never throws.
+          return reservePromise.then(() => onReserved?.()).catch(() => undefined);
+        },
       },
     ]
   );

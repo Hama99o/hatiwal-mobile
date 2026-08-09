@@ -107,6 +107,40 @@ export const OfferDeclined: Story = {
   },
 };
 
+// TASK-C381: the seller's counter-offer, shown to the buyer, who can now
+// Accept, Decline, OR tap Counter to reopen the sheet and counter back —
+// so a negotiation can run more than one round.
+export const OfferCounterCounterableByBuyer: Story = {
+  args: {
+    message: makeMsg({
+      kind: "offer_counter",
+      body: "9500|AFN|10000",
+      offerAmount: 9500,
+      offerCurrency: "AFN",
+      sender: { id: 2, name: "Seller" },
+    }),
+    isMine: false,
+    offerOutcome: null,
+    onOfferRespond: (accepted) => console.log("counter respond", accepted),
+    onOfferCounter: () => console.log("counter back"),
+  },
+};
+
+// The seller viewing their own counter — no action buttons at all.
+export const OfferCounterMineNoActions: Story = {
+  args: {
+    message: makeMsg({
+      kind: "offer_counter",
+      body: "9500|AFN|10000",
+      offerAmount: 9500,
+      offerCurrency: "AFN",
+      sender: { id: 2, name: "Seller" },
+    }),
+    isMine: true,
+    offerOutcome: null,
+  },
+};
+
 // ── Meetup proposal messages ──────────────────────────────────────────────────
 
 export const MeetupMineAwaitingResponse: Story = {

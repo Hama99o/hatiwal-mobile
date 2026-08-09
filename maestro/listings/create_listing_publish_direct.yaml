@@ -8,6 +8,15 @@ appId: com.hatiwal.app
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
 - assertVisible: "Create Listing"
+# Add a photo first — TASK-P736 blocks Publish with zero photos.
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Cover"
 # Fill required fields
 - tapOn: "What are you selling?"
 - inputText: "Samsung Galaxy S22"
