@@ -433,6 +433,28 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
             />
           </View>
 
+          {/* TASK-R418: compact "Reserved for {name}" / "Sold to {name}" line —
+              reserved/sold rows only, text-only (no second avatar stack on the
+              card; the full buyer card with avatar lives on the owner detail
+              screen). Renders nothing when there is no recorded buyer. */}
+          {listing.sale && (
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color: listing.sale.status === "sold" ? colors.mutedForeground : colors.warning,
+                marginTop: 6,
+                textAlign: isRtl ? "right" : "left",
+              }}
+              numberOfLines={1}
+              testID="seller-card-sale-line"
+            >
+              {listing.sale.status === "sold"
+                ? t("listing.sale.soldTo", { name: listing.sale.buyer.name })
+                : t("listing.sale.reservedFor", { name: listing.sale.buyer.name })}
+            </Text>
+          )}
+
           <View style={[styles.metaRow, { flexDirection: rowDirection }]}>
             <View style={[styles.metaItem, { flexDirection: rowDirection }]}>
               <Eye size={12} color={colors.mutedForeground} />

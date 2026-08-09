@@ -34,7 +34,7 @@ appId: com.hatiwal.app
 
 # Counter sheet is open
 - assertVisible: "Counter Offer"
-- assertVisible: "Buyer offered"
+- assertVisible: "Previous offer"
 
 # Clear pre-filled amount and enter counter price
 - clearText

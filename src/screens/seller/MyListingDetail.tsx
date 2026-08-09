@@ -55,6 +55,7 @@ import { confirmAlert } from "@/utils/alert";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
+import { SaleBuyerCard } from "@/components/common/SaleBuyerCard";
 import { ListingMapSection } from "@/components/common/ListingMapSection";
 import { BuyerPickerSheet, type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 import { ReviewPromptSheet } from "@/components/common/ReviewPromptSheet";
@@ -466,6 +467,9 @@ export default function MyListingDetailScreen() {
               status={listing.status}
             />
           </View>
+
+          {/* 2b — TASK-R418: who reserved/bought it, with a one-tap Message CTA */}
+          <SaleBuyerCard listing={listing} />
 
           {/* 3 — Price + title */}
           <PriceTag price={listing.price} currency={listing.currency} size="lg" />

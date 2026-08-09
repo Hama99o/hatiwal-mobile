@@ -28,7 +28,7 @@ import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/pe
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Send, Calendar, Paperclip, ShieldBan, Search, X, ImageIcon, Flag, Tag } from "lucide-react-native";
+import { Send, Plus, ShieldBan, Search, X, Flag } from "lucide-react-native";
 import { toast } from "sonner-native";
 
 import { Text } from "@/components/reusables/text";
@@ -48,6 +48,7 @@ import { MessageBubble } from "./conversation/MessageBubble";
 import { DaySeparator } from "./conversation/DaySeparator";
 import { buildThreadRows, threadRowKey, type ThreadRow } from "./conversation/groupMessagesByDay";
 import { MeetupSheet } from "./conversation/MeetupSheet";
+import { ComposerActionsSheet } from "./conversation/ComposerActionsSheet";
 import { CounterOfferSheet } from "./conversation/CounterOfferSheet";
 import { OfferSheet } from "@/screens/shared/listing-detail/OfferSheet";
 import { ReportSheet } from "@/components/common/ReportSheet";
@@ -136,6 +137,9 @@ export function ConversationScreen() {
   const [isSending, setIsSending] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [meetupSheetVisible, setMeetupSheetVisible] = useState(false);
+  // TASK-K487: single "+" bottom sheet replacing the four composer icons
+  // (Photo / File / Propose meetup / Make an offer).
+  const [actionsSheetVisible, setActionsSheetVisible] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(conversationId);
   const [isBlocked, setIsBlocked] = useState(false);
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
@@ -192,7 +196,8 @@ export function ConversationScreen() {
 
   // ── TASK-C381: make/counter an offer without leaving the thread ──────────
   // Reuses the existing OfferSheet (with its TASK-G083 quick-amount chips) —
-  // the composer's Tag button opens it, prefilled from the pinned listing.
+  // the composer's "+" actions sheet (TASK-K487) opens it, prefilled from the
+  // pinned listing.
   const [threadOfferSheetVisible, setThreadOfferSheetVisible] = useState(false);
   const [threadOfferAmount, setThreadOfferAmount] = useState("");
   const [isSendingThreadOffer, setIsSendingThreadOffer] = useState(false);
@@ -589,7 +594,12 @@ export function ConversationScreen() {
             listing: listingRef,
             buyer: conversation.buyer ?? null,
             offerAmount,
-            currency: offer.offerCurrency ?? listingRef.currency ?? "AFN",
+            // The listing being reserved is the canonical source of truth for
+            // currency (reserveListing's final_price is charged in the
+            // listing's currency, not the offer message's) — the offer's
+            // encoded currency is only a fallback for the rare case a
+            // listing is missing one.
+            currency: listingRef.currency ?? offer.offerCurrency ?? "AFN",
             t,
             formatCurrency,
             onReserved: () => {
@@ -667,9 +677,16 @@ export function ConversationScreen() {
   );
 
   // ── Send file attachment ─────────────────────────────────────────────────
+  // TASK-K487: same optimistic-bubble → replace-on-success / rollback +
+  // toast-on-failure contract as handlePhotoAttachment below — previously
+  // this awaited conversationsAPI.sendFile with no in-flight feedback at
+  // all, so picking a large PDF looked like the tap did nothing until the
+  // bubble finally appeared.
+  const [isSendingFile, setIsSendingFile] = useState(false);
+
   const handleAttachment = useCallback(async () => {
     const convId = currentConversationId;
-    if (!convId) return;
+    if (!convId || isSendingFile) return;
     try {
       // Dynamic import so the app still works if expo-document-picker is not installed
       const DocumentPicker = await import("expo-document-picker");
@@ -679,9 +696,38 @@ export function ConversationScreen() {
       });
       if (result.canceled || !result.assets?.length) return;
       const file = result.assets[0];
-      const sent = await conversationsAPI.sendFile(convId, file.uri, file.name ?? "file", file.mimeType ?? "application/octet-stream");
-      setMessages((prev) => [...prev, sent]);
+      const fileName = file.name ?? "file";
+      const mimeType = file.mimeType ?? "application/octet-stream";
+
+      setIsSendingFile(true);
+
+      // Optimistic insert — same pattern as handlePhotoAttachment: show a
+      // placeholder bubble immediately and scroll to it, replace it with the
+      // server message on success, roll it back + toast on failure.
+      const optimistic: Message = {
+        id: -Date.now(),
+        body: fileName,
+        kind: "document",
+        readAt: null,
+        createdAt: new Date().toISOString(),
+        sender: { id: currentUser?.id ?? 0, name: currentUser?.fullName ?? "" },
+        attachmentUrl: file.uri, // local URI so the bubble is tappable immediately
+      };
+      isNearBottomRef.current = true;
+      setMessages((prev) => [...prev, optimistic]);
+
+      try {
+        const sent = await conversationsAPI.sendFile(convId, file.uri, fileName, mimeType);
+        setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? sent : m)));
+      } catch {
+        // Rollback optimistic insert
+        setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+        toast.error(t("chat.thread.sendFailed"));
+      } finally {
+        setIsSendingFile(false);
+      }
     } catch (err: unknown) {
+      setIsSendingFile(false);
       const msg = (err as Error)?.message ?? "";
       if (msg.includes("Cannot find module")) {
         toast.error(t("chat.thread.filePickerNotAvailable"));
@@ -689,7 +735,7 @@ export function ConversationScreen() {
         toast.error(t("chat.thread.sendFailed"));
       }
     }
-  }, [currentConversationId, t]);
+  }, [currentConversationId, isSendingFile, currentUser, t]);
 
   // ── Send photo from camera or library ───────────────────────────────────
   const [isSendingPhoto, setIsSendingPhoto] = useState(false);
@@ -1120,6 +1166,18 @@ export function ConversationScreen() {
               item.kind === "offer" &&
               messages.some((m) => m.kind === "offer_counter" && m.respondsToId === item.id);
 
+            // TASK-C381 review fix: a counter can itself be superseded by a
+            // FURTHER counter-back (the whole point of allowing more than one
+            // round). Mirrors `isOfferCountered` above for the original offer —
+            // without this, after the recipient counters C1 with C2, C1 kept
+            // showing Accept/Decline/Counter to them (it never got an
+            // offer_accepted/offer_declined response, only a further counter),
+            // letting them accept/decline/re-counter an already-superseded
+            // counter and desync the negotiation from what was actually sent.
+            const isCounterSuperseded =
+              item.kind === "offer_counter" &&
+              messages.some((m) => m.kind === "offer_counter" && m.respondsToId === item.id);
+
             // Computed once so both the `isMine` prop and the onOfferCounter
             // guard below use the exact same value (TASK-C381).
             const itemIsMine = !!currentUser && Number(item.sender.id) === Number(currentUser.id);
@@ -1136,24 +1194,33 @@ export function ConversationScreen() {
                 }
                 offerOutcome={offerOutcome}
                 onOfferRespond={
-                  // Offer: seller can respond (not mine, not already countered)
+                  // Offer: the recipient can respond (not mine, not already countered)
                   (item.kind === "offer" && !isOfferCountered)
                     ? (accepted) => handleOfferRespond(item, accepted)
-                    // Counter: buyer can respond (not mine)
-                    : item.kind === "offer_counter"
+                    // Counter: the recipient can respond (not mine, not superseded
+                    // by a further counter-back — TASK-C381 review fix).
+                    : item.kind === "offer_counter" && !isCounterSuperseded
                     ? (accepted) => handleOfferRespond(item, accepted)
                     : undefined
                 }
                 onOfferCounter={
-                  // Offer: counter button only for the seller on the buyer's
-                  // offer, before any response.
-                  item.kind === "offer" && !isOfferCountered && isOwner
+                  // Offer: TASK-C381 review fix — counter button is for
+                  // whoever DIDN'T send this offer (not mine), not just the
+                  // seller. A fresh "offer" can now come from either side (a
+                  // seller opening one is a proactive discount, per this
+                  // card's composer button), so the recipient — buyer or
+                  // seller — must be able to counter it back, exactly like
+                  // they can already Accept/Decline it via onOfferRespond
+                  // above (which was never seller-only).
+                  item.kind === "offer" && !isOfferCountered && !itemIsMine
                     ? () => handleOpenCounterSheet(item)
-                    // Counter: TASK-C381 — the recipient of a seller's counter
-                    // (not mine) can counter back, as long as it hasn't been
-                    // accepted/declined yet. Symmetric guard: works from
-                    // either side, so a negotiation can run more than one round.
-                    : item.kind === "offer_counter" && !itemIsMine && !offerOutcome
+                    // Counter: TASK-C381 — the recipient of a counter (not
+                    // mine) can counter back, as long as it hasn't been
+                    // accepted/declined yet AND hasn't itself already been
+                    // superseded by a further counter (isCounterSuperseded,
+                    // review fix). Symmetric guard: works from either side,
+                    // so a negotiation can run more than one round.
+                    : item.kind === "offer_counter" && !itemIsMine && !offerOutcome && !isCounterSuperseded
                     ? () => handleOpenCounterSheet(item)
                     : undefined
                 }
@@ -1263,45 +1330,19 @@ export function ConversationScreen() {
               { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 8) + 12 },
             ]}
           >
+            {/* TASK-K487: single "+" bottom sheet replaces the four icons
+                (Calendar/Paperclip/ImageIcon/Tag) that used to crowd this row —
+                see ComposerActionsSheet below. */}
             <Pressable
-              onPress={() => setMeetupSheetVisible(true)}
-              style={styles.meetupButton}
-              hitSlop={8}
-              accessibilityLabel={t("chat.proposeMeetup")}
+              onPress={() => setActionsSheetVisible(true)}
+              style={styles.plusButton}
+              hitSlop={4}
+              accessibilityRole="button"
+              accessibilityLabel={t("chat.composer.moreActions")}
+              testID="composer-plus-button"
             >
-              <Calendar size={22} color={colors.primary} />
+              <Plus size={22} color={colors.primary} />
             </Pressable>
-            <Pressable
-              onPress={handleAttachment}
-              style={styles.meetupButton}
-              hitSlop={8}
-              accessibilityLabel={t("chat.attachFile")}
-            >
-              <Paperclip size={20} color={colors.mutedForeground} />
-            </Pressable>
-            <Pressable
-              onPress={handlePhotoAttachment}
-              disabled={isSendingPhoto}
-              style={styles.meetupButton}
-              hitSlop={8}
-              accessibilityLabel={t("chat.attachPhoto")}
-            >
-              <ImageIcon size={20} color={isSendingPhoto ? colors.mutedForeground : colors.primary} />
-            </Pressable>
-            {/* TASK-C381: make/counter an offer without leaving the thread —
-                opens the existing OfferSheet prefilled from the pinned listing. */}
-            {canOfferInThread && (
-              <Pressable
-                onPress={() => setThreadOfferSheetVisible(true)}
-                style={styles.meetupButton}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={t("chat.offer.makeOffer")}
-                testID="thread-offer-button"
-              >
-                <Tag size={20} color={colors.warning} />
-              </Pressable>
-            )}
             <Input
               ref={inputRef}
               value={messageText}
@@ -1344,6 +1385,22 @@ export function ConversationScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
+
+      {/* TASK-K487: the composer's single "+" actions sheet — Photo / File /
+          Propose meetup / Make an offer (offer row gated by canOfferInThread,
+          exactly like the Tag button it replaces). Only reachable via the "+"
+          button, which only renders in the canSend branch above, so this
+          never opens in isStartMode or on a closed conversation. */}
+      <ComposerActionsSheet
+        visible={actionsSheetVisible}
+        onClose={() => setActionsSheetVisible(false)}
+        onPhoto={handlePhotoAttachment}
+        onFile={handleAttachment}
+        onProposeMeetup={() => setMeetupSheetVisible(true)}
+        onMakeOffer={() => setThreadOfferSheetVisible(true)}
+        canMakeOffer={canOfferInThread}
+        disabled={isSendingPhoto || isSendingFile}
+      />
 
       {/* Meetup proposal sheet */}
       <MeetupSheet
@@ -1486,9 +1543,12 @@ const styles = StyleSheet.create({
     maxHeight: 120,
     minHeight: 40,
   },
-  meetupButton: {
-    paddingHorizontal: 4,
-    paddingVertical: 8,
+  // TASK-K487: the composer's single "+" trigger — DESIGN_SYSTEM §3 44pt
+  // minimum touch target (replaces the old 4pt-padded meetupButton icons).
+  plusButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
     justifyContent: "center",
   },
   closedInput: {

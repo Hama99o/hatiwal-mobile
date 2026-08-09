@@ -1,12 +1,34 @@
 appId: com.hatiwal.app
 ---
-# Offer flow: buyer sends offer → seller accepts → accepted badge shown
+# Offer flow: buyer sends offer -> seller accepts -> accepted badge shown
+#
+# Fixed for TASK-O947: the previous version never actually switched accounts
+# (it did `launchApp: { clearState: false }` while still signed in as the
+# buyer, so the seller-only "Accept" button could never have been found) --
+# now signs out and back in as the real seller via login_seller.yaml.
+#
+# TASK-O947 also means accepting now triggers a confirm prompt --
+# "Reserve for {buyer} at {price}?" -- when the responder owns an active
+# listing. This flow stays scoped to the plain accept-outcome-badge mechanic
+# and dismisses that prompt via "Not now", asserting the listing stays
+# Active. The prompt's CONFIRM path (and the reserve it performs) is covered
+# separately by maestro/chat/reserve_after_accept.yaml.
+#
+# Uses "Men Winter Jacket XL Black" (active, seller-owned, no pre-seeded
+# conversation) -- kept distinct from the Lenovo ThinkPad / Ahmad Karimi
+# fixture (mark_sold_with_buyer.yaml, response-rate badge seed) and from the
+# listing used by reserve_after_accept.yaml, so none of these mutating flows
+# collide with each other.
 
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Bazaar"
 - waitForAnimationToEnd
-- tapOn:
-    index: 0
+- scrollUntilVisible:
+    element:
+      text: "Men Winter Jacket XL Black"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
 - tapOn: "Message Seller"
 - waitForAnimationToEnd
@@ -16,27 +38,32 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Send Offer"
 - tapOn: "Offer Amount"
-- inputText: "12000"
+- inputText: "3000"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
 
 # Offer bubble visible
-- assertVisible: "12,000"
+- assertVisible: "3,000"
 - assertVisible: "Offer"
 - assertVisible: "Pending"
 
-# Switch to seller account and accept
-- launchApp:
-    clearState: false
-- waitForAnimationToEnd
+# Sign out and back in as the real seller to accept
+- runFlow: ../_helpers/login_seller.yaml
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
-- tapOn:
-    index: 0
+- tapOn: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
 - tapOn: "Accept"
 - waitForAnimationToEnd
 
-# Accepted state
+# TASK-O947: dismiss the reserve-after-accept prompt -- out of scope here,
+# covered by reserve_after_accept.yaml.
+- assertVisible: "Reserve this listing for a buyer?"
+- tapOn: "Not now"
+- waitForAnimationToEnd
+
+# Accepted state, and the listing is untouched -- still Active, still shows
+# its own lifecycle "Reserve" action (never auto-reserved by "Not now").
 - assertVisible: "Accepted"
+- assertVisible: "Reserve"

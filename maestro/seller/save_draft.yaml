@@ -1,0 +1,109 @@
+appId: com.hatiwal.app
+---
+# TASK-V395 — "Save draft" is genuinely saveable and never silent.
+#
+# The Rails Listing model (app/models/listing.rb) only validates
+# title/price/currency/category — a draft is allowed to have zero photos
+# and no map pin. Before this fix, the client wrongly required a pin
+# (and "Save draft" had no onInvalid handler), so a seller who hadn't
+# dropped a pin yet got NOTHING when tapping "Save Draft".
+#
+# Three scenarios:
+#   1. Title + price + category, NO photos, NO map pin → Save Draft
+#      succeeds and lands on the new listing's own owner detail.
+#   2. Title left blank → Save Draft is NEVER a silent no-op: a toast
+#      names exactly the missing field(s), and photos/location are never
+#      listed as draft blockers.
+#   3. That same pin-less draft survives an edit round trip — reopening it
+#      still shows "Tap to set exact location on map" — and Publish from
+#      there still fully requires a photo AND a map pin (Publish is
+#      unchanged by this fix).
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+# ── 1) A pin-less, photo-less draft is genuinely saveable ───────────────────
+
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "What are you selling?"
+- inputText: "Draft No Pin No Photo Item"
+- tapOn: "Enter price"
+- inputText: "4200"
+
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+# No photo added, location picker never opened.
+- assertVisible: "Tap to set exact location on map"
+
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+
+# Never silent — lands on the new listing's own owner detail, marked Draft.
+- assertVisible: "Draft"
+- assertVisible: "Draft No Pin No Photo Item"
+- assertNotVisible: "Create Listing"
+
+# ── 2) A blocked draft is NEVER a silent no-op ───────────────────────────────
+
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+# Title intentionally left blank.
+- tapOn: "Enter price"
+- inputText: "3000"
+
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+
+# Toast names exactly the missing field — and the form auto-scrolled back to
+# the inline Title error, visible without the seller scrolling manually.
+- assertVisible: "Add Title to save this draft"
+- assertVisible: "Title is required (max 150 characters)"
+
+# Photos/location are never listed or flagged as draft blockers.
+- assertNotVisible: "Add at least one photo before publishing"
+- assertNotVisible: "Location is required — buyers filter listings by area"
+
+# Never created — still on the create form.
+- assertVisible: "Create Listing"
+
+# ── 3) The pin-less draft round trip: edit still shows no pin; Publish   ────
+# ──    from there still fully requires a photo AND a map pin.           ────
+
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Draft No Pin No Photo Item"
+- waitForAnimationToEnd
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+
+# Reopening the pin-less draft still shows the "tap to set" placeholder —
+# never a stale error and never a fabricated location.
+- assertVisible: "Tap to set exact location on map"
+- assertNotVisible: "Location is required — buyers filter listings by area"
+
+- tapOn: "Publish"
+- waitForAnimationToEnd
+
+# Publish is unchanged — still fully gated on photos AND the map pin.
+- assertVisible: "Add Photos, Location to publish this listing"
+- assertVisible: "Add at least one photo before publishing"
+- assertVisible: "Location is required — buyers filter listings by area"
+- assertNotVisible: "Your listing is live!"
+- assertVisible: "Edit Listing"

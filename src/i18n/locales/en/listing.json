@@ -200,6 +200,7 @@
     "locationRequired": "Location is required — buyers filter listings by area",
     "negotiableLabel": "Price is negotiable",
     "publishBlocked": "Add {{fields}} to publish this listing",
+    "draftBlocked": "Add {{fields}} to save this draft",
     "photoRequired": "Add at least one photo before publishing",
     "publishSuccess": {
       "title": "Your listing is live!",
@@ -218,5 +219,12 @@
   "notInterested": "Not interested",
   "hiddenUndo": "Listing hidden from your feed",
   "hideError": "Couldn't hide this listing — please try again.",
-  "unhideError": "Couldn't restore this listing — please try again."
+  "unhideError": "Couldn't restore this listing — please try again.",
+  "sale": {
+    "reservedFor": "Reserved for {{name}}",
+    "soldTo": "Sold to {{name}}",
+    "messageBuyer": "Message {{name}}",
+    "finalPrice": "Agreed price",
+    "noBuyerRecorded": "Buyer info unavailable"
+  }
 }

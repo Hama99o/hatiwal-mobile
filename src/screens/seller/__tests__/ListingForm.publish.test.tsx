@@ -1,5 +1,5 @@
 /**
- * ListingForm — Publish readiness (TASK-P736)
+ * ListingForm — Publish readiness (TASK-P736, extended by TASK-V395)
  *
  * Covers the acceptance criteria directly:
  *  1. Publishing with ZERO photos never calls the create/publish API; a
@@ -10,8 +10,17 @@
  *     scrolled off-screen) never calls the API either — it always toasts
  *     AND scrolls to the first blocking field, using the exact y recorded
  *     via `onLayout`.
- *  4. Saving as a draft is unaffected — it still works with zero photos
- *     (untouched `onSaveDraft` code path, no readiness check).
+ *  4. Saving as a draft with zero photos AND no map pin still succeeds
+ *     (TASK-V395 draft contract — title/price/category only). This proves
+ *     "Save draft" is no longer gated by the old zod `latitude`/`longitude`
+ *     requirement.
+ *  5. Publish remains fully gated on location (TASK-V395): a listing with
+ *     every other field valid but NO map pin still cannot be published —
+ *     the toast lists "location", the destructive state now comes from the
+ *     `locationError` state (not zod), and the form scrolls to the Location
+ *     section.
+ *  6. The location error clears the instant a pin is confirmed via
+ *     LocationRangePicker.
  *
  * No real network calls — listingsAPI is fully mocked. PhotosSection is
  * replaced with a lightweight stub (renders null) that only captures the
@@ -21,6 +30,8 @@
  * needing the real expo-image-picker flow or rendering any host component
  * from inside the jest.mock factory (NativeWind's cssInterop babel plugin
  * rejects JSX/createElement calls there as an out-of-scope reference).
+ * `LocationRangePicker` is mocked the same way to simulate "the seller
+ * dropped a pin" by invoking the captured `onConfirm` directly.
  */
 
 import React from "react";
@@ -99,8 +110,17 @@ jest.mock("@/components/common/CategoryPicker", () => ({
 jest.mock("@/components/common/ConditionChips", () => ({
   ConditionChips: () => null,
 }));
+
+// LocationRangePicker — renders null, just captures the props ListingForm
+// passes it (`onConfirm`, `onClose`) so tests can invoke `onConfirm` directly
+// to simulate "the seller dropped a pin", exactly mirroring the
+// PhotosSection stub above.
+const mockLocationPickerState: { props: Record<string, unknown> | null } = { props: null };
 jest.mock("@/components/common/LocationRangePicker", () => ({
-  LocationRangePicker: () => null,
+  LocationRangePicker: (props: Record<string, unknown>) => {
+    mockLocationPickerState.props = props;
+    return null;
+  },
 }));
 jest.mock("@/components/common/BackButton", () => ({
   BackButton: () => null,
@@ -172,6 +192,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockParams = {};
   mockPhotosSectionState.props = null;
+  mockLocationPickerState.props = null;
 });
 
 // ── 1. Publish blocked — zero photos ───────────────────────────────────────────
@@ -289,13 +310,101 @@ describe("ListingForm — Publish blocked by a missing field, scrolled off-scree
   });
 });
 
-// ── 3. Save draft is unaffected — still works with zero photos ────────────────
+// ── 3. Publish blocked — a pin-less listing (TASK-V395) ────────────────────────
 
-describe("ListingForm — Save Draft stays untouched", () => {
-  it("saves successfully with zero photos (no readiness check on the draft path)", async () => {
+describe("ListingForm — Publish blocked by a missing map pin", () => {
+  it("does not call the API, shows a blocked toast, sets the destructive location error, and scrolls to Location", async () => {
+    mockParams = { id: "42" };
+    // Everything else valid (photos/title/price/category) — no coordinates.
+    mockListingsAPI.getMyListing.mockResolvedValueOnce(
+      makeListing({ latitude: null, longitude: null, location: "" })
+    );
+
+    renderForm();
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
+    });
+
+    // Pin-less listing shows the "tap to set" placeholder, never "Location set".
+    expect(screen.getByText("listing.form.tapToSetLocation")).toBeTruthy();
+
+    fireEvent(screen.getByTestId("listing-form-field-location"), "layout", {
+      nativeEvent: { layout: { y: 720 } },
+    });
+
+    const scrollView = screen.UNSAFE_getByType(ScrollView);
+    const scrollToSpy = jest.spyOn(scrollView.instance, "scrollTo").mockImplementation(() => {});
+
+    fireEvent.press(screen.getByText("listing.publish"));
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith("listing.form.publishBlocked");
+    });
+
+    // Publish must NEVER be a silent no-op — the API is never reached.
+    expect(mockListingsAPI.updateListingWithImages).not.toHaveBeenCalled();
+    expect(mockListingsAPI.createListingWithImages).not.toHaveBeenCalled();
+    expect(mockListingsAPI.publishListing).not.toHaveBeenCalled();
+
+    // Photos were fine — only the location error should be set.
+    expect(mockPhotosSectionState.props?.error).toBeUndefined();
+    expect(screen.getByText("listing.form.locationRequired")).toBeTruthy();
+
+    expect(scrollToSpy).toHaveBeenCalledWith({ y: 708, animated: true }); // 720 - 12
+  });
+
+  it("clears the location error the instant a pin is confirmed", async () => {
     mockParams = { id: "42" };
     mockListingsAPI.getMyListing.mockResolvedValueOnce(
-      makeListing({ status: "draft", imageAttachments: [], images: [], imageUrls: [] })
+      makeListing({ latitude: null, longitude: null, location: "" })
+    );
+
+    renderForm();
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText("listing.publish"));
+
+    await waitFor(() => {
+      expect(screen.getByText("listing.form.locationRequired")).toBeTruthy();
+    });
+
+    // Seller drops a pin — invoke the captured onConfirm directly (exactly
+    // what the real LocationRangePicker calls once a place is confirmed).
+    await waitFor(() => expect(mockLocationPickerState.props).not.toBeNull());
+    act(() => {
+      (mockLocationPickerState.props?.onConfirm as (r: unknown) => void)({
+        coords: { latitude: 34.5, longitude: 69.1 },
+        radiusKm: 5,
+        label: "Kabul, Share Naw",
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("listing.form.locationRequired")).toBeNull();
+    });
+    expect(screen.getByText("Kabul, Share Naw")).toBeTruthy();
+  });
+});
+
+// ── 4. Save draft — zero photos AND no map pin still succeeds (TASK-V395) ─────
+
+describe("ListingForm — Save Draft only needs title/price/category (TASK-V395)", () => {
+  it("saves successfully with zero photos and no map pin", async () => {
+    mockParams = { id: "42" };
+    mockListingsAPI.getMyListing.mockResolvedValueOnce(
+      makeListing({
+        status: "draft",
+        imageAttachments: [],
+        images: [],
+        imageUrls: [],
+        latitude: null,
+        longitude: null,
+        location: "",
+      })
     );
     mockListingsAPI.updateListingWithImages.mockResolvedValueOnce(
       makeListing({ status: "draft" })
@@ -315,6 +424,8 @@ describe("ListingForm — Save Draft stays untouched", () => {
 
     // No publish-readiness toast should fire on the draft path.
     expect(mockToast.error).not.toHaveBeenCalledWith("listing.form.publishBlocked");
+    expect(mockToast.error).not.toHaveBeenCalledWith("listing.form.draftBlocked");
     expect(mockPhotosSectionState.props?.error).toBeUndefined();
+    expect(screen.queryByText("listing.form.locationRequired")).toBeNull();
   });
 });

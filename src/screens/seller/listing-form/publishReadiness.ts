@@ -1,19 +1,32 @@
 /**
- * publishReadiness — TASK-P736
+ * publishReadiness — TASK-P736, extended by TASK-V395
  *
- * Pure, UI-agnostic rules for what blocks "Publish" on the listing form.
+ * Pure, UI-agnostic rules for what blocks "Publish" — and, since TASK-V395,
+ * "Save draft" too — on the listing form.
  *
- * This is the single source of truth for two things that MUST always agree:
- *   1. the toast copy ("add title, price to publish this listing")
+ * This is the single source of truth for two things that MUST always agree,
+ * for BOTH submit paths:
+ *   1. the toast copy ("add title, price to publish this listing" /
+ *      "add title, price to save this draft")
  *   2. the scroll target (the first blocking field, in on-screen order)
  *
+ * The draft contract (TASK-V395) mirrors hatiwal-api's `Listing` model
+ * validations exactly (app/models/listing.rb: `title`, `price > 0`,
+ * `currency`, `category` — nothing else): a DRAFT only needs title + price +
+ * category. Publishing additionally needs ≥1 photo and exact map
+ * coordinates (latitude/longitude) — the server is happy to store a
+ * pin-less, photo-less draft; only the client enforces the stricter
+ * "ready to go live" bar, and only for Publish.
+ *
  * Why this needs to exist outside `zod`:
- *   `listingSchema` (ListingForm.tsx) validates title/price/currency/category/
- *   lat/long, but photos are managed as separate React state — not a form
- *   field — so zod can never see "0 photos". Anything that needs to reason
- *   about "is this listing publish-ready" (the form's onPublish handler,
- *   future screens, tests) should call `getPublishBlockers`, never
- *   re-implement these checks.
+ *   `listingSchema` (ListingForm.tsx) validates title/price/currency/category
+ *   unconditionally, and latitude/longitude only loosely (optional — a draft
+ *   may have no pin), but photos are managed as separate React state — not a
+ *   form field — so zod can never see "0 photos" either way. Anything that
+ *   needs to reason about "is this listing publish-ready" or "is this listing
+ *   draft-saveable" (the form's onPublish/onSaveDraft handlers, future
+ *   screens, tests) should call `getPublishBlockers`, never re-implement
+ *   these checks.
  *
  * No React, no RN imports — keep this fully unit-testable in plain Node.
  */
@@ -53,14 +66,18 @@ export interface GetPublishBlockersInput {
   /** Any photo-like array (PhotoItem[] in the screen) — only `.length` matters here. */
   photos: unknown[] | null | undefined;
   /**
-   * "publish" (default) — every rule applies, including "≥1 photo".
-   * "draft" — the photo rule is exempted (a draft may legitimately have zero
-   * photos); every other rule still applies. Used by the pure-function tests
-   * to document/lock in the draft exemption described in the spec — the
-   * screen's actual "Save Draft" button does not call this function at all
-   * (it is intentionally left untouched), but "Save" on an already-published
-   * listing (editing in place) DOES run the "publish" rules, since a listing
-   * that is already live must never be left with zero photos either.
+   * "publish" (default) — every rule applies, including "≥1 photo" and
+   * "exact map coordinates".
+   * "draft" (TASK-V395) — the photo rule AND the location rule are exempted
+   * (a draft may legitimately have zero photos and no map pin — it mirrors
+   * only the backend's `title`/`price`/`currency`/`category` validations);
+   * every other rule still applies. The screen's "Save Draft" button calls
+   * this function with `mode: "draft"` (both to pre-check before mutating
+   * and inside its zod `onInvalid` handler), so a blocked draft always
+   * produces the same toast + scroll UX as a blocked Publish — never a
+   * silent no-op. "Save" on an already-published listing (editing in place)
+   * DOES run the "publish" rules, since a listing that is already live must
+   * never be left with zero photos or no coordinates either.
    */
   mode?: "publish" | "draft";
 }
@@ -83,8 +100,9 @@ function isFiniteCoordinate(value: number | string | null | undefined): boolean 
 }
 
 /**
- * Returns the ordered list of blockers currently preventing Publish.
- * An empty array means the listing is fully publish-ready.
+ * Returns the ordered list of blockers currently preventing Publish (or,
+ * in "draft" mode, the smaller set of blockers preventing Save draft).
+ * An empty array means the listing is ready for that mode.
  */
 export function getPublishBlockers({
   values,
@@ -105,7 +123,13 @@ export function getPublishBlockers({
   if (!isPositiveFiniteNumber(values.categoryId)) {
     blockers.push("category");
   }
-  if (!isFiniteCoordinate(values.latitude) || !isFiniteCoordinate(values.longitude)) {
+  // TASK-V395 — a draft may legitimately have no map pin yet; only Publish
+  // (and "Save" on an already-published listing, which always runs in
+  // "publish" mode) requires exact coordinates.
+  if (
+    mode === "publish" &&
+    (!isFiniteCoordinate(values.latitude) || !isFiniteCoordinate(values.longitude))
+  ) {
     blockers.push("location");
   }
 

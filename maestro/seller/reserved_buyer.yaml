@@ -1,0 +1,76 @@
+appId: com.hatiwal.app
+---
+# TASK-R418 — "Reserved for {buyer}" card on the seller's OWN listing detail,
+# with the agreed price and a one-tap Message CTA into that buyer's existing
+# conversation.
+#
+# Reuses the seeded "Lenovo ThinkPad Laptop Core i5 8GB" listing + its
+# buyer@hatiwal.test / "Ahmad Karimi" conversation (see
+# ../seller/mark_sold_with_buyer.yaml and ../reviews/rate_buyer_after_sale.yaml,
+# which share this SAME fixture to sell the listing straight to Sold). This
+# flow only RESERVES it (non-terminal), but still mutates shared listing
+# state — do not run this in the same suite pass as those two flows without
+# an E2E DB reset in between (`bundle exec rails db:seed:reset_e2e`).
+#
+# Covers:
+#   - BuyerPickerSheet → pick "Ahmad Karimi" → set a negotiated final price
+#     that differs from the asking price → confirm reserve
+#   - Owner detail shows the SaleBuyerCard: "Reserved for Ahmad Karimi",
+#     the buyer's name via the shared UserIdentity row, and the agreed price
+#     line (since it differs from the listing's asking price)
+#   - "Message Ahmad Karimi" lands directly in the existing conversation
+#     thread (not a generic conversations list)
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+- tapOn: "Active"
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    timeout: 8000
+
+- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
+- waitForAnimationToEnd
+
+# Owner detail screen — single primary lifecycle button for an active listing
+- tapOn: "Mark as Reserved"
+- waitForAnimationToEnd
+
+# BuyerPickerSheet opens with the seeded conversation
+- assertVisible: "Who's buying this item?"
+- assertVisible: "Ahmad Karimi"
+
+- tapOn: "Ahmad Karimi"
+- waitForAnimationToEnd
+
+# Negotiate a lower final price than the 38,000 AFN asking price so the
+# SaleBuyerCard's agreed-price line has something real to show.
+- tapOn:
+    id: "buyer-picker-final-price"
+- inputText: "32000"
+
+- tapOn: "Confirm reserve"
+- waitForAnimationToEnd
+
+- assertVisible: "Listing marked as reserved"
+
+# ── SaleBuyerCard on the owner detail screen ──────────────────────────────
+- assertVisible: "Reserved for Ahmad Karimi"
+- assertVisible: "Agreed price"
+
+# Buyer identity via the shared UserIdentity row (avatar + name)
+- assertVisible: "Ahmad Karimi"
+
+# ── One-tap Message CTA — lands directly in the existing thread ──────────
+- tapOn: "Message Ahmad Karimi"
+- waitForAnimationToEnd
+
+# Conversation thread screen, not a generic list — the composer + the
+# seeded first message from this buyer are both visible.
+- assertVisible: "Type a message..."
+- assertVisible: "Hi, is this laptop still available?"

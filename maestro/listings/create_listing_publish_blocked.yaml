@@ -1,0 +1,143 @@
+appId: com.hatiwal.app
+---
+# TASK-P736 — Publish readiness: block photoless listings and never let
+# Publish fail silently.
+#
+# Two scenarios, both proving Publish is never a silent no-op:
+#
+#   1. Zero photos — every other field valid. Tapping Publish must NOT
+#      create/publish anything; a toast names "Photos" as missing, and the
+#      Photos section (already on-screen, it's the first field) shows the
+#      destructive "add at least one photo" message. Adding a photo clears
+#      that message immediately, and Publish then succeeds.
+#   2. A missing field scrolled off-screen (Title, in this case) — with a
+#      photo present. The seller scrolls all the way down to the Address
+#      field (the LAST field on the form) and taps Publish from the
+#      always-visible top toolbar. The toast names "Title", and the form
+#      must auto-scroll back up so the inline "Title is required" error is
+#      visible again WITHOUT the seller manually scrolling — proving the
+#      scroll-to-first-blocker behavior actually fires.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+# ── 1) Zero photos blocks Publish ────────────────────────────────────────────
+
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "What are you selling?"
+- inputText: "Publish Blocked No Photo Item"
+- tapOn: "Enter price"
+- inputText: "9000"
+
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+- assertVisible: "Pick location on map"
+- tapOn: "Search a province…"
+- inputText: "Kabul"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Confirm location"
+- waitForAnimationToEnd
+- assertNotVisible: "Tap to set exact location on map"
+
+# No photo added — Publish must be blocked.
+- tapOn: "Publish"
+- waitForAnimationToEnd
+
+# Toast names the missing field; the destructive photo message shows right
+# there (Photos is the first section — no scroll needed to see it).
+- assertVisible: "Add Photos to publish this listing"
+- assertVisible: "Add at least one photo before publishing"
+
+# Nothing was created — still on the create form, not a success sheet.
+- assertNotVisible: "Your listing is live!"
+- assertVisible: "Create Listing"
+
+# Add a photo — the destructive message must clear immediately.
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Cover"
+- assertNotVisible: "Add at least one photo before publishing"
+
+# Publish again — now succeeds.
+- tapOn: "Publish"
+- waitForAnimationToEnd
+- assertVisible: "Your listing is live!"
+- assertVisible: "Publish Blocked No Photo Item"
+- tapOn: "Done"
+- waitForAnimationToEnd
+
+# ── 2) A field missing off-screen still blocks + auto-scrolls back to it ────
+
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Cover"
+
+# Title intentionally left blank.
+- tapOn: "Enter price"
+- inputText: "9500"
+
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+- assertVisible: "Pick location on map"
+- tapOn: "Search a province…"
+- inputText: "Kabul"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Confirm location"
+- waitForAnimationToEnd
+
+# Scroll all the way down to the LAST field (Address) — Title is now
+# scrolled off the top of the screen.
+- scrollUntilVisible:
+    element: "e.g. Near Blue Mosque, Shar-e-Naw"
+    direction: DOWN
+- assertNotVisible: "What are you selling?"
+
+# Publish from the always-visible top toolbar while scrolled to the bottom.
+- tapOn: "Publish"
+- waitForAnimationToEnd
+
+# Toast names the missing field...
+- assertVisible: "Add Title to publish this listing"
+# ...and the form auto-scrolled back up: the inline Title error is visible
+# again WITHOUT the seller scrolling manually.
+- assertVisible: "Title is required (max 150 characters)"
+
+# Still on the create form — nothing was created.
+- assertNotVisible: "Your listing is live!"
+- assertVisible: "Create Listing"

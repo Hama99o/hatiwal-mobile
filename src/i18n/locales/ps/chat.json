@@ -83,6 +83,10 @@
   },
   "attachFile": "فایل ضمیمه کړئ",
   "attachPhoto": "انځور ضمیمه کړئ",
+  "composer": {
+    "moreActions": "نور اختیارونه",
+    "actionsTitle": "خپل پیغام ته یو څه ورزیات کړئ"
+  },
   "document": {
     "tap": "د خلاصولو لپاره کلیک وکړئ",
     "notAvailable": "فایل شتون نلري"
@@ -128,7 +132,7 @@
     "counter": "مقابل وړاندیز",
     "counterTitle": "مقابل قیمت وړاندیز",
     "counterLabel": "مقابل قیمت وړاندیز",
-    "buyerOfferedAt": "پیرودونکي {{price}} وړاندیز وکړ",
+    "previousOfferAt": "پخوانی وړاندیز: {{price}}",
     "yourCounterOffer": "ستاسو مقابل قیمت",
     "counterNote": "هیڅ تادیه نشته — دا یوازې د قیمت وړاندیز دی. د پایلې لپاره مخامخ لیدنه وکړئ.",
     "sendCounter": "مقابل وړاندیز ولیږئ",
@@ -136,12 +140,12 @@
     "counterSentToast": "مقابل قیمت وړاندیز ولیږل شو!",
     "quickChipsHint": "ګړندي مبلغونه",
     "firmNotice": "د پلورونکي قیمت ثابت دی — وړاندیزونه نه منل کیږي",
-    "reserveAfterAcceptTitle": "دا اعلان د یو پیرودونکي لپاره خوندي کړئ؟",
-    "reserveAfterAcceptBody": "د {{buyerName}} لپاره په {{price}} کې خوندي کړئ؟",
-    "reserveAfterAcceptCta": "په {{price}} کې خوندي کړئ",
+    "reserveAfterAcceptTitle": "دا اعلان د یو پیرودونکي لپاره خوندي شوی ښودل؟",
+    "reserveAfterAcceptBody": "د {{buyerName}} لپاره په {{price}} کې خوندي شوی ښودل؟",
+    "reserveAfterAcceptCta": "په {{price}} کې خوندي ښودل",
     "reserveAfterAcceptDismiss": "اوس نه",
-    "reserveAfterAcceptPending": "اعلان خوندي کیږي...",
-    "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره خوندي شو"
+    "reserveAfterAcceptPending": "اعلان خوندي شوی ښودل کیږي...",
+    "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره خوندي شوی ښودل شو"
   },
   "block": {
     "blockUser": "کارونکی بند کړئ",

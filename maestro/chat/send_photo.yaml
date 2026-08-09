@@ -15,7 +15,11 @@ appId: com.hatiwal.app
 # Thread is open and input bar visible
 - assertVisible: "Type a message..."
 
-# Tap the photo attach button (ImageIcon)
+# TASK-K487: the composer's meetup/file/photo/offer icons are now collapsed
+# behind a single "+" actions sheet — open it first, then tap the Photo row.
+- tapOn:
+    accessibilityLabel: "More actions"
+- waitForAnimationToEnd
 - tapOn:
     accessibilityLabel: "Attach photo"
 - waitForAnimationToEnd

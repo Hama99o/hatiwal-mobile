@@ -1,0 +1,76 @@
+appId: com.hatiwal.app
+---
+# TASK-O947 — Accept offer -> one-tap "Reserve for {buyer} at {price}" (confirm path)
+#
+# Buyer sends an offer on an active listing; the real owner (seller) accepts
+# it, and the resulting "Reserve for Ahmad Karimi at 24,000 <currency>?"
+# prompt is confirmed -- verifying the listing flips straight to Reserved in
+# the pinned thread header with no manual refresh and NO BuyerPickerSheet
+# ever shown (the old flow required dismissing the thread and re-picking the
+# buyer; this collapses that into one tap).
+#
+# Uses "Traditional Kandahari Carpet 3x4" (active, seller-owned, no
+# pre-seeded conversation) rather than the shared Lenovo ThinkPad / Ahmad
+# Karimi fixture used by maestro/seller/mark_sold_with_buyer.yaml and the
+# response-rate badge seed, and a different listing than
+# maestro/chat/offer_send_and_accept.yaml (which only dismisses the prompt) --
+# so none of these mutating flows collide with each other.
+#
+# This flow ends with the listing RESERVED. Re-run against a freshly reseeded
+# E2E database (see mark_sold_with_buyer.yaml's note on shared/mutated
+# fixtures) -- do not run twice in a row without a reset.
+
+# ── Step 1: buyer sends an offer on an active listing ───────────────────────
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Traditional Kandahari Carpet 3x4"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Traditional Kandahari Carpet 3x4"
+- waitForAnimationToEnd
+- tapOn: "Message Seller"
+- waitForAnimationToEnd
+
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- assertVisible: "Send Offer"
+- tapOn: "Offer Amount"
+- inputText: "24000"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+
+# Offer bubble visible, pending the seller's response
+- assertVisible: "24,000"
+- assertVisible: "Pending"
+
+# ── Step 2: the real listing owner accepts the offer ────────────────────────
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- tapOn: "Traditional Kandahari Carpet 3x4"
+- waitForAnimationToEnd
+
+# Sanity check: this is still an active, owned listing before any response --
+# the old manual "dismiss thread -> lifecycle button" path starts from here.
+- assertVisible: "Reserve"
+
+- tapOn: "Accept"
+- waitForAnimationToEnd
+- assertVisible: "Accepted"
+
+# ── Step 3: one-tap reserve prompt fires -- no buyer picker ─────────────────
+- assertVisible: "Reserve this listing for a buyer?"
+- assertVisible: "Ahmad Karimi"
+- assertVisible: "24,000"
+- assertNotVisible: "Who bought this item?"
+
+- tapOn: "Reserve at"
+- waitForAnimationToEnd
+
+# ── Step 4: reserved in place -- pinned header updates without a refresh ───
+- assertVisible: "Listing reserved for Ahmad Karimi"
+- assertVisible: "Mark Sold"

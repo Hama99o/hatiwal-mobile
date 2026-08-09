@@ -58,6 +58,27 @@ export type ListingCondition = "brand_new" | "like_new" | "good" | "fair";
 export const LISTING_CONDITIONS: ListingCondition[] = ["brand_new", "like_new", "good", "fair"];
 
 
+// TASK-R418 — owner-only "who is the buyer for this reservation/sale" block.
+// Only ever present on owner-scoped views (My::Listings index/show and the
+// reserve/sold lifecycle response) — NEVER on the public listing detail/list.
+// nil when the listing has no Transaction yet (draft/active) or was
+// reserved/sold via the legacy buyer-less path.
+export interface ListingSale {
+  id: number;
+  status: "reserved" | "sold";
+  finalPrice: number;
+  currency: string;
+  completedAt: string | null;
+  buyer: {
+    id: number;
+    name: string;
+    avatarUrl: string | null;
+    verified: boolean;
+  };
+  /** The buyer's conversation on this listing, or null if none exists. */
+  conversationId: number | null;
+}
+
 export interface Listing {
   id: number;
   title: string;
@@ -105,6 +126,10 @@ export interface Listing {
   // Canonical share URL — https when PUBLIC_SHARE_BASE_URL is configured on the backend, else nil.
   // Only present on the :detailed view. Mobile falls back to hatiwal://listing/:id when absent.
   shareUrl?: string | null;
+  // TASK-R418 — owner-only buyer identity for a reserved/sold listing. Only
+  // present on :seller_list / :owner_detailed (My Listings + reserve/sold
+  // lifecycle response); undefined/null everywhere else (public detail/list).
+  sale?: ListingSale | null;
   createdAt: string;
   updatedAt: string;
   seller: {

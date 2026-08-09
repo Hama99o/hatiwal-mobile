@@ -13,7 +13,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Chat"
 
-# Existing messages present
+# Existing messages present — TASK-K487: the composer's meetup/file/photo/
+# offer icons are now collapsed behind a single "+" actions sheet.
+- tapOn:
+    accessibilityLabel: "More actions"
+- waitForAnimationToEnd
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
 - assertVisible: "Send Offer"

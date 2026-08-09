@@ -83,6 +83,10 @@
   },
   "attachFile": "Attach file",
   "attachPhoto": "Attach photo",
+  "composer": {
+    "moreActions": "More actions",
+    "actionsTitle": "Add to your message"
+  },
   "document": {
     "tap": "Tap to open",
     "notAvailable": "File not available"
@@ -128,7 +132,7 @@
     "counter": "Counter",
     "counterTitle": "Counter Offer",
     "counterLabel": "Counter Offer",
-    "buyerOfferedAt": "Buyer offered {{price}}",
+    "previousOfferAt": "Previous offer: {{price}}",
     "yourCounterOffer": "Your Counter Price",
     "counterNote": "No payment — this counter is a price suggestion. Meet in person to finalize.",
     "sendCounter": "Send Counter",

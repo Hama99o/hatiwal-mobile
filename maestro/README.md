@@ -49,7 +49,7 @@ cd hatiwal-api && bundle exec rails db:seed:reset_e2e
 
 ## Flow Index
 
-198 flows across 18 folders. All use English locale strings as selectors.
+199 flows across 18 folders. All use English locale strings as selectors.
 
 ```
 _helpers/
@@ -107,6 +107,7 @@ listings/
   create_listing_validation.yaml       ← required field errors
   create_listing_with_photos.yaml      ← photo picker, cover label
   create_listing_publish_direct.yaml   ← fill form and publish directly
+  create_listing_publish_blocked.yaml  ← TASK-P736: zero photos blocks Publish; a missing off-screen field toasts + auto-scrolls back to it
   create_listing_category_search.yaml  ← search within category picker
   create_listing_province_picker.yaml  ← search and select province
   create_listing_location_picker.yaml  ← map / coordinates picker
@@ -225,6 +226,7 @@ onboarding/
 
 seller/
   mark_sold_with_buyer.yaml  ← TASK-TX01: Mark Sold on an active listing opens the BuyerPickerSheet, seller picks the real buyer from the listing's conversations, listing flips to Sold
+  reserved_buyer.yaml        ← TASK-R418: Mark as Reserved with a picked buyer + negotiated price shows the SaleBuyerCard ("Reserved for {name}", agreed price, Message CTA) on the owner detail screen, landing directly in that buyer's conversation thread
 
 reviews/
   rate_buyer_after_sale.yaml       ← REV2: chains mark_sold_with_buyer, review prompt opens, Submit gated on a star pick, submitting shows the double-blind PENDING state

@@ -17,6 +17,14 @@
  * Submit: "Save draft" | "Publish now"
  * Uses react-hook-form + zod for validation.
  * sonner-native toasts for success/error feedback.
+ *
+ * TASK-V395 — "Save draft" vs "Publish" have different readiness bars, both
+ * driven by the single source of truth `getPublishBlockers` (listing-form/
+ * publishReadiness.ts): a draft only needs title + price + category
+ * (mirrors hatiwal-api's Listing validations); Publish additionally needs
+ * ≥1 photo and exact map coordinates. Neither path is ever a silent no-op —
+ * a blocked submit always toasts the missing fields and scrolls to the first
+ * one.
  */
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -90,11 +98,17 @@ const listingSchema = z.object({
   description: z.string().optional(),
   location: z.string().optional(),
   address: z.string().optional(),
-  // Coordinates are required — used for distance-based filtering.
+  // Coordinates — used for distance-based filtering. Optional at the zod
+  // level (TASK-V395): a DRAFT may legitimately have no map pin yet, mirroring
+  // hatiwal-api's Listing validations (title/price/currency/category only —
+  // see app/models/listing.rb). `getPublishBlockers({ mode: "publish" })`
+  // — called separately by onPublish/onSavePublished before mutating — is
+  // what actually enforces "coordinates required to go live"; zod no longer
+  // gates it for every submit path.
   // coerce: the API returns decimal columns as strings (e.g. "48.947681"), same as price/categoryId.
-  // finite() rejects undefined→NaN and Infinity, making these effectively required.
-  latitude: z.coerce.number().finite(),
-  longitude: z.coerce.number().finite(),
+  // finite() (when present) rejects Infinity/NaN.
+  latitude: z.coerce.number().finite().optional(),
+  longitude: z.coerce.number().finite().optional(),
   // negotiable: whether the seller accepts price offers. Default: true.
   negotiable: z.boolean().default(true),
 });
@@ -151,6 +165,12 @@ export default function ListingFormScreen() {
   // missing field instead of leaving the seller stranded on an unrelated
   // part of the form.
   const [photosError, setPhotosError] = useState<string | null>(null);
+  // TASK-V395 — latitude/longitude are now optional at the zod level (a draft
+  // may have no pin), so zod can no longer set `errors.latitude`. This state
+  // is the exact mirror of `photosError`: it drives the location row's
+  // destructive border/icon/message for a blocked Publish, and is cleared
+  // the instant a pin is confirmed via LocationRangePicker.
+  const [locationError, setLocationError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const sectionYRef = useRef<Partial<Record<PublishBlocker, number>>>({});
 
@@ -212,6 +232,12 @@ export default function ListingFormScreen() {
   // A published listing (active/reserved/sold) can't be "saved as draft" — only
   // edited in place. Use Unpublish (on My Listings) to take it offline.
   const isPublished = isEdit && !!existingListing && existingListing.status !== "draft";
+  // TASK-V395 — latitude/longitude are optional at the zod level now, so
+  // `errors.latitude` will rarely fire; `locationError` (state, set by
+  // `handlePublishBlockers`) is the primary driver. Keep the `errors.latitude`
+  // fallback for defensiveness — it mirrors the exact pattern PhotosSection
+  // already uses (`photosError ?? undefined`).
+  const locationErrorMessage = locationError ?? (errors.latitude ? t("listing.form.locationRequired") : null);
 
   // Prefill form in edit mode once data is loaded
   useEffect(() => {
@@ -461,16 +487,22 @@ export default function ListingFormScreen() {
   }, []);
 
   // Single place that turns a list of blockers into the toast + destructive
-  // photo state + scroll — used by BOTH the zod `onInvalid` path and the
-  // photo pre-check inside `onValid` (zod can't see `photos`), so the toast
-  // copy and the scroll target always come from the same source of truth
-  // (`getPublishBlockers`).
+  // photo/location state + scroll — used by BOTH submit paths (Publish AND,
+  // since TASK-V395, Save Draft), for both the zod `onInvalid` path and the
+  // photo/location pre-check inside `onValid` (zod can't see `photos`, and
+  // no longer gates `location` either), so the toast copy and the scroll
+  // target always come from the same source of truth (`getPublishBlockers`).
+  // `mode` only selects which toast string to show — "draft" and "publish"
+  // never disagree on WHICH fields are missing, only on the copy around them.
   const handlePublishBlockers = useCallback(
-    (blockers: PublishBlocker[]) => {
+    (blockers: PublishBlocker[], mode: "publish" | "draft" = "publish") => {
       if (blockers.length === 0) return;
       setPhotosError(blockers.includes("photos") ? t("listing.form.photoRequired") : null);
+      setLocationError(blockers.includes("location") ? t("listing.form.locationRequired") : null);
       const fields = blockers.map((b) => t(BLOCKER_LABEL_KEY[b])).join(", ");
-      toast.error(t("listing.form.publishBlocked", { fields }));
+      toast.error(
+        t(mode === "draft" ? "listing.form.draftBlocked" : "listing.form.publishBlocked", { fields })
+      );
       scrollToBlocker(blockers[0]);
     },
     [t, scrollToBlocker]
@@ -479,16 +511,35 @@ export default function ListingFormScreen() {
   // ---------------------------------------------------------------------------
   // Handlers
   // ---------------------------------------------------------------------------
-  // Save draft stays untouched — drafts may legitimately have no photos and
-  // no onInvalid handler here is intentional (out of scope for TASK-P736).
-  const onSaveDraft = handleSubmit((values) => {
-    setIsSubmittingPublish(false);
-    saveMutation.mutate(values);
-  });
+  // TASK-V395 — a draft only needs title + price + category (mirrors the
+  // backend's Listing validations); photos and location are exempted via
+  // `mode: "draft"`. Both the valid path (pre-check, since zod can't see
+  // `photos`) and the `onInvalid` path (zod rejected title/price/category)
+  // funnel through the exact same `getPublishBlockers` + `handlePublishBlockers`
+  // used by Publish, so a blocked draft is NEVER a silent no-op — it always
+  // toasts naming the missing fields and scrolls to the first one.
+  const onSaveDraft = handleSubmit(
+    (values) => {
+      const blockers = getPublishBlockers({ values, photos, mode: "draft" });
+      if (blockers.length > 0) {
+        handlePublishBlockers(blockers, "draft");
+        return;
+      }
+      setPhotosError(null);
+      setLocationError(null);
+      setIsSubmittingPublish(false);
+      saveMutation.mutate(values);
+    },
+    () => {
+      const blockers = getPublishBlockers({ values: getValues(), photos, mode: "draft" });
+      handlePublishBlockers(blockers, "draft");
+    }
+  );
 
   // Editing an already-published listing → the single "Save" button must
   // enforce the same readiness rules as Publish (a live listing can never be
-  // left with zero photos either), reusing the exact toast + scroll UX.
+  // left with zero photos or no coordinates either), reusing the exact
+  // toast + scroll UX.
   const onSavePublished = handleSubmit(
     (values) => {
       const blockers = getPublishBlockers({ values, photos, mode: "publish" });
@@ -497,6 +548,7 @@ export default function ListingFormScreen() {
         return;
       }
       setPhotosError(null);
+      setLocationError(null);
       setIsSubmittingPublish(false);
       saveMutation.mutate(values);
     },
@@ -508,22 +560,24 @@ export default function ListingFormScreen() {
 
   const onPublish = handleSubmit(
     (values) => {
-      // zod passed, but photos aren't a form field — check separately here
-      // so both paths funnel through the exact same rule set.
+      // zod passed, but photos aren't a form field (and location is no
+      // longer zod-required either) — check separately here so both paths
+      // funnel through the exact same rule set.
       const blockers = getPublishBlockers({ values, photos, mode: "publish" });
       if (blockers.length > 0) {
         handlePublishBlockers(blockers);
         return;
       }
       setPhotosError(null);
+      setLocationError(null);
       setIsSubmittingPublish(true);
       publishMutation.mutate(values);
     },
     () => {
-      // zod rejected before onValid ran (e.g. title/price/category/location
-      // missing) — recompute the FULL blocker list (including photos, which
-      // zod can't see) from the current raw values so the toast + scroll
-      // target are always in sync with what's actually missing.
+      // zod rejected before onValid ran (e.g. title/price/category missing)
+      // — recompute the FULL blocker list (including photos and location,
+      // which zod can't/no-longer see) from the current raw values so the
+      // toast + scroll target are always in sync with what's actually missing.
       const blockers = getPublishBlockers({ values: getValues(), photos, mode: "publish" });
       handlePublishBlockers(blockers);
     }
@@ -942,7 +996,7 @@ export default function ListingFormScreen() {
             style={[
               styles.pickerRow,
               {
-                borderColor: errors.latitude
+                borderColor: locationErrorMessage
                   ? colors.destructive
                   : hasExactLocation
                   ? colors.primary
@@ -954,12 +1008,12 @@ export default function ListingFormScreen() {
             onPress={() => setLocationPickerVisible(true)}
             android_ripple={{ color: colors.muted }}
           >
-            <MapPin size={16} color={errors.latitude ? colors.destructive : hasExactLocation ? colors.primary : colors.mutedForeground} />
+            <MapPin size={16} color={locationErrorMessage ? colors.destructive : hasExactLocation ? colors.primary : colors.mutedForeground} />
             <Text
               className="text-sm"
               style={{
                 flex: 1,
-                color: hasExactLocation ? colors.foreground : errors.latitude ? colors.destructive : colors.mutedForeground,
+                color: hasExactLocation ? colors.foreground : locationErrorMessage ? colors.destructive : colors.mutedForeground,
                 marginHorizontal: 8,
                 textAlign: isRtl ? "right" : "left",
               }}
@@ -971,9 +1025,9 @@ export default function ListingFormScreen() {
             </Text>
             <ChevronRight size={16} color={colors.mutedForeground} />
           </Pressable>
-          {errors.latitude && (
+          {locationErrorMessage && (
             <Text className="text-xs" style={{ color: colors.destructive, marginTop: 4 }}>
-              {t("listing.form.locationRequired")}
+              {locationErrorMessage}
             </Text>
           )}
         </View>
@@ -1100,6 +1154,10 @@ export default function ListingFormScreen() {
           setMapLabel(label);
           // The precise place name becomes the listing's location text.
           setValue("location", label ?? "", { shouldValidate: true });
+          // TASK-V395 — a pin was just dropped; clear the destructive
+          // location state immediately (exact mirror of PhotosSection's
+          // `onChange` clearing `photosError` as soon as a photo is added).
+          setLocationError(null);
         }}
       />
     </KeyboardAvoidingView>

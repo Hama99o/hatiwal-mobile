@@ -1,6 +1,10 @@
 /**
- * CounterOfferSheet — slide-up modal for the seller to counter a buyer's offer
- * with a new price.  Mirrors the OfferSheet pattern used on listing detail.
+ * CounterOfferSheet — slide-up modal for countering an offer or a previous
+ * counter with a new price. Mirrors the OfferSheet pattern used on listing
+ * detail. Originally seller-only (TASK-O829); since TASK-C381 either
+ * participant can open it — on a buyer's fresh offer, on a seller's own
+ * proactive offer, or on either side's counter-back — so its copy must stay
+ * role-neutral (it references "the previous offer", never "the buyer").
  */
 
 import React from "react";
@@ -29,7 +33,12 @@ interface CounterOfferSheetProps {
   counterAmount: string;
   onChangeAmount: (v: string) => void;
   currency: string;
-  /** The buyer's original offer amount (for reference). */
+  /**
+   * The amount of the offer/counter being responded to (for reference).
+   * Named for the original buyer-offer case (TASK-O829); since TASK-C381
+   * this may also be a seller's proactive offer or either side's counter —
+   * the displayed copy is role-neutral ("Previous offer"), never "Buyer".
+   */
   buyerOfferAmount: number;
   isBusy: boolean;
 }
@@ -107,7 +116,10 @@ export function CounterOfferSheet({
             </Pressable>
           </View>
 
-          {/* Buyer's offer reference */}
+          {/* Reference to the offer/counter being responded to. Role-neutral
+              copy (TASK-C381 review fix) — this sheet is no longer seller-only,
+              so it must not say "Buyer offered" when a seller's own proactive
+              offer or either side's counter-back is what's being countered. */}
           <Text
             style={{
               fontSize: 13,
@@ -116,7 +128,7 @@ export function CounterOfferSheet({
               textAlign: isRtl ? "right" : "left",
             }}
           >
-            {t("chat.offer.buyerOfferedAt", {
+            {t("chat.offer.previousOfferAt", {
               price: formatCurrency(buyerOfferAmount, currency),
             })}
           </Text>

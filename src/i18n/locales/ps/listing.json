@@ -200,6 +200,7 @@
     "locationRequired": "موقعیت اړین دی — پیرودونکي د سیمې له مخې فلټر کوي",
     "negotiableLabel": "قیمت د خبرو وړ دی",
     "publishBlocked": "د دې اعلان خپرولو لپاره {{fields}} اضافه کړئ",
+    "draftBlocked": "د دې مسوده ساتلو لپاره {{fields}} اضافه کړئ",
     "photoRequired": "له خپرولو دمخه لږ تر لږه یو انځور اضافه کړئ",
     "publishSuccess": {
       "title": "ستاسو اعلان خپور شو!",
@@ -218,5 +219,12 @@
   "notInterested": "لیوالتیا نلرم",
   "hiddenUndo": "اعلان له تاسو فید نه پټ شو",
   "hideError": "دا اعلان نشو پټیدلی — بیا هڅه وکړئ.",
-  "unhideError": "دا اعلان نشو بیرته کیدی — بیا هڅه وکړئ."
+  "unhideError": "دا اعلان نشو بیرته کیدی — بیا هڅه وکړئ.",
+  "sale": {
+    "reservedFor": "د {{name}} لپاره خوندي شوی",
+    "soldTo": "{{name}} ته خرڅ شو",
+    "messageBuyer": "{{name}} ته پیغام ورکړئ",
+    "finalPrice": "موافقه شویه بیه",
+    "noBuyerRecorded": "د پیرودونکي معلومات نشته"
+  }
 }

@@ -1,16 +1,19 @@
 /**
- * publishReadiness unit tests — TASK-P736
+ * publishReadiness unit tests — TASK-P736, extended by TASK-V395
  *
  * Covers:
  *  1. Ordering — blockers always come back in on-screen order
  *     (photos → title → price → category → location), regardless of the
  *     order fields become invalid in.
  *  2. The photo rule — 0 photos blocks Publish; ≥1 photo does not.
- *  3. The draft exemption — mode: "draft" never reports "photos", even with
- *     zero photos, while every other rule still applies.
+ *  3. The draft exemption (TASK-V395) — mode: "draft" never reports "photos"
+ *     OR "location", even with zero photos and no coordinates, while every
+ *     other rule (title/price/category) still applies. This mirrors
+ *     hatiwal-api's Listing validations exactly (title/price/currency/
+ *     category — no photo or location requirement at the model level).
  *  4. Individual field rules (title/price/category/location) match the zod
  *     schema's semantics (coerced numbers, positive, finite).
- *  5. A fully valid listing returns an empty array.
+ *  5. A fully valid listing returns an empty array in both modes.
  */
 
 import { getPublishBlockers, PUBLISH_BLOCKER_ORDER, PublishBlocker } from "../publishReadiness";
@@ -86,6 +89,27 @@ describe("getPublishBlockers — the draft exemption", () => {
     expect(blockers).toEqual([]);
   });
 
+  it("never reports 'location' in draft mode, even with no coordinates (TASK-V395)", () => {
+    const blockers = getPublishBlockers({
+      values: { ...validValues, latitude: undefined, longitude: undefined },
+      photos: [],
+      mode: "draft",
+    });
+    expect(blockers).not.toContain("location");
+    expect(blockers).toEqual([]);
+  });
+
+  it("a draft with title + price + category, zero photos, and no pin is fully saveable (TASK-V395)", () => {
+    // Mirrors hatiwal-api's Listing validations exactly — no photo or
+    // location requirement at the model level.
+    const blockers = getPublishBlockers({
+      values: { title: "Sofa Set", price: 500, categoryId: 3 },
+      photos: [],
+      mode: "draft",
+    });
+    expect(blockers).toEqual([]);
+  });
+
   it("still enforces every other rule in draft mode", () => {
     const blockers = getPublishBlockers({
       values: { ...validValues, title: "" },
@@ -95,8 +119,22 @@ describe("getPublishBlockers — the draft exemption", () => {
     expect(blockers).toEqual<PublishBlocker[]>(["title"]);
   });
 
-  it("defaults to publish mode (photos required) when mode is omitted", () => {
-    expect(getPublishBlockers({ values: validValues, photos: [] })).toContain("photos");
+  it("blocks title, price, AND category together in draft mode, in on-screen order, while never listing photos/location", () => {
+    const blockers = getPublishBlockers({
+      values: { title: "", price: undefined, categoryId: undefined, latitude: undefined, longitude: undefined },
+      photos: [],
+      mode: "draft",
+    });
+    expect(blockers).toEqual<PublishBlocker[]>(["title", "price", "category"]);
+  });
+
+  it("defaults to publish mode (photos AND location required) when mode is omitted", () => {
+    const blockers = getPublishBlockers({
+      values: { ...validValues, latitude: undefined, longitude: undefined },
+      photos: [],
+    });
+    expect(blockers).toContain("photos");
+    expect(blockers).toContain("location");
   });
 });
 
@@ -152,5 +190,14 @@ describe("getPublishBlockers — location rule", () => {
     expect(
       getPublishBlockers({ values: { ...validValues, latitude: "34.5", longitude: "69.1" }, photos: onePhoto })
     ).not.toContain("location");
+  });
+
+  it("blocks a pin-less listing in publish mode even when every other field is valid (TASK-V395)", () => {
+    const blockers = getPublishBlockers({
+      values: { ...validValues, latitude: undefined, longitude: undefined },
+      photos: onePhoto,
+      mode: "publish",
+    });
+    expect(blockers).toEqual<PublishBlocker[]>(["location"]);
   });
 });

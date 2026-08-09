@@ -83,6 +83,10 @@
   },
   "attachFile": "پیوست فایل",
   "attachPhoto": "پیوست عکس",
+  "composer": {
+    "moreActions": "اقدامات بیشتر",
+    "actionsTitle": "به پیام خود اضافه کنید"
+  },
   "document": {
     "tap": "برای باز کردن لمس کنید",
     "notAvailable": "فایل در دسترس نیست"
@@ -128,7 +132,7 @@
     "counter": "پیشنهاد متقابل",
     "counterTitle": "پیشنهاد قیمت متقابل",
     "counterLabel": "پیشنهاد متقابل",
-    "buyerOfferedAt": "خریدار {{price}} پیشنهاد داد",
+    "previousOfferAt": "پیشنهاد قبلی: {{price}}",
     "yourCounterOffer": "قیمت متقابل شما",
     "counterNote": "بدون پرداخت — این فقط یک پیشنهاد قیمت است. برای نهایی کردن حضوری ملاقات کنید.",
     "sendCounter": "ارسال پیشنهاد متقابل",
