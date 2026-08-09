@@ -9,7 +9,10 @@ export interface PublicProfile {
   bio: string | null;
   /** Pre-formatted string from backend e.g. "June 2026" — not an ISO date. Display verbatim. */
   memberSince: string;
+  /** Completed sales as SELLER, sourced from the transactions table (TASK-TX02). */
   soldCount: number;
+  /** Completed purchases as BUYER, sourced from the transactions table (TASK-TX02). */
+  boughtCount: number;
   listingsCount: number;
   /** REV2 — combined double-blind rating across both seller/buyer roles. null when reviewCount is 0. */
   avgRating?: number | null;

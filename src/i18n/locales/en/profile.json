@@ -91,6 +91,10 @@
     "active": "Active",
     "sales": "Total Sales"
   },
+  "transactionStats": {
+    "sold": "{{count}} sold",
+    "bought": "{{count}} bought"
+  },
   "quickActions": {
     "postNew": "Post New Item",
     "myListings": "My Listings",

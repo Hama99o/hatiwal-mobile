@@ -27,7 +27,9 @@ appId: com.hatiwal.app
 # Save as draft
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
-# Back to My Listings — listing appears
-- assertVisible: "My Listings"
+# TASK-J952: saving a brand-new listing as a draft lands on its OWN owner
+# detail screen (never the Browse/My Listings list) — title + Draft badge
+# + the Publish action are all visible right there.
 - assertVisible: "iPhone 12 Pro - 128GB"
 - assertVisible: "Draft"
+- assertVisible: "Publish"

@@ -1,0 +1,37 @@
+appId: com.hatiwal.app
+---
+# TASK-TX02 — Sold/Bought trust stats on the public seller profile.
+#
+# CI seed guarantee: db/seeds/e2e.rb attaches a `sold` Transaction between
+# seller@hatiwal.test (seller) and buyer@hatiwal.test (buyer) on the seeded
+# "Xiaomi Redmi Note 11 128GB" sold listing — so seller.sold_count >= 1 and
+# the "Items Sold" stat cell + the combined trust badge are both guaranteed
+# non-empty in every Maestro run. seller.bought_count is 0 (seller has no
+# purchase history), so the badge shows the "sold" half only — no dangling
+# "0 bought".
+
+- runFlow: ../_helpers/login.yaml
+- assertVisible: "Bazaar"
+- waitForAnimationToEnd
+
+# Open any listing detail — the seller card leads to the SAME aggregate
+# seller profile regardless of which listing you came from.
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- assertVisible: "Seller"
+- tapOn: "Seller"
+- waitForAnimationToEnd
+
+# Seller profile page opens
+- assertVisible: "Seller Profile"
+- assertVisible: "Active Listings"
+- assertVisible: "Items Sold"
+- assertVisible: "Joined"
+
+# The combined trust badge — "N sold" (bought omitted, seller has 0 purchases)
+- assertVisible: "1 sold"
+
+# Back to listing detail
+- back
+- waitForAnimationToEnd
+- assertVisible: "Contact Seller"

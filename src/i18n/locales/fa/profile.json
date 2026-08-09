@@ -91,6 +91,10 @@
     "active": "فعال",
     "sales": "کل فروش"
   },
+  "transactionStats": {
+    "sold": "{{count}} فروخته شده",
+    "bought": "{{count}} خریداری شده"
+  },
   "quickActions": {
     "postNew": "ارائه آگهی جدید",
     "myListings": "آگهی‌های من",

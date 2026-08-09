@@ -198,7 +198,15 @@
     "discardMessage": "ستاسو ناخوندي شوي بدلونونه به له لاسه لاړ شي.",
     "discardConfirm": "لغوه کول",
     "locationRequired": "موقعیت اړین دی — پیرودونکي د سیمې له مخې فلټر کوي",
-    "negotiableLabel": "قیمت د خبرو وړ دی"
+    "negotiableLabel": "قیمت د خبرو وړ دی",
+    "publishSuccess": {
+      "title": "ستاسو اعلان خپور شو!",
+      "subtitle": "اوس پیرودونکي دا موندلی شي — د ګړندي پلور لپاره یې شریک کړئ.",
+      "share": "اعلان شریک کړئ",
+      "viewAsBuyer": "د پیرودونکي په توګه کتل",
+      "postAnother": "بل اعلان خپور کړئ",
+      "done": "بشپړ"
+    }
   },
   "shopCount_one": "{{count}} اعلان",
   "firmPrice": "ثابت قیمت",

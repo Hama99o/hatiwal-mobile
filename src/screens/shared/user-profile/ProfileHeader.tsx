@@ -12,6 +12,7 @@ import { Separator } from "@/components/reusables/separator";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { AwayBanner } from "@/components/common/AwayBanner";
 import { RatingDisplay } from "@/components/common/RatingDisplay";
+import { TransactionStatsBadge } from "@/components/common/TransactionStatsBadge";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useTranslation } from "react-i18next";
@@ -64,7 +65,7 @@ function StatCell({
 
 export function ProfileHeader({ profile }: ProfileHeaderProps) {
   const { t } = useTranslation();
-  const { isRtl } = useLocalization();
+  const { isRtl, formatNumber } = useLocalization();
   const colors = useColors();
   const router = useRouter();
 
@@ -120,7 +121,7 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
         />
         <View style={{ width: 1, backgroundColor: colors.border }} />
         <StatCell
-          value={String(profile.soldCount)}
+          value={formatNumber(profile.soldCount)}
           label={t("profile.userProfile.soldItems")}
           colors={colors}
         />
@@ -131,6 +132,12 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
           colors={colors}
           compact
         />
+      </View>
+
+      {/* TASK-TX02 — combined "Sold N · Bought N" trust signal, near the
+          member-since stat cell above. Renders null when both counts are 0. */}
+      <View style={{ paddingHorizontal: 4, marginBottom: 4 }}>
+        <TransactionStatsBadge soldCount={profile.soldCount} boughtCount={profile.boughtCount} />
       </View>
 
       {/* Last-active recency label — quiet meta row; omitted when null */}

@@ -339,15 +339,27 @@ function ProfileContent({
   handleEdit: () => void;
 }) {
   const { t } = useTranslation();
+  const { formatNumber } = useLocalization();
+
+  // TASK-TX02 — Sold/Bought are sourced from the transactions table (a
+  // completed sale with a confirmed counterparty), not items_sold_count
+  // (listing.status == sold regardless of whether a buyer was ever
+  // identified). Hidden entirely when 0 — Active/Saved always show.
+  const soldCount = user?.soldCount ?? 0;
+  const boughtCount = user?.boughtCount ?? 0;
 
   const stats = isSeller
     ? [
-        { label: t("profile.stats.sold"), value: String(user?.itemsSoldCount ?? 0) },
-        { label: t("profile.stats.active"), value: String(user?.itemsActiveCount ?? 0) },
+        ...(soldCount > 0
+          ? [ { label: t("profile.stats.sold"), value: formatNumber(soldCount) } ]
+          : []),
+        { label: t("profile.stats.active"), value: formatNumber(user?.itemsActiveCount ?? 0) },
       ]
     : [
-        { label: t("profile.itemsBought"), value: String(user?.itemsBoughtCount ?? 0) },
-        { label: t("profile.itemsSaved"), value: String(user?.savedItemsCount ?? 0) },
+        ...(boughtCount > 0
+          ? [ { label: t("profile.itemsBought"), value: formatNumber(boughtCount) } ]
+          : []),
+        { label: t("profile.itemsSaved"), value: formatNumber(user?.savedItemsCount ?? 0) },
       ];
 
   return (

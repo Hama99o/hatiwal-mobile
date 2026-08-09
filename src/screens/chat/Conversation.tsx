@@ -54,6 +54,7 @@ import { useConversationCable } from "@/hooks/useConversationCable";
 import { QuickReplies } from "@/components/common/QuickReplies";
 import { useComposerDraft } from "@/hooks/useComposerDraft";
 import { encodeMeetupBody, type MeetupCoords } from "./conversation/meetupBody";
+import { maybeReserveAfterAccept } from "./conversation/reserveAfterAccept";
 
 // ── Reanimated imports for search bar animation ───────────────────────────────
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate, Extrapolation } from "react-native-reanimated";
@@ -99,7 +100,7 @@ export function ConversationScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const colors = useColors();
-  const { isRtl } = useLocalization();
+  const { isRtl, formatCurrency } = useLocalization();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
   const storeUser = useAuthStore((s) => s.user);
@@ -463,11 +464,45 @@ export function ConversationScreen() {
         isNearBottomRef.current = true;
         setMessages((prev) => [...prev, sent]);
         toast.success(accepted ? t("chat.offer.acceptedToast") : t("chat.offer.declinedToast"));
+
+        // TASK-O947: after a SUCCESSFUL accept, offer the owner a one-tap
+        // reserve for the conversation's buyer at the accepted price — this
+        // never fires on decline, never fires for the buyer (isOwnerNow
+        // guards that), and a reserve failure never touches the accept above.
+        if (accepted && conversation?.listing) {
+          const isOwnerNow =
+            !!currentUser &&
+            !!conversation.seller &&
+            Number(conversation.seller.id) === Number(currentUser.id);
+          const offerAmount =
+            offer.offerAmount ?? Number((offer.body ?? "").split("|")[0] ?? 0);
+          const listingRef = conversation.listing;
+
+          maybeReserveAfterAccept({
+            isOwner: isOwnerNow,
+            listing: listingRef,
+            buyer: conversation.buyer ?? null,
+            offerAmount,
+            currency: offer.offerCurrency ?? listingRef.currency ?? "AFN",
+            t,
+            formatCurrency,
+            onReserved: () => {
+              qc.invalidateQueries({ queryKey: ["conversation", convId] });
+              qc.invalidateQueries({ queryKey: ["listing", listingRef.id] });
+              qc.invalidateQueries({ queryKey: ["my-listing", listingRef.id] });
+              qc.invalidateQueries({ queryKey: ["my-listings"] });
+              qc.invalidateQueries({ queryKey: ["myListingStatusCounts"] });
+              // Reload local conversation state so the pinned ListingHeader
+              // flips to Reserved right away, without a manual refresh.
+              load(convId);
+            },
+          });
+        }
       } catch {
         toast.error(t("chat.thread.sendFailed"));
       }
     },
-    [currentConversationId, t]
+    [currentConversationId, conversation, currentUser, formatCurrency, qc, load, t]
   );
 
   // ── Open counter-offer sheet (seller) ────────────────────────────────────

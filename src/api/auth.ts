@@ -26,7 +26,10 @@ export interface User {
   itemsSoldCount?: number;
   unreadMessageCount?: number;
   savedItemsCount?: number;
-  itemsBoughtCount?: number;
+  /** Completed sales as SELLER, sourced from the transactions table (TASK-TX02). */
+  soldCount?: number;
+  /** Completed purchases as BUYER, sourced from the transactions table (TASK-TX02). */
+  boughtCount?: number;
   createdAt: string;
   pushToken?: string | null;
   /** REV2 — combined double-blind rating across both seller/buyer roles. null when reviewCount is 0. */

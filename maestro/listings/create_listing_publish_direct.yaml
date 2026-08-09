@@ -26,7 +26,18 @@ appId: com.hatiwal.app
 # Publish directly
 - tapOn: "Publish"
 - waitForAnimationToEnd
-# Back to My Listings — listing appears as Active
-- assertVisible: "My Listings"
+
+# TASK-J952: publishing a NEW listing lands on its OWN owner detail (never
+# the Browse/My Listings tab) with a one-time success sheet — share / view
+# as buyer / post another.
+- assertVisible: "Your listing is live!"
+- assertVisible: "Share listing"
+- assertVisible: "View as buyer"
+- assertVisible: "Post another listing"
+
+# Dismiss the sheet — the seller stays on their own owner detail underneath,
+# now showing Active with the fresh listing's title.
+- tapOn: "Done"
+- waitForAnimationToEnd
 - assertVisible: "Samsung Galaxy S22"
 - assertVisible: "Active"

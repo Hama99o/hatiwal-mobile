@@ -16,7 +16,7 @@
  * API: GET /my/listings/:id via listingsAPI.getMyListing
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   ScrollView,
@@ -58,6 +58,7 @@ import { ExpiryBadge } from "@/components/common/ExpiryBadge";
 import { ListingMapSection } from "@/components/common/ListingMapSection";
 import { BuyerPickerSheet, type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 import { ReviewPromptSheet } from "@/components/common/ReviewPromptSheet";
+import { PublishSuccessSheet } from "@/screens/seller/listing-form/PublishSuccessSheet";
 
 import { ListingGallery } from "@/screens/shared/listing-detail/ListingGallery";
 import { DetailSkeleton } from "@/screens/shared/listing-detail/DetailSkeleton";
@@ -91,7 +92,9 @@ function Section({
 }
 
 export default function MyListingDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // TASK-J952: `published=1` arrives once, right after ListingForm's publish
+  // success, to trigger the one-time PublishSuccessSheet below.
+  const { id, published } = useLocalSearchParams<{ id: string; published?: string }>();
   const router = useRouter();
   const { t } = useTranslation();
   const { isRtl, formatNumber, formatDate } = useLocalization();
@@ -110,6 +113,16 @@ export default function MyListingDetailScreen() {
     buyerName: string;
     buyerAvatarUrl: string | null;
   } | null>(null);
+  // TASK-J952: shown exactly once per publish — the param is cleared via
+  // router.setParams the instant it's read, so it can never reappear on a
+  // subsequent focus or back-navigation into this same screen.
+  const [showPublishSuccess, setShowPublishSuccess] = useState(false);
+  useEffect(() => {
+    if (published === "1") {
+      setShowPublishSuccess(true);
+      router.setParams({ published: undefined });
+    }
+  }, [published]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: listing, isLoading, isError, refetch } = useQuery({
@@ -721,6 +734,16 @@ export default function MyListingDetailScreen() {
         callerRole="seller"
         counterpartyName={reviewPrompt?.buyerName ?? ""}
         counterpartyAvatarUrl={reviewPrompt?.buyerAvatarUrl ?? null}
+      />
+
+      {/* TASK-J952: post-publish success moment — share / view as buyer / post
+          another. Only ever shown right after ListingForm's publish success
+          (see the `published` param effect above); dismissing leaves the
+          seller right here on their own owner detail. */}
+      <PublishSuccessSheet
+        visible={showPublishSuccess}
+        listing={listing ?? null}
+        onClose={() => setShowPublishSuccess(false)}
       />
     </ScreenContainer>
   );

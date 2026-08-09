@@ -30,5 +30,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# TASK-J952: lands on the listing's own owner detail (never the My Listings
+# list) — the title is visible right there with the Draft badge.
 - assertVisible: "Laptop HP"
+- assertVisible: "Draft"

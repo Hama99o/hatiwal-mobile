@@ -1,0 +1,81 @@
+appId: com.hatiwal.app
+name: "Conversations list search — narrow, no-match empty state + Clear search, composes with Unread filter"
+tags:
+  - chat
+  - search
+
+---
+
+# TASK-Z684 — the list-level half of chat search (in-thread message search is
+# TASK-N803 / maestro flows already covering the thread screen).
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+# ── Precondition: at least one seeded conversation exists ───────────────────
+- assertVisible:
+    id: "conversation-row-0"
+
+# ── Happy path: typing narrows the list live, no crash / no error state ─────
+- tapOn:
+    id: "conversations-search-input"
+- inputText: "a"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+- assertVisible:
+    id: "conversations-search-clear"
+
+# ── Clearing an in-progress term restores the full list ─────────────────────
+- tapOn:
+    id: "conversations-search-clear"
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: "conversations-search-clear"
+- assertVisible:
+    id: "conversation-row-0"
+
+# ── No-match: a nonsense term shows the localized empty state + "Clear search" ─
+- tapOn:
+    id: "conversations-search-input"
+- inputText: "xzxzxzxz_no_such_conversation_xzxzxz"
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: "conversation-row-0"
+- assertVisible: "Clear search"
+
+# The "Clear search" empty-state action also empties the field
+- tapOn: "Clear search"
+- waitForAnimationToEnd
+- assertNotVisible: "Clear search"
+- assertVisible:
+    id: "conversation-row-0"
+
+# ── Search composes with the Unread filter (not a replacement for it) ───────
+- tapOn: "Unread"
+- waitForAnimationToEnd
+- tapOn:
+    id: "conversations-search-input"
+- inputText: "xzxzxzxz_no_such_conversation_xzxzxz"
+- waitForAnimationToEnd
+# With a term that matches nothing, the result is empty regardless of which
+# unread/read rows existed before the search — either our no-match copy or
+# (in a race with the debounce) the existing "all caught up" copy is fine.
+- assertVisible:
+    anyOf:
+      - "Clear search"
+      - "All caught up!"
+
+# Clearing the field falls back to just the Unread filter — still composed,
+# not reset to "All".
+- tapOn:
+    id: "conversations-search-clear"
+- waitForAnimationToEnd
+- assertVisible: "Unread"
+
+# ── Back to Inbox / All — unaffected by the search interactions above ───────
+- tapOn: "All"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "conversation-row-0"

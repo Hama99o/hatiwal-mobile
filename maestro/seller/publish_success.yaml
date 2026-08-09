@@ -1,0 +1,106 @@
+appId: com.hatiwal.app
+---
+# TASK-J952 — Post-publish success moment + return-to-origin routing.
+#
+# Before this fix, EVERY exit path out of ListingForm (save draft, publish,
+# cancel) blew the navigation stack away and replaced it with the Browse
+# tab — the single highest-intent moment in the app (just published!) got
+# nothing but a toast. This flow verifies the fix end-to-end:
+#
+#   1. Create + publish a brand-new listing directly from the form →
+#      lands on the listing's OWN owner detail (never Browse) with the
+#      one-time PublishSuccessSheet (share / view as buyer / post another).
+#   2. "View as buyer" opens the public listing detail for the same item.
+#   3. Coming back and editing that same listing → Save returns to the
+#      previous screen (the owner detail) with the refreshed value —
+#      never Browse.
+#
+# Location is set once via the real map picker's place search (the zod
+# schema requires latitude/longitude); the edit step in part 3 relies on
+# that same listing already having a location, so it never needs to touch
+# the location picker again.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+# ── 1) Create a new listing and publish it directly ──────────────────────────
+
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "What are you selling?"
+- inputText: "Publish Success Test Item"
+- tapOn: "Enter price"
+- inputText: "12000"
+
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+# Set the exact location via the map picker's place search.
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+- assertVisible: "Pick location on map"
+- tapOn: "Search a province…"
+- inputText: "Kabul"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Confirm location"
+- waitForAnimationToEnd
+
+# Location is now set on the form
+- assertNotVisible: "Tap to set exact location on map"
+
+# Publish directly (top toolbar) — NOT "Save Draft"
+- tapOn: "Publish"
+- waitForAnimationToEnd
+
+# ── 2) PublishSuccessSheet appears — never the Browse tab ────────────────────
+
+- assertVisible: "Your listing is live!"
+- assertVisible: "Buyers can find it now — share it to sell faster."
+- assertVisible: "Share listing"
+- assertVisible: "View as buyer"
+- assertVisible: "Post another listing"
+- assertVisible: "Publish Success Test Item"
+
+# ── 3) "View as buyer" opens the public listing detail ───────────────────────
+
+- tapOn: "View as buyer"
+- waitForAnimationToEnd
+- assertVisible: "Publish Success Test Item"
+
+# Back to the owner detail underneath (the sheet already dismissed itself
+# when "View as buyer" was pressed, so there is nothing left to close).
+- back
+- waitForAnimationToEnd
+- assertVisible: "Active"
+- assertVisible: "Publish Success Test Item"
+
+# The sheet must NOT reappear on this back-navigation / refocus.
+- assertNotVisible: "Your listing is live!"
+
+# ── 4) Edit-save returns to the owner detail — never Browse ──────────────────
+
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+
+- tapOn: "Enter price"
+- clearText
+- inputText: "13500"
+
+# Editing an already-active listing shows a single "Save" button (not
+# "Save Draft"/"Publish") — see ListingForm.tsx's isPublished branch.
+- tapOn: "Save"
+- waitForAnimationToEnd
+
+# Landed back on the SAME owner detail — never Browse — showing the
+# refreshed price and the still-Active status.
+- assertVisible: "Publish Success Test Item"
+- assertVisible: "Active"

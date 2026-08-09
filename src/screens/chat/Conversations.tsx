@@ -2,11 +2,11 @@ import {
   View,
   Pressable,
 } from "react-native";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MessageCircle, CheckCheck, Archive } from "lucide-react-native";
+import { MessageCircle, CheckCheck, Archive, SearchX } from "lucide-react-native";
 import { ChatIllustration } from "@/components/common/empty-illustrations";
 import { toast } from "sonner-native";
 
@@ -20,6 +20,7 @@ import { useColors } from "@/hooks/useColors";
 import { useChatStore } from "@/stores/chat.store";
 import { Text } from "@/components/reusables/text";
 import { Badge } from "@/components/reusables/badge";
+import { SearchBar } from "@/components/common/SearchBar";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import {
   UniversalList,
@@ -30,6 +31,12 @@ import {
 import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton";
 
 import { ConversationRow } from "./conversations/ConversationRow";
+import { filterConversations } from "./conversations/filterConversations";
+
+// Debounce window for the list-level search (TASK-Z684). Kept short since
+// filtering itself is instant/client-side — this only smooths out the
+// silent-refresh trigger while the user is actively typing.
+const SEARCH_DEBOUNCE_MS = 250;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,6 +68,18 @@ export default function ConversationsScreen() {
   const [tabMode, setTabMode]   = useState<TabMode>("inbox");
   const [filter, setFilter]     = useState<FilterMode>("all");
 
+  // ── List-level search (TASK-Z684) ───────────────────────────────────────────
+  // Raw text updates instantly (so the input never lags); the debounced value
+  // is what actually drives the fetcher + the silent refresh below. This
+  // deliberately uses `refreshKey` (silent background re-fetch, no skeleton)
+  // rather than folding the term into `listConfig.id` — an `id` change forces
+  // UniversalList's full reset-with-skeleton path, which would flash a
+  // skeleton grid on every debounce tick. Composes with (does not replace)
+  // the tab/filter controls, and never touches the unread badge, which is
+  // always derived from the unfiltered `allConversationsRef`.
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
   // Bump to trigger UniversalList silent background refresh (no skeleton, no setItems([])).
   const [refreshKey, setRefreshKey] = useState(0);
   // Bump to trigger a FULL reset (skeleton + reload). Only used for deletions.
@@ -81,12 +100,33 @@ export default function ConversationsScreen() {
     }, [])
   );
 
+  // Debounce the search term, then trigger a silent refresh so the fetcher
+  // (which closes over `debouncedSearchTerm`) re-applies the filter without
+  // a skeleton flash. Skips the very first render — the initial load is
+  // already handled by UniversalList's `id` effect.
+  const isFirstSearchRender = useRef(true);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (isFirstSearchRender.current) {
+      isFirstSearchRender.current = false;
+      return;
+    }
+    setRefreshKey((k) => k + 1);
+  }, [debouncedSearchTerm]);
+
   // ── Fetcher ────────────────────────────────────────────────────────────────
-  // For inbox: fetches non-archived conversations, applies client-side filter,
-  //            and syncs the badge.
-  // For archived: fetches archived conversations as-is (no filter).
+  // For inbox: fetches non-archived conversations, applies client-side
+  //            read/unread filter + search term, and syncs the badge (from
+  //            the UNFILTERED list — search/filter never touch the badge).
+  // For archived: fetches archived conversations, applies the search term only.
   const makeFetcher = useCallback(
-    (tab: TabMode, filterMode: FilterMode) =>
+    (tab: TabMode, filterMode: FilterMode, term: string) =>
       async (_query: ListQuery): Promise<ListFetchResult<Conversation>> => {
         const response = await conversationsAPI.getConversations({
           archived: tab === "archived",
@@ -94,19 +134,21 @@ export default function ConversationsScreen() {
         const all = response.items;
 
         if (tab === "inbox") {
-          // Persist raw items for badge calculation (inbox only)
+          // Persist raw items for badge calculation (inbox only) — always the
+          // unfiltered list, so search/filter can never skew the badge total.
           allConversationsRef.current = all;
           const total = getUnreadTotal(all);
           setUnreadMessageTotal(total);
           setUnreadBadgeCount(total);
 
-          // Apply client-side read/unread filter
-          const filtered = all.filter((c) => {
+          // Apply client-side read/unread filter, then the search term.
+          const readFiltered = all.filter((c) => {
             const unread = c.unreadCount ?? 0;
             if (filterMode === "unread") return unread > 0;
             if (filterMode === "read")   return unread === 0;
             return true;
           });
+          const filtered = filterConversations(readFiltered, term);
 
           return {
             items:       filtered,
@@ -116,10 +158,11 @@ export default function ConversationsScreen() {
           };
         }
 
-        // Archived tab — return all results unchanged
+        // Archived tab — search term only, otherwise unchanged.
+        const filtered = filterConversations(all, term);
         return {
-          items:       all,
-          totalCount:  all.length,
+          items:       filtered,
+          totalCount:  filtered.length,
           totalPages:  1,
           currentPage: 1,
         };
@@ -244,13 +287,22 @@ export default function ConversationsScreen() {
     [setUnreadMessageTotal, t]
   );
 
-  // config.id changes only when tab, filter, or resetKey changes.
+  // Whether the (debounced, trimmed) search term is active — drives the
+  // no-match empty state below. Uses the debounced value so the empty state
+  // text always matches what the fetcher actually filtered on (not a
+  // half-typed in-flight keystroke).
+  const trimmedSearchTerm = debouncedSearchTerm.trim();
+  const hasSearchTerm = trimmedSearchTerm.length > 0;
+
+  // config.id changes only when tab, filter, or resetKey changes — search
+  // deliberately stays OUT of id (see the debounce effect above) so typing
+  // never triggers UniversalList's full skeleton-reset path.
   // refreshKey is passed separately so UniversalList silently re-fetches
   // without skeleton flash.
   const listConfig: UniversalListConfig<Conversation> = {
     id:          `conversations-${tabMode}-${filter}-${resetKey}`,
     refreshKey,
-    fetcher:     makeFetcher(tabMode, filter),
+    fetcher:     makeFetcher(tabMode, filter, debouncedSearchTerm),
     keyExtractor: (item) => String(item.id),
     renderItem:  ({ item, index }) => (
       <ConversationRow
@@ -267,35 +319,44 @@ export default function ConversationsScreen() {
     skeletonCount:     5,
     SkeletonComponent: ConversationRowSkeleton,
     emptyIcon:
-      tabMode === "archived"
-        ? Archive
-        : filter === "unread"
-          ? CheckCheck
-          : MessageCircle,
-    // Show the custom illustration only for the primary inbox empty state
+      hasSearchTerm
+        ? SearchX
+        : tabMode === "archived"
+          ? Archive
+          : filter === "unread"
+            ? CheckCheck
+            : MessageCircle,
+    // Show the custom illustration only for the primary inbox empty state —
+    // never for a no-match search result.
     emptyIllustration:
-      tabMode !== "archived" && filter === "all"
+      !hasSearchTerm && tabMode !== "archived" && filter === "all"
         ? <ChatIllustration size={96} />
         : undefined,
     emptyTitle:
-      tabMode === "archived"
-        ? t("chat.archive.empty")
-        : filter === "unread"
-          ? t("chat.filter.noUnread")
-          : t("chat.noConversations"),
+      hasSearchTerm
+        ? t("chat.search.noMatchTitle", { term: trimmedSearchTerm })
+        : tabMode === "archived"
+          ? t("chat.archive.empty")
+          : filter === "unread"
+            ? t("chat.filter.noUnread")
+            : t("chat.noConversations"),
     emptyDescription:
-      tabMode === "archived"
-        ? t("chat.archive.emptyDescription")
-        : filter === "unread"
-          ? t("chat.filter.noUnreadDescription")
-          : t("chat.noConversationsDescription"),
+      hasSearchTerm
+        ? t("chat.search.noMatchDescription")
+        : tabMode === "archived"
+          ? t("chat.archive.emptyDescription")
+          : filter === "unread"
+            ? t("chat.filter.noUnreadDescription")
+            : t("chat.noConversationsDescription"),
     emptyAction:
-      tabMode !== "archived" && filter !== "unread"
-        ? {
-            label:   t("chat.empty.browseAction"),
-            onPress: () => router.push("/(main)/(tabs)/browse" as never),
-          }
-        : undefined,
+      hasSearchTerm
+        ? { label: t("chat.search.clearSearch"), onPress: () => setSearchTerm("") }
+        : tabMode !== "archived" && filter !== "unread"
+          ? {
+              label:   t("chat.empty.browseAction"),
+              onPress: () => router.push("/(main)/(tabs)/browse" as never),
+            }
+          : undefined,
     contentPaddingBottom: 100,
   };
 
@@ -336,6 +397,20 @@ export default function ConversationsScreen() {
               style={{ paddingHorizontal: 8, height: 24, borderRadius: 12 }}
             />
           )}
+        </View>
+
+        {/* ── Search — instant client-side filter by name / listing / last
+            message (TASK-Z684). Composes with the tab + filter rows below;
+            never touches the unread badge (derived from the unfiltered ref). */}
+        <View style={{ marginTop: 12 }}>
+          <SearchBar
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            placeholder={t("chat.searchPlaceholder")}
+            testID="conversations-search-bar"
+            inputTestID="conversations-search-input"
+            clearTestID="conversations-search-clear"
+          />
         </View>
 
         {/* Inbox / Archived tab toggle */}

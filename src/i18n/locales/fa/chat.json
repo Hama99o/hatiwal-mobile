@@ -128,7 +128,12 @@
     "counteredAt": "قیمت متقابل",
     "counterSentToast": "پیشنهاد متقابل ارسال شد!",
     "quickChipsHint": "مبالغ سریع",
-    "firmNotice": "قیمت فروشنده ثابت است — پیشنهادات پذیرفته نمی‌شوند"
+    "firmNotice": "قیمت فروشنده ثابت است — پیشنهادات پذیرفته نمی‌شوند",
+    "reserveAfterAcceptTitle": "این آگهی را رزرو کنید؟",
+    "reserveAfterAcceptBody": "برای {{buyerName}} به قیمت {{price}} رزرو شود؟",
+    "reserveAfterAcceptCta": "رزرو",
+    "reserveAfterAcceptSuccess": "آگهی برای {{buyerName}} رزرو شد",
+    "reserveAfterAcceptFailed": "رزرو کردن آگهی ناموفق بود. دوباره امتحان کنید."
   },
   "block": {
     "blockUser": "مسدود کردن کاربر",
@@ -145,7 +150,10 @@
     "placeholder": "جستجو در پیام‌ها...",
     "matchCount": "{{current}} از {{total}}",
     "partialResults": "نتایج فقط در پیام‌های بارگذاری‌شده نشان داده می‌شود",
-    "noResults": "هیچ پیامی با جستجوی شما مطابقت ندارد"
+    "noResults": "هیچ پیامی با جستجوی شما مطابقت ندارد",
+    "noMatchTitle": "هیچ نتیجه‌ای برای \"{{term}}\" یافت نشد",
+    "noMatchDescription": "نام دیگر، عنوان آگهی یا پیام دیگری را امتحان کنید.",
+    "clearSearch": "پاک کردن جستجو"
   },
   "actions": {
     "markRead": "علامت‌گذاری به عنوان خوانده شده",

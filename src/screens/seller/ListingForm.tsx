@@ -354,10 +354,24 @@ export default function ListingFormScreen() {
       }
       return listingsAPI.createListingWithImages(values, imageUris);
     },
-    onSuccess: () => {
+    onSuccess: (listing) => {
       invalidateListingCaches();
       toast.success(isPublished ? t("listing.form.saved") : t("listing.form.savedDraft"));
-      router.replace("/(main)/(tabs)/browse" as never);
+      // TASK-J952: never dump the seller onto the Browse tab.
+      //  - Editing an existing listing → return to wherever this form was
+      //    opened from (My Listings or the owner detail), so the seller
+      //    keeps their place and sees the refreshed data there.
+      //  - Saving a brand-new listing as a draft → land on its own owner
+      //    detail (Publish action visible), never the Browse tab.
+      if (isEdit) {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.replace(`/(main)/my-listings/${listing.id}` as never);
+        }
+      } else {
+        router.replace(`/(main)/my-listings/${listing.id}` as never);
+      }
     },
     onError: () => {
       toast.error(t("listing.form.saveError"));
@@ -380,10 +394,14 @@ export default function ListingFormScreen() {
       }
       return listing;
     },
-    onSuccess: () => {
+    onSuccess: (listing) => {
       invalidateListingCaches();
       toast.success(t("listing.form.published"));
-      router.replace("/(main)/(tabs)/browse" as never);
+      // TASK-J952: this is the single highest-intent moment in the app —
+      // land the seller on their OWN listing (never the Browse tab) with a
+      // `published=1` param so the owner detail can show the one-time
+      // PublishSuccessSheet (share / view as buyer / post another).
+      router.replace(`/(main)/my-listings/${listing.id}?published=1` as never);
     },
     onError: () => {
       toast.error(t("listing.form.publishError"));
@@ -405,9 +423,26 @@ export default function ListingFormScreen() {
 
   const isLoading = saveMutation.isPending || publishMutation.isPending;
 
+  // TASK-J952: cancelling (with or without unsaved changes) must return the
+  // seller to wherever this form was opened FROM — never blow the stack away
+  // and land on the Browse tab. `router.canGoBack()` covers both the EDIT
+  // case (opened from My Listings or the owner detail) and the NEW case
+  // (opened from "Post a listing"); only when there is truly no back stack
+  // (e.g. a hard deep-link into the edit route) do we fall back to a named
+  // route — the listing's own owner detail when editing, otherwise Browse.
+  const goBackOrFallback = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else if (isEdit && listingId) {
+      router.replace(`/(main)/my-listings/${listingId}` as never);
+    } else {
+      router.replace("/(main)/(tabs)/browse" as never);
+    }
+  };
+
   const onCancel = () => {
     if (!isDirty && photos.every((p) => p.isRemote)) {
-      router.replace("/(main)/(tabs)/browse" as never);
+      goBackOrFallback();
       return;
     }
     confirmAlert(
@@ -418,7 +453,7 @@ export default function ListingFormScreen() {
         {
           text: t("listing.form.discardConfirm"),
           style: "destructive",
-          onPress: () => router.replace("/(main)/(tabs)/browse" as never),
+          onPress: goBackOrFallback,
         },
       ]
     );

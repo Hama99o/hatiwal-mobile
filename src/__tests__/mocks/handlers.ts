@@ -26,7 +26,8 @@ export const MOCK_USER = {
   items_sold_count: 0,
   unread_message_count: 0,
   saved_items_count: 2,
-  items_bought_count: 0,
+  sold_count: 0,
+  bought_count: 0,
   created_at: "2026-01-01T00:00:00Z",
 };
 
@@ -462,6 +463,7 @@ export const MOCK_PUBLIC_PROFILE = {
   bio: "Selling quality electronics",
   member_since: "January 2025",
   sold_count: 5,
+  bought_count: 2,
   listings_count: 3,
   verified: false,
   blocked: false,

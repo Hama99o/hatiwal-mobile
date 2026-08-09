@@ -91,6 +91,10 @@
     "active": "فعال",
     "sales": "ټول پلور"
   },
+  "transactionStats": {
+    "sold": "{{count}} پلورل شوي",
+    "bought": "{{count}} اخیستل شوي"
+  },
   "quickActions": {
     "postNew": "نوی اعلان پوسٹ کړئ",
     "myListings": "زما اعلانونه",

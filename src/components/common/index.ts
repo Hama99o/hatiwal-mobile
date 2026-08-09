@@ -30,8 +30,14 @@ export type { UniversalListConfig, ListQuery, ListFetchResult } from "./Universa
 export { ResponseRateBadge } from "./ResponseRateBadge";
 export type { ResponseRateBadgeProps, ResponseTimeLabel } from "./ResponseRateBadge";
 
+export { TransactionStatsBadge } from "./TransactionStatsBadge";
+export type { TransactionStatsBadgeProps } from "./TransactionStatsBadge";
+
 export { QuickReplies } from "./QuickReplies";
 export type { QuickRepliesProps, QuickRepliesRole } from "./QuickReplies";
 
 export { AwayBanner } from "./AwayBanner";
 export type { AwayBannerProps } from "./AwayBanner";
+
+export { SearchBar } from "./SearchBar";
+export type { SearchBarProps } from "./SearchBar";

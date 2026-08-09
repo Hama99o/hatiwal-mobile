@@ -1,0 +1,17 @@
+appId: com.hatiwal.app
+---
+# TASK-TX02 — Sold/Bought trust stats on the OWN profile stats row.
+#
+# buyer@hatiwal.test has bought_count >= 1 (seeded Transaction in
+# db/seeds/e2e.rb) — the "Items Bought" stat cell must be visible with a
+# non-zero value.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Me"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+
+# Buyer-mode stats row: Items Bought (non-zero, sourced from transactions)
+# and Saved Items (unaffected — always shown regardless of count).
+- assertVisible: "Items Bought"
+- assertVisible: "Saved Items"

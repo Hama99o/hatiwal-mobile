@@ -16,7 +16,6 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import {
   Sliders,
-  Search,
   X,
   LayoutGrid,
   List,
@@ -25,8 +24,8 @@ import {
 import type { BrowseViewMode } from "@/stores/browseViewMode.store";
 import { AnimatedPressable } from "@/lib/animation";
 
-import { Input } from "@/components/reusables/input";
 import { Text } from "@/components/reusables/text";
+import { SearchBar } from "@/components/common/SearchBar";
 import { CategoryChipRow } from "@/components/common/CategoryChipRow";
 import { SavedSearches } from "@/components/common/SavedSearches";
 
@@ -103,54 +102,17 @@ export function BrowseHeader({
             gap: 8,
           }}
         >
-          {/* Search input container */}
-          <View
-            style={{
-              flex: 1,
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              backgroundColor: colors.muted,
-              borderRadius: 12,
-              paddingHorizontal: 12,
-              gap: 8,
-              minHeight: 44,
-            }}
-          >
-            <Search size={16} color={colors.mutedForeground} />
-            <Input
-              value={search}
-              onChangeText={onSearchChange}
-              placeholder={t("browse.searchPlaceholder")}
-              returnKeyType="search"
-              style={{
-                flex: 1,
-                fontSize: 14,
-                borderWidth: 0,
-                backgroundColor: "transparent",
-                paddingHorizontal: 0,
-                paddingVertical: 0,
-                minHeight: 0,
-                textAlign: isRtl ? "right" : "left",
-              }}
-              placeholderTextColor={colors.mutedForeground}
-            />
-            {search.length > 0 && (
-              <Animated.View
-                entering={FadeIn.duration(180)}
-                exiting={FadeOut.duration(140)}
-              >
-                <AnimatedPressable
-                  onPress={() => onSearchChange("")}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("common.clear")}
-                  haptic
-                >
-                  <X size={16} color={colors.mutedForeground} />
-                </AnimatedPressable>
-              </Animated.View>
-            )}
-          </View>
+          {/* Search input — shared SearchBar (R15); debounce stays owned by
+              Browse.tsx's existing 400ms useEffect, so no debounceMs here. */}
+          <SearchBar
+            value={search}
+            onChangeText={onSearchChange}
+            placeholder={t("browse.searchPlaceholder")}
+            containerStyle={{ flex: 1 }}
+            testID="browse-search-bar"
+            inputTestID="browse-search-input"
+            clearTestID="browse-search-clear"
+          />
 
           {/* View mode toggle: grid / list */}
           <View

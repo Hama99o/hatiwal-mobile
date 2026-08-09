@@ -128,7 +128,12 @@
     "counteredAt": "مقابل قیمت",
     "counterSentToast": "مقابل قیمت وړاندیز ولیږل شو!",
     "quickChipsHint": "ګړندي مبلغونه",
-    "firmNotice": "د پلورونکي قیمت ثابت دی — وړاندیزونه نه منل کیږي"
+    "firmNotice": "د پلورونکي قیمت ثابت دی — وړاندیزونه نه منل کیږي",
+    "reserveAfterAcceptTitle": "دا اعلان خوندي کړئ؟",
+    "reserveAfterAcceptBody": "د {{buyerName}} لپاره په {{price}} کې خوندي کړئ؟",
+    "reserveAfterAcceptCta": "خوندي کول",
+    "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره خوندي شو",
+    "reserveAfterAcceptFailed": "اعلان خوندي نه شو. بیا هڅه وکړئ."
   },
   "block": {
     "blockUser": "کارونکی بند کړئ",
@@ -145,7 +150,10 @@
     "placeholder": "پیغامونه ولټوئ...",
     "matchCount": "{{current}} له {{total}} نه",
     "partialResults": "یوازې پورته شوي پیغامونو کې نتایج ښودل کیږي",
-    "noResults": "هیڅ پیغام ستاسو لټون سره سمون نه لري"
+    "noResults": "هیڅ پیغام ستاسو لټون سره سمون نه لري",
+    "noMatchTitle": "د \"{{term}}\" سره هیچ سمون ونه موندل شو",
+    "noMatchDescription": "د بل نوم، د اعلان سرلیک، یا پیغام سره هڅه وکړئ.",
+    "clearSearch": "لټون پاک کړئ"
   },
   "actions": {
     "markRead": "لوستل شوی نښه کړئ",

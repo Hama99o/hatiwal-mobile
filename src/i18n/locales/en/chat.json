@@ -128,7 +128,12 @@
     "counteredAt": "Counter Price",
     "counterSentToast": "Counter offer sent!",
     "quickChipsHint": "Quick amounts",
-    "firmNotice": "Seller's price is firm — offers not accepted"
+    "firmNotice": "Seller's price is firm — offers not accepted",
+    "reserveAfterAcceptTitle": "Reserve this listing?",
+    "reserveAfterAcceptBody": "Reserve for {{buyerName}} at {{price}}?",
+    "reserveAfterAcceptCta": "Reserve",
+    "reserveAfterAcceptSuccess": "Listing reserved for {{buyerName}}",
+    "reserveAfterAcceptFailed": "Could not reserve the listing. Please try again."
   },
   "block": {
     "blockUser": "Block User",
@@ -145,7 +150,10 @@
     "placeholder": "Search messages...",
     "matchCount": "{{current}} of {{total}}",
     "partialResults": "Showing results in loaded messages only",
-    "noResults": "No messages match your search"
+    "noResults": "No messages match your search",
+    "noMatchTitle": "No matches for \"{{term}}\"",
+    "noMatchDescription": "Try a different name, listing title, or message.",
+    "clearSearch": "Clear search"
   },
   "actions": {
     "markRead": "Mark as read",

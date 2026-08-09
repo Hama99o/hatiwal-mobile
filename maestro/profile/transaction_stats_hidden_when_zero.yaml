@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# TASK-TX02 — Sold/Bought stat is HIDDEN (not shown as "0") when the count
+# is zero. newbuyer@hatiwal.test is the deliberate no-history fixture
+# (db/seeds/e2e.rb) — bought_count is 0.
+
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome to Hatiwal"
+- tapOn: "Email"
+- inputText: "newbuyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- assertVisible: "Bazaar"
+- tapOn: "Me"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+
+# "Items Bought" stat cell must be entirely absent (not "0 Items Bought") —
+# only "Saved Items" shows in the buyer stats row.
+- assertNotVisible: "Items Bought"
+- assertVisible: "Saved Items"

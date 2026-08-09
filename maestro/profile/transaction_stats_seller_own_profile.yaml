@@ -1,0 +1,16 @@
+appId: com.hatiwal.app
+---
+# TASK-TX02 — Sold stat on the seller's own profile (seller mode).
+#
+# seller@hatiwal.test has sold_count >= 1 (seeded Transaction in
+# db/seeds/e2e.rb) — the "Sold" stat cell must be visible alongside "Active".
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "Me"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+
+# Seller-mode stats row: Sold (non-zero, sourced from transactions) and
+# Active (unaffected — always shown regardless of count).
+- assertVisible: "Sold"
+- assertVisible: "Active"
