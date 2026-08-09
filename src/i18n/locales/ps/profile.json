@@ -94,8 +94,8 @@
     "sales": "ټول پلور"
   },
   "transactionStats": {
-    "sold": "{{count}} پلورل شوي",
-    "bought": "{{count}} اخیستل شوي"
+    "sold": "{{value}} پلورل شوي",
+    "bought": "{{value}} اخیستل شوي"
   },
   "quickActions": {
     "postNew": "نوی اعلان پوسٹ کړئ",

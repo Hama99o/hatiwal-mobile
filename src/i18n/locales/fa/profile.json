@@ -94,8 +94,8 @@
     "sales": "کل فروش"
   },
   "transactionStats": {
-    "sold": "{{count}} فروخته شده",
-    "bought": "{{count}} خریداری شده"
+    "sold": "{{value}} فروخته شده",
+    "bought": "{{value}} خریداری شده"
   },
   "quickActions": {
     "postNew": "ارائه آگهی جدید",

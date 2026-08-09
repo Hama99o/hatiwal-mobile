@@ -9,11 +9,17 @@
  *  - Combined display: "N sold · N bought" when both are non-zero
  *  - Numbers are passed through useLocalization().formatNumber
  *  - The Handshake icon is rendered when the badge is visible
+ *  - TASK-TX02 review fix (MED): `count` stays the raw NUMBER (i18next's
+ *    reserved plural-selection key — passing a formatted string breaks
+ *    pluralization the moment a translator adds _one/_other variants); the
+ *    locale-formatted string for display goes through the separate `value`
+ *    key instead.
+ *  - RTL: row direction flips via useLocalization().isRtl
  *
  * All hooks mocked globally in src/__tests__/setup.ts:
  *   useTranslation  → t(key, opts) returns the key (with opts serialized for assertions)
  *   useColors       → fixed light-mode token map
- *   useLocalization → isRtl = false
+ *   useLocalization → isRtl = false (overridable per-test via mockUseLocalization)
  */
 
 import React from "react";
@@ -27,6 +33,11 @@ const mockT = jest.fn((key: string, opts?: Record<string, unknown>) => {
 
 const mockFormatNumber = jest.fn((value: number) => String(value));
 
+const mockUseLocalization = jest.fn(() => ({
+  isRtl: false,
+  formatNumber: (value: number) => mockFormatNumber(value),
+}));
+
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, opts?: Record<string, unknown>) => mockT(key, opts),
@@ -36,10 +47,7 @@ jest.mock("react-i18next", () => ({
 }));
 
 jest.mock("@/hooks/useLocalization", () => ({
-  useLocalization: () => ({
-    isRtl: false,
-    formatNumber: (value: number) => mockFormatNumber(value),
-  }),
+  useLocalization: () => mockUseLocalization(),
 }));
 
 jest.mock("lucide-react-native", () => ({
@@ -49,6 +57,11 @@ jest.mock("lucide-react-native", () => ({
 beforeEach(() => {
   mockT.mockClear();
   mockFormatNumber.mockClear();
+  mockUseLocalization.mockClear();
+  mockUseLocalization.mockImplementation(() => ({
+    isRtl: false,
+    formatNumber: (value: number) => mockFormatNumber(value),
+  }));
 });
 
 // ── Suppression: both zero / null / undefined ────────────────────────────────
@@ -80,7 +93,7 @@ describe("TransactionStatsBadge — suppressed states (renders null)", () => {
 describe("TransactionStatsBadge — partial display", () => {
   it("renders only the sold part when boughtCount is 0", () => {
     render(<TransactionStatsBadge soldCount={5} boughtCount={0} />);
-    expect(mockT).toHaveBeenCalledWith("profile.transactionStats.sold", { count: "5" });
+    expect(mockT).toHaveBeenCalledWith("profile.transactionStats.sold", { count: 5, value: "5" });
     expect(mockT).not.toHaveBeenCalledWith(
       "profile.transactionStats.bought",
       expect.anything()
@@ -89,7 +102,7 @@ describe("TransactionStatsBadge — partial display", () => {
 
   it("renders only the bought part when soldCount is 0", () => {
     render(<TransactionStatsBadge soldCount={0} boughtCount={3} />);
-    expect(mockT).toHaveBeenCalledWith("profile.transactionStats.bought", { count: "3" });
+    expect(mockT).toHaveBeenCalledWith("profile.transactionStats.bought", { count: 3, value: "3" });
     expect(mockT).not.toHaveBeenCalledWith("profile.transactionStats.sold", expect.anything());
   });
 
@@ -104,8 +117,8 @@ describe("TransactionStatsBadge — partial display", () => {
 describe("TransactionStatsBadge — combined display", () => {
   it("renders both parts when sold and bought are both non-zero", () => {
     render(<TransactionStatsBadge soldCount={5} boughtCount={2} />);
-    expect(mockT).toHaveBeenCalledWith("profile.transactionStats.sold", { count: "5" });
-    expect(mockT).toHaveBeenCalledWith("profile.transactionStats.bought", { count: "2" });
+    expect(mockT).toHaveBeenCalledWith("profile.transactionStats.sold", { count: 5, value: "5" });
+    expect(mockT).toHaveBeenCalledWith("profile.transactionStats.bought", { count: 2, value: "2" });
   });
 
   it("formats each count via useLocalization().formatNumber", () => {
@@ -126,5 +139,65 @@ describe("TransactionStatsBadge — minimum positive count (1)", () => {
   it("renders when soldCount is 1 (non-zero gate passes)", () => {
     const { toJSON } = render(<TransactionStatsBadge soldCount={1} boughtCount={0} />);
     expect(toJSON()).not.toBeNull();
+  });
+});
+
+// ── TASK-TX02 review fix (MED) — count stays numeric, value carries display ────
+
+describe("TransactionStatsBadge — count/value split (i18next plural-key regression)", () => {
+  it("passes the raw NUMBER (not the formatted string) as the reserved `count` key", () => {
+    render(<TransactionStatsBadge soldCount={1234} boughtCount={0} />);
+
+    const call = mockT.mock.calls.find(([key]) => key === "profile.transactionStats.sold");
+    expect(call).toBeDefined();
+    const opts = call?.[1] as { count: unknown; value: unknown };
+    expect(opts.count).toBe(1234);
+    expect(typeof opts.count).toBe("number");
+  });
+
+  it("passes the locale-formatted string separately as `value`", () => {
+    mockFormatNumber.mockImplementation((value: number) => `formatted-${value}`);
+
+    render(<TransactionStatsBadge soldCount={1234} boughtCount={7} />);
+
+    expect(mockT).toHaveBeenCalledWith("profile.transactionStats.sold", {
+      count: 1234,
+      value: "formatted-1234",
+    });
+    expect(mockT).toHaveBeenCalledWith("profile.transactionStats.bought", {
+      count: 7,
+      value: "formatted-7",
+    });
+  });
+});
+
+// ── RTL ────────────────────────────────────────────────────────────────────────
+
+describe("TransactionStatsBadge — RTL", () => {
+  it("flips row direction to row-reverse when isRtl is true", () => {
+    mockUseLocalization.mockImplementation(() => ({
+      isRtl: true,
+      formatNumber: (value: number) => mockFormatNumber(value),
+    }));
+
+    const { UNSAFE_getByType } = render(
+      <TransactionStatsBadge soldCount={5} boughtCount={0} />
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { View } = require("react-native");
+    const wrapper = UNSAFE_getByType(View);
+    expect(wrapper.props.style.flexDirection).toBe("row-reverse");
+  });
+
+  it("uses row (not row-reverse) when isRtl is false", () => {
+    const { UNSAFE_getByType } = render(
+      <TransactionStatsBadge soldCount={5} boughtCount={0} />
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { View } = require("react-native");
+    const wrapper = UNSAFE_getByType(View);
+    expect(wrapper.props.style.flexDirection).toBe("row");
   });
 });

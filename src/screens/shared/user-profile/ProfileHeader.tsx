@@ -133,10 +133,16 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
       </View>
 
       {/* TASK-TX02 — combined "Sold N · Bought N" trust signal, near the
-          member-since stat cell above. Renders null when both counts are 0. */}
-      <View style={{ paddingHorizontal: 4, marginBottom: 4 }}>
-        <TransactionStatsBadge soldCount={profile.soldCount} boughtCount={profile.boughtCount} />
-      </View>
+          member-since stat cell above. TransactionStatsBadge itself renders
+          null when both counts are 0, but this OUTER wrapper used to render
+          unconditionally regardless — an empty View with marginBottom: 4
+          still adds a stray 4px gap even with no visible content (review fix,
+          LOW). Only render the wrapper when there's something to show. */}
+      {(!!profile.soldCount || !!profile.boughtCount) && (
+        <View style={{ paddingHorizontal: 4, marginBottom: 4 }}>
+          <TransactionStatsBadge soldCount={profile.soldCount} boughtCount={profile.boughtCount} />
+        </View>
+      )}
 
       {/* Last-active recency label — quiet meta row; omitted when null */}
       {!!activeLabelText && (

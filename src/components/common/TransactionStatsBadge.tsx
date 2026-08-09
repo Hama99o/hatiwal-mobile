@@ -41,9 +41,20 @@ export function TransactionStatsBadge({ soldCount, boughtCount }: TransactionSta
   // Nothing to show yet — suppress entirely rather than a "0 sold · 0 bought" row.
   if (sold <= 0 && bought <= 0) return null;
 
+  // `count` is i18next's RESERVED interpolation key for plural-form selection
+  // (key_one / key_other / …) — it must stay the raw NUMBER or pluralization
+  // silently breaks the moment a translator adds plural variants (i18next
+  // resolves the plural rule via Number(count) internally). The
+  // locale-formatted string for DISPLAY goes through the separate `value`
+  // key instead; the translation strings interpolate {{value}}, not
+  // {{count}}. See profile.transactionStats.{sold,bought} in en/ps/fa.
   const parts: string[] = [];
-  if (sold > 0) parts.push(t("profile.transactionStats.sold", { count: formatNumber(sold) }));
-  if (bought > 0) parts.push(t("profile.transactionStats.bought", { count: formatNumber(bought) }));
+  if (sold > 0) {
+    parts.push(t("profile.transactionStats.sold", { count: sold, value: formatNumber(sold) }));
+  }
+  if (bought > 0) {
+    parts.push(t("profile.transactionStats.bought", { count: bought, value: formatNumber(bought) }));
+  }
   const label = parts.join(" · ");
 
   return (

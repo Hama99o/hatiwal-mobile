@@ -94,8 +94,8 @@
     "sales": "Total Sales"
   },
   "transactionStats": {
-    "sold": "{{count}} sold",
-    "bought": "{{count}} bought"
+    "sold": "{{value}} sold",
+    "bought": "{{value}} bought"
   },
   "quickActions": {
     "postNew": "Post New Item",
