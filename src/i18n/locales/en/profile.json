@@ -78,7 +78,9 @@
     },
     "sold": {
       "emptyTitle": "No sold items yet",
-      "emptyDescription": "Items this seller has sold will appear here."
+      "emptyDescription": "Items this seller has sold will appear here.",
+      "emptyTitleHidden": "No sold items showing right now",
+      "emptyDescriptionHidden": "This seller has completed sales, but the listings are no longer available to show here."
     },
     "activeToday": "Active today",
     "activeThisWeek": "Active this week",

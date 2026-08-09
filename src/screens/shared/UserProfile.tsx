@@ -47,6 +47,7 @@ import { usersAPI } from "@/api/users";
 import { listingsAPI, type Listing } from "@/api/listings";
 import { useCategories } from "@/hooks/useCategories";
 import { ListingFiltersBar } from "@/components/common/ListingFiltersBar";
+import { getSoldShowcaseEmptyState } from "@/utils/soldShowcaseEmptyState";
 
 // ─── Tab type ────────────────────────────────────────────────────────────────
 
@@ -306,6 +307,11 @@ export function UserProfileScreen() {
   const activeFeedId = `user-profile-active-${userId}-${debouncedSearch}-${categoryId}-${viewMode}`;
   const soldFeedId   = `user-profile-sold-${userId}`;
 
+  // TASK-TX02 review fix (MAJOR): don't let the Sold tab's empty state say
+  // "No sold items yet" when the trust badge above already shows a non-zero
+  // lifetime soldCount — see soldShowcaseEmptyState.ts for why they can differ.
+  const soldEmptyState = getSoldShowcaseEmptyState(profile.soldCount, t);
+
   // ── shared ListHeaderComponent ─────────────────────────────────────────────
   // Rendered at the top of whichever tab is active.
   const ListHeaderComponent = (
@@ -381,8 +387,8 @@ export function UserProfileScreen() {
             showStatus={true}
             skeletonCount={6}
             ListHeaderComponent={ListHeaderComponent}
-            emptyTitle={t("profile.userProfile.sold.emptyTitle")}
-            emptyDescription={t("profile.userProfile.sold.emptyDescription")}
+            emptyTitle={soldEmptyState.title}
+            emptyDescription={soldEmptyState.description}
             contentPaddingBottom={40}
           />
         )}
