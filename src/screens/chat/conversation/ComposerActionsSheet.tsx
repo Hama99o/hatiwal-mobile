@@ -11,8 +11,8 @@
  *
  * Rows, in order: Photo, File, Propose meetup, Make an offer (offer row only
  * when `canMakeOffer` is true — mirrors Conversation.tsx's `canOfferInThread`
- * matrix exactly: open conversation, listing exists, not deleted, not sold,
- * negotiable !== false).
+ * matrix exactly: open conversation, listing exists, not deleted, not
+ * reserved or sold (TASK-K729), negotiable !== false).
  *
  * iOS BLACK-SCREEN GUARD (do not skip): every row calls `onClose()` FIRST and
  * THEN invokes its handler — launching expo-image-picker / expo-document-picker
@@ -44,8 +44,9 @@ export interface ComposerActionsSheetProps {
   onMakeOffer: () => void;
   /**
    * Mirrors Conversation.tsx's `canOfferInThread`: true only on an open
-   * conversation about a listing that exists, isn't deleted, isn't sold, and
-   * is negotiable (negotiable !== false). Hides the offer row when false.
+   * conversation about a listing that exists, isn't deleted, isn't reserved
+   * or sold (TASK-K729), and is negotiable (negotiable !== false). Hides the
+   * offer row when false.
    */
   canMakeOffer: boolean;
   /** True while a photo or file upload is in flight — disables every row. */

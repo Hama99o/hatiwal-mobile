@@ -5,7 +5,7 @@
  *  1. Photo / File / Propose meetup rows always render.
  *  2. Make-an-offer row visibility mirrors Conversation.tsx's
  *     `canOfferInThread` matrix exactly (open + listing exists + not deleted
- *     + not sold + negotiable !== false).
+ *     + not reserved or sold (TASK-K729) + negotiable !== false).
  *  3. Every row closes the sheet BEFORE invoking its handler (iOS
  *     black-screen guard) — call-order assertions, not just "both called".
  *  4. Tapping the backdrop calls onClose without invoking any handler.
@@ -37,7 +37,7 @@ import { ComposerActionsSheet } from "../ComposerActionsSheet";
 
 // ── Fixture helpers ──────────────────────────────────────────────────────────
 
-/** Mirrors `canOfferInThread` in Conversation.tsx. */
+/** Mirrors `canOfferInThread` in Conversation.tsx (TASK-K729: reserved excluded too). */
 function canOfferInThread(params: {
   canSend: boolean;
   listing: { status: string; negotiable?: boolean } | null | undefined;
@@ -49,6 +49,7 @@ function canOfferInThread(params: {
     !!listing &&
     !listingDeleted &&
     listing.status !== "sold" &&
+    listing.status !== "reserved" &&
     listing.negotiable !== false
   );
 }
@@ -105,7 +106,8 @@ describe("ComposerActionsSheet — offer row visibility matrix", () => {
 
   it.each([
     ["open conversation + active + negotiable listing", { canSend: true, listing: ACTIVE }, true],
-    ["open conversation + reserved listing (only sold excluded)", { canSend: true, listing: RESERVED }, true],
+    // TASK-K729: reserved now hides the row too — ListingUnavailableNotice explains why.
+    ["open conversation + reserved listing", { canSend: true, listing: RESERVED }, false],
     ["closed conversation (canSend=false)", { canSend: false, listing: ACTIVE }, false],
     ["no listing on the conversation", { canSend: true, listing: null }, false],
     ["listing has been deleted", { canSend: true, listing: ACTIVE, listingDeleted: true }, false],

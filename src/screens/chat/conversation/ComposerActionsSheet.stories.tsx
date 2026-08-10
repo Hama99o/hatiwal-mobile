@@ -45,7 +45,7 @@ export const Default: Story = {
   render: () => <ComposerActionsSheetDemo />,
 };
 
-// Offer row shown — open conversation, listing active/reserved and negotiable
+// Offer row shown — open conversation, listing active and negotiable
 // (mirrors Conversation.tsx's canOfferInThread === true).
 export const OfferRowShown: Story = {
   args: {
@@ -59,9 +59,10 @@ export const OfferRowShown: Story = {
   },
 };
 
-// Offer row hidden — closed conversation, deleted/sold listing, or firm price
-// (mirrors Conversation.tsx's canOfferInThread === false). Photo/File/Meetup
-// rows still show — only the offer row is gated.
+// Offer row hidden — closed conversation, deleted/reserved/sold listing
+// (TASK-K729), or firm price (mirrors Conversation.tsx's
+// canOfferInThread === false). Photo/File/Meetup rows still show — only the
+// offer row is gated.
 export const OfferRowHidden: Story = {
   args: {
     visible: true,

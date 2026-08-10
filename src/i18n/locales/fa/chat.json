@@ -60,7 +60,16 @@
     "delivered": "تحویل داده شد",
     "emptyTitle": "هنوز پیامی وجود ندارد",
     "emptyDescription": "برای شروع گفتگو یک پیام ارسال کنید.",
-    "filePickerNotAvailable": "انتخاب فایل در دسترس نیست."
+    "filePickerNotAvailable": "انتخاب فایل در دسترس نیست.",
+    "unavailable": {
+      "reservedTitle": "آگهی رزرو شده",
+      "reservedBody": "این کالا برای خریدار دیگری رزرو شده است، بنابراین ارسال پیشنهاد جدید در اینجا دیگر ممکن نیست.",
+      "soldTitle": "آگهی فروخته شده",
+      "soldBody": "این کالا فروخته شده است، بنابراین ارسال پیشنهاد جدید در اینجا دیگر ممکن نیست.",
+      "browseSimilar": "مشاهده موارد مشابه در {{category}}",
+      "browseSimilarGeneric": "مشاهده آگهی‌های مشابه",
+      "moreFromSeller": "سایر آگهی‌های {{name}}"
+    }
   },
   "meetup": {
     "title": "پیشنهاد ملاقات",

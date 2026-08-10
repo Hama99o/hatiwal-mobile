@@ -76,7 +76,7 @@ import { MessageBubble } from "../conversation/MessageBubble";
 
 type MiniListing = { status: string; negotiable?: boolean } | null | undefined;
 
-/** Mirrors `canOfferInThread` in Conversation.tsx. */
+/** Mirrors `canOfferInThread` in Conversation.tsx (TASK-K729: reserved excluded too). */
 function canOfferInThread(params: {
   canSend: boolean;
   listing: MiniListing;
@@ -88,6 +88,7 @@ function canOfferInThread(params: {
     !!listing &&
     !listingDeleted &&
     listing.status !== "sold" &&
+    listing.status !== "reserved" &&
     listing.negotiable !== false
   );
 }
@@ -155,8 +156,10 @@ describe("canOfferInThread — composer button visibility matrix", () => {
     expect(canOfferInThread({ canSend: true, listing: { status: "active" } })).toBe(true);
   });
 
-  it("shows the button for a reserved listing (only sold is excluded)", () => {
-    expect(canOfferInThread({ canSend: true, listing: RESERVED })).toBe(true);
+  // TASK-K729: a reserved listing now hides the button too (the seller has
+  // already committed to a buyer) — ListingUnavailableNotice explains why.
+  it("hides the button for a reserved listing", () => {
+    expect(canOfferInThread({ canSend: true, listing: RESERVED })).toBe(false);
   });
 
   it("hides the button when the conversation is closed (canSend=false)", () => {
@@ -400,6 +403,12 @@ describe("ThreadOfferAffordance — composer button rendering", () => {
 
   it("does NOT render the button when the listing is sold", () => {
     render(<ThreadOfferAffordance listing={{ ...NEGOTIABLE_LISTING, status: "sold" }} canSend={true} />);
+    expect(screen.queryByTestId("thread-offer-button")).toBeNull();
+  });
+
+  // TASK-K729
+  it("does NOT render the button when the listing is reserved", () => {
+    render(<ThreadOfferAffordance listing={{ ...NEGOTIABLE_LISTING, status: "reserved" }} canSend={true} />);
     expect(screen.queryByTestId("thread-offer-button")).toBeNull();
   });
 

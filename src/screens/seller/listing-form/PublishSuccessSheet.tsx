@@ -27,7 +27,7 @@
  * translated in ps/fa instead of a hardcoded English JS template. RN's
  * `Share.share` opens the native sheet. No new share code.
  */
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { View, Modal, Pressable, Share, Platform, StyleSheet, ScrollView } from "react-native";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
@@ -39,10 +39,11 @@ import Animated, { ZoomIn } from "react-native-reanimated";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { PriceTag } from "@/components/common/PriceTag";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import { RemoteImage } from "@/components/common/RemoteImage";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
-import { useReduceMotion } from "@/lib/animation";
+import { triggerHaptic, useReduceMotion } from "@/lib/animation";
 import { resolveShareUrl } from "@/utils/shareUtils";
 import type { Listing } from "@/api/listings";
 
@@ -60,6 +61,19 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const reduceMotion = useReduceMotion();
+
+  // Design review fix (CYCLE-4): reward the seller with a success haptic the
+  // moment this sheet becomes visible — mirrors ReviewPromptSheet's own
+  // `triggerHaptic("success", ...)` on its confirmation step and
+  // BACKLOG.md's animation spec ("Trigger notificationAsync(Success) on
+  // successful listing publish"). Deliberately keyed to `visible` alone (not
+  // `listing`, which can be re-seeded by a background refetch while the
+  // sheet stays open) so it fires exactly once per open, never on every
+  // re-render.
+  useEffect(() => {
+    if (visible) triggerHaptic("success", reduceMotion);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   // ── Share — identical pattern to ListingDetail.handleShare, including the
   // localized `listing.share.body` i18n template (not a hardcoded JS string) ──
@@ -101,7 +115,11 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={onClose} />
+      {/* Design review fix: `overlay` is the "sold thumbnail strip" token —
+          `darkScrim` is the correct semi-transparent modal-backdrop token,
+          consistent with every other raw-Modal sheet in the project
+          (MeetupSheet, ListingForm's currency picker, etc). */}
+      <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={onClose} />
       <View
         style={[
           styles.sheet,
@@ -183,16 +201,23 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
                 style={[styles.thumb, styles.noPhotoThumb, { backgroundColor: colors.muted }]}
                 testID="publish-success-no-photo"
               >
-                <Camera size={18} color={colors.mutedForeground} />
+                <Camera size={22} color={colors.mutedForeground} />
               </View>
             )}
-            <View style={{ flex: 1, marginHorizontal: 10, minWidth: 0 }}>
-              <Text
-                style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, textAlign: isRtl ? "right" : "left" }}
-                numberOfLines={1}
-              >
-                {listing.title}
-              </Text>
+            <View style={{ flex: 1, marginHorizontal: 10, minWidth: 0, gap: 4 }}>
+              {/* Design review fix: a StatusBadge next to the title reassures
+                  the seller the listing is really live now, not just saved —
+                  the one fact this whole sheet exists to confirm. */}
+              <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6 }}>
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: colors.foreground, textAlign: isRtl ? "right" : "left", flexShrink: 1 }}
+                  numberOfLines={1}
+                >
+                  {listing.title}
+                </Text>
+                <StatusBadge status={listing.status} />
+              </View>
               {/* CYCLE-3 DR fix: "md" (17sp/700) — the price must outrank the
                   14sp/600 title on this summary row, matching every other
                   listing surface where price is the dominant text. */}
@@ -281,6 +306,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
   },
-  thumb: { width: 48, height: 48, borderRadius: 8 },
+  // Design review fix: 48px read as an afterthought next to a StatusBadge +
+  // PriceTag — 64px gives the cover photo the weight it deserves as the
+  // seller's proof-of-listing at the highest-intent moment in the app.
+  thumb: { width: 64, height: 64, borderRadius: 10 },
   noPhotoThumb: { alignItems: "center", justifyContent: "center" },
 });

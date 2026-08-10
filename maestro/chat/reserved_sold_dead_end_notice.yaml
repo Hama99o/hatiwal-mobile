@@ -1,0 +1,129 @@
+appId: com.hatiwal.app
+---
+# TASK-K729 — Chat thread dead end: explicit "item reserved/sold" notice
+# with a reason + a real next step, replacing the silently vanished
+# composer offer control.
+#
+# Reuses the same live seller-lifecycle-from-chat transition as
+# lifecycle_from_chat.yaml (Reserve / Mark Sold from the pinned
+# ListingHeader) so this flow doesn't depend on special seed data, then
+# switches to the buyer session on the SAME conversation to assert:
+#
+#   1. Active listing (baseline, before any transition): the "+" composer
+#      sheet still shows "Make an offer" and NO unavailable notice renders.
+#   2. Seller reserves the listing → buyer sees the reserved notice (title +
+#      body + Browse similar + More from seller actions) and the "+" sheet
+#      no longer offers "Make an offer".
+#   3. Seller marks it sold → buyer sees the sold notice instead, and the
+#      offer entry stays gone.
+#   4. Tapping "Browse similar" lands back on Bazaar (never a dead end).
+
+# ─── Baseline: buyer's view of the still-ACTIVE listing ──────────────────────
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "View Listing"
+# No reserved/sold recovery notice yet — the listing is still active
+- assertNotVisible:
+    id: "listing-unavailable-notice"
+# The composer's "+" sheet still offers "Make an offer" on an active listing
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "composer-action-offer"
+# Close the sheet without sending anything
+- tapOn:
+    id: "composer-actions-backdrop"
+- waitForAnimationToEnd
+
+# ─── Seller reserves the listing from the same chat thread ───────────────────
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Reserve"
+- tapOn: "Reserve"
+- waitForAnimationToEnd
+- assertVisible: "Who's buying this item?"
+- tapOn: "Sold to someone not on Hatiwal"
+- tapOn: "Confirm reserve"
+- waitForAnimationToEnd
+- assertVisible: "Listing marked as reserved"
+- assertVisible: "Reserved"
+
+# ─── Buyer reopens the SAME conversation — reserved notice + no offer entry ──
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible:
+    id: "listing-unavailable-notice"
+- assertVisible: "Item reserved"
+- assertVisible: ".*reserved for another buyer.*"
+- assertVisible:
+    id: "unavailable-browse-similar"
+- assertVisible:
+    id: "unavailable-more-from-seller"
+# The composer's "+" sheet no longer offers "Make an offer"
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: "composer-action-offer"
+- tapOn:
+    id: "composer-actions-backdrop"
+- waitForAnimationToEnd
+
+# ─── "Browse similar" always leads somewhere — never a dead end ──────────────
+
+- tapOn:
+    id: "unavailable-browse-similar"
+- waitForAnimationToEnd
+- assertVisible: "Bazaar"
+
+# ─── Seller marks the same listing sold ──────────────────────────────────────
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Mark Sold"
+- tapOn: "Mark Sold"
+- waitForAnimationToEnd
+- assertVisible: "Who bought this item?"
+- tapOn: "Sold to someone not on Hatiwal"
+- tapOn: "Confirm sold"
+- waitForAnimationToEnd
+- assertVisible: "Listing marked as sold"
+- assertVisible: "Sold"
+
+# ─── Buyer reopens the conversation — sold notice replaces reserved ──────────
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible:
+    id: "listing-unavailable-notice"
+- assertVisible: "Item sold"
+- assertNotVisible: "Item reserved"
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: "composer-action-offer"

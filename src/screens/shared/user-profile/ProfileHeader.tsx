@@ -157,8 +157,8 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
         >
           <Clock size={13} color={colors.mutedForeground} />
           <Text
+            className="text-xs"
             style={{
-              fontSize: 12,
               color: colors.mutedForeground,
               textAlign: isRtl ? "right" : "left",
             }}

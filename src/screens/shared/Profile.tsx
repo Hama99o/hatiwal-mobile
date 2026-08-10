@@ -110,46 +110,59 @@ export function ProfileStatsGrid({
 }: {
   stats: { label: string; value: string }[];
   /**
-   * Reserve this many fixed-width slots regardless of how many stats are
-   * actually populated. Callers that conditionally omit a stat (e.g. a
-   * "Sold"/"Bought" cell hidden when its count is 0 — TASK-TX02) MUST pass
-   * the grid's real slot count here; otherwise `flex: 1` re-distributes the
-   * remaining stat(s) across the whole row and a lone stat stretches to
-   * fill it — collapsing what should read as a balanced N-up grid into one
-   * oversized cell. Defaults to `stats.length` (no-op) for grids that always
-   * render a fixed-size array.
+   * Reserve this many fixed-width slots when there are already at least 2
+   * real stats to pad out to a wider grid (e.g. a future 3/4-up layout that
+   * only has 2 populated cells). Deliberately NOT applied when fewer than 2
+   * stats are populated — see the review-fix note below. Defaults to
+   * `stats.length` (no-op) for grids that always render a fixed-size array.
    */
   columns?: number;
 }) {
   const colors = useColors();
   const { isRtl } = useLocalization();
   const slotCount = columns ?? stats.length;
-  const fillerCount = Math.max(0, slotCount - stats.length);
+  // Review fix (TASK-TX02 — CR MED "hiding a 0 stat leaves an invisible
+  // filler" / DR MAJOR "only reserve fillers when stats.length>=2"): a
+  // previous version always padded up to `columns` with invisible filler
+  // `View`s, which is correct for a partially-filled multi-stat grid but
+  // actively WRONG for a single lone stat — the filler ate half the row's
+  // width, squeezing the one real number/label into the left/leading half
+  // instead of letting it read as centred across the full card. Only ever
+  // reserve fillers once there are already 2+ real stats to pad; a lone stat
+  // gets no filler, so its own `flex: 1` cell naturally spans (and centres
+  // within) the whole row.
+  const fillerCount = stats.length >= 2 ? Math.max(0, slotCount - stats.length) : 0;
 
   return (
     <SectionCard>
       <View style={{ flexDirection: isRtl ? "row-reverse" : "row", paddingVertical: 16 }}>
         {stats.map((stat, i) => (
-          <View
-            key={i}
-            style={{
-              flex: 1,
-              alignItems: "center",
-              paddingHorizontal: 12,
-              borderRightWidth: i < stats.length - 1 ? 1 : 0,
-              borderRightColor: colors.border,
-            }}
-          >
-            <Text className="text-xl font-bold" style={{ color: colors.primary, marginBottom: 4 }}>
-              {stat.value}
-            </Text>
-            <Text className="text-xs" style={{ color: colors.mutedForeground, textAlign: "center" }}>
-              {stat.label}
-            </Text>
-          </View>
+          <React.Fragment key={i}>
+            <View style={{ flex: 1, alignItems: "center", paddingHorizontal: 12 }}>
+              <Text className="text-xl font-bold" style={{ color: colors.primary, marginBottom: 4 }}>
+                {stat.value}
+              </Text>
+              <Text className="text-xs" style={{ color: colors.mutedForeground, textAlign: "center" }}>
+                {stat.label}
+              </Text>
+            </View>
+            {/* Review fix (CR MED — "borderRightWidth does not flip with
+                row-reverse"): a physical `borderRightWidth` stays on the
+                visual right regardless of layout direction, so under RTL
+                (row-reverse) the divider landed on the wrong side of each
+                cell. A dedicated 1px `View` sibling — same pattern as
+                ProfileHeader.tsx's StatCell divider — is reordered by
+                `flexDirection` along with everything else, so it always
+                renders BETWEEN two cells in both LTR and RTL. */}
+            {i < stats.length - 1 && (
+              <View style={{ width: 1, backgroundColor: colors.border }} testID="profile-stats-divider" />
+            )}
+          </React.Fragment>
         ))}
-        {/* Invisible filler slots — reserve the width a hidden stat would
-            have occupied so the visible stat(s) never stretch off-balance. */}
+        {/* Invisible filler slots — only reserved once 2+ real stats already
+            exist (see fillerCount above); reserves the width a hidden stat
+            would have occupied so a partially-filled multi-stat grid never
+            stretches off-balance. */}
         {Array.from({ length: fillerCount }).map((_, i) => (
           <View key={`filler-${i}`} style={{ flex: 1 }} testID="profile-stats-filler" />
         ))}
@@ -391,8 +404,10 @@ function ProfileContent({
   return (
     <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
       {/* columns=2 — this grid is always Sold/Bought + Active/Saved (TASK-TX02).
-          Fixing the slot count keeps the grid balanced even when the
-          Sold/Bought stat is hidden (count is 0) — see ProfileStatsGrid. */}
+          When the Sold/Bought stat is hidden (count is 0), `stats` drops to a
+          single entry and ProfileStatsGrid centres it across the full row
+          instead of reserving a filler slot for the other 2-up caller shape
+          (a partially-filled grid with 2+ real stats) — see ProfileStatsGrid. */}
       <ProfileStatsGrid stats={stats} columns={2} />
       <ProfileQuickActions user={user} isSeller={isSeller} />
       <PersonalInfoCard user={user} handleEdit={handleEdit} />

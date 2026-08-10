@@ -28,8 +28,15 @@ export default function MainLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, animation: stackAnimation }}>
       <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
-      <Stack.Screen name="listing/new" />
-      <Stack.Screen name="listing/edit/[id]" />
+      {/* TASK-J952 (design review fix): ListingForm's Android hardware-back
+          guard (BackHandler → onCancel's confirmAlert) has no iOS equivalent —
+          the native interactive swipe-back gesture bypasses React entirely and
+          would pop the screen straight away, silently discarding unsaved
+          title/price/photos. Disabling the gesture forces every exit through
+          ListingForm's own <BackButton> (wired to the same `onCancel`), so
+          the unsaved-changes confirm is never skippable on either platform. */}
+      <Stack.Screen name="listing/new" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="listing/edit/[id]" options={{ gestureEnabled: false }} />
       <Stack.Screen
         name="conversation/[id]"
         options={{ headerShown: false }}

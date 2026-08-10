@@ -44,6 +44,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { BackButton } from "@/components/common/BackButton";
 import { ListingHeader } from "./conversation/ListingHeader";
+import { ListingUnavailableNotice } from "./conversation/ListingUnavailableNotice";
 import { MessageBubble } from "./conversation/MessageBubble";
 import { DaySeparator } from "./conversation/DaySeparator";
 import { buildThreadRows, threadRowKey, type ThreadRow } from "./conversation/groupMessagesByDay";
@@ -914,15 +915,29 @@ export function ConversationScreen() {
   const canSend = !isClosed && !!currentConversationId;
   const isStartMode = !currentConversationId && !!listingId;
 
-  // TASK-C381: show the composer's offer button only on an open conversation
-  // about a listing that still exists, isn't sold, and is negotiable. Both
-  // roles may tap it — a seller opening one is a proactive discount.
+  // TASK-C381 / TASK-K729: show the composer's offer button only on an open
+  // conversation about a listing that still exists, isn't reserved or sold,
+  // and is negotiable. Both roles may tap it — a seller opening one is a
+  // proactive discount. Reserved is excluded (as well as sold) because once
+  // the seller has committed to a buyer, a NEW offer no longer makes sense —
+  // ListingUnavailableNotice below replaces the vanished control with an
+  // explicit reason + a real next step instead of a silent gap.
   const canOfferInThread =
     canSend &&
     !!conversation?.listing &&
     !conversation?.listingDeleted &&
     conversation.listing.status !== "sold" &&
+    conversation.listing.status !== "reserved" &&
     conversation.listing.negotiable !== false;
+
+  // TASK-K729: the buyer-facing reserved/sold recovery notice — never shown
+  // to the listing's own seller (isOwner), who already has the lifecycle
+  // controls in ListingHeader and the buyer info in SaleBuyerCard elsewhere.
+  const showUnavailableNotice =
+    !isOwner &&
+    !!conversation?.listing &&
+    !conversation.listingDeleted &&
+    (conversation.listing.status === "reserved" || conversation.listing.status === "sold");
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -1080,6 +1095,19 @@ export function ConversationScreen() {
               load(currentConversationId);
             }
           }}
+        />
+      )}
+
+      {/* TASK-K729: buyer-facing "item reserved/sold" recovery notice — replaces
+          the vanished composer offer control with an explicit reason plus a
+          real next step (Browse similar / More from seller) instead of a
+          silent dead end. Never shown to the listing's own seller. */}
+      {showUnavailableNotice && conversation?.listing && (
+        <ListingUnavailableNotice
+          status={conversation.listing.status as "reserved" | "sold"}
+          category={conversation.listing.category}
+          sellerId={conversation.seller?.id}
+          sellerName={conversation.seller?.name}
         />
       )}
 

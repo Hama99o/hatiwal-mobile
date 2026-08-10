@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, MoreVertical } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, MoreVertical, PackageCheck } from "lucide-react-native";
 import * as Linking from "expo-linking";
 import { toast } from "sonner-native";
 
@@ -387,8 +387,23 @@ export function UserProfileScreen() {
             showStatus={true}
             skeletonCount={6}
             ListHeaderComponent={ListHeaderComponent}
+            // Review fix (TASK-TX02, DR MED — "the Sold tab needs emptyIcon
+            // and emptyAction"): matches the icon+action treatment every
+            // other ListingFeed empty state in the app already gets (e.g.
+            // MyListings.tsx). The action only makes sense on the seller's
+            // OWN empty Sold tab — a buyer viewing a stranger's profile has
+            // nothing to do about it, so it's omitted when `!isMe`.
+            emptyIcon={PackageCheck}
             emptyTitle={soldEmptyState.title}
             emptyDescription={soldEmptyState.description}
+            emptyAction={
+              isMe
+                ? {
+                    label: t("profile.quickActions.myListings"),
+                    onPress: () => router.push("/(main)/(tabs)/my-listings"),
+                  }
+                : undefined
+            }
             contentPaddingBottom={40}
           />
         )}
@@ -468,8 +483,10 @@ function TabPill({ label, active, onPress, colors }: TabPillProps) {
       onPress={onPress}
       style={{
         flex: 1,
+        minHeight: 44,
         paddingVertical: 8,
         alignItems: "center",
+        justifyContent: "center",
         borderRadius: 8,
         backgroundColor: active ? colors.card : "transparent",
         // Subtle shadow when active so the pill appears raised
@@ -511,6 +528,10 @@ interface HeaderBarProps {
 
 function HeaderBar({ title, isRtl, colors, onBack, rightAction }: HeaderBarProps) {
   const insets = useSafeAreaInsets();
+  // Review fix (TASK-TX02, DR LOW — "ChevronRight in RTL"): the back chevron
+  // must mirror direction under RTL — pointing left is a leading-edge (back)
+  // affordance in LTR, but the leading edge is on the RIGHT under ps/fa.
+  const BackIcon = isRtl ? ChevronRight : ChevronLeft;
   return (
     <View
       style={{
@@ -526,7 +547,7 @@ function HeaderBar({ title, isRtl, colors, onBack, rightAction }: HeaderBarProps
       }}
     >
       <Pressable onPress={onBack} hitSlop={16} accessibilityRole="button">
-        <ChevronLeft size={24} color={colors.foreground} />
+        <BackIcon size={24} color={colors.foreground} />
       </Pressable>
       <Text
         style={{

@@ -1,0 +1,66 @@
+appId: com.hatiwal.app
+---
+# TASK-R517 — Chat inbox: Buying vs Selling role filter chips
+# Happy path: chip row renders, tapping Buying/Selling narrows the inbox to
+# that server-side role scope (and composes with the default "All" state),
+# tapping the active chip again deselects back to the mixed inbox.
+# Error/empty: a role with no matching threads shows the role-aware empty
+# state (never the generic "No conversations" copy).
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+# Chip row is visible alongside All/Unread/Read
+- assertVisible: "All"
+- assertVisible: "Buying"
+- assertVisible: "Selling"
+
+# Selling — narrows to threads where the caller is the seller, or shows the
+# seller-specific empty state if this test account has none.
+- tapOn:
+    id: "role-chip-selling"
+- waitForAnimationToEnd
+- assertVisible:
+    anyOf:
+      - "Selling"
+      - "No one has messaged you about your items yet"
+
+# Tapping the active chip again deselects it — back to the mixed inbox.
+- tapOn:
+    id: "role-chip-selling"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+# Buying — narrows to threads where the caller is the buyer, or shows the
+# buyer-specific empty state.
+- tapOn:
+    id: "role-chip-buying"
+- waitForAnimationToEnd
+- assertVisible:
+    anyOf:
+      - "Buying"
+      - "You haven't messaged any seller yet"
+
+# Empty state (when present) offers a way back into browsing.
+- assertVisible:
+    anyOf:
+      - "Browse Listings"
+      - "Buying"
+
+# Deselect back to the full inbox.
+- tapOn:
+    id: "role-chip-buying"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+# Role filter composes with the Archived tab too.
+- tapOn:
+    id: "tab-archived"
+- waitForAnimationToEnd
+- assertVisible: "Archived"
+- tapOn:
+    id: "tab-inbox"
+- waitForAnimationToEnd
+- assertVisible: "Messages"

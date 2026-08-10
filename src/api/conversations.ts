@@ -59,6 +59,18 @@ export interface Conversation {
      * false — "Firm price" notice shown; offer entry point hidden.
      */
     negotiable?: boolean;
+    /**
+     * TASK-K729 — the listing's category, so the buyer-facing reserved/sold
+     * recovery notice can offer a "Browse similar in {category}" CTA
+     * (pre-filters Browse by category id) instead of a dead end.
+     */
+    category?: {
+      id: number;
+      nameEn: string;
+      namePs?: string | null;
+      nameFa?: string | null;
+      slug?: string;
+    } | null;
   } | null;
   buyer?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
   seller?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };

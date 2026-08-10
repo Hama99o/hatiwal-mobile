@@ -2,12 +2,20 @@
  * ProfileStatsGrid unit tests (TASK-TX02 review fix)
  *
  * Regression covered: the own-profile stats row conditionally omits its
- * Sold/Bought cell when the count is 0 (Profile.tsx#ProfileContent). Before
- * this fix, `flex: 1` re-distributed the remaining stat(s) across the WHOLE
- * row whenever an item was omitted from the `stats` array, so a single
- * remaining stat stretched to fill a row meant to show a balanced 2-up
- * grid. Passing a fixed `columns` count now reserves an invisible filler
- * slot instead, so the grid never collapses to one oversized cell.
+ * Sold/Bought cell when the count is 0 (Profile.tsx#ProfileContent). An
+ * earlier version always padded the row with an invisible filler `View` up
+ * to `columns`, which is correct for a partially-filled MULTI-stat grid but
+ * wrong for a single lone stat — the filler ate half the row, squeezing the
+ * one real stat into the leading half instead of letting it centre across
+ * the whole card (CR MED "render the 0 or centre a lone stat" / DR MAJOR
+ * "only reserve fillers when stats.length>=2"). Fillers are now only
+ * reserved once there are already 2+ real stats to pad; a lone stat's own
+ * `flex: 1` cell spans (and centres within) the full row instead.
+ *
+ * Also covers the CR MED "borderRightWidth does not flip with row-reverse"
+ * fix: dividers between cells are now dedicated 1px `View` siblings (reset by
+ * flexDirection along with everything else) instead of a physical
+ * `borderRightWidth`, which stayed on the visual right under RTL.
  *
  * All hooks (useColors, useLocalization) are mocked globally in
  * src/__tests__/setup.ts.
@@ -34,10 +42,26 @@ describe("ProfileStatsGrid — columns prop (grid-collapse fix)", () => {
     expect(screen.getByText("Active")).toBeTruthy();
   });
 
-  it("reserves an invisible filler slot when a conditional stat is hidden (count 0)", () => {
+  it("renders a 1px divider between two real stats (not a filler)", () => {
+    render(
+      <ProfileStatsGrid
+        stats={[
+          { label: "Sold", value: "3" },
+          { label: "Active", value: "5" },
+        ]}
+        columns={2}
+      />
+    );
+
+    expect(screen.queryAllByTestId("profile-stats-divider")).toHaveLength(1);
+    expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(0);
+  });
+
+  it("reserves NO filler slot when a conditional stat is hidden (count 0) — the lone stat centres instead", () => {
     // Mirrors ProfileContent: the "Sold" cell is omitted entirely (not
-    // rendered as "0"), leaving only "Active" — columns=2 must still
-    // reserve 2 total slots so "Active" does not stretch full-width.
+    // rendered as "0"), leaving only "Active". Fillers are only reserved
+    // once 2+ real stats exist, so a lone stat's flex:1 cell spans (and
+    // centres within) the full row instead of being squeezed into half of it.
     render(
       <ProfileStatsGrid
         stats={[ { label: "Active", value: "5" } ]}
@@ -45,7 +69,7 @@ describe("ProfileStatsGrid — columns prop (grid-collapse fix)", () => {
       />
     );
 
-    expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(1);
+    expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(0);
     expect(screen.getByText("Active")).toBeTruthy();
     expect(screen.queryByText("Sold")).toBeNull();
   });
@@ -56,9 +80,24 @@ describe("ProfileStatsGrid — columns prop (grid-collapse fix)", () => {
     expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(0);
   });
 
-  it("reserves 2 filler slots for an empty stats array with columns=2", () => {
+  it("reserves no filler slots for an empty stats array even with columns=2 (fewer than 2 real stats)", () => {
     render(<ProfileStatsGrid stats={[]} columns={2} />);
 
+    expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(0);
+  });
+
+  it("pads a partially-filled MULTI-stat grid (2+ real stats) up to columns", () => {
+    render(
+      <ProfileStatsGrid
+        stats={[
+          { label: "Sold", value: "3" },
+          { label: "Active", value: "5" },
+        ]}
+        columns={4}
+      />
+    );
+
     expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(2);
+    expect(screen.queryAllByTestId("profile-stats-divider")).toHaveLength(1);
   });
 });

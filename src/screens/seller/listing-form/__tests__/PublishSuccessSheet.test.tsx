@@ -21,6 +21,10 @@
  *  - Content is wrapped in a ScrollView so it never clips at large font
  *    sizes (the sheet also caps itself with `maxHeight`).
  *  - RTL layout (isRtl) does not throw.
+ *  - A success haptic fires exactly once per open (design review fix,
+ *    CYCLE-4) — not at all while closed, and not again on a re-render that
+ *    keeps `visible` true (e.g. the listing object being re-seeded by a
+ *    background refetch).
  *
  * useLocalization/useColors are mocked globally (setup.ts). react-i18next is
  * re-mocked locally (below) to add real interpolation for `listing.share.body`.
@@ -29,6 +33,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { Share, ScrollView } from "react-native";
+import * as Haptics from "expo-haptics";
 import type { Listing } from "@/api/listings";
 
 // ─── Additional mocks (on top of the global setup.ts mocks) ───────────────────
@@ -310,5 +315,34 @@ describe("PublishSuccessSheet — RTL locale", () => {
     expect(() => render(<PublishSuccessSheet {...buildProps()} />)).not.toThrow();
 
     jest.restoreAllMocks();
+  });
+});
+
+// ─── Success haptic (design review fix, CYCLE-4) ──────────────────────────────
+
+describe("PublishSuccessSheet — success haptic", () => {
+  it("fires a success haptic when the sheet opens", () => {
+    render(<PublishSuccessSheet {...buildProps({ visible: true })} />);
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith(
+      Haptics.NotificationFeedbackType.Success
+    );
+  });
+
+  it("does not fire a haptic while closed", () => {
+    render(<PublishSuccessSheet {...buildProps({ visible: false })} />);
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
+  });
+
+  it("fires the haptic again on a fresh open, not on every re-render", () => {
+    const { rerender } = render(<PublishSuccessSheet {...buildProps({ visible: false })} />);
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
+
+    rerender(<PublishSuccessSheet {...buildProps({ visible: true })} />);
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
+
+    // Same listing object re-seeded (identity change) while still visible —
+    // must NOT re-fire.
+    rerender(<PublishSuccessSheet {...buildProps({ visible: true, listing: makeListing() })} />);
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1);
   });
 });

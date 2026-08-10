@@ -67,7 +67,7 @@ export function TransactionStatsBadge({ soldCount, boughtCount }: TransactionSta
       }}
     >
       <Handshake size={12} color={colors.mutedForeground} />
-      <Text style={{ fontSize: 12, color: colors.mutedForeground }}>{label}</Text>
+      <Text className="text-xs" style={{ color: colors.mutedForeground }}>{label}</Text>
     </View>
   );
 }

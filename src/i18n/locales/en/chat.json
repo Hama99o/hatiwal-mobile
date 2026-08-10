@@ -60,7 +60,16 @@
     "delivered": "Delivered",
     "emptyTitle": "No messages yet",
     "emptyDescription": "Send a message to start the conversation.",
-    "filePickerNotAvailable": "File picker not available. Run: npm install expo-document-picker"
+    "filePickerNotAvailable": "File picker not available. Run: npm install expo-document-picker",
+    "unavailable": {
+      "reservedTitle": "Item reserved",
+      "reservedBody": "This item has been reserved for another buyer, so a new offer can no longer be sent here.",
+      "soldTitle": "Item sold",
+      "soldBody": "This item has been sold, so a new offer can no longer be sent here.",
+      "browseSimilar": "Browse similar in {{category}}",
+      "browseSimilarGeneric": "Browse similar listings",
+      "moreFromSeller": "More from {{name}}"
+    }
   },
   "meetup": {
     "title": "Propose a Meetup",

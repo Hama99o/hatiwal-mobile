@@ -60,7 +60,16 @@
     "delivered": "رسیدلی",
     "emptyTitle": "لاهم هیڅ پیغام نشته",
     "emptyDescription": "د خبرو پیل لپاره پیغام ولیږئ.",
-    "filePickerNotAvailable": "د فایل انتخاب وړتیا شتون نلري."
+    "filePickerNotAvailable": "د فایل انتخاب وړتیا شتون نلري.",
+    "unavailable": {
+      "reservedTitle": "توکی خوندي شوی",
+      "reservedBody": "دا توکی د بل پیرودونکي لپاره خوندي شوی، له همدې امله نور وړاندیز دلته نشي لیږل کیدی.",
+      "soldTitle": "توکی خرڅ شوی",
+      "soldBody": "دا توکی خرڅ شوی، له همدې امله نور وړاندیز دلته نشي لیږل کیدی.",
+      "browseSimilar": "په {{category}} کې ورته توکي وګورئ",
+      "browseSimilarGeneric": "ورته توکي وګورئ",
+      "moreFromSeller": "د {{name}} نور توکي"
+    }
   },
   "meetup": {
     "title": "د لیدنې وړاندیز",

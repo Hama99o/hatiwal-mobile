@@ -36,6 +36,8 @@ import {
   MapPin,
   MoreHorizontal,
   ChevronRight,
+  WifiOff,
+  PackageX,
 } from "lucide-react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useReduceMotion } from "@/lib/animation";
@@ -115,10 +117,13 @@ export default function MyListingDetailScreen() {
   }, [published]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Data fetching ──────────────────────────────────────────────────────────
-  // `isError` is intentionally NOT destructured — see the CYCLE-3 CR fix
-  // comment below on the `!listing` guard for why the error state must
-  // never blank an already-loaded screen.
-  const { data: listing, isLoading, refetch } = useQuery({
+  // `isError` IS destructured (design review fix, CYCLE-4) — but see the
+  // `!listing` guard below: it drives COPY ONLY, never gating. React Query
+  // keeps the last-known-good `data` around when a BACKGROUND refetch fails
+  // (focus-refetch, a flaky blip while the PublishSuccessSheet is open),
+  // so `isError` can be true while `listing` still holds real data — the
+  // screen must keep showing that real data, never blank it.
+  const { data: listing, isLoading, isError, refetch } = useQuery({
     queryKey: [MY_LISTING_QK, id],
     queryFn: () => listingsAPI.getMyListing(Number(id)),
     enabled: !!id,
@@ -191,27 +196,30 @@ export default function MyListingDetailScreen() {
 
   if (isLoading) return <DetailSkeleton />;
 
-  // CYCLE-3 CR fix: guard on `!listing` alone, never `isError`. React Query
-  // keeps the last-known-good `data` around when a BACKGROUND refetch fails
-  // (e.g. the focus-refetch above, or a flaky network blip while the
-  // PublishSuccessSheet is open) — `isError` flips true but `listing` still
-  // holds the real data. The old `isError || !listing` guard threw that
-  // still-valid listing away and replaced the whole screen (sheet included)
-  // with the "not found" fallback. Only show the fallback when there truly
-  // is no listing data at all (first load failed, or a real 404).
+  // CYCLE-3 CR fix (gating), CYCLE-4 design review fix (copy): guard on
+  // `!listing` alone, never `isError` — the old `isError || !listing` guard
+  // threw an already-loaded listing away and replaced the whole screen
+  // (sheet included) with the fallback on any background-refetch blip. Only
+  // show the fallback when there truly is no listing data at all (first
+  // load failed, or a real 404).
+  //
+  // `isError` DOES drive the fallback's COPY though: on a first-load failure
+  // we can't tell a real 404 apart from an offline/network error, so an
+  // `isError` first load must never claim the listing "does not exist" (a
+  // seller who is simply offline was previously told exactly that) — it
+  // gets the same generic connectivity copy every other screen uses
+  // (WifiOff + common.errorTitle/errorDescription). A confirmed empty
+  // result with no error (the rarer case — e.g. a stale deep link to a
+  // deleted listing) keeps the "not found" copy.
   if (!listing) {
     return (
-      <ScreenContainer
-        scrollable={false}
-        padded={false}
-        style={{ alignItems: "center", justifyContent: "center", gap: 16 }}
-      >
-        <Text style={{ color: colors.mutedForeground, fontSize: 16, textAlign: "center" }}>
-          {t("listing.ownerDetail.notFound")}
-        </Text>
-        <Button variant="outline" onPress={() => refetch()}>
-          <Text>{t("common.retry")}</Text>
-        </Button>
+      <ScreenContainer scrollable={false} padded={false}>
+        <EmptyState
+          icon={isError ? WifiOff : PackageX}
+          title={isError ? t("common.errorTitle") : t("listing.ownerDetail.notFound")}
+          description={isError ? t("common.errorDescription") : undefined}
+          action={{ label: t("common.retry"), onPress: () => refetch() }}
+        />
       </ScreenContainer>
     );
   }
