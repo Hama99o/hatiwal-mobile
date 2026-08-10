@@ -16,6 +16,9 @@
  *     seller's public profile.
  *  6. RTL — renders without throwing and flips row direction when isRtl=true.
  *  7. The notice always renders the shared StatusBadge (dedup fix).
+ *  8. "Rate {seller}" CTA (TASK-K729 HIGH follow-up) — only for sold +
+ *     viewerIsSaleBuyer + a transactionId, hidden once already reviewed,
+ *     opens the REV2 ReviewPromptSheet with the viewer's own transactionId.
  */
 
 import React from "react";
@@ -26,6 +29,15 @@ import { render, screen, fireEvent } from "@testing-library/react-native";
 jest.mock("lucide-react-native", () => ({
   Search: "Search",
   Store: "Store",
+  Star: "Star",
+}));
+
+// REV2 sheet — its own component has its own tests (ReviewPromptSheet.test.tsx).
+// A jest.fn() factory lets these tests assert exactly which props it's opened
+// with (transactionId / callerRole / counterpartyName) without pulling in its
+// react-query mutation / http chain.
+jest.mock("@/components/common/ReviewPromptSheet", () => ({
+  ReviewPromptSheet: jest.fn(() => null),
 }));
 
 // useCategoryName is a thin wrapper around localizedCategoryName — stub it to
@@ -43,6 +55,7 @@ jest.mock("@/hooks/useLocalization", () => ({
 
 // Import AFTER mocks
 import { ListingUnavailableNotice } from "../ListingUnavailableNotice";
+import { ReviewPromptSheet } from "@/components/common/ReviewPromptSheet";
 
 const CATEGORY = { id: 3, nameEn: "Electronics", namePs: "برقی توکي", nameFa: "برقیات", slug: "electronics" };
 
@@ -245,5 +258,77 @@ describe("ListingUnavailableNotice — shared StatusBadge", () => {
   it("renders the sold status label via StatusBadge too", () => {
     render(<ListingUnavailableNotice status="sold" />);
     expect(screen.getByText("listing.status.sold")).toBeTruthy();
+  });
+});
+
+// ── 8. "Rate {seller}" CTA (TASK-K729 HIGH review follow-up) ──────────────────
+
+describe("ListingUnavailableNotice — Rate seller CTA (sold + viewerIsSaleBuyer)", () => {
+  it("renders the Rate seller CTA when sold + viewerIsSaleBuyer + a transactionId are all present", () => {
+    render(
+      <ListingUnavailableNotice
+        status="sold"
+        viewerIsSaleBuyer
+        transactionId={42}
+        sellerId={9}
+        sellerName="Ahmad Karimi"
+      />
+    );
+    expect(screen.getByTestId("unavailable-rate-seller")).toBeTruthy();
+    expect(screen.getByText("chat.thread.unavailable.rateSeller")).toBeTruthy();
+  });
+
+  it("does NOT render the Rate seller CTA for status='reserved' even when viewerIsSaleBuyer + transactionId are set — the deal isn't done yet", () => {
+    render(<ListingUnavailableNotice status="reserved" viewerIsSaleBuyer transactionId={42} />);
+    expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
+  });
+
+  it("does NOT render the Rate seller CTA when transactionId is missing", () => {
+    render(<ListingUnavailableNotice status="sold" viewerIsSaleBuyer />);
+    expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
+  });
+
+  it("does NOT render the Rate seller CTA once the viewer has already reviewed the sale", () => {
+    render(
+      <ListingUnavailableNotice
+        status="sold"
+        viewerIsSaleBuyer
+        transactionId={42}
+        hasReviewedSale
+      />
+    );
+    expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
+  });
+
+  it("does NOT render the Rate seller CTA in the generic (non-buyer) case", () => {
+    render(<ListingUnavailableNotice status="sold" transactionId={42} />);
+    expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
+  });
+
+  it("opens the REV2 ReviewPromptSheet with the viewer's own transactionId and callerRole='buyer' when tapped", () => {
+    render(
+      <ListingUnavailableNotice
+        status="sold"
+        viewerIsSaleBuyer
+        transactionId={42}
+        sellerId={9}
+        sellerName="Ahmad Karimi"
+        sellerAvatarUrl="https://example.com/avatar.jpg"
+      />
+    );
+
+    // Closed until tapped.
+    expect((ReviewPromptSheet as jest.Mock).mock.calls.at(-1)?.[0]).toMatchObject({ visible: false });
+
+    fireEvent.press(screen.getByTestId("unavailable-rate-seller"));
+
+    const lastProps = (ReviewPromptSheet as jest.Mock).mock.calls.at(-1)?.[0];
+    expect(lastProps).toMatchObject({
+      visible: true,
+      transactionId: 42,
+      callerRole: "buyer",
+      counterpartyName: "Ahmad Karimi",
+      counterpartyAvatarUrl: "https://example.com/avatar.jpg",
+    });
   });
 });

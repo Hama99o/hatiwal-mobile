@@ -3,8 +3,8 @@ appId: com.hatiwal.app
 # Seller response-rate badge — TASK-N805
 # Verifies the "Usually responds within …" trust signal AND the
 # response-rate percentage appear on:
-#   1. The public seller profile page (UserProfile screen — SellerProfile.tsx
-#      was deleted; TASK-TX02 review fix keeps this comment in sync)
+#   1. The public seller profile page (src/screens/shared/UserProfile.tsx —
+#      the standalone SellerProfile.tsx screen was deleted as a duplicate)
 #   2. The seller card inside a listing detail page (ListingDetail screen)
 #
 # CI seed guarantee: db/seeds/e2e.rb seeds seller@hatiwal.test with >=6

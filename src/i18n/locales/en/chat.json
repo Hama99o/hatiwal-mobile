@@ -72,7 +72,9 @@
       "soldToYouBody": "This deal is complete. Meet the seller to receive your item, then leave them a review.",
       "browseSimilar": "Browse similar in {{category}}",
       "browseSimilarGeneric": "Browse similar listings",
-      "viewTheirListings": "View their listings"
+      "viewTheirListings": "View their listings",
+      "rateSeller": "Rate {{name}}",
+      "rateSellerGenericName": "the seller"
     }
   },
   "meetup": {

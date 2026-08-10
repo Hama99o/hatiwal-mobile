@@ -157,7 +157,11 @@ export function FirstMessageSheet({
               >
                 {listingTitle}
               </Text>
-              <PriceTag price={listingPrice} currency={listingCurrency} size="sm" />
+              {/* Design review fix (TASK-F513): "md" (17sp/700) — the price
+                  must outrank the 13sp/600 title on this listing-reference
+                  row, mirroring PublishSuccessSheet's summary-row treatment
+                  where price is the dominant text on every listing surface. */}
+              <PriceTag price={listingPrice} currency={listingCurrency} size="md" />
             </View>
           </View>
 

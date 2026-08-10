@@ -1,19 +1,16 @@
 import { http, BASE_URL } from "./http";
 import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
 import { secureStorage } from "@/utils/secure-storage";
-import type { LocalizedNames } from "./categories";
+import type { EmbeddedCategory } from "./categories";
 
 /**
- * The listing's category as embedded on a conversation payload — a
- * `LocalizedNames` plus id/slug, the exact shape `CategorySerializer` renders
- * (TASK-K729 dedup fix: was previously its own 4th hand-copied inline type,
- * duplicating this same shape in ListingUnavailableNotice.tsx and the
- * `Category` interface in ./categories.ts).
+ * The listing's category as embedded on a conversation payload.
+ * TASK-K729 (review fix, MEDIUM): re-exported alias — the actual shape is the
+ * shared `EmbeddedCategory` (see ./categories.ts), reused verbatim by
+ * ListingUnavailableNotice.tsx instead of each declaring its own identical
+ * type.
  */
-export type ConversationListingCategory = LocalizedNames & {
-  id: number;
-  slug?: string;
-};
+export type ConversationListingCategory = EmbeddedCategory;
 
 export interface Message {
   id: number;
@@ -91,6 +88,21 @@ export interface Conversation {
      * Transaction row at all) — treat as false.
      */
     viewerIsSaleBuyer?: boolean;
+    /**
+     * TASK-K729 (review fix, HIGH follow-up) — the viewer's OWN transaction
+     * id, populated ONLY when `viewerIsSaleBuyer` is true (never leaks
+     * another buyer's transaction id). Lets the "You bought this item"
+     * notice open the REV2 `ReviewPromptSheet` with a real transactionId
+     * instead of the positive close having no next step.
+     */
+    viewerSaleTransactionId?: number | null;
+    /**
+     * Whether the viewer has already left their review on this sale — only
+     * meaningful when `viewerIsSaleBuyer` is true. Lets the client hide the
+     * "Rate the seller" CTA once done instead of re-offering a review the
+     * server would 422 on as a duplicate.
+     */
+    viewerHasReviewedSale?: boolean | null;
   } | null;
   buyer?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
   seller?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };

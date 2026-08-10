@@ -26,6 +26,23 @@ export interface LocalizedNames {
 }
 
 /**
+ * The category shape `CategorySerializer.render_as_hash` renders when a
+ * category is EMBEDDED on another payload (a conversation's pinned listing,
+ * the chat thread's reserved/sold recovery notice) rather than fetched from
+ * `/categories` directly — a `LocalizedNames` plus `id`/`slug`, missing the
+ * full `Category`'s `icon`/`position`/`subcategories`/etc.
+ *
+ * TASK-K729 (review fix, MEDIUM): ONE shared type instead of two identical
+ * hand-declared aliases (`ConversationListingCategory` in api/conversations.ts
+ * and `ListingUnavailableNoticeCategory` in ListingUnavailableNotice.tsx) —
+ * both now import this instead of redeclaring it.
+ */
+export type EmbeddedCategory = LocalizedNames & {
+  id: number;
+  slug?: string;
+};
+
+/**
  * Pick a category's name for the given language, falling back to English when
  * the translated name is missing or empty. Single source of truth — replaces
  * the `lang === 'ps' ? namePs : ...` ternary that was copied across screens.

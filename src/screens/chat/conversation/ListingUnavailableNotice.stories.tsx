@@ -92,6 +92,31 @@ export const SoldToYou: Story = {
   },
 };
 
+// TASK-K729 (HIGH review follow-up) — the real next step for "sold + you
+// bought this": a "Rate {seller}" CTA opening the REV2 review prompt.
+export const SoldToYouCanRate: Story = {
+  args: {
+    status: "sold",
+    viewerIsSaleBuyer: true,
+    transactionId: 501,
+    sellerId: 42,
+    sellerName: "Ahmad Karimi",
+    sellerVerified: true,
+  },
+};
+
+// Already reviewed — the CTA is hidden (the server would 422 on a duplicate).
+export const SoldToYouAlreadyReviewed: Story = {
+  args: {
+    status: "sold",
+    viewerIsSaleBuyer: true,
+    transactionId: 501,
+    hasReviewedSale: true,
+    sellerId: 42,
+    sellerName: "Ahmad Karimi",
+  },
+};
+
 // A long seller name (with the longer ps/fa button labels in mind) — the
 // action row must never overflow. Buttons are `flex: 1` with
 // `numberOfLines={1}` labels.

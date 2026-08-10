@@ -72,7 +72,9 @@
       "soldToYouBody": "دا سودا بشپړ شو. توکی د لاسته راوړلو لپاره پلورونکي سره ووینئ، بیا یو نظر ورکړئ.",
       "browseSimilar": "په {{category}} کې ورته توکي وګورئ",
       "browseSimilarGeneric": "ورته توکي وګورئ",
-      "viewTheirListings": "د هغه/هغې نور توکي وګورئ"
+      "viewTheirListings": "د هغه/هغې نور توکي وګورئ",
+      "rateSeller": "{{name}} ته نظر ورکړئ",
+      "rateSellerGenericName": "پلورونکي"
     }
   },
   "meetup": {

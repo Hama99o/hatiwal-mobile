@@ -72,7 +72,9 @@
       "soldToYouBody": "این معامله تکمیل شد. برای دریافت کالا فروشنده را ملاقات کنید، سپس نظر خود را ثبت کنید.",
       "browseSimilar": "مشاهده موارد مشابه در {{category}}",
       "browseSimilarGeneric": "مشاهده آگهی‌های مشابه",
-      "viewTheirListings": "مشاهده سایر آگهی‌های او"
+      "viewTheirListings": "مشاهده سایر آگهی‌های او",
+      "rateSeller": "به {{name}} نظر بدهید",
+      "rateSellerGenericName": "فروشنده"
     }
   },
   "meetup": {

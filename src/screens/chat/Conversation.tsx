@@ -1176,6 +1176,8 @@ export function ConversationScreen() {
           sellerName={conversation.seller?.name}
           sellerAvatarUrl={conversation.seller?.avatarUrl}
           sellerVerified={conversation.seller?.verified}
+          transactionId={conversation.listing.viewerSaleTransactionId}
+          hasReviewedSale={conversation.listing.viewerHasReviewedSale}
         />
       )}
 

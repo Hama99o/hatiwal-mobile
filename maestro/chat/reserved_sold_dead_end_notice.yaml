@@ -17,14 +17,29 @@ appId: com.hatiwal.app
 #   3. Seller marks it sold → buyer sees the sold notice instead, and the
 #      offer entry stays gone.
 #   4. Tapping "Browse similar" lands back on Bazaar (never a dead end).
+#
+# TASK-K729 (review fix, LOW): picks the thread by the seeded listing's
+# TITLE — "Lenovo ThinkPad Laptop Core i5 8GB" (the same conversation both
+# accounts share, see hatiwal-api/db/seeds/e2e.rb's response-badge seed) —
+# instead of `tapOn: index: 0`, which only resolves to the same conversation
+# for both accounts by coincidence of inbox ordering. Mirrors
+# ../seller/mark_sold_with_buyer.yaml's own listing-title selection. Also
+# asserts the status-neutral title only (`chat.thread.unavailable.*Title`,
+# never the retired "reserved for another buyer" wording — the copy no
+# longer asserts facts about WHO the seller committed to; see
+# ListingUnavailableNotice.tsx).
 
 # ─── Baseline: buyer's view of the still-ACTIVE listing ──────────────────────
 
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Chats"
 - waitForAnimationToEnd
-- tapOn:
-    index: 0
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
 - waitForAnimationToEnd
 - assertVisible: "View Listing"
 # No reserved/sold recovery notice yet — the listing is still active
@@ -46,8 +61,12 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "Chats"
 - waitForAnimationToEnd
-- tapOn:
-    index: 0
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
 - waitForAnimationToEnd
 - assertVisible: "Reserve"
 - tapOn: "Reserve"
@@ -64,13 +83,19 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Chats"
 - waitForAnimationToEnd
-- tapOn:
-    index: 0
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
 - waitForAnimationToEnd
 - assertVisible:
     id: "listing-unavailable-notice"
+# Status-neutral title only — the copy never asserts WHO the seller
+# committed to (that's the viewer-scoped `viewerIsSaleBuyer` job, covered by
+# the Jest suite, not this shared-fixture flow).
 - assertVisible: "Item reserved"
-- assertVisible: ".*reserved for another buyer.*"
 - assertVisible:
     id: "unavailable-browse-similar"
 - assertVisible:
@@ -97,8 +122,12 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "Chats"
 - waitForAnimationToEnd
-- tapOn:
-    index: 0
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
 - waitForAnimationToEnd
 - assertVisible: "Mark Sold"
 - tapOn: "Mark Sold"
@@ -115,8 +144,12 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Chats"
 - waitForAnimationToEnd
-- tapOn:
-    index: 0
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
 - waitForAnimationToEnd
 - assertVisible:
     id: "listing-unavailable-notice"
