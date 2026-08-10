@@ -1,6 +1,19 @@
 import { http, BASE_URL } from "./http";
 import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
 import { secureStorage } from "@/utils/secure-storage";
+import type { LocalizedNames } from "./categories";
+
+/**
+ * The listing's category as embedded on a conversation payload — a
+ * `LocalizedNames` plus id/slug, the exact shape `CategorySerializer` renders
+ * (TASK-K729 dedup fix: was previously its own 4th hand-copied inline type,
+ * duplicating this same shape in ListingUnavailableNotice.tsx and the
+ * `Category` interface in ./categories.ts).
+ */
+export type ConversationListingCategory = LocalizedNames & {
+  id: number;
+  slug?: string;
+};
 
 export interface Message {
   id: number;
@@ -64,13 +77,20 @@ export interface Conversation {
      * recovery notice can offer a "Browse similar in {category}" CTA
      * (pre-filters Browse by category id) instead of a dead end.
      */
-    category?: {
-      id: number;
-      nameEn: string;
-      namePs?: string | null;
-      nameFa?: string | null;
-      slug?: string;
-    } | null;
+    category?: ConversationListingCategory | null;
+    /**
+     * TASK-K729 (review fix, HIGH) — boolean-only, viewer-scoped: true when
+     * THIS conversation's buyer is the buyer the seller committed to for the
+     * CURRENT reservation/sale (`Listing#current_sale`). Never leaks WHO the
+     * buyer is when it's someone else — that identity stays owner-scoped on
+     * `Listing.sale` (my/listings), never here. Drives
+     * ListingUnavailableNotice's viewer-scoped "Reserved for you" / "You
+     * bought this item" copy instead of the generic recovery copy, which
+     * would be FALSE (and actively harmful) for the buyer who actually won
+     * the deal. `undefined` on a legacy buyer-less reserve/sold (no
+     * Transaction row at all) — treat as false.
+     */
+    viewerIsSaleBuyer?: boolean;
   } | null;
   buyer?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
   seller?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };

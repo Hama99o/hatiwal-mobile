@@ -201,3 +201,45 @@ describe("TransactionStatsBadge — RTL", () => {
     expect(wrapper.props.style.flexDirection).toBe("row");
   });
 });
+
+// ── TASK-TX02 review fix (MED/LOW) — testID, a11y grouping, RTL shrink,
+// and the elevated "pill" variant ──────────────────────────────────────────
+
+describe("TransactionStatsBadge — testID + accessibility", () => {
+  it("exposes a stable testID regardless of locale (so E2E never matches localized copy)", () => {
+    const { getByTestId } = render(<TransactionStatsBadge soldCount={1} boughtCount={0} />);
+    expect(getByTestId("transaction-stats-badge")).toBeTruthy();
+  });
+
+  it("groups the row into a single accessible element joined by ', ' (never the raw middle-dot)", () => {
+    const { getByTestId } = render(<TransactionStatsBadge soldCount={5} boughtCount={2} />);
+    const node = getByTestId("transaction-stats-badge");
+    expect(node.props.accessible).toBe(true);
+    expect(node.props.accessibilityLabel).not.toContain("·");
+    expect(node.props.accessibilityLabel).toContain(", ");
+  });
+});
+
+describe("TransactionStatsBadge — variant='pill'", () => {
+  it("defaults to the quiet 'meta' variant (no pill background)", () => {
+    const { getByTestId } = render(<TransactionStatsBadge soldCount={5} boughtCount={0} />);
+    const node = getByTestId("transaction-stats-badge");
+    expect(node.props.style.backgroundColor).toBeUndefined();
+    expect(node.props.style.marginTop).toBe(4);
+  });
+
+  it("renders an elevated rounded chip when variant='pill'", () => {
+    const { getByTestId } = render(
+      <TransactionStatsBadge soldCount={5} boughtCount={0} variant="pill" />
+    );
+    const node = getByTestId("transaction-stats-badge");
+    expect(node.props.style.borderRadius).toBe(999);
+    expect(node.props.style.alignSelf).toBe("center");
+    expect(node.props.style.paddingHorizontal).toBe(10);
+  });
+
+  it("still suppresses entirely when both counts are 0, regardless of variant", () => {
+    const { toJSON } = render(<TransactionStatsBadge soldCount={0} boughtCount={0} variant="pill" />);
+    expect(toJSON()).toBeNull();
+  });
+});

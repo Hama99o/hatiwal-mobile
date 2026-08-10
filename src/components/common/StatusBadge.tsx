@@ -2,6 +2,7 @@ import { View } from "react-native";
 import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
+import { getStatusAccent } from "./statusAccent";
 
 export type ListingStatus = "draft" | "active" | "reserved" | "sold";
 
@@ -66,25 +67,13 @@ export function StatusBadge({ status, overlay = false }: StatusBadgeProps) {
     );
   }
 
-  // All colors from semantic useColors() tokens — theme-aware, no raw palette classes.
-  const bg: Record<ListingStatus, string> = {
-    draft:    colors.muted,
-    active:   colors.successAlpha,
-    reserved: colors.warningAlpha,
-    sold:     colors.secondary,
-  };
-
-  const textColor: Record<ListingStatus, string> = {
-    draft:    colors.mutedForeground,
-    active:   colors.success,
-    reserved: colors.warning,
-    sold:     colors.secondaryForeground,
-  };
+  // Single shared status->colour map (TASK-K729 dedup) — see statusAccent.ts.
+  const accent = getStatusAccent(status, colors);
 
   return (
     <View
       style={{
-        backgroundColor:  bg[status],
+        backgroundColor:  accent.bg,
         borderRadius:     999,
         paddingHorizontal: 8,
         paddingVertical:  2,
@@ -93,7 +82,7 @@ export function StatusBadge({ status, overlay = false }: StatusBadgeProps) {
       accessibilityRole="text"
     >
       <Text
-        style={{ color: textColor[status], fontSize: 11, fontWeight: "600" }}
+        style={{ color: accent.text, fontSize: 11, fontWeight: "600" }}
         numberOfLines={1}
       >
         {t(`listing.status.${status}`)}

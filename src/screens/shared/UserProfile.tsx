@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, MoreVertical, PackageCheck } from "lucide-react-native";
+import { MoreVertical } from "lucide-react-native";
 import * as Linking from "expo-linking";
 import { toast } from "sonner-native";
 
@@ -31,6 +31,8 @@ import { Button } from "@/components/reusables/button";
 import { ListingFeed, type ListingFeedViewMode } from "@/components/common/ListingFeed";
 import type { ListQuery, ListFetchResult } from "@/components/common/UniversalList";
 import { ReportSheet } from "@/components/common/ReportSheet";
+import { BackButton } from "@/components/common/BackButton";
+import { ListingsIllustration } from "@/components/common/empty-illustrations";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { Skeleton } from "@/components/reusables/skeleton";
 import { ProfileHeader } from "./user-profile/ProfileHeader";
@@ -393,14 +395,22 @@ export function UserProfileScreen() {
             // MyListings.tsx). The action only makes sense on the seller's
             // OWN empty Sold tab — a buyer viewing a stranger's profile has
             // nothing to do about it, so it's omitted when `!isMe`.
-            emptyIcon={PackageCheck}
+            //
+            // Review fix (TASK-TX02, LOW — "empty-state polish"): the house
+            // pattern for a full-tab empty state is the SVG illustration
+            // (Browse.tsx, MyListings.tsx both use one), not a bare Lucide
+            // icon — reusing ListingsIllustration here matches the very
+            // screen the action navigates to. The action label is now the
+            // shared "Post a listing" ACTION verb (not the "My Listings"
+            // destination name) so it reads as a CTA in all 3 locales.
+            emptyIllustration={<ListingsIllustration size={96} />}
             emptyTitle={soldEmptyState.title}
             emptyDescription={soldEmptyState.description}
             emptyAction={
               isMe
                 ? {
-                    label: t("profile.quickActions.myListings"),
-                    onPress: () => router.push("/(main)/(tabs)/my-listings"),
+                    label: t("listing.postListing"),
+                    onPress: () => router.push("/(main)/listing/new" as never),
                   }
                 : undefined
             }
@@ -528,10 +538,6 @@ interface HeaderBarProps {
 
 function HeaderBar({ title, isRtl, colors, onBack, rightAction }: HeaderBarProps) {
   const insets = useSafeAreaInsets();
-  // Review fix (TASK-TX02, DR LOW — "ChevronRight in RTL"): the back chevron
-  // must mirror direction under RTL — pointing left is a leading-edge (back)
-  // affordance in LTR, but the leading edge is on the RIGHT under ps/fa.
-  const BackIcon = isRtl ? ChevronRight : ChevronLeft;
   return (
     <View
       style={{
@@ -546,9 +552,12 @@ function HeaderBar({ title, isRtl, colors, onBack, rightAction }: HeaderBarProps
         gap: 8,
       }}
     >
-      <Pressable onPress={onBack} hitSlop={16} accessibilityRole="button">
-        <BackIcon size={24} color={colors.foreground} />
-      </Pressable>
+      {/* Review fix (TASK-TX02, LOW — shared-component rule + RTL
+          consistency + a11y): was a hand-rolled Pressable+ChevronLeft with
+          no accessibilityLabel — replaced with the shared BackButton, which
+          now owns the RTL chevron flip AND the accessibilityLabel/testID
+          every other back affordance in the app already gets. */}
+      <BackButton onPress={onBack} />
       <Text
         style={{
           fontSize: 16,

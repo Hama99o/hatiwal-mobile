@@ -119,7 +119,7 @@ Every screen you can reach: the **route file**, the **screen file**, the **web p
 | 11 | **My listing detail** (seller view) | My Listings → tap own card | `app/(main)/my-listings/[id].tsx` | `src/screens/seller/MyListingDetail.tsx` | `/my-listings/[id]` | 🟦 |
 | 12 | **Listing's conversations** (seller) | My listing detail → chats | `app/(main)/listing-conversations/[id].tsx` | (in chat screens) | `/conversations?listing=[id]` | 🟦🟩 |
 | 13 | **Conversation** (thread) | inbox / listing → open chat | `app/(main)/conversation/[id].tsx` | `src/screens/chat/Conversation.tsx` | `/conversations/[id]` | 🟦🟩 |
-| 14 | **Seller profile** | tap a seller on a listing | `app/(main)/seller/[userId].tsx` | `src/screens/shared/SellerProfile.tsx` | `/sellers/[id]` | 🟦 |
+| 14 | **Seller profile** | tap a seller on a listing | `app/(main)/seller/[userId].tsx` | `src/screens/shared/UserProfile.tsx` | `/sellers/[id]` | 🟦 |
 | 15 | **User profile** | tap a user | `app/(main)/user/[id].tsx` | `src/screens/shared/UserProfile.tsx` | `/sellers/[id]` (web canonicalizes) | 🟦 |
 | 16 | **Edit profile** | Profile → Edit | `app/(main)/profile/edit.tsx` | `src/screens/shared/EditProfile.tsx` | `/profile/edit` | 🟦 |
 | 17 | **Blocked users** | Profile → Blocked users | `app/(main)/blocked-users.tsx` | `src/screens/shared/BlockedUsers.tsx` | `/settings/blocked-users` | 🟦 |

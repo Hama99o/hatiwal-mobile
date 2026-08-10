@@ -21,7 +21,10 @@ export function DetailSkeleton() {
   const e = (delay: number) => reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View
+      style={{ flex: 1, backgroundColor: colors.background }}
+      testID="my-listing-detail-skeleton"
+    >
       {/* Photo area — same 4:3 aspect as the real gallery */}
       <Skeleton
         style={{

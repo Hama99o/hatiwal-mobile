@@ -13,6 +13,7 @@ import { UserIdentity } from "@/components/common/UserIdentity";
 import { AwayBanner } from "@/components/common/AwayBanner";
 import { RatingDisplay } from "@/components/common/RatingDisplay";
 import { TransactionStatsBadge } from "@/components/common/TransactionStatsBadge";
+import { ResponseRateBadge } from "@/components/common/ResponseRateBadge";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useTranslation } from "react-i18next";
@@ -35,28 +36,23 @@ function StatCell({
   colors: ReturnType<typeof useColors>;
   compact?: boolean;
 }) {
+  // Review fix (TASK-TX02, LOW — typography): moved off hardcoded fontSize
+  // onto the shared token scale so this grid reads as the SAME type family as
+  // ProfileStatsGrid (the equivalent stats card on the own-profile screen,
+  // which already uses text-xl/text-xs). The label also moves off 11px —
+  // below the documented meta floor (DESIGN_SYSTEM.md §3: meta = text-xs =
+  // 12) — up to text-xs.
   return (
     <View style={{ flex: 1, alignItems: "center", paddingVertical: 14, paddingHorizontal: 8 }}>
       <Text
-        style={{
-          fontSize: compact ? 12 : 20,
-          fontWeight: "700",
-          color: colors.primary,
-          marginBottom: 4,
-          textAlign: "center",
-        }}
+        className={compact ? "text-xs font-bold" : "text-xl font-bold"}
+        style={{ color: colors.primary, marginBottom: 4, textAlign: "center" }}
         numberOfLines={1}
         adjustsFontSizeToFit
       >
         {value}
       </Text>
-      <Text
-        style={{
-          fontSize: 11,
-          color: colors.mutedForeground,
-          textAlign: "center",
-        }}
-      >
+      <Text className="text-xs" style={{ color: colors.mutedForeground, textAlign: "center" }}>
         {label}
       </Text>
     </View>
@@ -75,6 +71,17 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
   // regardless of locale. Display the string verbatim; the backend is the authority.
   const memberDate = profile.memberSince ?? "—";
   const activeLabelText = getActiveLabelText(profile.lastActiveLabel, t);
+  // Mirrors ResponseRateBadge's own suppression rule exactly (a 0%-rate
+  // seller sends a false trust signal) so this file's spacing math always
+  // matches what actually renders.
+  const hasResponseRate = !!profile.responseRatePercent && !!profile.responseTimeLabel;
+  const hasActiveLabel = !!activeLabelText;
+  // Review fix (TASK-TX02, LOW — spacing/proximity): this used to hinge only
+  // on `activeLabelText`, from before the (now-conditional) meta row below
+  // the stats card existed — once that row could ALSO be populated by
+  // ResponseRateBadge, the card's own marginBottom needs to account for it
+  // too, or the badge ends up visually grouped with the wrong block.
+  const hasMetaRow = hasResponseRate || hasActiveLabel;
 
   const goToAllReviews = () =>
     router.push(`/(main)/user/${profile.id}/reviews` as never);
@@ -100,17 +107,29 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
           onPress={goToAllReviews}
           testID="profile-header-rating"
         />
+        {/* TASK-TX02 review fix (MED — visual hierarchy): elevated "pill"
+            variant, centered right under the rating — this is where the
+            other trust signals already cluster. Completed-sales-with-a-
+            confirmed-counterparty is the strongest trust datum a stranger
+            has in a no-payment marketplace, so it must not read quieter than
+            the "Active Listings" cell below. Renders null when both counts
+            are 0. */}
+        <TransactionStatsBadge
+          soldCount={profile.soldCount}
+          boughtCount={profile.boughtCount}
+          variant="pill"
+        />
       </View>
 
       {/* Stats row — Active Listings + Joined. The seller's confirmed
-          Sold/Bought trust signal lives ONLY in the TransactionStatsBadge
-          below (TASK-TX02 review fix): this grid used to ALSO show a
-          "sold_count"-backed "Items Sold" cell here, printing the exact same
-          number the badge already shows — a confusing duplicate readout. */}
+          Sold/Bought trust signal lives in the pill above (TASK-TX02 review
+          fix): this grid used to ALSO show a "sold_count"-backed "Items Sold"
+          cell here, printing the exact same number — a confusing duplicate
+          readout. */}
       <View
         style={{
           flexDirection: isRtl ? "row-reverse" : "row",
-          marginBottom: activeLabelText ? 8 : 16,
+          marginBottom: hasMetaRow ? 8 : 16,
           backgroundColor: colors.card,
           borderRadius: 12,
           borderWidth: 1,
@@ -132,20 +151,25 @@ export function ProfileHeader({ profile }: ProfileHeaderProps) {
         />
       </View>
 
-      {/* TASK-TX02 — combined "Sold N · Bought N" trust signal, near the
-          member-since stat cell above. TransactionStatsBadge itself renders
-          null when both counts are 0, but this OUTER wrapper used to render
-          unconditionally regardless — an empty View with marginBottom: 4
-          still adds a stray 4px gap even with no visible content (review fix,
-          LOW). Only render the wrapper when there's something to show. */}
-      {(!!profile.soldCount || !!profile.boughtCount) && (
-        <View style={{ paddingHorizontal: 4, marginBottom: 4 }}>
-          <TransactionStatsBadge soldCount={profile.soldCount} boughtCount={profile.boughtCount} />
+      {/* Response-rate trust signal (TASK-TX02 review fix, MED — was missing
+          entirely on this screen, even though ListingDetail's seller card
+          shows it: a buyer tapping through to the full profile lost a trust
+          signal instead of gaining one). Quiet meta row, matching the
+          recency row below it. Omitted when either field is absent/0. */}
+      {hasResponseRate && (
+        <View style={{ paddingHorizontal: 4, marginBottom: hasActiveLabel ? 4 : 16 }}>
+          <ResponseRateBadge
+            responseRatePercent={profile.responseRatePercent}
+            responseTimeLabel={profile.responseTimeLabel}
+          />
         </View>
       )}
 
-      {/* Last-active recency label — quiet meta row; omitted when null */}
-      {!!activeLabelText && (
+      {/* Last-active recency label — quiet meta row; omitted when null.
+          Always the LAST meta row when present, so it owns the trailing
+          marginBottom: 16 that separates this cluster from the bio/reviews
+          below. */}
+      {hasActiveLabel && (
         <View
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",

@@ -71,27 +71,16 @@ import { toast } from "sonner-native";
 import { conversationsAPI, type Message } from "@/api/conversations";
 import { OfferSheet } from "@/screens/shared/listing-detail/OfferSheet";
 import { MessageBubble } from "../conversation/MessageBubble";
+// TASK-K729 (review fix, MEDIUM): the REAL predicate Conversation.tsx imports
+// — was a hand-copied duplicate here, which is how the original K729 bug
+// (reserved not excluded) stayed green. See threadAvailability.test.ts for
+// the dedicated matrix; this file only needs it for the composer-button
+// rendering tests below.
+import { canOfferInThread } from "../conversation/threadAvailability";
 
 // ─── Pure guards — mirror the logic in Conversation.tsx ──────────────────────
 
 type MiniListing = { status: string; negotiable?: boolean } | null | undefined;
-
-/** Mirrors `canOfferInThread` in Conversation.tsx (TASK-K729: reserved excluded too). */
-function canOfferInThread(params: {
-  canSend: boolean;
-  listing: MiniListing;
-  listingDeleted?: boolean;
-}): boolean {
-  const { canSend, listing, listingDeleted } = params;
-  return (
-    canSend &&
-    !!listing &&
-    !listingDeleted &&
-    listing.status !== "sold" &&
-    listing.status !== "reserved" &&
-    listing.negotiable !== false
-  );
-}
 
 /**
  * Mirrors the `onOfferCounter` guard in Conversation.tsx's renderItem.

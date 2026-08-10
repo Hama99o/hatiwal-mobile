@@ -145,6 +145,8 @@
   },
   "ownerDetail": {
     "notFound": "Listing not found",
+    "notFoundDescription": "This listing may have been removed or is no longer available.",
+    "backToMyListings": "Back to My Listings",
     "views": "Views",
     "conversations": "Chats",
     "actions": "Manage Listing",

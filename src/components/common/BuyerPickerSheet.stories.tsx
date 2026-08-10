@@ -70,3 +70,52 @@ export const OpenReserve: Story = {
     </QueryClientProvider>
   ),
 };
+
+/**
+ * TASK-O947 (cycle-4 design review) confirm mode — `preselectedBuyer` set.
+ * Listing thumb + locked buyer identity + PriceTag + the confirmation
+ * sentence, no conversation list, no "someone else" skip, no editable price.
+ */
+export const OpenConfirmMode: Story = {
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={24000}
+        currency="AFN"
+        action="reserve"
+        preselectedBuyer={{ id: 42, name: "Ahmad Karimi", avatarUrl: null }}
+        listingThumbnailUrl={null}
+        listingTitle="Traditional Kandahari Carpet 3x4"
+        confirmTitle="Reserve this listing for a buyer?"
+        confirmBody="Reserve for Ahmad Karimi at AFN 24,000?"
+        cancelLabel="Not now"
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};
+
+export const OpenConfirmModeSubmitting: Story = {
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={24000}
+        currency="AFN"
+        action="reserve"
+        preselectedBuyer={{ id: 42, name: "Ahmad Karimi", avatarUrl: null }}
+        listingTitle="Traditional Kandahari Carpet 3x4"
+        confirmTitle="Reserve this listing for a buyer?"
+        confirmBody="Reserve for Ahmad Karimi at AFN 24,000?"
+        cancelLabel="Not now"
+        isSubmitting
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};

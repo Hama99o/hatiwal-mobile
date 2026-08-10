@@ -466,4 +466,28 @@ describe("ListingHeader — TASK-N071: firm-price notice", () => {
     // (t() returns the key in test env; Badge is mocked as a string element)
     expect(screen.getByText("chat.offer.firmNotice")).toBeTruthy();
   });
+
+  // TASK-K729 review fix: suppressed once reserved/sold — the reserved/sold
+  // recovery notice (ListingUnavailableNotice, rendered elsewhere in
+  // Conversation.tsx) already explains why the offer control is gone; the
+  // two notices stacking would give the buyer two conflicting reasons.
+  it("does NOT show the firm-price notice when the listing is reserved, even if negotiable=false", () => {
+    render(
+      <ListingHeader
+        listing={{ ...baseListing, status: "reserved", negotiable: false }}
+        isOwner={false}
+      />
+    );
+    expect(screen.queryByTestId("firm-price-chat-notice")).toBeNull();
+  });
+
+  it("does NOT show the firm-price notice when the listing is sold, even if negotiable=false", () => {
+    render(
+      <ListingHeader
+        listing={{ ...baseListing, status: "sold", negotiable: false }}
+        isOwner={false}
+      />
+    );
+    expect(screen.queryByTestId("firm-price-chat-notice")).toBeNull();
+  });
 });

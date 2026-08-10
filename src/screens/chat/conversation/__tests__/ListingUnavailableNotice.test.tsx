@@ -2,16 +2,20 @@
  * ListingUnavailableNotice — Jest unit tests (TASK-K729).
  *
  * Covers:
- *  1. Reserved state renders the reserved title/body, not the sold copy.
- *  2. Sold state renders the sold title/body, not the reserved copy.
- *  3. "Browse similar in {category}" is always shown when a category is
- *     present, and navigates to Browse pre-filtered by categoryId.
+ *  1. Reserved vs sold copy for the GENERIC (viewerIsSaleBuyer=false/undefined)
+ *     case — neutral, never claims "for another buyer".
+ *  2. Reserved-for-you / sold-to-you copy when viewerIsSaleBuyer=true, and
+ *     that NO recovery CTA renders in that case (nothing to recover from).
+ *  3. "Browse similar in {category}" is always shown (generic case) when a
+ *     category is present, and navigates to Browse pre-filtered by categoryId.
  *  4. Falls back to the generic "Browse similar listings" label + an
  *     unfiltered Browse route when the listing has no category — never an
  *     empty action row (at least one recovery action always renders).
- *  5. "More from {seller}" only renders when sellerId + sellerName are both
- *     present, and navigates to the seller's public profile.
+ *  5. Seller identity + "View their listings" only render in the GENERIC case
+ *     when sellerId + sellerName are both present, and navigate to the
+ *     seller's public profile.
  *  6. RTL — renders without throwing and flips row direction when isRtl=true.
+ *  7. The notice always renders the shared StatusBadge (dedup fix).
  */
 
 import React from "react";
@@ -20,7 +24,6 @@ import { render, screen, fireEvent } from "@testing-library/react-native";
 // ── Mocks ──────────────────────────────────────────────────────────────────────
 
 jest.mock("lucide-react-native", () => ({
-  PackageX: "PackageX",
   Search: "Search",
   Store: "Store",
 }));
@@ -48,14 +51,16 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-// ── 1 & 2. Reserved vs sold copy ────────────────────────────────────────────────
+// ── 1. Generic (viewerIsSaleBuyer false/undefined) — reserved vs sold copy ────
 
-describe("ListingUnavailableNotice — reserved vs sold copy", () => {
+describe("ListingUnavailableNotice — generic recovery copy", () => {
   it("shows the reserved title + body for status='reserved'", () => {
     render(<ListingUnavailableNotice status="reserved" />);
     expect(screen.getByText("chat.thread.unavailable.reservedTitle")).toBeTruthy();
     expect(screen.getByText("chat.thread.unavailable.reservedBody")).toBeTruthy();
     expect(screen.queryByText("chat.thread.unavailable.soldTitle")).toBeNull();
+    // Never the viewer-scoped copy when viewerIsSaleBuyer is omitted.
+    expect(screen.queryByText("chat.thread.unavailable.reservedForYouTitle")).toBeNull();
   });
 
   it("shows the sold title + body for status='sold'", () => {
@@ -70,6 +75,56 @@ describe("ListingUnavailableNotice — reserved vs sold copy", () => {
     expect(screen.getByTestId("listing-unavailable-notice")).toBeTruthy();
     rerender(<ListingUnavailableNotice status="sold" />);
     expect(screen.getByTestId("listing-unavailable-notice")).toBeTruthy();
+  });
+
+  it("explicitly passing viewerIsSaleBuyer=false renders the same generic copy as omitting it", () => {
+    render(<ListingUnavailableNotice status="reserved" viewerIsSaleBuyer={false} />);
+    expect(screen.getByText("chat.thread.unavailable.reservedTitle")).toBeTruthy();
+  });
+});
+
+// ── 2. viewerIsSaleBuyer=true — the positive, viewer-scoped copy ──────────────
+
+describe("ListingUnavailableNotice — viewer-scoped copy (TASK-K729 HIGH review fix)", () => {
+  it("shows 'reserved for you' copy (not the generic recovery copy) for status='reserved'", () => {
+    render(<ListingUnavailableNotice status="reserved" viewerIsSaleBuyer />);
+    expect(screen.getByText("chat.thread.unavailable.reservedForYouTitle")).toBeTruthy();
+    expect(screen.getByText("chat.thread.unavailable.reservedForYouBody")).toBeTruthy();
+    expect(screen.queryByText("chat.thread.unavailable.reservedTitle")).toBeNull();
+    expect(screen.queryByText("chat.thread.unavailable.reservedBody")).toBeNull();
+  });
+
+  it("shows 'you bought this item' copy for status='sold'", () => {
+    render(<ListingUnavailableNotice status="sold" viewerIsSaleBuyer />);
+    expect(screen.getByText("chat.thread.unavailable.soldToYouTitle")).toBeTruthy();
+    expect(screen.getByText("chat.thread.unavailable.soldToYouBody")).toBeTruthy();
+    expect(screen.queryByText("chat.thread.unavailable.soldTitle")).toBeNull();
+  });
+
+  it("never renders the Browse-similar CTA when the viewer is the committed buyer — nothing to recover from", () => {
+    render(
+      <ListingUnavailableNotice
+        status="reserved"
+        viewerIsSaleBuyer
+        category={CATEGORY}
+        sellerId={9}
+        sellerName="Ahmad Karimi"
+      />
+    );
+    expect(screen.queryByTestId("unavailable-browse-similar")).toBeNull();
+  });
+
+  it("never renders the seller identity / 'View their listings' CTA when the viewer is the committed buyer", () => {
+    render(
+      <ListingUnavailableNotice
+        status="sold"
+        viewerIsSaleBuyer
+        sellerId={9}
+        sellerName="Ahmad Karimi"
+      />
+    );
+    expect(screen.queryByTestId("unavailable-more-from-seller")).toBeNull();
+    expect(screen.queryByTestId("unavailable-seller-identity")).toBeNull();
   });
 });
 
@@ -115,24 +170,28 @@ describe("ListingUnavailableNotice — Browse similar action", () => {
     expect(mockPush).toHaveBeenCalledWith("/(main)/(tabs)/browse");
   });
 
-  it("always renders the Browse similar action — never an empty action row", () => {
+  it("always renders the Browse similar action in the generic case — never an empty action row", () => {
     render(<ListingUnavailableNotice status="sold" />);
     expect(screen.getByTestId("unavailable-browse-similar")).toBeTruthy();
   });
 });
 
-// ── 5. More from seller — conditional ───────────────────────────────────────────
+// ── 5. Seller identity + "View their listings" — conditional ──────────────────
 
-describe("ListingUnavailableNotice — More from seller action", () => {
-  it("renders the seller action when sellerId + sellerName are present", () => {
+describe("ListingUnavailableNotice — seller identity + View their listings action", () => {
+  it("renders the seller identity + action when sellerId + sellerName are present", () => {
     render(<ListingUnavailableNotice status="reserved" sellerId={9} sellerName="Ahmad Karimi" />);
+    expect(screen.getByTestId("unavailable-seller-identity")).toBeTruthy();
     expect(screen.getByTestId("unavailable-more-from-seller")).toBeTruthy();
-    expect(screen.getByText("chat.thread.unavailable.moreFromSeller")).toBeTruthy();
+    expect(screen.getByText("chat.thread.unavailable.viewTheirListings")).toBeTruthy();
+    // Trust UI — the seller's name, from the shared UserIdentity component.
+    expect(screen.getByText("Ahmad Karimi")).toBeTruthy();
   });
 
   it("does NOT render the seller action when sellerId is missing", () => {
     render(<ListingUnavailableNotice status="reserved" sellerName="Ahmad Karimi" />);
     expect(screen.queryByTestId("unavailable-more-from-seller")).toBeNull();
+    expect(screen.queryByTestId("unavailable-seller-identity")).toBeNull();
   });
 
   it("does NOT render the seller action when sellerName is missing", () => {
@@ -163,5 +222,28 @@ describe("ListingUnavailableNotice — RTL", () => {
     expect(() =>
       render(<ListingUnavailableNotice status="reserved" sellerId={9} sellerName="Ahmad Karimi" />)
     ).not.toThrow();
+  });
+
+  it("renders without throwing when isRtl=true and viewerIsSaleBuyer=true", () => {
+    mockUseLocalization.mockReturnValueOnce({ isRtl: true });
+    expect(() =>
+      render(<ListingUnavailableNotice status="sold" viewerIsSaleBuyer />)
+    ).not.toThrow();
+  });
+});
+
+// ── 7. Shared StatusBadge (dedup fix) ──────────────────────────────────────────
+
+describe("ListingUnavailableNotice — shared StatusBadge", () => {
+  it("renders the status label via the shared StatusBadge token map", () => {
+    render(<ListingUnavailableNotice status="reserved" />);
+    // StatusBadge renders `listing.status.${status}` — the real i18n key,
+    // present exactly once via the shared component (not a forked chip).
+    expect(screen.getByText("listing.status.reserved")).toBeTruthy();
+  });
+
+  it("renders the sold status label via StatusBadge too", () => {
+    render(<ListingUnavailableNotice status="sold" />);
+    expect(screen.getByText("listing.status.sold")).toBeTruthy();
   });
 });

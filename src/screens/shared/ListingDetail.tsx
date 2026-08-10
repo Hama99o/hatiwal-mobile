@@ -57,7 +57,6 @@ import Animated, {
   interpolate,
   Extrapolate,
   FadeInDown,
-  SlideInDown,
 } from "react-native-reanimated";
 
 import { Text } from "@/components/reusables/text";
@@ -72,6 +71,7 @@ import { listingsAPI, type Listing } from "@/api/listings";
 import { conversationsAPI } from "@/api/conversations";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { ListingStatusBanner } from "@/components/common/ListingStatusBanner";
 import { ConditionBadge } from "@/components/common/ConditionBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
 import { UserIdentity } from "@/components/common/UserIdentity";
@@ -97,49 +97,6 @@ import { resolveShareUrl } from "@/utils/shareUtils";
 const { width: SW } = Dimensions.get("window");
 const GALLERY_COLLAPSE_RATIO = 0.65;
 const COLLAPSE_DISTANCE = 180;
-
-// ── Status banner — slides in from top when listing is sold or reserved ──────
-function StatusBanner({ status, t, colors, reduceMotion = false }: {
-  status: string;
-  t: (k: string) => string;
-  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
-  reduceMotion?: boolean;
-}) {
-  const bannerBg =
-    status === "sold" ? colors.secondary : colors.warningAlpha;
-  const bannerText =
-    status === "sold" ? colors.mutedForeground : colors.warning;
-  const label =
-    status === "sold"
-      ? t("listing.detail.soldNotice")
-      : t("listing.detail.reservedNotice");
-
-  return (
-    <Animated.View
-      entering={reduceMotion ? undefined : SlideInDown.duration(320).springify()}
-      style={{
-        backgroundColor: bannerBg,
-        borderBottomWidth: 1,
-        borderBottomColor: bannerText + "33",
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        alignItems: "center",
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 13,
-          fontWeight: "700",
-          color: bannerText,
-          letterSpacing: 0.2,
-          textAlign: "center",
-        }}
-      >
-        {label}
-      </Text>
-    </Animated.View>
-  );
-}
 
 // ── Fade + slide section wrapper ──────────────────────────────────────────────
 // reduceMotion is passed from the parent screen so the hook is only called once.
@@ -422,7 +379,17 @@ export default function ListingDetailScreen() {
     <ScreenContainer scrollable={false} padded={false} safeArea={[]}>
       {/* ── Status banner: sold / reserved — slides in from top ──────────── */}
       {(listing.status === "sold" || listing.status === "reserved") && !isOwnListing && (
-        <StatusBanner status={listing.status} t={t} colors={colors} reduceMotion={reduceMotion} />
+        <ListingStatusBanner
+          status={listing.status as "reserved" | "sold"}
+          title={
+            listing.status === "sold"
+              ? t("listing.detail.soldNotice")
+              : t("listing.detail.reservedNotice")
+          }
+          layout="strip"
+          reduceMotion={reduceMotion}
+          testID="listing-detail-status-banner"
+        />
       )}
 
       {/* ── Scrollable content ───────────────────────────────────────────── */}

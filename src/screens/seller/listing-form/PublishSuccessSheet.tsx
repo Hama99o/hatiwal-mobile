@@ -62,18 +62,21 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
   const router = useRouter();
   const reduceMotion = useReduceMotion();
 
-  // Design review fix (CYCLE-4): reward the seller with a success haptic the
-  // moment this sheet becomes visible — mirrors ReviewPromptSheet's own
-  // `triggerHaptic("success", ...)` on its confirmation step and
-  // BACKLOG.md's animation spec ("Trigger notificationAsync(Success) on
-  // successful listing publish"). Deliberately keyed to `visible` alone (not
-  // `listing`, which can be re-seeded by a background refetch while the
-  // sheet stays open) so it fires exactly once per open, never on every
-  // re-render.
+  // Design review fix (CYCLE-4, gated further in CYCLE-5): reward the seller
+  // with a success haptic the moment this sheet actually becomes visible —
+  // mirrors ReviewPromptSheet's own `triggerHaptic("success", ...)` on its
+  // confirmation step and BACKLOG.md's animation spec ("Trigger
+  // notificationAsync(Success) on successful listing publish"). Keyed to
+  // `visible` (so it fires exactly once per open, never on every re-render
+  // that keeps `visible` true) AND `!!listing`: `visible={true}` with
+  // `listing={null}` is an explicitly-supported prop shape (the sheet
+  // renders nothing per the `if (!listing) return null` guard below), and
+  // without this second condition the haptic would still fire with no sheet
+  // ever appearing on screen.
   useEffect(() => {
-    if (visible) triggerHaptic("success", reduceMotion);
+    if (visible && listing) triggerHaptic("success", reduceMotion);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [visible, !!listing]);
 
   // ── Share — identical pattern to ListingDetail.handleShare, including the
   // localized `listing.share.body` i18n template (not a hardcoded JS string) ──
@@ -190,15 +193,24 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
             testID="publish-success-summary"
           >
             {thumbnailUri ? (
-              <RemoteImage uri={thumbnailUri} style={styles.thumb} />
+              <RemoteImage
+                uri={thumbnailUri}
+                style={styles.thumb}
+                accessibilityLabel={listing.title}
+              />
             ) : (
               // No real photo — show the same muted icon tile every other
               // listing thumbnail uses (ListingCard/SellerListingCard/
               // ConversationRow) instead of RemoteImage's loading blurhash,
               // which would otherwise sit there forever looking like a photo
-              // that never finished loading.
+              // that never finished loading. Design review fix (CYCLE-5):
+              // this tile sits ON a summary row that is ALSO `colors.muted`
+              // (below) — same value in both themes — so a `muted` fill here
+              // would have zero contrast against its own row and read as a
+              // bare floating icon, not a thumbnail. `colors.card` (the
+              // sheet's own surface) gives it a real edge in both themes.
               <View
-                style={[styles.thumb, styles.noPhotoThumb, { backgroundColor: colors.muted }]}
+                style={[styles.thumb, styles.noPhotoThumb, { backgroundColor: colors.card }]}
                 testID="publish-success-no-photo"
               >
                 <Camera size={22} color={colors.mutedForeground} />
@@ -207,7 +219,11 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
             <View style={{ flex: 1, marginHorizontal: 10, minWidth: 0, gap: 4 }}>
               {/* Design review fix: a StatusBadge next to the title reassures
                   the seller the listing is really live now, not just saved —
-                  the one fact this whole sheet exists to confirm. */}
+                  the one fact this whole sheet exists to confirm. The badge
+                  is wrapped with `flexShrink: 0` (CYCLE-5) so a longer
+                  localized status label (e.g. ps/fa "reserved"/"sold" once
+                  this sheet is reused for those states) can never squeeze
+                  itself — only the title truncates. */}
               <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6 }}>
                 <Text
                   className="text-sm font-semibold"
@@ -216,7 +232,9 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
                 >
                   {listing.title}
                 </Text>
-                <StatusBadge status={listing.status} />
+                <View style={{ flexShrink: 0 }}>
+                  <StatusBadge status={listing.status} />
+                </View>
               </View>
               {/* CYCLE-3 DR fix: "md" (17sp/700) — the price must outrank the
                   14sp/600 title on this summary row, matching every other

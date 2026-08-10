@@ -18,7 +18,10 @@ export function ProfileHeaderSkeleton() {
 
   return (
     <View style={{ paddingHorizontal: 16 }}>
-      {/* Avatar circle + name bar + city bar — mirrors UserIdentity stacked */}
+      {/* Avatar circle + name bar + city bar — mirrors UserIdentity stacked.
+          TASK-TX02 review fix (MED — visual hierarchy): the Sold/Bought
+          trust pill now lives HERE, right under the rating — see
+          ProfileHeader. */}
       <View style={{ alignItems: "center", paddingTop: 24, paddingBottom: 20, gap: 12 }}>
         <Skeleton
           style={{
@@ -44,10 +47,17 @@ export function ProfileHeaderSkeleton() {
             ...skeletonStyle,
           }}
         />
+        <Skeleton
+          style={{
+            width: 90,
+            height: 22,
+            borderRadius: 999,
+            ...skeletonStyle,
+          }}
+        />
       </View>
 
-      {/* Stats row — two cells (Active Listings + Joined). The Sold/Bought
-          trust badge is a separate row below the grid — see ProfileHeader. */}
+      {/* Stats row — two cells (Active Listings + Joined). */}
       <View
         style={{
           flexDirection: "row",
@@ -94,11 +104,11 @@ export function ProfileHeaderSkeleton() {
         ))}
       </View>
 
-      {/* TransactionStatsBadge placeholder ("Sold N · Bought N") */}
+      {/* ResponseRateBadge placeholder ("XX% reply rate · Usually responds...") */}
       <View style={{ paddingHorizontal: 4, marginBottom: 12 }}>
         <Skeleton
           style={{
-            width: 90,
+            width: 140,
             height: 12,
             borderRadius: 3,
             ...skeletonStyle,

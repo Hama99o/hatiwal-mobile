@@ -91,8 +91,16 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
   const showMarkSold = isOwner && status === "reserved";
   const showAction   = showReserve || showMarkSold;
 
-  // TASK-N071: firm price notice — shown to the buyer (non-owner) only
-  const isFirmPrice = listing.negotiable === false && !isOwner;
+  // TASK-N071: firm price notice — shown to the buyer (non-owner) only.
+  // TASK-K729 review fix: suppressed once the listing is reserved/sold — the
+  // reserved/sold recovery notice already explains why the offer control is
+  // gone, and the two notices stacking would give the buyer two conflicting
+  // reasons for the same missing button.
+  const isFirmPrice =
+    listing.negotiable === false &&
+    !isOwner &&
+    status !== "reserved" &&
+    status !== "sold";
 
   const handleBuyerPickerConfirm = async (result: BuyerPickerResult) => {
     setIsLifecycleLoading(true);

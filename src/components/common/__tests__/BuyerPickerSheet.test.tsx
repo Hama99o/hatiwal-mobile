@@ -12,6 +12,13 @@
  *  8. An invalid final-price value blocks confirm and shows an error
  *  9. Cancel calls onClose
  * 10. State resets each time the sheet re-opens
+ *
+ * TASK-O947 (cycle-4 design review) — confirm mode (`preselectedBuyer`):
+ * 11. Renders the locked buyer identity + PriceTag, no conversation list, no
+ *     "someone else" skip, no editable final price, and never fetches
+ *     conversations.
+ * 12. Confirm fires immediately with the preselected buyerId + price.
+ * 13. The confirm-mode title/cancel-label overrides are honored.
  */
 
 import React from "react";
@@ -175,14 +182,18 @@ describe("BuyerPickerSheet — selecting a buyer and confirming", () => {
 // ── 6. Someone else / skip ──────────────────────────────────────────────────────
 
 describe("BuyerPickerSheet — someone else / skip", () => {
-  it("calls onConfirm with no buyerId/finalPrice (legacy path)", async () => {
+  // TASK-TX02 (review fix, MAJOR): the explicit skip must be distinguishable
+  // on the wire from a legacy client that never sends buyer info at all —
+  // `clearBuyer: true` is that signal (see src/api/listings.ts markSold and
+  // Listing#sold_with_buyer! on the backend).
+  it("calls onConfirm with no buyerId/finalPrice but clearBuyer: true", async () => {
     const { onConfirm } = renderSheet();
     await waitFor(() => screen.getByText("buyerPicker.someoneElse"));
 
     fireEvent.press(screen.getByTestId("buyer-row-skip"));
     fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
 
-    expect(onConfirm).toHaveBeenCalledWith({ buyerId: undefined, finalPrice: undefined });
+    expect(onConfirm).toHaveBeenCalledWith({ buyerId: undefined, finalPrice: undefined, clearBuyer: true });
   });
 
   it("does not show the final-price input when 'skip' is selected", async () => {
@@ -246,5 +257,63 @@ describe("BuyerPickerSheet — smoke tests", () => {
 
   it.each(["reserve", "sold"] as const)("renders the %s title without throwing", (action) => {
     expect(() => renderSheet({ action })).not.toThrow();
+  });
+});
+
+// ── 11, 12, 13. TASK-O947 confirm mode (`preselectedBuyer`) ─────────────────────
+
+const PRESELECTED_BUYER = { id: 42, name: "Ahmad Karimi", avatarUrl: null };
+
+describe("BuyerPickerSheet — confirm mode (preselectedBuyer)", () => {
+  it("renders the locked buyer identity + price, no conversation list, no skip row, no final-price input, and never fetches conversations", async () => {
+    renderSheet({
+      preselectedBuyer: PRESELECTED_BUYER,
+      listingThumbnailUrl: "https://example.com/thumb.jpg",
+      listingTitle: "Traditional Kandahari Carpet 3x4",
+      confirmBody: "Reserve for Ahmad Karimi at 24,000 AFN?",
+      price: 24000,
+    });
+
+    await waitFor(() => screen.getByText("Ahmad Karimi"));
+
+    expect(screen.getByText("Traditional Kandahari Carpet 3x4")).toBeTruthy();
+    expect(screen.getByText("Reserve for Ahmad Karimi at 24,000 AFN?")).toBeTruthy();
+
+    // Never the pick-a-buyer list or its affordances.
+    expect(screen.queryByText("buyerPicker.someoneElse")).toBeNull();
+    expect(screen.queryByTestId("buyer-picker-final-price")).toBeNull();
+    expect(screen.queryByTestId("buyer-picker-loading")).toBeNull();
+    expect(mockConversationsAPI.getConversations).not.toHaveBeenCalled();
+  });
+
+  it("Confirm fires immediately with the preselected buyerId + price — no selection step", async () => {
+    const { onConfirm } = renderSheet({ preselectedBuyer: PRESELECTED_BUYER, price: 24000 });
+    await waitFor(() => screen.getByText("Ahmad Karimi"));
+
+    const confirmBtn = screen.getByTestId("buyer-picker-confirm");
+    expect(confirmBtn.props.accessibilityState?.disabled).toBeFalsy();
+
+    fireEvent.press(confirmBtn);
+    expect(onConfirm).toHaveBeenCalledWith({ buyerId: 42, finalPrice: 24000 });
+  });
+
+  it("honors confirmTitle and cancelLabel overrides", async () => {
+    renderSheet({
+      preselectedBuyer: PRESELECTED_BUYER,
+      confirmTitle: "Reserve this listing for a buyer?",
+      cancelLabel: "Not now",
+    });
+
+    await waitFor(() => screen.getByText("Reserve this listing for a buyer?"));
+    expect(screen.getByText("Not now")).toBeTruthy();
+    // The pick-mode title never leaks through.
+    expect(screen.queryByText("buyerPicker.reserveTitle")).toBeNull();
+  });
+
+  it("disables Confirm and Cancel while isSubmitting", async () => {
+    renderSheet({ preselectedBuyer: PRESELECTED_BUYER, isSubmitting: true });
+    await waitFor(() => screen.getByText("Ahmad Karimi"));
+
+    expect(screen.getByTestId("buyer-picker-confirm").props.accessibilityState?.disabled).toBe(true);
   });
 });

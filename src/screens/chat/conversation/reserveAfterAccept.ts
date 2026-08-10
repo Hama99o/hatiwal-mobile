@@ -7,41 +7,72 @@
  * agreed amount (`message.offerAmount`).
  *
  * Kept as a small, standalone module (mirrors `meetupBody.ts`'s split) with a
- * minimal dependency surface (`confirmAlert`, `listingsAPI`, `toast`) so it —
- * and `handleOfferRespond` in `../Conversation.tsx` which calls it — can be
- * unit tested without mounting the full, deeply-coupled ConversationScreen.
+ * minimal dependency surface (`listingsAPI`, `toast`) so it — and
+ * `handleOfferRespond` in `../Conversation.tsx` which calls it — can be unit
+ * tested without mounting the full, deeply-coupled ConversationScreen.
  *
- * Review follow-up (CR on the first pass):
+ * Cycle-4 design review pivot (this file previously drove a `confirmAlert`
+ * directly — see git history): the confirm step is now the SHARED
+ * `BuyerPickerSheet` component in its "confirm" mode (`preselectedBuyer`) —
+ * listing thumbnail + the buyer's identity (locked) + `PriceTag`, never the
+ * full conversation-picker list. This module is split into two pure/typed
+ * pieces so `Conversation.tsx` can own the sheet's visible/onConfirm state
+ * the same way `ListingHeader.tsx` already does for its own BuyerPickerSheet:
+ *  - `buildReserveAfterAcceptPrompt` — pure, no side effects. Returns the data
+ *    the sheet needs to render, or `null` when the prompt should be
+ *    suppressed. Building the prompt never reserves anything — the seller
+ *    dismissing the sheet ("Not now") is simply never calling the function
+ *    below, and the accept that already happened is untouched either way.
+ *  - `reserveAfterAccept` — the side-effecting confirm. Called from the
+ *    sheet's `onConfirm`. A failure here shows an error toast and NEVER rolls
+ *    back the `offer_accepted` message (which was already sent before this
+ *    prompt ever appeared).
+ *
+ * Review follow-ups baked in:
  *  - The failure toast is NOT its own string — it reuses
- *    `chat.listingActions.reserveFailed` (the identical copy already shown by
- *    ListingHeader's own reserve action) instead of a duplicate
- *    `chat.offer.reserveAfterAcceptFailed` key.
- *  - `confirmAlert`/native `Alert` dismiss instantly on tap, so there is no
- *    way to show an in-dialog spinner. Instead we drive a sonner-native
- *    `toast.promise` off the SAME reserve request so the user sees a loading
- *    → success/error toast the moment the alert closes, rather than dead UI
- *    on a slow network.
- *  - The CTA now carries the price ("Reserve at {{price}}") and the cancel
- *    button reads "Not now" (matching `report.cancel`/`reviews.skip`) instead
- *    of the generic `common.cancel`.
+ *    `chat.listingActions.reserveFailed` (the identical copy ListingHeader's
+ *    own reserve action already shows).
+ *  - The confirm button never carries the price (DR: it truncated inside an
+ *    alert BUTTON in ps/fa) — `BuyerPickerSheet` reuses its own generic
+ *    `buyerPicker.confirmReserve` label. The price only ever appears in the
+ *    sheet BODY, and always wrapped in a bidi isolate (see
+ *    `wrapBidiIsolate`) so a Pashto/Dari sentence with an LTR name + an
+ *    LTR-formatted amount spliced in never visually reorders.
  */
-import { confirmAlert } from "@/utils/alert";
 import { listingsAPI } from "@/api/listings";
 import { toast } from "sonner-native";
+
+export interface ReserveAfterAcceptBuyer {
+  id: number;
+  name: string;
+  avatarUrl?: string | null;
+}
 
 export interface MaybeReserveAfterAcceptParams {
   /** True when the current user is the seller/owner of this listing. */
   isOwner: boolean;
   listing: { id: number; status?: string | null } | null | undefined;
   /** The conversation's buyer — the person the seller would reserve for. */
-  buyer: { id: number; name: string } | null | undefined;
+  buyer: ReserveAfterAcceptBuyer | null | undefined;
   /** The accepted offer amount (message.offerAmount, or the parsed body). */
   offerAmount: number | null | undefined;
   currency?: string | null;
   t: (key: string, options?: Record<string, unknown>) => string;
   formatCurrency: (amount: number | null | undefined, currency?: string) => string;
-  /** Called after a successful reserve so the caller can invalidate queries + reload. */
-  onReserved?: () => void;
+}
+
+/** Everything the confirm sheet needs to render — built once, held in state. */
+export interface ReserveAfterAcceptPrompt {
+  listingId: number;
+  buyer: ReserveAfterAcceptBuyer;
+  /** The accepted offer amount — becomes `final_price` on the reserve call. */
+  finalPrice: number;
+  currency: string;
+  /** Sheet header. Generic — never interpolates the price (see file header). */
+  title: string;
+  /** Confirmation sentence, e.g. "Reserve for Ahmad at ؋12,000?" — buyer name
+   *  and price are wrapped in bidi isolates (see `wrapBidiIsolate`). */
+  body: string;
 }
 
 /**
@@ -81,52 +112,81 @@ export function shouldPromptReserveAfterAccept(
 }
 
 /**
- * After a SUCCESSFUL offer accept, prompts the listing owner to reserve the
- * listing for the conversation's buyer at the accepted price.
- *
- * No-op when the guard fails. "Not now" (cancel) is also a no-op — it never
- * blocks and never auto-reserves. A reserve failure shows an error toast but
- * NEVER rolls back the offer_accepted message that was already sent (the
- * accept happens before this is even called).
+ * Wraps a dynamic value (a name, a formatted price) in the Unicode "first
+ * strong isolate" / "pop directional isolate" pair (U+2066 / U+2069) so it
+ * renders as one self-contained bidi run inside a translated sentence.
+ * Without this, an LTR buyer name or an LTR-formatted currency amount
+ * interpolated into a Pashto/Dari (RTL) sentence can visually reorder around
+ * the surrounding punctuation — the cycle-4 design review finding that
+ * originally surfaced as the price truncating/garbling inside an alert
+ * BUTTON label. Isolating the value keeps its internal order fixed
+ * regardless of where a translator places the `{{placeholder}}`.
  */
-export function maybeReserveAfterAccept(params: MaybeReserveAfterAcceptParams): void {
-  const { listing, buyer, offerAmount, currency, t, formatCurrency, onReserved } = params;
-  if (!shouldPromptReserveAfterAccept(params) || !listing || !buyer || !offerAmount) return;
+export function wrapBidiIsolate(value: string): string {
+  return `⁦${value}⁩`;
+}
 
-  const formattedPrice = formatCurrency(offerAmount, currency ?? "AFN");
+/**
+ * Pure — builds everything the confirm sheet (`BuyerPickerSheet` in its
+ * `preselectedBuyer` confirm mode) needs to render, or `null` when the
+ * prompt should be suppressed. Has NO side effects: nothing is reserved
+ * until the caller explicitly invokes `reserveAfterAccept` below with the
+ * returned prompt.
+ */
+export function buildReserveAfterAcceptPrompt(
+  params: MaybeReserveAfterAcceptParams
+): ReserveAfterAcceptPrompt | null {
+  if (!shouldPromptReserveAfterAccept(params)) return null;
+  const { listing, buyer, offerAmount, currency, t, formatCurrency } = params;
+  if (!listing || !buyer || !offerAmount) return null;
 
-  confirmAlert(
-    t("chat.offer.reserveAfterAcceptTitle"),
-    t("chat.offer.reserveAfterAcceptBody", { buyerName: buyer.name, price: formattedPrice }),
-    [
-      { text: t("chat.offer.reserveAfterAcceptDismiss"), style: "cancel" },
-      {
-        text: t("chat.offer.reserveAfterAcceptCta", { price: formattedPrice }),
-        // Returns the promise (rather than fire-and-forget) so callers/tests
-        // can `await` the full reserve attempt deterministically.
-        onPress: () => {
-          const reservePromise = listingsAPI.reserveListing(listing.id, {
-            buyerId: buyer.id,
-            finalPrice: offerAmount,
-          });
+  const resolvedCurrency = currency ?? "AFN";
+  const formattedPrice = formatCurrency(offerAmount, resolvedCurrency);
 
-          // Single loading → success/error toast lifecycle driven by the
-          // sonner-native promise helper, so the request being in-flight is
-          // never invisible even though the native alert already closed.
-          toast.promise(reservePromise, {
-            loading: t("chat.offer.reserveAfterAcceptPending"),
-            success: () => t("chat.offer.reserveAfterAcceptSuccess", { buyerName: buyer.name }),
-            // Reuses the identical copy ListingHeader's own reserve action
-            // already shows — no duplicate translation key.
-            error: () => t("chat.listingActions.reserveFailed"),
-          });
+  return {
+    listingId: listing.id,
+    buyer: { id: buyer.id, name: buyer.name, avatarUrl: buyer.avatarUrl ?? null },
+    finalPrice: offerAmount,
+    currency: resolvedCurrency,
+    title: t("chat.offer.reserveAfterAcceptTitle"),
+    body: t("chat.offer.reserveAfterAcceptBody", {
+      buyerName: wrapBidiIsolate(buyer.name),
+      price: wrapBidiIsolate(formattedPrice),
+    }),
+  };
+}
 
-          // The accept above is never rolled back — only the reserve attempt
-          // failed. Swallow the rejection here (toast.promise already
-          // surfaced it) so this always resolves, never throws.
-          return reservePromise.then(() => onReserved?.()).catch(() => undefined);
-        },
-      },
-    ]
-  );
+/**
+ * Side-effecting — called from the confirm sheet's `onConfirm`. Reserves the
+ * listing for `prompt.buyer` at `prompt.finalPrice`. Never rolls back the
+ * `offer_accepted` message that was already sent (this function doesn't
+ * touch message state at all) — a failure here only shows an error toast
+ * that reuses ListingHeader's own reserve-action copy.
+ *
+ * Returns `true`/`false` (never throws) so the caller can decide whether to
+ * close the confirm sheet — mirroring `ListingHeader.tsx`'s own
+ * `handleBuyerPickerConfirm`, which keeps its BuyerPickerSheet open on
+ * failure so the seller can retry without re-triggering the whole accept.
+ */
+export async function reserveAfterAccept(
+  prompt: Pick<ReserveAfterAcceptPrompt, "listingId" | "buyer" | "finalPrice">,
+  options: {
+    t: (key: string, options?: Record<string, unknown>) => string;
+    /** Called after a successful reserve so the caller can invalidate queries + reload. */
+    onReserved?: () => void;
+  }
+): Promise<boolean> {
+  const { t, onReserved } = options;
+  try {
+    await listingsAPI.reserveListing(prompt.listingId, {
+      buyerId: prompt.buyer.id,
+      finalPrice: prompt.finalPrice,
+    });
+    toast.success(t("chat.offer.reserveAfterAcceptSuccess", { buyerName: prompt.buyer.name }));
+    onReserved?.();
+    return true;
+  } catch {
+    toast.error(t("chat.listingActions.reserveFailed"));
+    return false;
+  }
 }

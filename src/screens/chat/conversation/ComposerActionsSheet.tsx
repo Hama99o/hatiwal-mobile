@@ -14,6 +14,16 @@
  * matrix exactly: open conversation, listing exists, not deleted, not
  * reserved or sold (TASK-K729), negotiable !== false).
  *
+ * TASK-K729 (review fix, LOW): when the offer row is hidden SPECIFICALLY
+ * because the listing is reserved or sold, `offerUnavailableReason` renders
+ * it anyway — disabled, with a one-line reason subtitle — instead of
+ * silently dropping the row. A buyer/seller who taps "+" hunting for "Make
+ * an offer" gets an explanation right where they looked, not just in the
+ * top-of-thread ListingUnavailableNotice. Omitted (row stays hidden, the
+ * pre-K729 behaviour) for every OTHER reason the offer row is gone — closed
+ * conversation, deleted listing, firm price — each already has its own,
+ * separate notice elsewhere in the thread.
+ *
  * iOS BLACK-SCREEN GUARD (do not skip): every row calls `onClose()` FIRST and
  * THEN invokes its handler — launching expo-image-picker / expo-document-picker
  * while this JS Modal is still mounted is the documented modal-conflict black
@@ -49,6 +59,13 @@ export interface ComposerActionsSheetProps {
    * offer row when false.
    */
   canMakeOffer: boolean;
+  /**
+   * TASK-K729 — when set (and `canMakeOffer` is false), the offer row still
+   * renders, disabled, with this as a one-line reason subtitle instead of
+   * silently vanishing. Pass `undefined` (the default) to keep the pre-K729
+   * behaviour of hiding the row entirely for every other reason.
+   */
+  offerUnavailableReason?: string;
   /** True while a photo or file upload is in flight — disables every row. */
   disabled?: boolean;
 }
@@ -57,8 +74,13 @@ interface Row {
   key: string;
   icon: React.ReactNode;
   label: string;
-  onPress: () => void;
+  /** TASK-K729 — a one-line reason shown under the label when this row is
+   *  rendered disabled (the offer row on a reserved/sold listing). */
+  subLabel?: string;
+  onPress?: () => void;
   testID: string;
+  /** TASK-K729 — non-pressable, dimmed, no haptic/close-on-tap. */
+  disabledRow?: boolean;
 }
 
 export function ComposerActionsSheet({
@@ -69,6 +91,7 @@ export function ComposerActionsSheet({
   onProposeMeetup,
   onMakeOffer,
   canMakeOffer,
+  offerUnavailableReason,
   disabled = false,
 }: ComposerActionsSheetProps) {
   const { t } = useTranslation();
@@ -118,6 +141,18 @@ export function ComposerActionsSheet({
       onPress: () => runAndClose(onMakeOffer),
       testID: "composer-action-offer",
     });
+  } else if (offerUnavailableReason) {
+    // TASK-K729 (review fix): reserved/sold specifically — render the row
+    // disabled with the reason, instead of a silent gap. Not pressable, so
+    // no `onClose`-before-handler concern applies here.
+    rows.push({
+      key: "offer-disabled",
+      icon: <Tag size={20} color={colors.mutedForeground} />,
+      label: t("chat.offer.makeOffer"),
+      subLabel: offerUnavailableReason,
+      testID: "composer-action-offer-disabled",
+      disabledRow: true,
+    });
   }
 
   return (
@@ -157,33 +192,49 @@ export function ComposerActionsSheet({
         {rows.map((row, index) => (
           <Pressable
             key={row.key}
-            onPress={row.onPress}
-            disabled={disabled}
+            // TASK-K729: a `disabledRow` (the reserved/sold offer reason row)
+            // is never pressable regardless of `disabled` — it has no
+            // `onPress` handler at all, so there is nothing to run.
+            onPress={row.disabledRow ? undefined : row.onPress}
+            disabled={disabled || row.disabledRow}
             testID={row.testID}
             accessibilityRole="button"
-            accessibilityLabel={row.label}
-            android_ripple={{ color: colors.muted }}
+            accessibilityLabel={row.subLabel ? `${row.label} — ${row.subLabel}` : row.label}
+            accessibilityState={row.disabledRow ? { disabled: true } : undefined}
+            android_ripple={row.disabledRow ? undefined : { color: colors.muted }}
             style={[
               styles.row,
               {
                 flexDirection: isRtl ? "row-reverse" : "row",
                 borderBottomWidth: index < rows.length - 1 ? StyleSheet.hairlineWidth : 0,
                 borderBottomColor: colors.border,
-                opacity: disabled ? 0.5 : 1,
+                opacity: disabled || row.disabledRow ? 0.5 : 1,
               },
             ]}
           >
             {row.icon}
-            <Text
-              className="text-base"
-              style={{
-                color: colors.foreground,
-                marginStart: isRtl ? 0 : 14,
-                marginEnd: isRtl ? 14 : 0,
-              }}
-            >
-              {row.label}
-            </Text>
+            <View style={{ marginStart: isRtl ? 0 : 14, marginEnd: isRtl ? 14 : 0, flex: 1 }}>
+              <Text
+                className="text-base"
+                style={{
+                  color: colors.foreground,
+                  textAlign: isRtl ? "right" : "left",
+                }}
+              >
+                {row.label}
+              </Text>
+              {row.subLabel ? (
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.mutedForeground,
+                    textAlign: isRtl ? "right" : "left",
+                  }}
+                >
+                  {row.subLabel}
+                </Text>
+              ) : null}
+            </View>
           </Pressable>
         ))}
       </View>

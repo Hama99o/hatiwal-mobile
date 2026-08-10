@@ -333,6 +333,14 @@ describe("PublishSuccessSheet — success haptic", () => {
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();
   });
 
+  it("does not fire a haptic when visible=true but listing=null (sheet renders nothing)", () => {
+    // Explicitly-supported prop shape (MyListingDetail passes `listing ?? null`
+    // before its own data has loaded) — the sheet must stay silent, not just
+    // visually absent, when there is nothing on screen to celebrate.
+    render(<PublishSuccessSheet {...buildProps({ visible: true, listing: null })} />);
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled();
+  });
+
   it("fires the haptic again on a fresh open, not on every re-render", () => {
     const { rerender } = render(<PublishSuccessSheet {...buildProps({ visible: false })} />);
     expect(Haptics.notificationAsync).not.toHaveBeenCalled();

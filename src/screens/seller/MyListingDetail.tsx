@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner-native";
 import {
   BarChart2,
   ChevronLeft,
@@ -117,27 +118,43 @@ export default function MyListingDetailScreen() {
   }, [published]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Data fetching ──────────────────────────────────────────────────────────
-  // `isError` IS destructured (design review fix, CYCLE-4) — but see the
+  // `error` IS destructured (design review fix, CYCLE-5) — but see the
   // `!listing` guard below: it drives COPY ONLY, never gating. React Query
   // keeps the last-known-good `data` around when a BACKGROUND refetch fails
   // (focus-refetch, a flaky blip while the PublishSuccessSheet is open),
-  // so `isError` can be true while `listing` still holds real data — the
+  // so `error` can be set while `listing` still holds real data — the
   // screen must keep showing that real data, never blank it.
-  const { data: listing, isLoading, isError, refetch } = useQuery({
+  const { data: listing, isLoading, error, refetch } = useQuery({
     queryKey: [MY_LISTING_QK, id],
     queryFn: () => listingsAPI.getMyListing(Number(id)),
     enabled: !!id,
   });
 
+  // CYCLE-5 design review fix: discriminate the fallback's copy on the REAL
+  // HTTP status, not on `isError`. `listingsAPI.getMyListing` is
+  // `await http.get(...)` + `convertKeysToCamel(...)` — it throws (an axios
+  // error carrying `response.status`) on every non-2xx response, so a plain
+  // `isError` boolean can never tell a genuine 404 (listing deleted — a
+  // stale deep link, or deleted from the web client) apart from an offline
+  // seller's network error. Only a real 404 gets the "not found" copy;
+  // every other error (no network, 500, timeout) gets the generic
+  // connectivity copy so an online-but-unlucky seller is never told their
+  // listing doesn't exist.
+  const isMissing =
+    (error as { response?: { status?: number } } | null)?.response?.status === 404;
+
   // Pull-to-refresh
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      await refetch();
+      const result = await refetch();
+      if (result.isError) {
+        toast.error(t("common.errorTitle"));
+      }
     } finally {
       setIsRefreshing(false);
     }
-  }, [refetch]);
+  }, [refetch, t]);
 
   // Refetch whenever this screen regains focus (mandatory per mobile.prompt.md §12)
   useFocusEffect(
@@ -196,29 +213,55 @@ export default function MyListingDetailScreen() {
 
   if (isLoading) return <DetailSkeleton />;
 
-  // CYCLE-3 CR fix (gating), CYCLE-4 design review fix (copy): guard on
-  // `!listing` alone, never `isError` — the old `isError || !listing` guard
-  // threw an already-loaded listing away and replaced the whole screen
-  // (sheet included) with the fallback on any background-refetch blip. Only
-  // show the fallback when there truly is no listing data at all (first
-  // load failed, or a real 404).
+  // CYCLE-3 CR fix (gating), CYCLE-4/5 design review fix (copy): guard on
+  // `!listing` alone, never the error state — the old `isError || !listing`
+  // guard threw an already-loaded listing away and replaced the whole
+  // screen (sheet included) with the fallback on any background-refetch
+  // blip. Only show the fallback when there truly is no listing data at
+  // all (first load failed, or a real 404).
   //
-  // `isError` DOES drive the fallback's COPY though: on a first-load failure
-  // we can't tell a real 404 apart from an offline/network error, so an
-  // `isError` first load must never claim the listing "does not exist" (a
-  // seller who is simply offline was previously told exactly that) — it
-  // gets the same generic connectivity copy every other screen uses
-  // (WifiOff + common.errorTitle/errorDescription). A confirmed empty
-  // result with no error (the rarer case — e.g. a stale deep link to a
-  // deleted listing) keeps the "not found" copy.
+  // `isMissing` (a genuine 404) drives the fallback's COPY + action: a
+  // confirmed-deleted listing gets the "not found" copy and a "Back to my
+  // listings" escape hatch (Retry can never succeed against a 404). Any
+  // other error (offline, 500, timeout) gets the generic connectivity copy
+  // + Retry, matching every other screen — an online-but-unlucky seller is
+  // never told their listing doesn't exist.
+  //
+  // Both branches render the same floating back-button overlay as the
+  // loaded screen below: this route is `headerShown: false`
+  // (app/(main)/_layout.tsx), so without it there is no visible way back
+  // besides an iOS swipe / Android hardware back button.
   if (!listing) {
     return (
-      <ScreenContainer scrollable={false} padded={false}>
+      <ScreenContainer scrollable={false} padded={false} safeArea={[]}>
+        <View
+          style={[styles.backHeader, { top: insets.top + 4, flexDirection: isRtl ? "row-reverse" : "row" }]}
+          pointerEvents="box-none"
+        >
+          <Pressable
+            onPress={() => router.back()}
+            style={[styles.backBtn, { backgroundColor: colors.darkScrim }]}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back")}
+          >
+            <ChevronLeft size={22} color={colors.overlayForeground} strokeWidth={2.5} />
+          </Pressable>
+        </View>
         <EmptyState
-          icon={isError ? WifiOff : PackageX}
-          title={isError ? t("common.errorTitle") : t("listing.ownerDetail.notFound")}
-          description={isError ? t("common.errorDescription") : undefined}
-          action={{ label: t("common.retry"), onPress: () => refetch() }}
+          icon={isMissing ? PackageX : WifiOff}
+          title={isMissing ? t("listing.ownerDetail.notFound") : t("common.errorTitle")}
+          description={
+            isMissing ? t("listing.ownerDetail.notFoundDescription") : t("common.errorDescription")
+          }
+          action={
+            isMissing
+              ? {
+                  label: t("listing.ownerDetail.backToMyListings"),
+                  onPress: () => router.replace("/(main)/(tabs)/my-listings"),
+                }
+              : { label: t("common.retry"), onPress: () => refetch() }
+          }
         />
       </ScreenContainer>
     );

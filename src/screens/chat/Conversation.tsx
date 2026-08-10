@@ -59,7 +59,18 @@ import { useConversationCable } from "@/hooks/useConversationCable";
 import { QuickReplies } from "@/components/common/QuickReplies";
 import { useComposerDraft } from "@/hooks/useComposerDraft";
 import { encodeMeetupBody, type MeetupCoords } from "./conversation/meetupBody";
-import { maybeReserveAfterAccept, resolveReserveCurrency } from "./conversation/reserveAfterAccept";
+import {
+  buildReserveAfterAcceptPrompt,
+  reserveAfterAccept,
+  resolveReserveCurrency,
+  type ReserveAfterAcceptPrompt,
+} from "./conversation/reserveAfterAccept";
+import { BuyerPickerSheet } from "@/components/common/BuyerPickerSheet";
+import {
+  canOfferInThread as canOfferInThreadPure,
+  showUnavailableNotice as showUnavailableNoticePure,
+  offerUnavailableStatus,
+} from "./conversation/threadAvailability";
 
 // ── Reanimated imports for search bar animation ───────────────────────────────
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate, Extrapolation } from "react-native-reanimated";
@@ -155,6 +166,13 @@ export function ConversationScreen() {
   // sendMessage calls (and, on Accept, could trigger the reserve-after-accept
   // prompt twice). Cleared in handleOfferRespond's `finally`.
   const [isRespondingToOffer, setIsRespondingToOffer] = useState(false);
+  // TASK-O947 (cycle-4 design review): the one-tap reserve confirm shown
+  // after a successful offer accept — the shared BuyerPickerSheet in its
+  // "preselectedBuyer" confirm mode, never the full pick-a-buyer flow. `null`
+  // means the sheet is closed; a non-null prompt (built by
+  // `buildReserveAfterAcceptPrompt`) drives both its visibility and content.
+  const [reserveConfirm, setReserveConfirm] = useState<ReserveAfterAcceptPrompt | null>(null);
+  const [isReservingAfterAccept, setIsReservingAfterAccept] = useState(false);
 
   // ── Derived: is the current user the seller of this conversation's listing? ──
   // Single source of truth — reused by the pinned ListingHeader's `isOwner`
@@ -584,13 +602,15 @@ export function ConversationScreen() {
         // reserve for the conversation's buyer at the accepted price — this
         // never fires on decline, never fires for the buyer (the shared
         // `isOwner` guards that), and a reserve failure never touches the
-        // accept above.
+        // accept above. Building the prompt has no side effects — it only
+        // opens the confirm sheet (rendered near the other sheets below);
+        // the actual reserve happens in `handleReserveAfterAcceptConfirm`.
         if (accepted && conversation?.listing) {
           const offerAmount =
             offer.offerAmount ?? Number((offer.body ?? "").split("|")[0] ?? 0);
           const listingRef = conversation.listing;
 
-          maybeReserveAfterAccept({
+          const prompt = buildReserveAfterAcceptPrompt({
             isOwner,
             listing: listingRef,
             buyer: conversation.buyer ?? null,
@@ -601,25 +621,8 @@ export function ConversationScreen() {
             currency: resolveReserveCurrency(listingRef.currency, offer.offerCurrency),
             t,
             formatCurrency,
-            onReserved: () => {
-              qc.invalidateQueries({ queryKey: ["conversation", convId] });
-              // Bare (id-less) keys — deliberately broader than an exact
-              // ["listing", id] match. ListingDetail.tsx and
-              // MyListingDetail.tsx key their detail queries by the STRING
-              // route param while this handler only has the numeric
-              // `listingRef.id`; invalidating the whole "listing"/"my-listing"
-              // namespace (React Query's default partial-match) refreshes
-              // both regardless of the id's type instead of silently missing
-              // due to a string/number key mismatch.
-              qc.invalidateQueries({ queryKey: ["listing"] });
-              qc.invalidateQueries({ queryKey: ["my-listing"] });
-              qc.invalidateQueries({ queryKey: ["my-listings"] });
-              qc.invalidateQueries({ queryKey: ["myListingStatusCounts"] });
-              // Reload local conversation state so the pinned ListingHeader
-              // flips to Reserved right away, without a manual refresh.
-              load(convId);
-            },
           });
+          if (prompt) setReserveConfirm(prompt);
         }
       } catch {
         toast.error(t("chat.thread.sendFailed"));
@@ -627,8 +630,45 @@ export function ConversationScreen() {
         setIsRespondingToOffer(false);
       }
     },
-    [currentConversationId, conversation, isOwner, formatCurrency, qc, load, t, isRespondingToOffer]
+    [currentConversationId, conversation, isOwner, formatCurrency, t, isRespondingToOffer]
   );
+
+  // ── TASK-O947: confirm the one-tap reserve prompt ─────────────────────────
+  // Called from the confirm sheet's onConfirm. `reserveAfterAccept` (the
+  // standalone, unit-tested module function) does the actual PUT + toasts
+  // and resolves true/false (never throws); this wrapper only owns the
+  // sheet's submitting state, the same invalidation set the old
+  // confirmAlert-driven flow used (so the pinned ListingHeader flips to
+  // Reserved without a manual refresh), and — mirroring ListingHeader's own
+  // `handleBuyerPickerConfirm` — only closes the sheet on SUCCESS, so a
+  // reserve failure leaves it open for the seller to retry.
+  const handleReserveAfterAcceptConfirm = useCallback(async () => {
+    if (!reserveConfirm) return;
+    const convId = currentConversationId;
+    setIsReservingAfterAccept(true);
+    const succeeded = await reserveAfterAccept(reserveConfirm, {
+      t,
+      onReserved: () => {
+        if (convId) qc.invalidateQueries({ queryKey: ["conversation", convId] });
+        // Bare (id-less) keys — deliberately broader than an exact
+        // ["listing", id] match. ListingDetail.tsx and MyListingDetail.tsx
+        // key their detail queries by the STRING route param while this
+        // handler only has the numeric `listingId`; invalidating the whole
+        // "listing"/"my-listing" namespace (React Query's default
+        // partial-match) refreshes both regardless of the id's type instead
+        // of silently missing due to a string/number key mismatch.
+        qc.invalidateQueries({ queryKey: ["listing"] });
+        qc.invalidateQueries({ queryKey: ["my-listing"] });
+        qc.invalidateQueries({ queryKey: ["my-listings"] });
+        qc.invalidateQueries({ queryKey: ["myListingStatusCounts"] });
+        // Reload local conversation state so the pinned ListingHeader flips
+        // to Reserved right away, without a manual refresh.
+        if (convId) load(convId);
+      },
+    });
+    setIsReservingAfterAccept(false);
+    setReserveConfirm(null);
+  }, [reserveConfirm, currentConversationId, qc, load, t]);
 
   // ── Open counter-offer sheet (seller) ────────────────────────────────────
   const handleOpenCounterSheet = useCallback((offer: Message) => {
@@ -922,22 +962,47 @@ export function ConversationScreen() {
   // the seller has committed to a buyer, a NEW offer no longer makes sense —
   // ListingUnavailableNotice below replaces the vanished control with an
   // explicit reason + a real next step instead of a silent gap.
-  const canOfferInThread =
-    canSend &&
-    !!conversation?.listing &&
-    !conversation?.listingDeleted &&
-    conversation.listing.status !== "sold" &&
-    conversation.listing.status !== "reserved" &&
-    conversation.listing.negotiable !== false;
+  //
+  // Review fix (MEDIUM): hoisted into a pure, independently-unit-tested
+  // module (threadAvailability.ts) — this screen is too deeply coupled to
+  // mount in a test, so an inline guard here was only ever exercised by
+  // hand-copied duplicates in the test files, which is how the original
+  // K729 bug (reserved offers not excluded) stayed green.
+  const canOfferInThread = canOfferInThreadPure({
+    canSend,
+    listing: conversation?.listing,
+    listingDeleted: conversation?.listingDeleted,
+  });
 
   // TASK-K729: the buyer-facing reserved/sold recovery notice — never shown
   // to the listing's own seller (isOwner), who already has the lifecycle
-  // controls in ListingHeader and the buyer info in SaleBuyerCard elsewhere.
-  const showUnavailableNotice =
-    !isOwner &&
-    !!conversation?.listing &&
-    !conversation.listingDeleted &&
-    (conversation.listing.status === "reserved" || conversation.listing.status === "sold");
+  // controls in ListingHeader and the buyer info in SaleBuyerCard elsewhere,
+  // and never before the viewer is known (review fix, LOW — prevents a
+  // one-frame flash of the buyer-facing copy for a seller on a cold start,
+  // while `currentUser` is still resolving and `isOwner` reads false).
+  const showUnavailableNotice = showUnavailableNoticePure({
+    isOwner,
+    viewerKnown: !!currentUser,
+    listing: conversation?.listing,
+    listingDeleted: conversation?.listingDeleted,
+  });
+
+  // TASK-K729 (review fix, LOW): the reason the composer's offer row is
+  // missing FROM INSIDE the sheet where it vanished — reused as a disabled
+  // row with a one-line explanation in ComposerActionsSheet (both roles: the
+  // seller opening "+" on their own reserved/sold listing gets the same
+  // neutral status reason, never the buyer-facing recovery copy above).
+  const offerUnavailableReasonStatus = offerUnavailableStatus({
+    canSend,
+    listing: conversation?.listing,
+    listingDeleted: conversation?.listingDeleted,
+  });
+  const offerUnavailableReason =
+    offerUnavailableReasonStatus === "sold"
+      ? t("chat.thread.unavailable.soldTitle")
+      : offerUnavailableReasonStatus === "reserved"
+      ? t("chat.thread.unavailable.reservedTitle")
+      : undefined;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -1105,9 +1170,12 @@ export function ConversationScreen() {
       {showUnavailableNotice && conversation?.listing && (
         <ListingUnavailableNotice
           status={conversation.listing.status as "reserved" | "sold"}
+          viewerIsSaleBuyer={conversation.listing.viewerIsSaleBuyer}
           category={conversation.listing.category}
           sellerId={conversation.seller?.id}
           sellerName={conversation.seller?.name}
+          sellerAvatarUrl={conversation.seller?.avatarUrl}
+          sellerVerified={conversation.seller?.verified}
         />
       )}
 
@@ -1425,6 +1493,7 @@ export function ConversationScreen() {
         onProposeMeetup={() => setMeetupSheetVisible(true)}
         onMakeOffer={() => setThreadOfferSheetVisible(true)}
         canMakeOffer={canOfferInThread}
+        offerUnavailableReason={offerUnavailableReason}
         disabled={isSendingPhoto || isSendingFile}
       />
 
@@ -1511,6 +1580,31 @@ export function ConversationScreen() {
           }}
         />
       )}
+
+      {/* TASK-O947: one-tap reserve confirm after a successful offer accept —
+          the SAME shared BuyerPickerSheet used by ListingHeader/MyListingDetail/
+          SellerListingCard, but in its "preselectedBuyer" confirm mode
+          (cycle-4 design review): listing thumb + locked buyer identity +
+          PriceTag, never the full pick-a-buyer list. "Not now" is just
+          `onClose` — it never reserves and never touches the accept above. */}
+      <BuyerPickerSheet
+        visible={reserveConfirm !== null}
+        onClose={() => setReserveConfirm(null)}
+        listingId={reserveConfirm?.listingId ?? 0}
+        price={reserveConfirm?.finalPrice ?? 0}
+        currency={reserveConfirm?.currency ?? "AFN"}
+        action="reserve"
+        preselectedBuyer={reserveConfirm?.buyer ?? null}
+        listingThumbnailUrl={conversation?.listing?.thumbnailUrl ?? null}
+        listingTitle={conversation?.listing?.title ?? null}
+        confirmTitle={reserveConfirm?.title}
+        confirmBody={reserveConfirm?.body}
+        cancelLabel={t("chat.offer.reserveAfterAcceptDismiss")}
+        onConfirm={() => {
+          void handleReserveAfterAcceptConfirm();
+        }}
+        isSubmitting={isReservingAfterAccept}
+      />
       </>}
 
     </View>

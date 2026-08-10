@@ -8,37 +8,37 @@
  * accept logic that `handleOfferRespond` calls lives in the small, standalone
  * `conversation/reserveAfterAccept.ts` module instead, so these tests exercise
  * the REAL production functions directly (no re-implementation / no drift).
+ *
+ * Cycle-4 design review pivot: the confirm step is now the shared
+ * `BuyerPickerSheet` in its "preselectedBuyer" confirm mode (its own render
+ * behavior is covered by BuyerPickerSheet.test.tsx), not a `confirmAlert`.
+ * This file therefore covers the module's two halves:
+ *  - `buildReserveAfterAcceptPrompt` — the pure decision + data builder that
+ *    drives the sheet's visibility/content. Building the prompt is NOT a
+ *    side effect: "Not now" is simply the caller never invoking the confirm
+ *    function below, so it is proven here by asserting `reserveListing` is
+ *    never called merely from building a prompt.
+ *  - `reserveAfterAccept` — the side-effecting confirm, called from the
+ *    sheet's `onConfirm`.
  */
 
-import { confirmAlert } from "@/utils/alert";
 import { listingsAPI } from "@/api/listings";
 import { toast } from "sonner-native";
 import {
-  maybeReserveAfterAccept,
+  buildReserveAfterAcceptPrompt,
+  reserveAfterAccept,
   resolveReserveCurrency,
   shouldPromptReserveAfterAccept,
+  wrapBidiIsolate,
   type MaybeReserveAfterAcceptParams,
 } from "@/screens/chat/conversation/reserveAfterAccept";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-jest.mock("@/utils/alert", () => ({
-  confirmAlert: jest.fn(),
-}));
-
-// `toast.promise` MUST be part of this mock: the module drives the whole
-// loading → success/error lifecycle through it. A mock missing `promise` makes
-// the call throw before the module can attach its own .catch(), which leaves
-// the rejected reserve promise unhandled and crashes the Jest worker — taking
-// this entire file's results down with it rather than failing one test.
-// The stub swallows the rejection exactly as the real helper does.
 jest.mock("sonner-native", () => ({
   toast: {
     success: jest.fn(),
     error: jest.fn(),
-    promise: jest.fn((p: Promise<unknown>) => {
-      void Promise.resolve(p).catch(() => undefined);
-    }),
   },
 }));
 
@@ -79,15 +79,18 @@ function baseParams(
   };
 }
 
-/** Pulls the [title, body, buttons] tuple off the (mocked) confirmAlert call. */
-function getAlertCall() {
-  const call = (confirmAlert as jest.Mock).mock.calls[0];
-  return { title: call[0], body: call[1], buttons: call[2] as Array<{ text: string; style?: string; onPress?: () => unknown }> };
-}
-
 beforeEach(() => {
   jest.clearAllMocks();
   (listingsAPI.reserveListing as jest.Mock).mockResolvedValue({ listing: ACTIVE_LISTING, transaction: undefined });
+});
+
+// ─── wrapBidiIsolate ──────────────────────────────────────────────────────────
+
+describe("wrapBidiIsolate", () => {
+  it("wraps a value in the FSI / PDI unicode isolate pair", () => {
+    expect(wrapBidiIsolate("Ahmad")).toBe("⁦Ahmad⁩");
+    expect(wrapBidiIsolate("12,000 AFN")).toBe("⁦12,000 AFN⁩");
+  });
 });
 
 // ─── resolveReserveCurrency (review fix — hoisted from Conversation.tsx's ───
@@ -169,113 +172,120 @@ describe("shouldPromptReserveAfterAccept", () => {
   });
 });
 
-// ─── maybeReserveAfterAccept — prompting ─────────────────────────────────────
+// ─── buildReserveAfterAcceptPrompt — case 1: shown with buyer + price ────────
 
-describe("maybeReserveAfterAccept — prompts and reserves for owner + active listing", () => {
-  it("shows the confirm prompt with the buyer name and formatted price, and no buyer picker", () => {
-    maybeReserveAfterAccept(baseParams());
+describe("buildReserveAfterAcceptPrompt — owner + active listing", () => {
+  it("builds the confirm-sheet prompt with the buyer, the accepted price, and a title + body — never a buyer picker", () => {
+    const prompt = buildReserveAfterAcceptPrompt(baseParams());
 
-    expect(confirmAlert).toHaveBeenCalledTimes(1);
-    const { title, body, buttons } = getAlertCall();
+    expect(prompt).not.toBeNull();
+    expect(prompt?.listingId).toBe(42);
+    expect(prompt?.buyer).toEqual({ id: 7, name: "Ahmad", avatarUrl: null });
+    expect(prompt?.finalPrice).toBe(12000);
+    expect(prompt?.currency).toBe("AFN");
 
-    expect(title).toBe("chat.offer.reserveAfterAcceptTitle");
-    expect(body).toContain("chat.offer.reserveAfterAcceptBody");
-    expect(body).toContain("Ahmad");
-    expect(body).toContain("12000 AFN");
+    expect(prompt?.title).toBe("chat.offer.reserveAfterAcceptTitle");
 
-    // Exactly two buttons: cancel ("Not now") + confirm ("Reserve") — never a
-    // buyer picker of any kind.
-    expect(buttons).toHaveLength(2);
-    expect(buttons[0].style).toBe("cancel");
-    // The CTA carries the price ("Reserve at {{price}}"), so `t` is called with
-    // interpolation options and the stub returns "<key>|<json>".
-    expect(buttons[1].text).toContain("chat.offer.reserveAfterAcceptCta");
-    expect(buttons[1].text).toContain("12000 AFN");
-    // "Not now", never the generic common.cancel.
-    expect(buttons[0].text).toBe("chat.offer.reserveAfterAcceptDismiss");
+    // The body carries the buyer name and the formatted price — both wrapped
+    // in bidi isolates (DR fix: never bare-interpolated, and never inside a
+    // button label — see BuyerPickerSheet's `confirmLabel`, which this module
+    // never touches).
+    expect(prompt?.body).toContain("chat.offer.reserveAfterAcceptBody");
+    expect(prompt?.body).toContain(wrapBidiIsolate("Ahmad"));
+    expect(prompt?.body).toContain(wrapBidiIsolate("12000 AFN"));
+
+    // Building the prompt is pure — nothing was reserved yet.
+    expect(listingsAPI.reserveListing).not.toHaveBeenCalled();
+  });
+});
+
+// ─── buildReserveAfterAcceptPrompt — case 3/6: suppression ("Not now" and ────
+// the accept-only-for-owner / active-listing matrix) ─────────────────────────
+
+describe("buildReserveAfterAcceptPrompt — suppressed (never opens the sheet)", () => {
+  it("returns null when the responder is the buyer (not the owner)", () => {
+    expect(buildReserveAfterAcceptPrompt(baseParams({ isOwner: false }))).toBeNull();
   });
 
-  it("confirming calls reserveListing with the conversation's buyer id and the accepted price — exactly once", async () => {
-    const onReserved = jest.fn();
-    maybeReserveAfterAccept(baseParams({ onReserved }));
+  it.each(["reserved", "sold", "draft"])("returns null when the listing is already %s", (status) => {
+    expect(buildReserveAfterAcceptPrompt(baseParams({ listing: { id: 42, status } }))).toBeNull();
+  });
 
-    const { buttons } = getAlertCall();
-    await buttons[1].onPress?.();
+  it("returns null when there is no buyer on the conversation", () => {
+    expect(buildReserveAfterAcceptPrompt(baseParams({ buyer: null }))).toBeNull();
+  });
+
+  it("returns null when the listing is missing", () => {
+    expect(buildReserveAfterAcceptPrompt(baseParams({ listing: null }))).toBeNull();
+  });
+
+  it("returns null when the accepted amount is missing or zero", () => {
+    expect(buildReserveAfterAcceptPrompt(baseParams({ offerAmount: 0 }))).toBeNull();
+    expect(buildReserveAfterAcceptPrompt(baseParams({ offerAmount: null }))).toBeNull();
+  });
+});
+
+// ─── reserveAfterAccept — case 2: confirming reserves exactly once ───────────
+
+describe("reserveAfterAccept — confirming", () => {
+  it("calls reserveListing with the conversation's buyer id and the accepted price — exactly once — and shows a success toast", async () => {
+    const prompt = buildReserveAfterAcceptPrompt(baseParams())!;
+    const onReserved = jest.fn();
+
+    await reserveAfterAccept(prompt, { t, onReserved });
 
     expect(listingsAPI.reserveListing).toHaveBeenCalledTimes(1);
     expect(listingsAPI.reserveListing).toHaveBeenCalledWith(42, { buyerId: 7, finalPrice: 12000 });
     expect(onReserved).toHaveBeenCalledTimes(1);
 
-    // Progress is reported through a single toast.promise lifecycle (the native
-    // alert dismisses instantly, so an in-dialog spinner is impossible) — not
-    // through a bare success toast.
-    expect(toast.promise).toHaveBeenCalledTimes(1);
-    const [, handlers] = (toast.promise as jest.Mock).mock.calls[0];
-    expect(handlers.loading).toBe("chat.offer.reserveAfterAcceptPending");
-    expect(handlers.success()).toContain("chat.offer.reserveAfterAcceptSuccess");
-    expect(handlers.success()).toContain("Ahmad");
+    expect(toast.success).toHaveBeenCalledTimes(1);
+    expect(toast.error).not.toHaveBeenCalled();
+    expect((toast.success as jest.Mock).mock.calls[0][0]).toContain("chat.offer.reserveAfterAcceptSuccess");
+    expect((toast.success as jest.Mock).mock.calls[0][0]).toContain("Ahmad");
   });
+});
 
-  it('"Not now" (cancel) is a no-op — never calls reserveListing', () => {
+// ─── case 4: "Not now" is a no-op — building the prompt never reserves ───────
+
+describe('reserveAfterAccept — "Not now" (dismissal is simply never calling this)', () => {
+  it("never calls reserveListing merely from building the prompt, and onReserved is never invoked without an explicit confirm", () => {
     const onReserved = jest.fn();
-    maybeReserveAfterAccept(baseParams({ onReserved }));
+    const prompt = buildReserveAfterAcceptPrompt(baseParams());
 
-    const { buttons } = getAlertCall();
-    // Cancel button intentionally has no onPress — tapping it just dismisses.
-    expect(buttons[0].onPress).toBeUndefined();
+    expect(prompt).not.toBeNull();
+    // The listing is untouched — no reserve call happened just by showing
+    // the sheet, and `onReserved` (which the caller uses to invalidate
+    // queries / reload the conversation) was never called either.
     expect(listingsAPI.reserveListing).not.toHaveBeenCalled();
     expect(onReserved).not.toHaveBeenCalled();
   });
 });
 
-// ─── maybeReserveAfterAccept — suppression ───────────────────────────────────
+// ─── case 5: reserve failure never rolls back the accept ────────────────────
 
-describe("maybeReserveAfterAccept — suppressed prompts", () => {
-  it("does NOT prompt when the responder is the buyer (not the owner)", () => {
-    maybeReserveAfterAccept(baseParams({ isOwner: false }));
-    expect(confirmAlert).not.toHaveBeenCalled();
-    expect(listingsAPI.reserveListing).not.toHaveBeenCalled();
-  });
-
-  it.each(["reserved", "sold", "draft"])("does NOT prompt when the listing is already %s", (status) => {
-    maybeReserveAfterAccept(baseParams({ listing: { id: 42, status } }));
-    expect(confirmAlert).not.toHaveBeenCalled();
-  });
-
-  it("does NOT prompt when there is no buyer on the conversation", () => {
-    maybeReserveAfterAccept(baseParams({ buyer: null }));
-    expect(confirmAlert).not.toHaveBeenCalled();
-  });
-
-  it("does NOT prompt when the listing is missing", () => {
-    maybeReserveAfterAccept(baseParams({ listing: null }));
-    expect(confirmAlert).not.toHaveBeenCalled();
-  });
-});
-
-// ─── maybeReserveAfterAccept — reserve failure never rolls back the accept ───
-
-describe("maybeReserveAfterAccept — reserve failure", () => {
-  it("shows an error toast and does not call onReserved when reserve 422s, without throwing", async () => {
+describe("reserveAfterAccept — reserve failure", () => {
+  it("shows an error toast and never calls onReserved when reserve 422s, without throwing", async () => {
     (listingsAPI.reserveListing as jest.Mock).mockRejectedValue({
       response: { status: 422, data: { error: "Listing cannot be reserved" } },
     });
     const onReserved = jest.fn();
+    const prompt = buildReserveAfterAcceptPrompt(baseParams())!;
 
-    maybeReserveAfterAccept(baseParams({ onReserved }));
-    const { buttons } = getAlertCall();
-
-    // Must resolve (never throw) even though the underlying API call rejects —
-    // the offer_accepted message that was already sent is never rolled back
-    // by this function (it doesn't touch message state at all).
-    await expect(buttons[1].onPress?.()).resolves.toBeUndefined();
+    // Must resolve (never throw) even though the underlying API call
+    // rejects — the offer_accepted message already sent is never rolled
+    // back by this function (it doesn't touch message state at all).
+    //
+    // Resolves FALSE rather than undefined: the caller uses the boolean to
+    // decide whether to close the confirm sheet, and on failure it stays open
+    // so the seller can retry without re-triggering the whole accept (same
+    // contract as ListingHeader's handleBuyerPickerConfirm).
+    await expect(reserveAfterAccept(prompt, { t, onReserved })).resolves.toBe(false);
 
     expect(onReserved).not.toHaveBeenCalled();
 
-    // The failure is surfaced by the toast.promise error branch, and it reuses
-    // ListingHeader's existing copy rather than a duplicate translation key.
-    expect(toast.promise).toHaveBeenCalledTimes(1);
-    const [, handlers] = (toast.promise as jest.Mock).mock.calls[0];
-    expect(handlers.error()).toBe("chat.listingActions.reserveFailed");
+    // Reuses ListingHeader's existing copy rather than a duplicate key.
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith("chat.listingActions.reserveFailed");
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });

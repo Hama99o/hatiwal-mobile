@@ -7,10 +7,10 @@ appId: com.hatiwal.app
 # buyer, so the seller-only "Accept" button could never have been found) --
 # now signs out and back in as the real seller via login_seller.yaml.
 #
-# TASK-O947 also means accepting now triggers a confirm prompt --
+# TASK-O947 also means accepting now triggers a confirm sheet --
 # "Reserve for {buyer} at {price}?" -- when the responder owns an active
 # listing. This flow stays scoped to the plain accept-outcome-badge mechanic
-# and dismisses that prompt via "Not now", asserting the listing stays
+# and dismisses that sheet via "Not now", asserting the listing stays
 # Active. The prompt's CONFIRM path (and the reserve it performs) is covered
 # separately by maestro/chat/reserve_after_accept.yaml.
 #
@@ -19,6 +19,17 @@ appId: com.hatiwal.app
 # fixture (mark_sold_with_buyer.yaml, response-rate badge seed) and from the
 # listing used by reserve_after_accept.yaml, so none of these mutating flows
 # collide with each other.
+#
+# CR fix (cycle-4, "same defects" as reserve_after_accept.yaml): "Message
+# Seller" was both mislabeled AND unnecessary -- "Make an Offer" is a SIBLING
+# button of "Contact Seller" directly on ListingDetail.tsx, not something
+# reachable only after opening the thread, so the whole extra tap is dropped.
+# The offer-amount field has no visible "Offer Amount" label -- targeted by
+# its testID instead. Dropped the tautological "Pending" assertion (no such
+# status text is ever rendered for a not-yet-answered offer). "Accept" ->
+# the button's actual label is "Accept offer" (chat.offer.accept);
+# "Accepted" -> the outcome badge's actual label is "Offer accepted"
+# (chat.offer.accepted).
 
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Bazaar"
@@ -30,40 +41,43 @@ appId: com.hatiwal.app
     timeout: 8000
 - tapOn: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
-- tapOn: "Message Seller"
-- waitForAnimationToEnd
 
-# Send offer
+# "Make an Offer" is a sibling of "Contact Seller" directly on the listing
+# detail page -- no need to open the thread first.
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
 - assertVisible: "Send Offer"
-- tapOn: "Offer Amount"
+- tapOn:
+    id: "offer-amount-input"
 - inputText: "3000"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
 
-# Offer bubble visible
+# Offer bubble visible. The header pill renders as "PRICE OFFER" (uppercased
+# via .toUpperCase() in MessageBubble.tsx) -- asserting bare "Offer" is a
+# case-sensitive miss against that. "Your Offer" is the bubble's own
+# mixed-case label above the amount, and is unambiguous.
 - assertVisible: "3,000"
-- assertVisible: "Offer"
-- assertVisible: "Pending"
+- assertVisible: "Your Offer"
 
-# Sign out and back in as the real seller to accept
+# Sign out and back in as the real seller to accept. chat-tab has no testID
+# anywhere in the tab bar -- tap the "Chats" label (its actual translated
+# tab title) instead (same fix as reserve_after_accept.yaml).
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn:
-    id: "chat-tab"
+- tapOn: "Chats"
 - waitForAnimationToEnd
 - tapOn: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
-- tapOn: "Accept"
+- tapOn: ".*Accept.*"
 - waitForAnimationToEnd
 
-# TASK-O947: dismiss the reserve-after-accept prompt -- out of scope here,
-# covered by reserve_after_accept.yaml.
+# TASK-O947: dismiss the reserve-after-accept confirm sheet -- out of scope
+# here, covered by reserve_after_accept.yaml.
 - assertVisible: "Reserve this listing for a buyer?"
 - tapOn: "Not now"
 - waitForAnimationToEnd
 
 # Accepted state, and the listing is untouched -- still Active, still shows
 # its own lifecycle "Reserve" action (never auto-reserved by "Not now").
-- assertVisible: "Accepted"
+- assertVisible: "Offer accepted"
 - assertVisible: "Reserve"

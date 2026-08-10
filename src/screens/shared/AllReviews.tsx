@@ -16,12 +16,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Star } from "lucide-react-native";
+import { Star } from "lucide-react-native";
 
 import { Text } from "@/components/reusables/text";
 import { UniversalList, type ListQuery, type ListFetchResult } from "@/components/common/UniversalList";
 import { ReviewCard } from "@/components/common/ReviewCard";
 import { RatingDisplay } from "@/components/common/RatingDisplay";
+import { BackButton } from "@/components/common/BackButton";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useAuthStore } from "@/stores/auth.store";
@@ -125,9 +126,11 @@ export default function AllReviewsScreen() {
           gap: 8,
         }}
       >
-        <Pressable onPress={() => router.back()} hitSlop={16} accessibilityRole="button">
-          <ChevronLeft size={24} color={colors.foreground} />
-        </Pressable>
+        {/* Review fix (TASK-TX02, LOW — shared-component rule + RTL
+            consistency): was a hand-rolled Pressable+ChevronLeft with no RTL
+            flip and no accessibilityLabel — the shared BackButton provides
+            both for free. */}
+        <BackButton onPress={() => router.back()} />
         <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground, flex: 1 }} numberOfLines={1}>
           {title}
         </Text>

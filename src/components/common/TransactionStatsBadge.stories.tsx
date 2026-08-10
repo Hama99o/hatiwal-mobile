@@ -9,6 +9,7 @@ const meta: Meta<typeof TransactionStatsBadge> = {
   argTypes: {
     soldCount: { control: { type: "number", min: 0 } },
     boughtCount: { control: { type: "number", min: 0 } },
+    variant: { control: { type: "radio" }, options: ["meta", "pill"] },
   },
 };
 
@@ -54,4 +55,19 @@ export const AllVariants: Story = {
       <TransactionStatsBadge soldCount={0} boughtCount={4} />
     </View>
   ),
+};
+
+// "pill" variant — elevated rounded chip used in the centered identity
+// cluster on the public profile (TASK-TX02 review fix, MED — visual hierarchy)
+export const Pill: Story = {
+  args: { soldCount: 12, boughtCount: 3, variant: "pill" },
+};
+
+export const PillSoldOnly: Story = {
+  args: { soldCount: 5, boughtCount: 0, variant: "pill" },
+};
+
+// Long RTL labels — confirms the text shrinks instead of overflowing/clipping
+export const PillLongRtlLabel: Story = {
+  args: { soldCount: 123, boughtCount: 45, variant: "pill" },
 };

@@ -12,27 +12,40 @@ appId: com.hatiwal.app
 # Review fix: the stats-row "Items Sold" cell was REMOVED — it duplicated
 # the exact same number already shown by the trust badge below it. The
 # stats row now shows only Active Listings + Joined.
+#
+# Review fix (E2E MAJOR — this flow could never pass against the live
+# screen): navigate via the seller's own listing card + the UserIdentity
+# "seller-profile-link" testID, mirroring
+# maestro/browse/seller_response_rate_badge.yaml — "Contact Seller"/"Seller"
+# text taps never open a listing or the profile at all. Assert the badge via
+# its own stable testID (not localized copy), and drop the "Seller Profile"
+# text assert — that string is the LOADING/ERROR header only; the loaded
+# header shows the seller's own name instead.
 
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
-# Open any listing detail — the seller card leads to the SAME aggregate
-# seller profile regardless of which listing you came from.
-- tapOn: "Contact Seller"
+# Open the seller's listing, then their public profile via the seller card —
+# the seller card leads to the SAME aggregate seller profile regardless of
+# which listing you came from.
+- tapOn:
+    index: 0
+    testID: "listing-card"
 - waitForAnimationToEnd
-- assertVisible: "Seller"
-- tapOn: "Seller"
+- tapOn:
+    testID: "seller-profile-link"
 - waitForAnimationToEnd
 
 # Seller profile page opens
-- assertVisible: "Seller Profile"
 - assertVisible: "Active Listings"
 - assertVisible: "Joined"
 - assertNotVisible: "Items Sold"
 
-# The combined trust badge — "N sold" (bought omitted, seller has 0 purchases)
-- assertVisible: "1 sold"
+# The combined trust badge — locale-independent testID (asserting on the
+# rendered "N sold" copy would break the moment the label runs through ps/fa).
+- assertVisible:
+    testID: "transaction-stats-badge"
 
 # Back to listing detail
 - back

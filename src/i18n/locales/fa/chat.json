@@ -63,12 +63,16 @@
     "filePickerNotAvailable": "انتخاب فایل در دسترس نیست.",
     "unavailable": {
       "reservedTitle": "آگهی رزرو شده",
-      "reservedBody": "این کالا برای خریدار دیگری رزرو شده است، بنابراین ارسال پیشنهاد جدید در اینجا دیگر ممکن نیست.",
+      "reservedBody": "فروشنده این کالا را رزرو کرده است، بنابراین ارسال پیشنهاد جدید در اینجا دیگر ممکن نیست.",
       "soldTitle": "آگهی فروخته شده",
       "soldBody": "این کالا فروخته شده است، بنابراین ارسال پیشنهاد جدید در اینجا دیگر ممکن نیست.",
+      "reservedForYouTitle": "برای شما رزرو شده",
+      "reservedForYouBody": "فروشنده این کالا را برای شما رزرو کرده است. برای تنظیم قرار ملاقات همینجا گفتگو را ادامه دهید.",
+      "soldToYouTitle": "شما این کالا را خریدید!",
+      "soldToYouBody": "این معامله تکمیل شد. برای دریافت کالا فروشنده را ملاقات کنید، سپس نظر خود را ثبت کنید.",
       "browseSimilar": "مشاهده موارد مشابه در {{category}}",
       "browseSimilarGeneric": "مشاهده آگهی‌های مشابه",
-      "moreFromSeller": "سایر آگهی‌های {{name}}"
+      "viewTheirListings": "مشاهده سایر آگهی‌های او"
     }
   },
   "meetup": {
@@ -161,9 +165,7 @@
     "firmNotice": "قیمت فروشنده ثابت است — پیشنهادات پذیرفته نمی‌شوند",
     "reserveAfterAcceptTitle": "این آگهی را برای یک خریدار رزرو کنید؟",
     "reserveAfterAcceptBody": "برای {{buyerName}} به قیمت {{price}} رزرو شود؟",
-    "reserveAfterAcceptCta": "رزرو به قیمت {{price}}",
     "reserveAfterAcceptDismiss": "نه الان",
-    "reserveAfterAcceptPending": "در حال رزرو کردن آگهی...",
     "reserveAfterAcceptSuccess": "آگهی برای {{buyerName}} رزرو شد"
   },
   "block": {

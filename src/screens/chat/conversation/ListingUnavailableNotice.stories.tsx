@@ -18,13 +18,15 @@ const CATEGORY = {
   slug: "electronics",
 };
 
-// Reserved — category known, seller known. Both recovery actions render.
+// Reserved — generic recovery copy, category known, seller known. Both
+// recovery actions render.
 export const Reserved: Story = {
   args: {
     status: "reserved",
     category: CATEGORY,
     sellerId: 42,
     sellerName: "Ahmad Karimi",
+    sellerVerified: true,
   },
 };
 
@@ -35,11 +37,12 @@ export const Sold: Story = {
     category: CATEGORY,
     sellerId: 42,
     sellerName: "Ahmad Karimi",
+    sellerVerified: true,
   },
 };
 
 // No category on the listing — falls back to the generic "Browse similar
-// listings" label/route. "More from seller" still shows. Never an empty
+// listings" label/route. "View their listings" still shows. Never an empty
 // action row.
 export const NoCategoryFallback: Story = {
   args: {
@@ -64,5 +67,50 @@ export const NoSellerInfo: Story = {
 export const MinimalPayload: Story = {
   args: {
     status: "reserved",
+  },
+};
+
+// TASK-K729 (HIGH review fix) — the viewer IS the buyer the seller committed
+// to: a positive headline, no recovery CTAs (nothing to recover from).
+export const ReservedForYou: Story = {
+  args: {
+    status: "reserved",
+    viewerIsSaleBuyer: true,
+    category: CATEGORY,
+    sellerId: 42,
+    sellerName: "Ahmad Karimi",
+  },
+};
+
+export const SoldToYou: Story = {
+  args: {
+    status: "sold",
+    viewerIsSaleBuyer: true,
+    category: CATEGORY,
+    sellerId: 42,
+    sellerName: "Ahmad Karimi",
+  },
+};
+
+// A long seller name (with the longer ps/fa button labels in mind) — the
+// action row must never overflow. Buttons are `flex: 1` with
+// `numberOfLines={1}` labels.
+export const LongSellerName: Story = {
+  args: {
+    status: "reserved",
+    category: CATEGORY,
+    sellerId: 42,
+    sellerName: "Mohammad Ismail Ahmadzai Popalzai",
+  },
+};
+
+// Pashto RTL — long ps/fa CTA labels ("مشاهده موارد مشابه در {{category}}",
+// "سایر آگهی‌های {{name}}") mirrored correctly, action row splits evenly.
+export const ReservedPashtoRtl: Story = {
+  args: {
+    status: "reserved",
+    category: CATEGORY,
+    sellerId: 42,
+    sellerName: "احمد کریمی",
   },
 };

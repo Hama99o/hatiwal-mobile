@@ -104,34 +104,20 @@ function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode 
 // Exported so the grid-collapse regression (TASK-TX02 review fix) can be
 // covered by a focused unit test without mounting the whole Profile screen.
 
+// Review fix (TASK-TX02, LOW — "dead API surface"): the `columns` prop and
+// its filler-slot padding used to exist for a hypothetical future 3/4-up
+// grid, but this component has exactly ONE caller (ProfileContent below),
+// which always passes a 1- or 2-entry `stats` array — `fillerCount` was
+// therefore provably always 0 in production. Dropped the prop and the
+// filler branch entirely; a lone stat's own `flex: 1` cell still centres
+// itself across the full row for free (no filler needed to achieve that).
 export function ProfileStatsGrid({
   stats,
-  columns,
 }: {
   stats: { label: string; value: string }[];
-  /**
-   * Reserve this many fixed-width slots when there are already at least 2
-   * real stats to pad out to a wider grid (e.g. a future 3/4-up layout that
-   * only has 2 populated cells). Deliberately NOT applied when fewer than 2
-   * stats are populated — see the review-fix note below. Defaults to
-   * `stats.length` (no-op) for grids that always render a fixed-size array.
-   */
-  columns?: number;
 }) {
   const colors = useColors();
   const { isRtl } = useLocalization();
-  const slotCount = columns ?? stats.length;
-  // Review fix (TASK-TX02 — CR MED "hiding a 0 stat leaves an invisible
-  // filler" / DR MAJOR "only reserve fillers when stats.length>=2"): a
-  // previous version always padded up to `columns` with invisible filler
-  // `View`s, which is correct for a partially-filled multi-stat grid but
-  // actively WRONG for a single lone stat — the filler ate half the row's
-  // width, squeezing the one real number/label into the left/leading half
-  // instead of letting it read as centred across the full card. Only ever
-  // reserve fillers once there are already 2+ real stats to pad; a lone stat
-  // gets no filler, so its own `flex: 1` cell naturally spans (and centres
-  // within) the whole row.
-  const fillerCount = stats.length >= 2 ? Math.max(0, slotCount - stats.length) : 0;
 
   return (
     <SectionCard>
@@ -158,13 +144,6 @@ export function ProfileStatsGrid({
               <View style={{ width: 1, backgroundColor: colors.border }} testID="profile-stats-divider" />
             )}
           </React.Fragment>
-        ))}
-        {/* Invisible filler slots — only reserved once 2+ real stats already
-            exist (see fillerCount above); reserves the width a hidden stat
-            would have occupied so a partially-filled multi-stat grid never
-            stretches off-balance. */}
-        {Array.from({ length: fillerCount }).map((_, i) => (
-          <View key={`filler-${i}`} style={{ flex: 1 }} testID="profile-stats-filler" />
         ))}
       </View>
     </SectionCard>
@@ -403,12 +382,11 @@ function ProfileContent({
 
   return (
     <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-      {/* columns=2 — this grid is always Sold/Bought + Active/Saved (TASK-TX02).
-          When the Sold/Bought stat is hidden (count is 0), `stats` drops to a
-          single entry and ProfileStatsGrid centres it across the full row
-          instead of reserving a filler slot for the other 2-up caller shape
-          (a partially-filled grid with 2+ real stats) — see ProfileStatsGrid. */}
-      <ProfileStatsGrid stats={stats} columns={2} />
+      {/* This grid is always Sold/Bought + Active/Saved (TASK-TX02). When the
+          Sold/Bought stat is hidden (count is 0), `stats` drops to a single
+          entry and ProfileStatsGrid centres it across the full row via its
+          cell's own `flex: 1` — no filler slot needed. */}
+      <ProfileStatsGrid stats={stats} />
       <ProfileQuickActions user={user} isSeller={isSeller} />
       <PersonalInfoCard user={user} handleEdit={handleEdit} />
     </View>

@@ -145,6 +145,8 @@
   },
   "ownerDetail": {
     "notFound": "آگهی یافت نشد",
+    "notFoundDescription": "این آگهی ممکن است حذف شده یا دیگر موجود نباشد.",
+    "backToMyListings": "بازگشت به آگهی‌های من",
     "views": "بازدیدها",
     "conversations": "گفتگوها",
     "actions": "مدیریت آگهی",

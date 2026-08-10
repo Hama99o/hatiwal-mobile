@@ -464,11 +464,13 @@ export const listingsAPI = {
   // `opts` preserves the legacy bare-call behavior (no Transaction).
   reserveListing: async (
     id: number,
-    opts?: { buyerId?: number; finalPrice?: number }
+    opts?: { buyerId?: number; finalPrice?: number; clearBuyer?: boolean }
   ): Promise<{ listing: Listing; transaction?: Transaction }> => {
     const response = await http.put(
       `/my/listings/${id}/reserve`,
-      opts?.buyerId ? convertKeysToSnake({ buyerId: opts.buyerId, finalPrice: opts.finalPrice }) : undefined
+      opts?.buyerId || opts?.clearBuyer
+        ? convertKeysToSnake({ buyerId: opts.buyerId, finalPrice: opts.finalPrice, clearBuyer: opts.clearBuyer })
+        : undefined
     );
     return {
       listing: convertKeysToCamel(response.data.listing) as Listing,
@@ -484,14 +486,22 @@ export const listingsAPI = {
     return convertKeysToCamel(response.data.listing) as Listing;
   },
 
-  // TASK-TX01: see reserveListing — same optional buyer_id/final_price contract.
+  // TASK-TX01: see reserveListing — same optional buyer_id/final_price
+  // contract. `opts.clearBuyer` (TASK-TX02 review fix, MAJOR) is sent when
+  // the seller explicitly tapped BuyerPickerSheet's "Someone else / skip" —
+  // WITHOUT it, an empty body is indistinguishable on the wire from a legacy
+  // client that never knew about buyer_id at all, and the backend would
+  // silently close out a still-reserved Transaction against the wrong
+  // buyer. See Listing#sold_with_buyer! (hatiwal-api).
   markSold: async (
     id: number,
-    opts?: { buyerId?: number; finalPrice?: number }
+    opts?: { buyerId?: number; finalPrice?: number; clearBuyer?: boolean }
   ): Promise<{ listing: Listing; transaction?: Transaction }> => {
     const response = await http.put(
       `/my/listings/${id}/sold`,
-      opts?.buyerId ? convertKeysToSnake({ buyerId: opts.buyerId, finalPrice: opts.finalPrice }) : undefined
+      opts?.buyerId || opts?.clearBuyer
+        ? convertKeysToSnake({ buyerId: opts.buyerId, finalPrice: opts.finalPrice, clearBuyer: opts.clearBuyer })
+        : undefined
     );
     return {
       listing: convertKeysToCamel(response.data.listing) as Listing,

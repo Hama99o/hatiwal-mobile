@@ -63,12 +63,16 @@
     "filePickerNotAvailable": "د فایل انتخاب وړتیا شتون نلري.",
     "unavailable": {
       "reservedTitle": "توکی خوندي شوی",
-      "reservedBody": "دا توکی د بل پیرودونکي لپاره خوندي شوی، له همدې امله نور وړاندیز دلته نشي لیږل کیدی.",
+      "reservedBody": "پلورونکي دا توکی خوندي کړی، له همدې امله نور وړاندیز دلته نشي لیږل کیدی.",
       "soldTitle": "توکی خرڅ شوی",
       "soldBody": "دا توکی خرڅ شوی، له همدې امله نور وړاندیز دلته نشي لیږل کیدی.",
+      "reservedForYouTitle": "تاسو لپاره خوندي شوی",
+      "reservedForYouBody": "پلورونکي دا توکی تاسو لپاره خوندي کړی. د لیدنې تنظیم لپاره دلته خبرې اترې ته دوام ورکړئ.",
+      "soldToYouTitle": "تاسو دا توکی واخیست!",
+      "soldToYouBody": "دا سودا بشپړ شو. توکی د لاسته راوړلو لپاره پلورونکي سره ووینئ، بیا یو نظر ورکړئ.",
       "browseSimilar": "په {{category}} کې ورته توکي وګورئ",
       "browseSimilarGeneric": "ورته توکي وګورئ",
-      "moreFromSeller": "د {{name}} نور توکي"
+      "viewTheirListings": "د هغه/هغې نور توکي وګورئ"
     }
   },
   "meetup": {
@@ -161,9 +165,7 @@
     "firmNotice": "د پلورونکي قیمت ثابت دی — وړاندیزونه نه منل کیږي",
     "reserveAfterAcceptTitle": "دا اعلان د یو پیرودونکي لپاره خوندي شوی ښودل؟",
     "reserveAfterAcceptBody": "د {{buyerName}} لپاره په {{price}} کې خوندي شوی ښودل؟",
-    "reserveAfterAcceptCta": "په {{price}} کې خوندي ښودل",
     "reserveAfterAcceptDismiss": "اوس نه",
-    "reserveAfterAcceptPending": "اعلان خوندي شوی ښودل کیږي...",
     "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره خوندي شوی ښودل شو"
   },
   "block": {

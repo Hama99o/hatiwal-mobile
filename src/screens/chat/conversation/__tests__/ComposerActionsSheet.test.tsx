@@ -11,6 +11,9 @@
  *  4. Tapping the backdrop calls onClose without invoking any handler.
  *  5. `disabled` (upload in flight) suppresses every row's onPress.
  *  6. RTL — renders without throwing and flips row direction when isRtl=true.
+ *  7. (TASK-K729 review fix) `offerUnavailableReason` — the offer row still
+ *     renders when hidden specifically for reserved/sold, disabled, with the
+ *     reason as a subline, instead of a silent gap.
  */
 
 import React from "react";
@@ -34,25 +37,13 @@ jest.mock("@/hooks/useLocalization", () => ({
 
 // Import AFTER mocks
 import { ComposerActionsSheet } from "../ComposerActionsSheet";
+// TASK-K729 (review fix, MEDIUM): the REAL predicates Conversation.tsx
+// imports — this file used to re-declare `canOfferInThread` locally, which
+// is how the original K729 bug (its matrix once asserted reserved -> true)
+// stayed green. See threadAvailability.test.ts for the dedicated matrix.
+import { canOfferInThread, offerUnavailableStatus } from "../threadAvailability";
 
 // ── Fixture helpers ──────────────────────────────────────────────────────────
-
-/** Mirrors `canOfferInThread` in Conversation.tsx (TASK-K729: reserved excluded too). */
-function canOfferInThread(params: {
-  canSend: boolean;
-  listing: { status: string; negotiable?: boolean } | null | undefined;
-  listingDeleted?: boolean;
-}): boolean {
-  const { canSend, listing, listingDeleted } = params;
-  return (
-    canSend &&
-    !!listing &&
-    !listingDeleted &&
-    listing.status !== "sold" &&
-    listing.status !== "reserved" &&
-    listing.negotiable !== false
-  );
-}
 
 function baseProps(overrides: Partial<React.ComponentProps<typeof ComposerActionsSheet>> = {}) {
   return {
@@ -265,5 +256,77 @@ describe("ComposerActionsSheet — RTL", () => {
       ? Object.assign({}, ...row.props.style.flat(Infinity).filter(Boolean))
       : row.props.style;
     expect(flattenedStyle.flexDirection).toBe("row");
+  });
+});
+
+// ── 7. TASK-K729 review fix — offerUnavailableReason disabled row ───────────
+
+describe("ComposerActionsSheet — offerUnavailableReason (TASK-K729 review fix)", () => {
+  it("renders the offer row disabled with the reason subline when canMakeOffer=false and a reason is given", () => {
+    render(
+      <ComposerActionsSheet
+        {...baseProps({ canMakeOffer: false, offerUnavailableReason: "Item reserved" })}
+      />
+    );
+    expect(screen.getByTestId("composer-action-offer-disabled")).toBeTruthy();
+    expect(screen.getByText("chat.offer.makeOffer")).toBeTruthy();
+    expect(screen.getByText("Item reserved")).toBeTruthy();
+  });
+
+  it("does NOT call onMakeOffer or onClose when the disabled reason row is pressed", () => {
+    const onMakeOffer = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <ComposerActionsSheet
+        {...baseProps({
+          canMakeOffer: false,
+          offerUnavailableReason: "Item sold",
+          onMakeOffer,
+          onClose,
+        })}
+      />
+    );
+    fireEvent.press(screen.getByTestId("composer-action-offer-disabled"));
+    expect(onMakeOffer).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("does NOT render any offer row at all when canMakeOffer=false and no reason is given (every other hidden reason)", () => {
+    render(<ComposerActionsSheet {...baseProps({ canMakeOffer: false })} />);
+    expect(screen.queryByTestId("composer-action-offer")).toBeNull();
+    expect(screen.queryByTestId("composer-action-offer-disabled")).toBeNull();
+  });
+
+  it("renders the normal, enabled offer row (not the disabled one) when canMakeOffer=true, even if a reason is somehow passed", () => {
+    render(
+      <ComposerActionsSheet
+        {...baseProps({ canMakeOffer: true, offerUnavailableReason: "Item reserved" })}
+      />
+    );
+    expect(screen.getByTestId("composer-action-offer")).toBeTruthy();
+    expect(screen.queryByTestId("composer-action-offer-disabled")).toBeNull();
+  });
+
+  it("marks the disabled reason row with accessibilityState.disabled", () => {
+    render(
+      <ComposerActionsSheet
+        {...baseProps({ canMakeOffer: false, offerUnavailableReason: "Item reserved" })}
+      />
+    );
+    const row = screen.getByTestId("composer-action-offer-disabled");
+    expect(row.props.accessibilityState).toEqual({ disabled: true });
+  });
+
+  it("wires the real offerUnavailableStatus/canOfferInThread matrix end-to-end for a reserved listing", () => {
+    const listing = { status: "reserved" };
+    const canMakeOffer = canOfferInThread({ canSend: true, listing });
+    const status = offerUnavailableStatus({ canSend: true, listing });
+
+    expect(canMakeOffer).toBe(false);
+    expect(status).toBe("reserved");
+
+    render(<ComposerActionsSheet {...baseProps({ canMakeOffer, offerUnavailableReason: "Item reserved" })} />);
+    expect(screen.getByTestId("composer-action-offer-disabled")).toBeTruthy();
+    expect(screen.queryByTestId("composer-action-offer")).toBeNull();
   });
 });

@@ -145,6 +145,8 @@
   },
   "ownerDetail": {
     "notFound": "اعلان ونه موندل شو",
+    "notFoundDescription": "دا اعلان ممکن حذف شوی وي یا نور شتون نلري.",
+    "backToMyListings": "بیرته زما اعلانونو ته",
     "views": "لیدنې",
     "conversations": "خبرې",
     "actions": "اعلان اداره کول",

@@ -1,22 +1,29 @@
 /**
- * MyListingDetail — fallback-state unit tests (TASK-J952, CYCLE-4 design
+ * MyListingDetail — fallback-state unit tests (TASK-J952, CYCLE-5 design
  * review fix).
  *
  * Locks in the exact fix the review flagged: the `!listing` fallback gates
- * ONLY on `!listing` (never `isError`), but `isError` now drives its COPY —
+ * ONLY on `!listing` (never on an error boolean), but the REAL HTTP status
+ * on the caught error now drives its COPY + action —
  *
- *  1. Loading  → DetailSkeleton.
- *  2. A first-load failure (isError=true, no cached data at all) shows the
+ *  1. Loading  → DetailSkeleton (real testID, not a stub).
+ *  2. A first-load failure with NO `response.status === 404` (network
+ *     error, 500, timeout — anything that isn't a confirmed 404) shows the
  *     GENERIC connectivity fallback (WifiOff + common.errorTitle/
- *     errorDescription) — an offline seller must never be told their
- *     listing "does not exist".
- *  3. A confirmed empty result with NO error keeps the "not found" copy
- *     (PackageX + listing.ownerDetail.notFound).
- *  4. A BACKGROUND refetch failure (isError=true) while a real, already-
- *     loaded listing sits in the React Query cache must NOT blank the
- *     screen — the real content keeps rendering, never the fallback. This
- *     is the CYCLE-3 regression this file guards against a re-introduction of.
- *  5. Retry on the fallback calls refetch.
+ *     errorDescription + Retry) — an offline seller must never be told
+ *     their listing "does not exist".
+ *  3. A confirmed 404 (`listingsAPI.getMyListing` rejects with
+ *     `{ response: { status: 404 } }`, exactly what `http.get` throws for a
+ *     real 404 — the API can never resolve `undefined`/`null` on success)
+ *     shows the "not found" copy (PackageX + listing.ownerDetail.notFound +
+ *     notFoundDescription) with a "Back to my listings" action instead of
+ *     Retry, since Retry can never succeed against a 404.
+ *  4. A BACKGROUND refetch failure while a real, already-loaded listing
+ *     sits in the React Query cache must NOT blank the screen — the real
+ *     content keeps rendering, never the fallback, never the skeleton.
+ *     This is the CYCLE-3 regression this file guards against a
+ *     re-introduction of.
+ *  5. Retry on the connectivity fallback calls refetch.
  *
  * Every other section of the screen (gallery, analytics, map, lifecycle
  * actions, sheets) is stubbed out — those are exercised by
@@ -157,13 +164,15 @@ beforeEach(() => {
 // ─── Loading ──────────────────────────────────────────────────────────────────
 
 describe("MyListingDetail — loading", () => {
-  it("shows neither fallback copy while the query is still in flight", async () => {
+  it("shows the real DetailSkeleton (not either fallback) while the query is still in flight", async () => {
     (listingsAPI.getMyListing as jest.Mock).mockReturnValue(new Promise(() => {})); // never resolves
     renderScreen(makeQc());
 
     await waitFor(() => expect(listingsAPI.getMyListing as jest.Mock).toHaveBeenCalled());
-    // Still loading — DetailSkeleton renders (real component, no API/native
-    // dependency of its own), never either `!listing` fallback.
+    // Still loading — DetailSkeleton actually renders (this assertion bites:
+    // DetailSkeleton has a real testID on its root View), never either
+    // `!listing` fallback.
+    expect(screen.getByTestId("my-listing-detail-skeleton")).toBeTruthy();
     expect(screen.queryByText("common.errorTitle")).toBeNull();
     expect(screen.queryByText("listing.ownerDetail.notFound")).toBeNull();
   });
@@ -199,20 +208,31 @@ describe("MyListingDetail — first-load failure (isError, no cached data)", () 
   });
 });
 
-// ─── Confirmed empty result, no error — keeps the "not found" copy ───────────
+// ─── Confirmed 404 — keeps the "not found" copy + a real escape hatch ────────
 
-describe("MyListingDetail — no data and no error", () => {
-  it("shows the not-found copy (not the connectivity copy)", async () => {
-    // Synthetic edge case: the query resolves successfully but with no
-    // listing at all (isError stays false — note a queryFn resolving to
-    // `undefined` is itself treated as an ERROR by React Query, so `null`
-    // is the one value that reproduces a genuine success-with-no-data).
-    // Must NOT be told it's a connectivity problem.
-    (listingsAPI.getMyListing as jest.Mock).mockResolvedValue(null);
+describe("MyListingDetail — confirmed 404 (a real deleted listing)", () => {
+  it("shows the not-found copy, not the connectivity copy", async () => {
+    // Exactly what `http.get` throws for a real 404 — `getMyListing` can
+    // never resolve `undefined`/`null` on success (it always throws on a
+    // non-2xx response), so this is the one true "not found" shape.
+    (listingsAPI.getMyListing as jest.Mock).mockRejectedValue({ response: { status: 404 } });
     renderScreen(makeQc());
 
     await waitFor(() => expect(screen.getByText("listing.ownerDetail.notFound")).toBeTruthy());
+    expect(screen.getByText("listing.ownerDetail.notFoundDescription")).toBeTruthy();
     expect(screen.queryByText("common.errorTitle")).toBeNull();
+  });
+
+  it("offers 'Back to my listings' instead of Retry (Retry can never succeed against a 404)", async () => {
+    (listingsAPI.getMyListing as jest.Mock).mockRejectedValue({ response: { status: 404 } });
+    renderScreen(makeQc());
+
+    await waitFor(() => expect(screen.getByText("listing.ownerDetail.backToMyListings")).toBeTruthy());
+    expect(screen.queryByText("common.retry")).toBeNull();
+
+    const { fireEvent } = require("@testing-library/react-native");
+    fireEvent.press(screen.getByText("listing.ownerDetail.backToMyListings"));
+    expect(mockReplace).toHaveBeenCalledWith("/(main)/(tabs)/my-listings");
   });
 });
 

@@ -1,19 +1,15 @@
 /**
- * ProfileStatsGrid unit tests (TASK-TX02 review fix)
+ * ProfileStatsGrid unit tests
  *
- * Regression covered: the own-profile stats row conditionally omits its
- * Sold/Bought cell when the count is 0 (Profile.tsx#ProfileContent). An
- * earlier version always padded the row with an invisible filler `View` up
- * to `columns`, which is correct for a partially-filled MULTI-stat grid but
- * wrong for a single lone stat — the filler ate half the row, squeezing the
- * one real stat into the leading half instead of letting it centre across
- * the whole card (CR MED "render the 0 or centre a lone stat" / DR MAJOR
- * "only reserve fillers when stats.length>=2"). Fillers are now only
- * reserved once there are already 2+ real stats to pad; a lone stat's own
- * `flex: 1` cell spans (and centres within) the full row instead.
+ * Review fix (TASK-TX02, LOW — "dead API surface"): the `columns` prop and
+ * its filler-slot padding were removed — this component has exactly ONE
+ * caller (Profile.tsx#ProfileContent), which always passes a 1- or 2-entry
+ * `stats` array, so the filler branch was provably always a no-op in
+ * production. Only the divider behavior (still real, still used) is covered
+ * here now.
  *
- * Also covers the CR MED "borderRightWidth does not flip with row-reverse"
- * fix: dividers between cells are now dedicated 1px `View` siblings (reset by
+ * Covers the CR MED "borderRightWidth does not flip with row-reverse" fix:
+ * dividers between cells are dedicated 1px `View` siblings (reset by
  * flexDirection along with everything else) instead of a physical
  * `borderRightWidth`, which stayed on the visual right under RTL.
  *
@@ -25,79 +21,61 @@ import React from "react";
 import { render, screen } from "@testing-library/react-native";
 import { ProfileStatsGrid } from "../Profile";
 
-describe("ProfileStatsGrid — columns prop (grid-collapse fix)", () => {
-  it("renders no filler slots when stats already fill every column", () => {
+describe("ProfileStatsGrid", () => {
+  it("renders every stat's label and value", () => {
     render(
       <ProfileStatsGrid
         stats={[
           { label: "Sold", value: "3" },
           { label: "Active", value: "5" },
         ]}
-        columns={2}
       />
     );
 
-    expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(0);
     expect(screen.getByText("Sold")).toBeTruthy();
+    expect(screen.getByText("3")).toBeTruthy();
     expect(screen.getByText("Active")).toBeTruthy();
+    expect(screen.getByText("5")).toBeTruthy();
   });
 
-  it("renders a 1px divider between two real stats (not a filler)", () => {
+  it("renders a 1px divider between two real stats", () => {
     render(
       <ProfileStatsGrid
         stats={[
           { label: "Sold", value: "3" },
           { label: "Active", value: "5" },
         ]}
-        columns={2}
       />
     );
 
     expect(screen.queryAllByTestId("profile-stats-divider")).toHaveLength(1);
-    expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(0);
   });
 
-  it("reserves NO filler slot when a conditional stat is hidden (count 0) — the lone stat centres instead", () => {
-    // Mirrors ProfileContent: the "Sold" cell is omitted entirely (not
-    // rendered as "0"), leaving only "Active". Fillers are only reserved
-    // once 2+ real stats exist, so a lone stat's flex:1 cell spans (and
-    // centres within) the full row instead of being squeezed into half of it.
-    render(
-      <ProfileStatsGrid
-        stats={[ { label: "Active", value: "5" } ]}
-        columns={2}
-      />
-    );
+  it("renders no divider for a single stat — its own flex:1 cell centres across the row", () => {
+    render(<ProfileStatsGrid stats={[ { label: "Active", value: "5" } ]} />);
 
-    expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(0);
+    expect(screen.queryAllByTestId("profile-stats-divider")).toHaveLength(0);
     expect(screen.getByText("Active")).toBeTruthy();
     expect(screen.queryByText("Sold")).toBeNull();
   });
 
-  it("defaults columns to stats.length (no filler) when columns is omitted", () => {
-    render(<ProfileStatsGrid stats={[ { label: "Active", value: "5" } ]} />);
+  it("renders no dividers for an empty stats array", () => {
+    render(<ProfileStatsGrid stats={[]} />);
 
-    expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(0);
+    expect(screen.queryAllByTestId("profile-stats-divider")).toHaveLength(0);
   });
 
-  it("reserves no filler slots for an empty stats array even with columns=2 (fewer than 2 real stats)", () => {
-    render(<ProfileStatsGrid stats={[]} columns={2} />);
-
-    expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(0);
-  });
-
-  it("pads a partially-filled MULTI-stat grid (2+ real stats) up to columns", () => {
+  it("renders N-1 dividers for 3+ stats", () => {
     render(
       <ProfileStatsGrid
         stats={[
-          { label: "Sold", value: "3" },
-          { label: "Active", value: "5" },
+          { label: "A", value: "1" },
+          { label: "B", value: "2" },
+          { label: "C", value: "3" },
         ]}
-        columns={4}
       />
     );
 
-    expect(screen.queryAllByTestId("profile-stats-filler")).toHaveLength(2);
-    expect(screen.queryAllByTestId("profile-stats-divider")).toHaveLength(1);
+    expect(screen.queryAllByTestId("profile-stats-divider")).toHaveLength(2);
   });
 });

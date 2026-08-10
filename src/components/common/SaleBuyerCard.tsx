@@ -24,6 +24,7 @@ import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { PriceTag } from "@/components/common/PriceTag";
+import { getStatusAccent } from "@/components/common/statusAccent";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import type { Listing } from "@/api/listings";
@@ -43,8 +44,12 @@ export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
 
   const rowDir = isRtl ? "row-reverse" : "row";
   const buyerName = sale.buyer?.name || t("listing.sale.noBuyerRecorded");
-  const accentColor = sale.status === "sold" ? colors.mutedForeground : colors.warning;
-  const accentBg = sale.status === "sold" ? colors.muted : colors.warningAlpha;
+  // TASK-K729 dedup fix — reuses the same status->colour map as StatusBadge
+  // (was previously forked here with sold -> muted/mutedForeground, which
+  // disagreed with StatusBadge's documented sold -> secondary/secondaryForeground).
+  const accent = getStatusAccent(sale.status === "sold" ? "sold" : "reserved", colors);
+  const accentColor = accent.text;
+  const accentBg = accent.bg;
 
   const headline =
     sale.status === "sold"

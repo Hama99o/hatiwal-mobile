@@ -63,12 +63,16 @@
     "filePickerNotAvailable": "File picker not available. Run: npm install expo-document-picker",
     "unavailable": {
       "reservedTitle": "Item reserved",
-      "reservedBody": "This item has been reserved for another buyer, so a new offer can no longer be sent here.",
+      "reservedBody": "The seller has reserved this item, so a new offer can no longer be sent here.",
       "soldTitle": "Item sold",
       "soldBody": "This item has been sold, so a new offer can no longer be sent here.",
+      "reservedForYouTitle": "Reserved for you",
+      "reservedForYouBody": "The seller has reserved this item for you. Keep chatting here to arrange your meetup.",
+      "soldToYouTitle": "You bought this item!",
+      "soldToYouBody": "This deal is complete. Meet the seller to receive your item, then leave them a review.",
       "browseSimilar": "Browse similar in {{category}}",
       "browseSimilarGeneric": "Browse similar listings",
-      "moreFromSeller": "More from {{name}}"
+      "viewTheirListings": "View their listings"
     }
   },
   "meetup": {
@@ -161,9 +165,7 @@
     "firmNotice": "Seller's price is firm — offers not accepted",
     "reserveAfterAcceptTitle": "Reserve this listing for a buyer?",
     "reserveAfterAcceptBody": "Reserve for {{buyerName}} at {{price}}?",
-    "reserveAfterAcceptCta": "Reserve at {{price}}",
     "reserveAfterAcceptDismiss": "Not now",
-    "reserveAfterAcceptPending": "Reserving listing...",
     "reserveAfterAcceptSuccess": "Listing reserved for {{buyerName}}"
   },
   "block": {

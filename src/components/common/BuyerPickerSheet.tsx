@@ -12,6 +12,15 @@
  * Entry points (TASK-TX01): SellerListingCard, MyListingDetail,
  * chat ListingHeader (TASK-F084) — all pass listingId/price/currency/action
  * and forward the result to their existing reserve/sold mutation.
+ *
+ * Confirm mode (TASK-O947, cycle-4 design review): pass `preselectedBuyer`
+ * when the buyer is already known (e.g. the conversation whose offer the
+ * seller just accepted) — the sheet then skips the conversations query, the
+ * "someone else / skip" fallback and the editable final-price input, and
+ * instead renders a locked confirmation: the listing thumbnail, the buyer's
+ * identity via the shared `UserIdentity`, and the agreed price via
+ * `PriceTag`. `onConfirm` fires immediately with `{ buyerId, finalPrice }`
+ * built from the caller-supplied values — there is nothing left to pick.
  */
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -22,6 +31,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -35,6 +45,9 @@ import { Input } from "@/components/reusables/input";
 import { Label } from "@/components/reusables/label";
 import { Separator } from "@/components/reusables/separator";
 import { UserAvatar } from "@/components/common/UserAvatar";
+import { UserIdentity } from "@/components/common/UserIdentity";
+import { PriceTag } from "@/components/common/PriceTag";
+import { RemoteImage } from "@/components/common/RemoteImage";
 import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -44,6 +57,17 @@ export interface BuyerPickerResult {
   buyerId?: number;
   /** undefined when left blank — backend defaults to the listing price. */
   finalPrice?: number;
+  /**
+   * TASK-TX02 (review fix, MAJOR) — true ONLY when the seller explicitly
+   * tapped "Someone else / skip". On the wire, an absent `buyerId` alone is
+   * ambiguous — it could mean either this explicit skip OR a legacy client
+   * that never sends buyer info at all. Those two cases must be handled
+   * differently server-side (skip cancels any stale reservation instead of
+   * silently closing it out against the previously-reserved buyer), so this
+   * flag is the distinguishing signal sent to `PUT .../sold`. See
+   * src/api/listings.ts markSold and Listing#sold_with_buyer! (hatiwal-api).
+   */
+  clearBuyer?: boolean;
 }
 
 interface BuyerPickerSheetProps {
@@ -57,6 +81,23 @@ interface BuyerPickerSheetProps {
   action: "reserve" | "sold";
   onConfirm: (result: BuyerPickerResult) => void;
   isSubmitting?: boolean;
+  /**
+   * TASK-O947 confirm mode — when set, the buyer is already known and the
+   * sheet renders a locked confirmation instead of a pick-a-buyer list (no
+   * conversations query, no "someone else" skip, no editable final price).
+   * `onConfirm` fires with `{ buyerId: preselectedBuyer.id, finalPrice: price }`.
+   */
+  preselectedBuyer?: { id: number; name: string; avatarUrl?: string | null } | null;
+  /** Listing thumbnail shown above the locked buyer row in confirm mode. */
+  listingThumbnailUrl?: string | null;
+  listingTitle?: string | null;
+  /** Overrides the sheet's default title in confirm mode. */
+  confirmTitle?: string;
+  /** Confirmation sentence shown below the price in confirm mode (buyer name
+   *  + price already bidi-isolated by the caller — see reserveAfterAccept.ts). */
+  confirmBody?: string;
+  /** Overrides the footer's Cancel label in confirm mode (e.g. "Not now"). */
+  cancelLabel?: string;
 }
 
 const SKIP = "skip" as const;
@@ -70,20 +111,29 @@ export function BuyerPickerSheet({
   action,
   onConfirm,
   isSubmitting = false,
+  preselectedBuyer = null,
+  listingThumbnailUrl,
+  listingTitle,
+  confirmTitle,
+  confirmBody,
+  cancelLabel,
 }: BuyerPickerSheetProps) {
   const { t } = useTranslation();
   const { isRtl, formatCurrency } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
+  const isConfirmMode = !!preselectedBuyer;
+
   const [selected, setSelected] = useState<number | typeof SKIP | null>(null);
   const [finalPriceText, setFinalPriceText] = useState("");
   const [priceError, setPriceError] = useState(false);
 
+  // Confirm mode already knows the buyer — never fetch the conversation list.
   const { data, isLoading } = useQuery({
     queryKey: ["conversations", listingId, "buyer-picker"],
     queryFn: () => conversationsAPI.getConversations({ listingId }),
-    enabled: visible && !!listingId,
+    enabled: visible && !!listingId && !isConfirmMode,
   });
 
   const conversations: Conversation[] = data?.items ?? [];
@@ -98,6 +148,12 @@ export function BuyerPickerSheet({
   }, [visible]);
 
   const handleConfirm = useCallback(() => {
+    // Confirm mode: buyer + price are already known — nothing left to pick.
+    if (preselectedBuyer) {
+      onConfirm({ buyerId: preselectedBuyer.id, finalPrice: price });
+      return;
+    }
+
     if (selected === null) return;
 
     let finalPrice: number | undefined;
@@ -114,11 +170,18 @@ export function BuyerPickerSheet({
     onConfirm({
       buyerId: selected === SKIP ? undefined : selected,
       finalPrice: selected === SKIP ? undefined : finalPrice,
+      // TASK-TX02 (review fix, MAJOR) — explicit skip must be distinguishable
+      // on the wire from a legacy client that never sends buyer info at all.
+      clearBuyer: selected === SKIP ? true : undefined,
     });
-  }, [selected, finalPriceText, onConfirm]);
+  }, [selected, finalPriceText, onConfirm, preselectedBuyer, price]);
 
-  const title = action === "reserve" ? t("buyerPicker.reserveTitle") : t("buyerPicker.soldTitle");
+  const defaultTitle = action === "reserve" ? t("buyerPicker.reserveTitle") : t("buyerPicker.soldTitle");
+  const title = isConfirmMode ? confirmTitle ?? defaultTitle : defaultTitle;
+  // Generic — never carries the price (a price baked into a button label
+  // truncates/garbles in ps/fa; the price only ever appears in the sheet body).
   const confirmLabel = action === "reserve" ? t("buyerPicker.confirmReserve") : t("buyerPicker.confirmSold");
+  const resolvedCancelLabel = isConfirmMode ? cancelLabel ?? t("buyerPicker.cancel") : t("buyerPicker.cancel");
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -139,24 +202,29 @@ export function BuyerPickerSheet({
             </Pressable>
           </View>
 
-          <Text className="text-sm" style={{ color: colors.mutedForeground, marginBottom: 8, textAlign: isRtl ? "right" : "left" }}>
-            {t("buyerPicker.subtitle")}
-          </Text>
+          {!isConfirmMode && (
+            <>
+              <Text className="text-sm" style={{ color: colors.mutedForeground, marginBottom: 8, textAlign: isRtl ? "right" : "left" }}>
+                {t("buyerPicker.subtitle")}
+              </Text>
 
-          {/* REV2 nudge — makes picking a real buyer attractive: it's the only
-              way for both sides to leave a double-blind review afterward. */}
-          <Text
-            style={{
-              fontSize: 12,
-              color: colors.primary,
-              marginBottom: 12,
-              textAlign: isRtl ? "right" : "left",
-            }}
-          >
-            {t("buyerPicker.nudge")}
-          </Text>
+              {/* REV2 nudge — makes picking a real buyer attractive: it's the
+                  only way for both sides to leave a double-blind review
+                  afterward. */}
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.primary,
+                  marginBottom: 12,
+                  textAlign: isRtl ? "right" : "left",
+                }}
+              >
+                {t("buyerPicker.nudge")}
+              </Text>
 
-          <Separator className="mb-2" />
+              <Separator className="mb-2" />
+            </>
+          )}
 
           <ScrollView
             style={{ flexShrink: 1 }}
@@ -164,7 +232,59 @@ export function BuyerPickerSheet({
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
           >
-            {isLoading ? (
+            {isConfirmMode && preselectedBuyer ? (
+              /* TASK-O947 confirm mode — listing thumb + locked buyer identity
+                 + PriceTag + the confirmation sentence. No conversation list,
+                 no "someone else" skip, no editable final price: the buyer
+                 and the agreed price are already known. */
+              <View style={{ gap: 14, paddingBottom: 4 }}>
+                {(listingThumbnailUrl || listingTitle) && (
+                  <View
+                    style={{
+                      flexDirection: isRtl ? "row-reverse" : "row",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: 10,
+                      borderRadius: 10,
+                      backgroundColor: colors.muted,
+                    }}
+                  >
+                    <RemoteImage uri={listingThumbnailUrl} style={{ width: 44, height: 44, borderRadius: 8 }} />
+                    {listingTitle ? (
+                      <Text
+                        numberOfLines={1}
+                        style={{ flex: 1, fontSize: 13, fontWeight: "600", color: colors.foreground, textAlign: isRtl ? "right" : "left" }}
+                      >
+                        {listingTitle}
+                      </Text>
+                    ) : null}
+                  </View>
+                )}
+
+                <UserIdentity
+                  name={preselectedBuyer.name}
+                  avatarUrl={preselectedBuyer.avatarUrl}
+                  size={48}
+                />
+
+                <View style={{ alignItems: "center", paddingVertical: 4 }}>
+                  <PriceTag price={price} currency={currency} size="lg" />
+                </View>
+
+                {confirmBody ? (
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: colors.mutedForeground,
+                      textAlign: isRtl ? "right" : "left",
+                      lineHeight: 20,
+                    }}
+                  >
+                    {confirmBody}
+                  </Text>
+                ) : null}
+              </View>
+            ) : isLoading ? (
               <View testID="buyer-picker-loading">
                 <ConversationRowSkeleton />
                 <ConversationRowSkeleton />
@@ -272,13 +392,17 @@ export function BuyerPickerSheet({
             <Button
               variant="default"
               onPress={handleConfirm}
-              disabled={selected === null || isSubmitting}
+              disabled={isConfirmMode ? isSubmitting : selected === null || isSubmitting}
               testID="buyer-picker-confirm"
             >
-              <Text>{confirmLabel}</Text>
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color={colors.primaryForeground} />
+              ) : (
+                <Text>{confirmLabel}</Text>
+              )}
             </Button>
             <Button variant="ghost" onPress={onClose} disabled={isSubmitting} style={{ marginTop: 8 }}>
-              <Text style={{ color: colors.mutedForeground }}>{t("buyerPicker.cancel")}</Text>
+              <Text style={{ color: colors.mutedForeground }}>{resolvedCancelLabel}</Text>
             </Button>
           </View>
         </View>

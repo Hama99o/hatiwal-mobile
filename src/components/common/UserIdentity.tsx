@@ -23,7 +23,8 @@ interface UserIdentityProps {
   /** Hide the avatar (name-only). Cleaner than passing size={0}. */
   showAvatar?: boolean;
   onPress?: () => void;
-  /** testID forwarded to the pressable wrapper (when onPress is set) for E2E taps. */
+  /** testID for E2E taps + unit queries. Lands on the pressable wrapper when
+   * `onPress` is set, otherwise on the root row — so it is always queryable. */
   testID?: string;
 }
 
@@ -77,6 +78,13 @@ export function UserIdentity({
 
   const body = (
     <View
+      // When there IS an onPress the Pressable below owns the testID, so leave it
+      // off here to avoid two nodes answering the same query. Without onPress the
+      // Pressable never renders, and a testID passed by the caller used to vanish
+      // silently — a non-pressable UserIdentity was simply untestable and
+      // un-tappable in Maestro (this cost ListingUnavailableNotice a failing
+      // test that looked like a missing feature).
+      testID={onPress ? undefined : testID}
       style={{
         flexDirection: stacked ? "column" : isRtl ? "row-reverse" : "row",
         alignItems: "center",
