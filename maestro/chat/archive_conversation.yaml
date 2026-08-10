@@ -15,7 +15,7 @@ appId: com.hatiwal.app
 # ── Long-press the first conversation row to open the action menu ──────
 - longPressOn:
     index: 0
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"
 - waitForAnimationToEnd
 
 # The Archive option should be visible (inbox tab shows Archive, not Unarchive)
@@ -42,12 +42,12 @@ appId: com.hatiwal.app
 # The archived conversation row should now appear
 - assertVisible:
     index: 0
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"
 
 # ── Long-press to open the action menu in Archived tab ─────────────────
 - longPressOn:
     index: 0
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"
 - waitForAnimationToEnd
 
 # Unarchive option should be visible (archived tab shows Unarchive, not Archive)
@@ -61,7 +61,7 @@ appId: com.hatiwal.app
 # Archived tab should now be empty (or show the empty state)
 - assertNotVisible:
     index: 0
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"
 
 # ── Switch back to Inbox ────────────────────────────────────────────────
 - tapOn:
@@ -72,4 +72,4 @@ appId: com.hatiwal.app
 # The conversation is back in the inbox
 - assertVisible:
     index: 0
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"

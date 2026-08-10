@@ -15,6 +15,7 @@ import { listingsAPI } from "@/api/listings";
 import { toast } from "sonner-native";
 import {
   maybeReserveAfterAccept,
+  resolveReserveCurrency,
   shouldPromptReserveAfterAccept,
   type MaybeReserveAfterAcceptParams,
 } from "@/screens/chat/conversation/reserveAfterAccept";
@@ -87,6 +88,27 @@ function getAlertCall() {
 beforeEach(() => {
   jest.clearAllMocks();
   (listingsAPI.reserveListing as jest.Mock).mockResolvedValue({ listing: ACTIVE_LISTING, transaction: undefined });
+});
+
+// ─── resolveReserveCurrency (review fix — hoisted from Conversation.tsx's ───
+// handleOfferRespond, which previously inlined this precedence untested:
+// `listingRef.currency ?? offer.offerCurrency ?? "AFN"`) ─────────────────────
+
+describe("resolveReserveCurrency", () => {
+  it("prefers the listing's currency over the offer's encoded currency", () => {
+    expect(resolveReserveCurrency("USD", "AFN")).toBe("USD");
+  });
+
+  it("falls back to the offer's currency when the listing has none", () => {
+    expect(resolveReserveCurrency(null, "EUR")).toBe("EUR");
+    expect(resolveReserveCurrency(undefined, "EUR")).toBe("EUR");
+  });
+
+  it("falls back to AFN when neither the listing nor the offer has a currency", () => {
+    expect(resolveReserveCurrency(null, null)).toBe("AFN");
+    expect(resolveReserveCurrency(undefined, undefined)).toBe("AFN");
+    expect(resolveReserveCurrency(null)).toBe("AFN");
+  });
 });
 
 // ─── shouldPromptReserveAfterAccept (pure guard) ─────────────────────────────

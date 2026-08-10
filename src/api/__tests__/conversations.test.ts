@@ -121,6 +121,58 @@ describe("conversationsAPI.getConversations", () => {
     await conversationsAPI.getConversations();
     expect(capturedUrl).not.toContain("archived");
   });
+
+  // ── TASK-R517: role scope ────────────────────────────────────────────────
+  it("passes role=selling query param when role option is 'selling'", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/conversations", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ conversations: [], meta: { pagination: MOCK_PAGINATION } });
+      })
+    );
+    await conversationsAPI.getConversations({ role: "selling" });
+    expect(capturedUrl).toContain("role=selling");
+  });
+
+  it("passes role=buying query param when role option is 'buying'", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/conversations", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ conversations: [], meta: { pagination: MOCK_PAGINATION } });
+      })
+    );
+    await conversationsAPI.getConversations({ role: "buying" });
+    expect(capturedUrl).toContain("role=buying");
+  });
+
+  it("does NOT append role param when option is omitted", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/conversations", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ conversations: [], meta: { pagination: MOCK_PAGINATION } });
+      })
+    );
+    await conversationsAPI.getConversations();
+    expect(capturedUrl).not.toContain("role=");
+  });
+
+  it("maps viewer_role to viewerRole (snake→camel conversion)", async () => {
+    server.use(
+      http.get("http://localhost:3007/api/v1/conversations", () =>
+        HttpResponse.json({
+          conversations: [{ ...MOCK_CONVERSATION, viewer_role: "seller" }],
+          meta: { pagination: MOCK_PAGINATION },
+        })
+      )
+    );
+    const result = await conversationsAPI.getConversations();
+    const conv = result.items[0];
+    expect(conv.viewerRole).toBe("seller");
+    expect((conv as Record<string, unknown>)["viewer_role"]).toBeUndefined();
+  });
 });
 
 describe("conversationsAPI.getConversation", () => {

@@ -4,9 +4,10 @@ appId: com.hatiwal.app
 #
 # Seller opens the "Lenovo ThinkPad Laptop Core i5 8GB" active listing (has a
 # seeded conversation with buyer@hatiwal.test / "Ahmad Karimi" — see
-# hatiwal-api/db/seeds/e2e.rb), taps "Mark as Sold" from the owner detail
-# screen, and identifies the real buyer from the BuyerPickerSheet instead of
-# the legacy bare confirm. Verifies:
+# hatiwal-api/db/seeds/e2e.rb), opens "More" (TASK-L863: an active listing's
+# primary is "Mark as Reserved" — Mark as Sold now lives in the overflow
+# sheet) and taps "Mark as Sold" from there, then identifies the real buyer
+# from the BuyerPickerSheet instead of the legacy bare confirm. Verifies:
 #   - the sheet opens with the listing's conversations
 #   - selecting a buyer + confirming records the sale
 #   - the listing flips to Sold and the success toast fires
@@ -35,7 +36,10 @@ appId: com.hatiwal.app
 - tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
 - waitForAnimationToEnd
 
-# Owner detail screen — single primary lifecycle button for an active listing
+# Owner detail screen — active listing's primary is "Mark as Reserved";
+# Mark as Sold is reachable from the "More" overflow sheet (TASK-L863).
+- tapOn: "More"
+- waitForAnimationToEnd
 - tapOn: "Mark as Sold"
 - waitForAnimationToEnd
 

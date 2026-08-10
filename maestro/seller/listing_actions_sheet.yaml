@@ -1,0 +1,97 @@
+appId: com.hatiwal.app
+---
+# TASK-L863 — one primary action + a "More" overflow sheet replaces the old
+# 6-button wall on every seller listing card / owner-detail screen.
+#
+# Covers:
+#   1. A draft's owner detail shows exactly two controls — the primary
+#      "Publish" button (tapped directly, no sheet needed) and "More".
+#      Publishing works straight from the primary button.
+#   2. Once active, the My Shop card also shows exactly two controls —
+#      "Mark as Reserved" (primary) and "More".
+#   3. Delete is reachable from the "More" sheet, still goes through the
+#      destructive confirmAlert copy, and still fires a success toast —
+#      never a raw Alert.alert (a no-op on web, but this flow runs on
+#      device/simulator so a silent no-op would just hang here).
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+# ── 1) Create a draft ────────────────────────────────────────────────────────
+
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "What are you selling?"
+- inputText: "Listing Actions Sheet Test Item"
+- tapOn: "Enter price"
+- inputText: "5000"
+
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertVisible: "Draft"
+- assertVisible: "Listing Actions Sheet Test Item"
+
+# ── 2) Draft owner detail — exactly two controls: primary Publish + More ────
+# No sheet needed for the primary action itself.
+
+- assertVisible: "Publish"
+- assertVisible: "More"
+
+- tapOn: "Publish"
+- waitForAnimationToEnd
+- assertVisible: "Publish this listing?"
+- tapOn: "Publish"
+- waitForAnimationToEnd
+- assertVisible: "Listing published!"
+
+# ── 3) Back on My Shop — the Active card also shows exactly two controls ────
+
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Active"
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "Listing Actions Sheet Test Item"
+    direction: DOWN
+    timeout: 8000
+
+- assertVisible: "Mark as Reserved"
+- assertVisible: "More"
+# The buttons that used to sit inline on the card are now hidden until "More"
+# is opened.
+- assertNotVisible: "Unpublish"
+- assertNotVisible: "Duplicate"
+
+# ── 4) Delete from the "More" sheet — still confirmAlert + destructive ──────
+
+- tapOn: "More"
+- waitForAnimationToEnd
+
+# Every other action is reachable from the sheet too.
+- assertVisible: "Mark as Sold"
+- assertVisible: "Unpublish"
+- assertVisible: "Edit"
+- assertVisible: "Duplicate"
+- assertVisible: "Delete"
+
+- tapOn: "Delete"
+- waitForAnimationToEnd
+
+# Destructive confirmAlert copy — never a raw Alert.alert.
+- assertVisible: "Delete this listing?"
+- assertVisible: "This will permanently remove your listing."
+- tapOn: "Delete"
+- waitForAnimationToEnd
+
+- assertVisible: "Listing deleted"
+- assertNotVisible: "Listing Actions Sheet Test Item"

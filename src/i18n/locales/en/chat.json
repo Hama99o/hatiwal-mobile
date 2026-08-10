@@ -12,7 +12,15 @@
   "empty": {
     "title": "No conversations",
     "description": "Start chatting with sellers to negotiate and arrange meetups.",
-    "browseAction": "Browse Listings"
+    "browseAction": "Browse Listings",
+    "sellingTitle": "No one has messaged you about your items yet",
+    "sellingDescription": "Post a listing to start getting buyer messages.",
+    "buyingTitle": "You haven't messaged any seller yet",
+    "buyingDescription": "Browse listings and message a seller to get started."
+  },
+  "role": {
+    "buying": "Buying",
+    "selling": "Selling"
   },
   "about": "About: {{title}}",
   "proposeMeetup": "Propose Meetup",
@@ -113,6 +121,8 @@
     "all": "All",
     "unread": "Unread",
     "read": "Read",
+    "buying": "Buying",
+    "selling": "Selling",
     "noUnread": "All caught up!",
     "noUnreadDescription": "No unread messages right now."
   },

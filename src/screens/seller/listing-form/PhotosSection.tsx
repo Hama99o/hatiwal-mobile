@@ -28,7 +28,8 @@ import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/pe
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
 import { Text } from "@/components/reusables/text";
-import { Camera, ImageIcon, Plus, Star, X, ArrowLeftRight } from "lucide-react-native";
+import { Label } from "@/components/reusables/label";
+import { Camera, ImageIcon, Plus, Star, X, ArrowLeftRight, AlertCircle } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 
 export interface PhotoItem {
@@ -54,6 +55,39 @@ interface Props {
 
 const MAX_DEFAULT = 8;
 const THUMB = 104;
+
+// TASK-P736 (review fix) — Photos is a publish-required field just like
+// Title/Price/Category/Location, so its destructive message must match
+// theirs: text-sm (not text-xs) plus a leading AlertCircle icon, laid out
+// RTL-aware. Shared by both the empty-state and filled-strip error slots so
+// the two never drift apart again.
+function PhotoFieldError({
+  message,
+  isRtl,
+  colors,
+}: {
+  message: string;
+  isRtl: boolean;
+  colors: ReturnType<typeof useColors>;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: isRtl ? "row-reverse" : "row",
+        alignItems: "flex-start",
+        gap: 4,
+      }}
+    >
+      <AlertCircle size={14} color={colors.destructive} style={{ marginTop: 1 }} />
+      <Text
+        className="text-sm"
+        style={{ color: colors.destructive, textAlign: isRtl ? "right" : "left", flex: 1 }}
+      >
+        {message}
+      </Text>
+    </View>
+  );
+}
 
 export function PhotosSection({
   photos,
@@ -195,12 +229,17 @@ export function PhotosSection({
             { flexDirection: isRtl ? "row-reverse" : "row" },
           ]}
         >
-          <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>
+          {/* TASK-P736 (review fix) — Photos is a publish-required field just
+              like Title/Price/Category/Location; it must carry the same " *"
+              marker via the shared RNR Label, not a bare Text. */}
+          <Label className="text-lg font-semibold">
             {t("listing.form.photos")}
-          </Text>
+            <Text style={{ color: colors.destructive }}> *</Text>
+          </Label>
         </View>
 
         <Pressable
+          testID="photos-add-button"
           style={[
             styles.emptyCard,
             {
@@ -226,14 +265,7 @@ export function PhotosSection({
           </Text>
         </Pressable>
 
-        {error && (
-          <Text
-            className="text-xs"
-            style={{ color: colors.destructive, textAlign: isRtl ? "right" : "left" }}
-          >
-            {error}
-          </Text>
-        )}
+        {error && <PhotoFieldError message={error} isRtl={isRtl} colors={colors} />}
 
         <SourcePickerSheet
           visible={pickerVisible}
@@ -256,9 +288,13 @@ export function PhotosSection({
           { flexDirection: isRtl ? "row-reverse" : "row" },
         ]}
       >
-        <Text className="text-lg font-semibold" style={{ color: colors.foreground }}>
+        {/* TASK-P736 (review fix) — same " *" treatment as the empty state
+            (see above) so the required marker never disappears once the
+            seller has added at least one photo. */}
+        <Label className="text-lg font-semibold">
           {t("listing.form.photos")}
-        </Text>
+          <Text style={{ color: colors.destructive }}> *</Text>
+        </Label>
         <Text
           className="text-xs"
           style={{
@@ -376,6 +412,7 @@ export function PhotosSection({
         {/* Single + add tile */}
         {canAddMore && selectedIdx === -1 && (
           <Pressable
+            testID="photos-add-button"
             style={[
               styles.addTile,
               { borderColor: colors.border, backgroundColor: colors.card },
@@ -388,14 +425,7 @@ export function PhotosSection({
       </ScrollView>
       </View>
 
-      {error && (
-        <Text
-          className="text-xs"
-          style={{ color: colors.destructive, textAlign: isRtl ? "right" : "left" }}
-        >
-          {error}
-        </Text>
-      )}
+      {error && <PhotoFieldError message={error} isRtl={isRtl} colors={colors} />}
 
       <SourcePickerSheet
         visible={pickerVisible}

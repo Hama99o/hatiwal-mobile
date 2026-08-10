@@ -45,6 +45,23 @@ export interface MaybeReserveAfterAcceptParams {
 }
 
 /**
+ * Pure precedence rule (review fix — hoisted out of Conversation.tsx's
+ * `handleOfferRespond` so it is independently unit-testable without mounting
+ * the full ConversationScreen): the listing being reserved is the canonical
+ * source of truth for currency — `reserveListing`'s `finalPrice` is always
+ * charged in the LISTING's currency, never the offer message's — so the
+ * listing's currency always wins when present. The offer's encoded currency
+ * is only a fallback for the rare case a listing is missing one, and "AFN"
+ * is the final fallback if both are missing.
+ */
+export function resolveReserveCurrency(
+  listingCurrency: string | null | undefined,
+  offerCurrency?: string | null | undefined
+): string {
+  return listingCurrency ?? offerCurrency ?? "AFN";
+}
+
+/**
  * Pure guard — decides whether the "Reserve for {buyer} at {price}" prompt
  * should be shown after a successful offer accept. Suppressed when: the
  * responder isn't the listing owner (e.g. the buyer accepting a seller's

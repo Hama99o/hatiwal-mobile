@@ -58,7 +58,7 @@ import { useConversationCable } from "@/hooks/useConversationCable";
 import { QuickReplies } from "@/components/common/QuickReplies";
 import { useComposerDraft } from "@/hooks/useComposerDraft";
 import { encodeMeetupBody, type MeetupCoords } from "./conversation/meetupBody";
-import { maybeReserveAfterAccept } from "./conversation/reserveAfterAccept";
+import { maybeReserveAfterAccept, resolveReserveCurrency } from "./conversation/reserveAfterAccept";
 
 // ── Reanimated imports for search bar animation ───────────────────────────────
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate, Extrapolation } from "react-native-reanimated";
@@ -594,12 +594,10 @@ export function ConversationScreen() {
             listing: listingRef,
             buyer: conversation.buyer ?? null,
             offerAmount,
-            // The listing being reserved is the canonical source of truth for
-            // currency (reserveListing's final_price is charged in the
-            // listing's currency, not the offer message's) — the offer's
-            // encoded currency is only a fallback for the rare case a
-            // listing is missing one.
-            currency: listingRef.currency ?? offer.offerCurrency ?? "AFN",
+            // Review fix: precedence logic (listing currency wins, offer
+            // currency is only a fallback) hoisted into `resolveReserveCurrency`
+            // — see reserveAfterAccept.ts and its unit tests.
+            currency: resolveReserveCurrency(listingRef.currency, offer.offerCurrency),
             t,
             formatCurrency,
             onReserved: () => {

@@ -1,6 +1,9 @@
 appId: com.hatiwal.app
 ---
 # Active → Draft (unpublish): seller takes active listing back to draft
+#
+# TASK-L863: an active listing's primary action is "Mark as Reserved" —
+# Unpublish is reachable from the "More" overflow sheet.
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
@@ -8,7 +11,9 @@ appId: com.hatiwal.app
 # Go to Active tab
 - tapOn: "Active"
 - waitForAnimationToEnd
-# Tap "Unpublish" on first active listing
+# Open "More" then tap "Unpublish" on the first active listing
+- tapOn: "More"
+- waitForAnimationToEnd
 - tapOn: "Unpublish"
 - waitForAnimationToEnd
 - assertVisible: "Unpublish this listing?"

@@ -10,11 +10,17 @@
  *
  *  1. Saving a brand-new listing (create, no `id` param) as a draft never
  *     replaces with the Browse tab — it routes to the listing's OWN owner
- *     detail via `router.replace('/(main)/my-listings/:id')`.
+ *     detail via `router.replace('/(main)/my-listings/:id')`. TASK-V395: a
+ *     draft only needs title/price/category, so this case fills EXACTLY
+ *     those three — filling location/photos here too would hide a
+ *     regression if that exemption ever broke (see `fillNewListingForm`).
  *  2. Publishing (new or edit-then-publish) uses `router.dismissTo` — not
  *     `replace` — to the owner detail with `?published=1` merged in, so a
  *     draft's own owner-detail entry already on the stack is updated in
  *     place instead of duplicated (see maestro/seller/publish_from_owner_detail.yaml).
+ *     Covers BOTH a brand-new listing (create-then-publish, a fresh id) AND
+ *     an existing listing already open in edit mode (edit-then-publish, the
+ *     SAME id merged with `published=1`).
  *  3. Editing an existing listing returns to wherever the form was opened
  *     from via `router.back()` when a back stack exists, and only falls
  *     back to a named route (the listing's own owner detail) when it
@@ -22,201 +28,84 @@
  *  4. Cancelling with no unsaved changes skips the confirm dialog and goes
  *     straight back; cancelling with unsaved changes confirms first via
  *     `confirmAlert` (never a raw `Alert.alert`), and only navigates once
- *     the destructive button is pressed.
+ *     the destructive button is pressed. The SAME confirm-then-navigate
+ *     flow also fires for the ANDROID HARDWARE back button, not just the
+ *     in-app top-toolbar back button — it was previously bypassed entirely.
  *  5. Cancelling a brand-new listing with no back stack at all (the one
  *     case where landing on Browse is correct — there is nothing else to
  *     return to) falls back to the Browse tab; cancelling an EDIT with no
  *     back stack falls back to that listing's own owner detail instead.
  *
- * Mocking strategy mirrors ListingForm.publish.test.tsx: listingsAPI and
- * the heavy child pickers (CategoryPicker/LocationRangePicker/PhotosSection)
- * are replaced with lightweight stubs that capture the props ListingForm
- * passes them, so tests can invoke `onSelect`/`onConfirm`/`onChange`
- * directly instead of driving the real picker UIs. `router.canGoBack` is a
- * mock the individual tests can flip per-case.
+ * Mocks and fixtures are shared with the other ListingForm.*.test.tsx suites
+ * via helpers/listingFormHarness.tsx (CYCLE-3 CR fix) — this file is the one
+ * exception that renders the REAL `BackButton` (testID="back_button") to
+ * exercise the in-app back button exactly as a real tap would, so it adds
+ * `ChevronLeft` to the shared icon mock and does NOT stub `BackButton` out.
  */
 
 import React from "react";
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react-native";
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import type { Listing } from "@/api/listings";
+import { screen, waitFor, fireEvent, act } from "@testing-library/react-native";
+import { BackHandler } from "react-native";
 
 // The create+publish/create+draft cases drive several sequential
 // act()/waitFor() round-trips (category select → location confirm →
 // optional photo → submit → assert navigation); the default 5s Jest test
-// timeout can be tight under load. 15s keeps this suite reliable in CI.
-jest.setTimeout(15000);
+// timeout can be tight under load.
+//
+// 15s was NOT enough: this suite runs in ~5s alone but was observed taking 43s
+// and failing inside a full parallel `jest --ci` run, while passing 12/12 in
+// isolation. That is contention, not a regression — so the budget has to cover
+// the loaded case, not the isolated one.
+jest.setTimeout(45000);
 
-// ── Mocks ──────────────────────────────────────────────────────────────────────
+// ── Mocks — factories forwarded to the shared harness (see its header) ────────
 
-jest.mock("lucide-react-native", () => ({
-  ChevronRight: "ChevronRight",
-  ChevronLeft: "ChevronLeft",
-  MapPin: "MapPin",
-  Coins: "Coins",
-  Check: "Check",
-  ToggleRight: "ToggleRight",
-  Copy: "Copy",
-}));
-
-const mockPush = jest.fn();
-const mockReplace = jest.fn();
-const mockDismissTo = jest.fn();
-const mockBack = jest.fn();
-const mockCanGoBack = jest.fn(() => true);
-let mockParams: Record<string, string | undefined> = {};
-jest.mock("expo-router", () => ({
-  useRouter: () => ({
-    push: mockPush,
-    replace: mockReplace,
-    dismissTo: mockDismissTo,
-    back: mockBack,
-    canGoBack: mockCanGoBack,
-  }),
-  useLocalSearchParams: () => mockParams,
-  useFocusEffect: jest.fn(),
-}));
-
-jest.mock("@/api/listings", () => ({
-  listingsAPI: {
-    getMyListing: jest.fn(),
-    createListingWithImages: jest.fn(),
-    updateListingWithImages: jest.fn(),
-    publishListing: jest.fn(),
-  },
-  LISTING_CONDITIONS: ["brand_new", "like_new", "good", "fair"],
-}));
-
-jest.mock("sonner-native", () => ({
-  toast: { success: jest.fn(), error: jest.fn() },
-}));
-
-const mockConfirmAlert = jest.fn();
-jest.mock("@/utils/alert", () => ({
-  confirmAlert: (...args: unknown[]) => mockConfirmAlert(...args),
-}));
-
-jest.mock("@/hooks/useCategoryName", () => ({
-  useCategoryName: () => (cat: { nameEn?: string }) => cat?.nameEn ?? "",
-}));
-
-// PhotosSection / CategoryPicker / LocationRangePicker — captured (not
-// stubbed to `null`-only) so tests can invoke the exact callbacks ListingForm
-// wires up, without needing the real image-picker / bottom-sheet / map UIs.
-const mockPhotosSectionState: { props: Record<string, unknown> | null } = { props: null };
-jest.mock("../listing-form/PhotosSection", () => ({
-  PhotosSection: (props: Record<string, unknown>) => {
-    mockPhotosSectionState.props = props;
-    return null;
-  },
-}));
-
-const mockCategoryPickerState: { props: Record<string, unknown> | null } = { props: null };
-jest.mock("@/components/common/CategoryPicker", () => ({
-  CategoryPicker: (props: Record<string, unknown>) => {
-    mockCategoryPickerState.props = props;
-    return null;
-  },
-}));
-
-jest.mock("@/components/common/ConditionChips", () => ({
-  ConditionChips: () => null,
-}));
-
-const mockLocationPickerState: { props: Record<string, unknown> | null } = { props: null };
-jest.mock("@/components/common/LocationRangePicker", () => ({
-  LocationRangePicker: (props: Record<string, unknown>) => {
-    mockLocationPickerState.props = props;
-    return null;
-  },
-}));
+jest.mock("lucide-react-native", () =>
+  require("./helpers/listingFormHarness").lucideIconsMock({ ChevronLeft: "ChevronLeft" })
+);
+jest.mock("expo-router", () => require("./helpers/listingFormHarness").expoRouterMock());
+jest.mock("@/api/listings", () => require("./helpers/listingFormHarness").listingsApiMock());
+jest.mock("sonner-native", () => require("./helpers/listingFormHarness").sonnerMock());
+jest.mock("@/utils/alert", () => require("./helpers/listingFormHarness").alertMock());
+jest.mock("@/hooks/useCategoryName", () => require("./helpers/listingFormHarness").useCategoryNameMock());
+jest.mock("../listing-form/PhotosSection", () => require("./helpers/listingFormHarness").photosSectionMock());
+jest.mock("@/components/common/CategoryPicker", () => require("./helpers/listingFormHarness").categoryPickerMock());
+jest.mock("@/components/common/ConditionChips", () => require("./helpers/listingFormHarness").conditionChipsMock());
+jest.mock("@/components/common/LocationRangePicker", () => require("./helpers/listingFormHarness").locationRangePickerMock());
 
 // BackButton is intentionally NOT mocked — it only needs useRouter (already
 // mocked above) + useColors/useTranslation, and its real `testID="back_button"`
 // lets these tests trigger ListingForm's `onCancel` exactly as a real tap would.
 
 // Import AFTER mocks
-import ListingFormScreen from "../ListingForm";
-import { listingsAPI } from "@/api/listings";
-
-const mockListingsAPI = listingsAPI as jest.Mocked<typeof listingsAPI>;
-
-// ── Fixture factory (mirrors ListingForm.publish.test.tsx) ────────────────────
-
-const makeListing = (overrides: Partial<Listing> = {}): Listing => ({
-  id: 42,
-  title: "Lenovo ThinkPad X1 Carbon",
-  description: "Used 6 months. No scratches.",
-  price: 85000,
-  currency: "AFN",
-  condition: "good",
-  status: "draft",
-  categoryId: 3,
-  location: "Kabul, Share Naw",
-  address: "Near the blue mosque",
-  latitude: 34.5,
-  longitude: 69.1,
-  thumbnailUrl: "https://example.com/photo.jpg",
-  imageUrls: ["https://example.com/photo.jpg"],
-  images: ["https://example.com/photo.jpg"],
-  imageAttachments: [{ id: "blob-1", url: "https://example.com/photo.jpg" }],
-  viewsCount: 42,
-  conversationsCount: 5,
-  negotiable: true,
-  createdAt: "2024-01-10T08:00:00Z",
-  updatedAt: "2024-01-10T08:00:00Z",
-  seller: { id: 1, name: "Ahmad Karimi", city: "Kabul" },
-  category: {
-    id: 3,
-    nameEn: "Electronics",
-    namePs: "برقی توکي",
-    nameFa: "الکترونیک",
-    slug: "electronics",
-  } as any,
-  ...overrides,
-});
-
-const MOCK_CATEGORY = {
-  id: 3,
-  nameEn: "Electronics",
-  namePs: "برقی توکي",
-  nameFa: "الکترونیک",
-  slug: "electronics",
-};
-
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-}
-
-function renderForm() {
-  const client = makeQueryClient();
-  render(
-    <QueryClientProvider client={client}>
-      <ListingFormScreen />
-    </QueryClientProvider>
-  );
-  return client;
-}
+import {
+  mockListingsAPI,
+  mockConfirmAlert,
+  mockReplace,
+  mockDismissTo,
+  mockBack,
+  mockCanGoBack,
+  mockParamsState,
+  mockCategoryPickerState,
+  mockLocationPickerState,
+  mockPhotosSectionState,
+  makeListing,
+  MOCK_CATEGORY,
+  renderListingForm,
+  resetListingFormMocks,
+} from "./helpers/listingFormHarness";
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  mockParams = {};
-  mockCanGoBack.mockReturnValue(true);
-  mockPhotosSectionState.props = null;
-  mockCategoryPickerState.props = null;
-  mockLocationPickerState.props = null;
+  resetListingFormMocks();
 });
 
 // Fills the fields a brand-new (create) listing needs for the given mode.
-// Title/price/category/coordinates are filled unconditionally — the zod
-// schema requires exact map coordinates for every submit path in the
-// current build; a photo is only added for "publish" (TASK-P736 gates
-// Publish, not Save Draft, on having at least one photo).
+// Title/price/category are filled UNCONDITIONALLY — required for BOTH Save
+// Draft and Publish (mirrors hatiwal-api's Listing validations). Photos AND
+// exact map coordinates are ONLY filled for "publish": TASK-V395 made both
+// optional for Save Draft (a draft may have zero photos and no pin at all —
+// see ListingForm.draft.test.tsx), so filling them unconditionally here
+// would silently hide a regression if that draft exemption ever broke.
 async function fillNewListingForm(mode: "draft" | "publish" = "draft") {
   fireEvent.changeText(
     screen.getByPlaceholderText("listing.titlePlaceholder"),
@@ -229,15 +118,15 @@ async function fillNewListingForm(mode: "draft" | "publish" = "draft") {
     (mockCategoryPickerState.props?.onSelect as (c: unknown) => void)(MOCK_CATEGORY);
   });
 
-  await waitFor(() => expect(mockLocationPickerState.props).not.toBeNull());
-  act(() => {
-    (mockLocationPickerState.props?.onConfirm as (r: unknown) => void)({
-      coords: { latitude: 34.5, longitude: 69.1 },
-      label: "Kabul, Share Naw",
-    });
-  });
-
   if (mode === "publish") {
+    await waitFor(() => expect(mockLocationPickerState.props).not.toBeNull());
+    act(() => {
+      (mockLocationPickerState.props?.onConfirm as (r: unknown) => void)({
+        coords: { latitude: 34.5, longitude: 69.1 },
+        label: "Kabul, Share Naw",
+      });
+    });
+
     await waitFor(() => expect(mockPhotosSectionState.props).not.toBeNull());
     act(() => {
       (mockPhotosSectionState.props?.onChange as (p: unknown[]) => void)([
@@ -251,12 +140,11 @@ async function fillNewListingForm(mode: "draft" | "publish" = "draft") {
 
 describe("ListingForm — Save Draft on a brand-new listing", () => {
   it("routes to the listing's OWN owner detail via router.replace, never Browse", async () => {
-    mockParams = {};
     mockListingsAPI.createListingWithImages.mockResolvedValueOnce(
       makeListing({ id: 501, status: "draft" })
     );
 
-    renderForm();
+    renderListingForm();
     await fillNewListingForm("draft");
 
     fireEvent.press(screen.getByText("listing.form.saveDraft"));
@@ -276,7 +164,6 @@ describe("ListingForm — Save Draft on a brand-new listing", () => {
 
 describe("ListingForm — Publish on a brand-new listing", () => {
   it("routes via router.dismissTo to the owner detail with published=1", async () => {
-    mockParams = {};
     mockListingsAPI.createListingWithImages.mockResolvedValueOnce(
       makeListing({ id: 777, status: "draft" })
     );
@@ -284,7 +171,7 @@ describe("ListingForm — Publish on a brand-new listing", () => {
       makeListing({ id: 777, status: "active" })
     );
 
-    renderForm();
+    renderListingForm();
     await fillNewListingForm("publish");
 
     fireEvent.press(screen.getByText("listing.publish"));
@@ -300,18 +187,53 @@ describe("ListingForm — Publish on a brand-new listing", () => {
   });
 });
 
+// ── 2b. Publish (EXISTING listing, edit-then-publish) — SAME id, dismissTo ────
+
+describe("ListingForm — Publish on an existing (edit-then-publish) listing", () => {
+  it("routes via router.dismissTo to the SAME listing's owner detail with published=1", async () => {
+    mockParamsState.current = { id: "42" };
+    mockCanGoBack.mockReturnValue(true);
+    mockListingsAPI.getMyListing.mockResolvedValueOnce(makeListing({ id: 42, status: "draft" }));
+    mockListingsAPI.updateListingWithImages.mockResolvedValueOnce(
+      makeListing({ id: 42, status: "draft" })
+    );
+    mockListingsAPI.publishListing.mockResolvedValueOnce(makeListing({ id: 42, status: "active" }));
+
+    renderListingForm();
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText("listing.publish"));
+
+    await waitFor(() => {
+      expect(mockListingsAPI.updateListingWithImages).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(mockListingsAPI.publishListing).toHaveBeenCalledWith(42);
+    });
+    await waitFor(() => {
+      expect(mockDismissTo).toHaveBeenCalledWith("/(main)/my-listings/42?published=1");
+    });
+    // Never a plain replace, and never a DIFFERENT listing id.
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockDismissTo).not.toHaveBeenCalledWith(expect.stringContaining("browse"));
+  });
+});
+
 // ── 3. Edit + Save — back() when possible, named fallback otherwise ───────────
 
 describe("ListingForm — Save on an existing draft (edit)", () => {
   it("returns via router.back() when a back stack exists", async () => {
-    mockParams = { id: "42" };
+    mockParamsState.current = { id: "42" };
     mockCanGoBack.mockReturnValue(true);
     mockListingsAPI.getMyListing.mockResolvedValueOnce(makeListing({ status: "draft" }));
     mockListingsAPI.updateListingWithImages.mockResolvedValueOnce(
       makeListing({ status: "draft" })
     );
 
-    renderForm();
+    renderListingForm();
     await waitFor(() => {
       expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
     });
@@ -324,14 +246,14 @@ describe("ListingForm — Save on an existing draft (edit)", () => {
   });
 
   it("falls back to its own owner detail (never Browse) when there is no back stack", async () => {
-    mockParams = { id: "42" };
+    mockParamsState.current = { id: "42" };
     mockCanGoBack.mockReturnValue(false);
     mockListingsAPI.getMyListing.mockResolvedValueOnce(makeListing({ status: "draft" }));
     mockListingsAPI.updateListingWithImages.mockResolvedValueOnce(
       makeListing({ status: "draft" })
     );
 
-    renderForm();
+    renderListingForm();
     await waitFor(() => {
       expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
     });
@@ -350,14 +272,14 @@ describe("ListingForm — Save on an existing draft (edit)", () => {
 
 describe("ListingForm — Save on an already-published listing", () => {
   it("uses the single Save button and returns via router.back()", async () => {
-    mockParams = { id: "42" };
+    mockParamsState.current = { id: "42" };
     mockCanGoBack.mockReturnValue(true);
     mockListingsAPI.getMyListing.mockResolvedValueOnce(makeListing({ status: "active" }));
     mockListingsAPI.updateListingWithImages.mockResolvedValueOnce(
       makeListing({ status: "active" })
     );
 
-    renderForm();
+    renderListingForm();
     await waitFor(() => {
       expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
     });
@@ -372,14 +294,13 @@ describe("ListingForm — Save on an already-published listing", () => {
   });
 });
 
-// ── 5. Cancel navigation ────────────────────────────────────────────────────────
+// ── 5. Cancel navigation — top-toolbar back button ─────────────────────────────
 
 describe("ListingForm — Cancel (back button)", () => {
   it("goes straight back with no confirm dialog when there are no unsaved changes", async () => {
-    mockParams = {};
     mockCanGoBack.mockReturnValue(true);
 
-    renderForm();
+    renderListingForm();
     fireEvent.press(screen.getByTestId("back_button"));
 
     expect(mockConfirmAlert).not.toHaveBeenCalled();
@@ -387,10 +308,9 @@ describe("ListingForm — Cancel (back button)", () => {
   });
 
   it("confirms via confirmAlert (never raw Alert.alert) when there are unsaved changes, then discards on confirm", async () => {
-    mockParams = {};
     mockCanGoBack.mockReturnValue(true);
 
-    renderForm();
+    renderListingForm();
     fireEvent.changeText(
       screen.getByPlaceholderText("listing.titlePlaceholder"),
       "Something typed"
@@ -413,21 +333,20 @@ describe("ListingForm — Cancel (back button)", () => {
   });
 
   it("a brand-new listing with no back stack falls back to Browse", async () => {
-    mockParams = {};
     mockCanGoBack.mockReturnValue(false);
 
-    renderForm();
+    renderListingForm();
     fireEvent.press(screen.getByTestId("back_button"));
 
     expect(mockReplace).toHaveBeenCalledWith("/(main)/(tabs)/browse");
   });
 
   it("an edit with no back stack falls back to its own owner detail, never Browse", async () => {
-    mockParams = { id: "42" };
+    mockParamsState.current = { id: "42" };
     mockCanGoBack.mockReturnValue(false);
     mockListingsAPI.getMyListing.mockResolvedValueOnce(makeListing({ status: "draft" }));
 
-    renderForm();
+    renderListingForm();
     await waitFor(() => {
       expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
     });
@@ -436,5 +355,68 @@ describe("ListingForm — Cancel (back button)", () => {
 
     expect(mockReplace).toHaveBeenCalledWith("/(main)/my-listings/42");
     expect(mockReplace).not.toHaveBeenCalledWith(expect.stringContaining("browse"));
+  });
+});
+
+// ── 6. Cancel navigation — Android hardware back button (CYCLE-3 CR fix) ──────
+// Before this fix, the unsaved-changes guard only ever ran for the in-app
+// top-toolbar back button — the Android hardware back button bypassed it
+// entirely and popped the screen straight away, silently discarding unsaved
+// work. ListingForm now registers its OWN `BackHandler.addEventListener(
+// "hardwareBackPress", ...)` listener that calls the EXACT SAME `onCancel`
+// used by the top-toolbar button. `react-native`'s jest/test BackHandler stub
+// never actually dispatches to registered listeners, so these tests capture
+// the handler ListingForm registered and invoke it directly.
+
+describe("ListingForm — Cancel (Android hardware back button)", () => {
+  // `onCancel` is a `useCallback` keyed on `isDirty`/`photos` — every time
+  // either changes, the registration effect tears down the OLD listener and
+  // adds a NEW one bound to the fresh closure. Always take the MOST RECENT
+  // registration (never the first) so the handler reflects the form's
+  // CURRENT dirty state at the moment the test invokes it.
+  function getRegisteredHardwareBackHandler(spy: jest.SpyInstance): () => boolean | undefined {
+    const calls = spy.mock.calls.filter(([eventName]) => eventName === "hardwareBackPress");
+    expect(calls.length).toBeGreaterThan(0);
+    return calls[calls.length - 1][1] as () => boolean | undefined;
+  }
+
+  it("marks the event as handled and goes straight back when there are no unsaved changes", async () => {
+    mockCanGoBack.mockReturnValue(true);
+    const addEventListenerSpy = jest.spyOn(BackHandler, "addEventListener");
+
+    renderListingForm();
+
+    const handler = getRegisteredHardwareBackHandler(addEventListenerSpy);
+    const handled = handler();
+
+    expect(handled).toBe(true);
+    expect(mockConfirmAlert).not.toHaveBeenCalled();
+    expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("confirms via confirmAlert first when there are unsaved changes, then discards on confirm", async () => {
+    mockCanGoBack.mockReturnValue(true);
+    const addEventListenerSpy = jest.spyOn(BackHandler, "addEventListener");
+
+    renderListingForm();
+    fireEvent.changeText(
+      screen.getByPlaceholderText("listing.titlePlaceholder"),
+      "Something typed"
+    );
+
+    const handler = getRegisteredHardwareBackHandler(addEventListenerSpy);
+    const handled = handler();
+
+    expect(handled).toBe(true);
+    expect(mockConfirmAlert).toHaveBeenCalledTimes(1);
+    expect(mockBack).not.toHaveBeenCalled();
+
+    const buttons = mockConfirmAlert.mock.calls[0][2] as Array<{
+      style?: string;
+      onPress?: () => void;
+    }>;
+    const destructive = buttons.find((b) => b.style === "destructive");
+    act(() => destructive?.onPress?.());
+    expect(mockBack).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,12 +1,13 @@
 import {
   View,
   Pressable,
+  ScrollView,
 } from "react-native";
 import { useCallback, useRef, useState } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MessageCircle, CheckCheck, Archive, SearchX } from "lucide-react-native";
+import { MessageCircle, CheckCheck, Archive, SearchX, ShoppingBag, Store } from "lucide-react-native";
 import { ChatIllustration } from "@/components/common/empty-illustrations";
 import { toast } from "sonner-native";
 
@@ -50,10 +51,23 @@ type TabMode = "inbox" | "archived";
 /** Secondary filter within the inbox (client-side) */
 type FilterMode = "all" | "unread" | "read";
 
+/**
+ * Server-side role scope (TASK-R517) — "conversations where I am buying" vs
+ * "conversations where I am selling". `null` means both (today's default,
+ * mixed inbox). Mutually exclusive with itself — selecting the active chip
+ * again deselects back to `null`.
+ */
+type RoleMode = "buying" | "selling" | null;
+
 const INBOX_FILTER_OPTIONS: { key: FilterMode; labelKey: string }[] = [
   { key: "all",    labelKey: "chat.filter.all" },
   { key: "unread", labelKey: "chat.filter.unread" },
   { key: "read",   labelKey: "chat.filter.read" },
+];
+
+const ROLE_FILTER_OPTIONS: { key: Exclude<RoleMode, null>; labelKey: string }[] = [
+  { key: "buying",  labelKey: "chat.filter.buying" },
+  { key: "selling", labelKey: "chat.filter.selling" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -69,6 +83,9 @@ export default function ConversationsScreen() {
 
   const [tabMode, setTabMode]   = useState<TabMode>("inbox");
   const [filter, setFilter]     = useState<FilterMode>("all");
+  // Not reset on tab switch (unlike `filter`) — a role scope selected while
+  // in the Inbox tab must keep composing when the user switches to Archived.
+  const [role, setRole]         = useState<RoleMode>(null);
 
   // ── List-level search (TASK-Z684) ───────────────────────────────────────────
   // `filterItems` (UniversalList) applies `filterConversations` to whatever
@@ -83,6 +100,13 @@ export default function ConversationsScreen() {
   const [refreshKey, setRefreshKey] = useState(0);
   // Bump to trigger a FULL reset (skeleton + reload). Only used for deletions.
   const [resetKey, setResetKey] = useState(0);
+
+  // Pagination state reported back by UniversalList (TASK-Z684 CR fix) — lets
+  // the no-match empty state tell the difference between "no matches
+  // anywhere" and "no matches in what's loaded so far, but more pages
+  // exist" (search only ever filters what's already in memory).
+  const [pageInfo, setPageInfo] = useState({ currentPage: 1, totalPages: 1 });
+  const hasUnloadedConversations = pageInfo.currentPage < pageInfo.totalPages;
 
   const setUnreadMessageTotal = useChatStore((s) => s.setUnreadMessageTotal);
 
@@ -108,21 +132,29 @@ export default function ConversationsScreen() {
   // The search term is intentionally NOT applied here — it's applied by
   // UniversalList's `filterItems` at render time (see listConfig below), so
   // typing never re-hits the network.
+  // `roleParam` (TASK-R517) is forwarded to the server so it stays correct
+  // across infinite-scroll pages, and composes with both tabs (inbox/archived).
   const makeFetcher = useCallback(
-    (tab: TabMode, filterMode: FilterMode) =>
+    (tab: TabMode, filterMode: FilterMode, roleParam: RoleMode) =>
       async (query: ListQuery): Promise<ListFetchResult<Conversation>> => {
         const response = await conversationsAPI.getConversations({
           archived:   tab === "archived",
           pageNumber: query.page,
           pageSize:   query.perPage,
+          role:       roleParam ?? undefined,
         });
         const page = response.items;
 
         if (tab === "inbox") {
-          // Badge total is only meaningful from the first page — a deeper
-          // page fetched via infinite scroll must never overwrite it with a
-          // partial count.
-          if (query.page === 1) {
+          // Badge total is only meaningful from the first page of the FULL
+          // (role-unfiltered) inbox — a deeper page fetched via infinite
+          // scroll must never overwrite it with a partial count, and NEITHER
+          // must a role-scoped page: while `roleParam` is set this response
+          // only holds one side of the inbox, so syncing the badge from it
+          // would incorrectly drop the badge to that subset. Skip the sync
+          // entirely while a role filter is active — the badge keeps
+          // whatever the last unfiltered fetch reported.
+          if (query.page === 1 && !roleParam) {
             allConversationsRef.current = page;
             const total = getUnreadTotal(page);
             setUnreadMessageTotal(total);
@@ -279,20 +311,23 @@ export default function ConversationsScreen() {
   const trimmedSearchTerm = searchTerm.trim();
   const hasSearchTerm = trimmedSearchTerm.length > 0;
 
-  // config.id changes only when tab, filter, or resetKey changes — search
-  // deliberately stays OUT of id (and out of the fetcher entirely) so typing
-  // never triggers a re-fetch or UniversalList's skeleton-reset path; it only
-  // narrows the already-loaded items via `filterItems` below.
+  // config.id changes only when tab, filter, role, or resetKey changes —
+  // search deliberately stays OUT of id (and out of the fetcher entirely) so
+  // typing never triggers a re-fetch or UniversalList's skeleton-reset path;
+  // it only narrows the already-loaded items via `filterItems` below.
+  // `role` is included here too (TASK-R517) so tapping Buying/Selling always
+  // triggers a fresh server-side re-fetch, not a client-side re-filter.
   // refreshKey is passed separately so UniversalList silently re-fetches
   // without skeleton flash.
   const listConfig: UniversalListConfig<Conversation> = {
-    id:          `conversations-${tabMode}-${filter}-${resetKey}`,
+    id:          `conversations-${tabMode}-${filter}-${role ?? "both"}-${resetKey}`,
     refreshKey,
-    fetcher:     makeFetcher(tabMode, filter),
+    fetcher:     makeFetcher(tabMode, filter, role),
     perPage:     CONVERSATIONS_PAGE_SIZE,
-    filterItems: (items) => filterConversations(items, searchTerm),
+    filterItems: (items) => filterConversations(items, searchTerm, t),
+    onPageInfoChange: setPageInfo,
     keyExtractor: (item) => String(item.id),
-    renderItem:  ({ item, index }) => (
+    renderItem:  ({ item }) => (
       <ConversationRow
         item={item}
         tabMode={tabMode}
@@ -301,7 +336,6 @@ export default function ConversationsScreen() {
         onMarkUnread={handleMarkUnread}
         onArchive={handleArchive}
         onUnarchive={handleUnarchive}
-        index={index}
       />
     ),
     skeletonCount:     5,
@@ -309,42 +343,70 @@ export default function ConversationsScreen() {
     emptyIcon:
       hasSearchTerm
         ? SearchX
-        : tabMode === "archived"
-          ? Archive
-          : filter === "unread"
-            ? CheckCheck
-            : MessageCircle,
-    // Show the custom illustration only for the primary inbox empty state —
-    // never for a no-match search result.
+        : role === "selling"
+          ? Store
+          : role === "buying"
+            ? ShoppingBag
+            : tabMode === "archived"
+              ? Archive
+              : filter === "unread"
+                ? CheckCheck
+                : MessageCircle,
+    // Show the custom illustration only for the primary, completely
+    // unfiltered inbox empty state — never for a no-match search result or a
+    // role-scoped empty state (those get their own icon + copy above).
     emptyIllustration:
-      !hasSearchTerm && tabMode !== "archived" && filter === "all"
+      !hasSearchTerm && !role && tabMode !== "archived" && filter === "all"
         ? <ChatIllustration size={96} />
         : undefined,
     emptyTitle:
       hasSearchTerm
         ? t("chat.search.noMatchTitle", { term: trimmedSearchTerm })
-        : tabMode === "archived"
-          ? t("chat.archive.empty")
-          : filter === "unread"
-            ? t("chat.filter.noUnread")
-            : t("chat.noConversations"),
+        : role === "selling"
+          ? t("chat.empty.sellingTitle")
+          : role === "buying"
+            ? t("chat.empty.buyingTitle")
+            : tabMode === "archived"
+              ? t("chat.archive.empty")
+              : filter === "unread"
+                ? t("chat.filter.noUnread")
+                : t("chat.noConversations"),
     emptyDescription:
       hasSearchTerm
-        ? t("chat.search.noMatchDescription")
-        : tabMode === "archived"
-          ? t("chat.archive.emptyDescription")
-          : filter === "unread"
-            ? t("chat.filter.noUnreadDescription")
-            : t("chat.noConversationsDescription"),
+        ? hasUnloadedConversations
+          // More pages exist beyond what's loaded — a "no matches" here would
+          // be misleadingly absolute (CR fix: the match could be sitting on
+          // an unloaded page), so make that explicit.
+          ? `${t("chat.search.noMatchDescription")} ${t("chat.search.partialResults")}`
+          : t("chat.search.noMatchDescription")
+        : role === "selling"
+          ? t("chat.empty.sellingDescription")
+          : role === "buying"
+            ? t("chat.empty.buyingDescription")
+            : tabMode === "archived"
+              ? t("chat.archive.emptyDescription")
+              : filter === "unread"
+                ? t("chat.filter.noUnreadDescription")
+                : t("chat.noConversationsDescription"),
     emptyAction:
       hasSearchTerm
         ? { label: t("chat.search.clearSearch"), onPress: () => setSearchTerm("") }
-        : tabMode !== "archived" && filter !== "unread"
+        : role === "selling"
           ? {
-              label:   t("chat.empty.browseAction"),
-              onPress: () => router.push("/(main)/(tabs)/browse" as never),
+              label:   t("listing.postListing"),
+              onPress: () => router.push("/(main)/listing/new" as never),
             }
-          : undefined,
+          : role === "buying"
+            ? {
+                label:   t("chat.empty.browseAction"),
+                onPress: () => router.push("/(main)/(tabs)/browse" as never),
+              }
+            : tabMode !== "archived" && filter !== "unread"
+              ? {
+                  label:   t("chat.empty.browseAction"),
+                  onPress: () => router.push("/(main)/(tabs)/browse" as never),
+                }
+              : undefined,
     contentPaddingBottom: 100,
   };
 
@@ -429,7 +491,7 @@ export default function ConversationsScreen() {
                   alignItems:      "center",
                   justifyContent:  "center",
                   gap:             6,
-                  paddingVertical: 9,
+                  paddingVertical: 12,
                   backgroundColor: isActive ? colors.primary : "transparent",
                   borderRadius:    isActive ? 10 : 0,
                   borderLeftWidth: i > 0 && !isActive ? 1 : 0,
@@ -456,34 +518,40 @@ export default function ConversationsScreen() {
           })}
         </View>
 
-        {/* Secondary filter (All / Unread / Read) — only shown in Inbox tab */}
+        {/* Combined filter chip row — only shown in Inbox tab. Holds TWO
+            independent groups in one horizontally-scrollable row so we never
+            add a 4th always-visible header row: read-state (All/Unread/Read,
+            client-side, unchanged) and role (Buying/Selling, server-side,
+            TASK-R517). Scrolls rather than shrinking so neither group ever
+            clips at narrow widths (e.g. 375px). */}
         {tabMode === "inbox" && (
-          <View
-            style={{
-              flexDirection:   isRtl ? "row-reverse" : "row",
-              marginTop:       8,
-              borderRadius:    8,
-              overflow:        "hidden",
-              backgroundColor: colors.muted,
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            testID="conversations-filter-chip-row"
+            style={{ marginTop: 8 }}
+            contentContainerStyle={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems:    "center",
+              gap:           6,
+              paddingVertical: 2,
             }}
           >
-            {INBOX_FILTER_OPTIONS.map(({ key, labelKey }, i) => {
+            {INBOX_FILTER_OPTIONS.map(({ key, labelKey }) => {
               const isActive = filter === key;
               return (
                 <Pressable
                   key={key}
                   onPress={() => setFilter(key)}
+                  testID={`filter-chip-${key}`}
                   style={{
-                    flex:            1,
                     flexDirection:   isRtl ? "row-reverse" : "row",
                     alignItems:      "center",
-                    justifyContent:  "center",
                     gap:             5,
                     paddingVertical: 7,
-                    backgroundColor: isActive ? colors.secondary : "transparent",
-                    borderRadius:    isActive ? 8 : 0,
-                    borderLeftWidth: i > 0 && !isActive ? 1 : 0,
-                    borderLeftColor: colors.border,
+                    paddingHorizontal: 12,
+                    borderRadius:    999,
+                    backgroundColor: isActive ? colors.secondary : colors.muted,
                   }}
                 >
                   {key === "unread" && (
@@ -514,7 +582,58 @@ export default function ConversationsScreen() {
                 </Pressable>
               );
             })}
-          </View>
+
+            {/* Divider between the read-state group and the role group */}
+            <View
+              style={{
+                width:           1,
+                height:          18,
+                backgroundColor: colors.border,
+                marginHorizontal: 2,
+              }}
+            />
+
+            {ROLE_FILTER_OPTIONS.map(({ key, labelKey }) => {
+              const isActive = role === key;
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => setRole((prev) => (prev === key ? null : key))}
+                  testID={`role-chip-${key}`}
+                  style={{
+                    flexDirection:   isRtl ? "row-reverse" : "row",
+                    alignItems:      "center",
+                    gap:             5,
+                    paddingVertical: 7,
+                    paddingHorizontal: 12,
+                    borderRadius:    999,
+                    backgroundColor: isActive ? colors.primary : colors.muted,
+                  }}
+                >
+                  {key === "selling" ? (
+                    <Store
+                      size={12}
+                      color={isActive ? colors.primaryForeground : colors.mutedForeground}
+                    />
+                  ) : (
+                    <ShoppingBag
+                      size={12}
+                      color={isActive ? colors.primaryForeground : colors.mutedForeground}
+                    />
+                  )}
+                  <Text
+                    style={{
+                      fontSize:   12,
+                      fontWeight: "600",
+                      color:      isActive ? colors.primaryForeground : colors.foreground,
+                    }}
+                  >
+                    {t(labelKey)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         )}
       </View>
 

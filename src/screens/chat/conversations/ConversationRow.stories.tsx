@@ -55,7 +55,6 @@ export const Default: Story = {
   args: {
     item: makeConversation(),
     onDelete: action("delete"),
-    index: 0,
   },
 };
 
@@ -63,7 +62,6 @@ export const Unread: Story = {
   args: {
     item: makeConversation({ unreadCount: 3 }),
     onDelete: action("delete"),
-    index: 0,
   },
 };
 
@@ -71,7 +69,6 @@ export const UnreadHighCount: Story = {
   args: {
     item: makeConversation({ unreadCount: 12 }),
     onDelete: action("delete"),
-    index: 0,
   },
 };
 
@@ -82,7 +79,6 @@ export const MeetupPreview: Story = {
       lastMessageBody: "Share Naw Park | Tomorrow 4pm",
     }),
     onDelete: action("delete"),
-    index: 0,
   },
 };
 
@@ -93,7 +89,6 @@ export const OfferPreview: Story = {
       lastMessageBody: "75000|AFN",
     }),
     onDelete: action("delete"),
-    index: 0,
   },
 };
 
@@ -110,7 +105,6 @@ export const SoldListing: Story = {
       },
     }),
     onDelete: action("delete"),
-    index: 0,
   },
 };
 
@@ -127,7 +121,6 @@ export const ReservedListing: Story = {
       },
     }),
     onDelete: action("delete"),
-    index: 0,
   },
 };
 
@@ -142,7 +135,6 @@ export const NoThumbnail: Story = {
       },
     }),
     onDelete: action("delete"),
-    index: 0,
   },
 };
 
@@ -154,7 +146,22 @@ export const NoMessages: Story = {
       lastMessageAt: null,
     }),
     onDelete: action("delete"),
-    index: 0,
+  },
+};
+
+// ── Role pill (TASK-R517) ─────────────────────────────────────────────────
+
+export const SellingRole: Story = {
+  args: {
+    item: makeConversation({ viewerRole: "seller" }),
+    onDelete: action("delete"),
+  },
+};
+
+export const BuyingRole: Story = {
+  args: {
+    item: makeConversation({ viewerRole: "buyer" }),
+    onDelete: action("delete"),
   },
 };
 
@@ -164,7 +171,6 @@ export const UnverifiedParticipant: Story = {
       otherParticipant: { id: 3, name: "New Seller", city: null, verified: false, avatarUrl: null },
     }),
     onDelete: action("delete"),
-    index: 0,
   },
 };
 
@@ -177,8 +183,8 @@ export const ConversationList: Story = {
         makeConversation({ id: 2, lastMessageKind: "meetup_proposal", lastMessageBody: "Share Naw | 5pm", unreadCount: 0 }),
         makeConversation({ id: 3, listing: { id: 2, title: "Samsung TV", thumbnailUrl: null, status: "sold" }, unreadCount: 0 }),
         makeConversation({ id: 4, lastMessageKind: "offer", lastMessageBody: "40000|AFN", unreadCount: 1 }),
-      ].map((item, i) => (
-        <ConversationRow key={item.id} item={item} onDelete={action("delete")} index={i} />
+      ].map((item) => (
+        <ConversationRow key={item.id} item={item} onDelete={action("delete")} />
       ))}
     </View>
   ),

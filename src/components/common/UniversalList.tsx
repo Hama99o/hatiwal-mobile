@@ -88,9 +88,10 @@ export interface UniversalListConfig<T> {
   id: string;
 
   /**
-   * Bump this on useFocusEffect to silently refetch page 1 in the background
-   * WITHOUT clearing items or showing a skeleton. Displayed data updates
-   * smoothly when the new data arrives.
+   * Bump this on useFocusEffect to silently refetch every page ALREADY
+   * loaded (1..currentPage) in the background WITHOUT clearing items or
+   * showing a skeleton. Displayed data updates smoothly when the new data
+   * arrives, and no previously-loaded page is ever truncated away.
    */
   refreshKey?: number;
 
@@ -171,6 +172,16 @@ export interface UniversalListConfig<T> {
    * fetched `items`, so typing is instant and works offline.
    */
   filterItems?: (items: T[]) => T[];
+
+  /**
+   * Called whenever the loaded pagination state changes (after every
+   * successful fetch). Lets the caller know whether MORE pages exist beyond
+   * what's currently loaded (`currentPage < totalPages`) — e.g. so a
+   * client-side `filterItems` search (TASK-Z684) can warn "no matches" is
+   * scoped to what's loaded so far, not the caller's entire server-side
+   * dataset, instead of showing a flatly false "no matches at all".
+   */
+  onPageInfoChange?: (info: { currentPage: number; totalPages: number }) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -198,6 +209,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     ListHeaderComponent,
     contentPaddingBottom = 80,
     filterItems,
+    onPageInfoChange,
   } = config;
 
   const colors = useColors();
@@ -258,6 +270,51 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     [fetcher, perPage]
   );
 
+  // Mirrors `currentPage` in a ref so background-refresh logic always reads
+  // the LATEST loaded-page count, never a value captured by a stale closure.
+  const currentPageRef = useRef(currentPage);
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+
+  // Re-fetches every page ALREADY loaded (1..currentPage), then replaces
+  // `items` with the freshly-merged result in one shot.
+  //
+  // REGRESSION FIX (cycle-3 CR): a silent background refresh used to always
+  // call `fetchPage(1, true)` — which *replaces* `items` with just page 1's
+  // worth of results. If the user had scrolled and loaded pages 2, 3, ...
+  // before navigating away, coming back (any `useFocusEffect` bump) silently
+  // truncated the list back down to a single page. Re-fetching every
+  // currently-loaded page keeps exactly what was visible (now refreshed)
+  // instead of throwing away pages the user already paid a scroll-and-wait
+  // for.
+  const refreshLoadedPages = useCallback(async () => {
+    const pagesLoaded = Math.max(1, currentPageRef.current);
+    const requestId = ++requestIdRef.current;
+    try {
+      const results = await Promise.all(
+        Array.from({ length: pagesLoaded }, (_, i) => fetcher({ page: i + 1, perPage }))
+      );
+      // A newer request (e.g. another refresh, or the user paging further)
+      // was issued while these were in flight — drop this stale result.
+      if (requestId !== requestIdRef.current) return;
+
+      const merged = results.flatMap((r) => r.items);
+      const last = results[results.length - 1];
+      setItems(merged);
+      setTotalPages(last.totalPages);
+      setCurrentPage(last.currentPage);
+      setError(null);
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+      const status = (err as { response?: { status?: number } } | undefined)?.response?.status;
+      if (status === 401) return;
+      console.error("[UniversalList] background refresh error", err);
+      // A background refresh failing (e.g. device went offline) must not
+      // blank an already-loaded, perfectly usable list — leave it as-is.
+    }
+  }, [fetcher, perPage]);
+
   // ── Initial load / config id change ────────────────────────────────────────
   // idLoadingRef is a ref (not state) that tracks whether loadFirst is running.
   // The refreshKey effect reads it to avoid a double-fetch race: on fast
@@ -283,7 +340,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
       setIsLoading(false);
       if (pendingRefreshRef.current) {
         pendingRefreshRef.current = false;
-        fetchPage(1, true).catch(() => {});
+        refreshLoadedPages().catch(() => {});
       }
     };
 
@@ -293,9 +350,11 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   }, [id]);
 
   // ── Silent background refresh (useFocusEffect) ─────────────────────────────
-  // refreshKey is bumped on screen focus. Unlike an id change, this keeps
-  // the current items visible and simply re-fetches page 1 in the background,
-  // then swaps in the fresh data once it arrives — no skeleton, no flicker.
+  // refreshKey is bumped on screen focus. Unlike an id change, this keeps the
+  // current items visible and re-fetches every page ALREADY loaded (via
+  // `refreshLoadedPages`) in the background, then swaps in the freshly-merged
+  // data once it arrives — no skeleton, no flicker, and no truncation of
+  // pages the user had already scrolled to load.
   const refreshKeyRef = useRef(refreshKey);
   useEffect(() => {
     // Skip the very first render (initial load already handled by id effect).
@@ -310,7 +369,9 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
       pendingRefreshRef.current = true;
       return;
     }
-    fetchPage(1, true).catch(() => {});
+    // Re-fetch every page already loaded (not just page 1) — see
+    // `refreshLoadedPages` JSDoc for the truncation regression this avoids.
+    refreshLoadedPages().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
@@ -321,18 +382,35 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     setIsRefreshing(false);
   }, [fetchPage]);
 
-  // ── Infinite scroll ────────────────────────────────────────────────────────
-  const handleEndReached = useCallback(async () => {
-    if (isFetchingMore || isLoading || currentPage >= totalPages) return;
-    setIsFetchingMore(true);
-    await fetchPage(currentPage + 1, false);
-    setIsFetchingMore(false);
-  }, [isFetchingMore, isLoading, currentPage, totalPages, fetchPage]);
-
   // ── Client-side filter (e.g. instant search) ───────────────────────────────
   // Applied to whatever `items` are already loaded, purely at render time —
   // never triggers a fetch. See `filterItems` JSDoc on UniversalListConfig.
   const visibleItems = filterItems ? filterItems(items) : items;
+
+  // ── Report loaded pagination state to the caller ───────────────────────────
+  // Lets a screen with `filterItems` (e.g. Conversations, TASK-Z684) tell the
+  // difference between "truly no matches anywhere" and "no matches in what's
+  // loaded so far, but more pages exist" — see `onPageInfoChange` JSDoc.
+  useEffect(() => {
+    onPageInfoChange?.({ currentPage, totalPages });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, totalPages]);
+
+  // ── Infinite scroll ────────────────────────────────────────────────────────
+  const handleEndReached = useCallback(async () => {
+    if (isFetchingMore || isLoading || currentPage >= totalPages) return;
+    // Guard against `onEndReached` firing in a burst (a well-known
+    // FlashList/FlatList quirk — it can re-fire before layout/state has
+    // caught up) and against a heavily-`filterItems`-narrowed render (e.g. a
+    // restrictive search match) making the viewport LOOK exhausted with far
+    // fewer rows than the raw loaded item count implies. Only trust the
+    // "reached the end" signal once at least a full page's worth of rows is
+    // actually being rendered for the current page count.
+    if (visibleItems.length < perPage * currentPage) return;
+    setIsFetchingMore(true);
+    await fetchPage(currentPage + 1, false);
+    setIsFetchingMore(false);
+  }, [isFetchingMore, isLoading, currentPage, totalPages, visibleItems.length, perPage, fetchPage]);
 
   // ── Skeleton grid ──────────────────────────────────────────────────────────
   // NOTE: The header is rendered OUTSIDE the body branches (skeleton/error/empty/list)
@@ -503,6 +581,12 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
           ) : null
         }
         showsVerticalScrollIndicator={false}
+        // A TextInput can live in `ListHeaderComponent` (e.g. a search bar,
+        // TASK-Z684) — without these, tapping a row while the keyboard is up
+        // eats the FIRST tap just to dismiss the keyboard, and dragging the
+        // list doesn't dismiss it at all.
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       />
     );
   };

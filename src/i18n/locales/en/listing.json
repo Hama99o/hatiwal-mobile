@@ -1,4 +1,7 @@
 {
+  "actions": {
+    "more": "More"
+  },
   "create": "Create Listing",
   "edit": "Edit Listing",
   "delete": "Delete Listing",

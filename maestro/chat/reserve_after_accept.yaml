@@ -19,6 +19,33 @@ appId: com.hatiwal.app
 # This flow ends with the listing RESERVED. Re-run against a freshly reseeded
 # E2E database (see mark_sold_with_buyer.yaml's note on shared/mutated
 # fixtures) -- do not run twice in a row without a reset.
+#
+# CR fixes (this cycle) -- every selector below was checked against the
+# actual rendered copy/testIDs in Conversation.tsx / ComposerActionsSheet.tsx
+# / MessageBubble.tsx / reserveAfterAccept.ts / chat.json / buyerPicker.json:
+#  - TASK-K487 moved the offer entry point behind the composer's single "+"
+#    sheet -- tap "composer-plus-button" then "composer-action-offer"
+#    instead of a bare "Make an Offer" tap (that button no longer exists).
+#  - The offer-amount field has no visible "Offer Amount" label -- targeted
+#    by its testID (offer-amount-input, added to OfferSheet.tsx) instead.
+#  - Dropped the "Pending" assertion: no such status text is ever rendered
+#    for a not-yet-answered offer (the sender's own bubble shows no outcome
+#    badge at all until the recipient responds) -- there was nothing there
+#    to assert.
+#  - "Accept" -> the button's actual label is "Accept offer"
+#    (chat.offer.accept); "Accepted" -> the outcome badge's actual label is
+#    "Offer accepted" (chat.offer.accepted).
+#  - assertNotVisible now checks buyerPicker.reserveTitle ("Who's buying this
+#    item?") -- the RESERVE-flow title BuyerPickerSheet would show if this
+#    feature regressed back to the old flow -- not soldTitle ("Who bought
+#    this item?"), which belongs to the separate Mark-Sold action and was
+#    never the one at risk of appearing here.
+#  - Wrapped the interpolated/compound strings (the offer amount embedded in
+#    "AFN 24,000", the buyer name + price embedded in the alert body, the
+#    "Reserve at {{price}}" CTA) with `.*` so they match regardless of the
+#    exact currency formatting around them.
+#  - chat-tab has no testID anywhere in the tab bar -- tap the "Chats" label
+#    (its actual translated tab title) instead.
 
 # ── Step 1: buyer sends an offer on an active listing ───────────────────────
 - runFlow: ../_helpers/login.yaml
@@ -34,22 +61,27 @@ appId: com.hatiwal.app
 - tapOn: "Message Seller"
 - waitForAnimationToEnd
 
-- tapOn: "Make an Offer"
+# TASK-K487: the offer entry point lives behind the composer's single "+"
+# actions sheet now, not a standalone composer button.
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+- tapOn:
+    id: "composer-action-offer"
 - waitForAnimationToEnd
 - assertVisible: "Send Offer"
-- tapOn: "Offer Amount"
+- tapOn:
+    id: "offer-amount-input"
 - inputText: "24000"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
 
 # Offer bubble visible, pending the seller's response
-- assertVisible: "24,000"
-- assertVisible: "Pending"
+- assertVisible: ".*24,000.*"
 
 # ── Step 2: the real listing owner accepts the offer ────────────────────────
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn:
-    id: "chat-tab"
+- tapOn: "Chats"
 - waitForAnimationToEnd
 - tapOn: "Traditional Kandahari Carpet 3x4"
 - waitForAnimationToEnd
@@ -58,17 +90,17 @@ appId: com.hatiwal.app
 # the old manual "dismiss thread -> lifecycle button" path starts from here.
 - assertVisible: "Reserve"
 
-- tapOn: "Accept"
+- tapOn: ".*Accept.*"
 - waitForAnimationToEnd
-- assertVisible: "Accepted"
+- assertVisible: "Offer accepted"
 
 # ── Step 3: one-tap reserve prompt fires -- no buyer picker ─────────────────
-- assertVisible: "Reserve this listing for a buyer?"
-- assertVisible: "Ahmad Karimi"
-- assertVisible: "24,000"
-- assertNotVisible: "Who bought this item?"
+- assertVisible: ".*Reserve this listing for a buyer.*"
+- assertVisible: ".*Ahmad Karimi.*"
+- assertVisible: ".*24,000.*"
+- assertNotVisible: ".*Who's buying this item.*"
 
-- tapOn: "Reserve at"
+- tapOn: ".*Reserve at.*"
 - waitForAnimationToEnd
 
 # ── Step 4: reserved in place -- pinned header updates without a refresh ───

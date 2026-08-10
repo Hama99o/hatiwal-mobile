@@ -8,6 +8,15 @@ appId: com.hatiwal.app
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
 - assertVisible: "Create Listing"
+# Add a photo first — TASK-P736 blocks Publish with zero photos.
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Cover"
 # Fill required fields
 - tapOn: "Title"
 - inputText: "Condition Test Laptop"
@@ -22,6 +31,20 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Verify chip is selected (should be highlighted)
 - assertVisible: "Like New"
+# TASK-P736: Publish also requires an exact map pin — drop one before
+# publishing (mirrors the map-picker block in create_listing_publish_blocked.yaml).
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+- assertVisible: "Pick location on map"
+- tapOn: "Search a province…"
+- inputText: "Kabul"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Confirm location"
+- waitForAnimationToEnd
+- assertNotVisible: "Tap to set exact location on map"
 # Publish directly
 - tapOn: "Publish"
 - waitForAnimationToEnd

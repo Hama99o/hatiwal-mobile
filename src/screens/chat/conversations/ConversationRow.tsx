@@ -11,7 +11,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { Camera, MapPin, Tag, FileText, Trash2, CheckCheck, MailOpen, MoreVertical, Archive, ArchiveRestore } from "lucide-react-native";
+import { Camera, Trash2, CheckCheck, MailOpen, MoreVertical, Archive, ArchiveRestore } from "lucide-react-native";
 import { useReduceMotion } from "@/lib/animation";
 
 import { type Conversation } from "@/api/conversations";
@@ -22,6 +22,7 @@ import { Badge } from "@/components/reusables/badge";
 import { StatusBadge, type ListingStatus } from "@/components/common/StatusBadge";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { confirmAlert } from "@/utils/alert";
+import { conversationPreviewText } from "./conversationPreviewText";
 
 const THUMB = 54;
 
@@ -56,7 +57,6 @@ interface ConversationRowProps {
   onMarkUnread?: (id: number) => void;
   onArchive?: (id: number) => void;
   onUnarchive?: (id: number) => void;
-  index?: number;
 }
 
 export function ConversationRow({
@@ -67,7 +67,6 @@ export function ConversationRow({
   onMarkUnread,
   onArchive,
   onUnarchive,
-  index = 0,
 }: ConversationRowProps) {
   const router                         = useRouter();
   const { isRtl, formatSmartTime }     = useLocalization();
@@ -83,28 +82,9 @@ export function ConversationRow({
     item.listing?.status === "sold" || item.listing?.status === "reserved";
 
   // ── Preview ───────────────────────────────────────────────────────────────
-
-  let PreviewIcon: typeof MapPin | null = null;
-  let previewText = item.lastMessageBody ?? t("chat.noMessages");
-  if (item.lastMessageDeleted) {
-    previewText = t("chat.message.deleted");
-  } else if (item.lastMessageBody) {
-    switch (item.lastMessageKind) {
-      case "meetup_proposal":  PreviewIcon = MapPin;   previewText = t("chat.preview.meetup");         break;
-      case "meetup_accepted":  PreviewIcon = MapPin;   previewText = t("chat.preview.meetupAccepted"); break;
-      case "meetup_declined":  PreviewIcon = MapPin;   previewText = t("chat.preview.meetupDeclined"); break;
-      case "offer": {
-        const [amount, currency] = item.lastMessageBody.split("|");
-        PreviewIcon = Tag;
-        previewText = t("chat.preview.offer", { amount: amount ?? "", currency: currency ?? "" });
-        break;
-      }
-      case "offer_accepted":   PreviewIcon = Tag;      previewText = t("chat.preview.offerAccepted"); break;
-      case "offer_declined":   PreviewIcon = Tag;      previewText = t("chat.preview.offerDeclined"); break;
-      case "image_message":    PreviewIcon = Camera;   previewText = t("chat.preview.photo");          break;
-      case "document":         PreviewIcon = FileText; previewText = t("chat.preview.file");           break;
-    }
-  }
+  // Shared with `filterConversations` (TASK-Z684 list search) — the row must
+  // display exactly what search matches against, never a diverging string.
+  const { text: previewText, icon: PreviewIcon } = conversationPreviewText(item, t);
 
   const handleLongPress = useCallback(() => {
     setMenuVisible(true);
@@ -169,7 +149,7 @@ export function ConversationRow({
         onPress={() => router.push(`/(main)/conversation/${item.id}` as never)}
         onLongPress={handleLongPress}
         android_ripple={{ color: colors.muted }}
-        testID={`conversation-row-${index}`}
+        testID={`conversation-row-${item.id}`}
         style={[
           styles.row,
           { flexDirection: isRtl ? "row-reverse" : "row" },
@@ -205,14 +185,31 @@ export function ConversationRow({
         {/* ── Text content ────────────────────────────────────────────────── */}
         <View style={styles.content}>
 
-          {/* Title + time */}
+          {/* Title (+ role pill) + time */}
           <View style={[styles.row1, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
-            <Text
-              numberOfLines={1}
-              style={[styles.title, { color: isInactive ? colors.mutedForeground : colors.foreground }]}
-            >
-              {item.listing?.title ?? t("chat.title")}
-            </Text>
+            <View style={[styles.titleGroup, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.title,
+                  { color: isInactive ? colors.mutedForeground : colors.foreground },
+                ]}
+              >
+                {item.listing?.title ?? t("chat.title")}
+              </Text>
+              {/* Role hint (TASK-R517) — which side of this thread the viewer is on */}
+              {item.viewerRole ? (
+                <View style={styles.rolePillWrap} testID={`role-pill-${item.id}`}>
+                  <Badge
+                    label={t(
+                      item.viewerRole === "seller" ? "chat.role.selling" : "chat.role.buying"
+                    )}
+                    variant="muted"
+                    style={styles.rolePill}
+                  />
+                </View>
+              ) : null}
+            </View>
             {timeLabel ? (
               <Text
                 style={[
@@ -255,7 +252,7 @@ export function ConversationRow({
               </Text>
             </View>
             {unread > 0 && (
-              <PulsingBadge count={unread} testID={`unread-badge-${index}`} />
+              <PulsingBadge count={unread} testID={`unread-badge-${item.id}`} />
             )}
           </View>
 
@@ -271,7 +268,7 @@ export function ConversationRow({
           accessibilityLabel={t("chat.actions.options")}
           android_ripple={{ color: colors.muted, borderless: true }}
           style={styles.kebab}
-          testID={`conversation-options-${index}`}
+          testID={`conversation-options-${item.id}`}
         >
           <MoreVertical size={20} color={colors.mutedForeground} />
         </Pressable>
@@ -457,8 +454,15 @@ const styles = StyleSheet.create({
 
   content:  { flex: 1, minWidth: 0 },
 
-  row1: { alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 3 },
-  title: { fontSize: 14, fontWeight: "700", lineHeight: 19, flex: 1 },
+  row1: { alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 3 },
+  // Holds the title + role pill together as one flexible group so the
+  // timestamp (flexShrink: 0 below) never gets pushed off-screen — the title
+  // itself is flexShrink: 1 (never flex: 1) so it truncates before the pill
+  // or the timestamp ever get squeezed out.
+  titleGroup: { flex: 1, alignItems: "center", gap: 6, minWidth: 0 },
+  title: { fontSize: 14, fontWeight: "700", lineHeight: 19, flexShrink: 1 },
+  rolePillWrap: { flexShrink: 0 },
+  rolePill: { paddingHorizontal: 8 },
   time:  { fontSize: 11, flexShrink: 0, marginTop: 1 },
 
   row2:  { alignItems: "center", gap: 4, marginBottom: 3 },

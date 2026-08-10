@@ -21,9 +21,12 @@ tags:
     text: "Messages"
 
 # Long-press the first conversation row to open the action menu.
-# The row Pressable has testID="conversation-row-0" (index suffix added in ConversationRow).
+# The row Pressable's testID is `conversation-row-{item.id}` — keyed off the
+# conversation's stable database id, not its transient render position, so we
+# match any id (regex) and take the first (topmost) row.
 - longPressOn:
-    testID: "conversation-row-0"
+    id: "conversation-row-\\d+"
+    index: 0
 
 # The bottom-sheet action menu should appear
 - waitForAnimationToEnd
@@ -32,19 +35,20 @@ tags:
 - runFlow:
     when:
       visible:
-        testID: "menu-mark-read"
+        id: "menu-mark-read"
     commands:
       - tapOn:
-          testID: "menu-mark-read"
+          id: "menu-mark-read"
       # Badge should clear after marking as read
       - waitForAnimationToEnd
       - assertNotVisible:
-          testID: "menu-mark-read"
+          id: "menu-mark-read"
 
 # ── Mark as unread flow ────────────────────────────────────────────────────
 # Long-press the same row again via the options button (always visible)
 - tapOn:
-    testID: "conversation-options-0"
+    id: "conversation-options-\\d+"
+    index: 0
 
 - waitForAnimationToEnd
 
@@ -52,23 +56,24 @@ tags:
 - runFlow:
     when:
       visible:
-        testID: "menu-mark-unread"
+        id: "menu-mark-unread"
     commands:
       - tapOn:
-          testID: "menu-mark-unread"
+          id: "menu-mark-unread"
       - waitForAnimationToEnd
       # Badge should reappear
       - assertVisible:
-          testID: "unread-badge-0"
+          id: "unread-badge-\\d+"
 
 # ── Verify existing Delete action still works ──────────────────────────────
 - tapOn:
-    testID: "conversation-options-0"
+    id: "conversation-options-\\d+"
+    index: 0
 
 - waitForAnimationToEnd
 
 - assertVisible:
-    testID: "menu-delete"
+    id: "menu-delete"
 
 # Dismiss menu without deleting
 - tapOn:

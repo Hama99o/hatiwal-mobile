@@ -110,6 +110,13 @@ export function SearchBar({
         autoFocus={autoFocus}
         testID={inputTestID}
         accessibilityLabel={accessibilityLabel ?? placeholder}
+        // A search box is never a proper-noun/sentence field and should
+        // never be auto-corrected or capitalized — those behaviors actively
+        // fight typing a listing title, a partial name, or slang, and a
+        // spell-check underline serves no purpose here either.
+        autoCapitalize="none"
+        autoCorrect={false}
+        spellCheck={false}
         style={{
           flex: 1,
           // Stretch to the full row height (not just the text's natural
@@ -130,9 +137,12 @@ export function SearchBar({
         <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(140)}>
           <AnimatedPressable
             onPress={handleClear}
-            // Icon is 16px; hitSlop of 14 on every side brings the effective
-            // touch target up to the 44pt minimum (16 + 14*2 = 44).
-            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+            // Real padding (not hitSlop) — icon is 16px, padding 14 on every
+            // side brings the Pressable's OWN measured layout box up to the
+            // 44pt minimum (16 + 14*2 = 44), so the touch target is an actual
+            // hit-testable view rather than an invisible hitSlop extension
+            // that some gesture/measurement tooling can miss.
+            style={{ padding: 14, margin: -14 }}
             accessibilityRole="button"
             accessibilityLabel={t("common.clear")}
             testID={clearTestID}

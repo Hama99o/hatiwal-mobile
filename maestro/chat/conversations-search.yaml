@@ -16,7 +16,7 @@ tags:
 
 # ── Precondition: at least one seeded conversation exists ───────────────────
 - assertVisible:
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"
 
 # ── Happy path: typing narrows the list live, no crash / no error state ─────
 - tapOn:
@@ -34,7 +34,7 @@ tags:
 - assertNotVisible:
     id: "conversations-search-clear"
 - assertVisible:
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"
 
 # ── No-match: a nonsense term shows the localized empty state + "Clear search" ─
 - tapOn:
@@ -42,7 +42,7 @@ tags:
 - inputText: "xzxzxzxz_no_such_conversation_xzxzxz"
 - waitForAnimationToEnd
 - assertNotVisible:
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"
 - assertVisible: "Clear search"
 
 # The "Clear search" empty-state action also empties the field
@@ -50,7 +50,7 @@ tags:
 - waitForAnimationToEnd
 - assertNotVisible: "Clear search"
 - assertVisible:
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"
 
 # ── Search composes with the Unread filter (not a replacement for it) ───────
 - tapOn: "Unread"
@@ -59,13 +59,12 @@ tags:
     id: "conversations-search-input"
 - inputText: "xzxzxzxz_no_such_conversation_xzxzxz"
 - waitForAnimationToEnd
-# With a term that matches nothing, the result is empty regardless of which
-# unread/read rows existed before the search — either our no-match copy or
-# (in a race with the debounce) the existing "all caught up" copy is fine.
-- assertVisible:
-    anyOf:
-      - "Clear search"
-      - "All caught up!"
+# The list-level search is instant/client-side (no debounce, TASK-Z684) and
+# `hasSearchTerm` always takes priority over the tab/filter empty copy, so a
+# nonsense term deterministically shows the no-match state — never the
+# "All caught up!" copy — regardless of which unread/read rows existed
+# before the search.
+- assertVisible: "Clear search"
 
 # Clearing the field falls back to just the Unread filter — still composed,
 # not reset to "All".
@@ -78,4 +77,4 @@ tags:
 - tapOn: "All"
 - waitForAnimationToEnd
 - assertVisible:
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"

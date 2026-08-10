@@ -15,7 +15,7 @@ appId: com.hatiwal.app
 
 # Unread badge must be visible on the first conversation row before opening it
 - assertVisible:
-    id: "unread-badge-0"
+    id: "unread-badge-\\d+"
 
 # Open the first conversation (it has unread messages)
 - tapOn:
@@ -33,7 +33,7 @@ appId: com.hatiwal.app
 
 # After returning, the unread badge on that row must be gone
 - assertNotVisible:
-    id: "unread-badge-0"
+    id: "unread-badge-\\d+"
 
 # The tab-level badge (Expo tabBarBadge) should be gone or show a lower count.
 # When there was exactly 1 unread conversation, the tab badge disappears entirely.

@@ -69,6 +69,13 @@ export interface Conversation {
   /** True when the last message was retracted (soft-deleted) by its author. */
   lastMessageDeleted?: boolean;
   unreadCount?: number;
+  /**
+   * Which side of this thread the current viewer is on — "buyer" when the
+   * viewer started the conversation, "seller" when it's about their own
+   * listing. `undefined` only for callers that don't pass a current_user
+   * (never expected from the mobile app, which is always authenticated).
+   */
+  viewerRole?: "buyer" | "seller";
 }
 
 export interface ConversationsResponse {
@@ -102,12 +109,19 @@ export const conversationsAPI = {
     listingId?: number;
     /** When true, returns archived conversations instead of the active inbox. */
     archived?: boolean;
+    /**
+     * Server-side role scope — "buying" returns only threads where the
+     * current user is the buyer, "selling" only threads where they're the
+     * seller. Omit for the default mixed inbox.
+     */
+    role?: "buying" | "selling";
   }): Promise<ConversationsResponse> => {
     const query = new URLSearchParams();
     if (params?.pageNumber) query.append("page[number]", String(params.pageNumber));
     if (params?.pageSize)   query.append("page[size]",   String(params.pageSize));
     if (params?.listingId)  query.append("listing_id",   String(params.listingId));
     if (params?.archived !== undefined) query.append("archived", String(params.archived));
+    if (params?.role)       query.append("role", params.role);
 
     const response = await http.get(`/conversations?${query}`);
     return {

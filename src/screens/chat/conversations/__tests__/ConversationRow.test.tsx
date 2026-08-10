@@ -143,31 +143,31 @@ describe("ConversationRow — unread badge", () => {
   it("renders unread count badge when unreadCount > 0", () => {
     render(
       <ConversationRow
-        item={makeConversation({ unreadCount: 3 })}
+        item={makeConversation({ id: 100, unreadCount: 3 })}
         onDelete={jest.fn()}
-        index={0}
       />
     );
-    // Badge is rendered inside <PulsingBadge> with testID "unread-badge-0"
-    expect(screen.getByTestId("unread-badge-0")).toBeTruthy();
+    // Badge is rendered inside <PulsingBadge> with testID keyed off item.id
+    // (a stable identity — never the item's transient render-position index,
+    // which shifts under list-level search/filtering — see cycle-3 CR fix).
+    expect(screen.getByTestId("unread-badge-100")).toBeTruthy();
   });
 
   it("does NOT render unread badge when unreadCount is 0", () => {
     render(
       <ConversationRow
-        item={makeConversation({ unreadCount: 0 })}
+        item={makeConversation({ id: 101, unreadCount: 0 })}
         onDelete={jest.fn()}
-        index={1}
       />
     );
-    expect(screen.queryByTestId("unread-badge-1")).toBeNull();
+    expect(screen.queryByTestId("unread-badge-101")).toBeNull();
   });
 
   it("does NOT render unread badge when unreadCount is undefined", () => {
-    const item = makeConversation();
+    const item = makeConversation({ id: 102 });
     delete (item as Partial<Conversation>).unreadCount;
-    render(<ConversationRow item={item} onDelete={jest.fn()} index={2} />);
-    expect(screen.queryByTestId("unread-badge-2")).toBeNull();
+    render(<ConversationRow item={item} onDelete={jest.fn()} />);
+    expect(screen.queryByTestId("unread-badge-102")).toBeNull();
   });
 });
 
@@ -345,19 +345,24 @@ describe("ConversationRow — press navigation", () => {
 // ── 6. Long-press opens action menu ──────────────────────────────────────────
 
 describe("ConversationRow — row testID for Maestro", () => {
-  it("exposes testID conversation-row-{index} on the row Pressable", () => {
-    render(<ConversationRow item={makeConversation({ id: 10 })} onDelete={jest.fn()} index={0} />);
-    expect(screen.getByTestId("conversation-row-0")).toBeTruthy();
+  // Cycle-3 CR fix: testID is keyed off the conversation's stable `item.id`,
+  // never a transient render-position `index` — with list-level search
+  // (TASK-Z684) the same conversation can render at a different position
+  // depending on what's filtered in/out, so a position-based testID could
+  // silently point E2E taps/assertions at the wrong conversation.
+  it("exposes testID conversation-row-{item.id} on the row Pressable", () => {
+    render(<ConversationRow item={makeConversation({ id: 10 })} onDelete={jest.fn()} />);
+    expect(screen.getByTestId("conversation-row-10")).toBeTruthy();
   });
 
-  it("uses the provided index in the testID", () => {
-    render(<ConversationRow item={makeConversation({ id: 20 })} onDelete={jest.fn()} index={3} />);
-    expect(screen.getByTestId("conversation-row-3")).toBeTruthy();
+  it("keys the testID off item.id regardless of list position", () => {
+    render(<ConversationRow item={makeConversation({ id: 20 })} onDelete={jest.fn()} />);
+    expect(screen.getByTestId("conversation-row-20")).toBeTruthy();
   });
 
-  it("defaults to index 0 when index prop is omitted", () => {
+  it("keys the options-button testID off item.id too", () => {
     render(<ConversationRow item={makeConversation({ id: 30 })} onDelete={jest.fn()} />);
-    expect(screen.getByTestId("conversation-row-0")).toBeTruthy();
+    expect(screen.getByTestId("conversation-options-30")).toBeTruthy();
   });
 });
 
@@ -535,6 +540,39 @@ describe("ConversationRow — archive / unarchive menu items", () => {
     // inbox default shows Archive (not Unarchive)
     expect(screen.getByTestId("menu-archive")).toBeTruthy();
     expect(screen.queryByTestId("menu-unarchive")).toBeNull();
+  });
+});
+
+// ── 6c. Role pill (TASK-R517) ─────────────────────────────────────────────────
+
+describe("ConversationRow — role pill", () => {
+  it("shows a Selling pill when viewerRole is 'seller'", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({ id: 1, viewerRole: "seller" })}
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByTestId("role-pill-1")).toBeTruthy();
+    expect(screen.getByText("chat.role.selling")).toBeTruthy();
+  });
+
+  it("shows a Buying pill when viewerRole is 'buyer'", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({ id: 2, viewerRole: "buyer" })}
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByTestId("role-pill-2")).toBeTruthy();
+    expect(screen.getByText("chat.role.buying")).toBeTruthy();
+  });
+
+  it("does NOT render the role pill when viewerRole is undefined", () => {
+    const item = makeConversation({ id: 3 });
+    delete (item as Partial<Conversation>).viewerRole;
+    render(<ConversationRow item={item} onDelete={jest.fn()} />);
+    expect(screen.queryByTestId("role-pill-3")).toBeNull();
   });
 });
 

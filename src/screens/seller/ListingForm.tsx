@@ -37,8 +37,9 @@ import {
   StyleSheet,
   Pressable,
   LayoutChangeEvent,
+  BackHandler,
 } from "react-native";
-import { ChevronRight, MapPin, Coins, Check, ToggleRight, Copy } from "lucide-react-native";
+import { ChevronRight, MapPin, Coins, Check, ToggleRight, Copy, AlertCircle } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
@@ -177,8 +178,16 @@ export default function ListingFormScreen() {
   // ---------------------------------------------------------------------------
   // Load existing listing in edit mode
   // ---------------------------------------------------------------------------
+  // CYCLE-3 CR fix: query key must be a STRING id — MyListingDetail.tsx (the
+  // owner-detail screen this form dismisses/replaces/backs to) keys its own
+  // `useQuery` as `["my-listing", id]` where `id` comes straight from
+  // `useLocalSearchParams` (always a string). Keying this screen's query with
+  // the raw NUMBER `listingId` created a SEPARATE cache entry
+  // (`["my-listing", 42]` !== `["my-listing", "42"]`) — `qc.setQueryData` below
+  // silently wrote into a cache entry MyListingDetail never reads. Every
+  // "my-listing" key in this file is now `String(...)` to match.
   const { data: existingListing } = useQuery({
-    queryKey: ["my-listing", listingId],
+    queryKey: ["my-listing", String(listingId)],
     queryFn: () => listingsAPI.getMyListing(listingId!),
     enabled: isEdit && !!listingId,
   });
@@ -187,7 +196,7 @@ export default function ListingFormScreen() {
   // Load the source listing to duplicate (text fields only — see below)
   // ---------------------------------------------------------------------------
   const { data: duplicateSource, isError: isDuplicateSourceError } = useQuery({
-    queryKey: ["my-listing", duplicateFromId],
+    queryKey: ["my-listing", String(duplicateFromId)],
     queryFn: () => listingsAPI.getMyListing(duplicateFromId!),
     enabled: isDuplicate && !!duplicateFromId,
     retry: false,
@@ -198,7 +207,7 @@ export default function ListingFormScreen() {
   useFocusEffect(
     useCallback(() => {
       if (isEdit && listingId) {
-        qc.invalidateQueries({ queryKey: ["my-listing", listingId] });
+        qc.invalidateQueries({ queryKey: ["my-listing", String(listingId)] });
       }
     }, [isEdit, listingId, qc])
   );
@@ -405,6 +414,13 @@ export default function ListingFormScreen() {
     },
     onSuccess: (listing) => {
       invalidateListingCaches();
+      // CYCLE-3 CR fix: seed the owner-detail cache directly with the fresh
+      // listing — same string key MyListingDetail reads (see the `useQuery`
+      // comment above) — so whichever screen we land/return on (a brand-new
+      // owner detail, or an existing one we `back()`/`replace()` to) shows
+      // the just-saved data immediately instead of a stale flash while its
+      // own focus-refetch catches up.
+      qc.setQueryData(["my-listing", String(listing.id)], listing);
       toast.success(isPublished ? t("listing.form.saved") : t("listing.form.savedDraft"));
       // TASK-J952: never dump the seller onto the Browse tab.
       //  - Editing an existing listing → return to wherever this form was
@@ -445,6 +461,18 @@ export default function ListingFormScreen() {
     },
     onSuccess: (listing) => {
       invalidateListingCaches();
+      // CYCLE-3 CR fix: seed the owner-detail cache directly, BEFORE
+      // navigating, with the just-published listing — same string key
+      // MyListingDetail's own `useQuery` reads (`["my-listing", String(id)]`,
+      // see the `existingListing` query above). `dismissTo` below very often
+      // lands on an EXISTING owner-detail screen instance already in the
+      // stack (My Listings → owner detail → Edit → Publish) whose cache still
+      // holds the PRE-edit listing until its focus-refetch catches up; without
+      // this, the PublishSuccessSheet (and the page underneath it) can
+      // instantiate against — or briefly flash — stale data, and a failed
+      // background refetch would otherwise change nothing (the write here
+      // doesn't depend on that refetch at all).
+      qc.setQueryData(["my-listing", String(listing.id)], listing);
       // No toast here — the PublishSuccessSheet on the owner detail screen
       // (triggered by the `published=1` param below) already communicates
       // the outcome; a toast on top of it would duplicate the same message.
@@ -592,7 +620,7 @@ export default function ListingFormScreen() {
   // (opened from "Post a listing"); only when there is truly no back stack
   // (e.g. a hard deep-link into the edit route) do we fall back to a named
   // route — the listing's own owner detail when editing, otherwise Browse.
-  const goBackOrFallback = () => {
+  const goBackOrFallback = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
     } else if (isEdit && listingId) {
@@ -600,9 +628,9 @@ export default function ListingFormScreen() {
     } else {
       router.replace("/(main)/(tabs)/browse" as never);
     }
-  };
+  }, [router, isEdit, listingId]);
 
-  const onCancel = () => {
+  const onCancel = useCallback(() => {
     if (!isDirty && photos.every((p) => p.isRemote)) {
       goBackOrFallback();
       return;
@@ -619,7 +647,24 @@ export default function ListingFormScreen() {
         },
       ]
     );
-  };
+  }, [isDirty, photos, goBackOrFallback, t]);
+
+  // CYCLE-3 CR fix: the unsaved-changes guard above only ever ran for the
+  // in-app top-toolbar back button (`onCancel` wired to `<BackButton>`'s
+  // `onPress`) — the ANDROID HARDWARE back button bypassed it entirely and
+  // popped the screen straight away, silently discarding unsaved work.
+  // `BackHandler` listeners fire in LIFO order and a `true` return means
+  // "handled — stop here", so registering our OWN listener (added after,
+  // hence called before, the Stack navigator's default one) and routing it
+  // through the exact same `onCancel` reproduces the identical confirm-then-
+  // navigate UX for the hardware button, with zero duplicated logic.
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      onCancel();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [onCancel]);
 
   // ---------------------------------------------------------------------------
   // Render
@@ -1026,9 +1071,25 @@ export default function ListingFormScreen() {
             <ChevronRight size={16} color={colors.mutedForeground} />
           </Pressable>
           {locationErrorMessage && (
-            <Text className="text-xs" style={{ color: colors.destructive, marginTop: 4 }}>
-              {locationErrorMessage}
-            </Text>
+            // TASK-P736 (review fix) — match PhotosSection's destructive
+            // message treatment: text-sm + a leading AlertCircle, laid out
+            // in an isRtl-aware row (was a bare text-xs Text).
+            <View
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                alignItems: "flex-start",
+                gap: 4,
+                marginTop: 4,
+              }}
+            >
+              <AlertCircle size={14} color={colors.destructive} style={{ marginTop: 1 }} />
+              <Text
+                className="text-sm"
+                style={{ color: colors.destructive, textAlign: isRtl ? "right" : "left", flex: 1 }}
+              >
+                {locationErrorMessage}
+              </Text>
+            </View>
           )}
         </View>
 

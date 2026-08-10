@@ -19,7 +19,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 - assertVisible:
-    id: "unread-badge-0"
+    id: "unread-badge-\\d+"
 
 # ── Step 2: open the unread conversation ────────────────────────────────────
 - tapOn:
@@ -36,7 +36,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 - assertNotVisible:
-    id: "unread-badge-0"
+    id: "unread-badge-\\d+"
 
 # ── Step 4: re-enter the same conversation (focus fires markRead again) ──────
 - tapOn:
@@ -52,7 +52,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 - assertNotVisible:
-    id: "unread-badge-0"
+    id: "unread-badge-\\d+"
 
 # ── Step 6: error state — closed conversation has no input bar ───────────────
 # (Skipped automatically if no closed conversation is available on device)

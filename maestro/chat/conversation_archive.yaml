@@ -20,9 +20,12 @@ appId: com.hatiwal.app
 - assertVisible: "Inbox"
 - assertVisible: "Archived"
 
-# Long-press first conversation row to open the action menu
+# Long-press first conversation row to open the action menu. testID is keyed
+# off the conversation's stable database id, not render position — match any
+# id (regex) and take the first (topmost) row.
 - longPressOn:
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"
+    index: 0
 - waitForAnimationToEnd
 
 # Action menu is open — Archive option must be visible (inbox context)
@@ -41,11 +44,12 @@ appId: com.hatiwal.app
 
 # Archived conversation now appears in the Archived tab
 - assertVisible:
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"
 
 # Open the archived conversation's action menu
 - tapOn:
-    id: "conversation-options-0"
+    id: "conversation-options-\\d+"
+    index: 0
 - waitForAnimationToEnd
 
 # Unarchive option must be present (archived context), Archive must not
@@ -65,4 +69,4 @@ appId: com.hatiwal.app
     id: "tab-inbox"
 - waitForAnimationToEnd
 - assertVisible:
-    id: "conversation-row-0"
+    id: "conversation-row-\\d+"

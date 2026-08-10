@@ -32,6 +32,20 @@ appId: com.hatiwal.app
 - inputText: "Excellent condition, comes with box and charger."
 # Select condition
 - tapOn: "Like new"
+# TASK-P736: Publish also requires an exact map pin — drop one before
+# publishing (mirrors the map-picker block in create_listing_publish_blocked.yaml).
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+- assertVisible: "Pick location on map"
+- tapOn: "Search a province…"
+- inputText: "Kabul"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Confirm location"
+- waitForAnimationToEnd
+- assertNotVisible: "Tap to set exact location on map"
 # Publish directly
 - tapOn: "Publish"
 - waitForAnimationToEnd

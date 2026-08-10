@@ -209,6 +209,7 @@ export function OfferSheet({
             keyboardType="numeric"
             style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}
             autoFocus
+            testID="offer-amount-input"
           />
         </View>
 

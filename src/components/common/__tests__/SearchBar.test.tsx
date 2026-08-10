@@ -136,3 +136,38 @@ describe("SearchBar — smoke tests", () => {
     ).not.toThrow();
   });
 });
+
+// DR fix (cycle-3): a search box should never fight the user with
+// auto-capitalize/auto-correct/spell-check while they type a listing title,
+// a partial name, or slang.
+describe("SearchBar — input text behavior (DR fix)", () => {
+  it("disables autoCapitalize, autoCorrect, and spellCheck on the input", () => {
+    render(<SearchBar value="" onChangeText={jest.fn()} placeholder="Search..." />);
+    const input = screen.getByPlaceholderText("Search...");
+    expect(input.props.autoCapitalize).toBe("none");
+    expect(input.props.autoCorrect).toBe(false);
+    expect(input.props.spellCheck).toBe(false);
+  });
+});
+
+// DR fix (cycle-3): the clear button's touch target must be a REAL,
+// measurable layout box (padding), not an invisible `hitSlop` extension that
+// some hit-testing/measurement tooling ignores.
+describe("SearchBar — clear button touch target (DR fix)", () => {
+  it("sizes the clear button via real padding, not hitSlop", () => {
+    render(
+      <SearchBar
+        value="iphone"
+        onChangeText={jest.fn()}
+        placeholder="Search..."
+        clearTestID="clear-btn"
+      />
+    );
+    const clearButton = screen.getByTestId("clear-btn");
+    expect(clearButton.props.hitSlop).toBeUndefined();
+    const style = Array.isArray(clearButton.props.style)
+      ? Object.assign({}, ...clearButton.props.style.filter(Boolean))
+      : clearButton.props.style;
+    expect(style.padding).toBe(14);
+  });
+});

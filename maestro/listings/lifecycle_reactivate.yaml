@@ -1,12 +1,17 @@
 appId: com.hatiwal.app
 ---
 # Lifecycle: reserved → active (deal fell through, reactivate)
+#
+# TASK-L863: a reserved listing's primary action is "Mark as Sold" — Make
+# active (Activate) is reachable from the "More" overflow sheet.
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
 - waitForAnimationToEnd
 # Find a reserved listing
 - tapOn: "Reserved"
+- waitForAnimationToEnd
+- tapOn: "More"
 - waitForAnimationToEnd
 - tapOn: "Make active"
 - waitForAnimationToEnd

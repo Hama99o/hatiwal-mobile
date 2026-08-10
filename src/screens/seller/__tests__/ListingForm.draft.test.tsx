@@ -22,178 +22,56 @@
  *
  * Mocking strategy mirrors ListingForm.publish.test.tsx / routing.test.tsx —
  * CategoryPicker/PhotosSection are captured (not stubbed to `null`-only) so
- * a brand-new listing can be filled out without the real picker UIs.
+ * a brand-new listing can be filled out without the real picker UIs. Mocks
+ * and fixtures are shared with the other ListingForm.*.test.tsx suites via
+ * helpers/listingFormHarness.tsx (CYCLE-3 CR fix).
  */
 
 import React from "react";
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react-native";
+import { screen, waitFor, fireEvent, act } from "@testing-library/react-native";
 import { ScrollView } from "react-native";
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import type { Listing } from "@/api/listings";
 
-// ── Mocks ──────────────────────────────────────────────────────────────────────
+// ── Mocks — factories forwarded to the shared harness (see its header) ────────
 
-jest.mock("lucide-react-native", () => ({
-  ChevronRight: "ChevronRight",
-  MapPin: "MapPin",
-  Coins: "Coins",
-  Check: "Check",
-  ToggleRight: "ToggleRight",
-  Copy: "Copy",
-}));
-
-const mockPush = jest.fn();
-const mockReplace = jest.fn();
-const mockDismissTo = jest.fn();
-const mockBack = jest.fn();
-let mockParams: Record<string, string | undefined> = {};
-jest.mock("expo-router", () => ({
-  useRouter: () => ({
-    push: mockPush,
-    replace: mockReplace,
-    dismissTo: mockDismissTo,
-    back: mockBack,
-    canGoBack: () => true,
-  }),
-  useLocalSearchParams: () => mockParams,
-  useFocusEffect: jest.fn(),
-}));
-
-jest.mock("@/api/listings", () => ({
-  listingsAPI: {
-    getMyListing: jest.fn(),
-    createListingWithImages: jest.fn(),
-    updateListingWithImages: jest.fn(),
-    publishListing: jest.fn(),
-  },
-  LISTING_CONDITIONS: ["brand_new", "like_new", "good", "fair"],
-}));
-
-jest.mock("sonner-native", () => ({
-  toast: { success: jest.fn(), error: jest.fn() },
-}));
-
-jest.mock("@/utils/alert", () => ({
-  confirmAlert: jest.fn(),
-}));
-
-jest.mock("@/hooks/useCategoryName", () => ({
-  useCategoryName: () => (cat: { nameEn?: string }) => cat?.nameEn ?? "",
-}));
-
-const mockPhotosSectionState: { props: Record<string, unknown> | null } = { props: null };
-jest.mock("../listing-form/PhotosSection", () => ({
-  PhotosSection: (props: Record<string, unknown>) => {
-    mockPhotosSectionState.props = props;
-    return null;
-  },
-}));
-
-const mockCategoryPickerState: { props: Record<string, unknown> | null } = { props: null };
-jest.mock("@/components/common/CategoryPicker", () => ({
-  CategoryPicker: (props: Record<string, unknown>) => {
-    mockCategoryPickerState.props = props;
-    return null;
-  },
-}));
-
-jest.mock("@/components/common/ConditionChips", () => ({
-  ConditionChips: () => null,
-}));
-jest.mock("@/components/common/LocationRangePicker", () => ({
-  LocationRangePicker: () => null,
-}));
-jest.mock("@/components/common/BackButton", () => ({
-  BackButton: () => null,
-}));
+jest.mock("lucide-react-native", () => require("./helpers/listingFormHarness").lucideIconsMock());
+jest.mock("expo-router", () => require("./helpers/listingFormHarness").expoRouterMock());
+jest.mock("@/api/listings", () => require("./helpers/listingFormHarness").listingsApiMock());
+jest.mock("sonner-native", () => require("./helpers/listingFormHarness").sonnerMock());
+jest.mock("@/utils/alert", () => require("./helpers/listingFormHarness").alertMock());
+jest.mock("@/hooks/useCategoryName", () => require("./helpers/listingFormHarness").useCategoryNameMock());
+jest.mock("../listing-form/PhotosSection", () => require("./helpers/listingFormHarness").photosSectionMock());
+jest.mock("@/components/common/CategoryPicker", () => require("./helpers/listingFormHarness").categoryPickerMock());
+jest.mock("@/components/common/ConditionChips", () => require("./helpers/listingFormHarness").conditionChipsMock());
+jest.mock("@/components/common/LocationRangePicker", () => ({ LocationRangePicker: () => null }));
+jest.mock("@/components/common/BackButton", () => require("./helpers/listingFormHarness").backButtonMock());
 
 // Import AFTER mocks
-import ListingFormScreen from "../ListingForm";
-import { listingsAPI } from "@/api/listings";
-import { toast } from "sonner-native";
-
-const mockListingsAPI = listingsAPI as jest.Mocked<typeof listingsAPI>;
-const mockToast = toast as { success: jest.Mock; error: jest.Mock };
-
-// ── Fixtures ────────────────────────────────────────────────────────────────────
-
-const makeListing = (overrides: Partial<Listing> = {}): Listing => ({
-  id: 42,
-  title: "Lenovo ThinkPad X1 Carbon",
-  description: "Used 6 months. No scratches.",
-  price: 85000,
-  currency: "AFN",
-  condition: "good",
-  status: "draft",
-  categoryId: 3,
-  location: "Kabul, Share Naw",
-  address: "Near the blue mosque",
-  latitude: 34.5,
-  longitude: 69.1,
-  thumbnailUrl: "https://example.com/photo.jpg",
-  imageUrls: ["https://example.com/photo.jpg"],
-  images: ["https://example.com/photo.jpg"],
-  imageAttachments: [{ id: "blob-1", url: "https://example.com/photo.jpg" }],
-  viewsCount: 42,
-  conversationsCount: 5,
-  negotiable: true,
-  createdAt: "2024-01-10T08:00:00Z",
-  updatedAt: "2024-01-10T08:00:00Z",
-  seller: { id: 1, name: "Ahmad Karimi", city: "Kabul" },
-  category: {
-    id: 3,
-    nameEn: "Electronics",
-    namePs: "برقی توکي",
-    nameFa: "الکترونیک",
-    slug: "electronics",
-  } as any,
-  ...overrides,
-});
-
-const MOCK_CATEGORY = {
-  id: 3,
-  nameEn: "Electronics",
-  namePs: "برقی توکي",
-  nameFa: "الکترونیک",
-  slug: "electronics",
-};
-
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-}
-
-function renderForm() {
-  const client = makeQueryClient();
-  render(
-    <QueryClientProvider client={client}>
-      <ListingFormScreen />
-    </QueryClientProvider>
-  );
-  return client;
-}
+import {
+  mockListingsAPI,
+  mockToastError,
+  mockReplace,
+  mockParamsState,
+  mockPhotosSectionState,
+  mockCategoryPickerState,
+  makeListing,
+  MOCK_CATEGORY,
+  renderListingForm,
+  resetListingFormMocks,
+} from "./helpers/listingFormHarness";
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  mockParams = {};
-  mockPhotosSectionState.props = null;
-  mockCategoryPickerState.props = null;
+  resetListingFormMocks();
 });
 
 // ── 1. A pin-less, photo-less draft with title/price/category IS saveable ─────
 
 describe("ListingForm — Save Draft on a brand-new, pin-less, photo-less listing", () => {
   it("calls createListingWithImages (POST /my/listings) and routes to the new owner detail", async () => {
-    mockParams = {};
     mockListingsAPI.createListingWithImages.mockResolvedValueOnce(
       makeListing({ id: 501, status: "draft" })
     );
 
-    renderForm();
+    renderListingForm();
 
     fireEvent.changeText(
       screen.getByPlaceholderText("listing.titlePlaceholder"),
@@ -223,7 +101,7 @@ describe("ListingForm — Save Draft on a brand-new, pin-less, photo-less listin
     });
 
     // Never a silent no-op, and never blocked.
-    expect(mockToast.error).not.toHaveBeenCalledWith("listing.form.draftBlocked");
+    expect(mockToastError).not.toHaveBeenCalledWith("listing.form.draftBlocked");
   });
 });
 
@@ -231,8 +109,7 @@ describe("ListingForm — Save Draft on a brand-new, pin-less, photo-less listin
 
 describe("ListingForm — Save Draft blocked by a missing field", () => {
   it("toasts the missing fields, scrolls to the first one, and never calls the API — photos/location are not listed", async () => {
-    mockParams = {};
-    renderForm();
+    renderListingForm();
 
     // Fill price + category, but leave the title blank.
     fireEvent.changeText(screen.getByPlaceholderText("listing.pricePlaceholder"), "500");
@@ -251,7 +128,7 @@ describe("ListingForm — Save Draft blocked by a missing field", () => {
     fireEvent.press(screen.getByText("listing.form.saveDraft"));
 
     await waitFor(() => {
-      expect(mockToast.error).toHaveBeenCalledWith("listing.form.draftBlocked");
+      expect(mockToastError).toHaveBeenCalledWith("listing.form.draftBlocked");
     });
 
     // Never a silent no-op — the API is never reached.
@@ -270,8 +147,7 @@ describe("ListingForm — Save Draft blocked by a missing field", () => {
     // Everything filled EXCEPT category — proves the blocker set for a
     // draft is exactly {title, price, category}, matching the backend's
     // Listing validations, never {photos, location}.
-    mockParams = {};
-    renderForm();
+    renderListingForm();
 
     fireEvent.changeText(
       screen.getByPlaceholderText("listing.titlePlaceholder"),
@@ -282,7 +158,7 @@ describe("ListingForm — Save Draft blocked by a missing field", () => {
     fireEvent.press(screen.getByText("listing.form.saveDraft"));
 
     await waitFor(() => {
-      expect(mockToast.error).toHaveBeenCalledWith("listing.form.draftBlocked");
+      expect(mockToastError).toHaveBeenCalledWith("listing.form.draftBlocked");
     });
 
     expect(mockListingsAPI.createListingWithImages).not.toHaveBeenCalled();
@@ -295,7 +171,7 @@ describe("ListingForm — Save Draft blocked by a missing field", () => {
 
 describe("ListingForm — pin-less draft round trip (edit)", () => {
   it("shows 'Tap to set location', Save Draft succeeds without a pin, and Publish still requires one", async () => {
-    mockParams = { id: "42" };
+    mockParamsState.current = { id: "42" };
     mockListingsAPI.getMyListing.mockResolvedValueOnce(
       makeListing({ status: "draft", latitude: null, longitude: null, location: "" })
     );
@@ -303,7 +179,7 @@ describe("ListingForm — pin-less draft round trip (edit)", () => {
       makeListing({ status: "draft", latitude: null, longitude: null, location: "" })
     );
 
-    renderForm();
+    renderListingForm();
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
@@ -321,13 +197,13 @@ describe("ListingForm — pin-less draft round trip (edit)", () => {
     await waitFor(() => {
       expect(mockListingsAPI.updateListingWithImages).toHaveBeenCalledTimes(1);
     });
-    expect(mockToast.error).not.toHaveBeenCalledWith("listing.form.draftBlocked");
+    expect(mockToastError).not.toHaveBeenCalledWith("listing.form.draftBlocked");
 
     // Publishing the SAME still-pin-less draft is blocked on location.
     fireEvent.press(screen.getByText("listing.publish"));
 
     await waitFor(() => {
-      expect(mockToast.error).toHaveBeenCalledWith("listing.form.publishBlocked");
+      expect(mockToastError).toHaveBeenCalledWith("listing.form.publishBlocked");
     });
     expect(mockListingsAPI.publishListing).not.toHaveBeenCalled();
     expect(screen.getByText("listing.form.locationRequired")).toBeTruthy();

@@ -19,6 +19,7 @@
 import React from "react";
 import { Text as RNText } from "react-native";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { FlashList } from "@shopify/flash-list";
 import { UniversalList } from "../UniversalList";
 import type { UniversalListConfig, ListFetchResult, ListQuery } from "../UniversalList";
 
@@ -517,5 +518,175 @@ describe("UniversalList — stale-response guard", () => {
 
     expect(screen.getByText("Fresh Item")).toBeTruthy();
     expect(screen.queryByText("Item One")).toBeNull();
+  });
+});
+
+// ─── 9. refreshKey preserves every loaded page (cycle-3 CR regression fix) ───
+//
+// Before the fix, a `refreshKey` bump (fired on every `useFocusEffect`) always
+// called `fetchPage(1, true)` — which REPLACES `items` with just page 1's
+// worth of results, silently truncating a list the user had already paged
+// deeper into by scrolling. The fix re-fetches every page 1..currentPage and
+// merges them, so a focus refetch keeps exactly what was visible (refreshed),
+// never fewer items than before.
+
+describe("UniversalList — refreshKey preserves loaded pages (regression guard)", () => {
+  it("re-fetches ALL loaded pages (not just page 1) on a refreshKey bump after paging further", async () => {
+    const PAGE_1 = [{ id: 1, label: "P1-A" }, { id: 2, label: "P1-B" }];
+    const PAGE_2 = [{ id: 3, label: "P2-A" }, { id: 4, label: "P2-B" }];
+
+    const fetcher = jest.fn((query: ListQuery) => {
+      if (query.page === 1) {
+        return Promise.resolve({ items: PAGE_1, totalCount: 4, totalPages: 2, currentPage: 1 });
+      }
+      return Promise.resolve({ items: PAGE_2, totalCount: 4, totalPages: 2, currentPage: 2 });
+    });
+
+    const { rerender } = render(<UniversalList config={buildConfig({ fetcher, perPage: 2 })} />);
+    await waitFor(() => expect(screen.getByText("P1-A")).toBeTruthy());
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    // Simulate the user scrolling to load page 2 (via the FlashList mock's
+    // onEndReached prop, captured through the React element tree).
+    await act(async () => {
+      const flashListNode = screen.UNSAFE_getByType(FlashList as never) as unknown as {
+        props: { onEndReached?: () => void };
+      };
+      flashListNode.props.onEndReached?.();
+    });
+    await waitFor(() => expect(screen.getByText("P2-A")).toBeTruthy());
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    // Now simulate a focus refetch on the SAME instance (refreshKey bump,
+    // e.g. useFocusEffect firing when the user navigates back to this screen).
+    await act(async () => {
+      rerender(<UniversalList config={buildConfig({ fetcher, perPage: 2, refreshKey: 1 })} />);
+    });
+
+    // The refresh re-fetches pages 1 AND 2 (2 more fetcher calls).
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(4));
+
+    // Both pages must still be visible — a REGRESSION would truncate back to
+    // just page 1 (P2-A/P2-B would disappear).
+    expect(screen.getByText("P1-A")).toBeTruthy();
+    expect(screen.getByText("P1-B")).toBeTruthy();
+    expect(screen.getByText("P2-A")).toBeTruthy();
+    expect(screen.getByText("P2-B")).toBeTruthy();
+  });
+});
+
+// ─── 10. onEndReached burst-guard (cycle-3 CR fix) ────────────────────────────
+//
+// `onEndReached` is a well-known FlashList/FlatList source of repeated/bursty
+// calls, and a heavily `filterItems`-narrowed render can make the viewport
+// LOOK exhausted well before a full page's worth of raw items has loaded.
+// `handleEndReached` must only proceed once at least `perPage * currentPage`
+// items are actually visible.
+
+describe("UniversalList — onEndReached burst guard (regression guard)", () => {
+  it("does not fetch another page while filterItems has narrowed the visible items below a full page", async () => {
+    const ITEMS_PAGE_1 = [
+      { id: 1, label: "Match" },
+      { id: 2, label: "Other" },
+      { id: 3, label: "Other" },
+    ];
+    const fetcher = jest.fn((_query: ListQuery) =>
+      Promise.resolve({ items: ITEMS_PAGE_1, totalCount: 6, totalPages: 2, currentPage: 1 })
+    );
+
+    render(
+      <UniversalList
+        config={buildConfig({
+          fetcher,
+          perPage: 3,
+          // Narrows 3 loaded items down to 1 visible — far below perPage*currentPage (3).
+          filterItems: (items) => items.filter((i) => i.label === "Match"),
+        })}
+      />
+    );
+    await waitFor(() => expect(screen.getByText("Match")).toBeTruthy());
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    // Fire onEndReached repeatedly (simulating the real-world "burst").
+    await act(async () => {
+      const flashListNode = screen.UNSAFE_getByType(FlashList as never) as unknown as {
+        props: { onEndReached?: () => void };
+      };
+      flashListNode.props.onEndReached?.();
+      flashListNode.props.onEndReached?.();
+      flashListNode.props.onEndReached?.();
+    });
+
+    // The filtered view (1 item) is below perPage*currentPage (3) — guarded,
+    // no additional page fetch should have fired.
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("still fetches the next page normally when a full page of items is visible", async () => {
+    const PAGE_1 = [{ id: 1, label: "A" }, { id: 2, label: "B" }];
+    const PAGE_2 = [{ id: 3, label: "C" }];
+    const fetcher = jest.fn((query: ListQuery) => {
+      if (query.page === 1) {
+        return Promise.resolve({ items: PAGE_1, totalCount: 3, totalPages: 2, currentPage: 1 });
+      }
+      return Promise.resolve({ items: PAGE_2, totalCount: 3, totalPages: 2, currentPage: 2 });
+    });
+
+    render(<UniversalList config={buildConfig({ fetcher, perPage: 2 })} />);
+    await waitFor(() => expect(screen.getByText("A")).toBeTruthy());
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      const flashListNode = screen.UNSAFE_getByType(FlashList as never) as unknown as {
+        props: { onEndReached?: () => void };
+      };
+      flashListNode.props.onEndReached?.();
+    });
+
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByText("C")).toBeTruthy());
+  });
+});
+
+// ─── 11. onPageInfoChange (cycle-3 CR fix — supports the "partial results" copy) ─
+
+describe("UniversalList — onPageInfoChange", () => {
+  it("reports currentPage/totalPages after the initial load", async () => {
+    const onPageInfoChange = jest.fn();
+    const fetcher = resolvingFetcher({ items: ITEMS, totalCount: 10, totalPages: 4, currentPage: 1 });
+
+    render(<UniversalList config={buildConfig({ fetcher, onPageInfoChange })} />);
+
+    await waitFor(() =>
+      expect(onPageInfoChange).toHaveBeenCalledWith({ currentPage: 1, totalPages: 4 })
+    );
+  });
+
+  it("reports the updated page info after paging further", async () => {
+    const onPageInfoChange = jest.fn();
+    const PAGE_1 = [{ id: 1, label: "A" }];
+    const PAGE_2 = [{ id: 2, label: "B" }];
+    const fetcher = jest.fn((query: ListQuery) => {
+      if (query.page === 1) {
+        return Promise.resolve({ items: PAGE_1, totalCount: 2, totalPages: 2, currentPage: 1 });
+      }
+      return Promise.resolve({ items: PAGE_2, totalCount: 2, totalPages: 2, currentPage: 2 });
+    });
+
+    render(<UniversalList config={buildConfig({ fetcher, perPage: 1, onPageInfoChange })} />);
+    await waitFor(() =>
+      expect(onPageInfoChange).toHaveBeenCalledWith({ currentPage: 1, totalPages: 2 })
+    );
+
+    await act(async () => {
+      const flashListNode = screen.UNSAFE_getByType(FlashList as never) as unknown as {
+        props: { onEndReached?: () => void };
+      };
+      flashListNode.props.onEndReached?.();
+    });
+
+    await waitFor(() =>
+      expect(onPageInfoChange).toHaveBeenCalledWith({ currentPage: 2, totalPages: 2 })
+    );
   });
 });
