@@ -34,9 +34,27 @@
  *
  * Composed from shared components only (never hand-rolled): `StatusBadge`
  * and the accent surface both come from `ListingStatusBanner` (also used by
- * ListingDetail's own reserved/sold banner — one status treatment, not two),
- * and the seller is shown via `UserIdentity` (avatar + name + verified tag),
- * never bare text in a button label.
+ * ListingDetail's own reserved/sold banner — one status treatment, not two).
+ * The seller's positive, viewer-scoped states ("Reserved for you" / "You
+ * bought this item", where the buyer is about to meet a stranger in person
+ * or is deciding whether to leave a review) show the seller via
+ * `UserIdentity` (avatar + name + verified tag). The generic recovery branch
+ * deliberately does NOT repeat it.
+ *
+ * TASK-K729 (review fix, MEDIUM — vertical budget + duplicate person UI):
+ * the generic recovery state used to render its OWN `UserIdentity` for the
+ * seller even though Conversation.tsx's nav bar already renders the exact
+ * same avatar+name+verified treatment for the same person ~100px above,
+ * with ListingHeader's thumbnail/title/price between them — the same
+ * identity twice in the top chrome for no new information, and ~40px of
+ * permanently pinned vertical space this screen can't spare. "View their
+ * listings" (with a `Store` icon) already names the action unambiguously
+ * beside the seller who's already introduced in the nav bar, so the
+ * duplicate was dropped from that branch only; the viewer-scoped branch
+ * keeps its identity, since that is the state where trust matters most
+ * (an in-person meetup) and it is not repeating anything already on screen
+ * for that specific state (the nav bar identity is a smaller nav treatment,
+ * this one anchors the CTA immediately below it).
  */
 import React, { useState } from "react";
 import { View } from "react-native";
@@ -255,15 +273,13 @@ export function ListingUnavailableNotice({
             deal). */}
         {!viewerIsSaleBuyer && (
           <View style={{ gap: 10, marginTop: 2 }}>
-            {hasSeller && (
-              <UserIdentity
-                name={sellerName as string}
-                avatarUrl={sellerAvatarUrl}
-                verified={sellerVerified}
-                size={32}
-                testID="unavailable-seller-identity"
-              />
-            )}
+            {/* TASK-K729 (review fix, MEDIUM — vertical budget + duplicate
+                person UI): no `UserIdentity` here on purpose. The nav bar
+                immediately above (Conversation.tsx) already names and shows
+                this exact seller with the same avatar+name+verified
+                treatment — repeating it here only added ~40px of pinned
+                chrome with no new information. "View their listings" below
+                is unambiguous beside a seller already introduced above it. */}
 
             {/* TASK-K729 (review fix, MEDIUM — truncated CTAs): stacked full
                 width instead of two `flex: 1` buttons sharing one row — on a

@@ -1,4 +1,5 @@
 import React from "react";
+import { View } from "react-native";
 import type { Meta, StoryObj } from "@storybook/react-native";
 import { ListingUnavailableNotice } from "./ListingUnavailableNotice";
 
@@ -137,5 +138,29 @@ export const ReservedPashtoRtl: Story = {
     category: CATEGORY,
     sellerId: 42,
     sellerName: "احمد کریمی",
+  },
+};
+
+// TASK-K729 (review fix, MEDIUM — truncated CTAs): the two recovery buttons
+// used to share ONE row (`flex: 1` each) — on a 360dp-wide device (the
+// stated target, e.g. mid-range Android) that left ~17 characters per
+// button, truncating the PRIMARY CTA mid-word (worst in ps/fa, whose labels
+// run longer than English). They now stack full-width instead. Wrapping this
+// story's own preview in a fixed 360-wide container catches a truncation
+// regression visually — `LongSellerName`/`ReservedPashtoRtl` above only
+// assert "must never overflow", which truncation doesn't trip.
+export const Width360Dp: Story = {
+  decorators: [
+    (Story) => (
+      <View style={{ width: 360 }}>
+        <Story />
+      </View>
+    ),
+  ],
+  args: {
+    status: "reserved",
+    category: CATEGORY,
+    sellerId: 42,
+    sellerName: "Mohammad Ismail Ahmadzai Popalzai",
   },
 };

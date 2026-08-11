@@ -11,18 +11,23 @@
  *  4. Falls back to the generic "Browse similar listings" label + an
  *     unfiltered Browse route when the listing has no category — never an
  *     empty action row (at least one recovery action always renders).
- *  5. Seller identity + "View their listings" only render in the GENERIC case
- *     when sellerId + sellerName are both present, and navigate to the
- *     seller's public profile.
+ *  5. "View their listings" only renders in the GENERIC case when sellerId +
+ *     sellerName are both present, and navigates to the seller's public
+ *     profile — WITHOUT a duplicate seller identity block (TASK-K729 review
+ *     fix, MEDIUM — vertical budget + duplicate person UI: Conversation.tsx's
+ *     nav bar already shows the same avatar+name+verified for this person).
  *  6. RTL — renders without throwing and flips row direction when isRtl=true.
  *  7. The notice always renders the shared StatusBadge (dedup fix).
- *  8. "Rate {seller}" CTA (TASK-K729 HIGH follow-up) — only for sold +
+ *  8. "Rate {seller}" CTA (TASK-K729 HIGH review follow-up) — only for sold +
  *     viewerIsSaleBuyer + a transactionId, hidden once already reviewed,
  *     opens the REV2 ReviewPromptSheet with the viewer's own transactionId.
  *  9. TASK-K729 (review fix, LOW) — the seller identity for the
  *     viewerIsSaleBuyer branch is hoisted OUT of `canRateSeller`, so it also
  *     renders for "Reserved for you" and the already-reviewed "sold" state,
- *     plus the dedicated `soldToYouReviewedBody` copy once reviewed.
+ *     plus the dedicated `soldToYouReviewedBody` copy once reviewed. This
+ *     branch KEEPS its identity (unlike the generic branch in #5) — that
+ *     state is an in-person meetup / rating the seller, not a plain
+ *     "go look elsewhere" recovery action.
  * 10. TASK-K729 (review fix, MEDIUM — must fix) — `onReviewSubmitted` fires
  *     when the REV2 ReviewPromptSheet's own `onSubmitted` callback runs, so
  *     the caller can invalidate the stale cached conversation.
@@ -196,22 +201,29 @@ describe("ListingUnavailableNotice — Browse similar action", () => {
   });
 });
 
-// ── 5. Seller identity + "View their listings" — conditional ──────────────────
+// ── 5. "View their listings" action — conditional; no duplicate identity ──────
+//
+// TASK-K729 (review fix, MEDIUM — vertical budget + duplicate person UI):
+// this generic recovery branch used to render its own `UserIdentity`,
+// duplicating the exact same avatar+name+verified treatment Conversation.tsx's
+// nav bar already shows ~100px above for the same person. Dropped from this
+// branch only — the viewer-scoped branch (covered in section 9 below) keeps
+// its own identity, since that state is about an in-person meetup / rating
+// the seller, not a plain "go look elsewhere" recovery action.
 
-describe("ListingUnavailableNotice — seller identity + View their listings action", () => {
-  it("renders the seller identity + action when sellerId + sellerName are present", () => {
+describe('ListingUnavailableNotice — "View their listings" action (no duplicate identity)', () => {
+  it("renders the action (but no seller identity block) when sellerId + sellerName are present", () => {
     render(<ListingUnavailableNotice status="reserved" sellerId={9} sellerName="Ahmad Karimi" />);
-    expect(screen.getByTestId("unavailable-seller-identity")).toBeTruthy();
     expect(screen.getByTestId("unavailable-more-from-seller")).toBeTruthy();
     expect(screen.getByText("chat.thread.unavailable.viewTheirListings")).toBeTruthy();
-    // Trust UI — the seller's name, from the shared UserIdentity component.
-    expect(screen.getByText("Ahmad Karimi")).toBeTruthy();
+    // No duplicate person UI — the nav bar above already shows this seller.
+    expect(screen.queryByTestId("unavailable-seller-identity")).toBeNull();
+    expect(screen.queryByText("Ahmad Karimi")).toBeNull();
   });
 
   it("does NOT render the seller action when sellerId is missing", () => {
     render(<ListingUnavailableNotice status="reserved" sellerName="Ahmad Karimi" />);
     expect(screen.queryByTestId("unavailable-more-from-seller")).toBeNull();
-    expect(screen.queryByTestId("unavailable-seller-identity")).toBeNull();
   });
 
   it("does NOT render the seller action when sellerName is missing", () => {
