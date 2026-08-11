@@ -65,20 +65,26 @@ export function expoRouterMock() {
 
 // ── lucide-react-native ──────────────────────────────────────────────────────
 
-// Base icon set ListingForm itself imports directly. `ChevronLeft` is only
-// needed by ListingForm.routing.test.tsx, the one suite that renders the
-// REAL `BackButton` (every other suite stubs `BackButton` out entirely —
-// see `backButtonMock()` below) — pass `{ ChevronLeft: "ChevronLeft" }` as
-// `extra` there.
+// Base icon set ListingForm itself imports directly.
+//
+// TASK-P736 (review fix, CR round 2) — `ChevronLeft` (currency/location row
+// RTL flip) and `WifiOff` (edit-mode load-error retry state, via
+// `EmptyState`) joined the base set once ListingForm started importing them
+// directly, matching every other icon already listed here. `extra` is still
+// available for suite-specific additions (e.g. ListingForm.routing.test.tsx,
+// the one suite that renders the REAL `BackButton` — every other suite stubs
+// `BackButton` out entirely, see `backButtonMock()` below).
 export function lucideIconsMock(extra: Record<string, string> = {}) {
   return {
     ChevronRight: "ChevronRight",
+    ChevronLeft: "ChevronLeft",
     MapPin: "MapPin",
     Coins: "Coins",
     Check: "Check",
     ToggleRight: "ToggleRight",
     Copy: "Copy",
     AlertCircle: "AlertCircle",
+    WifiOff: "WifiOff",
     ...extra,
   };
 }

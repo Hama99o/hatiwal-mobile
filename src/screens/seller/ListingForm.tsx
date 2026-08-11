@@ -38,12 +38,13 @@ import {
   Pressable,
   LayoutChangeEvent,
   BackHandler,
+  ActivityIndicator,
 } from "react-native";
-import { ChevronRight, MapPin, Coins, Check, ToggleRight, Copy } from "lucide-react-native";
+import { ChevronRight, ChevronLeft, MapPin, Coins, Check, ToggleRight, Copy, WifiOff } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -52,6 +53,7 @@ import { useCategoryName } from "@/hooks/useCategoryName";
 import { toast } from "sonner-native";
 
 import { confirmAlert } from "@/utils/alert";
+import { normalizeDigits } from "@/utils/normalizeDigits";
 import { listingsAPI, Listing } from "@/api/listings";
 import { Category } from "@/api/categories";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -66,12 +68,15 @@ import { Switch } from "@/components/reusables/switch";
 import { Button } from "@/components/reusables/button";
 
 import { PhotosSection, PhotoItem } from "./listing-form/PhotosSection";
+import { ListingFormSkeleton } from "./listing-form/ListingFormSkeleton";
 import { getPublishBlockers, PublishBlocker } from "./listing-form/publishReadiness";
 import { CategoryPicker } from "@/components/common/CategoryPicker";
 import { ConditionChips } from "@/components/common/ConditionChips";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import { BackButton } from "@/components/common/BackButton";
 import { FieldError } from "@/components/common/FieldError";
+import { FieldLabel } from "@/components/common/FieldLabel";
+import { EmptyState } from "@/components/common/EmptyState";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // TASK-P736 — maps each publish blocker to the translation key for its
@@ -188,11 +193,28 @@ export default function ListingFormScreen() {
   // (`["my-listing", 42]` !== `["my-listing", "42"]`) — `qc.setQueryData` below
   // silently wrote into a cache entry MyListingDetail never reads. Every
   // "my-listing" key in this file is now `String(...)` to match.
-  const { data: existingListing } = useQuery({
+  // TASK-P736 (review fix, CR round 2) — `isPending`/`isError`/`refetch` now
+  // gate the render (see the loading-skeleton / retry state below). Before
+  // this, the form rendered every field with its EMPTY default value while
+  // this query was still in flight: on a mid-range Android device the
+  // seller saw a fully blank form for their complete listing, and tapping
+  // Publish inside that window fired THIS card's own "Add Photos, Title,
+  // Price, Category, Location to publish this listing" toast for a listing
+  // that has all of them — "never fail silently" became "fails wrongly".
+  const {
+    data: existingListing,
+    isPending: isEditPending,
+    isError: isEditError,
+    refetch: refetchEditListing,
+  } = useQuery({
     queryKey: ["my-listing", String(listingId)],
     queryFn: () => listingsAPI.getMyListing(listingId!),
     enabled: isEdit && !!listingId,
   });
+  // True only while there is genuinely nothing to show yet (first load, or a
+  // hard failure with no cached data at all) — a background refetch (e.g.
+  // the focus-refetch below) never re-blanks an already-rendered form.
+  const isEditBlocking = isEdit && (isEditPending || (isEditError && !existingListing));
 
   // ---------------------------------------------------------------------------
   // Load the source listing to duplicate (text fields only — see below)
@@ -250,9 +272,22 @@ export default function ListingFormScreen() {
   // already uses (`photosError ?? undefined`).
   const locationErrorMessage = locationError ?? (errors.latitude ? t("listing.form.locationRequired") : null);
 
-  // Prefill form in edit mode once data is loaded
+  // TASK-P736 (review fix, CR round 2) — guards the prefill effect below so
+  // it runs ONCE per listing id, not on every `existingListing` object
+  // identity change. Before this existed, the effect keyed on object
+  // identity alone and unconditionally `reset(...)` + `setPhotos(...)` —
+  // and because `existingListing.images` is `[]` (truthy) for a photoless
+  // listing, any refetch landing while the seller was mid-edit (e.g. this
+  // screen's own focus-refetch above, or a background React Query refetch)
+  // replaced their locally-picked photos with `[]` and re-blocked Publish
+  // on photos — the exact failure mode this card exists to prevent.
+  const prefilledListingIdRef = useRef<number | null>(null);
+
+  // Prefill form in edit mode once data is loaded (and not again for the
+  // same listing id — see `prefilledListingIdRef` above).
   useEffect(() => {
-    if (existingListing && isEdit) {
+    if (existingListing && isEdit && prefilledListingIdRef.current !== listingId) {
+      prefilledListingIdRef.current = listingId;
       reset({
         title: existingListing.title,
         price: Number(existingListing.price),
@@ -556,28 +591,37 @@ export default function ListingFormScreen() {
     [t, scrollToBlocker]
   );
 
-  // TASK-P736 (review fix) — the shared `onInvalid` handler for all three
-  // submit paths below. Before this existed, each `onInvalid` callback
-  // recomputed `getPublishBlockers` from raw values ALONE and handed the
-  // result straight to `handlePublishBlockers` — which early-returns on an
-  // EMPTY blocker list. Since `onInvalid` only ever fires when zod's
-  // `formState.errors` is non-empty (the form genuinely IS invalid), any
-  // rule zod enforces that this file's own business rules don't
-  // independently re-derive (e.g. title's 150-char cap, which only matters
-  // for a listing created/duplicated before that cap existed) made the
-  // blocker list come back empty — and the whole submit silently did
-  // nothing, no toast, no scroll. Passing `fieldErrors: errors` folds any
-  // such zod-only failure into the blocker list (see publishReadiness.ts);
-  // the final generic toast is the last-resort backstop for the case where
-  // even that mapping can't name a specific field — a bare toast beats
-  // total silence.
+  // TASK-P736 (review fix, CR round 2) — the shared `onInvalid` handler for
+  // all three submit paths below. Before this existed, each `onInvalid`
+  // callback recomputed `getPublishBlockers` from raw values ALONE and
+  // handed the result straight to `handlePublishBlockers` — which
+  // early-returns on an EMPTY blocker list. Since `onInvalid` only ever
+  // fires when zod's `formState.errors` is non-empty (the form genuinely IS
+  // invalid), any rule zod enforces that this file's own business rules
+  // don't independently re-derive (e.g. title's 150-char cap, which only
+  // matters for a listing created/duplicated before that cap existed) made
+  // the blocker list come back empty — and the whole submit silently did
+  // nothing, no toast, no scroll.
+  //
+  // CR fix: the first pass folded in `fieldErrors: errors` from the
+  // `formState` DESTRUCTURE of the render this callback closes over — but
+  // react-hook-form's `handleSubmit` calls `onInvalid(m.errors, event)`
+  // BEFORE it publishes that same `m.errors` to `formState` (verified in
+  // node_modules/react-hook-form/dist/index.cjs.js), so the closed-over
+  // `errors` is always the PREVIOUS render's value (`{}` on a first
+  // submit) at the exact moment `onInvalid` runs. Each `handleSubmit(...,
+  // onInvalid)` call below now passes RHF's own `onInvalid` ARGUMENT
+  // straight through instead of reading the stale closure — that argument
+  // is always current. The final generic toast is the last-resort backstop
+  // for the case where even that mapping can't name a specific field — a
+  // bare toast beats total silence.
   const handleInvalidSubmit = useCallback(
-    (mode: "publish" | "draft" = "publish") => {
+    (mode: "publish" | "draft" = "publish", fieldErrors?: FieldErrors<ListingFormValues>) => {
       const blockers = getPublishBlockers({
         values: getValues(),
         photos,
         mode,
-        fieldErrors: errors,
+        fieldErrors,
       });
       if (blockers.length > 0) {
         handlePublishBlockers(blockers, mode);
@@ -585,7 +629,7 @@ export default function ListingFormScreen() {
       }
       toast.error(t("listing.form.invalidGeneric"));
     },
-    [getValues, photos, errors, handlePublishBlockers, t]
+    [getValues, photos, handlePublishBlockers, t]
   );
 
   // ---------------------------------------------------------------------------
@@ -610,7 +654,7 @@ export default function ListingFormScreen() {
       setIsSubmittingPublish(false);
       saveMutation.mutate(values);
     },
-    () => handleInvalidSubmit("draft")
+    (fieldErrors) => handleInvalidSubmit("draft", fieldErrors)
   );
 
   // Editing an already-published listing → the single "Save" button must
@@ -629,7 +673,7 @@ export default function ListingFormScreen() {
       setIsSubmittingPublish(false);
       saveMutation.mutate(values);
     },
-    () => handleInvalidSubmit("publish")
+    (fieldErrors) => handleInvalidSubmit("publish", fieldErrors)
   );
 
   const onPublish = handleSubmit(
@@ -649,7 +693,7 @@ export default function ListingFormScreen() {
     },
     // zod rejected before onValid ran (e.g. title/price/category missing) —
     // see `handleInvalidSubmit` above for why this can never be silent.
-    () => handleInvalidSubmit("publish")
+    (fieldErrors) => handleInvalidSubmit("publish", fieldErrors)
   );
 
   const isLoading = saveMutation.isPending || publishMutation.isPending;
@@ -700,19 +744,28 @@ export default function ListingFormScreen() {
   // through the exact same `onCancel` reproduces the identical confirm-then-
   // navigate UX for the hardware button, with zero duplicated logic.
   //
-  // TASK-P736 (review fix): explicit picker guard. RN's own <Modal
-  // onRequestClose> already registers ITS OWN Android back handler while
-  // visible — since it's registered later than this one, it normally fires
-  // FIRST in BackHandler's LIFO order and this listener never even runs
-  // while Category/Currency/Location is open. That ordering is correct but
-  // implicit; guard for it explicitly too so closing this screen never races
-  // a picker sheet if that ordering assumption ever changes, and so the
-  // intent reads directly from this handler instead of depending on Modal
-  // internals elsewhere in the file.
+  // TASK-P736 (review fix, CR round 2): explicit picker guard, corrected.
+  // The previous comment claimed RN's <Modal> registers its own Android
+  // `hardwareBackPress` listener that would otherwise race this one — it
+  // does not: RN 0.81's `Modal.js` has no `BackHandler` reference at all: the
+  // native Android dialog intercepts KEYCODE_BACK itself
+  // (ReactModalHostView.kt's `setOnKeyListener`) and never lets the press
+  // reach JS while a picker `<Modal>` is visible, so this listener could
+  // never actually fire during that window in the first place. Kept anyway
+  // as a defensive, correct guard in case that native behaviour ever
+  // changes — but it must CONSUME the event (`return true` + close the
+  // pickers), not `return false`: falling through hands the press to
+  // @react-navigation/native's own `hardwareBackPress` listener
+  // (registered earlier, so it runs SECOND in BackHandler's LIFO order),
+  // which pops this screen with no discard confirmation — reintroducing the
+  // exact silent-work-loss bug the CYCLE-3 fix above exists to prevent.
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (categoryPickerVisible || currencyPickerVisible || locationPickerVisible) {
-        return false;
+        setCategoryPickerVisible(false);
+        setCurrencyPickerVisible(false);
+        setLocationPickerVisible(false);
+        return true;
       }
       onCancel();
       return true;
@@ -749,22 +802,30 @@ export default function ListingFormScreen() {
       {isPublished ? (
         // Editing a published listing → save the changes (status unchanged);
         // TASK-P736: enforces the same photo/field readiness rules as Publish.
-        <Button variant="default" onPress={onSavePublished} disabled={isLoading}>
-          <Text style={{ fontSize: 14, fontWeight: "700", color: colors.primaryForeground }}>
-            {isLoading ? t("common.loading") : t("common.save")}
-          </Text>
+        // TASK-P736 (review fix, CR round 2): disabled while the edit-mode
+        // query is still loading/erroring (`isEditBlocking`) — Save must
+        // never fire against a still-blank prefill. Busy state keeps the
+        // label and adds an `ActivityIndicator` instead of swapping to
+        // `common.loading`, so the button never changes width mid-flight
+        // (worst case in Dari, whose labels are already the widest).
+        <Button variant="default" onPress={onSavePublished} disabled={isLoading || isEditBlocking}>
+          {isLoading ? (
+            <ActivityIndicator size="small" color={colors.primaryForeground} />
+          ) : (
+            <Text className="text-sm font-bold">{t("common.save")}</Text>
+          )}
         </Button>
       ) : (
         <>
-          <Button variant="outline" onPress={onSaveDraft} disabled={isLoading}>
-            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.foreground }}>
-              {t("listing.form.saveDraft")}
-            </Text>
+          <Button variant="outline" onPress={onSaveDraft} disabled={isLoading || isEditBlocking}>
+            <Text className="text-sm font-bold">{t("listing.form.saveDraft")}</Text>
           </Button>
-          <Button variant="default" onPress={onPublish} disabled={isLoading}>
-            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.primaryForeground }}>
-              {isLoading && isSubmittingPublish ? t("common.loading") : t("listing.publish")}
-            </Text>
+          <Button variant="default" onPress={onPublish} disabled={isLoading || isEditBlocking}>
+            {isLoading && isSubmittingPublish ? (
+              <ActivityIndicator size="small" color={colors.primaryForeground} />
+            ) : (
+              <Text className="text-sm font-bold">{t("listing.publish")}</Text>
+            )}
           </Button>
         </>
       )}
@@ -856,6 +917,24 @@ export default function ListingFormScreen() {
           </View>
         )}
 
+        {/* TASK-P736 (review fix, CR round 2) — while the edit-mode listing is
+            still loading, render a skeleton mirroring the fields below
+            instead of the real (empty) form; on a load failure with no
+            cached data, show a retry state. Both keep the toolbar
+            Save/Publish disabled (`isEditBlocking`, wired above). */}
+        {isEditBlocking ? (
+          isEditPending ? (
+            <ListingFormSkeleton />
+          ) : (
+            <EmptyState
+              icon={WifiOff}
+              title={t("common.errorTitle")}
+              description={t("common.errorDescription")}
+              action={{ label: t("common.retry"), onPress: () => refetchEditListing() }}
+            />
+          )
+        ) : (
+        <>
         {/* ------------------------------------------------------------------ */}
         {/* 1. Photos                                                           */}
         {/* ------------------------------------------------------------------ */}
@@ -877,10 +956,9 @@ export default function ListingFormScreen() {
         {/* 2. Title                                                            */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field} onLayout={registerSectionY("title")} testID="listing-form-field-title">
-          <Label nativeID="title-label" className="mb-1">
+          <FieldLabel nativeID="title-label" required className="mb-1">
             {t("listing.title")}
-            <Text style={{ color: colors.destructive }}> *</Text>
-          </Label>
+          </FieldLabel>
           <Controller
             control={control}
             name="title"
@@ -891,7 +969,10 @@ export default function ListingFormScreen() {
                 onBlur={field.onBlur}
                 placeholder={t("listing.titlePlaceholder")}
                 maxLength={150}
-                style={{ textAlign: isRtl ? "right" : "left" }}
+                style={{
+                  textAlign: isRtl ? "right" : "left",
+                  borderColor: errors.title ? colors.destructive : colors.border,
+                }}
                 aria-labelledby="title-label"
               />
             )}
@@ -906,44 +987,72 @@ export default function ListingFormScreen() {
         {/* 3. Price + Currency                                                 */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field} onLayout={registerSectionY("price")} testID="listing-form-field-price">
-          <Label className="mb-1">
+          <FieldLabel nativeID="price-label" required className="mb-1">
             {t("common.price")}
-            <Text style={{ color: colors.destructive }}> *</Text>
-          </Label>
+          </FieldLabel>
           <View style={[styles.priceRow, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
             <Controller
               control={control}
               name="price"
               render={({ field }) => (
                 <Input
-                  value={field.value ? String(field.value) : ""}
-                  onChangeText={(v) => field.onChange(v ? Number(v) : undefined)}
+                  value={field.value != null ? String(field.value) : ""}
+                  // TASK-P736 (review fix, CR round 2) — hold the raw string
+                  // in the form field (only normalizing the digit script);
+                  // `zod`'s `z.coerce.number()` performs the actual numeric
+                  // coercion at validate/submit time (see the schema
+                  // comment). The previous `field.onChange(v ? Number(v) :
+                  // undefined)` re-parsed to a Number on every keystroke,
+                  // which made a decimal price impossible to type ("12."
+                  // coerces to `12`, the controlled value re-renders as
+                  // "12" and silently drops the trailing dot, so the next
+                  // keystroke produces "125" instead of "12.5") and made
+                  // Persian/Pashto numeral keypads (`Number("۸۰۰۰") ===
+                  // NaN`) silently clear the field.
+                  onChangeText={(v) => field.onChange(normalizeDigits(v) as unknown as number)}
                   onBlur={field.onBlur}
                   placeholder={t("listing.pricePlaceholder")}
                   keyboardType="numeric"
-                  style={[styles.priceInput, { textAlign: isRtl ? "right" : "left" }]}
+                  aria-labelledby="price-label"
+                  style={[
+                    styles.priceInput,
+                    {
+                      textAlign: isRtl ? "right" : "left",
+                      borderColor: errors.price ? colors.destructive : colors.border,
+                    },
+                  ]}
                 />
               )}
             />
-            {/* Currency picker button */}
-            <Pressable
-              style={[
-                styles.currencyBtn,
-                {
-                  backgroundColor: colors.muted,
-                  borderColor: colors.border,
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                },
-              ]}
+            {/* Currency picker button — TASK-P736 (review fix, CR round 2):
+                RNR `Button` (size "default" = minHeight 44) replaces the
+                hand-rolled Pressable, which at paddingVertical 10 + 14px
+                text was ~42pt — under the design system's 44px touch-target
+                floor and visibly shorter than the 44pt `Input` beside it.
+                The chevron flips with `isRtl` (ChevronLeft/ChevronRight) so
+                it always points AWAY from the label text, matching
+                BackButton/ListingHeader/Profile elsewhere in the app. */}
+            <Button
+              variant="outline"
               onPress={() => setCurrencyPickerVisible(true)}
-              android_ripple={{ color: colors.border, borderless: false }}
+              accessibilityRole="button"
+              accessibilityLabel={t("listing.form.selectCurrency")}
+              style={{
+                flexDirection: isRtl ? "row-reverse" : "row",
+                gap: 4,
+                paddingHorizontal: 10,
+              }}
             >
               <Coins size={14} color={colors.mutedForeground} />
-              <Text className="text-sm font-semibold" style={{ color: colors.foreground, marginHorizontal: 4 }}>
+              <Text className="text-sm font-semibold" style={{ marginHorizontal: 4 }}>
                 {currency}
               </Text>
-              <ChevronRight size={12} color={colors.mutedForeground} />
-            </Pressable>
+              {isRtl ? (
+                <ChevronLeft size={12} color={colors.mutedForeground} />
+              ) : (
+                <ChevronRight size={12} color={colors.mutedForeground} />
+              )}
+            </Button>
           </View>
           {errors.price && <FieldError message={t("listing.form.priceRequired")} />}
 
@@ -983,10 +1092,9 @@ export default function ListingFormScreen() {
         {/* 4. Category                                                         */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field} onLayout={registerSectionY("category")} testID="listing-form-field-category">
-          <Label className="mb-1">
+          <FieldLabel required className="mb-1">
             {t("common.category")}
-            <Text style={{ color: colors.destructive }}> *</Text>
-          </Label>
+          </FieldLabel>
           <Controller
             control={control}
             name="categoryId"
@@ -1001,6 +1109,10 @@ export default function ListingFormScreen() {
                 ]}
                 onPress={() => setCategoryPickerVisible(true)}
                 android_ripple={{ color: colors.muted }}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  selectedCategory ? categoryName(selectedCategory) : t("listing.form.selectCategoryPlaceholder")
+                }
               >
                 <Text
                   className="text-sm"
@@ -1058,10 +1170,9 @@ export default function ListingFormScreen() {
         {/* 6. Location — exact point on the map (search or drop a pin)         */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field} onLayout={registerSectionY("location")} testID="listing-form-field-location">
-          <Label className="mb-1">
+          <FieldLabel required className="mb-1">
             {t("common.location")}
-            <Text style={{ color: colors.destructive }}> *</Text>
-          </Label>
+          </FieldLabel>
           <Pressable
             style={[
               styles.pickerRow,
@@ -1077,6 +1188,10 @@ export default function ListingFormScreen() {
             ]}
             onPress={() => setLocationPickerVisible(true)}
             android_ripple={{ color: colors.muted }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              hasExactLocation ? mapLabel ?? t("listing.form.locationSet") : t("listing.form.tapToSetLocation")
+            }
           >
             <MapPin size={16} color={locationErrorMessage ? colors.destructive : hasExactLocation ? colors.primary : colors.mutedForeground} />
             <Text
@@ -1093,7 +1208,11 @@ export default function ListingFormScreen() {
                 ? mapLabel ?? t("listing.form.locationSet")
                 : t("listing.form.tapToSetLocation")}
             </Text>
-            <ChevronRight size={16} color={colors.mutedForeground} />
+            {isRtl ? (
+              <ChevronLeft size={16} color={colors.mutedForeground} />
+            ) : (
+              <ChevronRight size={16} color={colors.mutedForeground} />
+            )}
           </Pressable>
           {/* TASK-P736 (review fix) — was a copy-pasted AlertCircle + text-sm
               block (duplicating PhotosSection's local PhotoFieldError); both
@@ -1123,6 +1242,8 @@ export default function ListingFormScreen() {
             {t("listing.form.addressHint")}
           </Text>
         </View>
+        </>
+        )}
 
       </ScrollView>
 
@@ -1262,14 +1383,6 @@ const styles = StyleSheet.create({
   },
   priceInput: {
     flex: 1,
-  },
-  currencyBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: "center",
-    gap: 4,
   },
   categoryBtn: {
     borderWidth: 1,

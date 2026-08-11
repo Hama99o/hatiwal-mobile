@@ -200,7 +200,18 @@ export function ListingUnavailableNotice({
   // so the body copy's "then leave them a review" isn't just text with no
   // action behind it. Requires the viewer's own transactionId (never leaked
   // for anyone else) and is hidden once already reviewed.
-  const canRateSeller = isSold && transactionId != null && !hasReviewedSale;
+  //
+  // TASK-K729 (review fix, LOW): also requires `hasSeller` — without it, a
+  // payload with a transactionId but no sellerName still rendered the button
+  // (the label falls back to `rateSellerGenericName`), but tapping it opened
+  // `ReviewPromptSheet` with `counterpartyName={sellerName ?? ""}` — an EMPTY
+  // string, not the generic fallback. `"" ?? x` never fires (`??` only
+  // triggers on null/undefined), so downstream: the sheet's title interpolates
+  // to a double-spaced sentence and `UserAvatar`'s `name?.charAt(0)` on `""`
+  // yields `""`, not its own `"?"` fallback — a blank avatar circle. Gating on
+  // `hasSeller` here is consistent with how it already gates the buyer-branch
+  // `UserIdentity` above and the generic branch's "View their listings" button.
+  const canRateSeller = isSold && transactionId != null && !hasReviewedSale && hasSeller;
   const rateSellerLabel = t("chat.thread.unavailable.rateSeller", {
     name: sellerName ?? t("chat.thread.unavailable.rateSellerGenericName"),
   });
@@ -311,18 +322,34 @@ export function ListingUnavailableNotice({
               </Button>
 
               {hasSeller && (
+                // TASK-K729 (review fix, LOW — vertical budget): demoted from
+                // a full 44pt `variant="outline"` button to a lighter
+                // `variant="ghost" size="sm"` text-link row (36pt, no border,
+                // no fill) now that the duplicate seller identity is gone —
+                // the primary "Browse similar" CTA above stays the one
+                // full-weight button; this secondary recovery action reclaims
+                // ~12px of the permanently-pinned notice height without
+                // hiding the action (the underline keeps it looking tappable).
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  size="sm"
                   onPress={handleMoreFromSeller}
                   testID="unavailable-more-from-seller"
                   accessibilityRole="button"
                   accessibilityLabel={viewTheirListingsLabel}
+                  style={{ alignSelf: "center" }}
                 >
                   <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6, flexShrink: 1 }}>
                     <Store size={14} color={colors.foreground} />
                     <Text
                       numberOfLines={2}
-                      style={{ fontSize: 12, fontWeight: "600", color: colors.foreground, flexShrink: 1 }}
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "600",
+                        color: colors.foreground,
+                        textDecorationLine: "underline",
+                        flexShrink: 1,
+                      }}
                     >
                       {viewTheirListingsLabel}
                     </Text>

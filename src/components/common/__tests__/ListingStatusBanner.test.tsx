@@ -8,9 +8,14 @@
  *  1. Renders the shared StatusBadge + title (+ optional subtitle) for both layouts.
  *  2. Renders `children` (the caller's own CTA row) inside the same surface.
  *  3. `reduceMotion` is accepted without throwing (entrance animation guard).
- *  4. The border tint resolves to a real alpha channel (TASK-K729 review fix,
- *     HIGH — `accent.text + "33"` string concatenation on an hsl() string
- *     silently produced a FULLY OPAQUE border instead of ~20% alpha).
+ *  4. `layout="strip"`'s border tint resolves to a real alpha channel
+ *     (TASK-K729 review fix, HIGH — `accent.text + "33"` string
+ *     concatenation on an hsl() string silently produced a FULLY OPAQUE
+ *     border instead of ~20% alpha). `layout="row"` sits on `colors.card`
+ *     with a solid (non-alpha) leading accent edge instead (TASK-K729
+ *     review fix, MEDIUM — visual hierarchy: the accent-fill surface made
+ *     StatusBadge's own pill, the subtitle and the outline button's border
+ *     all lose contrast — see the component docstring).
  *  5. The caller's `style` prop (layout inset) merges on top of the
  *     container's own layout instead of replacing it (TASK-K729 review fix,
  *     MEDIUM — layout).
@@ -44,7 +49,7 @@ describe("ListingStatusBanner", () => {
     expect(screen.queryByText("Reason line")).toBeNull();
   });
 
-  it("renders children (the caller's own CTA row) inside the same accent surface", () => {
+  it("renders children (the caller's own CTA row) inside the same container", () => {
     render(
       <ListingStatusBanner status="sold" title="Item sold" layout="row">
         <View testID="cta-row">
@@ -73,24 +78,29 @@ describe("ListingStatusBanner", () => {
     ).not.toThrow();
   });
 
-  // ── TASK-K729 (review fix, HIGH): border alpha regression guard ────────────
-  it("resolves the row layout's border to a real hsla() alpha channel, not an opaque hsl() string", () => {
-    render(<ListingStatusBanner status="reserved" title="Reserved" layout="row" testID="alpha-row" />);
-    const node = screen.getByTestId("alpha-row");
+  // ── TASK-K729 (review fix, MEDIUM — visual hierarchy): row layout surface ──
+  // `layout="row"` moved off the accent fill onto `colors.card` with a
+  // leading accent edge (`borderStartWidth`/`borderStartColor`), so
+  // StatusBadge's pill, the mutedForeground subtitle and the outline
+  // button's border all regain real contrast (see the component docstring).
+  it("renders the row layout on a colors.card surface with a solid (non-alpha) leading accent edge, not the accent fill", () => {
+    render(<ListingStatusBanner status="reserved" title="Reserved" layout="row" testID="card-row" />);
+    const node = screen.getByTestId("card-row");
     const flat = StyleSheet.flatten(node.props.style);
 
-    // `accent.text + "33"` used to produce the literal string
-    // `"hsl(38, 92%, 40%)33"` — RN's parser silently dropped the trailing
-    // garbage and rendered it fully opaque. A real alpha value must be an
-    // `hsla(...)` (or `rgba(...)`) string with a numeric alpha < 1.
-    expect(flat.borderColor).toMatch(/^hsla\(/);
-    const alpha = Number(flat.borderColor.match(/,\s*([\d.]+)\)$/)?.[1]);
-    expect(alpha).not.toBeNaN();
-    expect(alpha).toBeLessThan(1);
-    expect(alpha).toBeGreaterThan(0);
+    // colors.card / colors.border in light mode (the default test environment
+    // — no theme override) — NOT the reserved accent tint
+    // (colors.warningAlpha), which used to make StatusBadge's own pill
+    // indistinguishable from its own container.
+    expect(flat.backgroundColor).toBe("hsl(0,0%,100%)");
+    expect(flat.borderColor).toBe("hsl(214,32%,91%)");
+    expect(flat.borderStartWidth).toBe(4);
+    // The leading edge is the full accent color (not alpha-diluted) — it's
+    // the ONE deliberately-tinted element on an otherwise neutral card.
+    expect(flat.borderStartColor).toBe("hsl(38,92%,40%)"); // colors.warning (reserved accent.text)
   });
 
-  it("resolves the strip layout's bottom border to the same real alpha channel", () => {
+  it("resolves the strip layout's bottom border to a real hsla() alpha channel, not an opaque hsl() string", () => {
     render(<ListingStatusBanner status="sold" title="Item sold" layout="strip" testID="alpha-strip" />);
     const node = screen.getByTestId("alpha-strip");
     const flat = StyleSheet.flatten(node.props.style);

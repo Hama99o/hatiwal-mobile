@@ -329,4 +329,62 @@ describe("ComposerActionsSheet — offerUnavailableReason (TASK-K729 review fix)
     expect(screen.getByTestId("composer-action-offer-disabled")).toBeTruthy();
     expect(screen.queryByTestId("composer-action-offer")).toBeNull();
   });
+
+  // ── TASK-K729 (review fix, MEDIUM — dark/light contrast) ───────────────────
+  // Row-level `opacity: 0.5` used to dim `subLabel` (the reason text) too,
+  // compositing to 1.96:1 in light mode / 2.65:1 in dark — the least legible
+  // text in the sheet, exactly where the buyer goes looking for the missing
+  // offer button. Opacity now only ever applies for the `disabled` prop (an
+  // upload in flight); the reason row dims its icon/label instead and leaves
+  // the reason subline at full opacity.
+  it("does NOT apply row-level opacity to the disabled reason row (keeps the reason subline fully legible)", () => {
+    render(
+      <ComposerActionsSheet
+        {...baseProps({ canMakeOffer: false, offerUnavailableReason: "Item reserved" })}
+      />
+    );
+    const row = screen.getByTestId("composer-action-offer-disabled");
+    const flattenedStyle = Array.isArray(row.props.style)
+      ? Object.assign({}, ...row.props.style.flat(Infinity).filter(Boolean))
+      : row.props.style;
+    expect(flattenedStyle.opacity).toBe(1);
+  });
+
+  it("dims the disabled reason row's LABEL (not the reason subline) to colors.mutedForeground as the affordance cue", () => {
+    render(
+      <ComposerActionsSheet
+        {...baseProps({ canMakeOffer: false, offerUnavailableReason: "Item reserved" })}
+      />
+    );
+    const label = screen.getByText("chat.offer.makeOffer");
+    const labelStyle = Array.isArray(label.props.style)
+      ? Object.assign({}, ...label.props.style.flat(Infinity).filter(Boolean))
+      : label.props.style;
+    const reason = screen.getByText("Item reserved");
+    const reasonStyle = Array.isArray(reason.props.style)
+      ? Object.assign({}, ...reason.props.style.flat(Infinity).filter(Boolean))
+      : reason.props.style;
+
+    // Light mode (default test environment) literal token values from useColors().
+    expect(labelStyle.color).toBe("hsl(215,16%,47%)"); // colors.mutedForeground
+    expect(reasonStyle.color).toBe("hsl(215,16%,47%)"); // colors.mutedForeground (unchanged)
+  });
+
+  it("still renders a NORMAL row's label in colors.foreground (not dimmed)", () => {
+    render(<ComposerActionsSheet {...baseProps()} />);
+    const label = screen.getByText("chat.attachPhoto");
+    const labelStyle = Array.isArray(label.props.style)
+      ? Object.assign({}, ...label.props.style.flat(Infinity).filter(Boolean))
+      : label.props.style;
+    expect(labelStyle.color).toBe("hsl(222,47%,11%)"); // colors.foreground (light mode)
+  });
+
+  it("still dims every row via row-level opacity while an upload is in flight (`disabled` prop)", () => {
+    render(<ComposerActionsSheet {...baseProps({ disabled: true })} />);
+    const row = screen.getByTestId("composer-action-photo");
+    const flattenedStyle = Array.isArray(row.props.style)
+      ? Object.assign({}, ...row.props.style.flat(Infinity).filter(Boolean))
+      : row.props.style;
+    expect(flattenedStyle.opacity).toBe(0.5);
+  });
 });

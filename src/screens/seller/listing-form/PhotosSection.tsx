@@ -25,11 +25,11 @@ import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RemoteImage } from "@/components/common/RemoteImage";
 import { FieldError } from "@/components/common/FieldError";
+import { FieldLabel } from "@/components/common/FieldLabel";
 import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/permissions";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
 import { Text } from "@/components/reusables/text";
-import { Label } from "@/components/reusables/label";
 import { Camera, ImageIcon, Plus, Star, X, ArrowLeftRight } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { triggerHaptic } from "@/lib/animation/haptics";
@@ -207,11 +207,12 @@ export function PhotosSection({
         >
           {/* TASK-P736 (review fix) — Photos is a publish-required field just
               like Title/Price/Category/Location; it must carry the same " *"
-              marker via the shared RNR Label, not a bare Text. */}
-          <Label className="text-lg font-semibold">
+              marker as those, via the shared `FieldLabel` (review fix, CR
+              round 2: was still a copy-pasted `<Label>...<Text>{" "}*</Text>`
+              — the exact duplication `FieldError` was extracted to kill). */}
+          <FieldLabel required className="text-lg font-semibold">
             {t("listing.form.photos")}
-            <Text style={{ color: colors.destructive }}> *</Text>
-          </Label>
+          </FieldLabel>
         </View>
 
         <Pressable
@@ -268,11 +269,11 @@ export function PhotosSection({
       >
         {/* TASK-P736 (review fix) — same " *" treatment as the empty state
             (see above) so the required marker never disappears once the
-            seller has added at least one photo. */}
-        <Label className="text-lg font-semibold">
+            seller has added at least one photo; both now go through the
+            shared `FieldLabel` (review fix, CR round 2). */}
+        <FieldLabel required className="text-lg font-semibold">
           {t("listing.form.photos")}
-          <Text style={{ color: colors.destructive }}> *</Text>
-        </Label>
+        </FieldLabel>
         <Text
           className="text-xs"
           style={{
@@ -573,10 +574,15 @@ const styles = StyleSheet.create({
     width: THUMB,
     height: THUMB,
   },
+  // TASK-P736 (review fix, CR round 2) — `start`/`end` (logical, RTL-aware)
+  // replace the previous hardcoded `left`/`right`, matching DESIGN_SYSTEM.md
+  // §8 ("never hard-code left/right"). Without this, the Cover badge, the
+  // remove ✕, and the set-as-cover ★ all stayed pinned to the same physical
+  // corner under ps/fa instead of mirroring with the rest of the RTL layout.
   coverBadge: {
     position: "absolute",
     bottom: 5,
-    left: 5,
+    start: 5,
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 2,
@@ -584,8 +590,8 @@ const styles = StyleSheet.create({
   swapOverlay: {
     position: "absolute",
     top: 0,
-    left: 0,
-    right: 0,
+    start: 0,
+    end: 0,
     bottom: 0,
     // backgroundColor applied inline via colors.darkScrim (useColors token)
     alignItems: "center",
@@ -594,7 +600,7 @@ const styles = StyleSheet.create({
   removeBtn: {
     position: "absolute",
     top: 4,
-    right: 4,
+    end: 4,
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -604,7 +610,7 @@ const styles = StyleSheet.create({
   coverBtn: {
     position: "absolute",
     top: 4,
-    left: 4,
+    start: 4,
     width: 28,
     height: 28,
     borderRadius: 14,

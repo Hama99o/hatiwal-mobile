@@ -208,7 +208,18 @@ export function ComposerActionsSheet({
                 flexDirection: isRtl ? "row-reverse" : "row",
                 borderBottomWidth: index < rows.length - 1 ? StyleSheet.hairlineWidth : 0,
                 borderBottomColor: colors.border,
-                opacity: disabled || row.disabledRow ? 0.5 : 1,
+                // TASK-K729 (review fix, MEDIUM — dark/light contrast):
+                // row-level opacity used to dim the WHOLE row, including
+                // `subLabel` (already `colors.mutedForeground`) — compositing
+                // 0.5 opacity on top of an already-muted color measured
+                // 1.96:1 in light mode / 2.65:1 in dark, making the reason
+                // the buyer came here to read the LEAST legible text in the
+                // sheet. Opacity now only ever dims the row for the `disabled`
+                // prop (an upload in flight); the reserved/sold reason row
+                // dims its icon+label to `colors.mutedForeground` below
+                // instead (an affordance cue) and leaves `subLabel` at full
+                // opacity so the reason stays readable.
+                opacity: disabled ? 0.5 : 1,
               },
             ]}
           >
@@ -217,7 +228,7 @@ export function ComposerActionsSheet({
               <Text
                 className="text-base"
                 style={{
-                  color: colors.foreground,
+                  color: row.disabledRow ? colors.mutedForeground : colors.foreground,
                   textAlign: isRtl ? "right" : "left",
                 }}
               >

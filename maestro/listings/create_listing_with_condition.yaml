@@ -28,11 +28,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Electronics"
 - waitForAnimationToEnd
-# Select condition: Like New
-- tapOn: "Like New"
+# Select condition: Like new
+- tapOn: "Like new"
 - waitForAnimationToEnd
 # Verify chip is selected (should be highlighted)
-- assertVisible: "Like New"
+- assertVisible: "Like new"
 # TASK-P736: Publish also requires an exact map pin — drop one before
 # publishing (mirrors the map-picker block in create_listing_publish_blocked.yaml).
 - tapOn: "Tap to set exact location on map"
@@ -50,7 +50,11 @@ appId: com.hatiwal.app
 # Publish directly
 - tapOn: "Publish"
 - waitForAnimationToEnd
-- assertVisible: "Listing posted"
+# TASK-J952: publishing lands on the owner detail with PublishSuccessSheet
+# (see create_listing_publish_direct.yaml for the fully-asserted version).
+- assertVisible: "Your listing is live!"
+- tapOn: "Done"
+- waitForAnimationToEnd
 # Now switch to buyer and find the listing
 - launchApp:
     clearState: false
@@ -62,5 +66,5 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Condition Test Laptop"
 - waitForAnimationToEnd
-# ConditionBadge must show "Like New" on the detail screen
-- assertVisible: "Like New"
+# ConditionBadge must show "Like new" on the detail screen
+- assertVisible: "Like new"

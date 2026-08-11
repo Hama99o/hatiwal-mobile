@@ -266,6 +266,62 @@ describe("ListingForm — Publish blocked by a missing map pin", () => {
   });
 });
 
+// ── 3b. A zod-only failure `getPublishBlockers` doesn't re-derive (CR fix) ────
+// TASK-P736 (review fix, CR round 2): before this fix, `handleInvalidSubmit`
+// read `errors` from the CURRENT render's `formState` destructure — but
+// react-hook-form's `handleSubmit` calls `onInvalid(m.errors, event)` BEFORE
+// publishing that same `m.errors` to `formState`, so the closed-over
+// `errors` was always the PREVIOUS render's value (`{}` on a first submit)
+// at the exact moment `onInvalid` ran. A title exceeding zod's 150-char cap
+// (a rule `getPublishBlockers`'s own business rules intentionally do NOT
+// re-derive) made the blocker list come back EMPTY on the FIRST press —
+// `listing.form.invalidGeneric`, no field named, no scroll — and only
+// self-corrected on a SECOND press once React had re-rendered with the now
+// up-to-date `errors`. This test fails against the old closure-reading code
+// and passes once `onInvalid`'s own argument is used instead.
+
+describe("ListingForm — a zod-only failure (title's 150-char cap) is never silently dropped on the FIRST press", () => {
+  it("toasts publishBlocked (not invalidGeneric) and scrolls to Title on the very first Publish tap", async () => {
+    mockParamsState.current = { id: "42" };
+    // Everything else valid; title exceeds zod's `.max(150)` — a rule this
+    // file's own `getPublishBlockers` does NOT independently re-derive.
+    mockListingsAPI.getMyListing.mockResolvedValueOnce(
+      makeListing({ title: "x".repeat(200) })
+    );
+
+    renderListingForm();
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("x".repeat(200))).toBeTruthy();
+    });
+
+    fireEvent(screen.getByTestId("listing-form-field-title"), "layout", {
+      nativeEvent: { layout: { y: 300 } },
+    });
+
+    const scrollView = screen.UNSAFE_getByType(ScrollView);
+    const scrollToSpy = jest.spyOn(scrollView.instance, "scrollTo").mockImplementation(() => {});
+
+    // FIRST (and only) press — must not require a second tap to self-correct.
+    fireEvent.press(screen.getByText("listing.publish"));
+
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith("listing.form.publishBlocked");
+    });
+
+    // The old bug's symptom: a bare, field-less generic toast.
+    expect(mockToastError).not.toHaveBeenCalledWith("listing.form.invalidGeneric");
+
+    // Publish must NEVER be a silent no-op.
+    expect(mockListingsAPI.updateListingWithImages).not.toHaveBeenCalled();
+    expect(mockListingsAPI.createListingWithImages).not.toHaveBeenCalled();
+    expect(mockListingsAPI.publishListing).not.toHaveBeenCalled();
+
+    // Scrolled straight to the Title section on the FIRST press.
+    expect(scrollToSpy).toHaveBeenCalledWith({ y: 288, animated: true }); // 300 - 12
+  });
+});
+
 // ── 4. Save draft — zero photos AND no map pin still succeeds (TASK-V395) ─────
 
 describe("ListingForm — Save Draft only needs title/price/category (TASK-V395)", () => {

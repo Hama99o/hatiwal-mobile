@@ -11,10 +11,26 @@
  * is the ONE shared component both screens now render.
  *
  * `layout="strip"` — full-bleed, centered, accent-bottom-border (ListingDetail).
- * `layout="row"`   — accent-filled rounded card, left/right-aligned per RTL,
+ * `layout="row"`   — `colors.card` rounded card with a leading accent edge
+ *                     (`borderStartWidth`), left/right-aligned per RTL,
  *                     StatusBadge + title on one line, optional subtitle below
  *                     (ListingUnavailableNotice's headline — the CTA row is
  *                     that screen's own addition, composed underneath this).
+ *                     TASK-K729 (review fix, MEDIUM — visual hierarchy): this
+ *                     used to be an `accent.bg` fill, the SAME background
+ *                     `StatusBadge`'s own pill paints itself with — so the
+ *                     pill had no shape (1.00:1 contrast against its own
+ *                     container for `sold`), the `mutedForeground` subtitle
+ *                     measured 3.79–3.95:1 (below WCAG AA 4.5:1) on the tint,
+ *                     and the outline "View their listings" button's border
+ *                     (`colors.border`) is byte-identical to the `sold` fill
+ *                     (`colors.secondary`) in light mode, so it rendered with
+ *                     no visible boundary at all. A `colors.card` surface —
+ *                     the same "house" surface `SaleBuyerCard` already uses
+ *                     for the identical outline-button-on-a-card pattern —
+ *                     fixes all three at once: the badge pill, the subtitle,
+ *                     and the button border all regain real contrast against
+ *                     card white/near-black instead of a same-hue tint.
  *
  * Colours always come from `getStatusAccent` (statusAccent.ts) — the same map
  * `StatusBadge` and `SaleBuyerCard` read — so reserved/sold render identically
@@ -43,11 +59,12 @@ export interface ListingStatusBannerProps {
   layout?: "strip" | "row";
   testID?: string;
   /**
-   * Rendered below the subtitle, still inside the SAME accent-filled
-   * container — e.g. ListingUnavailableNotice's seller identity + recovery
-   * CTA row. Keeps the whole notice on one legible accent surface instead of
-   * an accent headline sitting on top of a separate neutral card (the
-   * "barely perceptible" visual-hierarchy finding this component fixes).
+   * Rendered below the subtitle, still inside the SAME container — e.g.
+   * ListingUnavailableNotice's seller identity + recovery CTA row. Keeps the
+   * whole notice on one legible surface (with the accent as a leading-edge
+   * indicator, not a full-bleed tint — see the `layout="row"` note above)
+   * instead of an accent headline sitting on top of a separate neutral card
+   * (the "barely perceptible" visual-hierarchy finding this component fixes).
    */
   children?: React.ReactNode;
   /**
@@ -97,7 +114,13 @@ export function ListingStatusBanner({
       testID={testID}
       style={[
         {
-          backgroundColor: accent.bg,
+          // TASK-K729 (review fix, MEDIUM — visual hierarchy): `layout="row"`
+          // sits on `colors.card` (not the accent fill) so StatusBadge's own
+          // accent.bg pill, the mutedForeground subtitle and the outline
+          // button's colors.border all regain real contrast — see the
+          // component docstring. `layout="strip"` keeps its full-bleed accent
+          // fill (a different, transient "flash" treatment on ListingDetail).
+          backgroundColor: isStrip ? accent.bg : colors.card,
           paddingVertical: 10,
           paddingHorizontal: isStrip ? 16 : 12,
           // "stretch" (not "flex-start") for the row layout — the container has
@@ -108,7 +131,17 @@ export function ListingStatusBanner({
           gap: 8,
           ...(isStrip
             ? { borderBottomWidth: 1, borderBottomColor: borderTint }
-            : { borderWidth: 1, borderColor: borderTint, borderRadius: 10 }),
+            : {
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 10,
+                // The accent "leading edge" — `borderStart*` is a logical
+                // property RN mirrors automatically for RTL (native forceRTL
+                // is already on, see i18n/index.ts), so no manual isRtl flip
+                // is needed here, unlike a plain `borderLeftWidth`.
+                borderStartWidth: 4,
+                borderStartColor: accent.text,
+              }),
         },
         style,
       ]}

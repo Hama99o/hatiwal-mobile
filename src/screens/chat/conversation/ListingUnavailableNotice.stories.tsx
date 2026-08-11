@@ -119,8 +119,10 @@ export const SoldToYouAlreadyReviewed: Story = {
 };
 
 // A long seller name (with the longer ps/fa button labels in mind) — the
-// action row must never overflow. Buttons are `flex: 1` with
-// `numberOfLines={1}` labels.
+// recovery CTAs must never overflow. TASK-K729 (review fix, MEDIUM —
+// truncated CTAs): the two actions are stacked full-width (not a shared
+// `flex: 1` row) with `numberOfLines={2}` labels, so a long label WRAPS to a
+// second line instead of truncating mid-word.
 export const LongSellerName: Story = {
   args: {
     status: "reserved",
@@ -131,7 +133,9 @@ export const LongSellerName: Story = {
 };
 
 // Pashto RTL — long ps/fa CTA labels ("مشاهده موارد مشابه در {{category}}",
-// "سایر آگهی‌های {{name}}") mirrored correctly, action row splits evenly.
+// "سایر آگهی‌های {{name}}") mirrored correctly. Both actions are stacked
+// full-width column buttons (see LongSellerName above), so RTL only affects
+// the icon/label row direction inside each button, not the stack itself.
 export const ReservedPashtoRtl: Story = {
   args: {
     status: "reserved",
@@ -159,6 +163,51 @@ export const Width360Dp: Story = {
   ],
   args: {
     status: "reserved",
+    category: CATEGORY,
+    sellerId: 42,
+    sellerName: "Mohammad Ismail Ahmadzai Popalzai",
+  },
+};
+
+// TASK-K729 (review fix, LOW — test/story coverage): `Width360Dp` above only
+// exercises an English long name; the truncation risk that motivated the
+// stacked layout actually lives in the LONGER ps/fa CTA labels themselves
+// ("مشاهده موارد مشابه در برقیات", "د هغه/هغې نور توکي وګورئ"), and
+// `ReservedPashtoRtl` (unconstrained width) doesn't catch a 360dp regression.
+// Switch device/Storybook locale to 'ps' or 'fa' to see the actual mirrored
+// labels — the component reads `isRtl` from useLocalization() at runtime.
+export const Width360DpPashtoRtl: Story = {
+  decorators: [
+    (Story) => (
+      <View style={{ width: 360 }}>
+        <Story />
+      </View>
+    ),
+  ],
+  args: {
+    status: "reserved",
+    category: CATEGORY,
+    sellerId: 42,
+    sellerName: "محمد اسماعیل احمدزی پوپلزی",
+  },
+};
+
+// TASK-K729 (review fix, LOW — test/story coverage): `Width360Dp` above only
+// covers `status="reserved"` — `sold` is the state where BOTH the
+// `StatusBadge` pill and the "View their listings" button's border
+// historically lost contrast against the accent-filled banner (fixed by
+// ListingStatusBanner's `layout="row"` colors.card surface), so it needs its
+// own 360dp regression guard too.
+export const Width360DpSold: Story = {
+  decorators: [
+    (Story) => (
+      <View style={{ width: 360 }}>
+        <Story />
+      </View>
+    ),
+  ],
+  args: {
+    status: "sold",
     category: CATEGORY,
     sellerId: 42,
     sellerName: "Mohammad Ismail Ahmadzai Popalzai",

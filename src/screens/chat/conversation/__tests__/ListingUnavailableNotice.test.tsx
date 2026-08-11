@@ -324,6 +324,32 @@ describe("ListingUnavailableNotice — Rate seller CTA (sold + viewerIsSaleBuyer
     expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
   });
 
+  // ── TASK-K729 (review fix, LOW) ─────────────────────────────────────────────
+  // Without `hasSeller` gating `canRateSeller`, this exact combination (sold +
+  // viewerIsSaleBuyer + transactionId, no sellerName) rendered the button
+  // anyway — label falls back to the generic name — but tapping it opened
+  // ReviewPromptSheet with `counterpartyName=""` (an EMPTY string, since
+  // `"" ?? x` never fires), producing a double-spaced sheet title and a blank
+  // avatar instead of the "?" fallback.
+  it("does NOT render the Rate seller CTA when sellerName is missing, even with a transactionId present (would open the review sheet with an empty counterparty)", () => {
+    render(
+      <ListingUnavailableNotice status="sold" viewerIsSaleBuyer transactionId={42} sellerId={9} />
+    );
+    expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
+  });
+
+  it("does NOT render the Rate seller CTA when sellerId is missing, even with a sellerName present", () => {
+    render(
+      <ListingUnavailableNotice
+        status="sold"
+        viewerIsSaleBuyer
+        transactionId={42}
+        sellerName="Ahmad Karimi"
+      />
+    );
+    expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
+  });
+
   it("opens the REV2 ReviewPromptSheet with the viewer's own transactionId and callerRole='buyer' when tapped", () => {
     render(
       <ListingUnavailableNotice

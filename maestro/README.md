@@ -113,7 +113,7 @@ listings/
   create_listing_location_picker.yaml  ← map / coordinates picker
   create_listing_currency_usd.yaml     ← switch currency to USD, verify price display
   create_listing_currency_eur.yaml     ← switch currency to EUR, verify € symbol on detail
-  create_listing_with_condition.yaml   ← set Like New condition → publish → ConditionBadge on detail
+  create_listing_with_condition.yaml   ← set Like new condition → publish → ConditionBadge on detail
   create_listing_draft_restore.yaml    ← restore unsaved draft on re-open
   create_listing_draft_discard.yaml    ← discard in-progress draft via dialog
   edit_listing.yaml                    ← change title/price, save
