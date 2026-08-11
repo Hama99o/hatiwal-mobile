@@ -294,6 +294,52 @@ describe("ListingForm — Save on an already-published listing", () => {
   });
 });
 
+// ── 4b. Cache seed on save/publish MERGES, never replaces (CYCLE-5 CR fix) ────
+// Regression guard for the review finding that `qc.setQueryData(key, listing)`
+// (a straight replace) silently deleted the owner-only `sale` block: the
+// mutation payload comes from PUT/POST /my/listings (`view: :detailed`),
+// while MyListingDetail's own cache entry is populated by `getMyListing`
+// (`view: :owner_detailed` = `:detailed` + `sale`). A RESERVED listing's
+// "Reserved for <buyer>" card must survive a Save.
+
+describe("ListingForm — cache seed on Save merges with the existing entry (preserves `sale`)", () => {
+  it("keeps the owner-only `sale` block in the cache after saving an edit", async () => {
+    mockParamsState.current = { id: "42" };
+    mockCanGoBack.mockReturnValue(true);
+    const existing = makeListing({ id: 42, status: "reserved" });
+    mockListingsAPI.getMyListing.mockResolvedValueOnce(existing);
+    // The PUT /my/listings response never carries `sale` — only
+    // `getMyListing`'s `:owner_detailed` view does.
+    const savedFromApi = makeListing({ id: 42, status: "reserved", price: 90000 });
+    mockListingsAPI.updateListingWithImages.mockResolvedValueOnce(savedFromApi);
+
+    const qc = renderListingForm();
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
+    });
+
+    // Seed the cache exactly as a prior load via MyListingDetail's own
+    // `getMyListing` query would have — WITH the owner-only `sale` block.
+    const sale = { buyer: { id: 9, name: "Ahmad Karimi" }, price: 85000 };
+    act(() => {
+      qc.setQueryData(["my-listing", "42"], { ...existing, sale });
+    });
+
+    // isPublished (reserved !== draft) → single "Save" button.
+    fireEvent.press(screen.getByText("common.save"));
+
+    await waitFor(() => expect(mockBack).toHaveBeenCalledTimes(1));
+
+    const cached = qc.getQueryData(["my-listing", "42"]) as Record<string, unknown>;
+    // The fresh field from the save DID apply...
+    expect(cached.price).toBe(90000);
+    // ...but the buyer-facing `sale` block, absent from this payload, was
+    // NOT wiped out by the seed — a straight replace would have dropped it.
+    expect(cached.sale).toEqual(sale);
+  });
+});
+
 // ── 5. Cancel navigation — top-toolbar back button ─────────────────────────────
 
 describe("ListingForm — Cancel (back button)", () => {
