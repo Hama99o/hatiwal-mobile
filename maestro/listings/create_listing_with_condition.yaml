@@ -17,10 +17,12 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 - assertVisible: "Cover"
-# Fill required fields
-- tapOn: "Title"
+# Fill required fields — tap the input placeholders, not the "Title *" /
+# "Price *" Labels (a Label is inert text, not focusable; tapping it would
+# leave nothing focused and inputText below would silently go nowhere).
+- tapOn: "What are you selling?"
 - inputText: "Condition Test Laptop"
-- tapOn: "Price"
+- tapOn: "Enter price"
 - inputText: "8000"
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd

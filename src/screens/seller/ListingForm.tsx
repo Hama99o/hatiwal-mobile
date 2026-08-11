@@ -699,13 +699,26 @@ export default function ListingFormScreen() {
   // hence called before, the Stack navigator's default one) and routing it
   // through the exact same `onCancel` reproduces the identical confirm-then-
   // navigate UX for the hardware button, with zero duplicated logic.
+  //
+  // TASK-P736 (review fix): explicit picker guard. RN's own <Modal
+  // onRequestClose> already registers ITS OWN Android back handler while
+  // visible — since it's registered later than this one, it normally fires
+  // FIRST in BackHandler's LIFO order and this listener never even runs
+  // while Category/Currency/Location is open. That ordering is correct but
+  // implicit; guard for it explicitly too so closing this screen never races
+  // a picker sheet if that ordering assumption ever changes, and so the
+  // intent reads directly from this handler instead of depending on Modal
+  // internals elsewhere in the file.
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (categoryPickerVisible || currencyPickerVisible || locationPickerVisible) {
+        return false;
+      }
       onCancel();
       return true;
     });
     return () => subscription.remove();
-  }, [onCancel]);
+  }, [onCancel, categoryPickerVisible, currencyPickerVisible, locationPickerVisible]);
 
   // ---------------------------------------------------------------------------
   // Render
