@@ -62,6 +62,10 @@ appId: com.hatiwal.app
 # ── 2) Edit → add a photo (TASK-P736 blocks Publish with zero photos) →
 #       Publish FROM this owner-detail screen (not "Post a listing") ─────────
 
+# Edit lives in the "More" overflow sheet (TASK-L863) — a draft owner detail
+# renders only the primary "Publish" button plus "More".
+- tapOn: "More"
+- waitForAnimationToEnd
 - tapOn: "Edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Listing"

@@ -26,11 +26,19 @@ export interface LocalizedNames {
 }
 
 /**
- * The category shape `CategorySerializer.render_as_hash` renders when a
- * category is EMBEDDED on another payload (a conversation's pinned listing,
- * the chat thread's reserved/sold recovery notice) rather than fetched from
- * `/categories` directly — a `LocalizedNames` plus `id`/`slug`, missing the
- * full `Category`'s `icon`/`position`/`subcategories`/etc.
+ * The category shape `CategorySerializer.render_as_hash` renders (default
+ * view) when a category is EMBEDDED on another payload (a conversation's
+ * pinned listing, the chat thread's reserved/sold recovery notice) rather
+ * than fetched from `/categories` directly.
+ *
+ * TASK-K729 (review fix, LOW): the wire payload's default view is
+ * `fields :id, :slug, :icon, :position` plus the three localized names
+ * (see `CategorySerializer`) — it DOES carry `icon`/`position`, it just
+ * omits `subcategories` and the count-view fields (`:with_count`/
+ * `:with_counts`), which only render under those explicit views. This type
+ * is narrower than the actual payload (harmless — extra wire fields TS
+ * doesn't know about are simply ignored), but declare it accurately so the
+ * next reader doesn't assume `icon`/`position` are truly absent.
  *
  * TASK-K729 (review fix, MEDIUM): ONE shared type instead of two identical
  * hand-declared aliases (`ConversationListingCategory` in api/conversations.ts
@@ -40,6 +48,8 @@ export interface LocalizedNames {
 export type EmbeddedCategory = LocalizedNames & {
   id: number;
   slug?: string;
+  icon?: string | null;
+  position?: number;
 };
 
 /**

@@ -199,7 +199,11 @@ export default function MyListingDetailScreen() {
     // This screen IS the listing being deleted — navigate away since
     // there's nothing left here to show (SellerListingCard's row just
     // disappears from the already-invalidated list, so it doesn't need this).
-    onDeleted: () => router.replace("/(main)/(tabs)/browse" as never),
+    // TASK-J952 (review fix): never the Browse tab — that's the exact
+    // seller-dumped-on-the-buyer-feed defect this card exists to eliminate.
+    // My Listings is the seller's own space (same destination used by the
+    // 404 fallback's "Back to my listings" action below).
+    onDeleted: () => router.replace("/(main)/(tabs)/my-listings" as never),
   });
 
   const handleViewConversations = useCallback(() => {

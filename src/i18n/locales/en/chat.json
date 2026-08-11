@@ -70,6 +70,7 @@
       "reservedForYouBody": "The seller has reserved this item for you. Keep chatting here to arrange your meetup.",
       "soldToYouTitle": "You bought this item!",
       "soldToYouBody": "This deal is complete. Meet the seller to receive your item, then leave them a review.",
+      "soldToYouReviewedBody": "This deal is complete. Thanks for rating the seller.",
       "browseSimilar": "Browse similar in {{category}}",
       "browseSimilarGeneric": "Browse similar listings",
       "viewTheirListings": "View their listings",

@@ -100,12 +100,18 @@ appId: com.hatiwal.app
     id: "unavailable-browse-similar"
 - assertVisible:
     id: "unavailable-more-from-seller"
-# The composer's "+" sheet no longer offers "Make an offer"
+# The composer's "+" sheet no longer offers "Make an offer" — assert the
+# POSITIVE (the disabled row WITH its reason IS visible) rather than only
+# the negative. TASK-K729 (review fix, INFO): an assertNotVisible on
+# "composer-action-offer" alone only holds if Maestro's id matcher is a
+# full-string match; asserting the disabled sibling row is unambiguous and
+# additionally proves acceptance #1 (the explanation sits where the offer
+# control vanished), not just that something is absent.
 - tapOn:
     id: "composer-plus-button"
 - waitForAnimationToEnd
-- assertNotVisible:
-    id: "composer-action-offer"
+- assertVisible:
+    id: "composer-action-offer-disabled"
 - tapOn:
     id: "composer-actions-backdrop"
 - waitForAnimationToEnd
@@ -158,5 +164,5 @@ appId: com.hatiwal.app
 - tapOn:
     id: "composer-plus-button"
 - waitForAnimationToEnd
-- assertNotVisible:
-    id: "composer-action-offer"
+- assertVisible:
+    id: "composer-action-offer-disabled"

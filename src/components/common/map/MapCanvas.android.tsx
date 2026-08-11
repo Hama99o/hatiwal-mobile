@@ -29,6 +29,7 @@ import { View, Pressable, Text, type GestureResponderEvent } from "react-native"
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { MapPin, Plus, Minus } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { withAlpha } from "@/lib/color";
 import type { MapCanvasProps, MapCanvasCoords } from "./MapCanvas.types";
 // Type-only import — erased at runtime, so it never triggers the native module
 // lookup that crashes Expo Go.
@@ -99,20 +100,6 @@ function circleFeature(center: MapCanvasCoords, radiusKm: number): GeoJSON.Featu
     ]);
   }
   return { type: "Feature", geometry: { type: "Polygon", coordinates: [ring] }, properties: {} };
-}
-
-// Add an alpha channel to an hsl()/rgb()/#hex color string for the circle fill.
-function withAlpha(color: string, alpha: number): string {
-  const c = color.trim();
-  if (c.startsWith("hsl(")) return c.replace("hsl(", "hsla(").replace(")", `, ${alpha})`);
-  if (c.startsWith("rgb(")) return c.replace("rgb(", "rgba(").replace(")", `, ${alpha})`);
-  if (c.startsWith("#")) {
-    let hex = c.slice(1);
-    if (hex.length === 3) hex = hex.split("").map((x) => x + x).join("");
-    const n = parseInt(hex, 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-  }
-  return c;
 }
 
 export default function MapCanvas({

@@ -201,3 +201,67 @@ describe("getPublishBlockers — location rule", () => {
     expect(blockers).toEqual<PublishBlocker[]>(["location"]);
   });
 });
+
+describe("getPublishBlockers — fieldErrors backstop (review fix, never-silent onInvalid)", () => {
+  it("does nothing when there are no fieldErrors and the listing is valid", () => {
+    expect(
+      getPublishBlockers({ values: validValues, photos: onePhoto, fieldErrors: {} })
+    ).toEqual([]);
+  });
+
+  it("ignores fieldErrors entries whose value is falsy (react-hook-form clears a field by setting it undefined, not by deleting the key)", () => {
+    const blockers = getPublishBlockers({
+      values: validValues,
+      photos: onePhoto,
+      fieldErrors: { title: undefined, price: null },
+    });
+    expect(blockers).toEqual([]);
+  });
+
+  it("folds in a zod-flagged title error even though isBlankTitle sees a non-blank string (e.g. zod's max-length cap tripped on an old/duplicated listing)", () => {
+    const blockers = getPublishBlockers({
+      values: { ...validValues, title: "a".repeat(200) },
+      photos: onePhoto,
+      fieldErrors: { title: { type: "too_big", message: "..." } },
+    });
+    expect(blockers).toEqual<PublishBlocker[]>(["title"]);
+  });
+
+  it("maps latitude/longitude field errors to the single 'location' blocker, without duplicating it", () => {
+    const blockers = getPublishBlockers({
+      values: validValues,
+      photos: onePhoto,
+      mode: "publish",
+      fieldErrors: { latitude: { type: "invalid" }, longitude: { type: "invalid" } },
+    });
+    expect(blockers).toEqual<PublishBlocker[]>(["location"]);
+  });
+
+  it("never re-introduces 'location' via fieldErrors in draft mode (latitude/longitude are always zod-optional, so this can't fire in practice, but the exemption must hold regardless)", () => {
+    const blockers = getPublishBlockers({
+      values: { title: "Sofa", price: 500, categoryId: 3 },
+      photos: [],
+      mode: "draft",
+      fieldErrors: { title: undefined },
+    });
+    expect(blockers).toEqual([]);
+  });
+
+  it("unions business-rule blockers with fieldErrors-derived blockers, in on-screen order, without duplicates", () => {
+    const blockers = getPublishBlockers({
+      values: { ...validValues, title: "" },
+      photos: [],
+      fieldErrors: { price: { type: "invalid" } },
+    });
+    expect(blockers).toEqual<PublishBlocker[]>(["photos", "title", "price"]);
+  });
+
+  it("ignores an unmapped field error (e.g. currency) that has no corresponding blocker", () => {
+    const blockers = getPublishBlockers({
+      values: validValues,
+      photos: onePhoto,
+      fieldErrors: { currency: { type: "invalid_enum_value" } },
+    });
+    expect(blockers).toEqual([]);
+  });
+});

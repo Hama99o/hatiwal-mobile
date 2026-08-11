@@ -667,7 +667,15 @@ export function ConversationScreen() {
       },
     });
     setIsReservingAfterAccept(false);
-    setReserveConfirm(null);
+    // CYCLE-6/O947 fix-list: `reserveAfterAccept` resolves `false` (never
+    // throws) specifically so a failed reserve can leave this sheet OPEN for
+    // a retry — the same contract ListingHeader's own
+    // `handleBuyerPickerConfirm` already honors (it only clears
+    // `buyerPickerAction` inside the success path, never in its `catch`).
+    // Only clearing `reserveConfirm` on success closes the sheet; a failure
+    // now keeps it visible with the same buyer/price/error toast already
+    // shown, instead of silently discarding the seller's one-tap reserve.
+    if (succeeded) setReserveConfirm(null);
   }, [reserveConfirm, currentConversationId, qc, load, t]);
 
   // ── Open counter-offer sheet (seller) ────────────────────────────────────
@@ -1178,6 +1186,18 @@ export function ConversationScreen() {
           sellerVerified={conversation.seller?.verified}
           transactionId={conversation.listing.viewerSaleTransactionId}
           hasReviewedSale={conversation.listing.viewerHasReviewedSale}
+          // TASK-K729 (review fix, MEDIUM — must fix): refresh the cached
+          // conversation (so `viewerHasReviewedSale` flips and the "Rate
+          // {seller}" CTA disappears) plus the Profile "Rate your recent
+          // deals" nudge, mirroring the house pattern at
+          // PendingReviewsNudge.tsx and the same refresh `onLifecycleDone`
+          // already performs above.
+          onReviewSubmitted={() => {
+            if (currentConversationId) {
+              qc.invalidateQueries({ queryKey: ["conversation", currentConversationId] });
+            }
+            qc.invalidateQueries({ queryKey: ["pending-reviews"] });
+          }}
         />
       )}
 

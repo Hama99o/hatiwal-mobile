@@ -24,13 +24,16 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RemoteImage } from "@/components/common/RemoteImage";
+import { FieldError } from "@/components/common/FieldError";
 import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/permissions";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
 import { Text } from "@/components/reusables/text";
 import { Label } from "@/components/reusables/label";
-import { Camera, ImageIcon, Plus, Star, X, ArrowLeftRight, AlertCircle } from "lucide-react-native";
+import { Camera, ImageIcon, Plus, Star, X, ArrowLeftRight } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { triggerHaptic } from "@/lib/animation/haptics";
+import { useReduceMotion } from "@/lib/animation/useReduceMotion";
 
 export interface PhotoItem {
   uri: string;
@@ -56,39 +59,6 @@ interface Props {
 const MAX_DEFAULT = 8;
 const THUMB = 104;
 
-// TASK-P736 (review fix) — Photos is a publish-required field just like
-// Title/Price/Category/Location, so its destructive message must match
-// theirs: text-sm (not text-xs) plus a leading AlertCircle icon, laid out
-// RTL-aware. Shared by both the empty-state and filled-strip error slots so
-// the two never drift apart again.
-function PhotoFieldError({
-  message,
-  isRtl,
-  colors,
-}: {
-  message: string;
-  isRtl: boolean;
-  colors: ReturnType<typeof useColors>;
-}) {
-  return (
-    <View
-      style={{
-        flexDirection: isRtl ? "row-reverse" : "row",
-        alignItems: "flex-start",
-        gap: 4,
-      }}
-    >
-      <AlertCircle size={14} color={colors.destructive} style={{ marginTop: 1 }} />
-      <Text
-        className="text-sm"
-        style={{ color: colors.destructive, textAlign: isRtl ? "right" : "left", flex: 1 }}
-      >
-        {message}
-      </Text>
-    </View>
-  );
-}
-
 export function PhotosSection({
   photos,
   onChange,
@@ -98,6 +68,7 @@ export function PhotosSection({
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  const reduceMotion = useReduceMotion();
   const [pickerVisible, setPickerVisible] = useState(false);
   // reorder: index of the photo currently "picked up" for swapping (-1 = none)
   const [selectedIdx, setSelectedIdx] = useState(-1);
@@ -163,7 +134,12 @@ export function PhotosSection({
   //   black screen. Intentional iOS-only path — no "web" fallback needed (web removed).
   //   Android: raw <Modal animationType="slide"> is used instead. Intentional — the
   //   Android path has a correct fallback and is the default for non-iOS platforms.
+  //
+  // TASK-P736 (review fix) — single place both "add a photo" entry points
+  // (the empty-state card AND the "+" tile once photos exist) call through,
+  // so the haptic tap-confirmation fires identically from either one.
   function showSourcePicker() {
+    triggerHaptic("light", reduceMotion);
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
@@ -240,6 +216,8 @@ export function PhotosSection({
 
         <Pressable
           testID="photos-add-button"
+          accessibilityRole="button"
+          accessibilityLabel={t("listing.form.addPhotos")}
           style={[
             styles.emptyCard,
             {
@@ -265,7 +243,7 @@ export function PhotosSection({
           </Text>
         </Pressable>
 
-        {error && <PhotoFieldError message={error} isRtl={isRtl} colors={colors} />}
+        {error && <FieldError message={error} />}
 
         <SourcePickerSheet
           visible={pickerVisible}
@@ -413,11 +391,14 @@ export function PhotosSection({
         {canAddMore && selectedIdx === -1 && (
           <Pressable
             testID="photos-add-button"
+            accessibilityRole="button"
+            accessibilityLabel={t("listing.form.addPhotos")}
             style={[
               styles.addTile,
               { borderColor: colors.border, backgroundColor: colors.card },
             ]}
             onPress={showSourcePicker}
+            android_ripple={{ color: colors.muted }}
           >
             <Plus size={22} color={colors.mutedForeground} />
           </Pressable>
@@ -425,7 +406,7 @@ export function PhotosSection({
       </ScrollView>
       </View>
 
-      {error && <PhotoFieldError message={error} isRtl={isRtl} colors={colors} />}
+      {error && <FieldError message={error} />}
 
       <SourcePickerSheet
         visible={pickerVisible}
@@ -458,6 +439,7 @@ function SourcePickerSheet({
   const { isRtl } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReduceMotion();
 
   return (
     <Modal
@@ -477,7 +459,15 @@ function SourcePickerSheet({
           },
         ]}
       >
+        {/* TASK-P736 (review fix) — the "add a photo" flow has 4 tap targets
+            in total (empty-state card / "+" tile, both testID="photos-add-button"
+            above, PLUS these two source-choice rows); each gets its own
+            distinct testID, an accessibilityLabel, and haptic confirmation
+            so the whole flow is consistently testable and accessible. */}
         <Pressable
+          testID="photos-add-button-gallery"
+          accessibilityRole="button"
+          accessibilityLabel={t("listing.form.gallery")}
           style={[
             styles.sheetRow,
             {
@@ -485,7 +475,10 @@ function SourcePickerSheet({
               borderBottomColor: colors.border,
             },
           ]}
-          onPress={onLibrary}
+          onPress={() => {
+            triggerHaptic("light", reduceMotion);
+            onLibrary();
+          }}
           android_ripple={{ color: colors.muted }}
         >
           <ImageIcon size={18} color={colors.foreground} />
@@ -502,6 +495,9 @@ function SourcePickerSheet({
         </Pressable>
 
         <Pressable
+          testID="photos-add-button-camera"
+          accessibilityRole="button"
+          accessibilityLabel={t("listing.form.camera")}
           style={[
             styles.sheetRow,
             {
@@ -509,7 +505,10 @@ function SourcePickerSheet({
               borderBottomColor: colors.border,
             },
           ]}
-          onPress={onCamera}
+          onPress={() => {
+            triggerHaptic("light", reduceMotion);
+            onCamera();
+          }}
           android_ripple={{ color: colors.muted }}
         >
           <Camera size={18} color={colors.foreground} />

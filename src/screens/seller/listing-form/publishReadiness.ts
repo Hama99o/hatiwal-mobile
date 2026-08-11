@@ -80,7 +80,37 @@ export interface GetPublishBlockersInput {
    * never be left with zero photos or no coordinates either.
    */
   mode?: "publish" | "draft";
+  /**
+   * TASK-P736 (review fix) — react-hook-form's `formState.errors`, keyed by
+   * field name (only truthiness of each value is read; pass it straight
+   * through, e.g. `fieldErrors: errors`). `zod` enforces a couple of rules
+   * this file intentionally does NOT re-implement (e.g. title's 150-char
+   * cap) — an old or duplicated listing whose title predates that cap can
+   * trip the zod resolver's `onInvalid` while every business rule below
+   * sees nothing wrong, which previously made `handlePublishBlockers` in
+   * ListingForm early-return on an EMPTY blocker list — a genuine
+   * validation failure with NO toast and NO scroll. Passing `fieldErrors`
+   * here folds any such zod-flagged field into the returned list too, so
+   * the `onInvalid` handler can never go silent just because this file's
+   * rules and zod's schema rules don't 100% overlap.
+   */
+  fieldErrors?: Partial<Record<string, unknown>> | null;
 }
+
+// Maps a react-hook-form field name to the PublishBlocker it corresponds to
+// on-screen — only for fields `getPublishBlockers`'s own rules might not
+// independently flag under every possible zod failure (see `fieldErrors`
+// above). `currency`/`condition`/`description`/`address` have no destructive
+// UI slot on the form (currency/condition are picker-driven and effectively
+// never invalid; description/address are optional), so they're intentionally
+// not mapped here.
+const FIELD_ERROR_TO_BLOCKER: Record<string, PublishBlocker> = {
+  title: "title",
+  price: "price",
+  categoryId: "category",
+  latitude: "location",
+  longitude: "location",
+};
 
 function isBlankTitle(title: PublishReadinessValues["title"]): boolean {
   return typeof title !== "string" || title.trim().length === 0;
@@ -108,20 +138,21 @@ export function getPublishBlockers({
   values,
   photos,
   mode = "publish",
+  fieldErrors,
 }: GetPublishBlockersInput): PublishBlocker[] {
-  const blockers: PublishBlocker[] = [];
+  const blockers = new Set<PublishBlocker>();
 
   if (mode === "publish" && (!photos || photos.length === 0)) {
-    blockers.push("photos");
+    blockers.add("photos");
   }
   if (isBlankTitle(values.title)) {
-    blockers.push("title");
+    blockers.add("title");
   }
   if (!isPositiveFiniteNumber(values.price)) {
-    blockers.push("price");
+    blockers.add("price");
   }
   if (!isPositiveFiniteNumber(values.categoryId)) {
-    blockers.push("category");
+    blockers.add("category");
   }
   // TASK-V395 — a draft may legitimately have no map pin yet; only Publish
   // (and "Save" on an already-published listing, which always runs in
@@ -130,8 +161,19 @@ export function getPublishBlockers({
     mode === "publish" &&
     (!isFiniteCoordinate(values.latitude) || !isFiniteCoordinate(values.longitude))
   ) {
-    blockers.push("location");
+    blockers.add("location");
   }
 
-  return blockers;
+  // TASK-P736 (review fix) — defensive backstop: fold in any zod-flagged
+  // field the rules above don't independently catch (see `fieldErrors` on
+  // `GetPublishBlockersInput`), so a genuine zod `onInvalid` can never be
+  // silently dropped just because the two rule sets disagree.
+  if (fieldErrors) {
+    for (const key of Object.keys(fieldErrors)) {
+      const mapped = FIELD_ERROR_TO_BLOCKER[key];
+      if (mapped && fieldErrors[key]) blockers.add(mapped);
+    }
+  }
+
+  return PUBLISH_BLOCKER_ORDER.filter((b) => blockers.has(b));
 }

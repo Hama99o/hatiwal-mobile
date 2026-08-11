@@ -22,7 +22,7 @@
  * `useReduceMotion()`), matching the house pattern (DESIGN_SYSTEM.md §7).
  */
 import React from "react";
-import { View } from "react-native";
+import { View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, { FadeInDown, SlideInDown } from "react-native-reanimated";
 
 import { Text } from "@/components/reusables/text";
@@ -30,6 +30,7 @@ import { StatusBadge } from "./StatusBadge";
 import { getStatusAccent } from "./statusAccent";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
+import { withAlpha } from "@/lib/color";
 
 export interface ListingStatusBannerProps {
   status: "reserved" | "sold";
@@ -49,6 +50,16 @@ export interface ListingStatusBannerProps {
    * "barely perceptible" visual-hierarchy finding this component fixes).
    */
   children?: React.ReactNode;
+  /**
+   * TASK-K729 (review fix, MEDIUM — layout): callers own their own outer
+   * spacing. Without this, `layout="row"` (rendered as a direct child of a
+   * flex:1, zero-padding screen root in Conversation.tsx) stretched
+   * edge-to-edge, so its rounded corners read as clipped and its top border
+   * doubled up on ListingHeader's own bottom hairline. Merged AFTER the
+   * container's own style so callers can add margin/insets without fighting
+   * the base layout.
+   */
+  style?: StyleProp<ViewStyle>;
 }
 
 export function ListingStatusBanner({
@@ -59,12 +70,20 @@ export function ListingStatusBanner({
   layout = "row",
   testID,
   children,
+  style,
 }: ListingStatusBannerProps) {
   const colors = useColors();
   const { isRtl } = useLocalization();
   const accent = getStatusAccent(status, colors);
   const rowDir = isRtl ? "row-reverse" : "row";
   const isStrip = layout === "strip";
+  // TASK-K729 (review fix, HIGH — dark mode / hardcoded color): `accent.text`
+  // is always an hsl(...) string (never hex), so appending a hex alpha
+  // suffix like `+ "33"` produced a syntactically-invalid value that RN's
+  // color parser accepted anyway by silently DROPPING the suffix — the
+  // border rendered fully opaque instead of at ~20% alpha. `withAlpha`
+  // builds a real hsla(...)/rgba(...) value instead of string concatenation.
+  const borderTint = withAlpha(accent.text, 0.2);
 
   const entering = reduceMotion
     ? undefined
@@ -76,20 +95,23 @@ export function ListingStatusBanner({
     <Animated.View
       entering={entering}
       testID={testID}
-      style={{
-        backgroundColor: accent.bg,
-        paddingVertical: 10,
-        paddingHorizontal: isStrip ? 16 : 12,
-        // "stretch" (not "flex-start") for the row layout — the container has
-        // no explicit width, and `children` (the CTA row) must span the full
-        // available width regardless of LTR/RTL rather than shrink-align to
-        // one edge, which "flex-start" would do (RN never auto-mirrors it).
-        alignItems: isStrip ? "center" : "stretch",
-        gap: 8,
-        ...(isStrip
-          ? { borderBottomWidth: 1, borderBottomColor: accent.text + "33" }
-          : { borderWidth: 1, borderColor: accent.text + "33", borderRadius: 10 }),
-      }}
+      style={[
+        {
+          backgroundColor: accent.bg,
+          paddingVertical: 10,
+          paddingHorizontal: isStrip ? 16 : 12,
+          // "stretch" (not "flex-start") for the row layout — the container has
+          // no explicit width, and `children` (the CTA row) must span the full
+          // available width regardless of LTR/RTL rather than shrink-align to
+          // one edge, which "flex-start" would do (RN never auto-mirrors it).
+          alignItems: isStrip ? "center" : "stretch",
+          gap: 8,
+          ...(isStrip
+            ? { borderBottomWidth: 1, borderBottomColor: borderTint }
+            : { borderWidth: 1, borderColor: borderTint, borderRadius: 10 }),
+        },
+        style,
+      ]}
     >
       <View
         style={{

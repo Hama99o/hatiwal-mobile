@@ -19,6 +19,13 @@
  *  8. "Rate {seller}" CTA (TASK-K729 HIGH follow-up) — only for sold +
  *     viewerIsSaleBuyer + a transactionId, hidden once already reviewed,
  *     opens the REV2 ReviewPromptSheet with the viewer's own transactionId.
+ *  9. TASK-K729 (review fix, LOW) — the seller identity for the
+ *     viewerIsSaleBuyer branch is hoisted OUT of `canRateSeller`, so it also
+ *     renders for "Reserved for you" and the already-reviewed "sold" state,
+ *     plus the dedicated `soldToYouReviewedBody` copy once reviewed.
+ * 10. TASK-K729 (review fix, MEDIUM — must fix) — `onReviewSubmitted` fires
+ *     when the REV2 ReviewPromptSheet's own `onSubmitted` callback runs, so
+ *     the caller can invalidate the stale cached conversation.
  */
 
 import React from "react";
@@ -330,5 +337,100 @@ describe("ListingUnavailableNotice — Rate seller CTA (sold + viewerIsSaleBuyer
       counterpartyName: "Ahmad Karimi",
       counterpartyAvatarUrl: "https://example.com/avatar.jpg",
     });
+  });
+});
+
+// ── 9. Seller identity hoisted out of canRateSeller (TASK-K729 review fix, LOW) ─
+
+describe("ListingUnavailableNotice — seller identity for the viewer-scoped states", () => {
+  it("renders the seller identity for 'Reserved for you' — about to meet a stranger in person", () => {
+    render(
+      <ListingUnavailableNotice
+        status="reserved"
+        viewerIsSaleBuyer
+        sellerId={9}
+        sellerName="Ahmad Karimi"
+      />
+    );
+    expect(screen.getByTestId("unavailable-seller-identity-buyer")).toBeTruthy();
+    expect(screen.getByText("Ahmad Karimi")).toBeTruthy();
+    // No recovery CTA and no Rate CTA — nothing to recover from, deal isn't sold yet.
+    expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
+  });
+
+  it("renders the seller identity for the already-reviewed sold state (previously a mini dead end with no identity)", () => {
+    render(
+      <ListingUnavailableNotice
+        status="sold"
+        viewerIsSaleBuyer
+        transactionId={42}
+        hasReviewedSale
+        sellerId={9}
+        sellerName="Ahmad Karimi"
+      />
+    );
+    expect(screen.getByTestId("unavailable-seller-identity-buyer")).toBeTruthy();
+    // The Rate CTA is still hidden — already reviewed.
+    expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
+  });
+
+  it("shows the dedicated 'already reviewed' body copy instead of re-asking for a review", () => {
+    render(
+      <ListingUnavailableNotice status="sold" viewerIsSaleBuyer transactionId={42} hasReviewedSale />
+    );
+    expect(screen.getByText("chat.thread.unavailable.soldToYouReviewedBody")).toBeTruthy();
+    expect(screen.queryByText("chat.thread.unavailable.soldToYouBody")).toBeNull();
+  });
+
+  it("shows the 'leave a review' body copy (not the reviewed copy) before the viewer has reviewed", () => {
+    render(<ListingUnavailableNotice status="sold" viewerIsSaleBuyer transactionId={42} />);
+    expect(screen.getByText("chat.thread.unavailable.soldToYouBody")).toBeTruthy();
+    expect(screen.queryByText("chat.thread.unavailable.soldToYouReviewedBody")).toBeNull();
+  });
+
+  it("does NOT render a buyer-branch identity when no seller info is present", () => {
+    render(<ListingUnavailableNotice status="reserved" viewerIsSaleBuyer />);
+    expect(screen.queryByTestId("unavailable-seller-identity-buyer")).toBeNull();
+  });
+});
+
+// ── 10. onReviewSubmitted (TASK-K729 review fix, MEDIUM — must fix) ────────────
+
+describe("ListingUnavailableNotice — onReviewSubmitted callback", () => {
+  it("calls onReviewSubmitted when the REV2 ReviewPromptSheet's onSubmitted fires", () => {
+    const onReviewSubmitted = jest.fn();
+    render(
+      <ListingUnavailableNotice
+        status="sold"
+        viewerIsSaleBuyer
+        transactionId={42}
+        sellerId={9}
+        sellerName="Ahmad Karimi"
+        onReviewSubmitted={onReviewSubmitted}
+      />
+    );
+
+    fireEvent.press(screen.getByTestId("unavailable-rate-seller"));
+
+    const lastProps = (ReviewPromptSheet as jest.Mock).mock.calls.at(-1)?.[0];
+    // Simulate the sheet's own mutation onSuccess firing its onSubmitted prop.
+    lastProps.onSubmitted({ id: 1, visible: true } as never);
+
+    expect(onReviewSubmitted).toHaveBeenCalledTimes(1);
+  });
+
+  it("never throws when onReviewSubmitted is omitted", () => {
+    render(
+      <ListingUnavailableNotice
+        status="sold"
+        viewerIsSaleBuyer
+        transactionId={42}
+        sellerId={9}
+        sellerName="Ahmad Karimi"
+      />
+    );
+    fireEvent.press(screen.getByTestId("unavailable-rate-seller"));
+    const lastProps = (ReviewPromptSheet as jest.Mock).mock.calls.at(-1)?.[0];
+    expect(() => lastProps.onSubmitted({ id: 1, visible: true } as never)).not.toThrow();
   });
 });

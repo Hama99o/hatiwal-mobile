@@ -100,7 +100,26 @@ jest.mock("@/components/common/ListingMapSection", () => ({ ListingMapSection: (
 jest.mock("@/components/common/BuyerPickerSheet", () => ({ BuyerPickerSheet: () => null }));
 jest.mock("@/components/common/ReviewPromptSheet", () => ({ ReviewPromptSheet: () => null }));
 jest.mock("@/components/common/ListingActionsSheet", () => ({ ListingActionsSheet: () => null }));
-jest.mock("@/screens/seller/listing-form/PublishSuccessSheet", () => ({ PublishSuccessSheet: () => null }));
+// CYCLE-5 review fix: no longer a blind `() => null` stub — it renders a
+// real testID gated on `visible` so the `published=1` routing effect below
+// (MyListingDetail.tsx's `showPublishSuccess` state) has actual assertable
+// behavior instead of being invisible to this suite.
+//
+// TASK-O947 test-infra fix: this MUST be a named `function` declaration, not
+// an arrow function assigned as an object-literal property. Babel's
+// `babel-plugin-jest-hoist` (the plugin that hoists `jest.mock()` calls above
+// imports) crashes with "Property declarations[0] of VariableDeclaration
+// expected node to be of a type [\"VariableDeclarator\"]" when a `require()`
+// call and a JSX-returning arrow function share a mock-factory scope — see
+// the working named-function pattern in Onboarding.test.tsx/
+// HiddenListings.test.tsx, which sidesteps the same crash.
+jest.mock("@/screens/seller/listing-form/PublishSuccessSheet", () => {
+  const { View } = require("react-native");
+  function PublishSuccessSheet({ visible }: { visible: boolean }) {
+    return visible ? <View testID="publish-success-sheet" /> : null;
+  }
+  return { PublishSuccessSheet };
+});
 jest.mock("@/components/common/SaleBuyerCard", () => ({ SaleBuyerCard: () => null }));
 
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
@@ -264,5 +283,33 @@ describe("MyListingDetail — background refetch failure keeps showing cached da
     expect(screen.queryByText("common.errorTitle")).toBeNull();
     expect(screen.queryByText("listing.ownerDetail.notFound")).toBeNull();
     expect(screen.queryByTestId("my-listing-detail-skeleton")).toBeNull();
+  });
+});
+
+// ─── TASK-J952 (CYCLE-5 review fix): the `published=1` routing/sheet
+// contract must actually be exercised, not just implied by a stubbed sheet ──
+
+describe("MyListingDetail — post-publish success sheet routing (published param)", () => {
+  it("published=1: shows the sheet exactly once and clears the param immediately", async () => {
+    mockParams = { id: "42", published: "1" };
+    (listingsAPI.getMyListing as jest.Mock).mockResolvedValue(makeListing());
+    renderScreen(makeQc());
+
+    await waitFor(() => expect(screen.getByTestId("publish-success-sheet")).toBeTruthy());
+
+    // The param is cleared the same tick it's consumed, so it can never
+    // reappear on a subsequent focus or back-navigation into this screen.
+    expect(mockSetParams).toHaveBeenCalledWith({ published: undefined });
+  });
+
+  it("no published param: the sheet never renders and setParams is never called", async () => {
+    mockParams = { id: "42" };
+    (listingsAPI.getMyListing as jest.Mock).mockResolvedValue(makeListing());
+    renderScreen(makeQc());
+
+    await waitFor(() => expect(listingsAPI.getMyListing as jest.Mock).toHaveBeenCalled());
+
+    expect(screen.queryByTestId("publish-success-sheet")).toBeNull();
+    expect(mockSetParams).not.toHaveBeenCalled();
   });
 });

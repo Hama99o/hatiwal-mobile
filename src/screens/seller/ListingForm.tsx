@@ -39,7 +39,7 @@ import {
   LayoutChangeEvent,
   BackHandler,
 } from "react-native";
-import { ChevronRight, MapPin, Coins, Check, ToggleRight, Copy, AlertCircle } from "lucide-react-native";
+import { ChevronRight, MapPin, Coins, Check, ToggleRight, Copy } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
@@ -52,7 +52,7 @@ import { useCategoryName } from "@/hooks/useCategoryName";
 import { toast } from "sonner-native";
 
 import { confirmAlert } from "@/utils/alert";
-import { listingsAPI } from "@/api/listings";
+import { listingsAPI, Listing } from "@/api/listings";
 import { Category } from "@/api/categories";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
@@ -63,6 +63,7 @@ import { Textarea } from "@/components/reusables/textarea";
 import { Label } from "@/components/reusables/label";
 import { Separator } from "@/components/reusables/separator";
 import { Switch } from "@/components/reusables/switch";
+import { Button } from "@/components/reusables/button";
 
 import { PhotosSection, PhotoItem } from "./listing-form/PhotosSection";
 import { getPublishBlockers, PublishBlocker } from "./listing-form/publishReadiness";
@@ -70,6 +71,7 @@ import { CategoryPicker } from "@/components/common/CategoryPicker";
 import { ConditionChips } from "@/components/common/ConditionChips";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import { BackButton } from "@/components/common/BackButton";
+import { FieldError } from "@/components/common/FieldError";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // TASK-P736 — maps each publish blocker to the translation key for its
@@ -420,7 +422,19 @@ export default function ListingFormScreen() {
       // owner detail, or an existing one we `back()`/`replace()` to) shows
       // the just-saved data immediately instead of a stale flash while its
       // own focus-refetch catches up.
-      qc.setQueryData(["my-listing", String(listing.id)], listing);
+      // CYCLE-5 CR fix: MERGE, don't replace. This mutation's payload comes
+      // from PUT/POST /my/listings (`view: :detailed`), while the cache entry
+      // is consumed by MyListingDetail via getMyListing (`view: :owner_detailed`
+      // = :detailed + the owner-only `sale` block). A straight replace would
+      // silently delete `listing.sale` — e.g. a RESERVED listing's "Reserved
+      // for <buyer>" card would vanish until the next focus-refetch (and stay
+      // gone if that refetch fails offline). `:detailed` is a strict subset of
+      // `:owner_detailed` apart from `sale`, so merging keeps the buyer block
+      // while still applying every fresh field from this save.
+      qc.setQueryData(
+        ["my-listing", String(listing.id)],
+        (prev: Listing | undefined) => (prev ? { ...prev, ...listing } : listing)
+      );
       toast.success(isPublished ? t("listing.form.saved") : t("listing.form.savedDraft"));
       // TASK-J952: never dump the seller onto the Browse tab.
       //  - Editing an existing listing → return to wherever this form was
@@ -472,7 +486,13 @@ export default function ListingFormScreen() {
       // instantiate against — or briefly flash — stale data, and a failed
       // background refetch would otherwise change nothing (the write here
       // doesn't depend on that refetch at all).
-      qc.setQueryData(["my-listing", String(listing.id)], listing);
+      // CYCLE-5 CR fix: merge, not replace — see the identical comment in
+      // saveMutation.onSuccess above; this payload is also `view: :detailed`
+      // and must not clobber the owner-only `sale` block already cached.
+      qc.setQueryData(
+        ["my-listing", String(listing.id)],
+        (prev: Listing | undefined) => (prev ? { ...prev, ...listing } : listing)
+      );
       // No toast here — the PublishSuccessSheet on the owner detail screen
       // (triggered by the `published=1` param below) already communicates
       // the outcome; a toast on top of it would duplicate the same message.
@@ -536,6 +556,38 @@ export default function ListingFormScreen() {
     [t, scrollToBlocker]
   );
 
+  // TASK-P736 (review fix) — the shared `onInvalid` handler for all three
+  // submit paths below. Before this existed, each `onInvalid` callback
+  // recomputed `getPublishBlockers` from raw values ALONE and handed the
+  // result straight to `handlePublishBlockers` — which early-returns on an
+  // EMPTY blocker list. Since `onInvalid` only ever fires when zod's
+  // `formState.errors` is non-empty (the form genuinely IS invalid), any
+  // rule zod enforces that this file's own business rules don't
+  // independently re-derive (e.g. title's 150-char cap, which only matters
+  // for a listing created/duplicated before that cap existed) made the
+  // blocker list come back empty — and the whole submit silently did
+  // nothing, no toast, no scroll. Passing `fieldErrors: errors` folds any
+  // such zod-only failure into the blocker list (see publishReadiness.ts);
+  // the final generic toast is the last-resort backstop for the case where
+  // even that mapping can't name a specific field — a bare toast beats
+  // total silence.
+  const handleInvalidSubmit = useCallback(
+    (mode: "publish" | "draft" = "publish") => {
+      const blockers = getPublishBlockers({
+        values: getValues(),
+        photos,
+        mode,
+        fieldErrors: errors,
+      });
+      if (blockers.length > 0) {
+        handlePublishBlockers(blockers, mode);
+        return;
+      }
+      toast.error(t("listing.form.invalidGeneric"));
+    },
+    [getValues, photos, errors, handlePublishBlockers, t]
+  );
+
   // ---------------------------------------------------------------------------
   // Handlers
   // ---------------------------------------------------------------------------
@@ -558,10 +610,7 @@ export default function ListingFormScreen() {
       setIsSubmittingPublish(false);
       saveMutation.mutate(values);
     },
-    () => {
-      const blockers = getPublishBlockers({ values: getValues(), photos, mode: "draft" });
-      handlePublishBlockers(blockers, "draft");
-    }
+    () => handleInvalidSubmit("draft")
   );
 
   // Editing an already-published listing → the single "Save" button must
@@ -580,10 +629,7 @@ export default function ListingFormScreen() {
       setIsSubmittingPublish(false);
       saveMutation.mutate(values);
     },
-    () => {
-      const blockers = getPublishBlockers({ values: getValues(), photos, mode: "publish" });
-      handlePublishBlockers(blockers);
-    }
+    () => handleInvalidSubmit("publish")
   );
 
   const onPublish = handleSubmit(
@@ -601,14 +647,9 @@ export default function ListingFormScreen() {
       setIsSubmittingPublish(true);
       publishMutation.mutate(values);
     },
-    () => {
-      // zod rejected before onValid ran (e.g. title/price/category missing)
-      // — recompute the FULL blocker list (including photos and location,
-      // which zod can't/no-longer see) from the current raw values so the
-      // toast + scroll target are always in sync with what's actually missing.
-      const blockers = getPublishBlockers({ values: getValues(), photos, mode: "publish" });
-      handlePublishBlockers(blockers);
-    }
+    // zod rejected before onValid ran (e.g. title/price/category missing) —
+    // see `handleInvalidSubmit` above for why this can never be silent.
+    () => handleInvalidSubmit("publish")
   );
 
   const isLoading = saveMutation.isPending || publishMutation.isPending;
@@ -673,9 +714,10 @@ export default function ListingFormScreen() {
     <ScreenContainer scrollable={false} padded={false}>
     {/* -------------------------------------------------------------------- */}
     {/* Top toolbar — back button + primary actions. Always visible at the    */}
-    {/* top (no scrolling to reach Save/Publish). Plain object-style          */}
-    {/* Pressables (a function `style` is dropped by NativeWind → invisible   */}
-    {/* button); colors via useColors() so it respects light/dark.           */}
+    {/* top (no scrolling to reach Save/Publish). TASK-P736 (review fix):     */}
+    {/* the RNR `Button` (44pt min tap target, built-in haptic + disabled     */}
+    {/* dimming) replaces the previous hand-styled Pressables (minHeight 40). */}
+    {/* colors via useColors() so it respects light/dark.                    */}
     {/* -------------------------------------------------------------------- */}
     <View
       style={{
@@ -694,41 +736,23 @@ export default function ListingFormScreen() {
       {isPublished ? (
         // Editing a published listing → save the changes (status unchanged);
         // TASK-P736: enforces the same photo/field readiness rules as Publish.
-        <Pressable
-          onPress={onSavePublished}
-          disabled={isLoading}
-          accessibilityRole="button"
-          android_ripple={{ color: colors.primaryForeground }}
-          style={[styles.topBtn, { backgroundColor: colors.primary, opacity: isLoading ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.topBtnLabel, { color: colors.primaryForeground }]}>
+        <Button variant="default" onPress={onSavePublished} disabled={isLoading}>
+          <Text style={{ fontSize: 14, fontWeight: "700", color: colors.primaryForeground }}>
             {isLoading ? t("common.loading") : t("common.save")}
           </Text>
-        </Pressable>
+        </Button>
       ) : (
         <>
-          <Pressable
-            onPress={onSaveDraft}
-            disabled={isLoading}
-            accessibilityRole="button"
-            android_ripple={{ color: colors.muted }}
-            style={[styles.topBtnOutline, { borderColor: colors.border, opacity: isLoading ? 0.5 : 1 }]}
-          >
-            <Text style={[styles.topBtnLabel, { color: colors.foreground }]}>
+          <Button variant="outline" onPress={onSaveDraft} disabled={isLoading}>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.foreground }}>
               {t("listing.form.saveDraft")}
             </Text>
-          </Pressable>
-          <Pressable
-            onPress={onPublish}
-            disabled={isLoading}
-            accessibilityRole="button"
-            android_ripple={{ color: colors.primaryForeground }}
-            style={[styles.topBtn, { backgroundColor: colors.primary, opacity: isLoading ? 0.6 : 1 }]}
-          >
-            <Text style={[styles.topBtnLabel, { color: colors.primaryForeground }]}>
+          </Button>
+          <Button variant="default" onPress={onPublish} disabled={isLoading}>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.primaryForeground }}>
               {isLoading && isSubmittingPublish ? t("common.loading") : t("listing.publish")}
             </Text>
-          </Pressable>
+          </Button>
         </>
       )}
     </View>
@@ -859,11 +883,7 @@ export default function ListingFormScreen() {
               />
             )}
           />
-          {errors.title && (
-            <Text className="text-xs" style={{ color: colors.destructive, marginTop: 4 }}>
-              {t("listing.form.titleRequired")}
-            </Text>
-          )}
+          {errors.title && <FieldError message={t("listing.form.titleRequired")} />}
           <Text className="text-xs" style={{ color: colors.mutedForeground, textAlign: isRtl ? "left" : "right", marginTop: 4 }}>
             {`${watch("title")?.length ?? 0}/150`}
           </Text>
@@ -912,11 +932,7 @@ export default function ListingFormScreen() {
               <ChevronRight size={12} color={colors.mutedForeground} />
             </Pressable>
           </View>
-          {errors.price && (
-            <Text className="text-xs" style={{ color: colors.destructive, marginTop: 4 }}>
-              {t("listing.form.priceRequired")}
-            </Text>
-          )}
+          {errors.price && <FieldError message={t("listing.form.priceRequired")} />}
 
           {/* Negotiable toggle — placed inline below price so seller sees the pairing */}
           <View
@@ -984,11 +1000,7 @@ export default function ListingFormScreen() {
               </Pressable>
             )}
           />
-          {errors.categoryId && (
-            <Text className="text-xs" style={{ color: colors.destructive, marginTop: 4 }}>
-              {t("listing.form.categoryRequired")}
-            </Text>
-          )}
+          {errors.categoryId && <FieldError message={t("listing.form.categoryRequired")} />}
         </View>
 
         {/* ------------------------------------------------------------------ */}
@@ -1070,27 +1082,10 @@ export default function ListingFormScreen() {
             </Text>
             <ChevronRight size={16} color={colors.mutedForeground} />
           </Pressable>
-          {locationErrorMessage && (
-            // TASK-P736 (review fix) — match PhotosSection's destructive
-            // message treatment: text-sm + a leading AlertCircle, laid out
-            // in an isRtl-aware row (was a bare text-xs Text).
-            <View
-              style={{
-                flexDirection: isRtl ? "row-reverse" : "row",
-                alignItems: "flex-start",
-                gap: 4,
-                marginTop: 4,
-              }}
-            >
-              <AlertCircle size={14} color={colors.destructive} style={{ marginTop: 1 }} />
-              <Text
-                className="text-sm"
-                style={{ color: colors.destructive, textAlign: isRtl ? "right" : "left", flex: 1 }}
-              >
-                {locationErrorMessage}
-              </Text>
-            </View>
-          )}
+          {/* TASK-P736 (review fix) — was a copy-pasted AlertCircle + text-sm
+              block (duplicating PhotosSection's local PhotoFieldError); both
+              now render through the one shared FieldError component. */}
+          {locationErrorMessage && <FieldError message={locationErrorMessage} />}
         </View>
 
         {/* ------------------------------------------------------------------ */}
@@ -1126,7 +1121,12 @@ export default function ListingFormScreen() {
         selectedId={selectedCategory?.id ?? null}
         onSelect={(cat) => {
           setSelectedCategory(cat);
-          setValue("categoryId", cat.id, { shouldValidate: true });
+          // TASK-P736 (review fix) — `shouldDirty: true` so a category
+          // picked via this sheet correctly flips `isDirty`; without it,
+          // `onCancel`'s unsaved-changes guard (`!isDirty && photos.every(...)`)
+          // could skip the confirm dialog entirely and silently discard a
+          // just-picked category on Cancel/hardware-back.
+          setValue("categoryId", cat.id, { shouldValidate: true, shouldDirty: true });
           setCategoryPickerVisible(false);
         }}
         onClose={() => setCategoryPickerVisible(false)}
@@ -1183,7 +1183,9 @@ export default function ListingFormScreen() {
                 },
               ]}
               onPress={() => {
-                setValue("currency", opt.value, { shouldValidate: true });
+                // TASK-P736 (review fix) — same shouldDirty rationale as the
+                // category/location setValue calls below.
+                setValue("currency", opt.value, { shouldValidate: true, shouldDirty: true });
                 setCurrencyPickerVisible(false);
               }}
               android_ripple={{ color: colors.muted }}
@@ -1210,11 +1212,16 @@ export default function ListingFormScreen() {
         initialLabel={mapLabel}
         onClose={() => setLocationPickerVisible(false)}
         onConfirm={({ coords, label }) => {
-          setValue("latitude", coords.latitude);
-          setValue("longitude", coords.longitude);
+          // TASK-P736 (review fix) — `shouldDirty: true` on all three: a
+          // dropped pin (and the derived location label) MUST flip
+          // `isDirty`, or `onCancel`'s unsaved-changes guard could skip the
+          // confirm dialog and silently discard a just-set map pin on
+          // Cancel/hardware-back.
+          setValue("latitude", coords.latitude, { shouldDirty: true });
+          setValue("longitude", coords.longitude, { shouldDirty: true });
           setMapLabel(label);
           // The precise place name becomes the listing's location text.
-          setValue("location", label ?? "", { shouldValidate: true });
+          setValue("location", label ?? "", { shouldValidate: true, shouldDirty: true });
           // TASK-V395 — a pin was just dropped; clear the destructive
           // location state immediately (exact mirror of PhotosSection's
           // `onChange` clearing `photosError` as soon as a photo is added).
@@ -1295,26 +1302,5 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-  },
-  topBtn: {
-    minHeight: 40,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  topBtnOutline: {
-    minHeight: 40,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  topBtnLabel: {
-    fontSize: 14,
-    fontWeight: "700",
   },
 });

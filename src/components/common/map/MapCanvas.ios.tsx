@@ -24,6 +24,7 @@ import MapView, {
 } from "react-native-maps";
 import { MapPin, Plus, Minus } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { withAlpha } from "@/lib/color";
 import type { MapCanvasProps, MapCanvasCoords } from "./MapCanvas.types";
 
 // 1° latitude ≈ 111 km. Frame the radius circle with comfortable padding by
@@ -37,20 +38,6 @@ function regionForRadius(center: MapCanvasCoords, radiusKm: number): Region {
     latitudeDelta: latDelta,
     longitudeDelta: latDelta,
   };
-}
-
-// Add an alpha channel to an hsl()/rgb()/#hex color string for the circle fill.
-function withAlpha(color: string, alpha: number): string {
-  const c = color.trim();
-  if (c.startsWith("hsl(")) return c.replace("hsl(", "hsla(").replace(")", `, ${alpha})`);
-  if (c.startsWith("rgb(")) return c.replace("rgb(", "rgba(").replace(")", `, ${alpha})`);
-  if (c.startsWith("#")) {
-    let hex = c.slice(1);
-    if (hex.length === 3) hex = hex.split("").map((x) => x + x).join("");
-    const n = parseInt(hex, 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-  }
-  return c;
 }
 
 export default function MapCanvas({

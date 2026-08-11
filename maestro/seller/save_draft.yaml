@@ -89,6 +89,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Draft No Pin No Photo Item"
 - waitForAnimationToEnd
+
+# Edit lives in the "More" overflow sheet (TASK-L863) — a draft owner detail
+# renders only the primary "Publish" button plus "More".
+- tapOn: "More"
+- waitForAnimationToEnd
 - tapOn: "Edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Listing"

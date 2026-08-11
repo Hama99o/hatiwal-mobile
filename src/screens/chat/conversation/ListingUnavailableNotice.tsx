@@ -91,6 +91,21 @@ export interface ListingUnavailableNoticeProps {
    * duplicate, so re-offering it would be a dead end of its own).
    */
   hasReviewedSale?: boolean | null;
+  /**
+   * TASK-K729 (review fix, MEDIUM — must fix): called after the buyer
+   * successfully submits their review via the REV2 `ReviewPromptSheet`.
+   * Without this, the cached `["conversation", id]` payload keeps
+   * `viewerHasReviewedSale=false` (nothing refetches — the sheet is a plain
+   * JS `Modal`, not a route, so `useFocusEffect` never re-fires), so the
+   * "Rate {seller}" CTA stays on screen; a second tap re-submits and the
+   * server 422s on the uniqueness constraint into an unexplained generic
+   * error toast. The caller (Conversation.tsx) wires this to
+   * `qc.invalidateQueries({ queryKey: ["conversation", id] })` (mirroring
+   * the same refresh `onLifecycleDone` already performs) plus
+   * `["pending-reviews"]` so the Profile "Rate your recent deals" nudge
+   * doesn't go stale either.
+   */
+  onReviewSubmitted?: () => void;
 }
 
 export function ListingUnavailableNotice({
@@ -103,6 +118,7 @@ export function ListingUnavailableNotice({
   sellerVerified,
   transactionId,
   hasReviewedSale = false,
+  onReviewSubmitted,
 }: ListingUnavailableNoticeProps) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
@@ -123,9 +139,17 @@ export function ListingUnavailableNotice({
     ? t("chat.thread.unavailable.soldTitle")
     : t("chat.thread.unavailable.reservedTitle");
 
+  // TASK-K729 (review fix, LOW): once the viewer has already reviewed the
+  // sale, `soldToYouBody`'s "...then leave them a review" no longer matches
+  // reality — it asks for an action that's already done and no longer
+  // offered (the "Rate {seller}" CTA below is hidden once `hasReviewedSale`
+  // is true). A dedicated "thanks" sentence closes the loop instead of
+  // silently asking for a review the server would 422 on as a duplicate.
   const body = viewerIsSaleBuyer
     ? isSold
-      ? t("chat.thread.unavailable.soldToYouBody")
+      ? hasReviewedSale
+        ? t("chat.thread.unavailable.soldToYouReviewedBody")
+        : t("chat.thread.unavailable.soldToYouBody")
       : t("chat.thread.unavailable.reservedForYouBody")
     : isSold
     ? t("chat.thread.unavailable.soldBody")
@@ -172,12 +196,20 @@ export function ListingUnavailableNotice({
         subtitle={body}
         layout="row"
         reduceMotion={reduceMotion}
+        // TASK-K729 (review fix, MEDIUM — layout): the banner is a direct
+        // child of the screen root (no padding of its own), so an unbounded
+        // rounded+bordered card stretched edge-to-edge — its side borders sat
+        // exactly on the screen edges (clipped-looking corners) and its top
+        // border doubled up on ListingHeader's own bottom hairline.
+        style={{ marginHorizontal: 12, marginTop: 8 }}
       >
-        {/* The one and only CTA for the winning buyer — "leave them a review"
-            in the body copy above is a real next step, not just text. Never
-            rendered for `reserved` (the deal isn't done yet — meetup guidance
-            only) nor once the viewer has already reviewed the sale. */}
-        {viewerIsSaleBuyer && canRateSeller && (
+        {/* The seller is named once here for BOTH viewer-scoped sub-states
+            ("Reserved for you" and "You bought this item", reviewed or not)
+            — TASK-K729 (review fix, LOW): previously nested inside
+            `canRateSeller`, so "Reserved for you" (about to meet a stranger
+            in person) and the already-reviewed sold state rendered with no
+            identity at all. */}
+        {viewerIsSaleBuyer && (
           <View style={{ gap: 10, marginTop: 2 }}>
             {hasSeller && (
               <UserIdentity
@@ -188,24 +220,31 @@ export function ListingUnavailableNotice({
                 testID="unavailable-seller-identity-buyer"
               />
             )}
-            <Button
-              variant="default"
-              onPress={() => setReviewPromptVisible(true)}
-              testID="unavailable-rate-seller"
-              accessibilityRole="button"
-              accessibilityLabel={rateSellerLabel}
-              style={{ alignSelf: isRtl ? "flex-end" : "flex-start", minWidth: 0, maxWidth: "100%" }}
-            >
-              <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6, flexShrink: 1 }}>
-                <Star size={14} color={colors.primaryForeground} />
-                <Text
-                  numberOfLines={1}
-                  style={{ fontSize: 12, fontWeight: "600", color: colors.primaryForeground, flexShrink: 1 }}
-                >
-                  {rateSellerLabel}
-                </Text>
-              </View>
-            </Button>
+            {/* The one and only CTA for the winning buyer — "leave them a
+                review" in the body copy above is a real next step, not just
+                text. Never rendered for `reserved` (the deal isn't done yet
+                — meetup guidance only) nor once the viewer has already
+                reviewed the sale. */}
+            {canRateSeller && (
+              <Button
+                variant="default"
+                onPress={() => setReviewPromptVisible(true)}
+                testID="unavailable-rate-seller"
+                accessibilityRole="button"
+                accessibilityLabel={rateSellerLabel}
+                style={{ alignSelf: isRtl ? "flex-end" : "flex-start", minWidth: 0, maxWidth: "100%" }}
+              >
+                <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6, flexShrink: 1 }}>
+                  <Star size={14} color={colors.primaryForeground} />
+                  <Text
+                    numberOfLines={1}
+                    style={{ fontSize: 12, fontWeight: "600", color: colors.primaryForeground, flexShrink: 1 }}
+                  >
+                    {rateSellerLabel}
+                  </Text>
+                </View>
+              </Button>
+            )}
           </View>
         )}
 
@@ -226,7 +265,14 @@ export function ListingUnavailableNotice({
               />
             )}
 
-            <View style={{ flexDirection: rowDir, gap: 8, flexWrap: "wrap" }}>
+            {/* TASK-K729 (review fix, MEDIUM — truncated CTAs): stacked full
+                width instead of two `flex: 1` buttons sharing one row — on a
+                360dp screen the shared row left ~17 characters per button,
+                truncating the PRIMARY recovery CTA mid-word (worst in
+                ps/fa, whose labels run longer than English). `numberOfLines={2}`
+                is defensive wrapping if a label is ever still too long for
+                one line at full width. */}
+            <View style={{ flexDirection: "column", gap: 8 }}>
               {/* Always present — the one guaranteed recovery action, so no
                   dead end remains. Primary weight (variant="default") mirrors
                   the web recovery card's own CTA priority (TASK-WEB-SOLDNEXT). */}
@@ -236,12 +282,11 @@ export function ListingUnavailableNotice({
                 testID="unavailable-browse-similar"
                 accessibilityRole="button"
                 accessibilityLabel={browseSimilarLabel}
-                style={{ flex: 1, minWidth: 0 }}
               >
                 <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6, flexShrink: 1 }}>
                   <Search size={14} color={colors.primaryForeground} />
                   <Text
-                    numberOfLines={1}
+                    numberOfLines={2}
                     style={{ fontSize: 12, fontWeight: "600", color: colors.primaryForeground, flexShrink: 1 }}
                   >
                     {browseSimilarLabel}
@@ -256,12 +301,11 @@ export function ListingUnavailableNotice({
                   testID="unavailable-more-from-seller"
                   accessibilityRole="button"
                   accessibilityLabel={viewTheirListingsLabel}
-                  style={{ flex: 1, minWidth: 0 }}
                 >
                   <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6, flexShrink: 1 }}>
                     <Store size={14} color={colors.foreground} />
                     <Text
-                      numberOfLines={1}
+                      numberOfLines={2}
                       style={{ fontSize: 12, fontWeight: "600", color: colors.foreground, flexShrink: 1 }}
                     >
                       {viewTheirListingsLabel}
@@ -277,7 +321,14 @@ export function ListingUnavailableNotice({
       {/* REV2: rate the seller right from the "You bought this item" notice —
           rendered outside the banner (it's a full-screen Modal, not part of
           the accent surface). Controlled locally; `transactionId` is always
-          the viewer's OWN sale (never leaked for anyone else). */}
+          the viewer's OWN sale (never leaked for anyone else).
+          TASK-K729 (review fix, MEDIUM — must fix): `onSubmitted` forwards to
+          `onReviewSubmitted` so the caller can invalidate the cached
+          conversation (and the Profile pending-reviews nudge) — without this
+          `viewerHasReviewedSale` stays stale after a successful submit (the
+          sheet is a plain Modal, not a route, so `useFocusEffect` never
+          re-fires), the "Rate {seller}" CTA never disappears, and a second
+          tap 422s into an unexplained generic error toast. */}
       <ReviewPromptSheet
         visible={reviewPromptVisible}
         onClose={() => setReviewPromptVisible(false)}
@@ -285,6 +336,7 @@ export function ListingUnavailableNotice({
         callerRole="buyer"
         counterpartyName={sellerName ?? ""}
         counterpartyAvatarUrl={sellerAvatarUrl}
+        onSubmitted={() => onReviewSubmitted?.()}
       />
     </>
   );
