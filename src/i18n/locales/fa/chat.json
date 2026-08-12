@@ -39,7 +39,7 @@
     "offer": "پیشنهاد: {{price}}",
     "offerAccepted": "پیشنهاد پذیرفته شد",
     "offerDeclined": "پیشنهاد رد شد",
-    "offerCounter": "پیشنهاد متقابل: {{amount}} {{currency}}",
+    "offerCounter": "پیشنهاد متقابل: {{price}}",
     "photo": "عکس",
     "file": "فایل"
   },
@@ -167,7 +167,7 @@
     "quickChipsHint": "مبالغ سریع",
     "firmNotice": "قیمت فروشنده ثابت است — پیشنهادات پذیرفته نمی‌شوند",
     "reserveAfterAcceptTitle": "برای {{buyerName}} رزرو شود؟",
-    "reserveAfterAcceptBody": "آن را به قیمت {{price}} نگه می‌دارد. خریداران دیگر هم‌چنان می‌توانند به شما پیام بدهند و آگهی به صورت رزرو شده نمایش داده می‌شود.",
+    "reserveAfterAcceptBody": "خریداران دیگر هم‌چنان می‌توانند به شما پیام بدهند و آگهی به صورت رزرو شده نمایش داده می‌شود.",
     "reserveAfterAcceptDismiss": "نه الان",
     "reserveAfterAcceptSuccess": "آگهی برای {{buyerName}} رزرو شد"
   },
@@ -190,6 +190,7 @@
     "noResults": "هیچ پیامی با جستجوی شما مطابقت ندارد",
     "noMatchTitle": "هیچ نتیجه‌ای برای \"{{term}}\" یافت نشد",
     "noMatchDescription": "نام دیگر، عنوان آگهی یا پیام دیگری را امتحان کنید.",
+    "noMatchDescriptionPartial": "نام دیگر، عنوان آگهی یا پیام دیگری را امتحان کنید. نتایج فقط در گفتگوهای بارگذاری‌شده نشان داده می‌شود.",
     "clearSearch": "پاک کردن جستجو"
   },
   "actions": {

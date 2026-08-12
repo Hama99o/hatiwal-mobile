@@ -99,6 +99,26 @@ export const OfferAccepted: Story = {
   },
 };
 
+// Review fix (MEDIUM, VISUAL TEST SURFACE OUT OF DATE) — TASK-O947's pending
+// spinner state (the recipient just tapped Accept, awaiting the server
+// response) had no story despite CLAUDE.md's testing table requiring every
+// shared component in ALL states. `offerActionsDisabled` mirrors the
+// screen's global in-flight guard (every offer bubble in the thread dims);
+// `offerResponsePending="accept"` marks THIS bubble as the one actually
+// tapped, so only its Accept button shows a spinner at FULL opacity (the
+// SHOULD-FIX fix — `opacity: disabled && !pending ? 0.5 : 1` — rather than
+// the whole row, spinner included, dimmed to 50%).
+export const OfferTheirsAccepting: Story = {
+  args: {
+    message: makeMsg({ kind: "offer", body: "75000|AFN|85000" }),
+    isMine: false,
+    offerOutcome: null,
+    onOfferRespond: (accepted) => console.log("offer respond", accepted),
+    offerActionsDisabled: true,
+    offerResponsePending: "accept",
+  },
+};
+
 export const OfferDeclined: Story = {
   args: {
     message: makeMsg({ kind: "offer", body: "75000|AFN|85000" }),

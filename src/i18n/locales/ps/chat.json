@@ -39,7 +39,7 @@
     "offer": "وړاندیز: {{price}}",
     "offerAccepted": "وړاندیز ومنل شو",
     "offerDeclined": "وړاندیز رد شو",
-    "offerCounter": "مقابل وړاندیز: {{amount}} {{currency}}",
+    "offerCounter": "مقابل وړاندیز: {{price}}",
     "photo": "انځور",
     "file": "فایل"
   },
@@ -167,7 +167,7 @@
     "quickChipsHint": "ګړندي مبلغونه",
     "firmNotice": "د پلورونکي قیمت ثابت دی — وړاندیزونه نه منل کیږي",
     "reserveAfterAcceptTitle": "د {{buyerName}} لپاره خوندي کړئ؟",
-    "reserveAfterAcceptBody": "دا اعلان په {{price}} کې ساتي. نور پیرودونکي لا هم تاسو ته پیغام لیکلی شي، او اعلان به د خوندي شوي په توګه ښکاره شي.",
+    "reserveAfterAcceptBody": "نور پیرودونکي لا هم تاسو ته پیغام لیکلی شي، او اعلان به د خوندي شوي په توګه ښکاره شي.",
     "reserveAfterAcceptDismiss": "اوس نه",
     "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره خوندي شوی ښودل شو"
   },
@@ -190,6 +190,7 @@
     "noResults": "هیڅ پیغام ستاسو لټون سره سمون نه لري",
     "noMatchTitle": "د \"{{term}}\" سره هیچ سمون ونه موندل شو",
     "noMatchDescription": "د بل نوم، د اعلان سرلیک، یا پیغام سره هڅه وکړئ.",
+    "noMatchDescriptionPartial": "د بل نوم، د اعلان سرلیک، یا پیغام سره هڅه وکړئ. یوازې پورته شوي خبرو کې نتایج ښودل کیږي.",
     "clearSearch": "لټون پاک کړئ"
   },
   "actions": {

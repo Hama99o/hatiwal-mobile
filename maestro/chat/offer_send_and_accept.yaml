@@ -7,12 +7,20 @@ appId: com.hatiwal.app
 # buyer, so the seller-only "Accept" button could never have been found) --
 # now signs out and back in as the real seller via login_seller.yaml.
 #
-# TASK-O947 also means accepting now triggers a confirm sheet --
-# "Reserve for {buyer} at {price}?" -- when the responder owns an active
-# listing. This flow stays scoped to the plain accept-outcome-badge mechanic
-# and dismisses that sheet via "Not now", asserting the listing stays
-# Active. The prompt's CONFIRM path (and the reserve it performs) is covered
-# separately by maestro/chat/reserve_after_accept.yaml.
+# TASK-O947 also means accepting now triggers a confirm sheet titled
+# "Reserve for {buyer}?" (the accepted price appears only in the sheet BODY
+# sentence, never the title -- see reserveAfterAccept.ts) -- when the
+# responder owns an active listing. This flow stays scoped to the plain
+# accept-outcome-badge mechanic and dismisses that sheet via "Not now",
+# asserting the listing stays Active. The prompt's CONFIRM path (and the
+# reserve it performs) is covered separately by
+# maestro/chat/reserve_after_accept.yaml.
+#
+# CR fix (broken by the O947 copy change): the buyer's display name is
+# wrapped in Unicode bidi-isolate marks (U+2066/U+2069) when interpolated
+# into the title (`wrapBidiIsolate` in reserveAfterAccept.ts), so the
+# rendered text is literally "Reserve for ⁦Ahmad Karimi⁩?" -- an
+# EXACT string match can never match that. Use a `.*`-wrapped regex instead.
 #
 # Uses "Men Winter Jacket XL Black" (active, seller-owned, no pre-seeded
 # conversation) -- kept distinct from the Lenovo ThinkPad / Ahmad Karimi
@@ -72,8 +80,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # TASK-O947: dismiss the reserve-after-accept confirm sheet -- out of scope
-# here, covered by reserve_after_accept.yaml.
-- assertVisible: "Reserve this listing for a buyer?"
+# here, covered by reserve_after_accept.yaml. Regex (not an exact string)
+# because the interpolated buyer name is bidi-isolate wrapped (see the header
+# comment above) -- an exact "Reserve for Ahmad Karimi?" string can never match.
+- assertVisible: ".*Reserve for.*Ahmad Karimi.*"
 - tapOn: "Not now"
 - waitForAnimationToEnd
 

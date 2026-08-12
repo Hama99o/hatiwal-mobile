@@ -24,6 +24,16 @@
  * a hook, so it cannot call `useLocalization()` itself) and pre-formats the
  * amount before interpolating a single `{{price}}` placeholder — the same
  * pattern every other price string in the app already uses.
+ *
+ * CR fix (TASK-Z684 review): the switch had no `offer_counter` case, so a
+ * conversation whose last message is a counter-offer fell through to
+ * `default` and rendered the RAW `"amount|currency|listedPrice"` metadata —
+ * both on screen and to search (re-breaking "what you see is what you can
+ * search for" for exactly the counter-offer flow, Conversation.tsx's
+ * `handleSendCounter`, which sends `kind: "offer_counter"`). `offer_counter`
+ * shares the same `amount|currency` prefix as `offer` (the third segment,
+ * `listedPrice`, is irrelevant to the preview), so it reuses the identical
+ * parse/format path and only swaps the translation key.
  */
 
 import type { ComponentType } from "react";
@@ -53,8 +63,8 @@ export interface ConversationPreview {
  *
  * - Deleted last message → "Message deleted"
  * - No last message at all → "No messages yet"
- * - Special `lastMessageKind`s (meetup/offer/photo/document) → a translated,
- *   human-readable label (never the raw metadata body)
+ * - Special `lastMessageKind`s (meetup/offer/offer_counter/photo/document) →
+ *   a translated, human-readable label (never the raw metadata body)
  * - Plain text messages → the raw `lastMessageBody` as-is
  *
  * @param formatCurrency - `useLocalization().formatCurrency`, used to render
@@ -81,15 +91,18 @@ export function conversationPreviewText(
       return { text: t("chat.preview.meetupAccepted"), icon: MapPin };
     case "meetup_declined":
       return { text: t("chat.preview.meetupDeclined"), icon: MapPin };
-    case "offer": {
+    case "offer":
+    case "offer_counter": {
       const [amountRaw, currency] = item.lastMessageBody.split("|");
       const amount = Number(amountRaw);
       const price = formatCurrency(
         Number.isFinite(amount) ? amount : null,
         currency || undefined
       );
+      const translationKey =
+        item.lastMessageKind === "offer_counter" ? "chat.preview.offerCounter" : "chat.preview.offer";
       return {
-        text: t("chat.preview.offer", { price }),
+        text: t(translationKey, { price }),
         icon: Tag,
       };
     }

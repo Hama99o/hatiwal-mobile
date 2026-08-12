@@ -81,9 +81,12 @@ export interface ReserveAfterAcceptPrompt {
   /** Sheet header, e.g. "Reserve for Ahmad?" — names the buyer (bidi-isolated)
    *  but never the price (see file header re: prices in button/title chrome). */
   title: string;
-  /** Consequence sentence, e.g. "Holds it at ؋12,000. Other buyers can still
-   *  message you, and the listing will show as Reserved." — the price is
-   *  wrapped in a bidi isolate (see `wrapBidiIsolate`). */
+  /**
+   * Consequence sentence, e.g. "Other buyers can still message you, and the
+   * listing will show as Reserved." Review fix (LOW, price stated twice) —
+   * no longer carries the price at all; the sheet's own `PriceTag` (now
+   * captioned "Agreed price") is the single place the amount is shown.
+   */
   body: string;
 }
 
@@ -149,11 +152,10 @@ export function buildReserveAfterAcceptPrompt(
   params: MaybeReserveAfterAcceptParams
 ): ReserveAfterAcceptPrompt | null {
   if (!shouldPromptReserveAfterAccept(params)) return null;
-  const { listing, buyer, offerAmount, currency, t, formatCurrency } = params;
+  const { listing, buyer, offerAmount, currency, t } = params;
   if (!listing || !buyer || !offerAmount) return null;
 
   const resolvedCurrency = currency ?? "AFN";
-  const formattedPrice = formatCurrency(offerAmount, resolvedCurrency);
   const isolatedBuyerName = wrapBidiIsolate(buyer.name);
 
   return {
@@ -169,12 +171,16 @@ export function buildReserveAfterAcceptPrompt(
     currency: resolvedCurrency,
     // Review fix (COPY) — the title now names the buyer (a sheet title wraps
     // freely, unlike a truncating alert button, so the isolated name is safe
-    // here) and the body states the consequence instead of repeating the
-    // same question twice.
+    // here) and the body states only the consequence.
+    //
+    // Review fix (LOW, price stated twice) — the body previously repeated
+    // the same amount the sheet's own `PriceTag` already renders (now with
+    // an "Agreed price" caption, see BuyerPickerSheet.tsx), which was both
+    // redundant and left the hero amount ambiguous on its own. The body
+    // string no longer takes a `{{price}}` placeholder at all (en/ps/fa) —
+    // `formatCurrency` is unused here as a result.
     title: t("chat.offer.reserveAfterAcceptTitle", { buyerName: isolatedBuyerName }),
-    body: t("chat.offer.reserveAfterAcceptBody", {
-      price: wrapBidiIsolate(formattedPrice),
-    }),
+    body: t("chat.offer.reserveAfterAcceptBody"),
   };
 }
 
@@ -196,9 +202,21 @@ export async function reserveAfterAccept(
     t: (key: string, options?: Record<string, unknown>) => string;
     /** Called after a successful reserve so the caller can invalidate queries + reload. */
     onReserved?: () => void;
+    /**
+     * Review fix (MEDIUM, STATES/ERROR FEEDBACK) — called with the exact
+     * same copy as the error toast on failure. The stay-open-on-failure
+     * retry contract keeps the confirm sheet mounted after a failed
+     * reserve, but the sheet's own raw RN `<Modal>` is a separate native
+     * window on Android that occludes the toast entirely (sonner-native
+     * only escapes to a `FullWindowOverlay` on iOS) — spinner runs, spinner
+     * stops, sheet stays open, nothing visibly explains why. The caller
+     * threads this into `BuyerPickerSheet`'s `errorMessage` prop so the
+     * failure is legible INSIDE the sheet on every platform, not just iOS.
+     */
+    onError?: (message: string) => void;
   }
 ): Promise<boolean> {
-  const { t, onReserved } = options;
+  const { t, onReserved, onError } = options;
   try {
     await listingsAPI.reserveListing(prompt.listingId, {
       buyerId: prompt.buyer.id,
@@ -213,7 +231,9 @@ export async function reserveAfterAccept(
     onReserved?.();
     return true;
   } catch {
-    toast.error(t("chat.listingActions.reserveFailed"));
+    const message = t("chat.listingActions.reserveFailed");
+    toast.error(message);
+    onError?.(message);
     return false;
   }
 }

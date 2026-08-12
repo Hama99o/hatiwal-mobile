@@ -56,6 +56,13 @@ import { useColors } from "@/hooks/useColors";
 import { useTranslation } from "react-i18next";
 import { WifiOff, RotateCcw } from "lucide-react-native";
 
+// How many concurrent requests `refreshLoadedPages` fires at once, instead of
+// `Promise.all`-ing every loaded page in one unbounded burst. Kept small so a
+// list that auto-paged deep (e.g. a narrow `filterItems` search that walked
+// many pages looking for a match) doesn't turn every subsequent focus event
+// into a huge parallel request spike.
+const REFRESH_CONCURRENCY = 5;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ListQuery = {
@@ -277,7 +284,13 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     currentPageRef.current = currentPage;
   }, [currentPage]);
 
-  // Re-fetches every page ALREADY loaded (1..currentPage), then replaces
+  // Tracks "the highest page a fetch has been ISSUED for" — written
+  // SYNCHRONOUSLY the instant a fetch is decided on, unlike `currentPage`
+  // (React state, committed one render behind). See `handleEndReached`
+  // below for the race this closes.
+  const loadedPageRef = useRef(1);
+
+  // Re-fetches every page ALREADY loaded, then replaces
   // `items` with the freshly-merged result in one shot.
   //
   // REGRESSION FIX (cycle-3 CR): a silent background refresh used to always
@@ -288,22 +301,35 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   // currently-loaded page keeps exactly what was visible (now refreshed)
   // instead of throwing away pages the user already paid a scroll-and-wait
   // for.
+  //
+  // REGRESSION FIX (review): pages are now fetched in bounded-size batches
+  // (`REFRESH_CONCURRENCY`) rather than one unbounded `Promise.all` over
+  // every loaded page — a list that auto-paged deep (e.g. a narrow
+  // `filterItems` search walking many pages looking for a match) used to
+  // turn every subsequent focus into one giant parallel request burst.
   const refreshLoadedPages = useCallback(async () => {
     const pagesLoaded = Math.max(1, currentPageRef.current);
     const requestId = ++requestIdRef.current;
     try {
-      const results = await Promise.all(
-        Array.from({ length: pagesLoaded }, (_, i) => fetcher({ page: i + 1, perPage }))
-      );
-      // A newer request (e.g. another refresh, or the user paging further)
-      // was issued while these were in flight — drop this stale result.
-      if (requestId !== requestIdRef.current) return;
+      const results: ListFetchResult<T>[] = [];
+      for (let start = 0; start < pagesLoaded; start += REFRESH_CONCURRENCY) {
+        const batchSize = Math.min(REFRESH_CONCURRENCY, pagesLoaded - start);
+        const batch = await Promise.all(
+          Array.from({ length: batchSize }, (_, i) => fetcher({ page: start + i + 1, perPage }))
+        );
+        // A newer request (e.g. another refresh, or the user paging
+        // further) was issued while this batch was in flight — bail before
+        // firing any further (now-pointless) batches.
+        if (requestId !== requestIdRef.current) return;
+        results.push(...batch);
+      }
 
       const merged = results.flatMap((r) => r.items);
       const last = results[results.length - 1];
       setItems(merged);
       setTotalPages(last.totalPages);
       setCurrentPage(last.currentPage);
+      loadedPageRef.current = last.currentPage;
       setError(null);
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
@@ -313,6 +339,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
       // A background refresh failing (e.g. device went offline) must not
       // blank an already-loaded, perfectly usable list — leave it as-is.
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher, perPage]);
 
   // ── Initial load / config id change ────────────────────────────────────────
@@ -334,6 +361,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
       setItems([]);
       setCurrentPage(1);
       setTotalPages(1);
+      loadedPageRef.current = 1;
       setError(null);
       await fetchPage(1, true);
       idLoadingRef.current = false;
@@ -378,6 +406,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   // ── Pull-to-refresh ────────────────────────────────────────────────────────
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
+    loadedPageRef.current = 1;
     await fetchPage(1, true);
     setIsRefreshing(false);
   }, [fetchPage]);
@@ -413,18 +442,56 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   // off, letting a second burst call slip through; `fetchingMoreRef` is
   // updated synchronously so every call after the first is rejected
   // immediately, with no reliance on a re-render having landed yet.
+  //
+  // REGRESSION FIX (review): computing `nextPage` from `currentPage` (React
+  // state) instead of `loadedPageRef` used to leave a real — if tight — race:
+  // `fetchingMoreRef` was released in the `finally` block the instant
+  // `fetchPage`'s promise settled, but `currentPage`'s NEW value is committed
+  // by React on the following render, not synchronously at that point. A
+  // re-entrant `onEndReached` firing inside that gap would read the guard as
+  // "free" and recompute `currentPage + 1` from the STALE (pre-increment)
+  // closure value, re-fetching the same page and appending duplicate rows
+  // (`setItems(prev => [...prev, ...result.items])`). `loadedPageRef` is
+  // written synchronously the moment a page is reserved — before the network
+  // call even starts — so a re-entrant call always sees the already-reserved
+  // page and correctly requests the NEXT one instead of repeating it.
   const fetchingMoreRef = useRef(false);
   const handleEndReached = useCallback(async () => {
-    if (fetchingMoreRef.current || isLoading || currentPage >= totalPages) return;
+    if (fetchingMoreRef.current || isLoading) return;
+    const nextPage = loadedPageRef.current + 1;
+    if (nextPage > totalPages) return;
     fetchingMoreRef.current = true;
+    loadedPageRef.current = nextPage; // reserved synchronously — no render-commit delay
     setIsFetchingMore(true);
     try {
-      await fetchPage(currentPage + 1, false);
+      await fetchPage(nextPage, false);
     } finally {
       fetchingMoreRef.current = false;
       setIsFetchingMore(false);
     }
-  }, [isLoading, currentPage, totalPages, fetchPage]);
+  }, [isLoading, totalPages, fetchPage]);
+
+  // ── Auto-continue when a filtered/narrowed view is empty but more pages
+  //    exist (HIGH review fix) ────────────────────────────────────────────
+  // Previously, `visibleItems.length === 0` always rendered `EmptyState`
+  // (see `renderBody` below), which UNMOUNTS the FlashList entirely — so
+  // `onEndReached` could never fire again. That made two real scenarios a
+  // permanent dead end: (a) a fetcher-side filter (e.g. Conversations'
+  // read/unread split) whose only match sits on an unloaded page — page 1
+  // comes back with zero rows even though the server has more pages, and
+  // the screen shows a flatly wrong "All caught up!"; (b) a `filterItems`
+  // search term with no matches among what's loaded so far, where the only
+  // recovery offered was "Clear search", never "keep looking". This walks
+  // forward through the ALREADY-KNOWN remaining pages automatically —
+  // bounded by `totalPages`, so it can never loop forever — until either a
+  // visible item appears or the server-reported pages are exhausted.
+  useEffect(() => {
+    if (isLoading || error) return;
+    if (visibleItems.length > 0) return;
+    if (currentPage >= totalPages) return;
+    handleEndReached();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, error, visibleItems.length, currentPage, totalPages]);
 
   // ── Skeleton grid ──────────────────────────────────────────────────────────
   // NOTE: The header is rendered OUTSIDE the body branches (skeleton/error/empty/list)
@@ -546,6 +613,19 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     }
 
     if (visibleItems.length === 0) {
+      // More pages exist beyond what's loaded so far (see the auto-continue
+      // effect above, which is already fetching the next one) — a terminal
+      // "no results" EmptyState here would be misleadingly final (and, for a
+      // fetcher-side filter like Conversations' unread split, flatly WRONG:
+      // the match could be sitting on the very next page). Show a spinner
+      // instead of giving up.
+      if (currentPage < totalPages) {
+        return (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        );
+      }
       return (
         <EmptyState
           illustration={emptyIllustration}

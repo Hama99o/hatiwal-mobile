@@ -12,6 +12,9 @@ const fakeT = ((key: string, options?: Record<string, string>) => {
   if (key === "chat.preview.offer") {
     return `Offer: ${options?.price ?? ""}`;
   }
+  if (key === "chat.preview.offerCounter") {
+    return `Counter offer: ${options?.price ?? ""}`;
+  }
   const dict: Record<string, string> = {
     "chat.message.deleted": "Message deleted",
     "chat.noMessages": "No messages yet",
@@ -116,6 +119,40 @@ describe("conversationPreviewText", () => {
     expect(() =>
       conversationPreviewText(
         makeConversation({ lastMessageKind: "offer", lastMessageBody: "|AFN" }),
+        fakeT,
+        fakeFormatCurrency
+      )
+    ).not.toThrow();
+  });
+
+  // TASK-Z684 review fix: `offer_counter` (Conversation.tsx's counter-offer
+  // flow, `handleSendCounter`) used to fall through to `default` and render
+  // the raw "amount|currency|listedPrice" metadata. It must render the same
+  // locale-formatted `{{price}}` treatment as `offer`, via its own
+  // `chat.preview.offerCounter` translation key.
+  it("formats the amount via formatCurrency for a counter-offer, using its own translation key", () => {
+    const result = conversationPreviewText(
+      makeConversation({ lastMessageKind: "offer_counter", lastMessageBody: "70000|AFN|85000" }),
+      fakeT,
+      fakeFormatCurrency
+    );
+    expect(result.text).toBe("Counter offer: 70,000 AFN");
+    expect(result.icon).not.toBeNull();
+  });
+
+  it("ignores the third (listedPrice) segment of a counter-offer body", () => {
+    const result = conversationPreviewText(
+      makeConversation({ lastMessageKind: "offer_counter", lastMessageBody: "500|USD|900" }),
+      fakeT,
+      fakeFormatCurrency
+    );
+    expect(result.text).toBe("Counter offer: 500 USD");
+  });
+
+  it("does not throw when the counter-offer body has no parseable amount", () => {
+    expect(() =>
+      conversationPreviewText(
+        makeConversation({ lastMessageKind: "offer_counter", lastMessageBody: "|AFN|" }),
         fakeT,
         fakeFormatCurrency
       )

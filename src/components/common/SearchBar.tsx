@@ -36,7 +36,7 @@ import { useTranslation } from "react-i18next";
 import { Input } from "@/components/reusables/input";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
-import { AnimatedPressable } from "@/lib/animation";
+import { AnimatedPressable, useReduceMotion } from "@/lib/animation";
 
 /** Minimum recommended touch-target size (points), per common a11y guidance. */
 const MIN_TAP_TARGET = 44;
@@ -79,6 +79,7 @@ export function SearchBar({
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  const reduceMotion = useReduceMotion();
 
   const handleClear = () => {
     onChangeText("");
@@ -144,15 +145,27 @@ export function SearchBar({
         // whose own measured box IS the 44pt target, nothing smaller
         // wrapping it.
         <AnimatedPressable
-          entering={FadeIn.duration(180)}
-          exiting={FadeOut.duration(140)}
+          // A11Y fix: gated on the OS "Reduce Motion" setting, matching every
+          // other entering/exiting animation in the codebase (ListingDetail,
+          // PublishSuccessSheet, MessageBubble, EmptyState).
+          entering={reduceMotion ? undefined : FadeIn.duration(180)}
+          exiting={reduceMotion ? undefined : FadeOut.duration(140)}
           onPress={handleClear}
           // Real padding (not hitSlop) — icon is 16px, padding 14 on every
           // side brings the Pressable's OWN measured layout box up to the
           // 44pt minimum (16 + 14*2 = 44), so the touch target is an actual
           // hit-testable view rather than an invisible hitSlop extension
           // that some gesture/measurement tooling can miss.
-          style={{ padding: 14, margin: -14 }}
+          //
+          // Review fix: a full `margin: -14` (all four sides) let the 44pt
+          // box overlap ~14pt into the row's leading `gap` AND ~6pt into the
+          // flex:1 Input's tail, so tapping just past the typed text hit
+          // Clear instead of placing the cursor. Only the vertical margin
+          // needs to fully cancel the padding (the row already has no
+          // vertical padding of its own); the horizontal cancel is capped at
+          // -6 so the hit box stays within the 8pt row `gap` instead of
+          // biting into the input.
+          style={{ padding: 14, marginVertical: -14, marginHorizontal: -6 }}
           accessibilityRole="button"
           accessibilityLabel={t("common.clear")}
           testID={clearTestID}

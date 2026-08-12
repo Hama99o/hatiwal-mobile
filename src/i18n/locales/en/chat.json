@@ -39,7 +39,7 @@
     "offer": "Offer: {{price}}",
     "offerAccepted": "Offer accepted",
     "offerDeclined": "Offer declined",
-    "offerCounter": "Counter offer: {{amount}} {{currency}}",
+    "offerCounter": "Counter offer: {{price}}",
     "photo": "Photo",
     "file": "File"
   },
@@ -167,7 +167,7 @@
     "quickChipsHint": "Quick amounts",
     "firmNotice": "Seller's price is firm — offers not accepted",
     "reserveAfterAcceptTitle": "Reserve for {{buyerName}}?",
-    "reserveAfterAcceptBody": "Holds it at {{price}}. Other buyers can still message you, and the listing will show as Reserved.",
+    "reserveAfterAcceptBody": "Other buyers can still message you, and the listing will show as Reserved.",
     "reserveAfterAcceptDismiss": "Not now",
     "reserveAfterAcceptSuccess": "Listing reserved for {{buyerName}}"
   },
@@ -190,6 +190,7 @@
     "noResults": "No messages match your search",
     "noMatchTitle": "No matches for \"{{term}}\"",
     "noMatchDescription": "Try a different name, listing title, or message.",
+    "noMatchDescriptionPartial": "Try a different name, listing title, or message. Showing results in loaded conversations only.",
     "clearSearch": "Clear search"
   },
   "actions": {

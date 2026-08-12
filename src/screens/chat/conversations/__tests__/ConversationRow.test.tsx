@@ -228,6 +228,23 @@ describe("ConversationRow — special message kind previews", () => {
     expect(screen.getByText("chat.preview.offer")).toBeTruthy();
   });
 
+  // TASK-Z684 review fix: `offer_counter` used to fall through to `default`
+  // and render the raw "amount|currency|listedPrice" metadata body instead
+  // of a translated preview.
+  it("shows offerCounter preview for offer_counter kind, not the raw metadata body", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({
+          lastMessageKind: "offer_counter",
+          lastMessageBody: "70000|AFN|85000",
+        })}
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByText("chat.preview.offerCounter")).toBeTruthy();
+    expect(screen.queryByText("70000|AFN|85000")).toBeNull();
+  });
+
   it("shows offerAccepted preview for offer_accepted kind", () => {
     render(
       <ConversationRow

@@ -376,13 +376,13 @@ export default function ConversationsScreen() {
         ? hasUnloadedConversations
           // More pages exist beyond what's loaded — a "no matches" here would
           // be misleadingly absolute (CR fix: the match could be sitting on
-          // an unloaded page), so make that explicit. Uses its OWN key
-          // (`partialResultsConversations`, cycle-4 design review fix) — the
-          // pre-existing `chat.search.partialResults` string says "messages"
-          // and belongs to the in-thread message search (TASK-N803); reusing
-          // it here read "Showing results in loaded messages only" on a
-          // CONVERSATIONS list, which is simply wrong copy.
-          ? `${t("chat.search.noMatchDescription")} ${t("chat.search.partialResultsConversations")}`
+          // an unloaded page), so make that explicit. `noMatchDescriptionPartial`
+          // is ONE translated sentence (review fix) rather than two
+          // separately-translated strings glued together in code with a
+          // hardcoded ASCII space — translators can order/punctuate it
+          // however their language needs, which `${a} ${b}` composition
+          // never allowed.
+          ? t("chat.search.noMatchDescriptionPartial")
           : t("chat.search.noMatchDescription")
         : role === "selling"
           ? t("chat.empty.sellingDescription")
@@ -438,7 +438,9 @@ export default function ConversationsScreen() {
         >
           <Text
             style={{
-              fontSize:   22,
+              // Typography scale fix (review): screen titles are `text-2xl`
+              // (24) per DESIGN_SYSTEM.md §3 — this was off-scale at 22.
+              fontSize:   24,
               fontWeight: "700",
               color:      colors.foreground,
             }}
@@ -490,6 +492,9 @@ export default function ConversationsScreen() {
                   setFilter("all");
                 }}
                 testID={`tab-${tab}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
+                accessibilityLabel={t(labelKey)}
                 style={{
                   flex:            1,
                   flexDirection:   isRtl ? "row-reverse" : "row",
@@ -545,47 +550,70 @@ export default function ConversationsScreen() {
             {INBOX_FILTER_OPTIONS.map(({ key, labelKey }) => {
               const isActive = filter === key;
               return (
+                // Review fix: the 44pt MIN_TAP_TARGET now lives on this
+                // TRANSPARENT outer Pressable, not on the visible pill —
+                // `minHeight: 44` used to sit on the SAME node as the pill's
+                // `backgroundColor`/`borderRadius`, growing the visible chip
+                // from ~28pt to a near-square 44pt lozenge. The inner View
+                // below carries the actual pill visuals at its original
+                // compact size; the tap target stays 44 either way.
                 <Pressable
                   key={key}
                   onPress={() => setFilter(key)}
                   testID={`filter-chip-${key}`}
-                  style={{
-                    flexDirection:   isRtl ? "row-reverse" : "row",
-                    alignItems:      "center",
-                    justifyContent:  "center",
-                    gap:             5,
-                    minHeight:       44,
-                    paddingVertical: 7,
-                    paddingHorizontal: 12,
-                    borderRadius:    999,
-                    backgroundColor: isActive ? colors.secondary : colors.muted,
-                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
+                  accessibilityLabel={t(labelKey)}
+                  style={{ minHeight: 44, justifyContent: "center" }}
                 >
-                  {key === "unread" && (
-                    <View
-                      style={{
-                        width:           6,
-                        height:          6,
-                        borderRadius:    3,
-                        backgroundColor: isActive ? colors.secondaryForeground : colors.primary,
-                      }}
-                    />
-                  )}
-                  {key === "read" && (
-                    <CheckCheck
-                      size={11}
-                      color={isActive ? colors.secondaryForeground : colors.mutedForeground}
-                    />
-                  )}
-                  <Text
+                  <View
                     style={{
-                      fontSize:   12,
-                      fontWeight: "600",
-                      color:      isActive ? colors.secondaryForeground : colors.foreground,
+                      flexDirection:   isRtl ? "row-reverse" : "row",
+                      alignItems:      "center",
+                      justifyContent:  "center",
+                      gap:             5,
+                      paddingVertical: 7,
+                      paddingHorizontal: 13,
+                      borderRadius:    999,
+                      borderWidth:     isActive ? 1 : 0,
+                      // Dark-mode fix: `secondary` and `muted` (and their
+                      // `*Foreground`s) resolve to the IDENTICAL token in
+                      // dark mode (useColors.ts) — the active chip used to be
+                      // pixel-identical to the inactive ones. `primaryAlpha`
+                      // + a `primary` border/text never collides with any
+                      // other selection state on this screen (the role group
+                      // below uses a solid `primary` FILL, so the two groups
+                      // stay visually distinct too).
+                      backgroundColor: isActive ? colors.primaryAlpha : colors.muted,
+                      borderColor:     colors.primary,
                     }}
                   >
-                    {t(labelKey)}
-                  </Text>
+                    {key === "unread" && (
+                      <View
+                        style={{
+                          width:           6,
+                          height:          6,
+                          borderRadius:    3,
+                          backgroundColor: colors.primary,
+                        }}
+                      />
+                    )}
+                    {key === "read" && (
+                      <CheckCheck
+                        size={11}
+                        color={isActive ? colors.primary : colors.mutedForeground}
+                      />
+                    )}
+                    <Text
+                      style={{
+                        fontSize:   13,
+                        fontWeight: "600",
+                        color:      isActive ? colors.primary : colors.foreground,
+                      }}
+                    >
+                      {t(labelKey)}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}
@@ -603,42 +631,52 @@ export default function ConversationsScreen() {
             {ROLE_FILTER_OPTIONS.map(({ key, labelKey }) => {
               const isActive = role === key;
               return (
+                // Same outer-44pt / inner-compact-pill split as the
+                // read-state chips above (review fix) — this group's active
+                // treatment (solid `primary` fill) was already dark-mode-safe
+                // and is unchanged, just resized.
                 <Pressable
                   key={key}
                   onPress={() => setRole((prev) => (prev === key ? null : key))}
                   testID={`role-chip-${key}`}
-                  style={{
-                    flexDirection:   isRtl ? "row-reverse" : "row",
-                    alignItems:      "center",
-                    justifyContent:  "center",
-                    gap:             5,
-                    minHeight:       44,
-                    paddingVertical: 7,
-                    paddingHorizontal: 12,
-                    borderRadius:    999,
-                    backgroundColor: isActive ? colors.primary : colors.muted,
-                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
+                  accessibilityLabel={t(labelKey)}
+                  style={{ minHeight: 44, justifyContent: "center" }}
                 >
-                  {key === "selling" ? (
-                    <Store
-                      size={12}
-                      color={isActive ? colors.primaryForeground : colors.mutedForeground}
-                    />
-                  ) : (
-                    <ShoppingBag
-                      size={12}
-                      color={isActive ? colors.primaryForeground : colors.mutedForeground}
-                    />
-                  )}
-                  <Text
+                  <View
                     style={{
-                      fontSize:   12,
-                      fontWeight: "600",
-                      color:      isActive ? colors.primaryForeground : colors.foreground,
+                      flexDirection:   isRtl ? "row-reverse" : "row",
+                      alignItems:      "center",
+                      justifyContent:  "center",
+                      gap:             5,
+                      paddingVertical: 7,
+                      paddingHorizontal: 13,
+                      borderRadius:    999,
+                      backgroundColor: isActive ? colors.primary : colors.muted,
                     }}
                   >
-                    {t(labelKey)}
-                  </Text>
+                    {key === "selling" ? (
+                      <Store
+                        size={12}
+                        color={isActive ? colors.primaryForeground : colors.mutedForeground}
+                      />
+                    ) : (
+                      <ShoppingBag
+                        size={12}
+                        color={isActive ? colors.primaryForeground : colors.mutedForeground}
+                      />
+                    )}
+                    <Text
+                      style={{
+                        fontSize:   13,
+                        fontWeight: "600",
+                        color:      isActive ? colors.primaryForeground : colors.foreground,
+                      }}
+                    >
+                      {t(labelKey)}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}

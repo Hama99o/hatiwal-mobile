@@ -14,6 +14,15 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { SearchBar } from "../SearchBar";
 
+// Partial mock: keep the REAL `AnimatedPressable` (so the existing
+// entering/exiting/padding assertions below still exercise the real
+// component), but let individual tests control `useReduceMotion`'s return
+// value to prove the clear button's fade is gated on it (review fix).
+jest.mock("@/lib/animation", () => {
+  const actual = jest.requireActual("@/lib/animation");
+  return { ...actual, useReduceMotion: jest.fn(() => false) };
+});
+
 describe("SearchBar — rendering", () => {
   it("renders the placeholder text", () => {
     render(<SearchBar value="" onChangeText={jest.fn()} placeholder="Search conversations..." />);
@@ -199,5 +208,42 @@ describe("SearchBar — clear button touch target (DR fix)", () => {
       ? Object.assign({}, ...clearButton.props.style.filter(Boolean))
       : clearButton.props.style;
     expect(style.padding).toBe(14);
+  });
+
+  // Review fix: every other entering/exiting animation in the codebase
+  // (ListingDetail, PublishSuccessSheet, MessageBubble, EmptyState) gates on
+  // the OS "Reduce Motion" setting — the clear button's fade did not.
+  it("suppresses the clear button's entering/exiting animation when Reduce Motion is on", () => {
+    const { useReduceMotion } = require("@/lib/animation");
+    (useReduceMotion as jest.Mock).mockReturnValueOnce(true);
+
+    render(
+      <SearchBar
+        value="iphone"
+        onChangeText={jest.fn()}
+        placeholder="Search..."
+        clearTestID="clear-btn"
+      />
+    );
+    const clearButton = screen.getByTestId("clear-btn");
+    expect(clearButton.props.entering).toBeUndefined();
+    expect(clearButton.props.exiting).toBeUndefined();
+  });
+
+  it("plays the entering/exiting animation when Reduce Motion is off", () => {
+    const { useReduceMotion } = require("@/lib/animation");
+    (useReduceMotion as jest.Mock).mockReturnValueOnce(false);
+
+    render(
+      <SearchBar
+        value="iphone"
+        onChangeText={jest.fn()}
+        placeholder="Search..."
+        clearTestID="clear-btn"
+      />
+    );
+    const clearButton = screen.getByTestId("clear-btn");
+    expect(clearButton.props.entering).toBeDefined();
+    expect(clearButton.props.exiting).toBeDefined();
   });
 });

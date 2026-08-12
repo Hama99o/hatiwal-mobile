@@ -40,6 +40,11 @@ jest.mock("lucide-react-native", () => ({
   FileText:        "FileText",
   CalendarCheck:   "CalendarCheck",
   CalendarX:       "CalendarX",
+  // TASK-O947 review fix (icon semantics) — the offer OutcomeBadge now uses
+  // an outcome-encoding pair instead of reusing the bubble's own `Tag`
+  // header icon (which carried no success semantics) / the generic `X`.
+  CheckCircle2:    "CheckCircle2",
+  XCircle:         "XCircle",
   Camera:          "Camera",
   X:               "X",
   ImageIcon:       "ImageIcon",
@@ -600,6 +605,62 @@ describe("MessageBubble — meetup_proposal with precise coords (TASK-M263)", ()
   });
 });
 
+// Review fix (LOW-MEDIUM, DUPLICATION + A11Y GAP) — the meetup Accept/Decline
+// row now shares `ActionPairRow` with the offer row, so it gets the same
+// accessibilityRole/Label/State, `disabled`, and `pending` machinery the
+// offer row already had (TASK-O947) instead of drifting further from it.
+describe("MessageBubble — meetup accept/decline a11y + disabled/pending (review fix)", () => {
+  const meetupMsg = makeMsg({ kind: "meetup_proposal", body: "Shahr-e-Naw|Tomorrow 3pm" });
+
+  it("gives Accept and Decline an accessibilityRole + label", () => {
+    render(<MessageBubble message={meetupMsg} isMine={false} onMeetupRespond={jest.fn()} />);
+    const accept = screen.getByLabelText("chat.meetup.accept");
+    const decline = screen.getByLabelText("chat.meetup.decline");
+    expect(accept.props.accessibilityRole).toBe("button");
+    expect(decline.props.accessibilityRole).toBe("button");
+  });
+
+  it("reflects disabled + busy via accessibilityState when a response is in flight", () => {
+    render(
+      <MessageBubble
+        message={meetupMsg}
+        isMine={false}
+        onMeetupRespond={jest.fn()}
+        meetupActionsDisabled
+        meetupResponsePending="accept"
+      />
+    );
+    const accept = screen.getByLabelText("chat.meetup.accept");
+    const decline = screen.getByLabelText("chat.meetup.decline");
+    expect(accept.props.accessibilityState).toEqual({ disabled: true, busy: true });
+    expect(decline.props.accessibilityState).toEqual({ disabled: true, busy: false });
+  });
+
+  it("swaps the Accept label for a spinner when meetupResponsePending is 'accept'", () => {
+    render(
+      <MessageBubble
+        message={meetupMsg}
+        isMine={false}
+        onMeetupRespond={jest.fn()}
+        meetupActionsDisabled
+        meetupResponsePending="accept"
+      />
+    );
+    expect(screen.queryByText("chat.meetup.accept")).toBeNull();
+    expect(screen.getByText("chat.meetup.decline")).toBeTruthy();
+    expect(screen.UNSAFE_getAllByType(ActivityIndicator).length).toBeGreaterThan(0);
+  });
+
+  it("does not disable Accept/Decline when a DIFFERENT proposal in the thread is pending", () => {
+    render(
+      <MessageBubble message={meetupMsg} isMine={false} onMeetupRespond={jest.fn()} meetupActionsDisabled={false} />
+    );
+    expect(screen.getByText("chat.meetup.accept")).toBeTruthy();
+    expect(screen.getByText("chat.meetup.decline")).toBeTruthy();
+    expect(screen.UNSAFE_queryAllByType(ActivityIndicator).length).toBe(0);
+  });
+});
+
 describe("MessageBubble — offer with Counter button (TASK-O829)", () => {
   const offerMsg = makeMsg({
     kind: "offer",
@@ -659,17 +720,24 @@ describe("MessageBubble — offer outcome badge dedup + semantics (TASK-O947)", 
     sender: { id: 1, name: "Buyer" },
   });
 
-  it("uses the Tag icon (not the meetup CalendarCheck icon) for an accepted offer", () => {
+  // Review fix (LOW-MEDIUM, ICON SEMANTICS) — `Tag` used to be reused for
+  // "accepted" too, but it's ALSO the bubble's own always-on header icon
+  // (the "PRICE OFFER" label just above), so it carried no success
+  // semantics of its own and the accepted/declined pair was asymmetric
+  // (subject-encoding vs outcome-encoding). `CheckCircle2`/`XCircle` is an
+  // outcome-encoding pair, distinct from both the header's `Tag` and the
+  // meetup pill's `CalendarCheck`/`CalendarX`.
+  it("uses the CheckCircle2 icon (not the meetup CalendarCheck icon) for an accepted offer", () => {
     render(<MessageBubble message={offerMsg} isMine={false} offerOutcome="accepted" />);
     expect(screen.getByText("chat.offer.accepted")).toBeTruthy();
-    expect(screen.UNSAFE_queryAllByType("Tag" as any).length).toBeGreaterThan(0);
+    expect(screen.UNSAFE_queryAllByType("CheckCircle2" as any).length).toBeGreaterThan(0);
     expect(screen.UNSAFE_queryAllByType("CalendarCheck" as any).length).toBe(0);
   });
 
-  it("uses the X icon (not the meetup CalendarX icon) for a declined offer", () => {
+  it("uses the XCircle icon (not the meetup CalendarX icon) for a declined offer", () => {
     render(<MessageBubble message={offerMsg} isMine={false} offerOutcome="declined" />);
     expect(screen.getByText("chat.offer.declined")).toBeTruthy();
-    expect(screen.UNSAFE_queryAllByType("X" as any).length).toBeGreaterThan(0);
+    expect(screen.UNSAFE_queryAllByType("XCircle" as any).length).toBeGreaterThan(0);
     expect(screen.UNSAFE_queryAllByType("CalendarX" as any).length).toBe(0);
   });
 
@@ -733,6 +801,38 @@ describe("MessageBubble — offer accept/decline pending spinner (TASK-O947, MED
     expect(screen.getByText("chat.offer.decline")).toBeTruthy();
     expect(screen.UNSAFE_queryAllByType(ActivityIndicator).length).toBe(0);
   });
+
+  // Review fix (SHOULD-FIX, STATES) — dimming the WHOLE row (including the
+  // pending button's own spinner) re-created the exact ambiguity the
+  // pending spinner was meant to remove: a half-opacity spinner inside an
+  // already-disabled row reads as barely more legible than the dead tap it
+  // replaced. Only dim when NOTHING on this row is pending.
+  it("keeps the row at full opacity when THIS bubble's own action is pending (not merely dimmed)", () => {
+    render(
+      <MessageBubble
+        message={offerMsg}
+        isMine={false}
+        onOfferRespond={jest.fn()}
+        offerActionsDisabled
+        offerResponsePending="accept"
+      />
+    );
+    const row = screen.getByTestId("offer-actions-row");
+    expect(row.props.style).toEqual(expect.objectContaining({ opacity: 1 }));
+  });
+
+  it("dims the row when globally disabled but nothing on this bubble is pending", () => {
+    render(
+      <MessageBubble
+        message={offerMsg}
+        isMine={false}
+        onOfferRespond={jest.fn()}
+        offerActionsDisabled
+      />
+    );
+    const row = screen.getByTestId("offer-actions-row");
+    expect(row.props.style).toEqual(expect.objectContaining({ opacity: 0.5 }));
+  });
 });
 
 describe("MessageBubble — offer action a11y (TASK-O947, LOW/A11Y)", () => {
@@ -792,6 +892,27 @@ describe("MessageBubble — offer action a11y (TASK-O947, LOW/A11Y)", () => {
       />
     );
     const accept = screen.getByLabelText("chat.offer.accept");
-    expect(accept.props.accessibilityState).toEqual({ disabled: true });
+    // Review fix (SHOULD-FIX, A11Y) — `busy` is now always present (not just
+    // `disabled`) so it can flip to `true` below without a shape change.
+    expect(accept.props.accessibilityState).toEqual({ disabled: true, busy: false });
+  });
+
+  // Review fix (SHOULD-FIX, A11Y) — the visible label is replaced by a
+  // spinner while `accessibilityLabel` still reads a plain "Accept offer",
+  // so a screen-reader user gets no progress signal at all without `busy`.
+  it("sets accessibilityState.busy on the specific action that is pending, and only that one", () => {
+    render(
+      <MessageBubble
+        message={offerMsg}
+        isMine={false}
+        onOfferRespond={jest.fn()}
+        offerActionsDisabled
+        offerResponsePending="accept"
+      />
+    );
+    const accept = screen.getByLabelText("chat.offer.accept");
+    const decline = screen.getByLabelText("chat.offer.decline");
+    expect(accept.props.accessibilityState).toEqual({ disabled: true, busy: true });
+    expect(decline.props.accessibilityState).toEqual({ disabled: true, busy: false });
   });
 });

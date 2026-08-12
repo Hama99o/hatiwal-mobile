@@ -14,10 +14,23 @@
  *
  * A blank/whitespace-only term is treated as "no filter" — the full list
  * passes through unchanged.
+ *
+ * CR fix (TASK-Z684 review): the offer preview interpolates a
+ * `formatCurrency`-formatted amount (cycle-4 CR fix), which renders
+ * Eastern-Arabic digits (٠-٩ / ۰-۹) in the `ps`/`fa` locales
+ * (`useLocalization` maps ps → `fa-AF`, fa → `fa-IR`). A search term typed on
+ * a LATIN-digit keyboard (or pasted) used to get zero matches against that
+ * preview even though the amount is right there on screen — a regression
+ * from the pre-formatCurrency behaviour, where the raw split-body number was
+ * always Latin. Both the needle and the haystack are run through
+ * `normalizeDigits` (Persian/Pashto + Arabic-Indic digits → ASCII 0-9) before
+ * comparing, so a search matches regardless of which numeral system either
+ * side happens to be in.
  */
 
 import type { TFunction } from "i18next";
 import type { Conversation } from "@/api/conversations";
+import { normalizeDigits } from "@/utils/normalizeDigits";
 import { conversationPreviewText, type FormatCurrency } from "./conversationPreviewText";
 
 /** Extracts the display name to search against for a conversation's counterpart. */
@@ -51,13 +64,18 @@ export function filterConversations(
   t: TFunction,
   formatCurrency: FormatCurrency
 ): Conversation[] {
-  const needle = term.trim().toLowerCase();
-  if (!needle) return conversations;
+  const trimmed = term.trim().toLowerCase();
+  if (!trimmed) return conversations;
+  // Normalized so a Latin-digit search term still matches a preview whose
+  // amount was rendered with Eastern-Arabic digits (ps/fa), and vice versa.
+  const needle = normalizeDigits(trimmed);
 
   return conversations.filter((conversation) => {
-    const name = counterpartName(conversation).toLowerCase();
-    const title = (conversation.listing?.title ?? "").toLowerCase();
-    const preview = conversationPreviewText(conversation, t, formatCurrency).text.toLowerCase();
+    const name = normalizeDigits(counterpartName(conversation).toLowerCase());
+    const title = normalizeDigits((conversation.listing?.title ?? "").toLowerCase());
+    const preview = normalizeDigits(
+      conversationPreviewText(conversation, t, formatCurrency).text.toLowerCase()
+    );
 
     return (
       name.includes(needle) ||

@@ -41,6 +41,9 @@ const fakeT = ((key: string, options?: Record<string, string>) => {
   if (key === "chat.preview.offer") {
     return `Offer: ${options?.price ?? ""}`;
   }
+  if (key === "chat.preview.offerCounter") {
+    return `Counter offer: ${options?.price ?? ""}`;
+  }
   return PREVIEW_STRINGS[key] ?? key;
 }) as unknown as TFunction;
 
@@ -166,6 +169,46 @@ describe("filterConversations — matches the TRANSLATED preview, not raw metada
     ];
     expect(filterConversations(list, "file", fakeT, fakeFormatCurrency)).toHaveLength(1);
     expect(filterConversations(list, "contract", fakeT, fakeFormatCurrency)).toHaveLength(0);
+  });
+
+  // TASK-Z684 review fix: `offer_counter` used to fall through to `default`
+  // and match/render the RAW "amount|currency|listedPrice" body instead of
+  // the translated "Counter offer: …" preview.
+  it("matches the translated counter-offer label, not the raw body", () => {
+    const list = [
+      makeConversation({ lastMessageKind: "offer_counter", lastMessageBody: "70000|AFN|85000" }),
+    ];
+    expect(filterConversations(list, "counter", fakeT, fakeFormatCurrency)).toHaveLength(1);
+    // The raw metadata body ("70000|AFN|85000") is never what search matches.
+    expect(filterConversations(list, "70000|afn", fakeT, fakeFormatCurrency)).toHaveLength(0);
+  });
+
+  it("matches the formatted counter-offer amount", () => {
+    const list = [
+      makeConversation({ lastMessageKind: "offer_counter", lastMessageBody: "70000|AFN|85000" }),
+    ];
+    expect(filterConversations(list, "70,000", fakeT, fakeFormatCurrency)).toHaveLength(1);
+  });
+});
+
+describe("filterConversations — digit normalization (RTL-locale regression)", () => {
+  // `formatCurrency` renders Eastern-Arabic digits + an Arabic thousands
+  // separator in ps/fa (Intl.NumberFormat("fa-IR"/"fa-AF")). A search typed
+  // on a Latin-digit keyboard must still find the thread.
+  const fakeFormatCurrencyFa: FormatCurrency = (amount) => {
+    if (amount == null) return "";
+    return amount === 75000 ? "۷۵٬۰۰۰ AFN" : String(amount);
+  };
+
+  it("matches a Latin-digit search term against an offer preview formatted with Eastern-Arabic digits", () => {
+    const list = [makeConversation({ lastMessageKind: "offer", lastMessageBody: "75000|AFN" })];
+    expect(filterConversations(list, "75000", fakeT, fakeFormatCurrencyFa)).toHaveLength(1);
+  });
+
+  it("matches an Eastern-Arabic-digit search term against a Latin-digit listing title", () => {
+    const list = [makeConversation({ listing: { id: 10, title: "iPhone 13", thumbnailUrl: null, status: "active" } })];
+    // "13" typed on a Pashto/Dari numeric keypad.
+    expect(filterConversations(list, "۱۳", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 });
 

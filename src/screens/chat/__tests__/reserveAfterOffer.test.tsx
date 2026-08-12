@@ -192,12 +192,16 @@ describe("buildReserveAfterAcceptPrompt — owner + active listing", () => {
 
     // Review fix (COPY) — the title now names the buyer (a sheet title wraps
     // freely, unlike a truncating alert button, so the isolated name is safe
-    // here); the body states the consequence and carries only the price.
+    // here); the body states only the consequence.
     expect(prompt?.title).toContain("chat.offer.reserveAfterAcceptTitle");
     expect(prompt?.title).toContain(wrapBidiIsolate("Ahmad"));
 
-    expect(prompt?.body).toContain("chat.offer.reserveAfterAcceptBody");
-    expect(prompt?.body).toContain(wrapBidiIsolate("12000 AFN"));
+    // Review fix (LOW, price stated twice) — the body no longer takes a
+    // `{{price}}` placeholder at all: the sheet's own PriceTag (captioned
+    // "Agreed price") is the single place the amount is shown. `t` is
+    // therefore called with NO options here, so the deterministic stub
+    // returns the bare key with no interpolated suffix.
+    expect(prompt?.body).toBe("chat.offer.reserveAfterAcceptBody");
 
     // Building the prompt is pure — nothing was reserved yet.
     expect(listingsAPI.reserveListing).not.toHaveBeenCalled();
@@ -313,5 +317,22 @@ describe("reserveAfterAccept — reserve failure", () => {
     expect(toast.error).toHaveBeenCalledTimes(1);
     expect(toast.error).toHaveBeenCalledWith("chat.listingActions.reserveFailed");
     expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  // Review fix (MEDIUM, ERROR FEEDBACK INVISIBLE ON ANDROID) — the toast
+  // above is occluded by the confirm sheet's own <Modal> on Android
+  // (sonner-native only escapes to a FullWindowOverlay on iOS), so the
+  // caller also needs the SAME message threaded into the sheet's inline
+  // `errorMessage` slot via this callback.
+  it("also calls onError with the exact same message the toast shows", async () => {
+    (listingsAPI.reserveListing as jest.Mock).mockRejectedValue(new Error("network"));
+    const onError = jest.fn();
+    const prompt = buildReserveAfterAcceptPrompt(baseParams())!;
+
+    await reserveAfterAccept(prompt, { t, onError });
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith("chat.listingActions.reserveFailed");
+    expect(onError).toHaveBeenCalledWith((toast.error as jest.Mock).mock.calls[0][0]);
   });
 });

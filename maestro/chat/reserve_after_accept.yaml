@@ -3,11 +3,19 @@ appId: com.hatiwal.app
 # TASK-O947 — Accept offer -> one-tap "Reserve for {buyer} at {price}" (confirm path)
 #
 # Buyer sends an offer on an active listing; the real owner (seller) accepts
-# it, and the resulting confirm sheet -- "Reserve for Ahmad Karimi at
-# 24,000 <currency>?" -- is confirmed -- verifying the listing flips straight
+# it, and the resulting confirm sheet -- titled "Reserve for Ahmad Karimi?",
+# with the agreed price shown via its own captioned PriceTag (not repeated in
+# the body sentence) -- is confirmed -- verifying the listing flips straight
 # to Reserved in the pinned thread header with no manual refresh and NO
 # pick-a-buyer list ever shown (the old flow required dismissing the thread
 # and re-picking the buyer; this collapses that into one tap).
+#
+# CR fix (broken by the O947 copy change): the buyer's display name is
+# wrapped in Unicode bidi-isolate marks (U+2066/U+2069) when interpolated
+# into the title (`wrapBidiIsolate` in reserveAfterAccept.ts), so the
+# rendered text is literally "Reserve for ⁦Ahmad Karimi⁩?" -- an EXACT or
+# naively-quoted string can never match that; the assertion below is a
+# `.*`-wrapped regex for exactly this reason.
 #
 # Uses "Traditional Kandahari Carpet 3x4" (active, seller-owned, no
 # pre-seeded conversation) rather than the shared Lenovo ThinkPad / Ahmad
@@ -50,14 +58,15 @@ appId: com.hatiwal.app
 #  - DR: the confirm button never carries the price (it truncated inside an
 #    alert BUTTON in ps/fa) -- it now reads the sheet's generic
 #    "Confirm reserve" (buyerPicker.confirmReserve), never "Reserve at
-#    {{price}}". The buyer name + price still appear, but only in the sheet
-#    BODY sentence.
+#    {{price}}". The buyer name appears in the sheet TITLE; the price appears
+#    ONLY via the sheet's own captioned PriceTag (review fix, LOW: the body
+#    sentence used to repeat the same number and no longer does).
 #  - DR: assert the Reserved STATUS BADGE, not the transient success toast --
 #    toasts are not a stable E2E signal.
 #  - Wrapped the interpolated/compound strings (the offer amount embedded in
-#    "AFN 24,000", the buyer name + price embedded in the confirm sheet body)
-#    with `.*` so they match regardless of the exact currency formatting
-#    around them.
+#    "AFN 24,000", the buyer name embedded in the confirm sheet title) with
+#    `.*` so they match regardless of the exact currency formatting around
+#    them.
 #  - chat-tab has no testID anywhere in the tab bar -- tap the "Chats" label
 #    (its actual translated tab title) instead.
 
@@ -103,7 +112,7 @@ appId: com.hatiwal.app
 - assertVisible: "Offer accepted"
 
 # ── Step 3: one-tap reserve confirm fires -- no pick-a-buyer list ───────────
-- assertVisible: ".*Reserve this listing for a buyer.*"
+- assertVisible: ".*Reserve for.*Ahmad Karimi.*"
 - assertVisible: ".*Ahmad Karimi.*"
 - assertVisible: ".*24,000.*"
 - assertNotVisible: ".*Who's buying this item.*"

@@ -36,7 +36,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { X, Check, UserX } from "lucide-react-native";
+import { X, Check, UserX, CheckCircle2 } from "lucide-react-native";
 
 import { conversationsAPI, type Conversation } from "@/api/conversations";
 import { Text } from "@/components/reusables/text";
@@ -111,6 +111,18 @@ interface BuyerPickerSheetProps {
   confirmBody?: string;
   /** Overrides the footer's Cancel label in confirm mode (e.g. "Not now"). */
   cancelLabel?: string;
+  /**
+   * Review fix (MEDIUM, STATES/ERROR FEEDBACK) — inline failure message
+   * rendered above the footer (destructive-tinted). The sheet's own raw RN
+   * `<Modal>` is a separate native window on Android that occludes
+   * sonner-native's toast entirely, so a reserve/sold failure needs a
+   * signal INSIDE the sheet too, or the stay-open-on-failure retry contract
+   * (the sheet deliberately stays mounted after a failed mutation) reads as
+   * a dead tap: spinner runs, spinner stops, sheet still open, nothing
+   * visibly explains why. The caller sets this from its `onConfirm` handler
+   * when the mutation rejects, and clears it on the next confirm tap.
+   */
+  errorMessage?: string | null;
 }
 
 const SKIP = "skip" as const;
@@ -130,6 +142,7 @@ export function BuyerPickerSheet({
   confirmTitle,
   confirmBody,
   cancelLabel,
+  errorMessage,
 }: BuyerPickerSheetProps) {
   const { t } = useTranslation();
   const { isRtl, formatCurrency } = useLocalization();
@@ -273,6 +286,33 @@ export function BuyerPickerSheet({
                  no "someone else" skip, no editable final price: the buyer
                  and the agreed price are already known. */
               <View style={{ gap: 14, paddingBottom: 4 }}>
+                {/* Review fix (MEDIUM, self-explaining) — confirm mode is only
+                    ever reached right after a successful offer accept (see
+                    reserveAfterAccept.ts), but the sheet itself opens with no
+                    other acknowledgement of that accept — the toast fired one
+                    tick earlier is easy to miss. This pill reuses the exact
+                    label/tone the accepted-offer bubble itself shows
+                    (chat.offer.accepted / colors.success), never a new
+                    string, so the sheet reads as a continuation of the accept
+                    instead of an unprompted interruption. */}
+                <View
+                  style={{
+                    flexDirection: isRtl ? "row-reverse" : "row",
+                    alignSelf: isRtl ? "flex-end" : "flex-start",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingVertical: 5,
+                    paddingHorizontal: 10,
+                    borderRadius: 8,
+                    backgroundColor: colors.successAlpha,
+                  }}
+                >
+                  <CheckCircle2 size={13} color={colors.success} />
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: colors.success }}>
+                    {t("chat.offer.accepted")}
+                  </Text>
+                </View>
+
                 {(listingThumbnailUrl || listingTitle) && (
                   <View
                     style={{
@@ -304,7 +344,16 @@ export function BuyerPickerSheet({
                   size={48}
                 />
 
-                <View style={{ alignItems: isRtl ? "flex-end" : "flex-start", paddingVertical: 4 }}>
+                {/* Review fix (LOW, price read unlabelled + stated twice) —
+                    a bare 24sp PriceTag with no caption is ambiguous (asking
+                    price? accepted offer?), and the body sentence below used
+                    to repeat the same number. The caption disambiguates it;
+                    `confirmBody` (see reserveAfterAccept.ts) now carries only
+                    the consequence sentence, never the price again. */}
+                <View style={{ alignItems: isRtl ? "flex-end" : "flex-start", paddingVertical: 4, gap: 2 }}>
+                  <Text style={{ fontSize: 12, color: colors.mutedForeground, textAlign: isRtl ? "right" : "left" }}>
+                    {t("buyerPicker.agreedPrice")}
+                  </Text>
                   <PriceTag price={price} currency={currency} size="lg" />
                 </View>
 
@@ -320,6 +369,22 @@ export function BuyerPickerSheet({
                     {confirmBody}
                   </Text>
                 ) : null}
+
+                {/* Review fix (LOW, trust add-on) — confirm mode hid the REV2
+                    nudge entirely (`!isConfirmMode` above), even though a real
+                    buyer IS already recorded here — the nudge is just as true
+                    at this moment, and arguably lands better right as the
+                    seller commits to reserving. Reuses the exact same
+                    translated copy as the picker mode's nudge, no new key. */}
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.primary,
+                    textAlign: isRtl ? "right" : "left",
+                  }}
+                >
+                  {t("buyerPicker.nudge")}
+                </Text>
               </View>
             ) : isLoading ? (
               <View testID="buyer-picker-loading">
@@ -425,6 +490,24 @@ export function BuyerPickerSheet({
             )}
           </ScrollView>
 
+          {/* Review fix (MEDIUM, ERROR FEEDBACK) — inline failure signal that
+              survives the sheet's own <Modal> occluding the error toast on
+              Android (see the `errorMessage` prop doc above). Rendered right
+              above the footer buttons so it's the first thing seen on retry. */}
+          {errorMessage ? (
+            <Text
+              testID="buyer-picker-error"
+              style={{
+                color: colors.destructive,
+                fontSize: 13,
+                textAlign: isRtl ? "right" : "left",
+                marginBottom: 8,
+              }}
+            >
+              {errorMessage}
+            </Text>
+          ) : null}
+
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
             <Button
               variant="default"
@@ -438,7 +521,12 @@ export function BuyerPickerSheet({
                 <Text>{confirmLabel}</Text>
               )}
             </Button>
-            <Button variant="ghost" onPress={onClose} disabled={isSubmitting} style={{ marginTop: 8 }}>
+            {/* Review fix (NIT) — route through the SAME `handleDismiss` guard
+                as the backdrop, header X and hardware back, instead of
+                calling `onClose` directly. Behaviour was already identical
+                (this button also carries `disabled={isSubmitting}`), but the
+                mid-submit invariant now lives in exactly one place. */}
+            <Button variant="ghost" onPress={handleDismiss} disabled={isSubmitting} style={{ marginTop: 8 }}>
               <Text style={{ color: colors.mutedForeground }}>{resolvedCancelLabel}</Text>
             </Button>
           </View>

@@ -36,6 +36,11 @@ jest.mock("lucide-react-native", () => ({
   FileText: "FileText",
   CalendarCheck: "CalendarCheck",
   CalendarX: "CalendarX",
+  // TASK-O947 review fix (icon semantics) — the offer OutcomeBadge now uses
+  // an outcome-encoding pair instead of reusing the bubble's own `Tag`
+  // header icon / the generic `X`.
+  CheckCircle2: "CheckCircle2",
+  XCircle: "XCircle",
   Camera: "Camera",
   ImageIcon: "ImageIcon",
   ArrowLeftRight: "ArrowLeftRight",

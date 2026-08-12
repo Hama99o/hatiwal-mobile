@@ -71,6 +71,16 @@ import {
   showUnavailableNotice as showUnavailableNoticePure,
   offerUnavailableStatus,
 } from "./conversation/threadAvailability";
+// Review fix (SHOULD-FIX, DUPLICATION) — reuse the SAME query-key constants
+// `useListingLifecycle.ts` already exports ("exported so callers/tests can
+// assert against the exact same constants instead of hardcoding strings")
+// instead of re-typing the strings in this file's own invalidation helper.
+import {
+  MY_LISTINGS_QK,
+  MY_LISTING_STATUS_COUNTS_QK,
+  MY_LISTING_QK,
+  CONVERSATIONS_QK,
+} from "@/hooks/useListingLifecycle";
 
 // ── Reanimated imports for search bar animation ───────────────────────────────
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate, Extrapolation } from "react-native-reanimated";
@@ -173,6 +183,17 @@ export function ConversationScreen() {
     accepted: boolean;
   } | null>(null);
   const isRespondingToOffer = respondingOfferTarget !== null;
+  // Review fix (LOW-MEDIUM, DUPLICATION + A11Y GAP) — mirrors
+  // `respondingOfferTarget` above: `handleMeetupRespond` had NO in-flight
+  // guard at all, so a fast double-tap on a meetup proposal's Accept/Decline
+  // could fire two `meetup_accepted`/`meetup_declined` messages (a live bug,
+  // not just an a11y gap — the offer row was guarded by TASK-O947, the
+  // structurally-identical meetup row never was).
+  const [respondingMeetupTarget, setRespondingMeetupTarget] = useState<{
+    messageId: number;
+    accepted: boolean;
+  } | null>(null);
+  const isRespondingToMeetup = respondingMeetupTarget !== null;
   // TASK-O947 (cycle-4 design review): the one-tap reserve confirm shown
   // after a successful offer accept — the shared BuyerPickerSheet in its
   // "preselectedBuyer" confirm mode, never the full pick-a-buyer flow. `null`
@@ -180,6 +201,15 @@ export function ConversationScreen() {
   // `buildReserveAfterAcceptPrompt`) drives both its visibility and content.
   const [reserveConfirm, setReserveConfirm] = useState<ReserveAfterAcceptPrompt | null>(null);
   const [isReservingAfterAccept, setIsReservingAfterAccept] = useState(false);
+  // Review fix (MEDIUM, STATES/ERROR FEEDBACK) — a reserve failure's ONLY
+  // signal was `toast.error(...)`, but sonner-native only escapes to a
+  // FullWindowOverlay on iOS; on Android the sheet's raw RN <Modal> is a
+  // separate native window that occludes the toast entirely — spinner runs,
+  // spinner stops, sheet stays open, nothing visibly explains why. This
+  // inline message renders INSIDE the sheet (see the `errorMessage` prop on
+  // BuyerPickerSheet below) so the failure is legible on Android too. Reset
+  // to null whenever a fresh prompt opens or the seller retries.
+  const [reserveConfirmError, setReserveConfirmError] = useState<string | null>(null);
 
   // ── Derived: is the current user the seller of this conversation's listing? ──
   // Single source of truth — reused by the pinned ListingHeader's `isOwner`
@@ -345,32 +375,50 @@ export function ConversationScreen() {
     }
   }, [t]);
 
-  // ── TASK-O947 review fix (MUST-FIX, CACHE/DUPLICATION) ────────────────────
+  // ── TASK-O947 review fix (CACHE/DUPLICATION) ──────────────────────────────
   // The single source of truth for "a listing lifecycle mutation just
   // succeeded from inside this screen" — invalidates every query surface that
-  // needs to reflect the new status (this conversation, the listing detail,
-  // the seller's My Listings feed + status-count chips) and reloads the local
-  // conversation state so the pinned ListingHeader flips without a manual
-  // refresh. Previously this exact five-key block lived ONLY inside
-  // `handleReserveAfterAcceptConfirm`'s `onReserved`, while the pinned
-  // ListingHeader's own `onLifecycleDone` (its manual "Reserve"/"Mark sold"
-  // button) invalidated just `["conversation", id]` — so reserving via that
-  // button left My Listings and the status-count chips stale until the
-  // seller manually pulled to refresh. Both paths now call this one function.
+  // needs to reflect the new status (the listing detail, the seller's My
+  // Listings feed + status-count chips, and this listing's conversations)
+  // and reloads the local conversation state via `load(convId)` below so the
+  // pinned ListingHeader flips without a manual refresh. Previously this
+  // exact block lived ONLY inside `handleReserveAfterAcceptConfirm`'s
+  // `onReserved`, while the pinned ListingHeader's own `onLifecycleDone` (its
+  // manual "Reserve"/"Mark sold" button) invalidated just `["conversation",
+  // id]` — so reserving via that button left My Listings and the
+  // status-count chips stale until the seller manually pulled to refresh.
+  // Both paths now call this one function.
+  //
+  // Review fix (SHOULD-FIX, DUPLICATION) — reuse the exported `..._QK`
+  // constants (imported above) instead of re-typing their string values
+  // here; a rename in `useListingLifecycle.ts` would otherwise silently stop
+  // this helper from invalidating anything, with no test able to catch it.
+  // Also now invalidates `CONVERSATIONS_QK` — the prefix of
+  // `BuyerPickerSheet`'s own `["conversations", listingId, "buyer-picker"]`
+  // key — matching `useListingLifecycle`'s own canonical `invalidateAll()`,
+  // which this helper previously omitted.
+  //
+  // Review fix (LOW) — this screen still fetches `conversation`/`messages`
+  // with `useState` + the imperative `load()` below rather than `useQuery`
+  // (a pre-existing violation of the MANDATORY React Query rule, tracked
+  // separately and out of scope here), so nothing in this codebase ever
+  // subscribes to a `["conversation", id]` query key. Invalidating it was
+  // dead code; the conversation is actually refreshed by `load(convId)`.
   const invalidateListingLifecycleQueries = useCallback(
     (convId: number | null) => {
-      if (convId) qc.invalidateQueries({ queryKey: ["conversation", convId] });
-      // Bare (id-less) keys — deliberately broader than an exact
+      // Bare (id-less) key — deliberately broader than an exact
       // ["listing", id] match. ListingDetail.tsx and MyListingDetail.tsx key
       // their detail queries by the STRING route param while this handler
-      // only has the numeric listingId; invalidating the whole
-      // "listing"/"my-listing" namespace (React Query's default partial
-      // match) refreshes both regardless of the id's type instead of
-      // silently missing due to a string/number key mismatch.
+      // only has the numeric listingId; invalidating the whole "listing"
+      // namespace (React Query's default partial match) refreshes both
+      // regardless of the id's type instead of silently missing due to a
+      // string/number key mismatch. (No exported constant covers this bare
+      // "listing" namespace key — only the four below do.)
       qc.invalidateQueries({ queryKey: ["listing"] });
-      qc.invalidateQueries({ queryKey: ["my-listing"] });
-      qc.invalidateQueries({ queryKey: ["my-listings"] });
-      qc.invalidateQueries({ queryKey: ["myListingStatusCounts"] });
+      qc.invalidateQueries({ queryKey: [MY_LISTING_QK] });
+      qc.invalidateQueries({ queryKey: [MY_LISTINGS_QK] });
+      qc.invalidateQueries({ queryKey: [MY_LISTING_STATUS_COUNTS_QK] });
+      qc.invalidateQueries({ queryKey: [CONVERSATIONS_QK] });
       if (convId) load(convId);
     },
     [qc, load]
@@ -599,7 +647,10 @@ export function ConversationScreen() {
   const handleMeetupRespond = useCallback(
     async (proposal: Message, accepted: boolean) => {
       const convId = currentConversationId;
-      if (!convId || !proposal.body) return;
+      // Review fix (LOW-MEDIUM, DUPLICATION + A11Y GAP) — mirrors the offer
+      // row's existing double-tap guard (TASK-O947); this row never had one.
+      if (!convId || !proposal.body || isRespondingToMeetup) return;
+      setRespondingMeetupTarget({ messageId: proposal.id, accepted });
       try {
         const sent = await conversationsAPI.sendMessage(
           convId,
@@ -612,9 +663,11 @@ export function ConversationScreen() {
         toast.success(accepted ? t("chat.meetup.acceptedToast") : t("chat.meetup.declinedToast"));
       } catch {
         toast.error(t("chat.thread.meetupFailed"));
+      } finally {
+        setRespondingMeetupTarget(null);
       }
     },
-    [currentConversationId, t]
+    [currentConversationId, t, isRespondingToMeetup]
   );
 
   // ── Respond to a price offer (accept / decline) ──────────────────────────
@@ -660,7 +713,10 @@ export function ConversationScreen() {
             t,
             formatCurrency,
           });
-          if (prompt) setReserveConfirm(prompt);
+          if (prompt) {
+            setReserveConfirmError(null);
+            setReserveConfirm(prompt);
+          }
         }
       } catch {
         toast.error(t("chat.thread.sendFailed"));
@@ -686,9 +742,12 @@ export function ConversationScreen() {
     if (!reserveConfirm) return;
     const convId = currentConversationId;
     setIsReservingAfterAccept(true);
+    // Clear any previous failure's inline message before retrying.
+    setReserveConfirmError(null);
     const succeeded = await reserveAfterAccept(reserveConfirm, {
       t,
       onReserved: () => invalidateListingLifecycleQueries(convId),
+      onError: setReserveConfirmError,
     });
     setIsReservingAfterAccept(false);
     // CYCLE-6/O947 fix-list: `reserveAfterAccept` resolves `false` (never
@@ -1326,6 +1385,19 @@ export function ConversationScreen() {
                     ? (accepted) => handleMeetupRespond(item, accepted)
                     : undefined
                 }
+                // Review fix (LOW-MEDIUM, DUPLICATION + A11Y GAP) — mirrors
+                // offerActionsDisabled/offerResponsePending below: disables +
+                // dims every meetup proposal in the thread while ANY meetup
+                // response is in flight, and shows a spinner only on the
+                // specific bubble that was actually tapped.
+                meetupActionsDisabled={isRespondingToMeetup}
+                meetupResponsePending={
+                  respondingMeetupTarget?.messageId === item.id
+                    ? respondingMeetupTarget.accepted
+                      ? "accept"
+                      : "decline"
+                    : null
+                }
                 offerOutcome={offerOutcome}
                 onOfferRespond={
                   // Offer: the recipient can respond (not mine, not already countered)
@@ -1636,25 +1708,39 @@ export function ConversationScreen() {
           SellerListingCard, but in its "preselectedBuyer" confirm mode
           (cycle-4 design review): listing thumb + locked buyer identity +
           PriceTag, never the full pick-a-buyer list. "Not now" is just
-          `onClose` — it never reserves and never touches the accept above. */}
-      <BuyerPickerSheet
-        visible={reserveConfirm !== null}
-        onClose={() => setReserveConfirm(null)}
-        listingId={reserveConfirm?.listingId ?? 0}
-        price={reserveConfirm?.finalPrice ?? 0}
-        currency={reserveConfirm?.currency ?? "AFN"}
-        action="reserve"
-        preselectedBuyer={reserveConfirm?.buyer ?? null}
-        listingThumbnailUrl={conversation?.listing?.thumbnailUrl ?? null}
-        listingTitle={conversation?.listing?.title ?? null}
-        confirmTitle={reserveConfirm?.title}
-        confirmBody={reserveConfirm?.body}
-        cancelLabel={t("chat.offer.reserveAfterAcceptDismiss")}
-        onConfirm={() => {
-          void handleReserveAfterAcceptConfirm();
-        }}
-        isSubmitting={isReservingAfterAccept}
-      />
+          `onClose` — it never reserves and never touches the accept above.
+          Review fix (SHOULD-FIX, content flash) — the sheet is only ever
+          MOUNTED while `reserveConfirm` is non-null (not just `visible`).
+          `animationType="slide"` keeps a Modal's children mounted through
+          the ~250–300ms exit animation; driving `visible` off `reserveConfirm
+          !== null` while ALSO clearing `reserveConfirm` in the same commit
+          (every dismissal path: Not now, backdrop, header X, back button,
+          and the success path in handleReserveAfterAcceptConfirm) made the
+          sheet re-render as the full pick-a-buyer view — the exact list this
+          task exists to eliminate — for that whole exit window. Unmounting
+          instantly avoids it; the slide-out is invisible either way once
+          `visible` is already false. */}
+      {reserveConfirm !== null && (
+        <BuyerPickerSheet
+          visible
+          onClose={() => setReserveConfirm(null)}
+          listingId={reserveConfirm.listingId}
+          price={reserveConfirm.finalPrice}
+          currency={reserveConfirm.currency}
+          action="reserve"
+          preselectedBuyer={reserveConfirm.buyer}
+          listingThumbnailUrl={conversation?.listing?.thumbnailUrl ?? null}
+          listingTitle={conversation?.listing?.title ?? null}
+          confirmTitle={reserveConfirm.title}
+          confirmBody={reserveConfirm.body}
+          cancelLabel={t("chat.offer.reserveAfterAcceptDismiss")}
+          errorMessage={reserveConfirmError}
+          onConfirm={() => {
+            void handleReserveAfterAcceptConfirm();
+          }}
+          isSubmitting={isReservingAfterAccept}
+        />
+      )}
       </>}
 
     </View>

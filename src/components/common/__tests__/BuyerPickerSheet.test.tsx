@@ -35,6 +35,9 @@ jest.mock("lucide-react-native", () => ({
   // TASK-O947 review fix (TRUST) — confirm mode can now render UserIdentity's
   // VerifiedBadge, which renders a real BadgeCheck icon.
   BadgeCheck: "BadgeCheck",
+  // TASK-O947 review fix (self-explaining) — confirm mode's "Offer accepted"
+  // success pill.
+  CheckCircle2: "CheckCircle2",
 }));
 
 jest.mock("@/api/conversations", () => ({
@@ -102,6 +105,35 @@ function renderSheet(overrides: Partial<React.ComponentProps<typeof BuyerPickerS
     </QueryClientProvider>
   );
   return { onConfirm, onClose };
+}
+
+/** Same as `renderSheet`, but exposes RNTL's `rerender` so a test can change
+ *  props (e.g. `errorMessage`) on an already-mounted sheet. */
+function renderSheetForRerender(overrides: Partial<React.ComponentProps<typeof BuyerPickerSheet>> = {}) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const onConfirm = jest.fn();
+  const onClose = jest.fn();
+  const build = (props: Partial<React.ComponentProps<typeof BuyerPickerSheet>>) => (
+    <QueryClientProvider client={qc}>
+      <BuyerPickerSheet
+        visible
+        onClose={onClose}
+        listingId={99}
+        price={25000}
+        currency="AFN"
+        action="reserve"
+        onConfirm={onConfirm}
+        {...props}
+      />
+    </QueryClientProvider>
+  );
+  const { rerender } = render(build(overrides));
+  return {
+    onConfirm,
+    onClose,
+    rerender: (nextOverrides: Partial<React.ComponentProps<typeof BuyerPickerSheet>>) =>
+      rerender(build(nextOverrides)),
+  };
 }
 
 beforeEach(() => {
@@ -346,18 +378,24 @@ describe("BuyerPickerSheet — confirm mode (preselectedBuyer)", () => {
   // exactly like the footer's Cancel already was — otherwise the seller can
   // dismiss the sheet while the PUT is still in flight and get a "reserved"
   // toast after they believed they'd cancelled.
-  it("ignores the header X, the backdrop, and the hardware back button while isSubmitting", async () => {
+  it("ignores the header X, the backdrop, the hardware back button, AND the footer Cancel while isSubmitting", async () => {
     const { onClose } = renderSheet({ preselectedBuyer: PRESELECTED_BUYER, isSubmitting: true });
     await waitFor(() => screen.getByText("Ahmad Karimi"));
 
     fireEvent.press(screen.getByTestId("buyer-picker-close"));
     fireEvent.press(screen.getByTestId("buyer-picker-backdrop"));
     screen.UNSAFE_getByType(Modal).props.onRequestClose();
+    // Review fix (NIT) — the footer's ghost Cancel now routes through the
+    // same `handleDismiss` guard as the three dismissal paths above, instead
+    // of calling `onClose` directly (it was previously safe only because the
+    // Button ALSO carried `disabled={isSubmitting}` — two places agreeing by
+    // coincidence rather than one guard).
+    fireEvent.press(screen.getByText("buyerPicker.cancel"));
 
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("still closes via the header X and backdrop when not submitting", async () => {
+  it("still closes via the header X, the backdrop, and the footer Cancel when not submitting", async () => {
     const { onClose } = renderSheet({ preselectedBuyer: PRESELECTED_BUYER });
     await waitFor(() => screen.getByText("Ahmad Karimi"));
 
@@ -366,5 +404,22 @@ describe("BuyerPickerSheet — confirm mode (preselectedBuyer)", () => {
 
     fireEvent.press(screen.getByTestId("buyer-picker-backdrop"));
     expect(onClose).toHaveBeenCalledTimes(2);
+
+    fireEvent.press(screen.getByText("buyerPicker.cancel"));
+    expect(onClose).toHaveBeenCalledTimes(3);
+  });
+
+  // Review fix (MEDIUM, ERROR FEEDBACK INVISIBLE ON ANDROID) — `errorMessage`
+  // renders inline above the footer so a reserve/sold failure is legible
+  // even where the sheet's own <Modal> occludes the sonner-native toast.
+  it("renders errorMessage above the footer when set, and nothing when unset", async () => {
+    const { rerender } = renderSheetForRerender({ preselectedBuyer: PRESELECTED_BUYER });
+    await waitFor(() => screen.getByText("Ahmad Karimi"));
+    expect(screen.queryByTestId("buyer-picker-error")).toBeNull();
+
+    rerender({ preselectedBuyer: PRESELECTED_BUYER, errorMessage: "chat.listingActions.reserveFailed" });
+    expect(screen.getByTestId("buyer-picker-error")).toHaveTextContent(
+      "chat.listingActions.reserveFailed"
+    );
   });
 });

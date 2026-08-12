@@ -695,6 +695,131 @@ describe("UniversalList — onEndReached (regression guards)", () => {
   });
 });
 
+// ─── 11b. Auto-continue when a filtered/narrowed view is empty (HIGH review fix) ─
+//
+// Previously, `visibleItems.length === 0` always rendered the terminal
+// EmptyState, which unmounts FlashList — so `onEndReached` could never fire
+// again, and a filtered/narrowed result whose only match sat on an unloaded
+// page was a permanent dead end. UniversalList must now keep walking forward
+// through the already-known remaining pages on its own (no user scroll)
+// until a visible item appears or `totalPages` is exhausted.
+
+describe("UniversalList — auto-continues when a filtered view is empty but more pages exist", () => {
+  it("walks forward through pages with no user scroll until a match appears", async () => {
+    const PAGE_1 = [{ id: 1, label: "Other" }];
+    const PAGE_2 = [{ id: 2, label: "Other" }];
+    const PAGE_3 = [{ id: 3, label: "Match" }];
+    const fetcher = jest.fn((query: ListQuery) => {
+      if (query.page === 1) return Promise.resolve({ items: PAGE_1, totalCount: 3, totalPages: 3, currentPage: 1 });
+      if (query.page === 2) return Promise.resolve({ items: PAGE_2, totalCount: 3, totalPages: 3, currentPage: 2 });
+      return Promise.resolve({ items: PAGE_3, totalCount: 3, totalPages: 3, currentPage: 3 });
+    });
+
+    render(
+      <UniversalList
+        config={buildConfig({
+          fetcher,
+          filterItems: (items) => items.filter((i) => i.label === "Match"),
+        })}
+      />
+    );
+
+    // No manual onEndReached call anywhere in this test.
+    await waitFor(() => expect(screen.getByText("Match")).toBeTruthy());
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it("shows a spinner while auto-continuing, never the terminal EmptyState mid-walk", async () => {
+    let resolvePage2!: (value: ListFetchResult<SimpleItem>) => void;
+    const PAGE_1 = [{ id: 1, label: "Other" }];
+    const fetcher = jest.fn((query: ListQuery) => {
+      if (query.page === 1) return Promise.resolve({ items: PAGE_1, totalCount: 2, totalPages: 2, currentPage: 1 });
+      return new Promise<ListFetchResult<SimpleItem>>((resolve) => { resolvePage2 = resolve; });
+    });
+
+    render(
+      <UniversalList
+        config={buildConfig({
+          fetcher,
+          filterItems: (items) => items.filter((i) => i.label === "Match"),
+          emptyTitle: "Nothing found",
+        })}
+      />
+    );
+
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+    // Page 2 is still in flight — must NOT show the terminal empty state yet.
+    expect(screen.queryByText("Nothing found")).toBeNull();
+
+    await act(async () => {
+      resolvePage2({ items: [], totalCount: 2, totalPages: 2, currentPage: 2 });
+    });
+
+    // Every page has now been exhausted with zero matches — THIS is terminal.
+    await waitFor(() => expect(screen.getByText("Nothing found")).toBeTruthy());
+  });
+
+  it("never fetches beyond totalPages — bounded, cannot loop forever", async () => {
+    const PAGE_1 = [{ id: 1, label: "Other" }];
+    const fetcher = jest.fn((_query: ListQuery) =>
+      Promise.resolve({ items: PAGE_1, totalCount: 1, totalPages: 1, currentPage: 1 })
+    );
+
+    render(
+      <UniversalList
+        config={buildConfig({ fetcher, filterItems: () => [], emptyTitle: "Nothing found" })}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByText("Nothing found")).toBeTruthy());
+    // Only the one page the server reported — never an extra "continuation" call.
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─── 11c. handleEndReached page tracking (MEDIUM review fix) ─────────────────
+//
+// `handleEndReached` used to compute `currentPage + 1` from React STATE,
+// captured by the callback's closure. `loadedPageRef` is now written
+// SYNCHRONOUSLY the instant a page is reserved, so repeated onEndReached
+// calls across a sequence always request strictly increasing pages — never
+// the same page twice.
+
+describe("UniversalList — handleEndReached requests strictly increasing pages", () => {
+  it("never re-requests the same page across a sequence of onEndReached calls", async () => {
+    const PAGES: Record<number, SimpleItem[]> = {
+      1: [{ id: 1, label: "P1" }],
+      2: [{ id: 2, label: "P2" }],
+      3: [{ id: 3, label: "P3" }],
+    };
+    const fetcher = jest.fn((query: ListQuery) =>
+      Promise.resolve({ items: PAGES[query.page] ?? [], totalCount: 3, totalPages: 3, currentPage: query.page })
+    );
+
+    render(<UniversalList config={buildConfig({ fetcher, perPage: 1 })} />);
+    await waitFor(() => expect(screen.getByText("P1")).toBeTruthy());
+
+    const getFlashList = () =>
+      screen.UNSAFE_getByType(FlashList as never) as unknown as {
+        props: { onEndReached?: () => void };
+      };
+
+    await act(async () => {
+      await getFlashList().props.onEndReached?.();
+    });
+    await waitFor(() => expect(screen.getByText("P2")).toBeTruthy());
+
+    await act(async () => {
+      await getFlashList().props.onEndReached?.();
+    });
+    await waitFor(() => expect(screen.getByText("P3")).toBeTruthy());
+
+    // Exactly one fetch per page, strictly increasing — page 2 (or any page)
+    // must never be requested twice.
+    expect(fetcher.mock.calls.map((call) => call[0].page)).toEqual([1, 2, 3]);
+  });
+});
+
 // ─── 11. onPageInfoChange (cycle-3 CR fix — supports the "partial results" copy) ─
 
 describe("UniversalList — onPageInfoChange", () => {

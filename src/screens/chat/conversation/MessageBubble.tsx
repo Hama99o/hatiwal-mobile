@@ -18,6 +18,8 @@ import {
   FileText,
   CalendarCheck,
   CalendarX,
+  CheckCircle2,
+  XCircle,
   Camera,
   X,
   ArrowLeftRight,
@@ -98,6 +100,21 @@ interface MessageBubbleProps {
   onMeetupRespond?: (accepted: boolean) => void;
   /** Outcome of this proposal, if it has been answered (shown on the bubble). */
   meetupOutcome?: "accepted" | "declined" | null;
+  /**
+   * Review fix (LOW-MEDIUM, DUPLICATION + A11Y GAP) — mirrors
+   * `offerActionsDisabled`: true while a response to ANY meetup proposal in
+   * this thread is already in flight, so a fast double-tap on
+   * Accept/Decline can never fire two `meetup_accepted`/`meetup_declined`
+   * messages. The meetup row had no in-flight guard at all before this —
+   * unlike the offer row, which TASK-O947 already guarded.
+   */
+  meetupActionsDisabled?: boolean;
+  /**
+   * Review fix (LOW-MEDIUM) — mirrors `offerResponsePending`: set to
+   * `"accept"`/`"decline"` on THIS specific bubble while its own tapped
+   * action is awaiting the server response.
+   */
+  meetupResponsePending?: "accept" | "decline" | null;
   /** Called when the seller taps Accept (true) / Decline (false) on an offer. */
   onOfferRespond?: (accepted: boolean) => void;
   /** Outcome of this offer, if it has been answered. */
@@ -203,11 +220,12 @@ function ReadReceipt({ color }: { color: string }) {
  * TASK-O947 (design review dedup + semantics fix) — the single "answered"
  * pill shared by ALL THREE lifecycle-outcome sites in this file: the `offer`
  * bubble, the `offer_counter` bubble, and the meetup-proposal bubble. Each
- * call site supplies its own `icon`, so a price/deal outcome (e.g. `Tag`)
- * reads distinctly from a meetup outcome (`CalendarCheck`/`CalendarX`) even
- * though the pill chrome — background tint, padding, radius, text weight —
- * is identical. Previously `OfferOutcomeBadge` used the CALENDAR icons for
- * offers too, which made "Offer accepted" visually indistinguishable from
+ * call site supplies its own `icon`, so a price/deal outcome
+ * (`CheckCircle2`/`XCircle`) reads distinctly from a meetup outcome
+ * (`CalendarCheck`/`CalendarX`) even though the pill chrome — background
+ * tint, padding, radius, text weight — is identical. Previously
+ * `OfferOutcomeBadge` used the CALENDAR icons for offers too, which made
+ * "Offer accepted" visually indistinguishable from
  * the meetup "Accepted" pill just above it in the same thread; the third,
  * inline copy at the meetup site duplicated the same JSX a third time.
  */
@@ -249,88 +267,121 @@ function OutcomeBadge({
 }
 
 /**
- * TASK-O947 (design review dedup fix) — the Accept / Decline / Counter action
- * row shown on an unanswered `offer` or `offer_counter` bubble to its
- * recipient. Extracted because the two call sites were byte-for-byte
- * identical except for the Counter button's accessibility props (preserved
- * here via `counterAccessibilityLabel`, which the `offer` bubble never set).
+ * TASK-O947 (design review dedup fix) — the Accept / Decline (+ optional
+ * Counter) action row shown on an unanswered bubble to its recipient.
+ * Originally `OfferActionsRow`, hardcoded to the offer/counter copy + tone;
+ * generalized (review fix, LOW-MEDIUM DUPLICATION) so the meetup-proposal
+ * bubble's own Accept/Decline row — structurally identical (same
+ * flexDirection/gap/minHeight/paddingVertical/borderRadius/13px-700 labels)
+ * but previously left inline with none of the a11y/disabled/pending
+ * machinery below — can share it instead of drifting further from the offer
+ * row every time one of them is fixed. `acceptTone` is the only visual
+ * difference between the two callers (offers = success/green, meetups =
+ * primary/blue) so it stays distinct from the OTHER accepted-outcome
+ * surfaces in this file (the offer/meetup `OutcomeBadge`s).
  */
-function OfferActionsRow({
-  onRespond,
+function ActionPairRow({
+  onAccept,
+  onDecline,
   onCounter,
+  acceptLabel,
+  declineLabel,
+  acceptTone,
   disabled,
   pending,
   isRtl,
   colors,
-  t,
+  counterLabel,
   counterAccessibilityLabel,
+  testID,
+  marginTop = 8,
 }: {
-  onRespond: (accepted: boolean) => void;
+  onAccept: () => void;
+  onDecline: () => void;
   onCounter?: () => void;
+  acceptLabel: string;
+  declineLabel: string;
+  /** Offers = success/green (distinct from the meetup pill's primary/blue). */
+  acceptTone: "success" | "primary";
   disabled?: boolean;
   /**
    * MEDIUM (STATES) review fix — which action, if any, is the one the
    * seller/buyer actually tapped and is now awaiting the server response.
-   * `disabled` alone only dims the whole row (it goes true for every offer
-   * bubble in the thread while ANY response is in flight — see
-   * `offerActionsDisabled` at the call site), which reads as a dead tap on a
-   * mid-range Android with no other progress cue. `pending` swaps THIS
-   * bubble's tapped button label for a spinner instead.
+   * `disabled` alone only dims the whole row (it goes true for every bubble
+   * of this kind in the thread while ANY response is in flight), which reads
+   * as a dead tap on a mid-range Android with no other progress cue.
+   * `pending` swaps THIS bubble's tapped button label for a spinner instead.
    */
   pending?: "accept" | "decline" | null;
   isRtl: boolean;
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
-  t: (key: string) => string;
-  /** Only the `offer_counter` bubble originally set this — preserved as-is. */
+  /** Only rendered when `onCounter` is provided (offer/counter bubbles only). */
+  counterLabel?: string;
   counterAccessibilityLabel?: string;
+  testID?: string;
+  /** The offer row used 8, the meetup row's inline copy used 6 — preserved
+   *  per call site (same pattern as `OutcomeBadge`'s own `marginTop` prop)
+   *  rather than silently changing either's spacing. */
+  marginTop?: number;
 }) {
+  const acceptBg = acceptTone === "success" ? colors.success : colors.primary;
+  const acceptRipple = acceptTone === "success" ? colors.successAlpha : colors.primaryAlpha;
+  const acceptFg = acceptTone === "success" ? colors.successForeground : colors.primaryForeground;
+
   return (
-    <View style={{ gap: 6, marginTop: 8, opacity: disabled ? 0.5 : 1 }}>
+    // Review fix (SHOULD-FIX, STATES) — dimming the WHOLE row (including the
+    // pending button itself) re-created the exact ambiguity the pending
+    // spinner was meant to remove: on the tapped bubble `disabled` is also
+    // true (the global in-flight guard), so its own spinner rendered at 50%
+    // opacity inside an already-disabled row was barely more legible than
+    // the dead tap it replaced. Only dim when nothing on THIS row is pending
+    // — the tapped bubble's spinner now always renders at full opacity.
+    <View testID={testID} style={{ gap: 6, marginTop, opacity: disabled && !pending ? 0.5 : 1 }}>
       {/* Accept + Decline row */}
       <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8 }}>
         <Pressable
-          onPress={() => onRespond(true)}
+          onPress={onAccept}
           disabled={disabled}
-          android_ripple={{ color: colors.successAlpha }}
+          android_ripple={{ color: acceptRipple }}
           accessibilityRole="button"
-          accessibilityLabel={t("chat.offer.accept")}
-          accessibilityState={{ disabled: !!disabled }}
-          style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.success }}
+          accessibilityLabel={acceptLabel}
+          // Review fix (SHOULD-FIX, A11Y) — `busy` tells a screen-reader user
+          // a response is in flight while the visible label is swapped for a
+          // spinner (the accessibilityLabel alone still reads a plain
+          // "Accept" with no progress signal otherwise).
+          accessibilityState={{ disabled: !!disabled, busy: pending === "accept" }}
+          style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, backgroundColor: acceptBg }}
         >
           {pending === "accept" ? (
-            <ActivityIndicator size="small" color={colors.successForeground} />
+            <ActivityIndicator size="small" color={acceptFg} />
           ) : (
-            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.successForeground }}>
-              {t("chat.offer.accept")}
-            </Text>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: acceptFg }}>{acceptLabel}</Text>
           )}
         </Pressable>
         <Pressable
-          onPress={() => onRespond(false)}
+          onPress={onDecline}
           disabled={disabled}
           android_ripple={{ color: colors.muted }}
           accessibilityRole="button"
-          accessibilityLabel={t("chat.offer.decline")}
-          accessibilityState={{ disabled: !!disabled }}
+          accessibilityLabel={declineLabel}
+          accessibilityState={{ disabled: !!disabled, busy: pending === "decline" }}
           style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
         >
           {pending === "decline" ? (
             <ActivityIndicator size="small" color={colors.destructive} />
           ) : (
-            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
-              {t("chat.offer.decline")}
-            </Text>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>{declineLabel}</Text>
           )}
         </Pressable>
       </View>
-      {/* Counter button — full width, below Accept/Decline */}
+      {/* Counter button — full width, below Accept/Decline (offer/counter bubbles only) */}
       {onCounter && (
         <Pressable
           onPress={onCounter}
           disabled={disabled}
           android_ripple={{ color: colors.warningAlpha }}
           accessibilityRole="button"
-          accessibilityLabel={counterAccessibilityLabel ?? t("chat.offer.counter")}
+          accessibilityLabel={counterAccessibilityLabel ?? counterLabel}
           accessibilityState={{ disabled: !!disabled }}
           style={{
             alignItems: "center",
@@ -345,9 +396,7 @@ function OfferActionsRow({
           }}
         >
           <ArrowLeftRight size={14} color={colors.warning} />
-          <Text style={{ fontSize: 13, fontWeight: "700", color: colors.warning }}>
-            {t("chat.offer.counter")}
-          </Text>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: colors.warning }}>{counterLabel}</Text>
         </Pressable>
       )}
     </View>
@@ -568,7 +617,7 @@ function ImageMessageBubble({
   );
 }
 
-export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, onOfferRespond, offerOutcome, onOfferCounter, offerActionsDisabled, offerResponsePending, searchQuery, onDeleteMessage }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, meetupActionsDisabled, meetupResponsePending, onOfferRespond, offerOutcome, onOfferCounter, offerActionsDisabled, offerResponsePending, searchQuery, onDeleteMessage }: MessageBubbleProps) {
   const { t } = useTranslation();
   const { isRtl, formatTime, formatCurrency } = useLocalization();
   const colors = useColors();
@@ -859,7 +908,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             {/* Offer actions — shown only when no outcome yet */}
             {offerOutcome ? (
               <OutcomeBadge
-                icon={offerOutcome === "accepted" ? Tag : X}
+                icon={offerOutcome === "accepted" ? CheckCircle2 : XCircle}
                 label={offerOutcome === "accepted" ? t("chat.offer.accepted") : t("chat.offer.declined")}
                 tone={offerOutcome === "accepted" ? "success" : "destructive"}
                 isRtl={isRtl}
@@ -869,14 +918,19 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
               /* Accept / Decline / Counter — seller sees all three actions before responding.
                  TASK-O947: all three are disabled + dimmed while ANY offer response in this
                  thread is in flight (offerActionsDisabled) — never a double-tap. */
-              <OfferActionsRow
-                onRespond={onOfferRespond}
+              <ActionPairRow
+                testID="offer-actions-row"
+                onAccept={() => onOfferRespond(true)}
+                onDecline={() => onOfferRespond(false)}
                 onCounter={onOfferCounter}
+                acceptLabel={t("chat.offer.accept")}
+                declineLabel={t("chat.offer.decline")}
+                counterLabel={t("chat.offer.counter")}
+                acceptTone="success"
                 disabled={offerActionsDisabled}
                 pending={offerResponsePending}
                 isRtl={isRtl}
                 colors={colors}
-                t={t}
               />
             ) : null}
 
@@ -1008,7 +1062,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             {/* Outcome — shown to both sides once the buyer responds to the counter */}
             {offerOutcome ? (
               <OutcomeBadge
-                icon={offerOutcome === "accepted" ? Tag : X}
+                icon={offerOutcome === "accepted" ? CheckCircle2 : XCircle}
                 label={offerOutcome === "accepted" ? t("chat.offer.accepted") : t("chat.offer.declined")}
                 tone={offerOutcome === "accepted" ? "success" : "destructive"}
                 isRtl={isRtl}
@@ -1021,14 +1075,19 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                  counter the seller's counter, and vice versa). TASK-O947: all
                  three are disabled + dimmed while ANY offer response in this
                  thread is in flight (offerActionsDisabled). */
-              <OfferActionsRow
-                onRespond={onOfferRespond}
+              <ActionPairRow
+                testID="offer-actions-row"
+                onAccept={() => onOfferRespond(true)}
+                onDecline={() => onOfferRespond(false)}
                 onCounter={onOfferCounter}
+                acceptLabel={t("chat.offer.accept")}
+                declineLabel={t("chat.offer.decline")}
+                counterLabel={t("chat.offer.counter")}
+                acceptTone="success"
                 disabled={offerActionsDisabled}
                 pending={offerResponsePending}
                 isRtl={isRtl}
                 colors={colors}
-                t={t}
                 counterAccessibilityLabel={t("chat.offer.counterBack")}
               />
             ) : null}
@@ -1147,27 +1206,27 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 marginTop={6}
               />
             ) : !isMine && onMeetupRespond ? (
-              /* Accept / Decline — only for the recipient, before they respond */
-              <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8, marginTop: 6 }}>
-                <Pressable
-                  onPress={() => onMeetupRespond(true)}
-                  android_ripple={{ color: colors.primaryAlpha }}
-                  style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.primary }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primaryForeground }}>
-                    {t("chat.meetup.accept")}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => onMeetupRespond(false)}
-                  android_ripple={{ color: colors.muted }}
-                  style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
-                    {t("chat.meetup.decline")}
-                  </Text>
-                </Pressable>
-              </View>
+              /* Accept / Decline — only for the recipient, before they respond.
+                 Review fix (LOW-MEDIUM, DUPLICATION + A11Y) — this row was
+                 structurally identical to the offer row (`ActionPairRow`)
+                 but left inline with none of its accessibilityRole/Label/
+                 State, `disabled`, or `pending` — now shares the same
+                 component so a fast double-tap can never fire two
+                 meetup_accepted/meetup_declined messages either (guarded by
+                 `meetupActionsDisabled`/`meetupResponsePending` at the
+                 Conversation.tsx call site, mirroring the offer guard). */
+              <ActionPairRow
+                onAccept={() => onMeetupRespond(true)}
+                onDecline={() => onMeetupRespond(false)}
+                acceptLabel={t("chat.meetup.accept")}
+                declineLabel={t("chat.meetup.decline")}
+                acceptTone="primary"
+                disabled={meetupActionsDisabled}
+                pending={meetupResponsePending}
+                isRtl={isRtl}
+                colors={colors}
+                marginTop={6}
+              />
             ) : null}
 
             {/* Timestamp + read receipt */}

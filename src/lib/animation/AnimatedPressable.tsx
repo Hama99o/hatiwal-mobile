@@ -4,6 +4,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  type EntryOrExitLayoutType,
 } from "react-native-reanimated";
 import { triggerHaptic } from "./haptics";
 import { useReduceMotion } from "./useReduceMotion";
@@ -27,13 +28,9 @@ interface AnimatedPressableProps extends PressableProps {
    * (the ancestor's own layout box was back down to the icon's 16px). Putting
    * entering/exiting on this component directly means there is only ONE view
    * — its own measured box IS the tap target, no smaller ancestor to clip it.
-   *
-   * Typed loosely (matches the `enteringAnimation: any` convention already
-   * used for this in MessageBubble.tsx) — Reanimated's exact builder union
-   * type isn't re-exported from the package's top-level entry point.
    */
-  entering?: any;
-  exiting?: any;
+  entering?: EntryOrExitLayoutType;
+  exiting?: EntryOrExitLayoutType;
 }
 
 export function AnimatedPressable({
@@ -42,21 +39,38 @@ export function AnimatedPressable({
   haptic = true,
   disabled,
   style,
+  entering,
+  exiting,
   ...props
 }: AnimatedPressableProps) {
   const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
+  // Review fix: when `entering`/`exiting` are supplied, Reanimated's layout-
+  // animation mechanism owns `opacity` on this same shadow node to fade the
+  // view in/out. `useAnimatedStyle` writing a constant `opacity: 1` (the
+  // "at rest" press-feedback value) to that same native prop every frame
+  // fights it — the fade either doesn't visibly play or settles at the
+  // press-in opacity instead of animating. Press feedback stays scale-only
+  // in that case; entering/exiting exclusively own opacity.
+  const hasEnterExit = Boolean(entering || exiting);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+  const animatedStyle = useAnimatedStyle(() => {
+    if (hasEnterExit) {
+      return { transform: [{ scale: scale.value }] };
+    }
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    };
+  });
 
   const handlePressIn = () => {
     if (!reduceMotion) {
       scale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
-      opacity.value = withSpring(0.85, { damping: 15, stiffness: 300 });
+      if (!hasEnterExit) {
+        opacity.value = withSpring(0.85, { damping: 15, stiffness: 300 });
+      }
     }
     if (haptic && !disabled) {
       triggerHaptic("light", reduceMotion);
@@ -66,7 +80,9 @@ export function AnimatedPressable({
   const handlePressOut = () => {
     if (!reduceMotion) {
       scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-      opacity.value = withSpring(1, { damping: 15, stiffness: 300 });
+      if (!hasEnterExit) {
+        opacity.value = withSpring(1, { damping: 15, stiffness: 300 });
+      }
     }
   };
 
@@ -76,6 +92,8 @@ export function AnimatedPressable({
       onPressOut={handlePressOut}
       onPress={onPress}
       disabled={disabled}
+      entering={entering}
+      exiting={exiting}
       style={[animatedStyle, style as any]}
       {...props}
     >
