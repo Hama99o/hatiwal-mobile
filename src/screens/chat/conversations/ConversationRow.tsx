@@ -21,6 +21,8 @@ import { Text } from "@/components/reusables/text";
 import { Badge } from "@/components/reusables/badge";
 import { StatusBadge, type ListingStatus } from "@/components/common/StatusBadge";
 import { UserIdentity } from "@/components/common/UserIdentity";
+import { PriceTag } from "@/components/common/PriceTag";
+import { HighlightedText } from "@/components/common/HighlightedText";
 import { confirmAlert } from "@/utils/alert";
 import { conversationPreviewText } from "./conversationPreviewText";
 
@@ -52,6 +54,15 @@ interface ConversationRowProps {
   item: Conversation;
   /** "inbox" (default) or "archived" — controls which menu items appear */
   tabMode?: "inbox" | "archived";
+  /**
+   * TASK-J471 — the active inbox search term (Conversations.tsx's
+   * `searchTerm`). Drives `HighlightedText` on the preview line so the row
+   * shows visually *why* it matched — the identical treatment used for
+   * in-thread message search (`MessageBubble`). `filterConversations` keeps
+   * sole ownership of matching; this can only highlight, never disagree with
+   * what was already selected.
+   */
+  searchTerm?: string;
   onDelete: (id: number) => void;
   onMarkRead?: (id: number) => void;
   onMarkUnread?: (id: number) => void;
@@ -62,6 +73,7 @@ interface ConversationRowProps {
 export function ConversationRow({
   item,
   tabMode = "inbox",
+  searchTerm,
   onDelete,
   onMarkRead,
   onMarkUnread,
@@ -187,7 +199,7 @@ export function ConversationRow({
         {/* ── Text content ────────────────────────────────────────────────── */}
         <View style={styles.content}>
 
-          {/* Title (+ role pill) + time */}
+          {/* Title (+ role pill) + price + time */}
           <View style={[styles.row1, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
             <View style={[styles.titleGroup, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
               <Text
@@ -212,6 +224,16 @@ export function ConversationRow({
                 </View>
               ) : null}
             </View>
+            {/* Price (TASK-J471, design north star: price-prominence) — renders
+                null when the listing has no price (PriceTag itself returns null),
+                so no extra wrapper here to avoid an empty flex-gap slot. Muted
+                tone on a sold/reserved row, matching the dimmed title/thumbnail. */}
+            <PriceTag
+              price={item.listing?.price}
+              currency={item.listing?.currency}
+              size="sm"
+              tone={isInactive ? "muted" : "default"}
+            />
             {timeLabel ? (
               <Text
                 style={[
@@ -242,16 +264,20 @@ export function ConversationRow({
           <View style={[styles.row3, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
             <View style={[styles.previewInner, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
               {PreviewIcon && <PreviewIcon size={11} color={colors.mutedForeground} />}
-              <Text
+              {/* TASK-J471 — highlights the substring that matched the active
+                  inbox search term, the identical treatment as in-thread
+                  message search. `searchTerm` is undefined outside search, so
+                  this renders exactly like the plain Text it replaces. */}
+              <HighlightedText
+                text={previewText}
+                query={searchTerm}
                 numberOfLines={1}
-                style={[
+                baseStyle={[
                   styles.preview,
                   { color: unread > 0 ? colors.foreground : colors.mutedForeground,
                     fontWeight: unread > 0 ? "500" : "400" },
                 ]}
-              >
-                {previewText}
-              </Text>
+              />
             </View>
             {unread > 0 && (
               <PulsingBadge count={unread} testID={`unread-badge-${item.id}`} />
@@ -462,7 +488,10 @@ const styles = StyleSheet.create({
   // itself is flexShrink: 1 (never flex: 1) so it truncates before the pill
   // or the timestamp ever get squeezed out.
   titleGroup: { flex: 1, alignItems: "center", gap: 6, minWidth: 0 },
-  title: { fontSize: 14, fontWeight: "700", lineHeight: 19, flexShrink: 1 },
+  // flex: 1 (not flexShrink: 1) — TASK-J471: with a PriceTag + timestamp now
+  // also sharing row1, the title must actively shrink to zero-basis so a long
+  // title never pushes the price or the time off-screen/truncated.
+  title: { fontSize: 14, fontWeight: "700", lineHeight: 19, flex: 1 },
   rolePillWrap: { flexShrink: 0 },
   rolePill: { paddingHorizontal: 8 },
   time:  { fontSize: 11, flexShrink: 0, marginTop: 1 },

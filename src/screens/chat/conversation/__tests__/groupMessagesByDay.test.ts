@@ -1,8 +1,12 @@
 /**
  * groupMessagesByDay — Jest unit tests (TASK-D428).
  *
- * Covers buildThreadRows: empty list, single day, day change, unread larger
- * than the loaded page, and unread 0 — plus classifyDay and threadRowKey.
+ * Covers `resolveUnreadBoundaryId` + `buildThreadRows` (the DR-BLOCKER split
+ * of the old single-function API): empty list, single day, day change,
+ * unread larger than the loaded page, unread 0, non-renderable (response)
+ * kinds being excluded from day/unread bookkeeping, and the divider staying
+ * fixed on its resolved id even as the message list grows — plus
+ * `classifyDay` and `threadRowKey`.
  *
  * NOTE: all fixture timestamps deliberately omit a "Z"/offset suffix so they
  * parse as LOCAL time (per the Date Time String spec) — the same local zone
@@ -11,7 +15,13 @@
  * timestamp near a local midnight could otherwise flip which calendar day it
  * lands on depending on the runner's TZ.
  */
-import { buildThreadRows, classifyDay, threadRowKey, type ThreadRow } from "../groupMessagesByDay";
+import {
+  buildThreadRows,
+  classifyDay,
+  resolveUnreadBoundaryId,
+  threadRowKey,
+  type ThreadRow,
+} from "../groupMessagesByDay";
 import type { Message } from "@/api/conversations";
 
 function makeMsg(overrides: Partial<Message>): Message {
@@ -28,10 +38,10 @@ function makeMsg(overrides: Partial<Message>): Message {
 
 describe("buildThreadRows — empty list", () => {
   it("returns an empty array for no messages", () => {
-    expect(buildThreadRows([], 0)).toEqual([]);
+    expect(buildThreadRows([], null)).toEqual([]);
   });
 
-  it("returns an empty array for no messages even when unreadCount > 0", () => {
+  it("returns an empty array for no messages even with a boundary id set", () => {
     expect(buildThreadRows([], 5)).toEqual([]);
   });
 });
@@ -43,7 +53,7 @@ describe("buildThreadRows — single day", () => {
       makeMsg({ id: 2, createdAt: "2026-06-15T09:05:00.000" }),
       makeMsg({ id: 3, createdAt: "2026-06-15T18:30:00.000" }),
     ];
-    const rows = buildThreadRows(messages, 0);
+    const rows = buildThreadRows(messages, null);
     expect(rows).toEqual([
       { type: "day", iso: "2026-06-15T09:00:00.000" },
       { type: "message", message: messages[0] },
@@ -61,7 +71,7 @@ describe("buildThreadRows — day change", () => {
       makeMsg({ id: 3, createdAt: "2026-06-15T18:30:00.000" }),
       makeMsg({ id: 4, createdAt: "2026-06-17T08:00:00.000" }),
     ];
-    const rows = buildThreadRows(messages, 0);
+    const rows = buildThreadRows(messages, null);
     const dayRows = rows.filter((r): r is { type: "day"; iso: string } => r.type === "day");
     expect(dayRows).toHaveLength(3);
     expect(rows.map((r) => r.type)).toEqual([
@@ -76,27 +86,48 @@ describe("buildThreadRows — day change", () => {
       makeMsg({ id: 1, createdAt: "2026-06-15T00:05:00.000" }),
       makeMsg({ id: 2, createdAt: "2026-06-15T23:55:00.000" }),
     ];
-    const rows = buildThreadRows(messages, 0);
+    const rows = buildThreadRows(messages, null);
     expect(rows.filter((r) => r.type === "day")).toHaveLength(1);
   });
 });
 
-describe("buildThreadRows — unread divider placement", () => {
-  it("inserts the unread row before the Nth-from-last incoming message", () => {
+describe("buildThreadRows — non-renderable (response) kinds are excluded", () => {
+  it("never emits a row for meetup_accepted/meetup_declined/offer_accepted/offer_declined", () => {
+    const messages = [
+      makeMsg({ id: 1, kind: "meetup_proposal", createdAt: "2026-06-15T09:00:00.000" }),
+      makeMsg({ id: 2, kind: "meetup_accepted", createdAt: "2026-06-15T09:05:00.000", respondsToId: 1 }),
+      makeMsg({ id: 3, kind: "offer", createdAt: "2026-06-15T09:10:00.000" }),
+      makeMsg({ id: 4, kind: "offer_declined", createdAt: "2026-06-15T09:15:00.000", respondsToId: 3 }),
+    ];
+    const rows = buildThreadRows(messages, null);
+    const messageRows = rows.filter((r): r is { type: "message"; message: Message } => r.type === "message");
+    expect(messageRows.map((r) => r.message.id)).toEqual([1, 3]);
+  });
+
+  it("does not let an invisible response message on a later day conjure an extra day separator", () => {
+    const messages = [
+      makeMsg({ id: 1, kind: "offer", createdAt: "2026-06-15T09:00:00.000" }),
+      // Invisible response, one calendar day later — must not produce its own
+      // day row (there is no visible bubble under it to anchor one).
+      makeMsg({ id: 2, kind: "offer_accepted", createdAt: "2026-06-16T09:00:00.000", respondsToId: 1 }),
+    ];
+    const rows = buildThreadRows(messages, null);
+    expect(rows).toEqual([
+      { type: "day", iso: "2026-06-15T09:00:00.000" },
+      { type: "message", message: messages[0] },
+    ]);
+  });
+});
+
+describe("resolveUnreadBoundaryId — placement", () => {
+  it("resolves the id of the Nth-from-last incoming message", () => {
     const messages = [
       makeMsg({ id: 1, createdAt: "2026-06-15T09:00:00.000", sender: { id: 2, name: "Seller" } }),
       makeMsg({ id: 2, createdAt: "2026-06-15T09:05:00.000", sender: { id: 2, name: "Seller" } }),
       makeMsg({ id: 3, createdAt: "2026-06-15T09:10:00.000", sender: { id: 2, name: "Seller" } }),
     ];
-    // unreadCount = 2 → divider goes before the 2nd-from-last incoming message (id 2)
-    const rows = buildThreadRows(messages, 2, 1 /* currentUserId */);
-    expect(rows).toEqual([
-      { type: "day", iso: "2026-06-15T09:00:00.000" },
-      { type: "message", message: messages[0] },
-      { type: "unread" },
-      { type: "message", message: messages[1] },
-      { type: "message", message: messages[2] },
-    ]);
+    // unreadCount = 2 → boundary is the 2nd-from-last incoming message (id 2)
+    expect(resolveUnreadBoundaryId(messages, 2, 1 /* currentUserId */)).toBe(2);
   });
 
   it("skips the viewer's own outgoing messages when locating the incoming boundary", () => {
@@ -106,31 +137,60 @@ describe("buildThreadRows — unread divider placement", () => {
       makeMsg({ id: 3, createdAt: "2026-06-15T09:10:00.000", sender: { id: 2, name: "Seller" } }), // incoming
       makeMsg({ id: 4, createdAt: "2026-06-15T09:15:00.000", sender: { id: 2, name: "Seller" } }), // incoming
     ];
-    // 1 unread incoming message → divider precedes the last incoming message (id 4)
-    const rows = buildThreadRows(messages, 1, 1);
-    const unreadIndex = rows.findIndex((r) => r.type === "unread");
-    const nextRow = rows[unreadIndex + 1];
-    expect(nextRow).toEqual({ type: "message", message: messages[3] });
+    // 1 unread incoming message → boundary is the last incoming message (id 4)
+    expect(resolveUnreadBoundaryId(messages, 1, 1)).toBe(4);
   });
 
-  it("emits only a single unread row even across a day boundary", () => {
+  it("ignores non-renderable response kinds as boundary candidates", () => {
     const messages = [
-      makeMsg({ id: 1, createdAt: "2026-06-14T09:00:00.000", sender: { id: 2, name: "Seller" } }),
-      makeMsg({ id: 2, createdAt: "2026-06-15T09:05:00.000", sender: { id: 2, name: "Seller" } }),
+      makeMsg({ id: 1, kind: "offer", createdAt: "2026-06-15T09:00:00.000", sender: { id: 1, name: "Me" } }),
+      // Incoming but invisible — must never be picked as the boundary, since
+      // it renders no bubble to anchor a divider above.
+      makeMsg({ id: 2, kind: "offer_accepted", createdAt: "2026-06-15T09:05:00.000", sender: { id: 2, name: "Seller" }, respondsToId: 1 }),
+      makeMsg({ id: 3, kind: "text", createdAt: "2026-06-15T09:10:00.000", sender: { id: 2, name: "Seller" } }),
     ];
-    const rows = buildThreadRows(messages, 5, 1);
-    expect(rows.filter((r) => r.type === "unread")).toHaveLength(1);
+    expect(resolveUnreadBoundaryId(messages, 1, 1)).toBe(3);
   });
 });
 
-describe("buildThreadRows — unread larger than the loaded page", () => {
+describe("resolveUnreadBoundaryId + buildThreadRows — divider stays fixed as the thread grows", () => {
+  it("does not move the divider when new incoming messages arrive after the boundary was resolved", () => {
+    const initialMessages = [
+      makeMsg({ id: 1, createdAt: "2026-06-15T09:00:00.000", sender: { id: 2, name: "Seller" } }),
+      makeMsg({ id: 2, createdAt: "2026-06-15T09:05:00.000", sender: { id: 2, name: "Seller" } }),
+    ];
+    // Resolved ONCE, e.g. right after the initial load, before markRead.
+    const boundaryId = resolveUnreadBoundaryId(initialMessages, 1, 1);
+    expect(boundaryId).toBe(2);
+
+    // A live conversation keeps growing — a new incoming message arrives
+    // (e.g. a poll/refresh) while the thread stays open.
+    const grownMessages = [
+      ...initialMessages,
+      makeMsg({ id: 3, createdAt: "2026-06-15T09:10:00.000", sender: { id: 2, name: "Seller" } }),
+    ];
+
+    // DR BLOCKER regression guard: re-deriving the boundary from the OLD
+    // count-based API against the grown list would have picked message 3
+    // instead of 2 — the divider would have visibly slid down. Passing the
+    // already-resolved id keeps it pinned to message 2.
+    const rows = buildThreadRows(grownMessages, boundaryId);
+    const unreadIndex = rows.findIndex((r) => r.type === "unread");
+    expect(rows[unreadIndex + 1]).toEqual({ type: "message", message: grownMessages[1] });
+  });
+});
+
+describe("resolveUnreadBoundaryId — unread larger than the loaded page", () => {
   it("clamps to the first incoming message in the loaded page when unreadCount exceeds it", () => {
     const messages = [
       makeMsg({ id: 1, createdAt: "2026-06-15T09:00:00.000", sender: { id: 2, name: "Seller" } }),
       makeMsg({ id: 2, createdAt: "2026-06-15T09:05:00.000", sender: { id: 2, name: "Seller" } }),
     ];
     // Backend says 50 unread, but only 2 incoming messages are loaded.
-    const rows = buildThreadRows(messages, 50, 1);
+    const boundaryId = resolveUnreadBoundaryId(messages, 50, 1);
+    expect(boundaryId).toBe(1);
+
+    const rows = buildThreadRows(messages, boundaryId);
     expect(rows[0]).toEqual({ type: "day", iso: "2026-06-15T09:00:00.000" });
     expect(rows[1]).toEqual({ type: "unread" });
     expect(rows[2]).toEqual({ type: "message", message: messages[0] });
@@ -141,33 +201,50 @@ describe("buildThreadRows — unread larger than the loaded page", () => {
       makeMsg({ id: 1, createdAt: "2026-06-15T09:00:00.000" }),
       makeMsg({ id: 2, createdAt: "2026-06-15T09:05:00.000" }),
     ];
-    const rows = buildThreadRows(messages, 999);
+    const boundaryId = resolveUnreadBoundaryId(messages, 999);
+    const rows = buildThreadRows(messages, boundaryId);
     expect(rows.filter((r) => r.type === "unread")).toHaveLength(1);
     const unreadIndex = rows.findIndex((r) => r.type === "unread");
     expect(rows[unreadIndex + 1]).toEqual({ type: "message", message: messages[0] });
   });
 });
 
-describe("buildThreadRows — unread 0", () => {
-  it("never emits an unread row when unreadCount is 0", () => {
+describe("resolveUnreadBoundaryId — unread 0", () => {
+  it("returns null when unreadCount is 0, and buildThreadRows emits no unread row", () => {
     const messages = [makeMsg({ id: 1 }), makeMsg({ id: 2 })];
-    const rows = buildThreadRows(messages, 0, 1);
-    expect(rows.some((r) => r.type === "unread")).toBe(false);
+    const boundaryId = resolveUnreadBoundaryId(messages, 0, 1);
+    expect(boundaryId).toBeNull();
+    expect(buildThreadRows(messages, boundaryId).some((r) => r.type === "unread")).toBe(false);
   });
 
-  it("never emits an unread row when unreadCount is negative", () => {
+  it("returns null when unreadCount is negative", () => {
     const messages = [makeMsg({ id: 1 })];
-    const rows = buildThreadRows(messages, -3, 1);
-    expect(rows.some((r) => r.type === "unread")).toBe(false);
+    expect(resolveUnreadBoundaryId(messages, -3, 1)).toBeNull();
   });
 
-  it("emits no unread row when every message was sent by the current user (no incoming candidates)", () => {
+  it("returns null when every message was sent by the current user (no incoming candidates)", () => {
     const messages = [
       makeMsg({ id: 1, sender: { id: 1, name: "Me" } }),
       makeMsg({ id: 2, sender: { id: 1, name: "Me" } }),
     ];
-    const rows = buildThreadRows(messages, 3, 1);
-    expect(rows.some((r) => r.type === "unread")).toBe(false);
+    expect(resolveUnreadBoundaryId(messages, 3, 1)).toBeNull();
+  });
+
+  it("buildThreadRows emits no unread row when unreadBoundaryId is null", () => {
+    const messages = [makeMsg({ id: 1 }), makeMsg({ id: 2 })];
+    expect(buildThreadRows(messages, null).some((r) => r.type === "unread")).toBe(false);
+  });
+});
+
+describe("buildThreadRows — unread boundary across a day change", () => {
+  it("emits only a single unread row even across a day boundary", () => {
+    const messages = [
+      makeMsg({ id: 1, createdAt: "2026-06-14T09:00:00.000", sender: { id: 2, name: "Seller" } }),
+      makeMsg({ id: 2, createdAt: "2026-06-15T09:05:00.000", sender: { id: 2, name: "Seller" } }),
+    ];
+    const boundaryId = resolveUnreadBoundaryId(messages, 5, 1);
+    const rows = buildThreadRows(messages, boundaryId);
+    expect(rows.filter((r) => r.type === "unread")).toHaveLength(1);
   });
 });
 

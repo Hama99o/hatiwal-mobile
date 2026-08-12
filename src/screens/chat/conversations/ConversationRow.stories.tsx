@@ -1,6 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import type { Meta, StoryObj } from "@storybook/react-native";
+import i18n from "@/i18n";
 import { ConversationRow } from "./ConversationRow";
 import type { Conversation } from "@/api/conversations";
 import { action } from "@storybook/addon-actions";
@@ -172,6 +173,217 @@ export const UnverifiedParticipant: Story = {
     }),
     onDelete: action("delete"),
   },
+};
+
+// ── Price on the row (TASK-J471, design north star: price-prominence) ───────
+
+export const NoPrice: Story = {
+  args: {
+    // Listing has no price at all — PriceTag must render nothing and leave
+    // no empty gap next to the title/time.
+    item: makeConversation({
+      listing: {
+        id: 1,
+        title: "Hand-woven rug (price on request)",
+        thumbnailUrl: "https://picsum.photos/seed/rug/200/200",
+        status: "active",
+      },
+    }),
+    onDelete: action("delete"),
+  },
+};
+
+// Sold/reserved rows already show the price (see SoldListing/ReservedListing
+// above) — muted tone via `isInactive`, matching the dimmed title/thumbnail.
+
+// ── List-level search highlight (TASK-J471) — the identical treatment used
+//    for in-thread message search (MessageBubble's HighlightedText) ─────────
+
+export const MatchedSearch: Story = {
+  args: {
+    item: makeConversation({
+      lastMessageBody: "Is this still available? Can we meet tomorrow?",
+      lastMessageKind: "text",
+    }),
+    searchTerm: "available",
+    onDelete: action("delete"),
+  },
+};
+
+export const MatchedSearchInTitle: Story = {
+  args: {
+    item: makeConversation({
+      listing: {
+        id: 1,
+        title: "Lenovo ThinkPad X1 Carbon",
+        thumbnailUrl: "https://picsum.photos/seed/laptop/200/200",
+        status: "active",
+        price: 85000,
+        currency: "AFN",
+      },
+    }),
+    searchTerm: "carbon",
+    onDelete: action("delete"),
+  },
+};
+
+export const NoSearchMatchInPreview: Story = {
+  args: {
+    item: makeConversation(),
+    // Term doesn't appear in the preview text — renders exactly like the
+    // no-search-term state (no highlight, no crash).
+    searchTerm: "xyz",
+    onDelete: action("delete"),
+  },
+};
+
+// ── Long title — title must shrink (flex: 1) so the price + timestamp never
+//    truncate or get pushed off-screen ────────────────────────────────────
+
+export const LongTitle: Story = {
+  args: {
+    item: makeConversation({
+      listing: {
+        id: 1,
+        title: "Genuine leather sofa set, 3+2+1, imported from Turkey, barely used, excellent condition",
+        thumbnailUrl: "https://picsum.photos/seed/sofa/200/200",
+        status: "active",
+        price: 125000,
+        currency: "AFN",
+      },
+    }),
+    onDelete: action("delete"),
+  },
+};
+
+export const LongTitleUnread: Story = {
+  args: {
+    item: makeConversation({
+      unreadCount: 2,
+      listing: {
+        id: 1,
+        title: "Genuine leather sofa set, 3+2+1, imported from Turkey, barely used, excellent condition",
+        thumbnailUrl: "https://picsum.photos/seed/sofa/200/200",
+        status: "active",
+        price: 125000,
+        currency: "AFN",
+      },
+    }),
+    onDelete: action("delete"),
+  },
+};
+
+// ── RTL (Pashto / Dari) ───────────────────────────────────────────────────────
+
+export const RTLPashto: Story = {
+  args: {
+    item: makeConversation(),
+    onDelete: action("delete"),
+  },
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("ps");
+      return (
+        <View style={{ backgroundColor: "#fff" }}>
+          <Story />
+        </View>
+      );
+    },
+  ],
+};
+
+export const RTLDariWithSearch: Story = {
+  args: {
+    item: makeConversation({
+      lastMessageBody: "Is this still available? Can we meet tomorrow?",
+      lastMessageKind: "text",
+    }),
+    searchTerm: "available",
+    onDelete: action("delete"),
+  },
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("fa");
+      return (
+        <View style={{ backgroundColor: "#fff" }}>
+          <Story />
+        </View>
+      );
+    },
+  ],
+};
+
+export const RTLLongTitle: Story = {
+  args: {
+    item: makeConversation({
+      listing: {
+        id: 1,
+        title: "Genuine leather sofa set, 3+2+1, imported from Turkey, barely used, excellent condition",
+        thumbnailUrl: "https://picsum.photos/seed/sofa/200/200",
+        status: "active",
+        price: 125000,
+        currency: "AFN",
+      },
+    }),
+    onDelete: action("delete"),
+  },
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("ps");
+      return (
+        <View style={{ backgroundColor: "#fff" }}>
+          <Story />
+        </View>
+      );
+    },
+  ],
+};
+
+// ── Dark surface — verifies useColors() tokens (no hardcoded colors). Resets
+//    the language to "en" (LTR stories above this point may have left it as
+//    ps/fa) so the dark-mode check isn't also, incidentally, an RTL story. ──
+
+export const DarkSurface: Story = {
+  args: {
+    item: makeConversation(),
+    onDelete: action("delete"),
+  },
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("en");
+      return (
+        <View style={{ backgroundColor: "#0f172a" }}>
+          <Story />
+        </View>
+      );
+    },
+  ],
+};
+
+export const DarkSurfaceSold: Story = {
+  args: {
+    item: makeConversation({
+      listing: {
+        id: 1,
+        title: "Lenovo ThinkPad X1 Carbon",
+        thumbnailUrl: "https://picsum.photos/seed/laptop/200/200",
+        status: "sold",
+        price: 85000,
+        currency: "AFN",
+      },
+    }),
+    onDelete: action("delete"),
+  },
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("en");
+      return (
+        <View style={{ backgroundColor: "#0f172a" }}>
+          <Story />
+        </View>
+      );
+    },
+  ],
 };
 
 // Full list of rows stacked

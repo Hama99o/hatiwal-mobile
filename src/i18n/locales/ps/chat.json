@@ -171,7 +171,9 @@
     "reserveAfterAcceptTitle": "د {{buyerName}} لپاره ریزرو کړئ؟",
     "reserveAfterAcceptBody": "نور پیرودونکي لا هم تاسو ته پیغام لیکلی شي، او اعلان به د ریزرو شوي په توګه ښکاره شي.",
     "reserveAfterAcceptDismiss": "اوس نه",
-    "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره ریزرو شو"
+    "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره ریزرو شو",
+    "agreedBannerTitle": "{{buyerName}} ستاسو وړاندیز ومانه",
+    "agreedReserveCta": "اوس یې ریزرو کړئ"
   },
   "block": {
     "blockUser": "کارونکی بند کړئ",

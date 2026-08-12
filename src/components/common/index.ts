@@ -41,3 +41,5 @@ export type { AwayBannerProps } from "./AwayBanner";
 
 export { SearchBar } from "./SearchBar";
 export type { SearchBarProps } from "./SearchBar";
+
+export { HighlightedText } from "./HighlightedText";

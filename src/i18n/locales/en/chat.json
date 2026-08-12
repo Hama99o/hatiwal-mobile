@@ -171,7 +171,9 @@
     "reserveAfterAcceptTitle": "Reserve for {{buyerName}}?",
     "reserveAfterAcceptBody": "Other buyers can still message you, and the listing will show as Reserved.",
     "reserveAfterAcceptDismiss": "Not now",
-    "reserveAfterAcceptSuccess": "Listing reserved for {{buyerName}}"
+    "reserveAfterAcceptSuccess": "Listing reserved for {{buyerName}}",
+    "agreedBannerTitle": "{{buyerName}} accepted your offer",
+    "agreedReserveCta": "Reserve now"
   },
   "block": {
     "blockUser": "Block User",

@@ -331,6 +331,7 @@ export default function ConversationsScreen() {
       <ConversationRow
         item={item}
         tabMode={tabMode}
+        searchTerm={searchTerm}
         onDelete={handleDelete}
         onMarkRead={handleMarkRead}
         onMarkUnread={handleMarkUnread}

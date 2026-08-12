@@ -45,9 +45,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BackButton } from "@/components/common/BackButton";
 import { ListingHeader } from "./conversation/ListingHeader";
 import { ListingUnavailableNotice } from "./conversation/ListingUnavailableNotice";
+import { AgreedDealBanner } from "./conversation/AgreedDealBanner";
 import { MessageBubble } from "./conversation/MessageBubble";
 import { DaySeparator } from "./conversation/DaySeparator";
-import { buildThreadRows, threadRowKey, type ThreadRow } from "./conversation/groupMessagesByDay";
+import { buildThreadRows, resolveUnreadBoundaryId, threadRowKey, type ThreadRow } from "./conversation/groupMessagesByDay";
 import { MeetupSheet } from "./conversation/MeetupSheet";
 import { ComposerActionsSheet } from "./conversation/ComposerActionsSheet";
 import { OfferSheet } from "@/screens/shared/listing-detail/OfferSheet";
@@ -76,6 +77,7 @@ import {
   canCounterBack,
   type OfferRowFlags,
 } from "./conversation/offerGuards";
+import { findAgreedOffer, shouldShowAgreedDealBanner } from "./conversation/agreedOffer";
 import { parseOfferAmount } from "@/utils/offerAmount";
 // Review fix (SHOULD-FIX, DUPLICATION) — reuse the SAME query-key constants
 // `useListingLifecycle.ts` already exports ("exported so callers/tests can
@@ -327,12 +329,21 @@ export function ConversationScreen() {
   const inputRef = useRef<TextInput>(null);
   const isNearBottomRef = useRef(true);
   const isLoadingMoreRef = useRef(false);
-  // TASK-D428: the "unread messages" divider boundary, captured ONCE from the
-  // first load's conversation.unreadCount — BEFORE markRead fires and zeroes
-  // it server-side. `null` means "not captured yet"; once set it is never
-  // overwritten, so silent refreshes of the same open thread (e.g. refocus
-  // without unmounting) never make the divider reappear or move.
-  const capturedUnreadCountRef = useRef<number | null>(null);
+  // TASK-D428: the "unread messages" divider boundary — a specific message
+  // id, resolved ONCE from the first load's (conversation, messages) pair —
+  // BEFORE markRead fires and zeroes conversation.unreadCount server-side —
+  // via `resolveUnreadBoundaryId` in the focus effect below. `hasCaptured...`
+  // (a ref: it only guards a one-time side effect, never drives rendering)
+  // is what makes it "once" — `unreadBoundaryId` itself stays real React
+  // state so `threadRows` below correctly recomputes when it's set.
+  //
+  // Review fix (DR BLOCKER): freezing the resolved ID instead of the raw
+  // `unreadCount` is what actually fixes the divider drifting during a live
+  // conversation — see groupMessagesByDay.ts's module doc for why re-deriving
+  // "Nth-from-last incoming message" from a growing message list moved the
+  // boundary forward as new incoming messages arrived.
+  const hasCapturedUnreadBoundaryRef = useRef(false);
+  const [unreadBoundaryId, setUnreadBoundaryId] = useState<number | null>(null);
 
   // TASK-D428: day separators + a single "unread messages" divider, built
   // from `filteredMessages` so an active chat search recomputes day rows
@@ -343,14 +354,15 @@ export function ConversationScreen() {
   //
   // Review fix (CR MUST, TASK-C381): memoized — this used to recompute on
   // EVERY render regardless of whether any of its inputs actually changed.
+  //
+  // Review fix (CR LOW, TASK-D428): `unreadBoundaryId` is real state, not a
+  // ref — a ref mutation never invalidates a `useMemo`, so listing
+  // `capturedUnreadCountRef.current` in the old dependency array did
+  // nothing; it only appeared to work because a co-occurring `setMessages`
+  // elsewhere happened to force the recompute anyway.
   const threadRows: ThreadRow[] = useMemo(
-    () =>
-      buildThreadRows(
-        filteredMessages,
-        searchVisible ? 0 : capturedUnreadCountRef.current ?? 0,
-        currentUser?.id ?? null
-      ),
-    [filteredMessages, searchVisible, capturedUnreadCountRef.current, currentUser?.id]
+    () => buildThreadRows(filteredMessages, searchVisible ? null : unreadBoundaryId),
+    [filteredMessages, searchVisible, unreadBoundaryId]
   );
 
   // TASK-C381 (review fix, CR MUST): one pass over the FULL message list —
@@ -363,13 +375,33 @@ export function ConversationScreen() {
   // `offerGuards.ts` for the single source of truth this replaces.
   const offerIndex = useMemo(() => buildOfferIndex(messages), [messages]);
 
+  // TASK-C763: the newest offer/offer_counter that has actually been
+  // accepted — covers BOTH the seller-accepts-buyer's-offer path (O947's
+  // one-shot prompt) AND the buyer-accepts-seller's-counter path O947 never
+  // handled. Memoized off the same `offerIndex` above (never a fresh scan).
+  const agreedOffer = useMemo(() => findAgreedOffer(messages, offerIndex), [messages, offerIndex]);
+
+  // TASK-C763: the persistent "second chance" banner — shown to the owner on
+  // an active listing whenever there's a live agreed price in the thread,
+  // regardless of whether O947's one-shot prompt already fired or was
+  // dismissed. See agreedOffer.ts for why this is a hoisted, tested predicate
+  // rather than an inline condition.
+  const showAgreedDealBanner = shouldShowAgreedDealBanner({
+    isOwner,
+    listing: conversation?.listing,
+    agreedOffer,
+  });
+
   const PAGE_SIZE = 30;
 
   // ── Load conversation + messages (page 1 = newest, backend returns DESC) ─
-  // Returns the fetched Conversation (or null on failure) so callers that
-  // need the pre-read state — namely the unread-divider capture below — can
-  // read it before markRead runs.
-  const load = useCallback(async (convId: number): Promise<Conversation | null> => {
+  // Returns the freshly fetched `{ conversation, messages }` pair (ascending
+  // order) or `null` on failure. TASK-D428: callers that need the pre-read
+  // state — namely `resolveUnreadBoundaryId` in the focus effect below —
+  // read it from THIS return value, not from `messages`/`conversation`
+  // state, because a state update scheduled inside this function isn't
+  // guaranteed to have flushed by the time an `await`ing caller resumes.
+  const load = useCallback(async (convId: number): Promise<{ conversation: Conversation; messages: Message[] } | null> => {
     try {
       const [conv, { items, pagination }] = await Promise.all([
         conversationsAPI.getConversation(convId),
@@ -380,7 +412,8 @@ export function ConversationScreen() {
       // reality on first load (otherwise it always shows "not blocked" until tapped).
       setIsBlocked(conv.blockedWithParticipant ?? false);
       // Backend returns newest-first → reverse so FlatList shows oldest→newest
-      setMessages([...items].reverse());
+      const ascendingMessages = [...items].reverse();
+      setMessages(ascendingMessages);
       setPage(1);
       setTotalPages(pagination.totalPages);
       isNearBottomRef.current = true;
@@ -389,7 +422,7 @@ export function ConversationScreen() {
         flatListRef.current?.scrollToEnd({ animated: false });
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100);
       }, 100);
-      return conv;
+      return { conversation: conv, messages: ascendingMessages };
     } catch {
       toast.error(t("chat.thread.loadFailed"));
       return null;
@@ -505,9 +538,19 @@ export function ConversationScreen() {
         // zeroes unread server-side, so calling it first (or in parallel,
         // as before) would race the unread-divider capture below.
         (async () => {
-          const conv = await load(currentConversationId);
-          if (capturedUnreadCountRef.current === null) {
-            capturedUnreadCountRef.current = conv?.unreadCount ?? 0;
+          const result = await load(currentConversationId);
+          // Review fix (DR BLOCKER): resolve the divider's boundary MESSAGE
+          // ID exactly once, from THIS load's own (conversation, messages)
+          // pair — never from a live recomputation later. Once resolved,
+          // `threadRows` above just looks for that exact id for the rest of
+          // this screen visit, so it can never drift as new messages arrive.
+          if (!hasCapturedUnreadBoundaryRef.current) {
+            hasCapturedUnreadBoundaryRef.current = true;
+            setUnreadBoundaryId(
+              result
+                ? resolveUnreadBoundaryId(result.messages, result.conversation.unreadCount ?? 0, currentUser?.id ?? null)
+                : null
+            );
           }
           markRead(currentConversationId);
         })();
@@ -515,7 +558,7 @@ export function ConversationScreen() {
         // Start-flow: no existing conversation yet
         setIsLoading(false);
       }
-    }, [currentConversationId, load, markRead])
+    }, [currentConversationId, load, markRead, currentUser?.id])
   );
 
 
@@ -786,6 +829,30 @@ export function ConversationScreen() {
     // shown, instead of silently discarding the seller's one-tap reserve.
     if (succeeded) setReserveConfirm(null);
   }, [reserveConfirm, currentConversationId, invalidateListingLifecycleQueries, t]);
+
+  // ── TASK-C763: open the reserve-confirm sheet from the AgreedDealBanner ───
+  // Builds EXACTLY the same prompt shape `handleOfferRespond`'s O947 one-shot
+  // path already builds and feeds into the SAME `reserveConfirm` state — so
+  // the SAME `BuyerPickerSheet` confirm mode, `reserveAfterAccept()` call and
+  // `reserveConfirmError` inline-error path handle it. Never a second reserve
+  // flow, never a second sheet.
+  const handleOpenAgreedDealReserve = useCallback(() => {
+    if (!agreedOffer || !conversation?.listing || !conversation?.buyer) return;
+    const listingRef = conversation.listing;
+    const prompt = buildReserveAfterAcceptPrompt({
+      isOwner,
+      listing: listingRef,
+      buyer: conversation.buyer,
+      offerAmount: agreedOffer.amount,
+      currency: resolveReserveCurrency(listingRef.currency, agreedOffer.currency),
+      t,
+      formatCurrency,
+    });
+    if (prompt) {
+      setReserveConfirmError(null);
+      setReserveConfirm(prompt);
+    }
+  }, [agreedOffer, conversation, isOwner, t, formatCurrency]);
 
   // ── Open counter-offer sheet — either participant, TASK-C381 ─────────────
   const handleOpenCounterSheet = useCallback((offer: Message) => {
@@ -1281,6 +1348,23 @@ export function ConversationScreen() {
           // Sold tap from THIS header also refreshes My Listings and the
           // status-count chips instead of just this conversation.
           onLifecycleDone={() => invalidateListingLifecycleQueries(currentConversationId)}
+        />
+      )}
+
+      {/* TASK-C763: slim "agreed deal" banner directly under the pinned
+          ListingHeader — the seller's second chance to reserve at the price
+          this thread already agreed on, whether that came from the seller's
+          own Accept (O947's one-shot prompt already fired, or was dismissed)
+          or — the gap this task closes — the BUYER accepting the SELLER's
+          counter-offer, which O947 never prompted for at all. */}
+      {showAgreedDealBanner && agreedOffer && conversation?.buyer && (
+        <AgreedDealBanner
+          buyerName={conversation.buyer.name}
+          buyerAvatarUrl={conversation.buyer.avatarUrl}
+          buyerVerified={conversation.buyer.verified}
+          amount={agreedOffer.amount}
+          currency={resolveReserveCurrency(conversation.listing?.currency, agreedOffer.currency)}
+          onReserve={handleOpenAgreedDealReserve}
         />
       )}
 

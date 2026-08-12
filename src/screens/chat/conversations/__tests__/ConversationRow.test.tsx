@@ -644,3 +644,160 @@ describe("ConversationRow — edge cases", () => {
     ).not.toThrow();
   });
 });
+
+// ── 8. Listing price via PriceTag (TASK-J471) ────────────────────────────────
+// formatCurrency is mocked globally (src/__tests__/setup.ts) as
+// `${currency} ${amount}` — e.g. price 85000 / currency "AFN" → "AFN 85000".
+
+describe("ConversationRow — listing price", () => {
+  it("renders the formatted price when the listing has a price", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({
+          listing: {
+            id: 10,
+            title: "Lenovo ThinkPad X1 Carbon",
+            thumbnailUrl: null,
+            status: "active",
+            price: 85000,
+            currency: "AFN",
+          },
+        })}
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByText("AFN 85000")).toBeTruthy();
+  });
+
+  it("renders no price text (and no PriceTag) when the listing has no price", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({
+          listing: {
+            id: 11,
+            title: "Hand-woven rug (price on request)",
+            thumbnailUrl: null,
+            status: "active",
+          },
+        })}
+        onDelete={jest.fn()}
+      />
+    );
+    // PriceTag returns null when price is null/undefined — nothing formatted
+    // as a currency string should appear anywhere on the row.
+    expect(screen.queryByText(/^AFN /)).toBeNull();
+  });
+
+  it("still shows the price (muted tone) on a sold listing", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({
+          listing: {
+            id: 12,
+            title: "Old Laptop",
+            thumbnailUrl: null,
+            status: "sold",
+            price: 40000,
+            currency: "AFN",
+          },
+        })}
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByText("AFN 40000")).toBeTruthy();
+  });
+
+  it("still shows the price (muted tone) on a reserved listing", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({
+          listing: {
+            id: 13,
+            title: "Carpet",
+            thumbnailUrl: null,
+            status: "reserved",
+            price: 15000,
+            currency: "AFN",
+          },
+        })}
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByText("AFN 15000")).toBeTruthy();
+  });
+
+  it("formats a non-default currency correctly", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({
+          listing: {
+            id: 14,
+            title: "Camera",
+            thumbnailUrl: null,
+            status: "active",
+            price: 300,
+            currency: "USD",
+          },
+        })}
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByText("USD 300")).toBeTruthy();
+  });
+});
+
+// ── 9. Search-term highlight on the preview line (TASK-J471) ────────────────
+// Shares the exact `HighlightedText` component MessageBubble uses for
+// in-thread message search — this only verifies ConversationRow wires its
+// `searchTerm` prop through correctly, not the highlighter's own internals
+// (see src/components/common/__tests__/HighlightedText.test.tsx for those).
+
+describe("ConversationRow — search highlight", () => {
+  it("renders the preview as one plain node when searchTerm is omitted", () => {
+    render(<ConversationRow item={makeConversation()} onDelete={jest.fn()} />);
+    expect(screen.getByText("Is this still available?")).toBeTruthy();
+  });
+
+  it("highlights the matching substring in the preview when searchTerm matches", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({
+          lastMessageBody: "Is this still available?",
+          lastMessageKind: "text",
+        })}
+        searchTerm="available"
+        onDelete={jest.fn()}
+      />
+    );
+    // The matched substring renders as its own segment, carrying the
+    // warning-highlight style (see HighlightedText.test.tsx for the style
+    // assertion) — its presence as an exact-text node is what this wiring
+    // test cares about.
+    expect(screen.getByText("available")).toBeTruthy();
+  });
+
+  it("matches case-insensitively while preserving the original casing", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({ lastMessageBody: "AVAILABLE now", lastMessageKind: "text" })}
+        searchTerm="available"
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByText("AVAILABLE")).toBeTruthy();
+  });
+
+  it("renders the preview unsplit when searchTerm doesn't match the preview text", () => {
+    render(
+      <ConversationRow item={makeConversation()} searchTerm="xyz" onDelete={jest.fn()} />
+    );
+    expect(screen.getByText("Is this still available?")).toBeTruthy();
+  });
+
+  it("renders plain text when searchTerm is an empty string", () => {
+    render(
+      <ConversationRow item={makeConversation()} searchTerm="" onDelete={jest.fn()} />
+    );
+    expect(screen.getByText("Is this still available?")).toBeTruthy();
+  });
+});

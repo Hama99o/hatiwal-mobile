@@ -126,7 +126,7 @@ function makeMsg(overrides: Partial<Message>): Message {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-import { MessageBubble } from "../MessageBubble";
+import { MessageBubble, RESPONSE_KINDS, isRenderableInThread } from "../MessageBubble";
 
 describe("MessageBubble — text", () => {
   it("renders the message body in a text bubble", () => {
@@ -256,19 +256,45 @@ describe("MessageBubble — image_message", () => {
 });
 
 describe("MessageBubble — response kinds (render null)", () => {
-  const responseKinds: Message["kind"][] = [
-    "meetup_accepted",
-    "meetup_declined",
-    "offer_accepted",
-    "offer_declined",
-  ];
-
-  responseKinds.forEach((kind) => {
+  // Review fix (CR HIGH, TASK-D428): reuses the component's OWN exported
+  // `RESPONSE_KINDS` instead of a hand-copied literal list, so this test can
+  // only pass by exercising the real early-return condition — the same list
+  // `groupMessagesByDay.ts` imports as its single source of truth.
+  RESPONSE_KINDS.forEach((kind) => {
     it(`returns null for kind:${kind}`, () => {
       const { toJSON } = render(
         <MessageBubble message={makeMsg({ kind })} isMine={false} />
       );
       expect(toJSON()).toBeNull();
+    });
+  });
+});
+
+describe("MessageBubble — RESPONSE_KINDS / isRenderableInThread (CR HIGH, TASK-D428)", () => {
+  it("contains exactly the 4 response kinds whose bubble is null above", () => {
+    expect([...RESPONSE_KINDS].sort()).toEqual(
+      ["meetup_accepted", "meetup_declined", "offer_accepted", "offer_declined"].sort()
+    );
+  });
+
+  it("isRenderableInThread is false for every RESPONSE_KINDS member", () => {
+    RESPONSE_KINDS.forEach((kind) => {
+      expect(isRenderableInThread({ kind })).toBe(false);
+    });
+  });
+
+  it("isRenderableInThread is true for every other kind", () => {
+    const otherKinds: Message["kind"][] = [
+      "text",
+      "meetup_proposal",
+      "system",
+      "offer",
+      "offer_counter",
+      "document",
+      "image_message",
+    ];
+    otherKinds.forEach((kind) => {
+      expect(isRenderableInThread({ kind })).toBe(true);
     });
   });
 });

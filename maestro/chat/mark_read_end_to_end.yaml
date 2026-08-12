@@ -8,6 +8,18 @@ appId: com.hatiwal.app
 #   - markRead fires on thread focus (useFocusEffect) — not only on first load.
 #   - Re-navigating back into the same thread fires markRead again (idempotent / safe).
 #
+# Acceptance criteria (TASK-D428 — day separators + "unread messages" divider):
+#   - Opening a conversation with unread messages shows the "Unread messages"
+#     divider once the thread loads — its boundary is resolved from the
+#     pre-read unreadCount BEFORE mark-read fires.
+#   - A day separator is always visible above the thread's messages (a
+#     single-day thread still gets exactly one).
+#   - Sending a message during this same visit never moves or hides the
+#     divider captured on open (the DR-BLOCKER fix: the boundary is a frozen
+#     message id, not a live recomputation) — and a message sent right now
+#     always falls under a "Today" day separator, regardless of how old the
+#     rest of the thread is.
+#
 # Prerequisites: test device seeded with at least one conversation that has
 #               unread_count > 0 for the logged-in buyer@hatiwal.test account.
 
@@ -30,6 +42,25 @@ appId: com.hatiwal.app
 
 # Thread loaded — message list visible
 - assertVisible: "Type a message..."
+
+# TASK-D428: the divider is resolved from the conversation's unreadCount at
+# load — captured BEFORE the markRead call just above zeroes it server-side —
+# so it must be visible right after the thread finishes loading.
+- assertVisible: "Unread messages"
+
+# ── Step 2b: send a message — the divider must survive it ──────────────────
+- tapOn: "Type a message..."
+- inputText: "Let's confirm the meetup time"
+- tapOn: "Send"
+- waitForAnimationToEnd
+
+- assertVisible: "Let's confirm the meetup time"
+# A message sent right now always lands under "Today" — proves the day
+# separator renders even when the rest of the seeded thread is much older.
+- assertVisible: "Today"
+# DR-BLOCKER regression guard: sending a new message must never move or hide
+# the divider that was already resolved when the thread was opened.
+- assertVisible: "Unread messages"
 
 # ── Step 3: return to list; badge must be cleared ───────────────────────────
 - back

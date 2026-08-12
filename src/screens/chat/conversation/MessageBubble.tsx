@@ -29,6 +29,7 @@ import {
 import { Image } from "expo-image";
 import { Text } from "@/components/reusables/text";
 import { PriceTag } from "@/components/common/PriceTag";
+import { HighlightedText } from "@/components/common/HighlightedText";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { useReduceMotion } from "@/lib/animation";
@@ -92,6 +93,34 @@ function openInMaps(place: string, coords?: MeetupCoords | null) {
     // Intentional catch-all: Google Maps web URL works universally.
     Linking.openURL(`https://maps.google.com/?q=${encoded}`);
   }
+}
+
+/**
+ * "Response" kinds whose outcome is folded into the ORIGINAL proposal /
+ * offer / counter bubble and therefore never render as their own row — see
+ * the early `return null` inside `MessageBubble` below, the only other
+ * place this exact list may ever appear.
+ *
+ * Review fix (CR HIGH, TASK-D428): `groupMessagesByDay.ts` used to compute
+ * day separators and the "unread messages" divider boundary by walking
+ * EVERY loaded message, including these — so a hidden `offer_accepted` sent
+ * on a later calendar day than the offer it answers could conjure a day
+ * separator with no visible bubble under it, and could shift the unread
+ * divider by however many invisible responses happened to be "incoming".
+ * Exporting this list (and the predicate below) makes `MessageBubble` the
+ * single source of truth both modules read, instead of groupMessagesByDay.ts
+ * silently re-deriving its own copy that could drift from this one.
+ */
+export const RESPONSE_KINDS: readonly Message["kind"][] = [
+  "meetup_accepted",
+  "meetup_declined",
+  "offer_accepted",
+  "offer_declined",
+];
+
+/** True when `message` renders as its own bubble in the thread (see `RESPONSE_KINDS`). */
+export function isRenderableInThread(message: Pick<Message, "kind">): boolean {
+  return !RESPONSE_KINDS.includes(message.kind);
 }
 
 interface MessageBubbleProps {
@@ -160,61 +189,6 @@ interface MessageBubbleProps {
    * The parent handles the optimistic update + rollback.
    */
   onDeleteMessage?: () => void;
-}
-
-/**
- * Splits `text` by the search query (case-insensitive) and renders each segment,
- * wrapping matching parts with a highlight background using `warningAlpha`.
- */
-function HighlightedText({
-  text,
-  query,
-  baseStyle,
-  colors,
-}: {
-  text: string;
-  query: string;
-  baseStyle: object;
-  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
-}) {
-  // Trim so that leading/trailing whitespace in the query never causes a mismatch
-  // between what the filter selected (uses .trim()) and what we highlight here.
-  const trimmedQuery = query.trim();
-  if (!trimmedQuery) {
-    return <Text style={baseStyle}>{text}</Text>;
-  }
-
-  const escaped = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`(${escaped})`, "gi");
-  const parts = text.split(regex);
-
-  return (
-    <Text style={baseStyle}>
-      {parts.map((part, index) => {
-        const isMatch = part.toLowerCase() === trimmedQuery.toLowerCase();
-        if (isMatch) {
-          return (
-            <Text
-              key={index}
-              style={[
-                baseStyle,
-                {
-                  backgroundColor: colors.warningAlpha,
-                  borderRadius: 3,
-                  // Use warning color for highlighted text so it's readable on both themes
-                  color: colors.warning,
-                  fontWeight: "700",
-                },
-              ]}
-            >
-              {part}
-            </Text>
-          );
-        }
-        return <Text key={index} style={baseStyle}>{part}</Text>;
-      })}
-    </Text>
-  );
 }
 
 /** Two-tick read indicator rendered as overlapping Check icons */
@@ -654,12 +628,9 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
 
   // Accept/decline responses (meetup + offer) are not shown as their own bubble —
   // the outcome is rendered on the original proposal/offer/counter bubble (both sides).
-  if (
-    message.kind === "meetup_accepted" ||
-    message.kind === "meetup_declined" ||
-    message.kind === "offer_accepted" ||
-    message.kind === "offer_declined"
-  ) {
+  // `isRenderableInThread`/`RESPONSE_KINDS` above are exported so
+  // `groupMessagesByDay.ts` filters the exact same set (CR HIGH, TASK-D428).
+  if (!isRenderableInThread(message)) {
     return null;
   }
 
@@ -1387,7 +1358,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
           >
             <HighlightedText
               text={message.body ?? ""}
-              query={searchQuery ?? ""}
+              query={searchQuery}
               baseStyle={{
                 fontSize: 15,
                 fontWeight: "400",
@@ -1395,7 +1366,6 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 lineHeight: 22,
                 textAlign: isRtl ? "right" : "left",
               }}
-              colors={colors}
             />
 
             {/* Timestamp + read receipt row */}

@@ -1,0 +1,133 @@
+appId: com.hatiwal.app
+---
+# TASK-C763 — Agreed-deal banner: seller counters -> the BUYER accepts the
+# counter -> the seller gets a persistent "{buyer} accepted your offer"
+# banner (with the agreed price) directly under the pinned listing header,
+# and can reserve in one tap without re-picking the buyer or retyping the
+# price.
+#
+# This is exactly the hole TASK-O947 left open: O947's one-shot reserve
+# prompt only fires on the path where the SELLER taps Accept
+# (`shouldPromptReserveAfterAccept` in reserveAfterAccept.ts returns `false`
+# whenever `!isOwner`) -- so when the seller counters and the BUYER accepts,
+# the seller gets an "Offer accepted" bubble but O947 never prompts a
+# reserve at all. Before this task the only route back was the FULL
+# pick-a-buyer list via ListingHeader's generic "Reserve" button. This flow
+# proves the banner closes that gap AND reuses the exact same confirm sheet
+# O947 already built (never a second reserve flow).
+#
+# Uses "Toyota Corolla 2016 Automatic" (active, seller-owned, no dedicated
+# Maestro flow and no pre-seeded conversation) -- distinct from every other
+# reserve/sold-ending fixture already claimed by another mutating flow (see
+# db/seeds/e2e.rb):
+#   - reserve_after_accept.yaml      -> Traditional Kandahari Carpet 3x4
+#   - offer_send_and_accept.yaml     -> Men Winter Jacket XL Black
+#   - mark_sold_with_buyer.yaml /
+#     reserved_sold_dead_end_notice.yaml -> Lenovo ThinkPad Laptop Core i5 8GB
+#
+# This flow ends with the listing RESERVED. Re-run against a freshly
+# reseeded E2E database -- do not run twice in a row without a reset.
+#
+# Selector notes (mirrors reserve_after_accept.yaml's own CR-verified fixes):
+#  - The offer-amount field has no visible label -- targeted by its testID
+#    (offer-amount-input, OfferSheet.tsx).
+#  - "Make an Offer" is a sibling of "Contact Seller" directly on the
+#    listing detail page -- no need to open the thread first for the first
+#    offer.
+#  - The buyer's name ("Ahmad Karimi", e2e.rb) is wrapped in Unicode
+#    bidi-isolate marks (U+2066/U+2069) wherever it's interpolated into a
+#    translated sentence (`wrapBidiIsolate` in reserveAfterAccept.ts, reused
+#    by AgreedDealBanner.tsx) -- assertions on those sentences check only the
+#    static English wording, never the exact interpolated string.
+#  - "Who's buying this item?" (buyerPicker.reserveTitle) is the full
+#    pick-a-buyer list title -- asserted NOT visible to prove the banner's
+#    CTA opens the SAME locked confirm mode O947 already built, not a
+#    second, forked reserve flow.
+
+# ── Step 1: buyer sends an offer on an active listing ───────────────────────
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Toyota Corolla 2016 Automatic"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Toyota Corolla 2016 Automatic"
+- waitForAnimationToEnd
+
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- assertVisible: "Send Offer"
+- tapOn:
+    id: "offer-amount-input"
+- inputText: "1150000"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+- assertVisible: ".*1,150,000.*"
+
+# ── Step 2: the seller counters with a new price — no banner yet ───────────
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn: "Toyota Corolla 2016 Automatic"
+- waitForAnimationToEnd
+
+- tapOn: "Counter"
+- waitForAnimationToEnd
+- assertVisible: "Counter Offer"
+- clearText
+- inputText: "1300000"
+- tapOn: "Send Counter"
+- waitForAnimationToEnd
+- assertVisible: ".*1,300,000.*"
+
+# Nothing has been accepted yet — the banner must not appear.
+- assertNotVisible: "Reserve now"
+
+# ── Step 3: the BUYER accepts the seller's counter (the O947 hole) ─────────
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn: "Toyota Corolla 2016 Automatic"
+- waitForAnimationToEnd
+
+- assertVisible: "Accept offer"
+- tapOn: "Accept offer"
+- waitForAnimationToEnd
+- assertVisible: "Offer accepted"
+
+# The banner is seller-only — the buyer must never see it or the reserve prompt.
+- assertNotVisible: "Reserve now"
+- assertNotVisible: ".*Reserve for.*"
+
+# ── Step 4: the seller reopens the thread and sees the persistent banner ───
+# (the "second chance" — this works even though O947's own one-shot prompt
+# never fired on this path, and would still work if it HAD fired and been
+# dismissed.)
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn: "Toyota Corolla 2016 Automatic"
+- waitForAnimationToEnd
+
+- assertVisible: "Offer accepted"
+- assertVisible: ".*accepted your offer.*"
+- assertVisible: ".*1,300,000.*"
+- assertVisible: "Reserve now"
+
+# ── Step 5: the CTA opens the SHARED confirm sheet, never the full
+#    pick-a-buyer list ──────────────────────────────────────────────────────
+- tapOn: "Reserve now"
+- waitForAnimationToEnd
+- assertVisible: ".*Reserve for.*"
+- assertVisible: ".*1,300,000.*"
+- assertNotVisible: ".*Who's buying this item.*"
+
+- tapOn: "Confirm reserve"
+- waitForAnimationToEnd
+
+# ── Step 6: reserved in place — banner gone, pinned header updated ─────────
+- assertVisible: "Reserved"
+- assertVisible: "Mark Sold"
+- assertNotVisible: "Reserve now"
