@@ -180,22 +180,44 @@ describe("buildReserveAfterAcceptPrompt — owner + active listing", () => {
 
     expect(prompt).not.toBeNull();
     expect(prompt?.listingId).toBe(42);
-    expect(prompt?.buyer).toEqual({ id: 7, name: "Ahmad", avatarUrl: null });
+    expect(prompt?.buyer).toEqual({
+      id: 7,
+      name: "Ahmad",
+      avatarUrl: null,
+      verified: undefined,
+      city: null,
+    });
     expect(prompt?.finalPrice).toBe(12000);
     expect(prompt?.currency).toBe("AFN");
 
-    expect(prompt?.title).toBe("chat.offer.reserveAfterAcceptTitle");
+    // Review fix (COPY) — the title now names the buyer (a sheet title wraps
+    // freely, unlike a truncating alert button, so the isolated name is safe
+    // here); the body states the consequence and carries only the price.
+    expect(prompt?.title).toContain("chat.offer.reserveAfterAcceptTitle");
+    expect(prompt?.title).toContain(wrapBidiIsolate("Ahmad"));
 
-    // The body carries the buyer name and the formatted price — both wrapped
-    // in bidi isolates (DR fix: never bare-interpolated, and never inside a
-    // button label — see BuyerPickerSheet's `confirmLabel`, which this module
-    // never touches).
     expect(prompt?.body).toContain("chat.offer.reserveAfterAcceptBody");
-    expect(prompt?.body).toContain(wrapBidiIsolate("Ahmad"));
     expect(prompt?.body).toContain(wrapBidiIsolate("12000 AFN"));
 
     // Building the prompt is pure — nothing was reserved yet.
     expect(listingsAPI.reserveListing).not.toHaveBeenCalled();
+  });
+
+  // MUST-FIX (TRUST) — conversation.buyer already carries `verified`/`city`
+  // (conversation_serializer.rb), so the prompt must thread them through for
+  // BuyerPickerSheet's confirm-mode UserIdentity to show them. Zero API work.
+  it("threads the buyer's verified flag and city through to the prompt", () => {
+    const prompt = buildReserveAfterAcceptPrompt(
+      baseParams({ buyer: { id: 7, name: "Ahmad", verified: true, city: "Kabul" } })
+    );
+
+    expect(prompt?.buyer).toEqual({
+      id: 7,
+      name: "Ahmad",
+      avatarUrl: null,
+      verified: true,
+      city: "Kabul",
+    });
   });
 });
 
@@ -241,7 +263,11 @@ describe("reserveAfterAccept — confirming", () => {
     expect(toast.success).toHaveBeenCalledTimes(1);
     expect(toast.error).not.toHaveBeenCalled();
     expect((toast.success as jest.Mock).mock.calls[0][0]).toContain("chat.offer.reserveAfterAcceptSuccess");
-    expect((toast.success as jest.Mock).mock.calls[0][0]).toContain("Ahmad");
+    // MUST-FIX (RTL) — the toast must isolate the buyer name exactly like the
+    // confirm body does; asserting the isolate-wrapped form (not just a bare
+    // substring match) pins the fix so a regression to raw interpolation
+    // fails this test again.
+    expect((toast.success as jest.Mock).mock.calls[0][0]).toContain(wrapBidiIsolate("Ahmad"));
   });
 });
 

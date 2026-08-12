@@ -29,7 +29,7 @@
 
 import React from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { FadeIn, FadeOut } from "react-native-reanimated";
 import { Search, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 
@@ -134,23 +134,32 @@ export function SearchBar({
         }}
       />
       {value.length > 0 && (
-        <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(140)}>
-          <AnimatedPressable
-            onPress={handleClear}
-            // Real padding (not hitSlop) — icon is 16px, padding 14 on every
-            // side brings the Pressable's OWN measured layout box up to the
-            // 44pt minimum (16 + 14*2 = 44), so the touch target is an actual
-            // hit-testable view rather than an invisible hitSlop extension
-            // that some gesture/measurement tooling can miss.
-            style={{ padding: 14, margin: -14 }}
-            accessibilityRole="button"
-            accessibilityLabel={t("common.clear")}
-            testID={clearTestID}
-            haptic
-          >
-            <X size={16} color={colors.mutedForeground} />
-          </AnimatedPressable>
-        </Animated.View>
+        // DR fix (cycle-4): this used to be wrapped in a separate
+        // `Animated.View` just to get FadeIn/FadeOut. That extra View sizes
+        // itself to the NET visual footprint of its child (padding 14
+        // cancelled by margin -14 → back down to the 16px icon), so on
+        // Android the actual 44pt tap target sat inside a 16x16 ancestor and
+        // was not hit-testable. `AnimatedPressable` is itself an animated
+        // component and can take `entering`/`exiting` directly — one view,
+        // whose own measured box IS the 44pt target, nothing smaller
+        // wrapping it.
+        <AnimatedPressable
+          entering={FadeIn.duration(180)}
+          exiting={FadeOut.duration(140)}
+          onPress={handleClear}
+          // Real padding (not hitSlop) — icon is 16px, padding 14 on every
+          // side brings the Pressable's OWN measured layout box up to the
+          // 44pt minimum (16 + 14*2 = 44), so the touch target is an actual
+          // hit-testable view rather than an invisible hitSlop extension
+          // that some gesture/measurement tooling can miss.
+          style={{ padding: 14, margin: -14 }}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.clear")}
+          testID={clearTestID}
+          haptic
+        >
+          <X size={16} color={colors.mutedForeground} />
+        </AnimatedPressable>
       )}
     </View>
   );

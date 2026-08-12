@@ -22,6 +22,7 @@
  */
 
 import React from "react";
+import { Modal } from "react-native";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -31,6 +32,9 @@ jest.mock("lucide-react-native", () => ({
   X: "X",
   Check: "Check",
   UserX: "UserX",
+  // TASK-O947 review fix (TRUST) — confirm mode can now render UserIdentity's
+  // VerifiedBadge, which renders a real BadgeCheck icon.
+  BadgeCheck: "BadgeCheck",
 }));
 
 jest.mock("@/api/conversations", () => ({
@@ -315,5 +319,52 @@ describe("BuyerPickerSheet — confirm mode (preselectedBuyer)", () => {
     await waitFor(() => screen.getByText("Ahmad Karimi"));
 
     expect(screen.getByTestId("buyer-picker-confirm").props.accessibilityState?.disabled).toBe(true);
+  });
+
+  // MUST-FIX (TRUST) — conversation.buyer already carries `verified`/`city`;
+  // the locked confirm-mode identity must surface them via the shared
+  // UserIdentity, not a bare name.
+  it("shows the verified tag and city subtitle when the preselected buyer carries them", async () => {
+    renderSheet({
+      preselectedBuyer: { id: 42, name: "Ahmad Karimi", avatarUrl: null, verified: true, city: "Kabul" },
+    });
+
+    await waitFor(() => screen.getByText("Ahmad Karimi"));
+    expect(screen.getByText("Kabul")).toBeTruthy();
+    expect(screen.getByLabelText("common.verified")).toBeTruthy();
+  });
+
+  it("renders no verified tag / subtitle when the preselected buyer has neither", async () => {
+    renderSheet({ preselectedBuyer: PRESELECTED_BUYER });
+
+    await waitFor(() => screen.getByText("Ahmad Karimi"));
+    expect(screen.queryByLabelText("common.verified")).toBeNull();
+  });
+
+  // SHOULD-FIX (CORRECTNESS) — a dismiss mid-submit (header X, backdrop tap,
+  // or the Android hardware back button via onRequestClose) must be a no-op,
+  // exactly like the footer's Cancel already was — otherwise the seller can
+  // dismiss the sheet while the PUT is still in flight and get a "reserved"
+  // toast after they believed they'd cancelled.
+  it("ignores the header X, the backdrop, and the hardware back button while isSubmitting", async () => {
+    const { onClose } = renderSheet({ preselectedBuyer: PRESELECTED_BUYER, isSubmitting: true });
+    await waitFor(() => screen.getByText("Ahmad Karimi"));
+
+    fireEvent.press(screen.getByTestId("buyer-picker-close"));
+    fireEvent.press(screen.getByTestId("buyer-picker-backdrop"));
+    screen.UNSAFE_getByType(Modal).props.onRequestClose();
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("still closes via the header X and backdrop when not submitting", async () => {
+    const { onClose } = renderSheet({ preselectedBuyer: PRESELECTED_BUYER });
+    await waitFor(() => screen.getByText("Ahmad Karimi"));
+
+    fireEvent.press(screen.getByTestId("buyer-picker-close"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    fireEvent.press(screen.getByTestId("buyer-picker-backdrop"));
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 });

@@ -4,13 +4,13 @@
  * and filterConversations (search, TASK-Z684 CR fix).
  */
 
-import { conversationPreviewText } from "../conversationPreviewText";
+import { conversationPreviewText, type FormatCurrency } from "../conversationPreviewText";
 import type { Conversation } from "@/api/conversations";
 import type { TFunction } from "i18next";
 
 const fakeT = ((key: string, options?: Record<string, string>) => {
   if (key === "chat.preview.offer") {
-    return `Offer: ${options?.amount ?? ""} ${options?.currency ?? ""}`;
+    return `Offer: ${options?.price ?? ""}`;
   }
   const dict: Record<string, string> = {
     "chat.message.deleted": "Message deleted",
@@ -25,6 +25,14 @@ const fakeT = ((key: string, options?: Record<string, string>) => {
   };
   return dict[key] ?? key;
 }) as unknown as TFunction;
+
+// Mirrors `useLocalization().formatCurrency` closely enough to prove the
+// preview interpolates a LOCALE-FORMATTED price (cycle-4 CR fix) — e.g.
+// thousands-grouped — rather than the raw, un-formatted split-body number.
+const fakeFormatCurrency: FormatCurrency = (amount, currency = "AFN") => {
+  if (amount == null) return "";
+  return `${new Intl.NumberFormat("en-US").format(amount)} ${currency}`;
+};
 
 function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
   return {
@@ -44,7 +52,8 @@ describe("conversationPreviewText", () => {
   it("returns the deleted-message text when lastMessageDeleted is true", () => {
     const result = conversationPreviewText(
       makeConversation({ lastMessageDeleted: true, lastMessageBody: "some text" }),
-      fakeT
+      fakeT,
+      fakeFormatCurrency
     );
     expect(result.text).toBe("Message deleted");
     expect(result.icon).toBeNull();
@@ -53,7 +62,8 @@ describe("conversationPreviewText", () => {
   it("returns the no-messages placeholder when lastMessageBody is null", () => {
     const result = conversationPreviewText(
       makeConversation({ lastMessageBody: null }),
-      fakeT
+      fakeT,
+      fakeFormatCurrency
     );
     expect(result.text).toBe("No messages yet");
     expect(result.icon).toBeNull();
@@ -62,7 +72,8 @@ describe("conversationPreviewText", () => {
   it("returns the raw body verbatim for a plain text message", () => {
     const result = conversationPreviewText(
       makeConversation({ lastMessageBody: "Can we meet tomorrow?", lastMessageKind: "text" }),
-      fakeT
+      fakeT,
+      fakeFormatCurrency
     );
     expect(result.text).toBe("Can we meet tomorrow?");
   });
@@ -70,25 +81,52 @@ describe("conversationPreviewText", () => {
   it("returns a translated label (with an icon) for a meetup proposal", () => {
     const result = conversationPreviewText(
       makeConversation({ lastMessageKind: "meetup_proposal", lastMessageBody: "Shahr-e-Naw|5pm" }),
-      fakeT
+      fakeT,
+      fakeFormatCurrency
     );
     expect(result.text).toBe("Meetup proposal");
     expect(result.icon).not.toBeNull();
   });
 
-  it("interpolates amount and currency for an offer", () => {
+  // CR fix (cycle-4 design review): the offer preview used to print the raw,
+  // un-formatted split-body number verbatim (e.g. "Offer: 75000 AFN" — no
+  // thousands separator). It must now route the amount through
+  // `formatCurrency` before interpolating, exactly like every other price in
+  // the app (PriceTag, CounterOfferSheet, OfferSheet, …).
+  it("formats the amount via formatCurrency for an offer (not the raw split-body number)", () => {
     const result = conversationPreviewText(
       makeConversation({ lastMessageKind: "offer", lastMessageBody: "75000|AFN" }),
-      fakeT
+      fakeT,
+      fakeFormatCurrency
     );
-    expect(result.text).toBe("Offer: 75000 AFN");
+    expect(result.text).toBe("Offer: 75,000 AFN");
     expect(result.icon).not.toBeNull();
+  });
+
+  it("passes the offer's currency through to formatCurrency, not a hardcoded one", () => {
+    const result = conversationPreviewText(
+      makeConversation({ lastMessageKind: "offer", lastMessageBody: "500|USD" }),
+      fakeT,
+      fakeFormatCurrency
+    );
+    expect(result.text).toBe("Offer: 500 USD");
+  });
+
+  it("does not throw when the offer body has no parseable amount", () => {
+    expect(() =>
+      conversationPreviewText(
+        makeConversation({ lastMessageKind: "offer", lastMessageBody: "|AFN" }),
+        fakeT,
+        fakeFormatCurrency
+      )
+    ).not.toThrow();
   });
 
   it("returns the translated photo label for an image message", () => {
     const result = conversationPreviewText(
       makeConversation({ lastMessageKind: "image_message", lastMessageBody: "photo.jpg" }),
-      fakeT
+      fakeT,
+      fakeFormatCurrency
     );
     expect(result.text).toBe("Photo");
   });
@@ -96,7 +134,8 @@ describe("conversationPreviewText", () => {
   it("returns the translated file label for a document message", () => {
     const result = conversationPreviewText(
       makeConversation({ lastMessageKind: "document", lastMessageBody: "contract.pdf" }),
-      fakeT
+      fakeT,
+      fakeFormatCurrency
     );
     expect(result.text).toBe("File");
   });

@@ -10,9 +10,13 @@
  *  6. image_message bubble is tappable (min 44px touch target via accessibilityRole)
  *  7. meetup_accepted / meetup_declined / offer_accepted / offer_declined return null (no bubble)
  *  8. isMine vs theirs alignment via accessibilityLabel on fullscreen viewer
+ *  9. TASK-O947 review fixes: OutcomeBadge dedup/semantics (offer uses
+ *     Tag/X, never the meetup Calendar icons), the accept/decline pending
+ *     spinner, and Accept/Decline/Counter accessibility role + label.
  */
 
 import React from "react";
+import { ActivityIndicator } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
@@ -641,5 +645,153 @@ describe("MessageBubble — offer with Counter button (TASK-O829)", () => {
       />
     );
     expect(screen.queryByText("chat.offer.counter")).toBeNull();
+  });
+});
+
+// ── TASK-O947 review fixes ────────────────────────────────────────────────────
+
+describe("MessageBubble — offer outcome badge dedup + semantics (TASK-O947)", () => {
+  const offerMsg = makeMsg({
+    kind: "offer",
+    body: "8000|AFN|10000",
+    offerAmount: 8000,
+    offerCurrency: "AFN",
+    sender: { id: 1, name: "Buyer" },
+  });
+
+  it("uses the Tag icon (not the meetup CalendarCheck icon) for an accepted offer", () => {
+    render(<MessageBubble message={offerMsg} isMine={false} offerOutcome="accepted" />);
+    expect(screen.getByText("chat.offer.accepted")).toBeTruthy();
+    expect(screen.UNSAFE_queryAllByType("Tag" as any).length).toBeGreaterThan(0);
+    expect(screen.UNSAFE_queryAllByType("CalendarCheck" as any).length).toBe(0);
+  });
+
+  it("uses the X icon (not the meetup CalendarX icon) for a declined offer", () => {
+    render(<MessageBubble message={offerMsg} isMine={false} offerOutcome="declined" />);
+    expect(screen.getByText("chat.offer.declined")).toBeTruthy();
+    expect(screen.UNSAFE_queryAllByType("X" as any).length).toBeGreaterThan(0);
+    expect(screen.UNSAFE_queryAllByType("CalendarX" as any).length).toBe(0);
+  });
+
+  it("still uses CalendarCheck/CalendarX for a meetup outcome (distinct vocabulary from offers)", () => {
+    const meetupMsg = makeMsg({ kind: "meetup_proposal", body: "Shahr-e-Naw|Tomorrow 3pm" });
+    render(<MessageBubble message={meetupMsg} isMine={false} meetupOutcome="accepted" />);
+    expect(screen.getByText("chat.meetup.accepted")).toBeTruthy();
+    expect(screen.UNSAFE_queryAllByType("CalendarCheck" as any).length).toBeGreaterThan(0);
+  });
+});
+
+describe("MessageBubble — offer accept/decline pending spinner (TASK-O947, MEDIUM/STATES)", () => {
+  const offerMsg = makeMsg({
+    kind: "offer",
+    body: "8000|AFN|10000",
+    offerAmount: 8000,
+    offerCurrency: "AFN",
+    sender: { id: 1, name: "Buyer" },
+  });
+
+  it("swaps the Accept label for a spinner when offerResponsePending is 'accept'", () => {
+    render(
+      <MessageBubble
+        message={offerMsg}
+        isMine={false}
+        onOfferRespond={jest.fn()}
+        offerActionsDisabled
+        offerResponsePending="accept"
+      />
+    );
+    expect(screen.queryByText("chat.offer.accept")).toBeNull();
+    expect(screen.getByText("chat.offer.decline")).toBeTruthy();
+    expect(screen.UNSAFE_getAllByType(ActivityIndicator).length).toBeGreaterThan(0);
+  });
+
+  it("swaps the Decline label for a spinner when offerResponsePending is 'decline'", () => {
+    render(
+      <MessageBubble
+        message={offerMsg}
+        isMine={false}
+        onOfferRespond={jest.fn()}
+        offerActionsDisabled
+        offerResponsePending="decline"
+      />
+    );
+    expect(screen.getByText("chat.offer.accept")).toBeTruthy();
+    expect(screen.queryByText("chat.offer.decline")).toBeNull();
+    expect(screen.UNSAFE_getAllByType(ActivityIndicator).length).toBeGreaterThan(0);
+  });
+
+  it("shows both labels (no spinner) when nothing is pending, even if globally disabled", () => {
+    render(
+      <MessageBubble
+        message={offerMsg}
+        isMine={false}
+        onOfferRespond={jest.fn()}
+        offerActionsDisabled
+      />
+    );
+    expect(screen.getByText("chat.offer.accept")).toBeTruthy();
+    expect(screen.getByText("chat.offer.decline")).toBeTruthy();
+    expect(screen.UNSAFE_queryAllByType(ActivityIndicator).length).toBe(0);
+  });
+});
+
+describe("MessageBubble — offer action a11y (TASK-O947, LOW/A11Y)", () => {
+  const offerMsg = makeMsg({
+    kind: "offer",
+    body: "8000|AFN|10000",
+    offerAmount: 8000,
+    offerCurrency: "AFN",
+    sender: { id: 1, name: "Buyer" },
+  });
+
+  it("gives Accept, Decline, and Counter an accessibilityRole + label even with no counterAccessibilityLabel override", () => {
+    render(
+      <MessageBubble
+        message={offerMsg}
+        isMine={false}
+        onOfferRespond={jest.fn()}
+        onOfferCounter={jest.fn()}
+      />
+    );
+    const accept = screen.getByLabelText("chat.offer.accept");
+    const decline = screen.getByLabelText("chat.offer.decline");
+    const counter = screen.getByLabelText("chat.offer.counter");
+
+    expect(accept.props.accessibilityRole).toBe("button");
+    expect(decline.props.accessibilityRole).toBe("button");
+    expect(counter.props.accessibilityRole).toBe("button");
+  });
+
+  it("still honors an explicit counterAccessibilityLabel override (offer_counter bubble)", () => {
+    const counterMsg = makeMsg({
+      kind: "offer_counter",
+      body: "9500|AFN|10000",
+      offerAmount: 9500,
+      offerCurrency: "AFN",
+      sender: { id: 2, name: "Seller" },
+    });
+    render(
+      <MessageBubble
+        message={counterMsg}
+        isMine={false}
+        onOfferRespond={jest.fn()}
+        onOfferCounter={jest.fn()}
+      />
+    );
+    const counter = screen.getByLabelText("chat.offer.counterBack");
+    expect(counter.props.accessibilityRole).toBe("button");
+  });
+
+  it("reflects the disabled state via accessibilityState", () => {
+    render(
+      <MessageBubble
+        message={offerMsg}
+        isMine={false}
+        onOfferRespond={jest.fn()}
+        offerActionsDisabled
+      />
+    );
+    const accept = screen.getByLabelText("chat.offer.accept");
+    expect(accept.props.accessibilityState).toEqual({ disabled: true });
   });
 });

@@ -68,12 +68,12 @@ export function ConversationRow({
   onArchive,
   onUnarchive,
 }: ConversationRowProps) {
-  const router                         = useRouter();
-  const { isRtl, formatSmartTime }     = useLocalization();
-  const { t }                          = useTranslation();
-  const colors                         = useColors();
-  const insets                         = useSafeAreaInsets();
-  const [menuVisible, setMenuVisible]  = useState(false);
+  const router                                      = useRouter();
+  const { isRtl, formatSmartTime, formatCurrency }  = useLocalization();
+  const { t }                                       = useTranslation();
+  const colors                                      = useColors();
+  const insets                                      = useSafeAreaInsets();
+  const [menuVisible, setMenuVisible]               = useState(false);
 
   const other     = item.otherParticipant;
   const otherName = other?.name ?? "";
@@ -84,7 +84,9 @@ export function ConversationRow({
   // ── Preview ───────────────────────────────────────────────────────────────
   // Shared with `filterConversations` (TASK-Z684 list search) — the row must
   // display exactly what search matches against, never a diverging string.
-  const { text: previewText, icon: PreviewIcon } = conversationPreviewText(item, t);
+  // `formatCurrency` (cycle-4 CR fix) locale-formats an "offer" preview's
+  // amount instead of printing the raw split-body number.
+  const { text: previewText, icon: PreviewIcon } = conversationPreviewText(item, t, formatCurrency);
 
   const handleLongPress = useCallback(() => {
     setMenuVisible(true);

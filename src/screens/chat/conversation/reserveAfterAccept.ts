@@ -46,6 +46,16 @@ export interface ReserveAfterAcceptBuyer {
   id: number;
   name: string;
   avatarUrl?: string | null;
+  /**
+   * Review fix (TRUST) — `conversation.buyer` already carries these fields
+   * (conversation_serializer.rb `field(:buyer)`: `verified`, `city`), so the
+   * locked confirm-mode identity in `BuyerPickerSheet` can render the same
+   * verified tag + city subtitle every other `UserIdentity` shows elsewhere,
+   * instead of a bare name with no trust signal. Zero API work — purely
+   * threading fields the backend already sends through this module.
+   */
+  verified?: boolean;
+  city?: string | null;
 }
 
 export interface MaybeReserveAfterAcceptParams {
@@ -68,10 +78,12 @@ export interface ReserveAfterAcceptPrompt {
   /** The accepted offer amount — becomes `final_price` on the reserve call. */
   finalPrice: number;
   currency: string;
-  /** Sheet header. Generic — never interpolates the price (see file header). */
+  /** Sheet header, e.g. "Reserve for Ahmad?" — names the buyer (bidi-isolated)
+   *  but never the price (see file header re: prices in button/title chrome). */
   title: string;
-  /** Confirmation sentence, e.g. "Reserve for Ahmad at ؋12,000?" — buyer name
-   *  and price are wrapped in bidi isolates (see `wrapBidiIsolate`). */
+  /** Consequence sentence, e.g. "Holds it at ؋12,000. Other buyers can still
+   *  message you, and the listing will show as Reserved." — the price is
+   *  wrapped in a bidi isolate (see `wrapBidiIsolate`). */
   body: string;
 }
 
@@ -142,15 +154,25 @@ export function buildReserveAfterAcceptPrompt(
 
   const resolvedCurrency = currency ?? "AFN";
   const formattedPrice = formatCurrency(offerAmount, resolvedCurrency);
+  const isolatedBuyerName = wrapBidiIsolate(buyer.name);
 
   return {
     listingId: listing.id,
-    buyer: { id: buyer.id, name: buyer.name, avatarUrl: buyer.avatarUrl ?? null },
+    buyer: {
+      id: buyer.id,
+      name: buyer.name,
+      avatarUrl: buyer.avatarUrl ?? null,
+      verified: buyer.verified,
+      city: buyer.city ?? null,
+    },
     finalPrice: offerAmount,
     currency: resolvedCurrency,
-    title: t("chat.offer.reserveAfterAcceptTitle"),
+    // Review fix (COPY) — the title now names the buyer (a sheet title wraps
+    // freely, unlike a truncating alert button, so the isolated name is safe
+    // here) and the body states the consequence instead of repeating the
+    // same question twice.
+    title: t("chat.offer.reserveAfterAcceptTitle", { buyerName: isolatedBuyerName }),
     body: t("chat.offer.reserveAfterAcceptBody", {
-      buyerName: wrapBidiIsolate(buyer.name),
       price: wrapBidiIsolate(formattedPrice),
     }),
   };
@@ -182,7 +204,12 @@ export async function reserveAfterAccept(
       buyerId: prompt.buyer.id,
       finalPrice: prompt.finalPrice,
     });
-    toast.success(t("chat.offer.reserveAfterAcceptSuccess", { buyerName: prompt.buyer.name }));
+    // MUST-FIX (RTL) — the confirm body already isolates the buyer name
+    // (see `buildReserveAfterAcceptPrompt` above); this toast must too, or a
+    // mixed-script name reorders/truncates inside a Pashto/Dari sentence.
+    toast.success(
+      t("chat.offer.reserveAfterAcceptSuccess", { buyerName: wrapBidiIsolate(prompt.buyer.name) })
+    );
     onReserved?.();
     return true;
   } catch {

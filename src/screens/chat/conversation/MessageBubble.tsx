@@ -5,11 +5,25 @@
  * RTL-safe: mine bubbles anchor to start side in RTL.
  */
 import React, { useState } from "react";
-import { View, Linking, Pressable, Platform, Modal, Dimensions, Text as RNText } from "react-native";
+import { View, Linking, Pressable, Platform, Modal, Dimensions, ActivityIndicator, Text as RNText } from "react-native";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner-native";
-import { MapPin, Clock, Check, Tag, ExternalLink, FileText, CalendarCheck, CalendarX, Camera, X, ArrowLeftRight, Trash2 } from "lucide-react-native";
+import {
+  MapPin,
+  Clock,
+  Check,
+  Tag,
+  ExternalLink,
+  FileText,
+  CalendarCheck,
+  CalendarX,
+  Camera,
+  X,
+  ArrowLeftRight,
+  Trash2,
+  type LucideIcon,
+} from "lucide-react-native";
 import { Image } from "expo-image";
 import { Text } from "@/components/reusables/text";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -103,6 +117,14 @@ interface MessageBubbleProps {
    * triggers the reserve-after-accept prompt twice).
    */
   offerActionsDisabled?: boolean;
+  /**
+   * MEDIUM (STATES) review fix — set to `"accept"`/`"decline"` on THIS
+   * specific bubble while its own tapped action is awaiting the server
+   * response; `null`/`undefined` otherwise. `offerActionsDisabled` above
+   * still dims every offer bubble in the thread (unchanged), but only the
+   * bubble the user actually tapped shows a spinner in place of its label.
+   */
+  offerResponsePending?: "accept" | "decline" | null;
   /** Active search query — matching substrings in the bubble body get highlighted. */
   searchQuery?: string;
   /**
@@ -178,42 +200,50 @@ function ReadReceipt({ color }: { color: string }) {
 }
 
 /**
- * TASK-O947 (design review dedup fix) — the "answered" pill shown on both the
- * `offer` and `offer_counter` bubbles once the recipient has responded.
- * Extracted because the two call sites were byte-for-byte identical.
+ * TASK-O947 (design review dedup + semantics fix) — the single "answered"
+ * pill shared by ALL THREE lifecycle-outcome sites in this file: the `offer`
+ * bubble, the `offer_counter` bubble, and the meetup-proposal bubble. Each
+ * call site supplies its own `icon`, so a price/deal outcome (e.g. `Tag`)
+ * reads distinctly from a meetup outcome (`CalendarCheck`/`CalendarX`) even
+ * though the pill chrome — background tint, padding, radius, text weight —
+ * is identical. Previously `OfferOutcomeBadge` used the CALENDAR icons for
+ * offers too, which made "Offer accepted" visually indistinguishable from
+ * the meetup "Accepted" pill just above it in the same thread; the third,
+ * inline copy at the meetup site duplicated the same JSX a third time.
  */
-function OfferOutcomeBadge({
-  outcome,
+function OutcomeBadge({
+  icon: Icon,
+  label,
+  tone,
   isRtl,
   colors,
-  t,
+  marginTop = 8,
 }: {
-  outcome: "accepted" | "declined";
+  icon: LucideIcon;
+  label: string;
+  tone: "success" | "destructive";
   isRtl: boolean;
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
-  t: (key: string) => string;
+  /** Meetup's original inline copy used 6 vs the offer badges' 8 — preserved
+   *  per call site rather than silently changing either's spacing. */
+  marginTop?: number;
 }) {
+  const color = tone === "success" ? colors.success : colors.destructive;
   return (
     <View
       style={{
         flexDirection: isRtl ? "row-reverse" : "row",
         alignItems: "center",
         gap: 6,
-        marginTop: 8,
+        marginTop,
         paddingVertical: 7,
         paddingHorizontal: 10,
         borderRadius: 8,
-        backgroundColor: outcome === "accepted" ? colors.successAlpha : colors.destructiveAlpha,
+        backgroundColor: tone === "success" ? colors.successAlpha : colors.destructiveAlpha,
       }}
     >
-      {outcome === "accepted" ? (
-        <CalendarCheck size={14} color={colors.success} />
-      ) : (
-        <CalendarX size={14} color={colors.destructive} />
-      )}
-      <Text style={{ fontSize: 12, fontWeight: "700", color: outcome === "accepted" ? colors.success : colors.destructive }}>
-        {outcome === "accepted" ? t("chat.offer.accepted") : t("chat.offer.declined")}
-      </Text>
+      <Icon size={14} color={color} />
+      <Text style={{ fontSize: 12, fontWeight: "700", color }}>{label}</Text>
     </View>
   );
 }
@@ -229,6 +259,7 @@ function OfferActionsRow({
   onRespond,
   onCounter,
   disabled,
+  pending,
   isRtl,
   colors,
   t,
@@ -237,6 +268,16 @@ function OfferActionsRow({
   onRespond: (accepted: boolean) => void;
   onCounter?: () => void;
   disabled?: boolean;
+  /**
+   * MEDIUM (STATES) review fix — which action, if any, is the one the
+   * seller/buyer actually tapped and is now awaiting the server response.
+   * `disabled` alone only dims the whole row (it goes true for every offer
+   * bubble in the thread while ANY response is in flight — see
+   * `offerActionsDisabled` at the call site), which reads as a dead tap on a
+   * mid-range Android with no other progress cue. `pending` swaps THIS
+   * bubble's tapped button label for a spinner instead.
+   */
+  pending?: "accept" | "decline" | null;
   isRtl: boolean;
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
   t: (key: string) => string;
@@ -251,21 +292,35 @@ function OfferActionsRow({
           onPress={() => onRespond(true)}
           disabled={disabled}
           android_ripple={{ color: colors.successAlpha }}
+          accessibilityRole="button"
+          accessibilityLabel={t("chat.offer.accept")}
+          accessibilityState={{ disabled: !!disabled }}
           style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, backgroundColor: colors.success }}
         >
-          <Text style={{ fontSize: 13, fontWeight: "700", color: colors.successForeground }}>
-            {t("chat.offer.accept")}
-          </Text>
+          {pending === "accept" ? (
+            <ActivityIndicator size="small" color={colors.successForeground} />
+          ) : (
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.successForeground }}>
+              {t("chat.offer.accept")}
+            </Text>
+          )}
         </Pressable>
         <Pressable
           onPress={() => onRespond(false)}
           disabled={disabled}
           android_ripple={{ color: colors.muted }}
+          accessibilityRole="button"
+          accessibilityLabel={t("chat.offer.decline")}
+          accessibilityState={{ disabled: !!disabled }}
           style={{ flex: 1, alignItems: "center", justifyContent: "center", minHeight: 44, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
         >
-          <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
-            {t("chat.offer.decline")}
-          </Text>
+          {pending === "decline" ? (
+            <ActivityIndicator size="small" color={colors.destructive} />
+          ) : (
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.destructive }}>
+              {t("chat.offer.decline")}
+            </Text>
+          )}
         </Pressable>
       </View>
       {/* Counter button — full width, below Accept/Decline */}
@@ -274,9 +329,9 @@ function OfferActionsRow({
           onPress={onCounter}
           disabled={disabled}
           android_ripple={{ color: colors.warningAlpha }}
-          {...(counterAccessibilityLabel
-            ? { accessibilityRole: "button" as const, accessibilityLabel: counterAccessibilityLabel }
-            : {})}
+          accessibilityRole="button"
+          accessibilityLabel={counterAccessibilityLabel ?? t("chat.offer.counter")}
+          accessibilityState={{ disabled: !!disabled }}
           style={{
             alignItems: "center",
             justifyContent: "center",
@@ -513,7 +568,7 @@ function ImageMessageBubble({
   );
 }
 
-export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, onOfferRespond, offerOutcome, onOfferCounter, offerActionsDisabled, searchQuery, onDeleteMessage }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, onOfferRespond, offerOutcome, onOfferCounter, offerActionsDisabled, offerResponsePending, searchQuery, onDeleteMessage }: MessageBubbleProps) {
   const { t } = useTranslation();
   const { isRtl, formatTime, formatCurrency } = useLocalization();
   const colors = useColors();
@@ -803,7 +858,13 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             {/* Outcome — shown to both sides once the seller responds */}
             {/* Offer actions — shown only when no outcome yet */}
             {offerOutcome ? (
-              <OfferOutcomeBadge outcome={offerOutcome} isRtl={isRtl} colors={colors} t={t} />
+              <OutcomeBadge
+                icon={offerOutcome === "accepted" ? Tag : X}
+                label={offerOutcome === "accepted" ? t("chat.offer.accepted") : t("chat.offer.declined")}
+                tone={offerOutcome === "accepted" ? "success" : "destructive"}
+                isRtl={isRtl}
+                colors={colors}
+              />
             ) : !isMine && onOfferRespond ? (
               /* Accept / Decline / Counter — seller sees all three actions before responding.
                  TASK-O947: all three are disabled + dimmed while ANY offer response in this
@@ -812,6 +873,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 onRespond={onOfferRespond}
                 onCounter={onOfferCounter}
                 disabled={offerActionsDisabled}
+                pending={offerResponsePending}
                 isRtl={isRtl}
                 colors={colors}
                 t={t}
@@ -945,7 +1007,13 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
 
             {/* Outcome — shown to both sides once the buyer responds to the counter */}
             {offerOutcome ? (
-              <OfferOutcomeBadge outcome={offerOutcome} isRtl={isRtl} colors={colors} t={t} />
+              <OutcomeBadge
+                icon={offerOutcome === "accepted" ? Tag : X}
+                label={offerOutcome === "accepted" ? t("chat.offer.accepted") : t("chat.offer.declined")}
+                tone={offerOutcome === "accepted" ? "success" : "destructive"}
+                isRtl={isRtl}
+                colors={colors}
+              />
             ) : !isMine && onOfferRespond ? (
               /* Accept / Decline / Counter — the recipient of a counter-offer sees
                  all three actions, the same way the original offer does, so a
@@ -957,6 +1025,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 onRespond={onOfferRespond}
                 onCounter={onOfferCounter}
                 disabled={offerActionsDisabled}
+                pending={offerResponsePending}
                 isRtl={isRtl}
                 colors={colors}
                 t={t}
@@ -1069,33 +1138,14 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
 
             {/* Outcome — shown to BOTH sides once answered (so the proposer sees it too) */}
             {meetupOutcome ? (
-              <View
-                style={{
-                  flexDirection: isRtl ? "row-reverse" : "row",
-                  alignItems: "center",
-                  gap: 6,
-                  marginTop: 6,
-                  paddingVertical: 7,
-                  paddingHorizontal: 10,
-                  borderRadius: 8,
-                  backgroundColor: meetupOutcome === "accepted" ? colors.successAlpha : colors.destructiveAlpha,
-                }}
-              >
-                {meetupOutcome === "accepted" ? (
-                  <CalendarCheck size={14} color={colors.success} />
-                ) : (
-                  <CalendarX size={14} color={colors.destructive} />
-                )}
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "700",
-                    color: meetupOutcome === "accepted" ? colors.success : colors.destructive,
-                  }}
-                >
-                  {meetupOutcome === "accepted" ? t("chat.meetup.accepted") : t("chat.meetup.declined")}
-                </Text>
-              </View>
+              <OutcomeBadge
+                icon={meetupOutcome === "accepted" ? CalendarCheck : CalendarX}
+                label={meetupOutcome === "accepted" ? t("chat.meetup.accepted") : t("chat.meetup.declined")}
+                tone={meetupOutcome === "accepted" ? "success" : "destructive"}
+                isRtl={isRtl}
+                colors={colors}
+                marginTop={6}
+              />
             ) : !isMine && onMeetupRespond ? (
               /* Accept / Decline — only for the recipient, before they respond */
               <View style={{ flexDirection: isRtl ? "row-reverse" : "row", gap: 8, marginTop: 6 }}>

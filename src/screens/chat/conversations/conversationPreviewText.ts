@@ -13,12 +13,26 @@
  * because search was matching something the user never saw. Both call sites
  * must derive the preview from the exact same function so "what you see is
  * what you can search for".
+ *
+ * CR fix (cycle-4 design review): the "offer" preview used to build
+ * `t("chat.preview.offer", { amount, currency })` straight from the raw,
+ * un-formatted split of `lastMessageBody` (e.g. literally "Offer: 75000
+ * AFN") — no thousands separator, no locale-aware digits/currency symbol,
+ * same as every OTHER price on screen (`PriceTag`, `CounterOfferSheet`,
+ * `OfferSheet`, …) gets via `useLocalization().formatCurrency`. This now
+ * takes `formatCurrency` as a parameter (this file is a plain function, not
+ * a hook, so it cannot call `useLocalization()` itself) and pre-formats the
+ * amount before interpolating a single `{{price}}` placeholder — the same
+ * pattern every other price string in the app already uses.
  */
 
 import type { ComponentType } from "react";
 import type { TFunction } from "i18next";
 import { MapPin, Tag, Camera, FileText } from "lucide-react-native";
 import type { Conversation } from "@/api/conversations";
+
+/** Matches the shape of `useLocalization().formatCurrency`. */
+export type FormatCurrency = (amount: number | null | undefined, currency?: string) => string;
 
 interface LucideIconProps {
   size?: number;
@@ -42,10 +56,15 @@ export interface ConversationPreview {
  * - Special `lastMessageKind`s (meetup/offer/photo/document) → a translated,
  *   human-readable label (never the raw metadata body)
  * - Plain text messages → the raw `lastMessageBody` as-is
+ *
+ * @param formatCurrency - `useLocalization().formatCurrency`, used to render
+ *   the offer amount with locale-aware digits/grouping/currency symbol
+ *   instead of the raw split-body number.
  */
 export function conversationPreviewText(
   item: Conversation,
-  t: TFunction
+  t: TFunction,
+  formatCurrency: FormatCurrency
 ): ConversationPreview {
   if (item.lastMessageDeleted) {
     return { text: t("chat.message.deleted"), icon: null };
@@ -63,9 +82,14 @@ export function conversationPreviewText(
     case "meetup_declined":
       return { text: t("chat.preview.meetupDeclined"), icon: MapPin };
     case "offer": {
-      const [amount, currency] = item.lastMessageBody.split("|");
+      const [amountRaw, currency] = item.lastMessageBody.split("|");
+      const amount = Number(amountRaw);
+      const price = formatCurrency(
+        Number.isFinite(amount) ? amount : null,
+        currency || undefined
+      );
       return {
-        text: t("chat.preview.offer", { amount: amount ?? "", currency: currency ?? "" }),
+        text: t("chat.preview.offer", { price }),
         icon: Tag,
       };
     }

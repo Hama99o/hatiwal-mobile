@@ -18,7 +18,7 @@
 
 import type { TFunction } from "i18next";
 import type { Conversation } from "@/api/conversations";
-import { conversationPreviewText } from "./conversationPreviewText";
+import { conversationPreviewText, type FormatCurrency } from "./conversationPreviewText";
 
 /** Extracts the display name to search against for a conversation's counterpart. */
 function counterpartName(conversation: Conversation): string {
@@ -40,11 +40,16 @@ function counterpartName(conversation: Conversation): string {
  * @param t - the i18next translate function, used (via `conversationPreviewText`)
  *   to compute the exact same human-readable preview text `ConversationRow`
  *   renders for special message kinds (meetup/offer/photo/document).
+ * @param formatCurrency - `useLocalization().formatCurrency`, forwarded to
+ *   `conversationPreviewText` so an "offer" preview is matched against the
+ *   same locale-formatted price string `ConversationRow` renders (cycle-4 CR
+ *   fix), not the raw, un-formatted `amount|currency` split.
  */
 export function filterConversations(
   conversations: Conversation[],
   term: string,
-  t: TFunction
+  t: TFunction,
+  formatCurrency: FormatCurrency
 ): Conversation[] {
   const needle = term.trim().toLowerCase();
   if (!needle) return conversations;
@@ -52,7 +57,7 @@ export function filterConversations(
   return conversations.filter((conversation) => {
     const name = counterpartName(conversation).toLowerCase();
     const title = (conversation.listing?.title ?? "").toLowerCase();
-    const preview = conversationPreviewText(conversation, t).text.toLowerCase();
+    const preview = conversationPreviewText(conversation, t, formatCurrency).text.toLowerCase();
 
     return (
       name.includes(needle) ||

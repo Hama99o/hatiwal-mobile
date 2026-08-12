@@ -397,20 +397,34 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   }, [currentPage, totalPages]);
 
   // ── Infinite scroll ────────────────────────────────────────────────────────
+  // REGRESSION FIX (cycle-4 design review): the previous guard compared the
+  // POST-filter `visibleItems.length` against a PRE-filter budget
+  // (`perPage * currentPage`). A `filterItems` consumer (e.g. Conversations,
+  // TASK-Z684) almost always narrows the rendered count below that budget, so
+  // the guard returned early FOREVER — any active search/filter permanently
+  // killed infinite scroll, even when many more unloaded pages existed on the
+  // server. `visibleItems` is a filtered VIEW of what's loaded, not a measure
+  // of how much is left to fetch — it must never gate pagination.
+  //
+  // The real problem the old heuristic was reaching for (`onEndReached` firing
+  // in a burst before state catches up — a well-known FlashList/FlatList
+  // quirk) is solved correctly with a synchronous ref instead: `isFetchingMore`
+  // (state) can still read stale/false for a tick after the first call kicks
+  // off, letting a second burst call slip through; `fetchingMoreRef` is
+  // updated synchronously so every call after the first is rejected
+  // immediately, with no reliance on a re-render having landed yet.
+  const fetchingMoreRef = useRef(false);
   const handleEndReached = useCallback(async () => {
-    if (isFetchingMore || isLoading || currentPage >= totalPages) return;
-    // Guard against `onEndReached` firing in a burst (a well-known
-    // FlashList/FlatList quirk — it can re-fire before layout/state has
-    // caught up) and against a heavily-`filterItems`-narrowed render (e.g. a
-    // restrictive search match) making the viewport LOOK exhausted with far
-    // fewer rows than the raw loaded item count implies. Only trust the
-    // "reached the end" signal once at least a full page's worth of rows is
-    // actually being rendered for the current page count.
-    if (visibleItems.length < perPage * currentPage) return;
+    if (fetchingMoreRef.current || isLoading || currentPage >= totalPages) return;
+    fetchingMoreRef.current = true;
     setIsFetchingMore(true);
-    await fetchPage(currentPage + 1, false);
-    setIsFetchingMore(false);
-  }, [isFetchingMore, isLoading, currentPage, totalPages, visibleItems.length, perPage, fetchPage]);
+    try {
+      await fetchPage(currentPage + 1, false);
+    } finally {
+      fetchingMoreRef.current = false;
+      setIsFetchingMore(false);
+    }
+  }, [isLoading, currentPage, totalPages, fetchPage]);
 
   // ── Skeleton grid ──────────────────────────────────────────────────────────
   // NOTE: The header is rendered OUTSIDE the body branches (skeleton/error/empty/list)

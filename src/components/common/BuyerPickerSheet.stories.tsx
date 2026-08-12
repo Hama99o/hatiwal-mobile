@@ -98,6 +98,40 @@ export const OpenConfirmMode: Story = {
   ),
 };
 
+// INFO · VISUAL TEST GAP (review fix) — RTL/Pashto coverage for confirm mode:
+// switch device/Storybook locale to 'ps' or 'fa' to see the mirror (the
+// component reads `isRtl` from useLocalization() at runtime, same pattern as
+// ListingStatusBanner.stories.tsx's RowPashtoRtl). Also covers a long buyer
+// name (wraps, never truncates the price) and a null listing thumbnail (the
+// RemoteImage placeholder, not a broken image).
+export const OpenConfirmModeRtl: Story = {
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={24000}
+        currency="AFN"
+        action="reserve"
+        preselectedBuyer={{
+          id: 42,
+          name: "احمد ولي محمد کریمي زی",
+          avatarUrl: null,
+          verified: true,
+          city: "کندهار",
+        }}
+        listingThumbnailUrl={null}
+        listingTitle="د کندهار دستي فرش ۳x۴ متره"
+        confirmTitle="د احمد ولي محمد کریمي زی لپاره خوندي کړئ؟"
+        confirmBody="دا اعلان په ۲۴,۰۰۰ افغانۍ کې ساتي. نور پیرودونکي لا هم تاسو ته پیغام لیکلی شي."
+        cancelLabel="اوس نه"
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};
+
 export const OpenConfirmModeSubmitting: Story = {
   render: () => (
     <QueryClientProvider client={queryClient}>

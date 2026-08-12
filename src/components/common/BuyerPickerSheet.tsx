@@ -87,7 +87,20 @@ interface BuyerPickerSheetProps {
    * conversations query, no "someone else" skip, no editable final price).
    * `onConfirm` fires with `{ buyerId: preselectedBuyer.id, finalPrice: price }`.
    */
-  preselectedBuyer?: { id: number; name: string; avatarUrl?: string | null } | null;
+  preselectedBuyer?: {
+    id: number;
+    name: string;
+    avatarUrl?: string | null;
+    /**
+     * TASK-O947 review fix (TRUST) — `conversation.buyer` already carries
+     * these (conversation_serializer.rb `field(:buyer)`), so the locked
+     * confirm-mode identity below can show the same verified tag + city
+     * subtitle every other `UserIdentity` render does, instead of a bare
+     * name. Zero API work — the caller just has to pass them through.
+     */
+    verified?: boolean;
+    city?: string | null;
+  } | null;
   /** Listing thumbnail shown above the locked buyer row in confirm mode. */
   listingThumbnailUrl?: string | null;
   listingTitle?: string | null;
@@ -147,6 +160,16 @@ export function BuyerPickerSheet({
     }
   }, [visible]);
 
+  // SHOULD-FIX (CORRECTNESS) — a dismiss while a reserve/sold PUT is in
+  // flight must be a no-op, exactly like the footer's Cancel already is
+  // (:isSubmitting below), or a mid-request dismiss can land a "reserved"
+  // toast after the seller believes they cancelled. Shared by the Android
+  // back button, the backdrop tap, and the header X.
+  const handleDismiss = useCallback(() => {
+    if (isSubmitting) return;
+    onClose();
+  }, [isSubmitting, onClose]);
+
   const handleConfirm = useCallback(() => {
     // Confirm mode: buyer + price are already known — nothing left to pick.
     if (preselectedBuyer) {
@@ -184,9 +207,13 @@ export function BuyerPickerSheet({
   const resolvedCancelLabel = isConfirmMode ? cancelLabel ?? t("buyerPicker.cancel") : t("buyerPicker.cancel");
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleDismiss}>
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={onClose} />
+        <Pressable
+          testID="buyer-picker-backdrop"
+          style={[styles.backdrop, { backgroundColor: colors.darkScrim }]}
+          onPress={handleDismiss}
+        />
 
         <View style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 16) + 12 }]}>
           <View style={styles.handleContainer}>
@@ -197,7 +224,15 @@ export function BuyerPickerSheet({
             <Text className="text-lg font-semibold" style={{ color: colors.foreground, flex: 1, textAlign: isRtl ? "right" : "left" }}>
               {title}
             </Text>
-            <Pressable onPress={onClose} hitSlop={10} android_ripple={{ color: colors.muted, borderless: true }}>
+            <Pressable
+              onPress={handleDismiss}
+              disabled={isSubmitting}
+              hitSlop={12}
+              android_ripple={{ color: colors.muted, borderless: true }}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.close")}
+              testID="buyer-picker-close"
+            >
               <X size={20} color={colors.mutedForeground} />
             </Pressable>
           </View>
@@ -249,11 +284,11 @@ export function BuyerPickerSheet({
                       backgroundColor: colors.muted,
                     }}
                   >
-                    <RemoteImage uri={listingThumbnailUrl} style={{ width: 44, height: 44, borderRadius: 8 }} />
+                    <RemoteImage uri={listingThumbnailUrl} style={{ width: 60, height: 60, borderRadius: 8 }} />
                     {listingTitle ? (
                       <Text
-                        numberOfLines={1}
-                        style={{ flex: 1, fontSize: 13, fontWeight: "600", color: colors.foreground, textAlign: isRtl ? "right" : "left" }}
+                        numberOfLines={2}
+                        style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.foreground, textAlign: isRtl ? "right" : "left" }}
                       >
                         {listingTitle}
                       </Text>
@@ -264,10 +299,12 @@ export function BuyerPickerSheet({
                 <UserIdentity
                   name={preselectedBuyer.name}
                   avatarUrl={preselectedBuyer.avatarUrl}
+                  verified={preselectedBuyer.verified}
+                  subtitle={preselectedBuyer.city ?? undefined}
                   size={48}
                 />
 
-                <View style={{ alignItems: "center", paddingVertical: 4 }}>
+                <View style={{ alignItems: isRtl ? "flex-end" : "flex-start", paddingVertical: 4 }}>
                   <PriceTag price={price} currency={currency} size="lg" />
                 </View>
 

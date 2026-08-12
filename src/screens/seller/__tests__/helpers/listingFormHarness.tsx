@@ -33,6 +33,24 @@ import { render } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Listing } from "@/api/listings";
 
+// ── Shared timeout for every suite that renders this form ────────────────────
+//
+// All four suites drive several sequential act()/waitFor() round-trips against
+// the real ListingForm (category select → location confirm → optional photo →
+// submit → assert), which is by far the heaviest render in the codebase.
+// Each one is fast ALONE — publish is ~4.7s, routing ~5s — but inside a full
+// parallel `jest --ci` run they contend for CPU with ~100 other suites and take
+// 3-10x longer: routing was measured at 43s and publish at 14.8s, both failing
+// on the default 5s budget while passing 7/7 and 12/12 in isolation. That is
+// contention, not a regression, so the budget has to cover the loaded case.
+//
+// It lives HERE, not in each test file, for the same reason the mocks do: the
+// suites drifted when four copies had to be kept in step, and publish/draft/
+// duplicate were still on the default budget after routing had already been
+// raised — so the next one to get slow would have failed the same way.
+// Importing this module (every suite does, for the mock builders) applies it.
+jest.setTimeout(45000);
+
 // ── expo-router ──────────────────────────────────────────────────────────────
 
 export const mockPush = jest.fn();

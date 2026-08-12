@@ -575,31 +575,42 @@ describe("UniversalList — refreshKey preserves loaded pages (regression guard)
   });
 });
 
-// ─── 10. onEndReached burst-guard (cycle-3 CR fix) ────────────────────────────
+// ─── 10. onEndReached — de-burst guard + filterItems must never block paging ──
 //
-// `onEndReached` is a well-known FlashList/FlatList source of repeated/bursty
-// calls, and a heavily `filterItems`-narrowed render can make the viewport
-// LOOK exhausted well before a full page's worth of raw items has loaded.
-// `handleEndReached` must only proceed once at least `perPage * currentPage`
-// items are actually visible.
+// CYCLE-4 REGRESSION (design review): a previous version of this guard
+// compared the POST-filter `visibleItems.length` against a PRE-filter budget
+// (`perPage * currentPage`) and returned early whenever the filtered view was
+// smaller than that budget — which is ALWAYS true for a narrowing filter, so
+// any active `filterItems` (e.g. Conversations search, TASK-Z684) permanently
+// killed infinite scroll, even with many more unloaded pages on the server.
+// That heuristic is gone. The real "onEndReached fires in a burst before
+// state catches up" problem (a well-known FlashList/FlatList quirk) is now
+// solved with a synchronous ref (`fetchingMoreRef`), not `visibleItems.length`
+// and not the (React-state, one-tick-stale) `isFetchingMore`.
 
-describe("UniversalList — onEndReached burst guard (regression guard)", () => {
-  it("does not fetch another page while filterItems has narrowed the visible items below a full page", async () => {
-    const ITEMS_PAGE_1 = [
+describe("UniversalList — onEndReached (regression guards)", () => {
+  it("still fetches the next page even when filterItems has narrowed the visible items well below a full page (cycle-4 regression)", async () => {
+    const PAGE_1 = [
       { id: 1, label: "Match" },
       { id: 2, label: "Other" },
       { id: 3, label: "Other" },
     ];
-    const fetcher = jest.fn((_query: ListQuery) =>
-      Promise.resolve({ items: ITEMS_PAGE_1, totalCount: 6, totalPages: 2, currentPage: 1 })
-    );
+    const PAGE_2 = [{ id: 4, label: "Match" }];
+    const fetcher = jest.fn((query: ListQuery) => {
+      if (query.page === 1) {
+        return Promise.resolve({ items: PAGE_1, totalCount: 4, totalPages: 2, currentPage: 1 });
+      }
+      return Promise.resolve({ items: PAGE_2, totalCount: 4, totalPages: 2, currentPage: 2 });
+    });
 
     render(
       <UniversalList
         config={buildConfig({
           fetcher,
           perPage: 3,
-          // Narrows 3 loaded items down to 1 visible — far below perPage*currentPage (3).
+          // Narrows 3 loaded items down to 1 visible — far below
+          // perPage*currentPage (3), exactly what the old heuristic mistook
+          // for "reached the end of the data".
           filterItems: (items) => items.filter((i) => i.label === "Match"),
         })}
       />
@@ -607,7 +618,39 @@ describe("UniversalList — onEndReached burst guard (regression guard)", () => 
     await waitFor(() => expect(screen.getByText("Match")).toBeTruthy());
     expect(fetcher).toHaveBeenCalledTimes(1);
 
-    // Fire onEndReached repeatedly (simulating the real-world "burst").
+    await act(async () => {
+      const flashListNode = screen.UNSAFE_getByType(FlashList as never) as unknown as {
+        props: { onEndReached?: () => void };
+      };
+      flashListNode.props.onEndReached?.();
+    });
+
+    // A filtered/narrowed view must NEVER block pagination — page 2 must
+    // still be fetched.
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+  });
+
+  it("de-bursts rapid onEndReached calls via a synchronous ref, not the stale isFetchingMore state", async () => {
+    let resolvePage2!: (value: ListFetchResult<SimpleItem>) => void;
+    const PAGE_1 = [{ id: 1, label: "A" }];
+    const fetcher = jest.fn((query: ListQuery) => {
+      if (query.page === 1) {
+        return Promise.resolve({ items: PAGE_1, totalCount: 3, totalPages: 2, currentPage: 1 });
+      }
+      return new Promise<ListFetchResult<SimpleItem>>((resolve) => {
+        resolvePage2 = resolve;
+      });
+    });
+
+    render(<UniversalList config={buildConfig({ fetcher, perPage: 1 })} />);
+    await waitFor(() => expect(screen.getByText("A")).toBeTruthy());
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    // Fire onEndReached repeatedly BEFORE the page-2 fetch resolves — the
+    // well-known FlashList/FlatList burst quirk. Only the FIRST call may
+    // actually trigger a fetch; a state-only guard (`isFetchingMore`) can
+    // still read stale/false for the second/third call because no render has
+    // landed yet — the ref must reject them synchronously.
     await act(async () => {
       const flashListNode = screen.UNSAFE_getByType(FlashList as never) as unknown as {
         props: { onEndReached?: () => void };
@@ -617,9 +660,13 @@ describe("UniversalList — onEndReached burst guard (regression guard)", () => 
       flashListNode.props.onEndReached?.();
     });
 
-    // The filtered view (1 item) is below perPage*currentPage (3) — guarded,
-    // no additional page fetch should have fired.
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    // Page 1 (initial load) + exactly ONE page-2 call from the burst.
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      resolvePage2({ items: [{ id: 2, label: "B" }], totalCount: 2, totalPages: 2, currentPage: 2 });
+    });
+    await waitFor(() => expect(screen.getByText("B")).toBeTruthy());
   });
 
   it("still fetches the next page normally when a full page of items is visible", async () => {

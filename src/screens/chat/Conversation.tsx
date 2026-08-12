@@ -164,8 +164,15 @@ export function ConversationScreen() {
   // TASK-O947: guards against a double-tap on Accept/Decline while a response
   // is already in flight — without this, a fast double-tap could fire two
   // sendMessage calls (and, on Accept, could trigger the reserve-after-accept
-  // prompt twice). Cleared in handleOfferRespond's `finally`.
-  const [isRespondingToOffer, setIsRespondingToOffer] = useState(false);
+  // prompt twice). Cleared in handleOfferRespond's `finally`. Review fix
+  // (MEDIUM/STATES) — holds WHICH message + action so the specific tapped
+  // bubble can show a spinner (`isRespondingToOffer` below still dims/blocks
+  // EVERY offer bubble in the thread while this is non-null, unchanged).
+  const [respondingOfferTarget, setRespondingOfferTarget] = useState<{
+    messageId: number;
+    accepted: boolean;
+  } | null>(null);
+  const isRespondingToOffer = respondingOfferTarget !== null;
   // TASK-O947 (cycle-4 design review): the one-tap reserve confirm shown
   // after a successful offer accept — the shared BuyerPickerSheet in its
   // "preselectedBuyer" confirm mode, never the full pick-a-buyer flow. `null`
@@ -337,6 +344,37 @@ export function ConversationScreen() {
       setIsLoading(false);
     }
   }, [t]);
+
+  // ── TASK-O947 review fix (MUST-FIX, CACHE/DUPLICATION) ────────────────────
+  // The single source of truth for "a listing lifecycle mutation just
+  // succeeded from inside this screen" — invalidates every query surface that
+  // needs to reflect the new status (this conversation, the listing detail,
+  // the seller's My Listings feed + status-count chips) and reloads the local
+  // conversation state so the pinned ListingHeader flips without a manual
+  // refresh. Previously this exact five-key block lived ONLY inside
+  // `handleReserveAfterAcceptConfirm`'s `onReserved`, while the pinned
+  // ListingHeader's own `onLifecycleDone` (its manual "Reserve"/"Mark sold"
+  // button) invalidated just `["conversation", id]` — so reserving via that
+  // button left My Listings and the status-count chips stale until the
+  // seller manually pulled to refresh. Both paths now call this one function.
+  const invalidateListingLifecycleQueries = useCallback(
+    (convId: number | null) => {
+      if (convId) qc.invalidateQueries({ queryKey: ["conversation", convId] });
+      // Bare (id-less) keys — deliberately broader than an exact
+      // ["listing", id] match. ListingDetail.tsx and MyListingDetail.tsx key
+      // their detail queries by the STRING route param while this handler
+      // only has the numeric listingId; invalidating the whole
+      // "listing"/"my-listing" namespace (React Query's default partial
+      // match) refreshes both regardless of the id's type instead of
+      // silently missing due to a string/number key mismatch.
+      qc.invalidateQueries({ queryKey: ["listing"] });
+      qc.invalidateQueries({ queryKey: ["my-listing"] });
+      qc.invalidateQueries({ queryKey: ["my-listings"] });
+      qc.invalidateQueries({ queryKey: ["myListingStatusCounts"] });
+      if (convId) load(convId);
+    },
+    [qc, load]
+  );
 
   // ── Load older messages when user scrolls to top ─────────────────────────
   const loadOlderMessages = useCallback(async () => {
@@ -586,7 +624,7 @@ export function ConversationScreen() {
       // TASK-O947: ignore a second tap while a response is already in flight
       // (see isRespondingToOffer above) — never queue/duplicate the request.
       if (!convId || !offer.body || isRespondingToOffer) return;
-      setIsRespondingToOffer(true);
+      setRespondingOfferTarget({ messageId: offer.id, accepted });
       try {
         const sent = await conversationsAPI.sendMessage(
           convId,
@@ -627,7 +665,7 @@ export function ConversationScreen() {
       } catch {
         toast.error(t("chat.thread.sendFailed"));
       } finally {
-        setIsRespondingToOffer(false);
+        setRespondingOfferTarget(null);
       }
     },
     [currentConversationId, conversation, isOwner, formatCurrency, t, isRespondingToOffer]
@@ -637,34 +675,20 @@ export function ConversationScreen() {
   // Called from the confirm sheet's onConfirm. `reserveAfterAccept` (the
   // standalone, unit-tested module function) does the actual PUT + toasts
   // and resolves true/false (never throws); this wrapper only owns the
-  // sheet's submitting state, the same invalidation set the old
-  // confirmAlert-driven flow used (so the pinned ListingHeader flips to
-  // Reserved without a manual refresh), and — mirroring ListingHeader's own
+  // sheet's submitting state and — mirroring ListingHeader's own
   // `handleBuyerPickerConfirm` — only closes the sheet on SUCCESS, so a
-  // reserve failure leaves it open for the seller to retry.
+  // reserve failure leaves it open for the seller to retry. The invalidation
+  // set itself is `invalidateListingLifecycleQueries` (review fix, MUST-FIX
+  // CACHE/DUPLICATION — shared with the pinned ListingHeader's own
+  // `onLifecycleDone` below, so reserving from EITHER path refreshes My
+  // Listings and the status-count chips, not just this conversation).
   const handleReserveAfterAcceptConfirm = useCallback(async () => {
     if (!reserveConfirm) return;
     const convId = currentConversationId;
     setIsReservingAfterAccept(true);
     const succeeded = await reserveAfterAccept(reserveConfirm, {
       t,
-      onReserved: () => {
-        if (convId) qc.invalidateQueries({ queryKey: ["conversation", convId] });
-        // Bare (id-less) keys — deliberately broader than an exact
-        // ["listing", id] match. ListingDetail.tsx and MyListingDetail.tsx
-        // key their detail queries by the STRING route param while this
-        // handler only has the numeric `listingId`; invalidating the whole
-        // "listing"/"my-listing" namespace (React Query's default
-        // partial-match) refreshes both regardless of the id's type instead
-        // of silently missing due to a string/number key mismatch.
-        qc.invalidateQueries({ queryKey: ["listing"] });
-        qc.invalidateQueries({ queryKey: ["my-listing"] });
-        qc.invalidateQueries({ queryKey: ["my-listings"] });
-        qc.invalidateQueries({ queryKey: ["myListingStatusCounts"] });
-        // Reload local conversation state so the pinned ListingHeader flips
-        // to Reserved right away, without a manual refresh.
-        if (convId) load(convId);
-      },
+      onReserved: () => invalidateListingLifecycleQueries(convId),
     });
     setIsReservingAfterAccept(false);
     // CYCLE-6/O947 fix-list: `reserveAfterAccept` resolves `false` (never
@@ -676,7 +700,7 @@ export function ConversationScreen() {
     // now keeps it visible with the same buyer/price/error toast already
     // shown, instead of silently discarding the seller's one-tap reserve.
     if (succeeded) setReserveConfirm(null);
-  }, [reserveConfirm, currentConversationId, qc, load, t]);
+  }, [reserveConfirm, currentConversationId, invalidateListingLifecycleQueries, t]);
 
   // ── Open counter-offer sheet (seller) ────────────────────────────────────
   const handleOpenCounterSheet = useCallback((offer: Message) => {
@@ -1157,17 +1181,11 @@ export function ConversationScreen() {
           listing={conversation.listing}
           onPress={() => router.push(`/(main)/listing/${conversation.listing!.id}` as never)}
           isOwner={isOwner}
-          onLifecycleDone={() => {
-            // Invalidate the conversation so the listing's StatusBadge
-            // and pinned header reflect the new status immediately.
-            if (currentConversationId) {
-              qc.invalidateQueries({ queryKey: ["conversation", currentConversationId] });
-            }
-            // Reload the conversation state in local state as well
-            if (currentConversationId) {
-              load(currentConversationId);
-            }
-          }}
+          // Review fix (MUST-FIX, CACHE/DUPLICATION) — same shared helper the
+          // reserve-after-accept confirm uses below, so a manual Reserve/Mark
+          // Sold tap from THIS header also refreshes My Listings and the
+          // status-count chips instead of just this conversation.
+          onLifecycleDone={() => invalidateListingLifecycleQueries(currentConversationId)}
         />
       )}
 
@@ -1345,6 +1363,16 @@ export function ConversationScreen() {
                 // double-tap from firing two responses (and, on Accept,
                 // triggering the reserve-after-accept prompt twice).
                 offerActionsDisabled={isRespondingToOffer}
+                // Review fix (MEDIUM/STATES) — only THIS bubble's actually-
+                // tapped action shows the spinner; every other offer bubble
+                // in the thread stays merely dimmed (offerActionsDisabled).
+                offerResponsePending={
+                  respondingOfferTarget?.messageId === item.id
+                    ? respondingOfferTarget.accepted
+                      ? "accept"
+                      : "decline"
+                    : null
+                }
                 searchQuery={searchVisible ? searchQuery.trim() : undefined}
                 onDeleteMessage={
                   // Only the author of a non-deleted text-like message can delete it.

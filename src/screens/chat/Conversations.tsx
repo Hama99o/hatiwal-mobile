@@ -77,7 +77,7 @@ const ROLE_FILTER_OPTIONS: { key: Exclude<RoleMode, null>; labelKey: string }[] 
 export default function ConversationsScreen() {
   const { t } = useTranslation();
   const colors = useColors();
-  const { isRtl } = useLocalization();
+  const { isRtl, formatCurrency } = useLocalization();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -324,7 +324,7 @@ export default function ConversationsScreen() {
     refreshKey,
     fetcher:     makeFetcher(tabMode, filter, role),
     perPage:     CONVERSATIONS_PAGE_SIZE,
-    filterItems: (items) => filterConversations(items, searchTerm, t),
+    filterItems: (items) => filterConversations(items, searchTerm, t, formatCurrency),
     onPageInfoChange: setPageInfo,
     keyExtractor: (item) => String(item.id),
     renderItem:  ({ item }) => (
@@ -376,8 +376,13 @@ export default function ConversationsScreen() {
         ? hasUnloadedConversations
           // More pages exist beyond what's loaded — a "no matches" here would
           // be misleadingly absolute (CR fix: the match could be sitting on
-          // an unloaded page), so make that explicit.
-          ? `${t("chat.search.noMatchDescription")} ${t("chat.search.partialResults")}`
+          // an unloaded page), so make that explicit. Uses its OWN key
+          // (`partialResultsConversations`, cycle-4 design review fix) — the
+          // pre-existing `chat.search.partialResults` string says "messages"
+          // and belongs to the in-thread message search (TASK-N803); reusing
+          // it here read "Showing results in loaded messages only" on a
+          // CONVERSATIONS list, which is simply wrong copy.
+          ? `${t("chat.search.noMatchDescription")} ${t("chat.search.partialResultsConversations")}`
           : t("chat.search.noMatchDescription")
         : role === "selling"
           ? t("chat.empty.sellingDescription")
@@ -547,7 +552,9 @@ export default function ConversationsScreen() {
                   style={{
                     flexDirection:   isRtl ? "row-reverse" : "row",
                     alignItems:      "center",
+                    justifyContent:  "center",
                     gap:             5,
+                    minHeight:       44,
                     paddingVertical: 7,
                     paddingHorizontal: 12,
                     borderRadius:    999,
@@ -603,7 +610,9 @@ export default function ConversationsScreen() {
                   style={{
                     flexDirection:   isRtl ? "row-reverse" : "row",
                     alignItems:      "center",
+                    justifyContent:  "center",
                     gap:             5,
+                    minHeight:       44,
                     paddingVertical: 7,
                     paddingHorizontal: 12,
                     borderRadius:    999,

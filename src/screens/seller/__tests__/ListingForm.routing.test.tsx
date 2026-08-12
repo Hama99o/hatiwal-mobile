@@ -47,16 +47,10 @@ import React from "react";
 import { screen, waitFor, fireEvent, act } from "@testing-library/react-native";
 import { BackHandler } from "react-native";
 
-// The create+publish/create+draft cases drive several sequential
-// act()/waitFor() round-trips (category select → location confirm →
-// optional photo → submit → assert navigation); the default 5s Jest test
-// timeout can be tight under load.
-//
-// 15s was NOT enough: this suite runs in ~5s alone but was observed taking 43s
-// and failing inside a full parallel `jest --ci` run, while passing 12/12 in
-// isolation. That is contention, not a regression — so the budget has to cover
-// the loaded case, not the isolated one.
-jest.setTimeout(45000);
+// The timeout for this suite (and its three siblings) now lives in
+// helpers/listingFormHarness.tsx — see the note there. Four copies of it drifted
+// exactly like the mocks did: this file had been raised to 45s while publish was
+// still on the default 5s, and publish then failed under parallel load.
 
 // ── Mocks — factories forwarded to the shared harness (see its header) ────────
 

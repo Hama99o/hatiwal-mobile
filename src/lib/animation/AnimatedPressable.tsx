@@ -13,6 +13,27 @@ const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
 interface AnimatedPressableProps extends PressableProps {
   children: React.ReactNode;
   haptic?: boolean;
+  /**
+   * Reanimated layout-animation entering/exiting builders (e.g.
+   * `FadeIn.duration(180)`). `AnimatedPressableBase` is itself an animated
+   * component (`Animated.createAnimatedComponent(Pressable)`), so it can play
+   * its own enter/exit transition directly — no need to wrap it in a separate
+   * `Animated.View` just to get `entering`/`exiting`.
+   *
+   * DR fix: an extra wrapping `Animated.View` sized only to its content used
+   * to shrink to the visual (post negative-margin) footprint of a
+   * padding-enlarged touch target inside it (e.g. SearchBar's 44pt clear
+   * button), which made the real 44pt tap target NOT hit-testable on Android
+   * (the ancestor's own layout box was back down to the icon's 16px). Putting
+   * entering/exiting on this component directly means there is only ONE view
+   * — its own measured box IS the tap target, no smaller ancestor to clip it.
+   *
+   * Typed loosely (matches the `enteringAnimation: any` convention already
+   * used for this in MessageBubble.tsx) — Reanimated's exact builder union
+   * type isn't re-exported from the package's top-level entry point.
+   */
+  entering?: any;
+  exiting?: any;
 }
 
 export function AnimatedPressable({

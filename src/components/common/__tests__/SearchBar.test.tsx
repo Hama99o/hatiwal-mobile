@@ -170,4 +170,34 @@ describe("SearchBar — clear button touch target (DR fix)", () => {
       : clearButton.props.style;
     expect(style.padding).toBe(14);
   });
+
+  // DR fix (cycle-4): the 44pt padded clear button used to be wrapped in a
+  // SEPARATE `Animated.View` (added only to get FadeIn/FadeOut), and that
+  // wrapper sizes itself to the NET visual footprint of its child — padding
+  // 14 cancelled by margin -14 collapses it back down to the 16px icon. On
+  // Android that made the real 44pt target sit inside a 16x16 ancestor box
+  // and NOT hit-testable. The fix puts `entering`/`exiting` directly on the
+  // SAME padded Pressable rather than on a separate wrapping View — proven
+  // here by asserting the one node returned by `clearTestID` carries BOTH
+  // the entering/exiting animation AND the 44pt padding style (RN's
+  // `Pressable` forwards unrecognized props — including `entering`/
+  // `exiting` — straight onto its underlying host View, so if these were
+  // ever split back across two nested views, this node would lose one half).
+  it("carries the enter/exit animation on the SAME node as the 44pt padding — no separate wrapping View (Android hit-test DR fix)", () => {
+    render(
+      <SearchBar
+        value="iphone"
+        onChangeText={jest.fn()}
+        placeholder="Search..."
+        clearTestID="clear-btn"
+      />
+    );
+    const clearButton = screen.getByTestId("clear-btn");
+    expect(clearButton.props.entering).toBeDefined();
+    expect(clearButton.props.exiting).toBeDefined();
+    const style = Array.isArray(clearButton.props.style)
+      ? Object.assign({}, ...clearButton.props.style.filter(Boolean))
+      : clearButton.props.style;
+    expect(style.padding).toBe(14);
+  });
 });

@@ -17,13 +17,14 @@
  */
 
 import { filterConversations } from "../filterConversations";
+import type { FormatCurrency } from "../conversationPreviewText";
 import type { Conversation } from "@/api/conversations";
 import type { TFunction } from "i18next";
 
 // A tiny stand-in for i18next's TFunction that mirrors the real English
 // copy for the keys `conversationPreviewText` uses, so these tests exercise
 // the exact same interpolation path production code does (e.g. "offer"'s
-// `{{amount}} {{currency}}` substitution) without needing the full i18n setup.
+// `{{price}}` substitution) without needing the full i18n setup.
 const PREVIEW_STRINGS: Record<string, string> = {
   "chat.message.deleted": "Message deleted",
   "chat.noMessages": "No messages yet",
@@ -38,10 +39,18 @@ const PREVIEW_STRINGS: Record<string, string> = {
 
 const fakeT = ((key: string, options?: Record<string, string>) => {
   if (key === "chat.preview.offer") {
-    return `Offer: ${options?.amount ?? ""} ${options?.currency ?? ""}`;
+    return `Offer: ${options?.price ?? ""}`;
   }
   return PREVIEW_STRINGS[key] ?? key;
 }) as unknown as TFunction;
+
+// Mirrors `useLocalization().formatCurrency` — the search predicate must
+// match against the same LOCALE-FORMATTED preview text `ConversationRow`
+// renders (cycle-4 CR fix), not the raw, un-formatted amount|currency split.
+const fakeFormatCurrency: FormatCurrency = (amount, currency = "AFN") => {
+  if (amount == null) return "";
+  return `${new Intl.NumberFormat("en-US").format(amount)} ${currency}`;
+};
 
 function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
   return {
@@ -65,12 +74,12 @@ function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
 describe("filterConversations — name match", () => {
   it("matches by otherParticipant.name", () => {
     const list = [makeConversation({ otherParticipant: { id: 2, name: "Ahmad Karimi", city: null } })];
-    expect(filterConversations(list, "ahmad", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "ahmad", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 
   it("does not match an unrelated name", () => {
     const list = [makeConversation({ otherParticipant: { id: 2, name: "Ahmad Karimi", city: null } })];
-    expect(filterConversations(list, "Zainab", fakeT)).toHaveLength(0);
+    expect(filterConversations(list, "Zainab", fakeT, fakeFormatCurrency)).toHaveLength(0);
   });
 
   it("falls back to buyer.name when otherParticipant is absent", () => {
@@ -80,7 +89,7 @@ describe("filterConversations — name match", () => {
         buyer: { id: 3, name: "Fatima Noori", city: null },
       }),
     ];
-    expect(filterConversations(list, "fatima", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "fatima", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 
   it("falls back to seller.name when otherParticipant and buyer are both absent", () => {
@@ -91,26 +100,26 @@ describe("filterConversations — name match", () => {
         seller: { id: 4, name: "Rahim Wali", city: null },
       }),
     ];
-    expect(filterConversations(list, "rahim", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "rahim", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 });
 
 describe("filterConversations — listing title match", () => {
   it("matches by listing title", () => {
     const list = [makeConversation()];
-    expect(filterConversations(list, "iPhone", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "iPhone", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 
   it("matches a partial listing title", () => {
     const list = [makeConversation()];
-    expect(filterConversations(list, "Pro Max", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "Pro Max", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 });
 
 describe("filterConversations — last message match", () => {
   it("matches by lastMessageBody for a plain text message", () => {
     const list = [makeConversation({ lastMessageBody: "Can we meet tomorrow at 5?" })];
-    expect(filterConversations(list, "tomorrow", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "tomorrow", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 });
 
@@ -121,7 +130,7 @@ describe("filterConversations — matches the TRANSLATED preview, not raw metada
     ];
     // "meetup" appears in the translated preview ("Meetup proposal") but NOT
     // in the raw body ("Shahr-e-Naw|5pm") — proves search uses the preview.
-    expect(filterConversations(list, "meetup", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "meetup", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 
   it("matches the translated offer label even though the raw body has no such word", () => {
@@ -129,61 +138,65 @@ describe("filterConversations — matches the TRANSLATED preview, not raw metada
       makeConversation({ lastMessageKind: "offer", lastMessageBody: "75000|AFN" }),
     ];
     // The raw body has no word "offer" in it, but the rendered preview
-    // ("Offer: 75000 AFN") does.
-    expect(filterConversations(list, "offer", fakeT)).toHaveLength(1);
+    // ("Offer: 75,000 AFN") does.
+    expect(filterConversations(list, "offer", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 
-  it("matches the interpolated offer amount in the translated preview", () => {
+  // CR fix (cycle-4): the offer amount is now locale-formatted via
+  // `formatCurrency` (e.g. "75,000", grouped) rather than printed as the raw
+  // split-body number ("75000") — search must match what's actually
+  // rendered, comma included, same as a user reading the row would type.
+  it("matches the formatted (grouped) offer amount in the translated preview", () => {
     const list = [
       makeConversation({ lastMessageKind: "offer", lastMessageBody: "75000|AFN" }),
     ];
-    expect(filterConversations(list, "75000", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "75,000", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 
   it("matches the translated photo preview label", () => {
     const list = [
       makeConversation({ lastMessageKind: "image_message", lastMessageBody: "photo.jpg" }),
     ];
-    expect(filterConversations(list, "photo", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "photo", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 
   it("matches the translated document preview label, not the filename", () => {
     const list = [
       makeConversation({ lastMessageKind: "document", lastMessageBody: "contract.pdf" }),
     ];
-    expect(filterConversations(list, "file", fakeT)).toHaveLength(1);
-    expect(filterConversations(list, "contract", fakeT)).toHaveLength(0);
+    expect(filterConversations(list, "file", fakeT, fakeFormatCurrency)).toHaveLength(1);
+    expect(filterConversations(list, "contract", fakeT, fakeFormatCurrency)).toHaveLength(0);
   });
 });
 
 describe("filterConversations — case-insensitivity", () => {
   it("matches regardless of the term's case", () => {
     const list = [makeConversation()];
-    expect(filterConversations(list, "IPHONE", fakeT)).toHaveLength(1);
-    expect(filterConversations(list, "iphone", fakeT)).toHaveLength(1);
-    expect(filterConversations(list, "IpHoNe", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "IPHONE", fakeT, fakeFormatCurrency)).toHaveLength(1);
+    expect(filterConversations(list, "iphone", fakeT, fakeFormatCurrency)).toHaveLength(1);
+    expect(filterConversations(list, "IpHoNe", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 
   it("matches regardless of the stored data's case", () => {
     const list = [makeConversation({ otherParticipant: { id: 2, name: "AHMAD KARIMI", city: null } })];
-    expect(filterConversations(list, "ahmad", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "ahmad", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 });
 
 describe("filterConversations — blank term", () => {
   it("returns the full list unchanged for an empty string", () => {
     const list = [makeConversation(), makeConversation({ id: 2 })];
-    expect(filterConversations(list, "", fakeT)).toHaveLength(2);
+    expect(filterConversations(list, "", fakeT, fakeFormatCurrency)).toHaveLength(2);
   });
 
   it("returns the full list unchanged for a whitespace-only term", () => {
     const list = [makeConversation(), makeConversation({ id: 2 })];
-    expect(filterConversations(list, "   ", fakeT)).toHaveLength(2);
+    expect(filterConversations(list, "   ", fakeT, fakeFormatCurrency)).toHaveLength(2);
   });
 
   it("trims the term before matching (leading/trailing spaces ignored)", () => {
     const list = [makeConversation()];
-    expect(filterConversations(list, "  iphone  ", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "  iphone  ", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 });
 
@@ -192,8 +205,8 @@ describe("filterConversations — null-safety", () => {
     const list = [
       makeConversation({ listing: null, lastMessageBody: null }),
     ];
-    expect(() => filterConversations(list, "iphone", fakeT)).not.toThrow();
-    expect(filterConversations(list, "iphone", fakeT)).toHaveLength(0);
+    expect(() => filterConversations(list, "iphone", fakeT, fakeFormatCurrency)).not.toThrow();
+    expect(filterConversations(list, "iphone", fakeT, fakeFormatCurrency)).toHaveLength(0);
   });
 
   it("still matches by name when listing and lastMessageBody are both null", () => {
@@ -204,7 +217,7 @@ describe("filterConversations — null-safety", () => {
         otherParticipant: { id: 2, name: "Ahmad Karimi", city: null },
       }),
     ];
-    expect(filterConversations(list, "ahmad", fakeT)).toHaveLength(1);
+    expect(filterConversations(list, "ahmad", fakeT, fakeFormatCurrency)).toHaveLength(1);
   });
 
   it("handles a conversation with no name, no listing, and no last message at all", () => {
@@ -217,12 +230,12 @@ describe("filterConversations — null-safety", () => {
         seller: undefined,
       }),
     ];
-    expect(() => filterConversations(list, "anything", fakeT)).not.toThrow();
-    expect(filterConversations(list, "anything", fakeT)).toHaveLength(0);
+    expect(() => filterConversations(list, "anything", fakeT, fakeFormatCurrency)).not.toThrow();
+    expect(filterConversations(list, "anything", fakeT, fakeFormatCurrency)).toHaveLength(0);
   });
 
   it("returns an empty array (not throw) when given an empty conversations array", () => {
-    expect(filterConversations([], "term", fakeT)).toEqual([]);
+    expect(filterConversations([], "term", fakeT, fakeFormatCurrency)).toEqual([]);
   });
 });
 
@@ -237,7 +250,7 @@ describe("filterConversations — multiple items", () => {
         listing: { id: 11, title: "Toyota Corolla", thumbnailUrl: null, status: "active" },
       }),
     ];
-    const result = filterConversations(list, "ahmad", fakeT);
+    const result = filterConversations(list, "ahmad", fakeT, fakeFormatCurrency);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(1);
   });
