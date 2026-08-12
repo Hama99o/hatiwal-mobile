@@ -170,14 +170,17 @@ export default function ListingFormScreen() {
 
   const isEdit = !!params.id;
   const listingId = isEdit ? Number(params.id) : null;
-  // TASK-P736 (review fix, CR round 3) — `Number("abc")` (a bad deep link,
-  // stale notification, or broken nav param) is `NaN`, and `!!NaN` is
-  // `false` — so `listingId` can be falsy even though `isEdit` is true. This
-  // flag is checked BEFORE the loading gate below so that case gets its own
-  // "listing not found" state instead of feeding a permanently-disabled
-  // query (see `isEditBlocking`'s comment for why a disabled query can never
-  // resolve `isLoading`/`isError`).
-  const isEditIdInvalid = isEdit && !listingId;
+  // TASK-P736 (review fix, CR round 3, extended CR round 4/edge case) —
+  // `Number("abc")` (a bad deep link, stale notification, or broken nav
+  // param) is `NaN`. This flag is checked BEFORE the loading gate below so
+  // that case gets its own "listing not found" state instead of feeding a
+  // permanently-disabled query (see `isEditBlocking`'s comment for why a
+  // disabled query can never resolve `isLoading`/`isError`). Uses
+  // `Number.isNaN` rather than `!listingId` — real listing ids are always
+  // ≥1 so this is a no-op in practice today, but `!listingId` would also
+  // treat a (never-issued) id of literal `0` as "invalid" via falsy-0 rather
+  // than the genuine NaN case this flag exists to catch.
+  const isEditIdInvalid = isEdit && Number.isNaN(listingId);
 
   // Duplicate / relist — opens this same create form prefilled from an
   // existing listing's text fields as a fresh DRAFT (photos are never

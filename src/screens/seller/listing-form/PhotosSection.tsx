@@ -66,7 +66,7 @@ export function PhotosSection({
   error,
 }: Props) {
   const { t } = useTranslation();
-  const { isRtl } = useLocalization();
+  const { isRtl, formatNumber } = useLocalization();
   const colors = useColors();
   const reduceMotion = useReduceMotion();
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -283,7 +283,10 @@ export function PhotosSection({
             marginEnd: isRtl ? 6 : 0,
           }}
         >
-          {`${photos.length}/${maxPhotos}`}
+          {/* TASK-P736 (review fix, localization) — `formatNumber` so ps/fa
+              readers see their own digit script (e.g. ۲/۸), matching the
+              title character counter's identical fix in ListingForm.tsx. */}
+          {`${formatNumber(photos.length)}/${formatNumber(maxPhotos)}`}
         </Text>
       </View>
 
@@ -315,6 +318,7 @@ export function PhotosSection({
           return (
             <Pressable
               key={photo.uri + index}
+              testID="listing-form-photo-thumb"
               onPress={() => handleThumbPress(index)}
               onLongPress={() => setSelectedIdx(index)}
               delayLongPress={300}
@@ -334,15 +338,21 @@ export function PhotosSection({
               />
 
               {/* Cover badge — first photo only. TASK-P736 (review fix, CR
-                  round 3): `start`/`end` (logical, RTL-mirrors-off-native-
-                  RTL-flag) replaced with the house `xxxLtr`/`xxxRtl`
-                  convention (ListingCard.tsx's `statusOverlayLtr/Rtl`,
-                  `heartButtonLtr/Rtl`) keyed on `isRtl` (mirrors in JS) —
-                  every OTHER row in this component already mirrors that
-                  way, so `start`/`end` (which mirrors off the native RTL
-                  flag) fought the surrounding JS-driven mirroring and put
-                  this badge in the opposite corner from the identical Cover
-                  badge on the browse ListingCard under ps/fa. */}
+                  round 3): `start`/`end` (logical) replaced with the house
+                  `xxxLtr`/`xxxRtl` convention (ListingCard.tsx's
+                  `statusOverlayLtr/Rtl`, `heartButtonLtr/Rtl`) keyed on
+                  `isRtl` (mirrors in JS via an explicit ternary) — this is
+                  HOUSE CONVENTION ALIGNMENT, not a behavioural fix: native
+                  `I18nManager.forceRTL` is ON for ps/fa (src/i18n/index.ts),
+                  so `start: 5` already resolved to the physical RIGHT edge
+                  under ps/fa, identical to `isRtl ? right : left`. The
+                  overlays are `position: "absolute"` inside `styles.thumb`
+                  (not part of the strip's own `row-reverse` flow), so there
+                  was never a real corner-mismatch bug here — this change
+                  only makes the convention match every OTHER overlay in
+                  this component and on ListingCard, for consistency and
+                  future-proofing (see docs/BACKLOG.md N807, which tracks
+                  picking ONE mirroring mechanism app-wide). */}
               {index === 0 && (
                 <View
                   style={[
@@ -370,6 +380,7 @@ export function PhotosSection({
               {/* Remove × (only when not in reorder mode) */}
               {selectedIdx === -1 && (
                 <Pressable
+                  testID="listing-form-photo-remove"
                   style={[
                     styles.removeBtn,
                     isRtl ? styles.removeBtnRtl : styles.removeBtnLtr,
@@ -385,6 +396,7 @@ export function PhotosSection({
               {/* Set as cover ★ (non-first only, when not in reorder mode) */}
               {index !== 0 && selectedIdx === -1 && (
                 <Pressable
+                  testID="listing-form-photo-promote"
                   style={[
                     styles.coverBtn,
                     isRtl ? styles.coverBtnRtl : styles.coverBtnLtr,
@@ -597,14 +609,20 @@ const styles = StyleSheet.create({
     width: THUMB,
     height: THUMB,
   },
-  // TASK-P736 (review fix, CR round 3) — `left`/`right` via the house
-  // `xxxLtr`/`xxxRtl` convention (ListingCard.tsx's `statusOverlayLtr/Rtl`,
-  // `heartButtonLtr/Rtl`), NOT logical `start`/`end`. `start`/`end` mirror
-  // off the NATIVE RTL flag (`I18nManager.forceRTL`), but every row in this
-  // component mirrors in JS via `flexDirection: isRtl ? "row-reverse" :
-  // "row"` (the documented convention, mobile.prompt.md §6/~77 files) — the
-  // two mechanisms fought each other, putting the Cover badge/✕/★ in the
-  // OPPOSITE corner from the identical overlays on ListingCard under ps/fa.
+  // TASK-P736 (review fix, CR round 3, comment corrected round 5) —
+  // `left`/`right` via the house `xxxLtr`/`xxxRtl` convention
+  // (ListingCard.tsx's `statusOverlayLtr/Rtl`, `heartButtonLtr/Rtl`), NOT
+  // logical `start`/`end`. This is HOUSE CONVENTION ALIGNMENT, not a bug
+  // fix: native `I18nManager.forceRTL` is ON for ps/fa (src/i18n/index.ts),
+  // so a logical `start`/`end` value already resolves to the correct
+  // physical edge under ps/fa — identical to the explicit `isRtl` ternary
+  // used here. These overlays are `position: "absolute"` inside
+  // `styles.thumb`, so the strip's own `flexDirection: isRtl ? "row-reverse"
+  // : "row"` could never have affected their corner anchoring either way —
+  // there was no real "opposite corner" defect to fix. The `xxxLtr`/`xxxRtl`
+  // pattern is kept purely so this component reads consistently with every
+  // other overlay in the codebase; docs/BACKLOG.md N807 tracks picking ONE
+  // mirroring mechanism (native forceRTL vs. manual `isRtl` flips) app-wide.
   coverBadge: {
     position: "absolute",
     bottom: 5,

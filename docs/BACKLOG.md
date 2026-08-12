@@ -1254,6 +1254,15 @@ Examples:
 
 ---
 
+### N809 — ListingForm: move Save Draft/Publish from the top toolbar to a sticky bottom bar ⬜
+
+- **Board card ID:** _pending_ · **Priority:** P3 · **Owner:** _unassigned_ → `feature-builder` · **Surfaced by:** TASK-P736 review, 2026-08
+- **Context:** `docs/DESIGN_INSPIRATION.md` §5 specifies a **sticky bottom** submit bar (`[ Save Draft (outline) ] [ Publish (primary) ]`) and `docs/DESIGN_SYSTEM.md` §1 principle 3 says the primary action must be the loudest thing on screen. `ListingForm.tsx` instead puts two `text-sm` buttons in the top-right toolbar — the smallest, hardest-to-reach corner on a mid-range Android, and on an edit of an already-published listing the toolbar also flips between a single `[Save]` and the `[Save Draft | Publish]` pair while `existingListing` is loading (mitigated, not eliminated, by the `status` route-param hint — see `isPublished`'s comment in `ListingForm.tsx`), which is a mistap risk precisely because the buttons sit in the smallest tap zone.
+- **What to build:** Move the toolbar's Save Draft / Publish (and the single Save for an already-published listing) into a sticky bottom bar, full-width Publish as the loudest primary action, matching `docs/DESIGN_INSPIRATION.md` §5. Must preserve: the disabled/busy states while `isFormBlocking`/`isLoading`, the `hideFormActions` unmounting for the three terminal non-form states (bad deep link / confirmed 404 / retry-with-nothing-cached — see `ListingForm.tsx`'s own comment on why those states must not show dead controls), and every existing test's ability to find and press these buttons by their current `t(...)` label text (`ListingForm.publish.test.tsx`, `ListingForm.draft.test.tsx`, `ListingForm.duplicate.test.tsx`, `ListingForm.routing.test.tsx`).
+- **Acceptance:** Publish is the loudest, most reachable control on the screen (sticky bottom, full-width, primary variant); the button-count flip during the edit-mode loading window no longer happens under the seller's thumb (bottom bar, not top-right corner); all four `ListingForm.*.test.tsx` suites still pass unmodified or with only mechanical selector updates; RTL layout (Pashto/Dari) verified; a Maestro flow exercises tapping the bottom-bar Publish button.
+
+---
+
 ## Ideas (💡 — product-owner grows this over time, post-MVP)
 
 | Idea                             | Value                 | Notes                                                                     |

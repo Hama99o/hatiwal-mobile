@@ -377,7 +377,15 @@ describe("ListingForm — edit-mode loading gate", () => {
   it("shows the skeleton (not the blank form) while getMyListing is still in flight, and a Publish tap in that window calls no API and fires no toast", async () => {
     mockParamsState.current = { id: "42" };
     // Never resolves — the query stays genuinely "loading" for this test.
-    mockListingsAPI.getMyListing.mockReturnValue(new Promise(() => {}));
+    // TASK-P736 (review fix, test hygiene) — `mockReturnValueOnce`, NOT
+    // `mockReturnValue`: `resetListingFormMocks`'s `jest.clearAllMocks()`
+    // clears call history but NOT a persistent implementation (see that
+    // helper's own comment), so a `mockReturnValue` here would leave this
+    // never-resolving promise installed as the fallback for every later
+    // test in the file — masked today only because each of them queues its
+    // own `*Once` value first, but the next test added without one would
+    // hang for the full timeout instead of failing fast.
+    mockListingsAPI.getMyListing.mockReturnValueOnce(new Promise(() => {}));
 
     renderListingForm();
 

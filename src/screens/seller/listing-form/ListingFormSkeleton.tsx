@@ -1,5 +1,5 @@
 /**
- * ListingFormSkeleton — TASK-P736 (review fix, CR round 2).
+ * ListingFormSkeleton — TASK-P736 (review fix, CR round 2, extended round 5).
  *
  * Shown while the edit-mode `useQuery` for the listing being edited is on
  * its FIRST load (`isLoading`), and while the duplicate/relist source
@@ -9,9 +9,10 @@
  * tapping Publish inside that window fired this card's own "Add Photos,
  * Title, Price, Category, Location to publish this listing" toast for a
  * listing that actually has all of them. This mirrors the real form's
- * section order (photos → title → price → category → condition →
- * description → location → address) so the loading state reads as "this
- * screen, not ready yet" rather than a generic spinner. `ListingForm`
+ * section order (photos → title [+ counter] → price [+ negotiable toggle] →
+ * category → condition → description → location → address) so the loading
+ * state reads as "this screen, not ready yet" rather than a generic
+ * spinner, and so content doesn't visibly grow when data lands. `ListingForm`
  * disables the toolbar Save/Publish buttons for the same condition
  * (`isFormBlocking`).
  *
@@ -41,6 +42,14 @@ export function ListingFormSkeleton() {
       <View style={{ gap: 8 }}>
         <Skeleton style={{ width: 60, height: 14, borderRadius: 4 }} />
         <Skeleton style={{ width: "100%", height: 44, borderRadius: 8 }} />
+        {/* Character counter — TASK-P736 (review fix, round 5): the real
+            form renders a small right-aligned counter under Title
+            (ListingForm.tsx), ~18pt incl. margin; omitting it here made the
+            skeleton shorter than the form it stands in for. */}
+        <Skeleton
+          testID="listing-form-skeleton-title-counter"
+          style={{ alignSelf: rowDir === "row" ? "flex-end" : "flex-start", width: 36, height: 12, borderRadius: 4 }}
+        />
       </View>
 
       {/* Price + currency */}
@@ -49,6 +58,17 @@ export function ListingFormSkeleton() {
         <View style={{ flexDirection: rowDir, gap: 8 }}>
           <Skeleton style={{ flex: 1, height: 44, borderRadius: 8 }} />
           <Skeleton style={{ width: 84, height: 44, borderRadius: 8 }} />
+        </View>
+        {/* Negotiable toggle row — TASK-P736 (review fix, round 5): the real
+            form renders a label + Switch row under Price (ListingForm.tsx),
+            ~44pt incl. margin; omitting it here made content visibly grow
+            when data landed. */}
+        <View
+          testID="listing-form-skeleton-negotiable"
+          style={{ flexDirection: rowDir, justifyContent: "space-between", alignItems: "center", paddingVertical: 8 }}
+        >
+          <Skeleton style={{ width: 120, height: 14, borderRadius: 4 }} />
+          <Skeleton style={{ width: 40, height: 22, borderRadius: 11 }} />
         </View>
       </View>
 
