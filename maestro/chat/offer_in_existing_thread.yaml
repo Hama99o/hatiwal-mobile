@@ -3,8 +3,10 @@ appId: com.hatiwal.app
 # Send offer in existing thread (thread already has messages)
 
 - runFlow: ../_helpers/login.yaml
-- tapOn:
-    id: "chat-tab"
+# CR fix: "chat-tab" has no testID anywhere in the tab bar (same defect
+# documented and fixed in offer_send_and_accept.yaml / reserve_after_accept.yaml)
+# — tap the "Chats" label (its actual translated tab title, sidebar.chat) instead.
+- tapOn: "Chats"
 - waitForAnimationToEnd
 
 # Open existing conversation
@@ -14,19 +16,34 @@ appId: com.hatiwal.app
 - assertVisible: "Chat"
 
 # Existing messages present — TASK-K487: the composer's meetup/file/photo/
-# offer icons are now collapsed behind a single "+" actions sheet.
+# offer icons are now collapsed behind a single "+" actions sheet. CR fix
+# (TASK-C381): "More actions" (the plus button's accessibilityLabel) and
+# "Make an Offer" (the sheet row's rendered label, chat.offer.makeOffer) are
+# both real, but drift-prone as text targets — chat.offer.makeOffer is
+# actually "Make an offer" (lowercase "offer"), a case mismatch that made
+# this exact tapOn silently fail to match. Target by testID instead, the
+# same convention already used by reserved_sold_dead_end_notice.yaml:
+# "composer-plus-button" then "composer-action-offer".
 - tapOn:
-    accessibilityLabel: "More actions"
+    id: "composer-plus-button"
 - waitForAnimationToEnd
-- tapOn: "Make an Offer"
+- tapOn:
+    id: "composer-action-offer"
 - waitForAnimationToEnd
 - assertVisible: "Send Offer"
-- tapOn: "Offer Amount"
+# CR fix: the amount input has no visible "Offer Amount" label (same defect
+# already fixed in offer_send_and_accept.yaml) — target its testID instead.
+- tapOn:
+    id: "offer-amount-input"
 - inputText: "15000"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
 
-# Offer bubble appears in thread
+# Offer bubble appears in thread. CR fix: the header pill renders as
+# "PRICE OFFER" (uppercased via .toUpperCase() in MessageBubble.tsx), so
+# asserting bare "Offer" is a case-sensitive miss against it — "Your Offer"
+# is the bubble's own real, mixed-case label above the amount (matches
+# offer_send_and_accept.yaml's fix for the same defect). "Pending" is never
+# rendered for a not-yet-answered offer, so that assertion is dropped too.
 - assertVisible: "15,000"
-- assertVisible: "Offer"
-- assertVisible: "Pending"
+- assertVisible: "Your Offer"

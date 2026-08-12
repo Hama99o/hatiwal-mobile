@@ -161,6 +161,34 @@ export const OfferCounterMineNoActions: Story = {
   },
 };
 
+// TASK-C381 (review fix, DR MUST): a fresh offer that was answered with a
+// counter (not a direct accept/decline) — the buttons vanish but there is a
+// REASON shown, a muted "No longer active" chip, instead of blank space.
+export const OfferCounteredMuted: Story = {
+  args: {
+    message: makeMsg({ kind: "offer", body: "75000|AFN|85000" }),
+    isMine: false,
+    offerOutcome: "countered",
+  },
+};
+
+// Same muted state, but on a COUNTER that was itself superseded by a
+// further counter-back (multi-round negotiation) — or by a newer,
+// independent standalone offer opened while this one was still pending.
+export const OfferCounterSupersededMuted: Story = {
+  args: {
+    message: makeMsg({
+      kind: "offer_counter",
+      body: "9500|AFN|10000",
+      offerAmount: 9500,
+      offerCurrency: "AFN",
+      sender: { id: 2, name: "Seller" },
+    }),
+    isMine: false,
+    offerOutcome: "countered",
+  },
+};
+
 // ── Meetup proposal messages ──────────────────────────────────────────────────
 
 export const MeetupMineAwaitingResponse: Story = {

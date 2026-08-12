@@ -709,6 +709,62 @@ describe("MessageBubble — offer with Counter button (TASK-O829)", () => {
   });
 });
 
+// ── TASK-C381 review fix (DR MUST): "countered"/superseded muted chip ────────
+
+describe("MessageBubble — offerOutcome='countered' renders a muted chip, not a silent gap", () => {
+  const offerMsg = makeMsg({
+    kind: "offer",
+    body: "8000|AFN|10000",
+    offerAmount: 8000,
+    offerCurrency: "AFN",
+    sender: { id: 1, name: "Buyer" },
+  });
+
+  const counterMsg = makeMsg({
+    kind: "offer_counter",
+    body: "9500|AFN|10000",
+    offerAmount: 9500,
+    offerCurrency: "AFN",
+    sender: { id: 2, name: "Seller" },
+  });
+
+  it("shows the muted 'no longer active' chip on a superseded ORIGINAL offer", () => {
+    render(<MessageBubble message={offerMsg} isMine={false} offerOutcome="countered" />);
+    expect(screen.getByText("chat.offer.noLongerActive")).toBeTruthy();
+  });
+
+  it("shows the muted chip on a superseded COUNTER (further countered-back)", () => {
+    render(<MessageBubble message={counterMsg} isMine={false} offerOutcome="countered" />);
+    expect(screen.getByText("chat.offer.noLongerActive")).toBeTruthy();
+  });
+
+  it("does NOT show Accept/Decline/Counter alongside the muted chip", () => {
+    render(
+      <MessageBubble
+        message={offerMsg}
+        isMine={false}
+        offerOutcome="countered"
+        onOfferRespond={jest.fn()}
+        onOfferCounter={jest.fn()}
+      />
+    );
+    expect(screen.queryByText("chat.offer.accept")).toBeNull();
+    expect(screen.queryByText("chat.offer.decline")).toBeNull();
+    expect(screen.queryByLabelText("chat.offer.counterBack")).toBeNull();
+  });
+
+  it("does NOT show the accepted/declined pill alongside the muted chip", () => {
+    render(<MessageBubble message={offerMsg} isMine={false} offerOutcome="countered" />);
+    expect(screen.queryByText("chat.offer.accepted")).toBeNull();
+    expect(screen.queryByText("chat.offer.declined")).toBeNull();
+  });
+
+  it("renders on the sender's own bubble too (isMine=true) — a countered offer is inert for both sides", () => {
+    render(<MessageBubble message={offerMsg} isMine={true} offerOutcome="countered" />);
+    expect(screen.getByText("chat.offer.noLongerActive")).toBeTruthy();
+  });
+});
+
 // ── TASK-O947 review fixes ────────────────────────────────────────────────────
 
 describe("MessageBubble — offer outcome badge dedup + semantics (TASK-O947)", () => {

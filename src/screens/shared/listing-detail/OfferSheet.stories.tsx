@@ -209,3 +209,66 @@ export const ChipsHiddenWhenBusy: Story = {
     isBusy: true,
   },
 };
+
+// ─── mode="counter" — folded in from the former CounterOfferSheet (TASK-C381) ─
+// Same sheet, role-neutral counter copy: no chips, a "previous offer"
+// reference line instead of "listed price", prefilled with the amount being
+// responded to (mirrors handleOpenCounterSheet in Conversation.tsx).
+
+export const CounterMode: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onSend: () => {},
+    offerAmount: "9500",
+    onChangeAmount: () => {},
+    currency: "AFN",
+    price: 8000, // the offer/counter being responded to
+    isBusy: false,
+    mode: "counter",
+  },
+};
+
+export const CounterModeInvalidAmount: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onSend: () => {},
+    offerAmount: "0",
+    onChangeAmount: () => {},
+    currency: "AFN",
+    price: 8000,
+    isBusy: false,
+    mode: "counter",
+  },
+};
+
+function OfferSheetCounterDemo() {
+  const [visible, setVisible] = useState(false);
+  const [amount, setAmount] = useState("9500");
+  return (
+    <View style={{ padding: 24, alignItems: "center" }}>
+      <Button onPress={() => setVisible(true)}>
+        <Text>Counter</Text>
+      </Button>
+      <OfferSheet
+        visible={visible}
+        onClose={() => setVisible(false)}
+        onSend={(counterAmount) => {
+          console.log("counter sent", { counterAmount });
+          setVisible(false);
+        }}
+        offerAmount={amount}
+        onChangeAmount={setAmount}
+        currency="AFN"
+        price={8000}
+        isBusy={false}
+        mode="counter"
+      />
+    </View>
+  );
+}
+
+export const CounterModeInteractive: Story = {
+  render: () => <OfferSheetCounterDemo />,
+};

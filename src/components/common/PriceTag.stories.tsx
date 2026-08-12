@@ -10,6 +10,7 @@ const meta: Meta<typeof PriceTag> = {
     price: { control: "number" },
     currency: { control: "select", options: ["AFN", "USD", "EUR"] },
     size: { control: "select", options: ["lg", "md", "sm"] },
+    tone: { control: "select", options: ["default", "warning", "muted"] },
   },
 };
 
@@ -67,6 +68,31 @@ export const AllCurrencies: Story = {
       <PriceTag price={25000} currency="AFN" size="md" />
       <PriceTag price={350} currency="USD" size="md" />
       <PriceTag price={320} currency="EUR" size="md" />
+    </View>
+  ),
+};
+
+// TASK-C381 (review fix, DR) — the `tone` prop, used by the chat offer/
+// counter bubbles: "warning" for a "mine" bubble's amount, "muted" for a
+// superseded/no-longer-active offer's amount.
+export const ToneDefault: Story = {
+  args: { price: 85000, currency: "AFN", size: "lg", tone: "default" },
+};
+
+export const ToneWarning: Story = {
+  args: { price: 80750, currency: "AFN", size: "lg", tone: "warning" },
+};
+
+export const ToneMuted: Story = {
+  args: { price: 75000, currency: "AFN", size: "lg", tone: "muted" },
+};
+
+export const AllTones: Story = {
+  render: () => (
+    <View style={{ gap: 12 }}>
+      <PriceTag price={85000} currency="AFN" size="lg" tone="default" />
+      <PriceTag price={80750} currency="AFN" size="lg" tone="warning" />
+      <PriceTag price={75000} currency="AFN" size="lg" tone="muted" />
     </View>
   ),
 };

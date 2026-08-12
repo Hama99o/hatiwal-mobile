@@ -82,51 +82,23 @@ import { MessageBubble } from "../conversation/MessageBubble";
 // the dedicated matrix; this file only needs it for the composer-button
 // rendering tests below.
 import { canOfferInThread } from "../conversation/threadAvailability";
+// TASK-C381 (review fix, CR MUST): `canCounterBack`/`canRespondToOffer` used
+// to be hand-copied HERE instead of imported — a tautology that could never
+// fail no matter how the REAL guard in Conversation.tsx drifted. These are
+// now the actual, exported functions Conversation.tsx imports; see
+// `offerGuards.test.ts` for the dedicated `buildOfferIndex` matrix (including
+// multi-round negotiation and the "only the newest pending offer stays
+// live" DR fix) — this file only needs the two predicates for the
+// composer/bubble rendering tests below.
+import { canCounterBack, canRespondToOffer, type OfferRowFlags } from "../conversation/offerGuards";
 
 // ─── Pure guards — mirror the logic in Conversation.tsx ──────────────────────
 
 type MiniListing = { status: string; negotiable?: boolean } | null | undefined;
 
-/**
- * Mirrors the `onOfferCounter` guard in Conversation.tsx's renderItem.
- *
- * Review fixes (both offers are only "made or countered" from the OTHER
- * side, i.e. `!isMine` — `isSeller` no longer gates the "offer" branch):
- *  1. A fresh "offer" can now come from either participant (a seller
- *     opening one is a proactive discount, per this card's composer
- *     button) — so the recipient, buyer OR seller, must be able to
- *     counter it back. The old `isSeller`-only gate silently dead-ended a
- *     seller-initiated offer: the buyer could Accept/Decline it (that path
- *     was never seller-gated) but never Counter it.
- *  2. A counter can itself be superseded by a FURTHER counter-back —
- *     `isCounterSuperseded` mirrors `isOfferCountered` for the original
- *     offer, so an already-superseded counter stops offering its own
- *     Counter (and Accept/Decline) actions once the recipient has replied
- *     with a counter of their own.
- */
-function canCounterBack(params: {
-  kind: "offer" | "offer_counter";
-  isMine: boolean;
-  isOfferCountered: boolean;
-  offerOutcome: "accepted" | "declined" | null;
-  isCounterSuperseded?: boolean;
-}): boolean {
-  const { kind, isMine, isOfferCountered, offerOutcome, isCounterSuperseded = false } = params;
-  if (kind === "offer") return !isOfferCountered && !isMine;
-  if (kind === "offer_counter") return !isMine && !offerOutcome && !isCounterSuperseded;
-  return false;
-}
-
-/** Mirrors the `onOfferRespond` guard in Conversation.tsx's renderItem. */
-function canRespondToOffer(params: {
-  kind: "offer" | "offer_counter";
-  isOfferCountered: boolean;
-  isCounterSuperseded?: boolean;
-}): boolean {
-  const { kind, isOfferCountered, isCounterSuperseded = false } = params;
-  if (kind === "offer") return !isOfferCountered;
-  if (kind === "offer_counter") return !isCounterSuperseded;
-  return false;
+/** Shorthand for building an `OfferRowFlags` in the tests below. */
+function flags(overrides: Partial<OfferRowFlags> = {}): OfferRowFlags {
+  return { outcome: null, isSuperseded: false, ...overrides };
 }
 
 // ─── 1. canOfferInThread — composer button visibility matrix ─────────────────
@@ -178,13 +150,11 @@ describe("canOfferInThread — composer button visibility matrix", () => {
   });
 });
 
-// ─── 2. canCounterBack — counter-back guard matrix ────────────────────────────
+// ─── 2. canCounterBack — counter-back guard matrix (REAL offerGuards.ts) ──────
 
 describe("canCounterBack — offer / offer_counter guard matrix", () => {
   it("offer: the recipient (seller) can counter the buyer's fresh offer", () => {
-    expect(
-      canCounterBack({ kind: "offer", isMine: false, isOfferCountered: false, offerOutcome: null })
-    ).toBe(true);
+    expect(canCounterBack({ isMine: false, flags: flags() })).toBe(true);
   });
 
   it("offer: review fix — the recipient (buyer) can also counter a SELLER's own fresh offer (proactive discount)", () => {
@@ -192,84 +162,73 @@ describe("canCounterBack — offer / offer_counter guard matrix", () => {
     // "offer" (a proactive discount — explicitly allowed by this card's
     // composer button, which shows for both roles) could be Accepted or
     // Declined by the buyer but never Countered. The guard only cares who
-    // DIDN'T send the message, not which role they are.
-    expect(
-      canCounterBack({ kind: "offer", isMine: false, isOfferCountered: false, offerOutcome: null })
-    ).toBe(true);
+    // DIDN'T send the message, not which role they are — `offerGuards.ts`
+    // doesn't take a role/kind param at all any more, exactly because the
+    // rule is now identical for both.
+    expect(canCounterBack({ isMine: false, flags: flags() })).toBe(true);
   });
 
-  it("offer: my own fresh offer never shows a Counter button to me", () => {
-    expect(
-      canCounterBack({ kind: "offer", isMine: true, isOfferCountered: false, offerOutcome: null })
-    ).toBe(false);
+  it("offer/offer_counter: my own fresh offer or counter never shows a Counter button to me", () => {
+    expect(canCounterBack({ isMine: true, flags: flags() })).toBe(false);
   });
 
   it("offer: already countered offer suppresses the counter action", () => {
-    expect(
-      canCounterBack({ kind: "offer", isMine: false, isOfferCountered: true, offerOutcome: null })
-    ).toBe(false);
+    expect(canCounterBack({ isMine: false, flags: flags({ isSuperseded: true }) })).toBe(false);
   });
 
   it("offer_counter: the recipient (not mine) can counter back", () => {
-    expect(
-      canCounterBack({ kind: "offer_counter", isMine: false, isOfferCountered: false, offerOutcome: null })
-    ).toBe(true);
-  });
-
-  it("offer_counter: the recipient can counter back regardless of role (buyer or seller)", () => {
-    expect(
-      canCounterBack({ kind: "offer_counter", isMine: false, isOfferCountered: false, offerOutcome: null, isCounterSuperseded: false })
-    ).toBe(true);
-  });
-
-  it("offer_counter: my own counter never shows a Counter button", () => {
-    expect(
-      canCounterBack({ kind: "offer_counter", isMine: true, isOfferCountered: false, offerOutcome: null })
-    ).toBe(false);
+    expect(canCounterBack({ isMine: false, flags: flags() })).toBe(true);
   });
 
   it("offer_counter: an accepted counter suppresses the Counter button", () => {
-    expect(
-      canCounterBack({ kind: "offer_counter", isMine: false, isOfferCountered: false, offerOutcome: "accepted" })
-    ).toBe(false);
+    expect(canCounterBack({ isMine: false, flags: flags({ outcome: "accepted" }) })).toBe(false);
   });
 
   it("offer_counter: a declined counter suppresses the Counter button", () => {
-    expect(
-      canCounterBack({ kind: "offer_counter", isMine: false, isOfferCountered: false, offerOutcome: "declined" })
-    ).toBe(false);
+    expect(canCounterBack({ isMine: false, flags: flags({ outcome: "declined" }) })).toBe(false);
   });
 
   it("offer_counter: review fix — a counter already superseded by a further counter-back suppresses the Counter button", () => {
     // Recipient countered C1 with C2 — C1 has no offer_accepted/offer_declined
-    // response (they replied with a counter, not a decision) so offerOutcome
+    // response (they replied with a counter, not a decision) so outcome
     // stays null, but it MUST still stop showing actions once superseded.
-    expect(
-      canCounterBack({ kind: "offer_counter", isMine: false, isOfferCountered: false, offerOutcome: null, isCounterSuperseded: true })
-    ).toBe(false);
+    expect(canCounterBack({ isMine: false, flags: flags({ isSuperseded: true }) })).toBe(false);
+  });
+
+  it("no index entry (not an offer/offer_counter row) — never counterable", () => {
+    expect(canCounterBack({ isMine: false, flags: undefined })).toBe(false);
   });
 });
 
-// ─── 2b. canRespondToOffer — Accept/Decline guard matrix ──────────────────────
+// ─── 2b. canRespondToOffer — Accept/Decline guard matrix (REAL offerGuards.ts) ─
 
 describe("canRespondToOffer — review fix: a superseded counter stops offering Accept/Decline too", () => {
   it("offer: respondable while not yet countered", () => {
-    expect(canRespondToOffer({ kind: "offer", isOfferCountered: false })).toBe(true);
+    expect(canRespondToOffer(flags())).toBe(true);
   });
 
   it("offer: not respondable once countered", () => {
-    expect(canRespondToOffer({ kind: "offer", isOfferCountered: true })).toBe(false);
+    expect(canRespondToOffer(flags({ isSuperseded: true }))).toBe(false);
   });
 
   it("offer_counter: respondable while not yet superseded by a further counter-back", () => {
-    expect(canRespondToOffer({ kind: "offer_counter", isOfferCountered: false, isCounterSuperseded: false })).toBe(true);
+    expect(canRespondToOffer(flags())).toBe(true);
   });
 
   it("offer_counter: review fix — NOT respondable once superseded by a further counter-back", () => {
     // Without this, after the recipient sends C2 in response to C1, C1 kept
     // showing Accept/Decline to them — letting them accept/decline a counter
     // they had already superseded with a counter of their own.
-    expect(canRespondToOffer({ kind: "offer_counter", isOfferCountered: false, isCounterSuperseded: true })).toBe(false);
+    expect(canRespondToOffer(flags({ isSuperseded: true }))).toBe(false);
+  });
+
+  it("not respondable once a direct outcome exists", () => {
+    expect(canRespondToOffer(flags({ outcome: "accepted" }))).toBe(false);
+    expect(canRespondToOffer(flags({ outcome: "declined" }))).toBe(false);
+  });
+
+  it("no index entry (not an offer/offer_counter row) — never respondable", () => {
+    expect(canRespondToOffer(undefined)).toBe(false);
   });
 });
 

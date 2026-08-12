@@ -28,6 +28,7 @@ import {
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import { Text } from "@/components/reusables/text";
+import { PriceTag } from "@/components/common/PriceTag";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { useReduceMotion } from "@/lib/animation";
@@ -117,8 +118,18 @@ interface MessageBubbleProps {
   meetupResponsePending?: "accept" | "decline" | null;
   /** Called when the seller taps Accept (true) / Decline (false) on an offer. */
   onOfferRespond?: (accepted: boolean) => void;
-  /** Outcome of this offer, if it has been answered. */
-  offerOutcome?: "accepted" | "declined" | null;
+  /**
+   * Outcome of this offer/counter. `"accepted"`/`"declined"` render the
+   * existing green/red pill. `"countered"` (TASK-C381 review fix, DR MUST)
+   * renders a muted, neutral pill instead of silently showing nothing — this
+   * offer/counter has no direct accept/decline response, but it is no
+   * longer the one to act on: either a further counter replied to it, or
+   * (once more than one standalone offer can be open at once) a newer
+   * offer/counter has superseded it as the live tip of the negotiation. See
+   * `offerGuards.ts`'s `OfferRowFlags.isSuperseded`, which is exactly what
+   * `Conversation.tsx` maps to this value.
+   */
+  offerOutcome?: "accepted" | "declined" | "countered" | null;
   /**
    * Called when the recipient taps "Counter" on an `offer` or `offer_counter`
    * bubble — opens the shared counter-offer sheet pre-filled from this
@@ -239,14 +250,22 @@ function OutcomeBadge({
 }: {
   icon: LucideIcon;
   label: string;
-  tone: "success" | "destructive";
+  /**
+   * "muted" (TASK-C381 review fix, DR MUST) — the neutral "no longer
+   * active" pill for a countered/superseded offer, distinct from the
+   * green "success"/red "destructive" decision pills.
+   */
+  tone: "success" | "destructive" | "muted";
   isRtl: boolean;
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
   /** Meetup's original inline copy used 6 vs the offer badges' 8 — preserved
    *  per call site rather than silently changing either's spacing. */
   marginTop?: number;
 }) {
-  const color = tone === "success" ? colors.success : colors.destructive;
+  const color =
+    tone === "success" ? colors.success : tone === "destructive" ? colors.destructive : colors.mutedForeground;
+  const backgroundColor =
+    tone === "success" ? colors.successAlpha : tone === "destructive" ? colors.destructiveAlpha : colors.muted;
   return (
     <View
       style={{
@@ -257,7 +276,7 @@ function OutcomeBadge({
         paddingVertical: 7,
         paddingHorizontal: 10,
         borderRadius: 8,
-        backgroundColor: tone === "success" ? colors.successAlpha : colors.destructiveAlpha,
+        backgroundColor,
       }}
     >
       <Icon size={14} color={color} />
@@ -799,7 +818,6 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
     const listedPrice = Number(parts[2] ?? 0);
     // Localized currency (Arabic-Indic digits + locale grouping in ps/fa) per
     // mobile.prompt.md §4 — never raw toLocaleString.
-    const formattedOffer = formatCurrency(amount, currency);
     const formattedListed = formatCurrency(listedPrice, currency);
 
     return (
@@ -858,17 +876,15 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             >
               {t("chat.offer.yourOffer")}
             </Text>
-            <Text
-              style={{
-                fontSize: 26,
-                fontWeight: "800",
-                color: isMine ? colors.warning : colors.foreground,
-                textAlign: isRtl ? "right" : "left",
-                letterSpacing: -0.5,
-              }}
-            >
-              {formattedOffer}
-            </Text>
+            {/* TASK-C381 (review fix, DR) — reuse the shared PriceTag instead
+                of hand-rolling a colored price Text (CLAUDE.md: never fork
+                PriceTag). `tone="warning"` matches this bubble's own accent
+                on a "mine" offer; the wrapping View (not PriceTag's own
+                Text) owns the RTL edge-alignment since PriceTag has no
+                textAlign prop. */}
+            <View style={{ alignItems: isRtl ? "flex-end" : "flex-start" }}>
+              <PriceTag price={amount} currency={currency} size="lg" tone={isMine ? "warning" : "default"} />
+            </View>
 
             {listedPrice > 0 && (
               <Text
@@ -906,11 +922,23 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
 
             {/* Outcome — shown to both sides once the seller responds */}
             {/* Offer actions — shown only when no outcome yet */}
-            {offerOutcome ? (
+            {offerOutcome === "accepted" || offerOutcome === "declined" ? (
               <OutcomeBadge
                 icon={offerOutcome === "accepted" ? CheckCircle2 : XCircle}
                 label={offerOutcome === "accepted" ? t("chat.offer.accepted") : t("chat.offer.declined")}
                 tone={offerOutcome === "accepted" ? "success" : "destructive"}
+                isRtl={isRtl}
+                colors={colors}
+              />
+            ) : offerOutcome === "countered" ? (
+              /* TASK-C381 (review fix, DR MUST) — no direct accept/decline
+                 response, but this offer is no longer live (superseded by a
+                 counter or by a newer standalone offer) — a muted pill
+                 instead of the buttons silently vanishing with no reason. */
+              <OutcomeBadge
+                icon={ArrowLeftRight}
+                label={t("chat.offer.noLongerActive")}
+                tone="muted"
                 isRtl={isRtl}
                 colors={colors}
               />
@@ -970,7 +998,6 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
     const parts = (message.body ?? "").split("|");
     const amount = message.offerAmount ?? Number(parts[0] ?? 0);
     const currency = message.offerCurrency ?? parts[1] ?? "AFN";
-    const formattedCounter = formatCurrency(amount, currency);
 
     return (
       <Animated.View
@@ -1026,17 +1053,11 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             >
               {t("chat.offer.counteredAt")}
             </Text>
-            <Text
-              style={{
-                fontSize: 26,
-                fontWeight: "800",
-                color: isMine ? colors.warning : colors.foreground,
-                textAlign: isRtl ? "right" : "left",
-                letterSpacing: -0.5,
-              }}
-            >
-              {formattedCounter}
-            </Text>
+            {/* TASK-C381 (review fix, DR) — shared PriceTag, see the "offer"
+                card above for the rationale. */}
+            <View style={{ alignItems: isRtl ? "flex-end" : "flex-start" }}>
+              <PriceTag price={amount} currency={currency} size="lg" tone={isMine ? "warning" : "default"} />
+            </View>
 
             {/* No payment note */}
             <View
@@ -1060,11 +1081,22 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             </View>
 
             {/* Outcome — shown to both sides once the buyer responds to the counter */}
-            {offerOutcome ? (
+            {offerOutcome === "accepted" || offerOutcome === "declined" ? (
               <OutcomeBadge
                 icon={offerOutcome === "accepted" ? CheckCircle2 : XCircle}
                 label={offerOutcome === "accepted" ? t("chat.offer.accepted") : t("chat.offer.declined")}
                 tone={offerOutcome === "accepted" ? "success" : "destructive"}
+                isRtl={isRtl}
+                colors={colors}
+              />
+            ) : offerOutcome === "countered" ? (
+              /* TASK-C381 (review fix, DR MUST) — this counter has itself
+                 been superseded by a further counter-back with no direct
+                 accept/decline response — a muted pill, not a silent gap. */
+              <OutcomeBadge
+                icon={ArrowLeftRight}
+                label={t("chat.offer.noLongerActive")}
+                tone="muted"
                 isRtl={isRtl}
                 colors={colors}
               />

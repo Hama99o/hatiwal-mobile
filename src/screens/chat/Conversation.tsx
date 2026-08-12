@@ -10,7 +10,7 @@
  *  - sonner-native toasts for all failures
  *  - useFocusEffect for fresh data on re-visit
  */
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   FlatList,
@@ -50,7 +50,6 @@ import { DaySeparator } from "./conversation/DaySeparator";
 import { buildThreadRows, threadRowKey, type ThreadRow } from "./conversation/groupMessagesByDay";
 import { MeetupSheet } from "./conversation/MeetupSheet";
 import { ComposerActionsSheet } from "./conversation/ComposerActionsSheet";
-import { CounterOfferSheet } from "./conversation/CounterOfferSheet";
 import { OfferSheet } from "@/screens/shared/listing-detail/OfferSheet";
 import { ReportSheet } from "@/components/common/ReportSheet";
 import { SafetyTipsSheet } from "@/components/common/SafetyTipsSheet";
@@ -71,6 +70,13 @@ import {
   showUnavailableNotice as showUnavailableNoticePure,
   offerUnavailableStatus,
 } from "./conversation/threadAvailability";
+import {
+  buildOfferIndex,
+  canRespondToOffer,
+  canCounterBack,
+  type OfferRowFlags,
+} from "./conversation/offerGuards";
+import { parseOfferAmount } from "@/utils/offerAmount";
 // Review fix (SHOULD-FIX, DUPLICATION) — reuse the SAME query-key constants
 // `useListingLifecycle.ts` already exports ("exported so callers/tests can
 // assert against the exact same constants instead of hardcoding strings")
@@ -334,11 +340,28 @@ export function ConversationScreen() {
   // while searching (search results are not a timeline). Outcome lookups
   // in renderItem below intentionally keep using the full `messages` array,
   // never `threadRows` / `filteredMessages`.
-  const threadRows: ThreadRow[] = buildThreadRows(
-    filteredMessages,
-    searchVisible ? 0 : capturedUnreadCountRef.current ?? 0,
-    currentUser?.id ?? null
+  //
+  // Review fix (CR MUST, TASK-C381): memoized — this used to recompute on
+  // EVERY render regardless of whether any of its inputs actually changed.
+  const threadRows: ThreadRow[] = useMemo(
+    () =>
+      buildThreadRows(
+        filteredMessages,
+        searchVisible ? 0 : capturedUnreadCountRef.current ?? 0,
+        currentUser?.id ?? null
+      ),
+    [filteredMessages, searchVisible, capturedUnreadCountRef.current, currentUser?.id]
   );
+
+  // TASK-C381 (review fix, CR MUST): one pass over the FULL message list —
+  // never `threadRows`/`filteredMessages`, which chat search can shrink and
+  // which never contain the offer_accepted/offer_declined/offer_counter
+  // response rows this index needs to look up — instead of the THREE
+  // separate `.find()`/`.some()` scans renderItem used to run PER ROW (an
+  // O(n) scan for every offer/counter bubble, on every render). Memoized so
+  // it only rebuilds when the message list itself changes; see
+  // `offerGuards.ts` for the single source of truth this replaces.
+  const offerIndex = useMemo(() => buildOfferIndex(messages), [messages]);
 
   const PAGE_SIZE = 30;
 
@@ -581,8 +604,11 @@ export function ConversationScreen() {
     async (inputAmount: string) => {
       const convId = currentConversationId;
       if (!convId) return;
-      const amount = Number(inputAmount);
-      if (!amount || amount <= 0) {
+      // Review fix (DR): hoisted into the shared `parseOfferAmount` — see
+      // its own doc comment — so this guard and `handleSendCounter`'s below
+      // can never drift apart again.
+      const amount = parseOfferAmount(inputAmount);
+      if (amount == null) {
         toast.error(t("listing.detail.offerInvalid"));
         return;
       }
@@ -761,28 +787,38 @@ export function ConversationScreen() {
     if (succeeded) setReserveConfirm(null);
   }, [reserveConfirm, currentConversationId, invalidateListingLifecycleQueries, t]);
 
-  // ── Open counter-offer sheet (seller) ────────────────────────────────────
+  // ── Open counter-offer sheet — either participant, TASK-C381 ─────────────
   const handleOpenCounterSheet = useCallback((offer: Message) => {
     if (!offer.body) return;
     setCounterOfferTarget(offer);
-    // Pre-fill with the buyer's offer amount so the seller can edit from there
+    // Pre-fill with the prior offer/counter amount so the recipient can edit from there
     const parts = offer.body.split("|");
-    const buyerAmount = offer.offerAmount ?? Number(parts[0] ?? 0);
-    setCounterOfferAmount(String(buyerAmount > 0 ? buyerAmount : ""));
+    const priorAmount = offer.offerAmount ?? Number(parts[0] ?? 0);
+    setCounterOfferAmount(String(priorAmount > 0 ? priorAmount : ""));
     setCounterSheetVisible(true);
   }, []);
 
-  // ── Send a counter-offer (seller) ─────────────────────────────────────────
+  // ── Send a counter-offer — either participant, TASK-C381 ────────────────
   const handleSendCounter = useCallback(
     async (amountStr: string) => {
       const convId = currentConversationId;
-      if (!convId || !counterOfferTarget?.body || !amountStr.trim()) return;
+      if (!convId || !counterOfferTarget?.body) return;
+      // Review fix (CR MUST / DR): the merged OfferSheet's Send button is now
+      // disabled for a non-positive amount too, but this handler validates
+      // independently (defense in depth, and the same `parseOfferAmount`
+      // guard `handleSendOfferInThread` already uses) — a counter of "0" or
+      // "-500" must never reach the API with no error toast.
+      const amount = parseOfferAmount(amountStr);
+      if (amount == null) {
+        toast.error(t("listing.detail.offerInvalid"));
+        return;
+      }
       setIsSendingCounter(true);
 
       const parts = counterOfferTarget.body.split("|");
       const currency = counterOfferTarget.offerCurrency ?? parts[1] ?? "AFN";
       const listedPrice = parts[2] ?? "0";
-      const body = `${amountStr.trim()}|${currency}|${listedPrice}`;
+      const body = `${amount}|${currency}|${listedPrice}`;
 
       try {
         const sent = await conversationsAPI.sendMessage(
@@ -1312,12 +1348,12 @@ export function ConversationScreen() {
 
             const item = row.message;
 
-            // Outcome for THIS proposal/offer only — matched by the response's
-            // link (responds_to_id), so one response never affects another.
-            // Use the full messages array (not filtered) for outcome lookups so
-            // accept/decline responses (which are filtered out) can still be found.
+            // Outcome for THIS proposal only — matched by the response's link
+            // (responds_to_id), so one response never affects another. Uses
+            // the full `messages` array (not filtered/threadRows) so
+            // accept/decline responses (which are filtered out of both) can
+            // still be found.
             let meetupOutcome: "accepted" | "declined" | null = null;
-            let offerOutcome: "accepted" | "declined" | null = null;
             if (item.kind === "meetup_proposal") {
               const r = messages.find(
                 (m) =>
@@ -1325,51 +1361,19 @@ export function ConversationScreen() {
                   m.respondsToId === item.id
               );
               if (r) meetupOutcome = r.kind === "meetup_accepted" ? "accepted" : "declined";
-            } else if (item.kind === "offer") {
-              // Check if a counter was sent in response to this offer; if so the
-              // offer itself is "countered" — we do NOT show an outcome badge on
-              // the offer (the counter card shows its own outcome). Only show the
-              // direct accept/decline outcome if it points straight at this offer.
-              const directResponse = messages.find(
-                (m) =>
-                  (m.kind === "offer_accepted" || m.kind === "offer_declined") &&
-                  m.respondsToId === item.id
-              );
-              const hasCounter = messages.some(
-                (m) => m.kind === "offer_counter" && m.respondsToId === item.id
-              );
-              if (directResponse) {
-                offerOutcome = directResponse.kind === "offer_accepted" ? "accepted" : "declined";
-              } else if (hasCounter) {
-                // Offer has been countered — show "countered" state so the original
-                // offer card no longer shows action buttons (the counter card does).
-                offerOutcome = null; // null = no outcome badge; action buttons suppressed below
-              }
-            } else if (item.kind === "offer_counter") {
-              const r = messages.find(
-                (m) =>
-                  (m.kind === "offer_accepted" || m.kind === "offer_declined") &&
-                  m.respondsToId === item.id
-              );
-              if (r) offerOutcome = r.kind === "offer_accepted" ? "accepted" : "declined";
             }
 
-            // Determine whether this offer has been countered (suppress action buttons)
-            const isOfferCountered =
-              item.kind === "offer" &&
-              messages.some((m) => m.kind === "offer_counter" && m.respondsToId === item.id);
-
-            // TASK-C381 review fix: a counter can itself be superseded by a
-            // FURTHER counter-back (the whole point of allowing more than one
-            // round). Mirrors `isOfferCountered` above for the original offer —
-            // without this, after the recipient counters C1 with C2, C1 kept
-            // showing Accept/Decline/Counter to them (it never got an
-            // offer_accepted/offer_declined response, only a further counter),
-            // letting them accept/decline/re-counter an already-superseded
-            // counter and desync the negotiation from what was actually sent.
-            const isCounterSuperseded =
-              item.kind === "offer_counter" &&
-              messages.some((m) => m.kind === "offer_counter" && m.respondsToId === item.id);
+            // Review fix (CR MUST): the offer/offer_counter outcome +
+            // superseded lookups now come from `offerIndex` — ONE pass over
+            // `messages` (memoized above), not three separate `.find()`/
+            // `.some()` scans re-run for every row on every render. `flags`
+            // is `undefined` for every other message kind.
+            const offerFlags: OfferRowFlags | undefined = offerIndex.get(item.id);
+            // `"countered"` (TASK-C381 review fix, DR MUST) tells MessageBubble
+            // to render the muted "no longer active" chip instead of silently
+            // showing nothing once this offer/counter is superseded.
+            const offerOutcome: "accepted" | "declined" | "countered" | null =
+              offerFlags?.outcome ?? (offerFlags?.isSuperseded ? "countered" : null);
 
             // Computed once so both the `isMine` prop and the onOfferCounter
             // guard below use the exact same value (TASK-C381).
@@ -1400,33 +1404,22 @@ export function ConversationScreen() {
                 }
                 offerOutcome={offerOutcome}
                 onOfferRespond={
-                  // Offer: the recipient can respond (not mine, not already countered)
-                  (item.kind === "offer" && !isOfferCountered)
-                    ? (accepted) => handleOfferRespond(item, accepted)
-                    // Counter: the recipient can respond (not mine, not superseded
-                    // by a further counter-back — TASK-C381 review fix).
-                    : item.kind === "offer_counter" && !isCounterSuperseded
+                  // The recipient of an offer/counter can respond as long as
+                  // it is still the live, un-superseded one — identical rule
+                  // for both kinds now (see `canRespondToOffer`/`offerGuards.ts`).
+                  canRespondToOffer(offerFlags)
                     ? (accepted) => handleOfferRespond(item, accepted)
                     : undefined
                 }
                 onOfferCounter={
-                  // Offer: TASK-C381 review fix — counter button is for
-                  // whoever DIDN'T send this offer (not mine), not just the
-                  // seller. A fresh "offer" can now come from either side (a
-                  // seller opening one is a proactive discount, per this
-                  // card's composer button), so the recipient — buyer or
-                  // seller — must be able to counter it back, exactly like
-                  // they can already Accept/Decline it via onOfferRespond
-                  // above (which was never seller-only).
-                  item.kind === "offer" && !isOfferCountered && !itemIsMine
-                    ? () => handleOpenCounterSheet(item)
-                    // Counter: TASK-C381 — the recipient of a counter (not
-                    // mine) can counter back, as long as it hasn't been
-                    // accepted/declined yet AND hasn't itself already been
-                    // superseded by a further counter (isCounterSuperseded,
-                    // review fix). Symmetric guard: works from either side,
-                    // so a negotiation can run more than one round.
-                    : item.kind === "offer_counter" && !itemIsMine && !offerOutcome && !isCounterSuperseded
+                  // TASK-C381: the recipient (not the sender) of a live,
+                  // un-superseded offer/counter can tap "Counter" to reopen
+                  // the sheet — works from either side, so a negotiation can
+                  // run more than one round. Only ever true for offer/
+                  // offer_counter kinds — `offerFlags` is `undefined` for
+                  // every other kind, and `canCounterBack` returns `false`
+                  // for an `undefined` `flags`.
+                  canCounterBack({ isMine: itemIsMine, flags: offerFlags })
                     ? () => handleOpenCounterSheet(item)
                     : undefined
                 }
@@ -1660,11 +1653,21 @@ export function ConversationScreen() {
           currency={conversation.listing.currency ?? "AFN"}
           price={conversation.listing.price ?? 0}
           isBusy={isSendingThreadOffer}
+          // Review fix (DR): role-neutral safety note — this button is
+          // usable by either participant, unlike ListingDetail's buyer-only
+          // "Make an Offer" CTA. See OfferSheet.tsx's `inThread` doc comment.
+          inThread
         />
       )}
 
-      {/* Counter-offer sheet — seller responds to buyer's offer with new price */}
-      <CounterOfferSheet
+      {/* Counter-offer sheet — either participant responds to an offer/counter
+          with a new price. TASK-C381 (review fix, DR): folded into the SAME
+          `OfferSheet` component via `mode="counter"` — the former standalone
+          `CounterOfferSheet` was a near-duplicate of it (see OfferSheet.tsx's
+          header comment). `price` here is the amount being responded to
+          (the "Previous offer" reference line), not the listing's price. */}
+      <OfferSheet
+        mode="counter"
         visible={counterSheetVisible}
         onClose={() => {
           setCounterSheetVisible(false);
@@ -1672,14 +1675,14 @@ export function ConversationScreen() {
           setCounterOfferAmount("");
         }}
         onSend={handleSendCounter}
-        counterAmount={counterOfferAmount}
+        offerAmount={counterOfferAmount}
         onChangeAmount={setCounterOfferAmount}
         currency={
           counterOfferTarget?.offerCurrency ??
           counterOfferTarget?.body?.split("|")[1] ??
           "AFN"
         }
-        buyerOfferAmount={
+        price={
           counterOfferTarget?.offerAmount ??
           Number(counterOfferTarget?.body?.split("|")[0] ?? 0)
         }

@@ -24,6 +24,7 @@ import { render, screen, fireEvent } from "@testing-library/react-native";
 // Lucide icons — mock to plain strings to avoid react-native-css-interop chain
 jest.mock("lucide-react-native", () => ({
   X: "X",
+  ArrowLeftRight: "ArrowLeftRight",
 }));
 
 // react-native-safe-area-context — provide deterministic insets
@@ -315,5 +316,106 @@ describe("OfferSheet — rendering", () => {
     const { toJSON } = render(<OfferSheet {...buildProps({ visible: false })} />);
     // React Native's Modal with visible=false renders null in the test environment
     expect(toJSON()).toBeNull();
+  });
+});
+
+// ─── mode="counter" — folded in from the former CounterOfferSheet (TASK-C381) ─
+
+describe("OfferSheet — mode='counter' (folded in from CounterOfferSheet)", () => {
+  it("renders the counter title instead of the offer title", () => {
+    render(<OfferSheet {...buildProps({ mode: "counter" })} />);
+    expect(screen.getByText("chat.offer.counterTitle")).toBeTruthy();
+    expect(screen.queryByText("listing.detail.offerTitle")).toBeNull();
+  });
+
+  it("renders the 'previous offer' reference line instead of the listed price", () => {
+    render(<OfferSheet {...buildProps({ mode: "counter", price: 9500 })} />);
+    expect(screen.getByText("chat.offer.previousOfferAt")).toBeTruthy();
+    expect(screen.queryByText("listing.detail.listedPrice")).toBeNull();
+  });
+
+  it("renders the counter amount label and note, not the offer copy", () => {
+    render(<OfferSheet {...buildProps({ mode: "counter" })} />);
+    expect(screen.getByText("chat.offer.yourCounterOffer")).toBeTruthy();
+    expect(screen.getByText("chat.offer.counterNote")).toBeTruthy();
+    expect(screen.queryByText("listing.detail.yourOffer")).toBeNull();
+    expect(screen.queryByText("listing.detail.noPaymentNote")).toBeNull();
+  });
+
+  it("renders the Send Counter button instead of Send Offer", () => {
+    render(<OfferSheet {...buildProps({ mode: "counter" })} />);
+    expect(screen.getByText("chat.offer.sendCounter")).toBeTruthy();
+    expect(screen.queryByText("listing.detail.sendOffer")).toBeNull();
+  });
+
+  it("does NOT render the quick-amount chips in counter mode, even when not busy", () => {
+    render(<OfferSheet {...buildProps({ mode: "counter", price: 10000 })} />);
+    expect(screen.queryByText("chat.offer.quickChipsHint")).toBeNull();
+    expect(screen.queryByTestId("quick-chip-9500")).toBeNull();
+  });
+
+  it("calls onSend with the entered counter amount when Send Counter is pressed", () => {
+    const onSend = jest.fn();
+    render(<OfferSheet {...buildProps({ mode: "counter", offerAmount: "9500", onSend })} />);
+    fireEvent.press(screen.getByText("chat.offer.sendCounter"));
+    expect(onSend).toHaveBeenCalledWith("9500");
+  });
+
+  // CR fix (MUST): the former CounterOfferSheet only checked `!counterAmount`
+  // (a truthy STRING), so "0" and negative amounts were never disabled. The
+  // RNR `Button` forwards `disabled` straight to the underlying
+  // `TouchableOpacity` (it does not synthesize `accessibilityState` itself),
+  // so we assert the real `disabled` prop on that node rather than the
+  // Text child's (unrelated) props.
+  it("disables Send Counter when the amount is '0' (non-positive)", () => {
+    render(<OfferSheet {...buildProps({ mode: "counter", offerAmount: "0" })} />);
+    const touchable = screen.UNSAFE_getByType(require("react-native").TouchableOpacity);
+    expect(touchable.props.disabled).toBe(true);
+  });
+
+  it("disables Send Counter when the amount is negative", () => {
+    render(<OfferSheet {...buildProps({ mode: "counter", offerAmount: "-500" })} />);
+    const touchable = screen.UNSAFE_getByType(require("react-native").TouchableOpacity);
+    expect(touchable.props.disabled).toBe(true);
+  });
+
+  it("does not call onSend when the amount is non-positive", () => {
+    const onSend = jest.fn();
+    render(<OfferSheet {...buildProps({ mode: "counter", offerAmount: "0", onSend })} />);
+    fireEvent.press(screen.getByText("chat.offer.sendCounter"));
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it("enables Send Counter once a positive amount is entered", () => {
+    render(<OfferSheet {...buildProps({ mode: "counter", offerAmount: "9500" })} />);
+    const touchable = screen.UNSAFE_getByType(require("react-native").TouchableOpacity);
+    expect(touchable.props.disabled).toBe(false);
+  });
+
+  it("defaults to mode='offer' when mode is omitted (backward compatible)", () => {
+    render(<OfferSheet {...buildProps({})} />);
+    expect(screen.getByText("listing.detail.offerTitle")).toBeTruthy();
+  });
+});
+
+// ─── inThread prop — role-neutral safety note (TASK-C381 review fix, DR) ──────
+
+describe("OfferSheet — inThread prop (role-neutral safety note)", () => {
+  it("defaults to the buyer-only ListingDetail note when inThread is omitted", () => {
+    render(<OfferSheet {...buildProps({})} />);
+    expect(screen.getByText("listing.detail.noPaymentNote")).toBeTruthy();
+    expect(screen.queryByText("chat.offer.threadNote")).toBeNull();
+  });
+
+  it("shows the role-neutral thread note when inThread=true and mode='offer'", () => {
+    render(<OfferSheet {...buildProps({ inThread: true })} />);
+    expect(screen.getByText("chat.offer.threadNote")).toBeTruthy();
+    expect(screen.queryByText("listing.detail.noPaymentNote")).toBeNull();
+  });
+
+  it("mode='counter' always shows the counter note, regardless of inThread", () => {
+    render(<OfferSheet {...buildProps({ mode: "counter", inThread: true })} />);
+    expect(screen.getByText("chat.offer.counterNote")).toBeTruthy();
+    expect(screen.queryByText("chat.offer.threadNote")).toBeNull();
   });
 });

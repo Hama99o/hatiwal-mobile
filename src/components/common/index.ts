@@ -2,7 +2,7 @@ export { ListingCard } from "./ListingCard";
 export type { ListingCardProps } from "./ListingCard";
 
 export { PriceTag } from "./PriceTag";
-export type { PriceTagSize } from "./PriceTag";
+export type { PriceTagSize, PriceTagTone } from "./PriceTag";
 
 export { StatusBadge } from "./StatusBadge";
 export type { ListingStatus } from "./StatusBadge";
