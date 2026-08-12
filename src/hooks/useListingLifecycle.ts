@@ -299,9 +299,20 @@ export function useListingLifecycle({
     );
   }, [t, deleteListing]);
 
+  // TASK-P736 (review fix, visual hierarchy) — forward the listing's
+  // CURRENT status as a `?status=` hint. ListingForm uses it only as a
+  // best-effort placeholder for its toolbar's [Save Draft | Publish] vs
+  // [Save] decision WHILE its own `getMyListing` query is still loading —
+  // without it, an already-active listing's edit screen briefly shows the
+  // draft pair and flips to the single Save button the instant real data
+  // lands, a button-count flip a seller could mistap. `listing` may still
+  // be `undefined` for the render or two before this screen's own query
+  // resolves (see this hook's own `listing` doc) — the hint is simply
+  // omitted then, exactly like today.
   const handleEdit = useCallback(() => {
-    router.push(`/(main)/listing/edit/${listingId}` as never);
-  }, [router, listingId]);
+    const statusHint = listing?.status ? `?status=${listing.status}` : "";
+    router.push(`/(main)/listing/edit/${listingId}${statusHint}` as never);
+  }, [router, listingId, listing?.status]);
 
   // Quiet secondary action, distinct from Edit — opens a fresh DRAFT create
   // form prefilled from this listing's text fields (photos are NOT copied;

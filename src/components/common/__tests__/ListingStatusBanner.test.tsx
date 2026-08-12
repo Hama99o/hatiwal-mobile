@@ -19,12 +19,32 @@
  *  5. The caller's `style` prop (layout inset) merges on top of the
  *     container's own layout instead of replacing it (TASK-K729 review fix,
  *     MEDIUM — layout).
+ *  6. TASK-K729 (review fix, MEDIUM — RTL, must fix): the `layout="row"`
+ *     accent edge now mirrors on a physical `borderLeftWidth`/
+ *     `borderRightWidth` keyed on the SAME `isRtl` flag as the badge/title
+ *     row's `flexDirection`/`justifyContent`, instead of the logical
+ *     `borderStartWidth`/`borderStartColor` (which mirrors via native
+ *     `forceRTL` and disagreed with the JS-mirrored row — see the component
+ *     docstring). Asserts BOTH the LTR and RTL physical side.
  */
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import { Text } from "@/components/reusables/text";
 import { ListingStatusBanner } from "../ListingStatusBanner";
+
+// TASK-K729 (review fix, MEDIUM — RTL, must fix): a local, overridable mock
+// (same pattern as ListingUnavailableNotice.test.tsx's `mockUseLocalization`)
+// so individual tests can flip `isRtl` — the global mock in
+// src/__tests__/setup.ts always returns `isRtl: false` with no override hook.
+const mockUseLocalization = jest.fn(() => ({ isRtl: false }));
+jest.mock("@/hooks/useLocalization", () => ({
+  useLocalization: (...args: unknown[]) => mockUseLocalization(...args),
+}));
+
+afterEach(() => {
+  mockUseLocalization.mockReturnValue({ isRtl: false });
+});
 
 describe("ListingStatusBanner", () => {
   it("renders the shared StatusBadge + title for a reserved listing (row layout)", () => {
@@ -78,12 +98,16 @@ describe("ListingStatusBanner", () => {
     ).not.toThrow();
   });
 
-  // ── TASK-K729 (review fix, MEDIUM — visual hierarchy): row layout surface ──
+  // ── TASK-K729 (review fix, MEDIUM — visual hierarchy + RTL): row layout ──
   // `layout="row"` moved off the accent fill onto `colors.card` with a
-  // leading accent edge (`borderStartWidth`/`borderStartColor`), so
-  // StatusBadge's pill, the mutedForeground subtitle and the outline
-  // button's border all regain real contrast (see the component docstring).
-  it("renders the row layout on a colors.card surface with a solid (non-alpha) leading accent edge, not the accent fill", () => {
+  // leading accent edge, so StatusBadge's pill and the mutedForeground
+  // subtitle regain real contrast (see the component docstring). The edge is
+  // a PHYSICAL `borderLeftWidth`/`borderRightWidth` keyed on `isRtl` (review
+  // fix, MEDIUM — RTL, must fix) — NOT the logical `borderStartWidth`, which
+  // mirrors via native `forceRTL` and disagreed with the row's own
+  // JS-computed mirroring. LTR lands on the left; see the dedicated RTL
+  // describe block below for the right-side assertion.
+  it("renders the row layout on a colors.card surface with a solid (non-alpha) leading accent edge on the LEFT in LTR, not the accent fill", () => {
     render(<ListingStatusBanner status="reserved" title="Reserved" layout="row" testID="card-row" />);
     const node = screen.getByTestId("card-row");
     const flat = StyleSheet.flatten(node.props.style);
@@ -94,10 +118,11 @@ describe("ListingStatusBanner", () => {
     // indistinguishable from its own container.
     expect(flat.backgroundColor).toBe("hsl(0,0%,100%)");
     expect(flat.borderColor).toBe("hsl(214,32%,91%)");
-    expect(flat.borderStartWidth).toBe(4);
+    expect(flat.borderLeftWidth).toBe(4);
+    expect(flat.borderRightWidth).toBeUndefined();
     // The leading edge is the full accent color (not alpha-diluted) — it's
     // the ONE deliberately-tinted element on an otherwise neutral card.
-    expect(flat.borderStartColor).toBe("hsl(38,92%,40%)"); // colors.warning (reserved accent.text)
+    expect(flat.borderLeftColor).toBe("hsl(38,92%,40%)"); // colors.warning (reserved accent.text)
   });
 
   // TASK-K729 (review fix, MEDIUM — dark mode / status hierarchy): `sold`
@@ -112,8 +137,38 @@ describe("ListingStatusBanner", () => {
     const node = screen.getByTestId("sold-row");
     const flat = StyleSheet.flatten(node.props.style);
 
-    expect(flat.borderStartColor).toBe("hsl(215,16%,47%)"); // colors.mutedForeground (mocked)
-    expect(flat.borderStartColor).not.toBe("hsl(222,47%,11%)"); // colors.secondaryForeground (mocked) — the old, too-loud value
+    expect(flat.borderLeftColor).toBe("hsl(215,16%,47%)"); // colors.mutedForeground (mocked)
+    expect(flat.borderLeftColor).not.toBe("hsl(222,47%,11%)"); // colors.secondaryForeground (mocked) — the old, too-loud value
+  });
+
+  // ── TASK-K729 (review fix, MEDIUM — RTL, must fix) ──────────────────────────
+  // Before this fix, the accent edge (a logical `borderStartWidth`, mirrored
+  // by native `forceRTL`) landed on the visual RIGHT in ps/fa while the
+  // badge/title row (`flexDirection: "row-reverse"` + an UNFLIPPED
+  // `justifyContent: "flex-start"`) double-flipped back to a visually-LTR
+  // pack on the LEFT — two mirroring mechanisms disagreeing inside one
+  // component. Both now key off the SAME `isRtl` flag.
+  describe("RTL (isRtl=true)", () => {
+    beforeEach(() => {
+      mockUseLocalization.mockReturnValue({ isRtl: true });
+    });
+
+    it("moves the accent edge to the physical RIGHT border instead of the left", () => {
+      render(<ListingStatusBanner status="sold" title="وپلورل شو" layout="row" testID="rtl-row" />);
+      const node = screen.getByTestId("rtl-row");
+      const flat = StyleSheet.flatten(node.props.style);
+
+      expect(flat.borderRightWidth).toBe(4);
+      expect(flat.borderRightColor).toBe("hsl(215,16%,47%)"); // colors.mutedForeground (sold edge)
+      expect(flat.borderLeftWidth).toBeUndefined();
+      expect(flat.borderLeftColor).toBeUndefined();
+    });
+
+    it("renders without throwing for the strip layout under RTL (no accent-edge border to flip)", () => {
+      expect(() =>
+        render(<ListingStatusBanner status="reserved" title="خوندي شو" layout="strip" />)
+      ).not.toThrow();
+    });
   });
 
   // TASK-K729 (review fix, LOW — redundant chrome): `showBadge={false}` lets

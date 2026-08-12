@@ -62,12 +62,12 @@
     "emptyDescription": "د خبرو پیل لپاره پیغام ولیږئ.",
     "filePickerNotAvailable": "د فایل انتخاب وړتیا شتون نلري.",
     "unavailable": {
-      "reservedTitle": "توکی خوندي شوی",
-      "reservedBody": "پلورونکي دا توکی خوندي کړی، له همدې امله نور وړاندیز دلته نشي لیږل کیدی.",
+      "reservedTitle": "توکی ریزرو شوی",
+      "reservedBody": "پلورونکي دا توکی ریزرو کړی، له همدې امله نور وړاندیز دلته نشي لیږل کیدی.",
       "soldTitle": "توکی خرڅ شوی",
       "soldBody": "دا توکی خرڅ شوی، له همدې امله نور وړاندیز دلته نشي لیږل کیدی.",
-      "reservedForYouTitle": "تاسو لپاره خوندي شوی",
-      "reservedForYouBody": "پلورونکي دا توکی تاسو لپاره خوندي کړی. د لیدنې تنظیم لپاره دلته خبرې اترې ته دوام ورکړئ.",
+      "reservedForYouTitle": "تاسو لپاره ریزرو شوی",
+      "reservedForYouBody": "پلورونکي دا توکی تاسو لپاره ریزرو کړی. د لیدنې تنظیم لپاره دلته خبرې اترې ته دوام ورکړئ.",
       "soldToYouTitle": "تاسو دا توکی واخیست!",
       "soldToYouBody": "دا سودا بشپړ شو. توکی د لاسته راوړلو لپاره پلورونکي سره ووینئ، بیا یو نظر ورکړئ.",
       "soldToYouReviewedBody": "دا سودا بشپړ شو. ستاسو د نظر ورکولو لپاره مننه.",
@@ -166,10 +166,10 @@
     "counterSentToast": "مقابل قیمت وړاندیز ولیږل شو!",
     "quickChipsHint": "ګړندي مبلغونه",
     "firmNotice": "د پلورونکي قیمت ثابت دی — وړاندیزونه نه منل کیږي",
-    "reserveAfterAcceptTitle": "د {{buyerName}} لپاره خوندي کړئ؟",
-    "reserveAfterAcceptBody": "نور پیرودونکي لا هم تاسو ته پیغام لیکلی شي، او اعلان به د خوندي شوي په توګه ښکاره شي.",
+    "reserveAfterAcceptTitle": "د {{buyerName}} لپاره ریزرو کړئ؟",
+    "reserveAfterAcceptBody": "نور پیرودونکي لا هم تاسو ته پیغام لیکلی شي، او اعلان به د ریزرو شوي په توګه ښکاره شي.",
     "reserveAfterAcceptDismiss": "اوس نه",
-    "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره خوندي شوی ښودل شو"
+    "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره ریزرو شو"
   },
   "block": {
     "blockUser": "کارونکی بند کړئ",
@@ -200,11 +200,11 @@
     "markReadError": "د لوستلو حالت تازه نه شو. بیا هڅه وکړئ."
   },
   "listingActions": {
-    "reserve": "ساتنه",
+    "reserve": "ریزرو",
     "markSold": "خرڅ شوی",
-    "reserveSuccess": "اعلان د خرڅلاو لپاره خوندي شو",
+    "reserveSuccess": "اعلان ریزرو شو",
     "markSoldSuccess": "اعلان د خرڅ شوي په توګه نښه شو",
-    "reserveFailed": "اعلان خوندي نه شو. بیا هڅه وکړئ.",
+    "reserveFailed": "اعلان ریزرو نه شو. بیا هڅه وکړئ.",
     "markSoldFailed": "د خرڅ شوي نښه کول ونه شو. بیا هڅه وکړئ.",
     "markSoldConfirmTitle": "د خرڅ شوي په توګه نښه کړئ؟",
     "markSoldConfirmBody": "دا به توکی د خرڅ شوي په توګه نښه کړي او اعلان به بند شي.",

@@ -154,11 +154,18 @@ interface DraftSnapshot {
 export default function ListingFormScreen() {
   const { t } = useTranslation();
   const categoryName = useCategoryName();
-  const { isRtl } = useLocalization();
+  const { isRtl, formatNumber } = useLocalization();
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ id?: string; duplicateFrom?: string }>();
+  // TASK-P736 (review fix, visual hierarchy) — `status` is an OPTIONAL hint
+  // forwarded by callers that already know it (useListingLifecycle's
+  // `handleEdit`, seeded from the listing they're navigating away from) so
+  // `isPublished` (below) doesn't have to guess `false` for the entire
+  // edit-mode loading window. It is never the source of truth once
+  // `existingListing` itself has loaded — only a best-effort placeholder for
+  // the toolbar during that window.
+  const params = useLocalSearchParams<{ id?: string; duplicateFrom?: string; status?: string }>();
   const qc = useQueryClient();
 
   const isEdit = !!params.id;
@@ -293,6 +300,18 @@ export default function ListingFormScreen() {
   // paths (edit load, duplicate-source load) so neither can ever leave
   // Save/Publish enabled against a still-blank form.
   const isFormBlocking = isEditBlocking || isDuplicateBlocking;
+  // TASK-P736 (review fix, states/visual hierarchy) — the three TERMINAL
+  // non-form states (bad deep link, confirmed 404, or a load failure with
+  // nothing cached — see the render's `isEditIdInvalid` / `isEditBlocking`
+  // branches below) render their own `EmptyState` with its own primary
+  // action ("Go back" / "Retry"). Unlike the loading skeleton (where the
+  // Publish control must stay mounted, disabled, so this card's own test —
+  // "a Publish tap mid-load calls no API" — can press it), there is no form
+  // at all in these three states, so a dimmed [Save Draft | Publish] pair
+  // next to the EmptyState's own action is pure dead weight competing for
+  // attention. `isEditLoading` (the genuine loading case) is intentionally
+  // excluded so the skeleton's toolbar keeps its disabled controls.
+  const hideFormActions = isEditIdInvalid || (isEditBlocking && !isEditLoading);
 
   // Refetch the listing every time the edit form comes into focus. TASK-P736
   // (review fix, CR round 3, dead-state note): this invalidation is now
@@ -341,7 +360,18 @@ export default function ListingFormScreen() {
   const hasExactLocation = latitude != null && longitude != null;
   // A published listing (active/reserved/sold) can't be "saved as draft" — only
   // edited in place. Use Unpublish (on My Listings) to take it offline.
-  const isPublished = isEdit && !!existingListing && existingListing.status !== "draft";
+  // TASK-P736 (review fix, visual hierarchy) — while `existingListing` is
+  // still loading, fall back to the `status` route-param hint (if the caller
+  // provided one) instead of unconditionally `false`, so the toolbar doesn't
+  // show [Save Draft | Publish] and then flip to a single [Save] the moment
+  // an already-active listing's data lands. Once `existingListing` resolves
+  // it is always the source of truth, regardless of what the hint said.
+  const isPublished = isEdit && (existingListing ? existingListing.status !== "draft" : params.status ? params.status !== "draft" : false);
+  // TASK-P736 (review fix, cross-client contract) — whether THIS listing
+  // already had ≥1 photo when the edit session started (before anything the
+  // seller does in this session) — see publishReadiness.ts's doc for why
+  // "Save" on an already-live listing must not blanket-require a photo.
+  const hadPhotosPreEdit = Boolean(existingListing?.imageAttachments?.length || existingListing?.images?.length);
   // TASK-V395 — latitude/longitude are optional at the zod level now, so
   // `errors.latitude` will rarely fire; `locationError` (state, set by
   // `handlePublishBlockers`) is the primary driver. Keep the `errors.latitude`
@@ -443,6 +473,20 @@ export default function ListingFormScreen() {
       toast.error(t("listing.form.duplicateLoadError"));
     }
   }, [isDuplicate, isDuplicateSourceError, t]);
+
+  // TASK-P736 (review fix, edge case) — `?duplicateFrom=<non-numeric>` (a
+  // bad deep link) makes `duplicateFromId` `NaN`, so the query above is
+  // DISABLED (`enabled: isDuplicate && !!duplicateFromId`) and never runs —
+  // `isDuplicateSourceError` above can therefore never fire for this case,
+  // and the seller previously landed on a silent blank create form with no
+  // explanation at all, the same class of silent failure this card exists
+  // to kill. Same toast copy as a genuine load failure — either way, the
+  // seller starts fresh with a blank draft and knows why.
+  useEffect(() => {
+    if (isDuplicate && !duplicateFromId) {
+      toast.error(t("listing.form.duplicateLoadError"));
+    }
+  }, [isDuplicate, duplicateFromId, t]);
 
   // ── Draft autosave (new listings only) ─────────────────────────────────────
   // Offer to restore a previously saved draft on first open.
@@ -726,10 +770,13 @@ export default function ListingFormScreen() {
       const blockers = getPublishBlockers({
         values: getValues(),
         photos,
-        // "live" runs the exact same RULE set as "publish" (≥1 photo, exact
-        // coordinates) — only the toast/photo-error COPY differs, and that
-        // branching lives in `handlePublishBlockers`, not here.
-        mode: mode === "draft" ? "draft" : "publish",
+        // TASK-P736 (review fix, cross-client contract) — `mode` is now
+        // passed straight through to `getPublishBlockers`; "live" runs its
+        // OWN rule set (photo required only if `hadPhotosPreEdit`, location
+        // never required) rather than being remapped onto "publish"'s
+        // stricter one. See publishReadiness.ts's file header for why.
+        mode,
+        hadPhotosPreEdit,
         fieldErrors,
       });
       if (blockers.length > 0) {
@@ -739,7 +786,7 @@ export default function ListingFormScreen() {
       toast.error(t("listing.form.invalidGeneric"));
       AccessibilityInfo.announceForAccessibility(t("listing.form.invalidGeneric"));
     },
-    [getValues, photos, handlePublishBlockers, t]
+    [getValues, photos, hadPhotosPreEdit, handlePublishBlockers, t]
   );
 
   // ---------------------------------------------------------------------------
@@ -767,15 +814,17 @@ export default function ListingFormScreen() {
     (fieldErrors) => handleInvalidSubmit("draft", fieldErrors)
   );
 
-  // Editing an already-published listing → the single "Save" button must
-  // enforce the same readiness rules as Publish (a live listing can never be
-  // left with zero photos or no coordinates either) — TASK-P736 (review fix,
-  // CR round 3): but with `mode: "live"` copy, not "publish" copy. This
-  // listing is already active; toasting "Add Photos to publish this
-  // listing" reads as if it were still a draft.
+  // Editing an already-published listing → the single "Save" button runs
+  // the "live" rule set — TASK-P736 (review fix, cross-client contract):
+  // NOT the same rules as Publish. A photo is only required if the listing
+  // already had one (`hadPhotosPreEdit`), and exact coordinates are never
+  // required — matching hatiwal-web's form and the API's `publish?` policy,
+  // neither of which enforce either. Without this, a web-created photo-less
+  // or pin-less active listing would be permanently unsaveable on mobile
+  // for an edit as small as a typo fix.
   const onSavePublished = handleSubmit(
     (values) => {
-      const blockers = getPublishBlockers({ values, photos, mode: "publish" });
+      const blockers = getPublishBlockers({ values, photos, mode: "live", hadPhotosPreEdit });
       if (blockers.length > 0) {
         handlePublishBlockers(blockers, "live");
         return;
@@ -911,65 +960,61 @@ export default function ListingFormScreen() {
     >
       <BackButton onPress={onCancel} />
       <View style={{ flex: 1 }} />
-      {/* TASK-P736 (review fix, CR round 3, visual hierarchy — deliberately
-          NOT fully addressed here, see note below) — `isPublished` is
-          `false` while the edit-mode listing hasn't resolved yet, so the
-          toolbar shows the [Save Draft | Publish] pair during the loading
-          window and can collapse to a single [Save] the instant the listing
-          arrives already-active. A prior review round flagged this as a
-          button-count flip a seller could mistap. Replacing the pair with a
-          placeholder during `isFormBlocking` was tried and reverted: this
-          card's own mandatory test coverage (ListingForm.publish.test.tsx —
-          "with getMyListing left unresolved, listing-form-skeleton is
-          visible AND pressing listing.publish calls no API / fires no
-          toast") requires the Publish control to still exist (disabled) to
-          verify NOTHING happens when tapped mid-load — the entire point of
-          "never fail silently" — the two fixes are the same button doing
-          double duty and can't both win. Both `disabled={isFormBlocking}`
-          below already make the tap fully inert either way; the flip is
-          cosmetic and left for marketplace-designer polish (e.g. a
-          cross-fade) rather than removing the control this card's tests
-          press. */}
-      {isPublished ? (
-        // Editing a published listing → save the changes (status unchanged);
-        // TASK-P736: enforces the same photo/field readiness rules as Publish
-        // (via `mode: "live"` copy — see `onSavePublished`).
-        // TASK-P736 (review fix, CR round 2): disabled while the edit-mode
-        // query is still loading/erroring (`isFormBlocking`) — Save must
-        // never fire against a still-blank prefill. Busy state keeps the
-        // label and adds an `ActivityIndicator` instead of swapping to
-        // `common.loading`, so the button never changes width mid-flight
-        // (worst case in Dari, whose labels are already the widest).
-        <Button variant="default" onPress={onSavePublished} disabled={isLoading || isFormBlocking || isEditIdInvalid}>
-          {isLoading ? (
-            <ActivityIndicator size="small" color={colors.primaryForeground} />
-          ) : (
-            <Text className="text-sm font-bold">{t("common.save")}</Text>
-          )}
-        </Button>
-      ) : (
-        <>
-          <Button variant="outline" onPress={onSaveDraft} disabled={isLoading || isFormBlocking || isEditIdInvalid}>
-            {/* TASK-P736 (review fix, CR round 3, busy state) — the published
-                `Save` and `Publish` below each swap in an `ActivityIndicator`
-                while busy; this outline draft button previously never did,
-                so a slow multi-photo upload on a weak connection showed two
-                dimmed buttons with zero progress cue — reading as a dead tap,
-                the exact class of problem this card exists to fix. */}
-            {isLoading && !isSubmittingPublish ? (
-              <ActivityIndicator size="small" color={colors.foreground} />
-            ) : (
-              <Text className="text-sm font-bold">{t("listing.form.saveDraft")}</Text>
-            )}
-          </Button>
-          <Button variant="default" onPress={onPublish} disabled={isLoading || isFormBlocking || isEditIdInvalid}>
-            {isLoading && isSubmittingPublish ? (
+      {/* TASK-P736 (review fix, states/visual hierarchy) — `hideFormActions`
+          (see its own comment above) keeps these mounted, disabled, ONLY
+          for the genuine loading skeleton — where this card's own test
+          coverage requires Publish to still exist so a mid-load tap can be
+          proven inert — and unmounts them entirely for the three terminal
+          non-form states, so a bad deep link / confirmed 404 / retry screen
+          never shows a dead [Save Draft | Publish] pair next to the
+          EmptyState's own primary action.
+          `isPublished` can still be `false` for a moment during a genuine
+          loading window when no `status` hint was provided by the caller
+          (see `isPublished`'s own comment) and then flip once the listing
+          arrives already-active — that residual cosmetic flip (not a
+          dead-control problem) is left for marketplace-designer polish
+          (e.g. a cross-fade). */}
+      {!hideFormActions && (
+        isPublished ? (
+          // Editing a published listing → save the changes (status unchanged);
+          // TASK-P736: enforces the "live" readiness rules (see `onSavePublished`).
+          // TASK-P736 (review fix, CR round 2): disabled while the edit-mode
+          // query is still loading/erroring (`isFormBlocking`) — Save must
+          // never fire against a still-blank prefill. Busy state keeps the
+          // label and adds an `ActivityIndicator` instead of swapping to
+          // `common.loading`, so the button never changes width mid-flight
+          // (worst case in Dari, whose labels are already the widest).
+          <Button variant="default" onPress={onSavePublished} disabled={isLoading || isFormBlocking || isEditIdInvalid}>
+            {isLoading ? (
               <ActivityIndicator size="small" color={colors.primaryForeground} />
             ) : (
-              <Text className="text-sm font-bold">{t("listing.publish")}</Text>
+              <Text className="text-sm font-bold">{t("common.save")}</Text>
             )}
           </Button>
-        </>
+        ) : (
+          <>
+            <Button variant="outline" onPress={onSaveDraft} disabled={isLoading || isFormBlocking || isEditIdInvalid}>
+              {/* TASK-P736 (review fix, CR round 3, busy state) — the published
+                  `Save` and `Publish` below each swap in an `ActivityIndicator`
+                  while busy; this outline draft button previously never did,
+                  so a slow multi-photo upload on a weak connection showed two
+                  dimmed buttons with zero progress cue — reading as a dead tap,
+                  the exact class of problem this card exists to fix. */}
+              {isLoading && !isSubmittingPublish ? (
+                <ActivityIndicator size="small" color={colors.foreground} />
+              ) : (
+                <Text className="text-sm font-bold">{t("listing.form.saveDraft")}</Text>
+              )}
+            </Button>
+            <Button variant="default" onPress={onPublish} disabled={isLoading || isFormBlocking || isEditIdInvalid}>
+              {isLoading && isSubmittingPublish ? (
+                <ActivityIndicator size="small" color={colors.primaryForeground} />
+              ) : (
+                <Text className="text-sm font-bold">{t("listing.publish")}</Text>
+              )}
+            </Button>
+          </>
+        )
       )}
     </View>
     <KeyboardAvoidingView
@@ -1145,6 +1190,12 @@ export default function ListingFormScreen() {
                   borderColor: errors.title ? colors.destructive : colors.border,
                 }}
                 aria-labelledby="title-label"
+                // TASK-P736 (review fix, a11y, iOS) — `aria-labelledby` maps
+                // to RN's `accessibilityLabelledBy`, which is ANDROID-ONLY;
+                // on iOS the prop is silently ignored, so this Input had no
+                // accessible name at all for VoiceOver. `accessibilityLabel`
+                // is the cross-platform fallback — keep both.
+                accessibilityLabel={t("listing.title")}
               />
             )}
           />
@@ -1152,7 +1203,9 @@ export default function ListingFormScreen() {
           {/* TASK-P736 (review fix, CR round 3) — `maxLength={150}` silently
               swallows keystrokes past the cap with zero signal; the counter
               now turns destructive at the limit so a seller pasting a long
-              title sees WHY typing stopped instead of assuming it's broken. */}
+              title sees WHY typing stopped instead of assuming it's broken.
+              TASK-P736 (review fix, localization) — `formatNumber` so ps/fa
+              readers see their own digit script (e.g. ۰/۱۵۰), not ASCII. */}
           <Text
             className="text-xs"
             style={{
@@ -1161,7 +1214,7 @@ export default function ListingFormScreen() {
               marginTop: 4,
             }}
           >
-            {`${watch("title")?.length ?? 0}/150`}
+            {`${formatNumber(watch("title")?.length ?? 0)}/${formatNumber(150)}`}
           </Text>
         </View>
 
@@ -1196,6 +1249,9 @@ export default function ListingFormScreen() {
                   placeholder={t("listing.pricePlaceholder")}
                   keyboardType="numeric"
                   aria-labelledby="price-label"
+                  // TASK-P736 (review fix, a11y, iOS) — see the identical
+                  // fix on the Title Input above.
+                  accessibilityLabel={t("common.price")}
                   style={[
                     styles.priceInput,
                     {
@@ -1309,6 +1365,17 @@ export default function ListingFormScreen() {
                 // through `FieldLabel` for exactly this; Category now does
                 // too, with the current selection moved to `accessibilityValue`.
                 aria-labelledby="category-label"
+                // TASK-P736 (review fix, a11y, iOS) — `aria-labelledby` maps
+                // to RN's `accessibilityLabelledBy`, which only exists on
+                // ANDROID; on iOS the prop is ignored entirely, so this
+                // Pressable fell back to reading its child Text — the VALUE
+                // again, then re-read the identical string from
+                // `accessibilityValue` ("Electronics, Electronics, button"),
+                // never announcing the field's identity on iOS at all.
+                // `accessibilityLabel` is the cross-platform fallback that
+                // fixes this on both — keep `aria-labelledby` too (harmless
+                // on Android, matches the house pattern elsewhere).
+                accessibilityLabel={t("common.category")}
                 accessibilityValue={{
                   text: selectedCategory ? categoryName(selectedCategory) : t("listing.form.selectCategoryPlaceholder"),
                 }}
@@ -1393,6 +1460,10 @@ export default function ListingFormScreen() {
             // `FieldLabel` via `aria-labelledby`, and the current value (or
             // the "tap to set" placeholder) moves to `accessibilityValue`.
             aria-labelledby="location-label"
+            // TASK-P736 (review fix, a11y, iOS) — same cross-platform fix as
+            // Category above: `aria-labelledby` alone never announces the
+            // field's identity on iOS.
+            accessibilityLabel={t("common.location")}
             accessibilityValue={{
               text: hasExactLocation ? mapLabel ?? t("listing.form.locationSet") : t("listing.form.tapToSetLocation"),
             }}
@@ -1497,9 +1568,16 @@ export default function ListingFormScreen() {
           <View style={styles.currencyHandle}>
             <View style={[styles.handleBar, { backgroundColor: colors.border }]} />
           </View>
+          {/* TASK-P736 (review fix, RTL) — this title and the option labels
+              below were the only user-facing Texts in this file with no
+              explicit `textAlign`, and the option label is the risky one:
+              it carries `flex: 1` inside a `row-reverse` row, so its text
+              box spans the full sheet width and its content alignment was
+              decided entirely by the ambient direction rather than the
+              row's own mirroring. */}
           <Text
             className="text-lg font-semibold"
-            style={{ color: colors.foreground, marginBottom: 4, paddingHorizontal: 16 }}
+            style={{ color: colors.foreground, marginBottom: 4, paddingHorizontal: 16, textAlign: isRtl ? "right" : "left" }}
           >
             {t("listing.form.selectCurrency")}
           </Text>
@@ -1528,7 +1606,7 @@ export default function ListingFormScreen() {
               }}
               android_ripple={{ color: colors.muted }}
             >
-              <Text className="text-sm" style={{ color: colors.foreground, flex: 1 }}>
+              <Text className="text-sm" style={{ color: colors.foreground, flex: 1, textAlign: isRtl ? "right" : "left" }}>
                 {opt.label}
               </Text>
               {currency === opt.value && (
@@ -1631,9 +1709,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    // Platform audit (2026-06-18): iOS bottom safe-area is 34pt (home indicator);
-    // Android has no equivalent inset → 16pt is the correct fallback.
-    paddingBottom: Platform.OS === "ios" ? 34 : 16,
+    // TASK-P736 (review fix, NIT, dead code) — no static `paddingBottom`
+    // here: the render always supplies one inline
+    // (`Math.max(insets.bottom, 16) + 12`), which unconditionally overrides
+    // any value set here — a second source of truth for the same number.
   },
   currencyHandle: {
     alignItems: "center",

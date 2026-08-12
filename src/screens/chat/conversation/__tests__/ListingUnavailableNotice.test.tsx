@@ -17,10 +17,17 @@
  *     fix, MEDIUM — vertical budget + duplicate person UI: Conversation.tsx's
  *     nav bar already shows the same avatar+name+verified for this person).
  *  6. RTL — renders without throwing and flips row direction when isRtl=true.
- *  7. The notice always renders the shared StatusBadge (dedup fix).
- *  8. "Rate {seller}" CTA (TASK-K729 HIGH review follow-up) — only for sold +
- *     viewerIsSaleBuyer + a transactionId, hidden once already reviewed,
- *     opens the REV2 ReviewPromptSheet with the viewer's own transactionId.
+ *  7. The notice deliberately does NOT render the shared StatusBadge pill
+ *     (`showBadge={false}` — ListingHeader, ~8px above, already shows one
+ *     for every viewer); the accent edge + headline still carry the status.
+ *  8. "Rate {seller}" CTA (TASK-K729 HIGH review follow-up, then SHOULD-FIX
+ *     round 2) — for sold + viewerIsSaleBuyer + a transactionId, hidden once
+ *     already reviewed, opens the REV2 ReviewPromptSheet with the viewer's
+ *     own transactionId. Needs NEITHER a `sellerId` NOR a `sellerName` — the
+ *     label and the sheet's `counterpartyName` both fall back to the generic
+ *     localized name rather than hiding the only next step (an earlier fix
+ *     gated this on `hasSellerName` and reintroduced the exact dead end this
+ *     card exists to remove).
  *  9. TASK-K729 (review fix, LOW) — the seller identity for the
  *     viewerIsSaleBuyer branch is hoisted OUT of `canRateSeller`, so it also
  *     renders for "Reserved for you" and the already-reviewed "sold" state,
@@ -356,17 +363,40 @@ describe("ListingUnavailableNotice — Rate seller CTA (sold + viewerIsSaleBuyer
     expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
   });
 
-  // ── TASK-K729 (review fix, LOW) ─────────────────────────────────────────────
-  // `canRateSeller` is gated on `hasSellerName` (a display name only) — NOT
-  // `hasSeller` (name + id). The Rate CTA never links anywhere by
-  // `sellerId`; `ReviewPromptSheet` only ever needs a `transactionId` + a
-  // display name. Without a `sellerName`, the button is correctly hidden
-  // (it has nothing to label itself with or pass to the sheet).
-  it("does NOT render the Rate seller CTA when sellerName is missing, even with a transactionId present (would open the review sheet with an empty counterparty)", () => {
+  // ── TASK-K729 (review fix, SHOULD-FIX round 2) ──────────────────────────────
+  // `canRateSeller` no longer gates on `hasSellerName` (or `hasSeller`) at
+  // all — rating genuinely needs neither a `sellerId` nor a `sellerName`, only
+  // the viewer's own `transactionId`. An earlier version of this fix DID gate
+  // on `hasSellerName`, which reintroduced the exact dead end this card
+  // exists to remove: "sold + viewerIsSaleBuyer + transactionId + no
+  // sellerName" rendered `soldToYouBody` ("...then leave them a review") with
+  // NO CTA behind it — identical in shape to the missing-`sellerId` case. The
+  // label and the sheet's `counterpartyName` both fall back to the generic
+  // localized name instead of hiding the only next step.
+  it("DOES render the Rate seller CTA (with the generic fallback name) when BOTH sellerId and sellerName are missing — rating needs neither", () => {
+    render(<ListingUnavailableNotice status="sold" viewerIsSaleBuyer transactionId={42} />);
+    expect(screen.getByTestId("unavailable-rate-seller")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("unavailable-rate-seller"));
+    const lastProps = (ReviewPromptSheet as jest.Mock).mock.calls.at(-1)?.[0];
+    expect(lastProps).toMatchObject({
+      visible: true,
+      counterpartyName: "chat.thread.unavailable.rateSellerGenericName",
+    });
+  });
+
+  it("renders the Rate seller CTA (with the generic fallback name) when sellerId is present but sellerName is missing", () => {
     render(
       <ListingUnavailableNotice status="sold" viewerIsSaleBuyer transactionId={42} sellerId={9} />
     );
-    expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
+    expect(screen.getByTestId("unavailable-rate-seller")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("unavailable-rate-seller"));
+    const lastProps = (ReviewPromptSheet as jest.Mock).mock.calls.at(-1)?.[0];
+    expect(lastProps).toMatchObject({
+      visible: true,
+      counterpartyName: "chat.thread.unavailable.rateSellerGenericName",
+    });
   });
 
   // TASK-K729 (review fix, LOW — the actual dead-end bug this gate change

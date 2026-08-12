@@ -53,4 +53,16 @@ describe("normalizeDigits", () => {
     expect(normalizeDigits("۸،۰۰۰")).toBe("8000");
     expect(Number(normalizeDigits("۸،۰۰۰"))).toBe(8000);
   });
+
+  // TASK-P736 (review fix, round 4) — an English seller's grouped price
+  // ("8,000") must parse too; only en/ps/fa are supported, so a `,` is
+  // unambiguously a group separator on every locale this app ships.
+  it("strips the ASCII comma , used as a group separator (English grouped price)", () => {
+    expect(normalizeDigits("8,000")).toBe("8000");
+    expect(Number(normalizeDigits("8,000"))).toBe(8000);
+  });
+
+  it("strips multiple ASCII commas in a large grouped price", () => {
+    expect(normalizeDigits("1,250,000")).toBe("1250000");
+  });
 });

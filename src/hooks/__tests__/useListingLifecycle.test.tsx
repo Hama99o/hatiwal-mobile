@@ -545,10 +545,10 @@ describe("useListingLifecycle — onDeleted fires only after a successful Delete
 // ── 7. Edit / Duplicate navigation ──────────────────────────────────────────
 
 describe("useListingLifecycle — Edit / Duplicate navigation", () => {
-  it("Edit pushes the edit route with the listing id", () => {
+  it("Edit pushes the edit route with the listing id and a status hint (TASK-P736)", () => {
     const { result } = renderLifecycle({ status: "active", expired: false }, { listingId: 10 });
     act(() => result.current.moreActions.find((a) => a.key === "edit")!.onPress());
-    expect(mockPush).toHaveBeenCalledWith("/(main)/listing/edit/10");
+    expect(mockPush).toHaveBeenCalledWith("/(main)/listing/edit/10?status=active");
   });
 
   it("Duplicate pushes the new-listing route with duplicateFrom", () => {

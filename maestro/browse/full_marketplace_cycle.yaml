@@ -22,9 +22,13 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 - assertVisible: "Cover"
-- tapOn: "Title"
+# TASK-P736 (review fix) — tap the input placeholders, not the "Title *" /
+# "Price *" Labels (a Label is inert text, not focusable; tapping it would
+# leave nothing focused and inputText below would silently go nowhere) —
+# matches create_listing_publish_direct.yaml / create_listing_with_condition.yaml.
+- tapOn: "What are you selling?"
 - inputText: "Marketplace Cycle Phone"
-- tapOn: "Price"
+- tapOn: "Enter price"
 - inputText: "3500"
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd

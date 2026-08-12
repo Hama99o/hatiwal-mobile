@@ -17,8 +17,13 @@
  * mode, one keystroke later, landing on ps/fa users only. U+066B is mapped
  * to `.`; the Arabic thousands separator U+066C «٬» and the Arabic comma
  * U+060C «،» (sometimes typed/pasted as a group separator) are stripped
- * entirely, mirroring how a plain ASCII `,` would need to be stripped from
- * an English "8,000" for the same `Number(...)` call to succeed.
+ * entirely — and so is the ASCII `,` itself (review fix, round 4): only
+ * en/ps/fa are supported here, so a `,` is unambiguously a group separator
+ * on all three, and Android exposes `,` on many locales' numeric keypads
+ * (paste always can, on any platform/locale). Without stripping it too, an
+ * English seller typing/pasting "8,000" got `Number("8,000") === NaN` — the
+ * exact "silently blocks a price the seller did type" failure this util
+ * exists to kill, just on the `en` path instead of `fa`/`ps`.
  *
  * Pure, no React — fully unit-testable.
  */
@@ -33,13 +38,15 @@ for (let i = 0; i < 10; i++) {
 
 // U+066B Arabic decimal separator ("٫") — the fa/ps keypad's equivalent of ".".
 const ARABIC_DECIMAL_SEPARATOR = /٫/g;
-// U+066C Arabic thousands separator ("٬") and U+060C Arabic comma ("،") —
-// both act as group separators here; neither belongs in a numeric string.
-const ARABIC_GROUP_SEPARATORS = /[٬،]/g;
+// U+066C Arabic thousands separator ("٬"), U+060C Arabic comma ("،"), and
+// the ASCII "," — all three act as group separators here (review fix,
+// round 4: the ASCII comma was missing, so an English "8,000" still failed
+// `Number(...)`); none belongs in a numeric string.
+const GROUP_SEPARATORS = /[٬،,]/g;
 
 export function normalizeDigits(value: string): string {
   return value
     .replace(/[۰-۹٠-٩]/g, (ch) => DIGIT_MAP[ch] ?? ch)
     .replace(ARABIC_DECIMAL_SEPARATOR, ".")
-    .replace(ARABIC_GROUP_SEPARATORS, "");
+    .replace(GROUP_SEPARATORS, "");
 }

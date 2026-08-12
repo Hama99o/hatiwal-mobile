@@ -17,6 +17,21 @@
  *                                       marginTop: 8 }` inset
  *                                       ListingUnavailableNotice passes as
  *                                       `style`
+ *   RowSoldNoBadge / RowReservedNoBadge — `showBadge={false}` (TASK-K729
+ *                                       review fix, MUST-FIX): the state
+ *                                       ACTUALLY used in production —
+ *                                       ListingUnavailableNotice always
+ *                                       passes `showBadge={false}` because
+ *                                       Conversation.tsx's `ListingHeader`
+ *                                       already renders a `StatusBadge`
+ *                                       beside the listing title immediately
+ *                                       above this banner; a second, identical
+ *                                       pill here would be a third
+ *                                       restatement of the same fact. These
+ *                                       stories prove the pill-less variant
+ *                                       still reads clearly — the leading
+ *                                       accent edge + bold headline alone —
+ *                                       in both light and dark.
  *   RowPashtoRtl                     — RTL mirror (switch device/Storybook
  *                                       locale to 'ps'/'fa' — the component
  *                                       reads `isRtl` from useLocalization()
@@ -148,6 +163,35 @@ export const RowWithCallerInset: Story = {
     subtitle: "The seller has reserved this item for a buyer.",
     layout: "row",
     style: { marginHorizontal: 12, marginTop: 8 },
+  },
+};
+
+// `showBadge={false}` — the state ACTUALLY used in production (TASK-K729
+// review fix, MUST-FIX). ListingUnavailableNotice always passes this because
+// Conversation.tsx's `ListingHeader` (the pinned card ~8px above this banner)
+// already renders a `StatusBadge` beside the listing title for EVERY viewer —
+// a second, identical pill here would be a THIRD restatement of the same
+// status (the headline itself, e.g. "Item sold", already restates it once).
+// Without its own story, this caller-relevant variant was only reachable via
+// Jest assertions, not a visually-verifiable Storybook state — check both
+// light and dark here.
+export const RowSoldNoBadge: Story = {
+  args: {
+    status: "sold",
+    title: "Item sold",
+    subtitle: "This item has been sold.",
+    layout: "row",
+    showBadge: false,
+  },
+};
+
+export const RowReservedNoBadge: Story = {
+  args: {
+    status: "reserved",
+    title: "Reserved for you",
+    subtitle: "The seller has reserved this item for you.",
+    layout: "row",
+    showBadge: false,
   },
 };
 

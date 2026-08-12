@@ -32,8 +32,21 @@ import type { ListingStatus } from "./StatusBadge";
  *   draft    -> border            (quiet — not yet published, no signal needed)
  *   active   -> success           (green — live, matches the pill text)
  *   reserved -> warning           (amber attention state — matches the pill text)
- *   sold     -> mutedForeground   (grey — archived/dimmed, per DESIGN_SYSTEM.md §2,
- *                                  identical in both themes, never near-white)
+ *   sold     -> mutedForeground   (grey — archived/dimmed, per DESIGN_SYSTEM.md §2's
+ *                                  "Edge" column, identical in both themes, never near-white)
+ *
+ * TASK-K729 (review fix, LOW — doc drift): DESIGN_SYSTEM.md §2 now documents
+ * this `edge` column (and StatusBadge's own 25%-alpha pill border) directly —
+ * the citation above points at a real table, not just the bg/text pairing.
+ *
+ * TASK-K729 (review fix, LOW — latent design trap): `draft -> colors.border`
+ * is byte-identical to `ListingStatusBanner`'s own `borderColor: colors.border`
+ * (the card's neutral outline) — a 4px "accent" edge that is invisible by
+ * construction. Harmless today because the banner's prop type only accepts
+ * `"reserved" | "sold"`, but the next caller who widens that union to include
+ * `draft` will render an edge that does nothing. Either switch `draft` to
+ * `colors.mutedForeground` (as `sold` already does) or keep this comment as
+ * the documented reason it's intentionally left this way.
  */
 export function getStatusAccent(
   status: ListingStatus,

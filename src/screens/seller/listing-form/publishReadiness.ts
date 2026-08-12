@@ -18,6 +18,27 @@
  * pin-less, photo-less draft; only the client enforces the stricter
  * "ready to go live" bar, and only for Publish.
  *
+ * "live" mode (TASK-P736, review fix, cross-client contract) — saving an
+ * ALREADY-active listing in place. This must NOT simply reuse the "publish"
+ * rule set: hatiwal-web's listing form (and the API's `publish?` policy)
+ * never required a photo or exact coordinates, so a listing published from
+ * the web (or a legacy mobile listing from before this card) can be
+ * photo-less and/or pin-less and still be genuinely live server-side. If
+ * "live" hard-required both like "publish" does, a seller opening that
+ * listing on mobile just to fix a typo in the title would be PERMANENTLY
+ * blocked from saving ANY edit until they also backfilled a photo and
+ * dropped a map pin — punishing them for something they never regressed.
+ * So "live" only enforces what the mobile client itself would be
+ * regressing in THIS session:
+ *   - photos: required only if `hadPhotosPreEdit` is true (the listing HAD
+ *     ≥1 photo when this edit session started) — i.e. the seller may not
+ *     strip a live listing down to zero photos, but isn't forced to add one
+ *     to a listing that never had any.
+ *   - location: never required — dropped entirely for "live", matching the
+ *     web form and the API policy exactly.
+ * Every other rule (title/price/category) still applies unconditionally —
+ * a live listing can never be left with a blank title either.
+ *
  * Why this needs to exist outside `zod`:
  *   `listingSchema` (ListingForm.tsx) validates title/price/currency/category
  *   unconditionally, and latitude/longitude only loosely (optional — a draft
@@ -75,11 +96,25 @@ export interface GetPublishBlockersInput {
    * this function with `mode: "draft"` (both to pre-check before mutating
    * and inside its zod `onInvalid` handler), so a blocked draft always
    * produces the same toast + scroll UX as a blocked Publish — never a
-   * silent no-op. "Save" on an already-published listing (editing in place)
-   * DOES run the "publish" rules, since a listing that is already live must
-   * never be left with zero photos or no coordinates either.
+   * silent no-op.
+   * "live" (TASK-P736, review fix, cross-client contract) — "Save" on an
+   * ALREADY-active listing. The location rule is always exempted (dropped
+   * entirely, matching hatiwal-web + the API policy). The photo rule is
+   * exempted UNLESS `hadPhotosPreEdit` is true — see that field's doc and
+   * the file header for why "publish"'s rules can't just be reused here.
    */
-  mode?: "publish" | "draft";
+  mode?: "publish" | "draft" | "live";
+  /**
+   * TASK-P736 (review fix, cross-client contract) — only meaningful when
+   * `mode: "live"`: whether the listing already had ≥1 photo when this edit
+   * session started (i.e. BEFORE any photo the seller just removed in this
+   * session). When true, "live" requires ≥1 photo (the seller may not strip
+   * a live listing down to zero); when false/omitted, "live" never reports
+   * "photos" — a listing that was already photo-less server-side (e.g.
+   * created via hatiwal-web, which has no photo requirement) isn't blocked
+   * from an unrelated edit just because it has no photo.
+   */
+  hadPhotosPreEdit?: boolean;
   /**
    * TASK-P736 (review fix) — react-hook-form's `formState.errors`, keyed by
    * field name (only truthiness of each value is read; pass it straight
@@ -138,11 +173,17 @@ export function getPublishBlockers({
   values,
   photos,
   mode = "publish",
+  hadPhotosPreEdit = false,
   fieldErrors,
 }: GetPublishBlockersInput): PublishBlocker[] {
   const blockers = new Set<PublishBlocker>();
 
-  if (mode === "publish" && (!photos || photos.length === 0)) {
+  // TASK-P736 (review fix, cross-client contract) — "publish" always
+  // requires a photo; "live" only requires one if the listing already had
+  // one before this edit session (see `hadPhotosPreEdit`'s doc); "draft"
+  // never requires one.
+  const requiresPhoto = mode === "publish" || (mode === "live" && hadPhotosPreEdit);
+  if (requiresPhoto && (!photos || photos.length === 0)) {
     blockers.add("photos");
   }
   if (isBlankTitle(values.title)) {
@@ -155,8 +196,10 @@ export function getPublishBlockers({
     blockers.add("category");
   }
   // TASK-V395 — a draft may legitimately have no map pin yet; only Publish
-  // (and "Save" on an already-published listing, which always runs in
-  // "publish" mode) requires exact coordinates.
+  // requires exact coordinates. TASK-P736 (review fix, cross-client
+  // contract) — "live" no longer requires them either: hatiwal-web's form
+  // and the API's publish policy never did, so a web-created or legacy
+  // pin-less active listing must stay editable on mobile.
   if (
     mode === "publish" &&
     (!isFiniteCoordinate(values.latitude) || !isFiniteCoordinate(values.longitude))

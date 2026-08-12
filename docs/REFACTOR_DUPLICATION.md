@@ -6,7 +6,8 @@
 > existing behavior.
 >
 > Produced from a 6-way codebase audit (2026-06-14). Status legend: `⬜ todo` · `🟡 in progress` · `✅ done`.
-> All paths are under `hatiwal-mobile/`. Line numbers are from the audit snapshot — re-confirm before editing.
+> All paths are under `hatiwal-mobile/` unless a ticket is tagged **(web)**, in which case they are
+> under `hatiwal-web/`. Line numbers are from the audit snapshot — re-confirm before editing.
 
 ---
 
@@ -208,6 +209,30 @@ Real `ReportSheet` exists but two call sites fake it: `SellerProfile.tsx:137-154
 - **Pagination:** API fully models it (`listings.ts:62-92`) but **no feed reads `.pagination`/does `onEndReached`** → feeds show page 1 only; `SellerProfile` masks with `pageSize:50`.
 - **Do:** build `<UniversalList config>` per the prompt's `UniversalListConfig<T>` (infinite query, searchable+debounced, refreshable, numColumns, ListHeaderComponent, skeleton grid/rows/custom, EmptyState w/ no-results variant, built-in focus refetch). Plus `useFocusRefetch()` (standardize on `refetch`/`invalidate`, drop the refetchKey integer), `useAppMutation()` (or a global QueryClient `onError`), and export `SkeletonBlock`.
 - **Variants to preserve:** per-screen `numColumns`, search server-vs-client, refresh present/absent (SellerProfile none), SellerProfile's header-in-list + client `useMemo` filter, Conversations' `deletedIds` post-filter, SavedListings' optimistic-unsave filter, Saved being genuinely **non-paginated** (`paginated:false` opt-out). ⚠️ switching `useQuery`→`useInfiniteQuery` changes data shape (`data.pages` vs `data.items`) — migrate each feed's optimistic/filter code in lockstep. Removing refetchKey changes cache identity — migrate keys + dependent optimistic seeding together.
+
+## R19 — **(web)** migrate the hand-rolled `border bg-card` surfaces onto `<Card>` ⬜
+**Impact:** ~20 files repeat one 4-class recipe · **Risk:** low (visual only, no logic)
+`hatiwal-web/src/components/ui/card.tsx` exists and is documented as THE bordered-panel
+surface, but only **2** files import it (`app/[locale]/listings/[id]/page.tsx`,
+`components/listing/owner-listing-bar.tsx`). Everything else still writes
+`rounded-lg border bg-card …` inline, so the radius/border/fill of a "card" is defined ~20
+times — the same failure mode as the mobile tickets above, one client over.
+- **Locations (web):** `account/profile-view.tsx` (stats + about), `account/my-reports-view.tsx`,
+  `shared/review-card.tsx`, `account/pending-reviews-nudge.tsx`, `account/listing-views-chart.tsx`,
+  `chat/conversations-view.tsx`, `chat/blocked-users-view.tsx`, `chat/conversation-thread.tsx`,
+  `chat/quick-replies.tsx`, `app/[locale]/delete-account/page.tsx` (3 sections),
+  `shared/listing-card.tsx` + `shared/listing-card-skeleton.tsx`, `app/[locale]/categories/page.tsx`,
+  `app/[locale]/page.tsx`, `app/[locale]/sellers/[id]/page.tsx`, `account/edit-profile-form.tsx`,
+  `listing/listing-form.tsx`, `browse/browse-client.tsx`, `layout/site-footer.tsx`.
+- **Do:** replace each inline recipe with `<Card className="…">` (or `asChild` where the element
+  must stay a `<section>`/`<article>`/`<li>` — the primitive already supports it).
+- **Variants to preserve:** the two ELEVATED surfaces are deliberate and keep their shadow as a
+  `className`, not as a primitive default — `auth/auth-card.tsx` (`shadow-sm`) and
+  `ui/dialog.tsx` (`shadow-lg`); `shared/listing-card.tsx` lifts to `shadow-md` on hover only.
+  Interactive cards keep their own hover/focus rings. Check light + dark + RTL per file.
+- **Why it is a ticket and not a comment:** `card.tsx` used to *assert* the one-recipe rule as
+  fact, which reads as done and gets a reviewer's trust; the docstring now states the real
+  count and points here (TASK-WEB-OWN947 review).
 
 ---
 

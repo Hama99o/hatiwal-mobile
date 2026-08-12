@@ -32,14 +32,18 @@
  * "Reserved for / Sold to" info in SaleBuyerCard elsewhere; they never see
  * this notice.
  *
- * Composed from shared components only (never hand-rolled): `StatusBadge`
- * and the accent surface both come from `ListingStatusBanner` (also used by
- * ListingDetail's own reserved/sold banner — one status treatment, not two).
- * The seller's positive, viewer-scoped states ("Reserved for you" / "You
- * bought this item", where the buyer is about to meet a stranger in person
- * or is deciding whether to leave a review) show the seller via
- * `UserIdentity` (avatar + name + verified tag). The generic recovery branch
- * deliberately does NOT repeat it.
+ * Composed from shared components only (never hand-rolled): the accent
+ * surface (leading edge + headline) comes from `ListingStatusBanner` (also
+ * used by ListingDetail's own reserved/sold banner — one status treatment,
+ * not two). This notice passes `showBadge={false}` — Conversation.tsx's
+ * `ListingHeader`, ~8px above, already renders a `StatusBadge` beside the
+ * listing title for every viewer, so this screen renders NO `StatusBadge` of
+ * its own; the accent edge + bold headline below still carry the status
+ * without a third restatement of the same fact. The seller's positive,
+ * viewer-scoped states ("Reserved for you" / "You bought this item", where
+ * the buyer is about to meet a stranger in person or is deciding whether to
+ * leave a review) show the seller via `UserIdentity` (avatar + name +
+ * verified tag). The generic recovery branch deliberately does NOT repeat it.
  *
  * TASK-K729 (review fix, MEDIUM — vertical budget + duplicate person UI):
  * the generic recovery state used to render its OWN `UserIdentity` for the
@@ -192,35 +196,34 @@ export function ListingUnavailableNotice({
   // `hasSeller` (needs BOTH id + name) gates "View their listings" — it
   // navigates by `sellerId`, so it's a genuine dead button without one.
   const hasSeller = sellerId != null && !!sellerName;
-  // TASK-K729 (review fix, LOW — dead code + latent dead end): the buyer
-  // identity block and the "Rate {seller}" CTA need ONLY a display name —
-  // neither renders a link that requires `sellerId`. Gating them on the
-  // stricter `hasSeller` (which also required an id) had two costs: (a) it
-  // made the `rateSellerLabel` fallback below permanently unreachable from
-  // its only call site (dead in all 3 locale files), and (b) worse, a real
-  // payload with a `sellerName` but no `sellerId` (a future list->detail
-  // shape change, a partially-anonymized user) would hide the ONLY next step
-  // for "sold + you bought this" while the body copy still promised
-  // "...then leave them a review" — a small instance of the exact
-  // copy-promises-an-action dead end this card exists to remove.
+  // The buyer identity block needs ONLY a display name — it never renders a
+  // link that requires `sellerId` — so it's gated on `hasSellerName`, not the
+  // stricter `hasSeller`. (`canRateSeller` below deliberately does NOT use
+  // this gate — see its own comment.)
   const hasSellerName = !!sellerName;
   const browseSimilarLabel = category
     ? t("chat.thread.unavailable.browseSimilar", { category: getCategoryName(category) })
     : t("chat.thread.unavailable.browseSimilarGeneric");
   const viewTheirListingsLabel = t("chat.thread.unavailable.viewTheirListings");
 
-  // TASK-K729 (review fix, HIGH follow-up): the real next step for "sold +
-  // viewer-is-buyer" — a "Rate {seller}" CTA opening the REV2 review prompt,
-  // so the body copy's "then leave them a review" isn't just text with no
-  // action behind it. Requires the viewer's own transactionId (never leaked
-  // for anyone else) and is hidden once already reviewed. Gated on
-  // `hasSellerName` only (see above) — `sellerId` plays no part in rating.
-  const canRateSeller = isSold && transactionId != null && !hasReviewedSale && hasSellerName;
-  // `hasSellerName` guarantees `sellerName` whenever this label is actually
-  // rendered, so the fallback name only matters for the `counterpartyName`
-  // prop passed to `ReviewPromptSheet` below (defensive — see its comment).
+  // TASK-K729 (review fix, HIGH follow-up, then SHOULD-FIX round 2 — dead end
+  // on the name axis): the real next step for "sold + viewer-is-buyer" — a
+  // "Rate {seller}" CTA opening the REV2 review prompt, so the body copy's
+  // "then leave them a review" isn't just text with no action behind it.
+  // Requires only the viewer's own transactionId (never leaked for anyone
+  // else) and is hidden once already reviewed. Rating genuinely needs
+  // NEITHER a `sellerId` NOR a `sellerName` — gating this on `hasSellerName`
+  // (an earlier version of this fix) reintroduced the exact dead end the
+  // card exists to remove: "sold + viewerIsSaleBuyer + transactionId + no
+  // sellerName" rendered `soldToYouBody` ("...then leave them a review")
+  // with NO CTA behind it. The label below falls back to a generic name
+  // instead, so the CTA is available whenever the viewer can actually rate.
+  const canRateSeller = isSold && transactionId != null && !hasReviewedSale;
+  // `||`, not `??` — a `sellerName` of `""` (not just missing) should also
+  // fall back to the generic label, mirroring the identical `||` fallback on
+  // `ReviewPromptSheet`'s `counterpartyName` prop below.
   const rateSellerLabel = t("chat.thread.unavailable.rateSeller", {
-    name: sellerName as string,
+    name: sellerName || t("chat.thread.unavailable.rateSellerGenericName"),
   });
 
   return (
@@ -252,9 +255,10 @@ export function ListingUnavailableNotice({
             — TASK-K729 (review fix, LOW): previously nested inside
             `canRateSeller`, so "Reserved for you" (about to meet a stranger
             in person) and the already-reviewed sold state rendered with no
-            identity at all. Gated on `hasSellerName` (not `hasSeller`) —
-            this identity block never links anywhere, so it needs a name and
-            avatar only, not a `sellerId`. */}
+            identity at all. This identity block (unlike `canRateSeller`
+            below, which needs neither) is gated on `hasSellerName` — not
+            `hasSeller` — since it never links anywhere, so it needs a name
+            and avatar only, not a `sellerId`. */}
         {viewerIsSaleBuyer && (
           <View style={{ gap: 10, marginTop: 2 }}>
             {hasSellerName && (
@@ -281,10 +285,18 @@ export function ListingUnavailableNotice({
                 style={{ alignSelf: isRtl ? "flex-end" : "flex-start", minWidth: 0, maxWidth: "100%" }}
               >
                 <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6, flexShrink: 1 }}>
-                  <Star size={14} color={colors.primaryForeground} />
+                  {/* TASK-K729 (review fix, LOW-MEDIUM — typography / action
+                      hierarchy): was `size={14}` + `fontSize: 12` — 12 is the
+                      house META size (DESIGN_SYSTEM.md §3: `text-xs
+                      text-muted-foreground`), while the house PRIMARY action
+                      label is 14/600 with 16-18px icons (EmptyState.tsx,
+                      Profile.tsx's QuickActionCard). This is the winning
+                      buyer's only next step on a dead thread — it should read
+                      as loud as any other primary CTA, not a caption. */}
+                  <Star size={16} color={colors.primaryForeground} />
                   <Text
                     numberOfLines={1}
-                    style={{ fontSize: 12, fontWeight: "600", color: colors.primaryForeground, flexShrink: 1 }}
+                    style={{ fontSize: 14, fontWeight: "600", color: colors.primaryForeground, flexShrink: 1 }}
                   >
                     {rateSellerLabel}
                   </Text>
@@ -315,8 +327,14 @@ export function ListingUnavailableNotice({
                 truncating the PRIMARY recovery CTA mid-word (worst in
                 ps/fa, whose labels run longer than English). `numberOfLines={2}`
                 is defensive wrapping if a label is ever still too long for
-                one line at full width. */}
-            <View style={{ flexDirection: "column", gap: 8 }}>
+                one line at full width.
+                TASK-K729 (review fix, LOW — touch-target abutment): `gap: 8`
+                used to exactly equal the ghost button's `hitSlop.top: 8`
+                below, so the two hit regions abutted with 0dp of slack — any
+                future gap tightening would silently steal taps from the
+                PRIMARY "Browse similar" CTA (the ghost link is the later
+                sibling and wins overlaps). `gap: 12` restores real slack. */}
+            <View style={{ flexDirection: "column", gap: 12 }}>
               {/* Always present — the one guaranteed recovery action, so no
                   dead end remains. Primary weight (variant="default") mirrors
                   the web recovery card's own CTA priority (TASK-WEB-SOLDNEXT). */}
@@ -328,10 +346,15 @@ export function ListingUnavailableNotice({
                 accessibilityLabel={browseSimilarLabel}
               >
                 <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6, flexShrink: 1 }}>
-                  <Search size={14} color={colors.primaryForeground} />
+                  {/* TASK-K729 (review fix, LOW-MEDIUM — typography / action
+                      hierarchy): was `size={14}` + `fontSize: 12` (the house
+                      META size) on the PRIMARY recovery CTA for a dead
+                      thread — bumped to the house primary-action treatment
+                      (14/600 + 16px icon, see the Rate-seller CTA above). */}
+                  <Search size={16} color={colors.primaryForeground} />
                   <Text
                     numberOfLines={2}
-                    style={{ fontSize: 12, fontWeight: "600", color: colors.primaryForeground, flexShrink: 1 }}
+                    style={{ fontSize: 14, fontWeight: "600", color: colors.primaryForeground, flexShrink: 1 }}
                   >
                     {browseSimilarLabel}
                   </Text>
@@ -355,10 +378,14 @@ export function ListingUnavailableNotice({
                 // seller-recovery action on a dead thread shrank from a
                 // full-width 44pt target to a ~36pt, label-width one, right
                 // above the composer (the thumb zone). `hitSlop` restores an
-                // effective >=44pt target (36 + 8 top + 8 bottom = 52) and
+                // effective >=44pt target (36 + top 4 + bottom 12 = 52) and
                 // widens the horizontal hit area without giving back the
                 // reclaimed visual height — `Button` spreads `...props` onto
-                // `TouchableOpacity`, so this passes through as-is.
+                // `TouchableOpacity`, so this passes through as-is. Biased
+                // toward `bottom` (this button is the LAST item above the
+                // composer, so there's nothing below to abut) and away from
+                // `top` (see the `gap: 12` note above — the 0dp-slack
+                // abutment this asymmetry avoids).
                 <Button
                   variant="ghost"
                   size="sm"
@@ -366,7 +393,7 @@ export function ListingUnavailableNotice({
                   testID="unavailable-more-from-seller"
                   accessibilityRole="button"
                   accessibilityLabel={viewTheirListingsLabel}
-                  hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
+                  hitSlop={{ top: 4, bottom: 12, left: 16, right: 16 }}
                   style={{ alignSelf: "center" }}
                 >
                   <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6, flexShrink: 1 }}>
@@ -374,7 +401,7 @@ export function ListingUnavailableNotice({
                     <Text
                       numberOfLines={2}
                       style={{
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: "600",
                         color: colors.foreground,
                         textDecorationLine: "underline",
@@ -407,11 +434,12 @@ export function ListingUnavailableNotice({
         onClose={() => setReviewPromptVisible(false)}
         transactionId={transactionId ?? 0}
         callerRole="buyer"
-        // TASK-K729 (review fix, LOW): `||`, not `??` — `canRateSeller`
-        // guarantees `sellerName` is truthy whenever this sheet is actually
-        // opened via the Rate CTA, but this prop is passed unconditionally
-        // (the sheet is always mounted), so the fallback is purely
-        // defensive. `??` only triggers on null/undefined, not on `""` — the
+        // TASK-K729 (review fix, LOW, then SHOULD-FIX round 2): `||`, not
+        // `??` — `canRateSeller` does NOT require a `sellerName` (rating
+        // needs neither an id nor a name), so this fallback is a REAL path,
+        // not just defensive padding for an unconditionally-mounted sheet.
+        // Mirrors `rateSellerLabel`'s identical fallback above — one rule,
+        // not two. `??` only triggers on null/undefined, not on `""` — the
         // exact empty-string hole that produced a blank avatar and a
         // double-spaced sheet title before this fix.
         counterpartyName={sellerName || t("chat.thread.unavailable.rateSellerGenericName")}

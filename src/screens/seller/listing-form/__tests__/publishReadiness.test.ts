@@ -202,6 +202,64 @@ describe("getPublishBlockers — location rule", () => {
   });
 });
 
+describe("getPublishBlockers — 'live' mode (review fix, cross-client contract)", () => {
+  it("does not report 'photos' with zero photos when hadPhotosPreEdit is false (a web-created, photo-less active listing must stay editable)", () => {
+    const blockers = getPublishBlockers({
+      values: validValues,
+      photos: [],
+      mode: "live",
+      hadPhotosPreEdit: false,
+    });
+    expect(blockers).not.toContain("photos");
+  });
+
+  it("defaults hadPhotosPreEdit to false when omitted — never blocks photos in 'live' mode by default", () => {
+    const blockers = getPublishBlockers({ values: validValues, photos: [], mode: "live" });
+    expect(blockers).not.toContain("photos");
+  });
+
+  it("DOES report 'photos' with zero photos when hadPhotosPreEdit is true (seller stripped a previously-photographed live listing down to zero)", () => {
+    const blockers = getPublishBlockers({
+      values: validValues,
+      photos: [],
+      mode: "live",
+      hadPhotosPreEdit: true,
+    });
+    expect(blockers).toContain("photos");
+  });
+
+  it("does not report 'photos' when hadPhotosPreEdit is true but photos are still present", () => {
+    const blockers = getPublishBlockers({
+      values: validValues,
+      photos: onePhoto,
+      mode: "live",
+      hadPhotosPreEdit: true,
+    });
+    expect(blockers).not.toContain("photos");
+  });
+
+  it("never reports 'location' in 'live' mode, even with no coordinates — matches hatiwal-web/the API, which never required them", () => {
+    const blockers = getPublishBlockers({
+      values: { ...validValues, latitude: undefined, longitude: undefined },
+      photos: onePhoto,
+      mode: "live",
+      hadPhotosPreEdit: true,
+    });
+    expect(blockers).not.toContain("location");
+    expect(blockers).toEqual([]);
+  });
+
+  it("still enforces title/price/category in 'live' mode", () => {
+    const blockers = getPublishBlockers({
+      values: { ...validValues, title: "", latitude: undefined, longitude: undefined },
+      photos: [],
+      mode: "live",
+      hadPhotosPreEdit: false,
+    });
+    expect(blockers).toEqual<PublishBlocker[]>(["title"]);
+  });
+});
+
 describe("getPublishBlockers — fieldErrors backstop (review fix, never-silent onInvalid)", () => {
   it("does nothing when there are no fieldErrors and the listing is valid", () => {
     expect(

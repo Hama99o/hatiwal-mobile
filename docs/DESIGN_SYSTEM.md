@@ -60,12 +60,16 @@ const colors = useColors();
 
 ### Listing status → badge color (use everywhere a status appears)
 
-| Status | Token / variant | Meaning |
-|---|---|---|
-| `draft` | `muted` (grey) | Not yet published; only the owner sees it |
-| `active` | `success` (green) | Live, visible to buyers, open for chat |
-| `reserved` | `warning` (amber) | Held for a buyer; negotiation in progress |
-| `sold` | `secondary`/grey, dimmed | Done; archived |
+| Status | Token / variant | Edge (accent border) | Meaning |
+|---|---|---|---|
+| `draft` | `muted` (grey) | `border` | Not yet published; only the owner sees it |
+| `active` | `success` (green) | `success` | Live, visible to buyers, open for chat |
+| `reserved` | `warning` (amber) | `warning` | Held for a buyer; negotiation in progress |
+| `sold` | `secondary`/grey, dimmed | `mutedForeground` | Done; archived |
+
+The **Edge** column is a third, separate token (`getStatusAccent().edge` in `statusAccent.ts`) used only for a leading accent *border* (e.g. `ListingStatusBanner`'s `layout="row"` card) — it is tuned for "how loud should this state's accent bar read", which is deliberately NOT the same value as the badge label color for `sold` (that one is `secondaryForeground`, near-white in dark mode — too loud for a border).
+
+`StatusBadge` additionally draws a 1px, 25%-alpha border in the label's own color (`withAlpha(accent.text, 0.25)`) around every pill, so the badge keeps a visible shape even on a low-contrast fill (e.g. `sold` on a `card` surface).
 
 Define one `<StatusBadge status={listing.status} />` in `src/components/common/` and use it on every surface (card, detail, my-listings). Map the status enum → token there once.
 
