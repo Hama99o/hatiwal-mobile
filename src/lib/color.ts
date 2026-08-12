@@ -28,10 +28,28 @@
  * class of bug this helper was promoted to eliminate, so an already-alpha'd
  * input now has its trailing alpha component REPLACED with the requested
  * one instead of falling through. Any other unrecognised format (a named
- * color like `"transparent"`, an `hsl()`-with-percent-alpha `#rrggbbaa`,
- * etc.) now warns loudly in dev instead of silently handing back an opaque
- * value with no signal that the alpha was ignored.
+ * color like `"transparent"`, a malformed hex, or a hex SHAPE this helper
+ * doesn't parse — see the `#` branch below) now warns loudly in dev instead
+ * of silently handing back an opaque value with no signal that the alpha
+ * was ignored.
+ *
+ * TASK-K729 (review fix, LOW — correctness + doc mismatch): the `#` branch
+ * used to accept ANY `#`-prefixed string and only special-cased length 3, so
+ * an 8-digit `#rrggbbaa` (or a 4-digit `#rgba`) was parsed as a single
+ * 24/32-bit int — `parseInt("12345678", 16) >> 16 & 255` reads the green/
+ * blue bytes as if they were red/green, silently returning the WRONG hue —
+ * and a malformed hex like `#zzz` parsed to `NaN`, which the `&`/`>>`
+ * bitwise ops coerce to 0, i.e. silent BLACK with no warning at all. Only a
+ * strict 3- or 6-digit hex is parsed (checked AFTER the 3->6 expansion);
+ * every other hex shape now falls through to the same `__DEV__` warn branch
+ * as any other unrecognised format, instead of guessing.
  */
+// TASK-K729 (review fix, LOW — spam guard): `ListingStatusBanner` (and now
+// `StatusBadge`) call `withAlpha` on every render, so an unrecognised token
+// would otherwise warn once per frame. Dedupe by the exact input string —
+// each distinct bad value still warns exactly once per app session.
+const warnedUnrecognisedColors = new Set<string>();
+
 export function withAlpha(color: string, alpha: number): string {
   const c = color.trim();
   if (c.startsWith("hsl(")) return c.replace("hsl(", "hsla(").replace(")", `, ${alpha})`);
@@ -49,13 +67,20 @@ export function withAlpha(color: string, alpha: number): string {
   if (c.startsWith("#")) {
     let hex = c.slice(1);
     if (hex.length === 3) hex = hex.split("").map((x) => x + x).join("");
-    const n = parseInt(hex, 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+    // Only a well-formed 6-digit hex (after 3->6 expansion) is safe to parse
+    // as a single 24-bit RGB int — see the docstring above for what an
+    // 8-digit `#rrggbbaa`, an un-expanded 4-digit `#rgba`, or a malformed
+    // hex would otherwise silently produce.
+    if (/^[0-9a-f]{6}$/i.test(hex)) {
+      const n = parseInt(hex, 16);
+      return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+    }
   }
   // Unrecognised format — warn loudly in dev instead of silently returning an
   // opaque value with the requested alpha discarded (the bug this helper
   // exists to eliminate).
-  if (__DEV__) {
+  if (__DEV__ && !warnedUnrecognisedColors.has(c)) {
+    warnedUnrecognisedColors.add(c);
     // eslint-disable-next-line no-console
     console.warn(
       `withAlpha: unrecognised color format "${c}" — returning it unchanged; alpha ${alpha} was NOT applied.`

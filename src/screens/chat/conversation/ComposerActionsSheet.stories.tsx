@@ -17,9 +17,11 @@ type Story = StoryObj<typeof ComposerActionsSheet>;
 function ComposerActionsSheetDemo({
   canMakeOffer = true,
   disabled = false,
+  offerUnavailableReason,
 }: {
   canMakeOffer?: boolean;
   disabled?: boolean;
+  offerUnavailableReason?: string;
 }) {
   const [visible, setVisible] = useState(false);
   return (
@@ -36,6 +38,7 @@ function ComposerActionsSheetDemo({
         onMakeOffer={() => console.log("make offer")}
         canMakeOffer={canMakeOffer}
         disabled={disabled}
+        offerUnavailableReason={offerUnavailableReason}
       />
     </View>
   );
@@ -59,10 +62,13 @@ export const OfferRowShown: Story = {
   },
 };
 
-// Offer row hidden — closed conversation, deleted/reserved/sold listing
-// (TASK-K729), or firm price (mirrors Conversation.tsx's
-// canOfferInThread === false). Photo/File/Meetup rows still show — only the
-// offer row is gated.
+// Offer row hidden entirely — closed conversation, deleted listing, or firm
+// price (mirrors Conversation.tsx's canOfferInThread === false with NO
+// `offerUnavailableReason`). TASK-K729 (review fix, MEDIUM — states/story
+// coverage): reserved/sold is NOT one of these cases anymore — it renders
+// the row DISABLED with a reason instead (see `OfferRowDisabledReason`
+// below), so it's deliberately excluded from this list now. Photo/File/
+// Meetup rows still show — only the offer row is gated.
 export const OfferRowHidden: Story = {
   args: {
     visible: true,
@@ -72,6 +78,46 @@ export const OfferRowHidden: Story = {
     onProposeMeetup: () => {},
     onMakeOffer: () => {},
     canMakeOffer: false,
+  },
+};
+
+// TASK-K729 (review fix, MEDIUM — states/story coverage): the offer row is
+// hidden SPECIFICALLY because the pinned listing is reserved/sold —
+// `offerUnavailableReason` renders it anyway, disabled, dimmed to
+// `colors.mutedForeground`, with a one-line reason subtitle instead of a
+// silent gap (the same "explicit reason, not a vanished button" fix as the
+// in-thread ListingUnavailableNotice, surfaced here too since a buyer/seller
+// might tap "+" looking for it before ever seeing the notice).
+export const OfferRowDisabledReason: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onPhoto: () => {},
+    onFile: () => {},
+    onProposeMeetup: () => {},
+    onMakeOffer: () => {},
+    canMakeOffer: false,
+    offerUnavailableReason: "Item sold",
+  },
+};
+
+// Same reserved/sold reason row, but with an upload ALSO in flight — shows
+// the two opacity paths are distinct: `disabled` dims the WHOLE row
+// (including the reason subtitle) via the sheet-level 0.5 opacity, while the
+// reason row's own icon/label dimming (mutedForeground, subtitle unaffected)
+// applies regardless. Together they compound, which this story lets a
+// reviewer eyeball in light and dark.
+export const OfferRowDisabledReasonUploading: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onPhoto: () => {},
+    onFile: () => {},
+    onProposeMeetup: () => {},
+    onMakeOffer: () => {},
+    canMakeOffer: false,
+    offerUnavailableReason: "Item sold",
+    disabled: true,
   },
 };
 

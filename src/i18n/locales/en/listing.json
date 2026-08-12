@@ -205,7 +205,9 @@
     "negotiableLabel": "Price is negotiable",
     "publishBlocked": "Add {{fields}} to publish this listing",
     "draftBlocked": "Add {{fields}} to save this draft",
+    "liveBlocked": "Add {{fields}} to keep this listing live",
     "photoRequired": "Add at least one photo before publishing",
+    "photoRequiredLive": "A live listing needs at least one photo",
     "invalidGeneric": "Please check the highlighted fields before continuing.",
     "publishSuccess": {
       "title": "Your listing is live!",

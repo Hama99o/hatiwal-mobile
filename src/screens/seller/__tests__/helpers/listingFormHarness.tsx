@@ -103,6 +103,9 @@ export function lucideIconsMock(extra: Record<string, string> = {}) {
     Copy: "Copy",
     AlertCircle: "AlertCircle",
     WifiOff: "WifiOff",
+    // TASK-P736 (review fix, CR round 3) — the `isEditIdInvalid` ("listing
+    // not found", a bad deep-link id) state added this round.
+    PackageX: "PackageX",
     ...extra,
   };
 }

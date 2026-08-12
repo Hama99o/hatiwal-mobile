@@ -221,6 +221,29 @@ describe('ListingUnavailableNotice — "View their listings" action (no duplicat
     expect(screen.queryByText("Ahmad Karimi")).toBeNull();
   });
 
+  // TASK-K729 (review fix, MEDIUM — must fix, touch target regression): this
+  // button is `variant="ghost" size="sm"` (minHeight: 36, button.tsx) with
+  // `alignSelf: "center"` shrinking its width to the label — below the
+  // DESIGN_SYSTEM.md §3 44px minimum, and it's the LAST item above the
+  // composer (the thumb zone). `hitSlop` must restore an effective >=44pt
+  // target so this can't silently regress a third time (see
+  // docs/SPRINT_BOARD_ARCHIVE.md's earlier Profile.tsx fix for the same class
+  // of defect).
+  it("has a hitSlop that restores an effective >=44pt touch target on the demoted ghost/sm button", () => {
+    render(<ListingUnavailableNotice status="reserved" sellerId={9} sellerName="Ahmad Karimi" />);
+    const button = screen.getByTestId("unavailable-more-from-seller");
+    expect(button.props.hitSlop).toBeTruthy();
+    const { top = 0, bottom = 0, left = 0, right = 0 } =
+      typeof button.props.hitSlop === "number"
+        ? { top: button.props.hitSlop, bottom: button.props.hitSlop, left: button.props.hitSlop, right: button.props.hitSlop }
+        : button.props.hitSlop;
+    // size="sm" is a 36pt button (button.tsx) — top+bottom hitSlop must add
+    // back at least the missing 8pt to clear the 44pt minimum.
+    expect(top + bottom).toBeGreaterThanOrEqual(8);
+    expect(left).toBeGreaterThan(0);
+    expect(right).toBeGreaterThan(0);
+  });
+
   it("does NOT render the seller action when sellerId is missing", () => {
     render(<ListingUnavailableNotice status="reserved" sellerName="Ahmad Karimi" />);
     expect(screen.queryByTestId("unavailable-more-from-seller")).toBeNull();
@@ -264,19 +287,28 @@ describe("ListingUnavailableNotice — RTL", () => {
   });
 });
 
-// ── 7. Shared StatusBadge (dedup fix) ──────────────────────────────────────────
+// ── 7. StatusBadge pill deliberately suppressed (redundant chrome) ────────────
+//
+// TASK-K729 (review fix, LOW — redundant chrome): ListingHeader (the pinned
+// card ~8px above this notice) already renders a `StatusBadge` beside the
+// listing title for EVERY viewer, so this notice passes `showBadge={false}`
+// to `ListingStatusBanner` — the leading accent edge + the headline below
+// ("Item sold" / "Reserved for you") still carry the status without a THIRD
+// restatement of the same fact. `ListingStatusBanner.test.tsx` covers
+// `showBadge`'s own default-true/false behaviour directly.
 
-describe("ListingUnavailableNotice — shared StatusBadge", () => {
-  it("renders the status label via the shared StatusBadge token map", () => {
+describe("ListingUnavailableNotice — StatusBadge pill suppressed (no duplicate chrome)", () => {
+  it("does NOT render the shared StatusBadge pill for status='reserved' — ListingHeader already shows one", () => {
     render(<ListingUnavailableNotice status="reserved" />);
-    // StatusBadge renders `listing.status.${status}` — the real i18n key,
-    // present exactly once via the shared component (not a forked chip).
-    expect(screen.getByText("listing.status.reserved")).toBeTruthy();
+    expect(screen.queryByText("listing.status.reserved")).toBeNull();
+    // The headline still communicates the state in words.
+    expect(screen.getByText("chat.thread.unavailable.reservedTitle")).toBeTruthy();
   });
 
-  it("renders the sold status label via StatusBadge too", () => {
+  it("does NOT render the shared StatusBadge pill for status='sold' either", () => {
     render(<ListingUnavailableNotice status="sold" />);
-    expect(screen.getByText("listing.status.sold")).toBeTruthy();
+    expect(screen.queryByText("listing.status.sold")).toBeNull();
+    expect(screen.getByText("chat.thread.unavailable.soldTitle")).toBeTruthy();
   });
 });
 
@@ -325,12 +357,11 @@ describe("ListingUnavailableNotice — Rate seller CTA (sold + viewerIsSaleBuyer
   });
 
   // ── TASK-K729 (review fix, LOW) ─────────────────────────────────────────────
-  // Without `hasSeller` gating `canRateSeller`, this exact combination (sold +
-  // viewerIsSaleBuyer + transactionId, no sellerName) rendered the button
-  // anyway — label falls back to the generic name — but tapping it opened
-  // ReviewPromptSheet with `counterpartyName=""` (an EMPTY string, since
-  // `"" ?? x` never fires), producing a double-spaced sheet title and a blank
-  // avatar instead of the "?" fallback.
+  // `canRateSeller` is gated on `hasSellerName` (a display name only) — NOT
+  // `hasSeller` (name + id). The Rate CTA never links anywhere by
+  // `sellerId`; `ReviewPromptSheet` only ever needs a `transactionId` + a
+  // display name. Without a `sellerName`, the button is correctly hidden
+  // (it has nothing to label itself with or pass to the sheet).
   it("does NOT render the Rate seller CTA when sellerName is missing, even with a transactionId present (would open the review sheet with an empty counterparty)", () => {
     render(
       <ListingUnavailableNotice status="sold" viewerIsSaleBuyer transactionId={42} sellerId={9} />
@@ -338,7 +369,12 @@ describe("ListingUnavailableNotice — Rate seller CTA (sold + viewerIsSaleBuyer
     expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
   });
 
-  it("does NOT render the Rate seller CTA when sellerId is missing, even with a sellerName present", () => {
+  // TASK-K729 (review fix, LOW — the actual dead-end bug this gate change
+  // fixes): a `sellerName` with NO `sellerId` (a future list->detail shape
+  // change, a partially-anonymized user) used to hide the ONLY next step for
+  // "sold + you bought this" while the body copy still promised "...then
+  // leave them a review" — rating a seller has never needed their id.
+  it("DOES render the Rate seller CTA when sellerId is missing but sellerName is present — rating never needed an id", () => {
     render(
       <ListingUnavailableNotice
         status="sold"
@@ -347,7 +383,12 @@ describe("ListingUnavailableNotice — Rate seller CTA (sold + viewerIsSaleBuyer
         sellerName="Ahmad Karimi"
       />
     );
-    expect(screen.queryByTestId("unavailable-rate-seller")).toBeNull();
+    expect(screen.getByTestId("unavailable-rate-seller")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("unavailable-rate-seller"));
+    const lastProps = (ReviewPromptSheet as jest.Mock).mock.calls.at(-1)?.[0];
+    // The real name is used — never the generic fallback — since it IS present.
+    expect(lastProps).toMatchObject({ visible: true, counterpartyName: "Ahmad Karimi" });
   });
 
   it("opens the REV2 ReviewPromptSheet with the viewer's own transactionId and callerRole='buyer' when tapped", () => {

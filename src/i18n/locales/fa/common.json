@@ -42,6 +42,7 @@
   "confirm": "تأیید",
   "language": "زبان",
   "retry": "تلاش مجدد",
+  "listSeparator": "، ",
   "notFound": "یافت نشد",
   "required": "الزامی است",
   "comingSoon": "به زودی",

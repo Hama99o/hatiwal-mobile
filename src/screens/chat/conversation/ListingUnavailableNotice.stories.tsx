@@ -193,11 +193,15 @@ export const Width360DpPashtoRtl: Story = {
 };
 
 // TASK-K729 (review fix, LOW — test/story coverage): `Width360Dp` above only
-// covers `status="reserved"` — `sold` is the state where BOTH the
-// `StatusBadge` pill and the "View their listings" button's border
-// historically lost contrast against the accent-filled banner (fixed by
-// ListingStatusBanner's `layout="row"` colors.card surface), so it needs its
-// own 360dp regression guard too.
+// covers `status="reserved"` — `sold` is the state where the `StatusBadge`
+// pill (now suppressed here via `showBadge={false}`, see the redundant-
+// chrome fix) and the leading accent edge historically needed the most
+// separate contrast attention: the edge now reads from the DEDICATED
+// `accent.edge` token (statusAccent.ts), not the pill-tuned `accent.text` —
+// for `sold` those are two different greys, so this story is the regression
+// guard for BOTH the layout AND that color choice at 360dp, not a button
+// border (the "View their listings" button is a borderless ghost/sm text
+// link after its own vertical-budget demotion, see that button's comment).
 export const Width360DpSold: Story = {
   decorators: [
     (Story) => (

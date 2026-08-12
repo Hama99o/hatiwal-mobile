@@ -71,4 +71,66 @@ describe("withAlpha", () => {
     warnSpy.mockRestore();
     (global as { __DEV__?: boolean }).__DEV__ = originalDev;
   });
+
+  // ── TASK-K729 (review fix, LOW — correctness + doc mismatch) ──────────────
+  // Before this fix, the `#` branch accepted ANY `#`-prefixed string and only
+  // special-cased length 3 — an 8-digit `#rrggbbaa` (or an un-expanded 4-digit
+  // `#rgba`) was parsed as a single int and read the wrong bytes as r/g/b,
+  // and a malformed hex parsed to NaN -> silent BLACK. All three now fall
+  // through to the same dev-warn branch instead of misreading the color.
+  it("falls through to the dev warning for an 8-digit #rrggbbaa hex instead of misreading the channels", () => {
+    const originalDev = (global as { __DEV__?: boolean }).__DEV__;
+    (global as { __DEV__?: boolean }).__DEV__ = true;
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    // Before the fix: parseInt("12345678", 16) >> 16 & 255 = 52 (0x34), i.e.
+    // the GREEN byte read as RED — a visibly wrong hue with no signal at all.
+    expect(withAlpha("#12345678", 0.2)).toBe("#12345678");
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    warnSpy.mockRestore();
+    (global as { __DEV__?: boolean }).__DEV__ = originalDev;
+  });
+
+  it("falls through to the dev warning for a 4-digit #rgba hex instead of misreading the channels", () => {
+    const originalDev = (global as { __DEV__?: boolean }).__DEV__;
+    (global as { __DEV__?: boolean }).__DEV__ = true;
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    expect(withAlpha("#1234", 0.2)).toBe("#1234");
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    warnSpy.mockRestore();
+    (global as { __DEV__?: boolean }).__DEV__ = originalDev;
+  });
+
+  it("falls through to the dev warning for a malformed hex instead of silently returning black", () => {
+    const originalDev = (global as { __DEV__?: boolean }).__DEV__;
+    (global as { __DEV__?: boolean }).__DEV__ = true;
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    // Before the fix: parseInt("zzzzzz", 16) is NaN, and NaN >> 16 & 255 is 0
+    // for every channel — silent BLACK, with no dev signal at all.
+    expect(withAlpha("#zzzzzz", 0.2)).toBe("#zzzzzz");
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    warnSpy.mockRestore();
+    (global as { __DEV__?: boolean }).__DEV__ = originalDev;
+  });
+
+  // ── TASK-K729 (review fix, LOW — spam guard) ───────────────────────────────
+  it("only warns ONCE per distinct unrecognised input across repeated calls (e.g. a value re-checked on every render)", () => {
+    const originalDev = (global as { __DEV__?: boolean }).__DEV__;
+    (global as { __DEV__?: boolean }).__DEV__ = true;
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    withAlpha("cornflowerblue", 0.2);
+    withAlpha("cornflowerblue", 0.4);
+    withAlpha("cornflowerblue", 0.6);
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    warnSpy.mockRestore();
+    (global as { __DEV__?: boolean }).__DEV__ = originalDev;
+  });
 });

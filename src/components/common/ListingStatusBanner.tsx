@@ -36,6 +36,12 @@
  * `StatusBadge` and `SaleBuyerCard` read — so reserved/sold render identically
  * everywhere. Entrance animation guarded by `reduceMotion` (caller passes
  * `useReduceMotion()`), matching the house pattern (DESIGN_SYSTEM.md §7).
+ *
+ * TASK-K729 (review fix, LOW — redundant chrome): `showBadge` (default true)
+ * lets a caller that already shows a `StatusBadge` immediately above this
+ * banner (ListingHeader does, in the chat thread) omit the second, identical
+ * pill here — the leading accent edge + headline still carry the status, so
+ * nothing is lost, just one fewer restatement of the same fact.
  */
 import React from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
@@ -77,6 +83,17 @@ export interface ListingStatusBannerProps {
    * the base layout.
    */
   style?: StyleProp<ViewStyle>;
+  /**
+   * TASK-K729 (review fix, LOW — redundant chrome): `layout="row"`'s own
+   * `StatusBadge` pill is now a THIRD restatement of the same status on
+   * ListingUnavailableNotice — ListingHeader already renders a `StatusBadge`
+   * beside the listing title ~8px above this banner, and the headline below
+   * restates it again in words ("Item sold"). Default `true` (unchanged for
+   * ListingDetail's own strip, which has no other badge on screen). Pass
+   * `false` to omit the pill when a caller already shows one immediately
+   * above — the leading accent edge + headline still carry the status.
+   */
+  showBadge?: boolean;
 }
 
 export function ListingStatusBanner({
@@ -88,6 +105,7 @@ export function ListingStatusBanner({
   testID,
   children,
   style,
+  showBadge = true,
 }: ListingStatusBannerProps) {
   const colors = useColors();
   const { isRtl } = useLocalization();
@@ -139,8 +157,18 @@ export function ListingStatusBanner({
                 // property RN mirrors automatically for RTL (native forceRTL
                 // is already on, see i18n/index.ts), so no manual isRtl flip
                 // is needed here, unlike a plain `borderLeftWidth`.
+                //
+                // TASK-K729 (review fix, MEDIUM — dark mode / status
+                // hierarchy): deliberately `accent.edge`, NOT `accent.text`.
+                // `text` is tuned for LABEL legibility (StatusBadge's pill),
+                // so for `sold` it's `secondaryForeground` — near-black in
+                // light, near-WHITE in dark — which made the archived/dimmed
+                // state the loudest element in the whole notice, louder than
+                // the primary CTA and 5x louder than the amber `reserved`
+                // edge. `edge` is tuned for "how loud should this bar be" —
+                // see statusAccent.ts's docstring for the full mapping.
                 borderStartWidth: 4,
-                borderStartColor: accent.text,
+                borderStartColor: accent.edge,
               }),
         },
         style,
@@ -154,7 +182,7 @@ export function ListingStatusBanner({
           justifyContent: isStrip ? "center" : "flex-start",
         }}
       >
-        <StatusBadge status={status} />
+        {showBadge ? <StatusBadge status={status} /> : null}
         <Text
           style={{
             fontSize: 13,

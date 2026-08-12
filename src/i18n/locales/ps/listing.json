@@ -205,7 +205,9 @@
     "negotiableLabel": "قیمت د خبرو وړ دی",
     "publishBlocked": "د دې اعلان خپرولو لپاره {{fields}} اضافه کړئ",
     "draftBlocked": "د دې مسوده ساتلو لپاره {{fields}} اضافه کړئ",
+    "liveBlocked": "د دې اعلان فعال ساتلو لپاره {{fields}} اضافه کړئ",
     "photoRequired": "له خپرولو دمخه لږ تر لږه یو انځور اضافه کړئ",
+    "photoRequiredLive": "یو فعال اعلان ته لږ تر لږه یو انځور اړین دی",
     "invalidGeneric": "له دوام ورکولو دمخه ځانګړي شوي ساحې کره کړئ.",
     "publishSuccess": {
       "title": "ستاسو اعلان خپور شو!",

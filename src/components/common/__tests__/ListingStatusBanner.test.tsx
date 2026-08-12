@@ -100,6 +100,36 @@ describe("ListingStatusBanner", () => {
     expect(flat.borderStartColor).toBe("hsl(38,92%,40%)"); // colors.warning (reserved accent.text)
   });
 
+  // TASK-K729 (review fix, MEDIUM — dark mode / status hierarchy): `sold`
+  // must NOT reuse `accent.text` (secondaryForeground — near-white in dark
+  // mode) for the leading edge — that made the archived/dimmed state the
+  // loudest element on the whole notice. It uses the dedicated `accent.edge`
+  // (mutedForeground) instead. The `reserved` case above already pins
+  // `edge === text` (colors.warning) since that state SHOULD be attention-
+  // grabbing — this test is the one that would have caught the regression.
+  it("uses the dedicated mutedForeground edge for 'sold', NOT secondaryForeground (which is near-white in dark mode)", () => {
+    render(<ListingStatusBanner status="sold" title="Item sold" layout="row" testID="sold-row" />);
+    const node = screen.getByTestId("sold-row");
+    const flat = StyleSheet.flatten(node.props.style);
+
+    expect(flat.borderStartColor).toBe("hsl(215,16%,47%)"); // colors.mutedForeground (mocked)
+    expect(flat.borderStartColor).not.toBe("hsl(222,47%,11%)"); // colors.secondaryForeground (mocked) — the old, too-loud value
+  });
+
+  // TASK-K729 (review fix, LOW — redundant chrome): `showBadge={false}` lets
+  // a caller that already shows a `StatusBadge` elsewhere in its own chrome
+  // (ListingHeader, in the chat thread) omit this SECOND, identical pill.
+  it("renders the StatusBadge pill by default", () => {
+    render(<ListingStatusBanner status="sold" title="Item sold" layout="row" />);
+    expect(screen.getByText("listing.status.sold")).toBeTruthy();
+  });
+
+  it("omits the StatusBadge pill when showBadge=false, while keeping the headline", () => {
+    render(<ListingStatusBanner status="sold" title="Item sold" layout="row" showBadge={false} />);
+    expect(screen.queryByText("listing.status.sold")).toBeNull();
+    expect(screen.getByText("Item sold")).toBeTruthy();
+  });
+
   it("resolves the strip layout's bottom border to a real hsla() alpha channel, not an opaque hsl() string", () => {
     render(<ListingStatusBanner status="sold" title="Item sold" layout="strip" testID="alpha-strip" />);
     const node = screen.getByTestId("alpha-strip");

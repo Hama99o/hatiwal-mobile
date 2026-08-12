@@ -39,8 +39,9 @@ import {
   LayoutChangeEvent,
   BackHandler,
   ActivityIndicator,
+  AccessibilityInfo,
 } from "react-native";
-import { ChevronRight, ChevronLeft, MapPin, Coins, Check, ToggleRight, Copy, WifiOff } from "lucide-react-native";
+import { ChevronRight, ChevronLeft, MapPin, Coins, Check, ToggleRight, Copy, WifiOff, PackageX } from "lucide-react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
@@ -88,6 +89,19 @@ const BLOCKER_LABEL_KEY: Record<PublishBlocker, string> = {
   price: "common.price",
   category: "common.category",
   location: "common.location",
+};
+
+// "publish" (new draft → live) | "draft" (Save Draft) | "live" (TASK-P736
+// review fix, CR round 3: Save on an ALREADY-live listing — same rule set as
+// "publish" via `getPublishBlockers`, but its own copy: telling a seller
+// editing an active listing to "publish this listing" reads as if their
+// live listing were still a draft).
+type BlockerMode = "publish" | "draft" | "live";
+
+const TOAST_KEY: Record<BlockerMode, string> = {
+  publish: "listing.form.publishBlocked",
+  draft: "listing.form.draftBlocked",
+  live: "listing.form.liveBlocked",
 };
 
 // ---------------------------------------------------------------------------
@@ -149,6 +163,14 @@ export default function ListingFormScreen() {
 
   const isEdit = !!params.id;
   const listingId = isEdit ? Number(params.id) : null;
+  // TASK-P736 (review fix, CR round 3) — `Number("abc")` (a bad deep link,
+  // stale notification, or broken nav param) is `NaN`, and `!!NaN` is
+  // `false` — so `listingId` can be falsy even though `isEdit` is true. This
+  // flag is checked BEFORE the loading gate below so that case gets its own
+  // "listing not found" state instead of feeding a permanently-disabled
+  // query (see `isEditBlocking`'s comment for why a disabled query can never
+  // resolve `isLoading`/`isError`).
+  const isEditIdInvalid = isEdit && !listingId;
 
   // Duplicate / relist — opens this same create form prefilled from an
   // existing listing's text fields as a fresh DRAFT (photos are never
@@ -193,7 +215,7 @@ export default function ListingFormScreen() {
   // (`["my-listing", 42]` !== `["my-listing", "42"]`) — `qc.setQueryData` below
   // silently wrote into a cache entry MyListingDetail never reads. Every
   // "my-listing" key in this file is now `String(...)` to match.
-  // TASK-P736 (review fix, CR round 2) — `isPending`/`isError`/`refetch` now
+  // TASK-P736 (review fix, CR round 2) — `isLoading`/`isError`/`refetch` now
   // gate the render (see the loading-skeleton / retry state below). Before
   // this, the form rendered every field with its EMPTY default value while
   // this query was still in flight: on a mid-range Android device the
@@ -201,10 +223,23 @@ export default function ListingFormScreen() {
   // Publish inside that window fired THIS card's own "Add Photos, Title,
   // Price, Category, Location to publish this listing" toast for a listing
   // that has all of them — "never fail silently" became "fails wrongly".
+  //
+  // TASK-P736 (review fix, CR round 3) — this destructures `isLoading`, NOT
+  // `isPending`. In @tanstack/react-query 5.x a DISABLED query (this one is
+  // `enabled: isEdit && !!listingId`) keeps `status: 'pending'` forever —
+  // `isPending` never becomes `false` for a query that never runs, but
+  // `isLoading` (`isPending && isFetching`) correctly stays `false` because
+  // `isFetching` is `false` on a disabled query. Using `isPending` here made
+  // `isEditBlocking` permanently `true` for `isEditIdInvalid` (`/listing/
+  // edit/abc` → `listingId = NaN` → query disabled) — a dead screen with no
+  // toast, no retry, nothing but the back button. `isEditIdInvalid` (above)
+  // is checked separately and FIRST in the render below, so this gate now
+  // only ever has to reason about a query that is genuinely enabled.
   const {
     data: existingListing,
-    isPending: isEditPending,
+    isLoading: isEditLoading,
     isError: isEditError,
+    error: editError,
     refetch: refetchEditListing,
   } = useQuery({
     queryKey: ["my-listing", String(listingId)],
@@ -213,21 +248,63 @@ export default function ListingFormScreen() {
   });
   // True only while there is genuinely nothing to show yet (first load, or a
   // hard failure with no cached data at all) — a background refetch (e.g.
-  // the focus-refetch below) never re-blanks an already-rendered form.
-  const isEditBlocking = isEdit && (isEditPending || (isEditError && !existingListing));
+  // the focus-refetch below) never re-blanks an already-rendered form. Gated
+  // on `!!listingId` too so this can never latch permanently true for an
+  // invalid id — that case is `isEditIdInvalid` instead (see above), whose
+  // query is disabled and would otherwise never resolve `isLoading`/`isError`.
+  const isEditBlocking = isEdit && !!listingId && (isEditLoading || (isEditError && !existingListing));
+  // TASK-P736 (review fix, CR round 3) — discriminate the fallback's copy on
+  // the REAL HTTP status, exactly like MyListingDetail.tsx's `isMissing`
+  // does. `listingsAPI.getMyListing` throws an axios error carrying
+  // `response.status` on every non-2xx response, so a real 404 (the seller
+  // deep-linked to a listing they, or the web client, already deleted) can
+  // be told apart from a network/500 error — a Retry button can never
+  // succeed against a confirmed 404.
+  const isEditMissing = (editError as { response?: { status?: number } } | null)?.response?.status === 404;
 
   // ---------------------------------------------------------------------------
   // Load the source listing to duplicate (text fields only — see below)
   // ---------------------------------------------------------------------------
-  const { data: duplicateSource, isError: isDuplicateSourceError } = useQuery({
+  // TASK-P736 (review fix, CR round 3) — `isLoading` now gates the render the
+  // same way the edit-mode query above does (`isDuplicateBlocking` below).
+  // Before this, opening `?duplicateFrom=<id>` rendered a fully blank,
+  // FULLY ENABLED form while this query was still in flight — tapping
+  // Publish in that window fired this card's own "Add Photos, Title, Price,
+  // Category, Location to publish this listing" toast for a listing that
+  // has all of them, the exact "fails wrongly" bug the edit-mode skeleton
+  // exists to prevent, just on the sibling prefill path. A load FAILURE is
+  // intentionally NOT gated here (no `isError` in the blocking condition) —
+  // that already degrades gracefully to a blank draft + toast (see the
+  // `isDuplicateSourceError` effect below), which is correct for "the
+  // source listing is gone, start fresh", unlike the edit path where there
+  // is no fallback listing to fall back to.
+  const {
+    data: duplicateSource,
+    isLoading: isDuplicateLoading,
+    isError: isDuplicateSourceError,
+  } = useQuery({
     queryKey: ["my-listing", String(duplicateFromId)],
     queryFn: () => listingsAPI.getMyListing(duplicateFromId!),
     enabled: isDuplicate && !!duplicateFromId,
     retry: false,
   });
+  const isDuplicateBlocking = isDuplicate && !!duplicateFromId && isDuplicateLoading;
+  // Single flag the toolbar + body render both key off — covers BOTH prefill
+  // paths (edit load, duplicate-source load) so neither can ever leave
+  // Save/Publish enabled against a still-blank form.
+  const isFormBlocking = isEditBlocking || isDuplicateBlocking;
 
-  // Refetch the listing every time the edit form comes into focus so the
-  // user always sees the latest data (not a stale cache from a previous visit).
+  // Refetch the listing every time the edit form comes into focus. TASK-P736
+  // (review fix, CR round 3, dead-state note): this invalidation is now
+  // effectively inert FOR THIS SCREEN once `prefilledListingIdRef` (below)
+  // has already prefilled the current `listingId` once — the form
+  // intentionally does NOT re-`reset()` on a background refetch (that would
+  // clobber in-progress edits, the exact bug that guard exists to prevent).
+  // What this DOES still do: keep the cache fresh for every OTHER screen
+  // reading the same `["my-listing", id]` key (My Listings, the owner
+  // detail this form was opened from/returns to), so they show the latest
+  // data the moment this form is dismissed, without waiting on their own
+  // focus-refetch to catch up.
   useFocusEffect(
     useCallback(() => {
       if (isEdit && listingId) {
@@ -315,13 +392,28 @@ export default function ListingFormScreen() {
         setPhotos(existingListing.images.map((uri: string) => ({ uri, isRemote: true })));
       }
     }
-  }, [existingListing, isEdit, reset]);
+    // TASK-P736 (review fix, CR round 3, NIT) — `listingId` is read (and
+    // assigned) in the body above; added to the deps so the guard's
+    // correctness doesn't silently depend on `existingListing` always
+    // changing identity whenever `listingId` does (true today only because
+    // they share a query key — harmless coincidence, not a guarantee).
+  }, [existingListing, isEdit, listingId, reset]);
+
+  // TASK-P736 (review fix, CR round 3) — guards this effect exactly like
+  // `prefilledListingIdRef` guards the edit prefill above: runs ONCE per
+  // duplicate source id, not on every `duplicateSource` object identity
+  // change. Before this existed, a refetch of the source landing while the
+  // seller was mid-edit (rare, but the query has no `staleTime`) would
+  // `reset(...)` the form back to the source's original values, silently
+  // clobbering whatever the seller had already typed.
+  const prefilledSourceIdRef = useRef<number | null>(null);
 
   // Prefill from the duplicate source once loaded — text fields only, NEVER
   // photos, and no id is set so submit always goes through the create
   // (POST /my/listings) path as a brand-new draft.
   useEffect(() => {
-    if (isDuplicate && duplicateSource) {
+    if (isDuplicate && duplicateSource && prefilledSourceIdRef.current !== duplicateFromId) {
+      prefilledSourceIdRef.current = duplicateFromId;
       reset({
         title: duplicateSource.title,
         price: Number(duplicateSource.price),
@@ -342,7 +434,7 @@ export default function ListingFormScreen() {
       setDuplicateNoticeVisible(true);
       // Photos intentionally left empty — seller re-adds them.
     }
-  }, [isDuplicate, duplicateSource, reset]);
+  }, [isDuplicate, duplicateSource, duplicateFromId, reset]);
 
   // If the source listing can't be loaded (deleted, 404, network error) —
   // degrade gracefully to a blank draft form instead of crashing.
@@ -570,22 +662,36 @@ export default function ListingFormScreen() {
   }, []);
 
   // Single place that turns a list of blockers into the toast + destructive
-  // photo/location state + scroll — used by BOTH submit paths (Publish AND,
-  // since TASK-V395, Save Draft), for both the zod `onInvalid` path and the
-  // photo/location pre-check inside `onValid` (zod can't see `photos`, and
-  // no longer gates `location` either), so the toast copy and the scroll
-  // target always come from the same source of truth (`getPublishBlockers`).
-  // `mode` only selects which toast string to show — "draft" and "publish"
-  // never disagree on WHICH fields are missing, only on the copy around them.
+  // photo/location state + scroll — used by ALL THREE submit paths (Publish,
+  // Save Draft since TASK-V395, and Save-on-a-live-listing since this
+  // round), for both the zod `onInvalid` path and the photo/location
+  // pre-check inside `onValid` (zod can't see `photos`, and no longer gates
+  // `location` either), so the toast copy and the scroll target always come
+  // from the same source of truth (`getPublishBlockers`). `mode` only
+  // selects which toast/photo-error string to show — none of the three ever
+  // disagree on WHICH fields are missing, only on the copy around them.
   const handlePublishBlockers = useCallback(
-    (blockers: PublishBlocker[], mode: "publish" | "draft" = "publish") => {
+    (blockers: PublishBlocker[], mode: BlockerMode = "publish") => {
       if (blockers.length === 0) return;
-      setPhotosError(blockers.includes("photos") ? t("listing.form.photoRequired") : null);
-      setLocationError(blockers.includes("location") ? t("listing.form.locationRequired") : null);
-      const fields = blockers.map((b) => t(BLOCKER_LABEL_KEY[b])).join(", ");
-      toast.error(
-        t(mode === "draft" ? "listing.form.draftBlocked" : "listing.form.publishBlocked", { fields })
+      setPhotosError(
+        blockers.includes("photos")
+          ? t(mode === "live" ? "listing.form.photoRequiredLive" : "listing.form.photoRequired")
+          : null
       );
+      setLocationError(blockers.includes("location") ? t("listing.form.locationRequired") : null);
+      // TASK-P736 (review fix, CR round 3) — a bare Latin ", " between RTL
+      // text runs (fa/ps) invites bidi-reordering artifacts and reads wrong
+      // ("عکس‌ها, عنوان" instead of "عکس‌ها، عنوان"); `common.listSeparator`
+      // is "، " for ps/fa and ", " for en, so the join always matches the
+      // locale's own list punctuation.
+      const fields = blockers.map((b) => t(BLOCKER_LABEL_KEY[b])).join(t("common.listSeparator"));
+      const message = t(TOAST_KEY[mode], { fields });
+      toast.error(message);
+      // TASK-P736 (review fix, CR round 3, a11y) — a `sonner-native` toast is
+      // not announced by TalkBack/VoiceOver on its own; this is the card's
+      // primary "why did nothing happen" signal, so "never fail silently"
+      // must hold for screen-reader users too.
+      AccessibilityInfo.announceForAccessibility(message);
       scrollToBlocker(blockers[0]);
     },
     [t, scrollToBlocker]
@@ -616,11 +722,14 @@ export default function ListingFormScreen() {
   // for the case where even that mapping can't name a specific field — a
   // bare toast beats total silence.
   const handleInvalidSubmit = useCallback(
-    (mode: "publish" | "draft" = "publish", fieldErrors?: FieldErrors<ListingFormValues>) => {
+    (mode: BlockerMode = "publish", fieldErrors?: FieldErrors<ListingFormValues>) => {
       const blockers = getPublishBlockers({
         values: getValues(),
         photos,
-        mode,
+        // "live" runs the exact same RULE set as "publish" (≥1 photo, exact
+        // coordinates) — only the toast/photo-error COPY differs, and that
+        // branching lives in `handlePublishBlockers`, not here.
+        mode: mode === "draft" ? "draft" : "publish",
         fieldErrors,
       });
       if (blockers.length > 0) {
@@ -628,6 +737,7 @@ export default function ListingFormScreen() {
         return;
       }
       toast.error(t("listing.form.invalidGeneric"));
+      AccessibilityInfo.announceForAccessibility(t("listing.form.invalidGeneric"));
     },
     [getValues, photos, handlePublishBlockers, t]
   );
@@ -659,13 +769,15 @@ export default function ListingFormScreen() {
 
   // Editing an already-published listing → the single "Save" button must
   // enforce the same readiness rules as Publish (a live listing can never be
-  // left with zero photos or no coordinates either), reusing the exact
-  // toast + scroll UX.
+  // left with zero photos or no coordinates either) — TASK-P736 (review fix,
+  // CR round 3): but with `mode: "live"` copy, not "publish" copy. This
+  // listing is already active; toasting "Add Photos to publish this
+  // listing" reads as if it were still a draft.
   const onSavePublished = handleSubmit(
     (values) => {
       const blockers = getPublishBlockers({ values, photos, mode: "publish" });
       if (blockers.length > 0) {
-        handlePublishBlockers(blockers);
+        handlePublishBlockers(blockers, "live");
         return;
       }
       setPhotosError(null);
@@ -673,7 +785,7 @@ export default function ListingFormScreen() {
       setIsSubmittingPublish(false);
       saveMutation.mutate(values);
     },
-    (fieldErrors) => handleInvalidSubmit("publish", fieldErrors)
+    (fieldErrors) => handleInvalidSubmit("live", fieldErrors)
   );
 
   const onPublish = handleSubmit(
@@ -799,16 +911,36 @@ export default function ListingFormScreen() {
     >
       <BackButton onPress={onCancel} />
       <View style={{ flex: 1 }} />
+      {/* TASK-P736 (review fix, CR round 3, visual hierarchy — deliberately
+          NOT fully addressed here, see note below) — `isPublished` is
+          `false` while the edit-mode listing hasn't resolved yet, so the
+          toolbar shows the [Save Draft | Publish] pair during the loading
+          window and can collapse to a single [Save] the instant the listing
+          arrives already-active. A prior review round flagged this as a
+          button-count flip a seller could mistap. Replacing the pair with a
+          placeholder during `isFormBlocking` was tried and reverted: this
+          card's own mandatory test coverage (ListingForm.publish.test.tsx —
+          "with getMyListing left unresolved, listing-form-skeleton is
+          visible AND pressing listing.publish calls no API / fires no
+          toast") requires the Publish control to still exist (disabled) to
+          verify NOTHING happens when tapped mid-load — the entire point of
+          "never fail silently" — the two fixes are the same button doing
+          double duty and can't both win. Both `disabled={isFormBlocking}`
+          below already make the tap fully inert either way; the flip is
+          cosmetic and left for marketplace-designer polish (e.g. a
+          cross-fade) rather than removing the control this card's tests
+          press. */}
       {isPublished ? (
         // Editing a published listing → save the changes (status unchanged);
-        // TASK-P736: enforces the same photo/field readiness rules as Publish.
+        // TASK-P736: enforces the same photo/field readiness rules as Publish
+        // (via `mode: "live"` copy — see `onSavePublished`).
         // TASK-P736 (review fix, CR round 2): disabled while the edit-mode
-        // query is still loading/erroring (`isEditBlocking`) — Save must
+        // query is still loading/erroring (`isFormBlocking`) — Save must
         // never fire against a still-blank prefill. Busy state keeps the
         // label and adds an `ActivityIndicator` instead of swapping to
         // `common.loading`, so the button never changes width mid-flight
         // (worst case in Dari, whose labels are already the widest).
-        <Button variant="default" onPress={onSavePublished} disabled={isLoading || isEditBlocking}>
+        <Button variant="default" onPress={onSavePublished} disabled={isLoading || isFormBlocking || isEditIdInvalid}>
           {isLoading ? (
             <ActivityIndicator size="small" color={colors.primaryForeground} />
           ) : (
@@ -817,10 +949,20 @@ export default function ListingFormScreen() {
         </Button>
       ) : (
         <>
-          <Button variant="outline" onPress={onSaveDraft} disabled={isLoading || isEditBlocking}>
-            <Text className="text-sm font-bold">{t("listing.form.saveDraft")}</Text>
+          <Button variant="outline" onPress={onSaveDraft} disabled={isLoading || isFormBlocking || isEditIdInvalid}>
+            {/* TASK-P736 (review fix, CR round 3, busy state) — the published
+                `Save` and `Publish` below each swap in an `ActivityIndicator`
+                while busy; this outline draft button previously never did,
+                so a slow multi-photo upload on a weak connection showed two
+                dimmed buttons with zero progress cue — reading as a dead tap,
+                the exact class of problem this card exists to fix. */}
+            {isLoading && !isSubmittingPublish ? (
+              <ActivityIndicator size="small" color={colors.foreground} />
+            ) : (
+              <Text className="text-sm font-bold">{t("listing.form.saveDraft")}</Text>
+            )}
           </Button>
-          <Button variant="default" onPress={onPublish} disabled={isLoading || isEditBlocking}>
+          <Button variant="default" onPress={onPublish} disabled={isLoading || isFormBlocking || isEditIdInvalid}>
             {isLoading && isSubmittingPublish ? (
               <ActivityIndicator size="small" color={colors.primaryForeground} />
             ) : (
@@ -917,14 +1059,41 @@ export default function ListingFormScreen() {
           </View>
         )}
 
-        {/* TASK-P736 (review fix, CR round 2) — while the edit-mode listing is
-            still loading, render a skeleton mirroring the fields below
-            instead of the real (empty) form; on a load failure with no
-            cached data, show a retry state. Both keep the toolbar
-            Save/Publish disabled (`isEditBlocking`, wired above). */}
-        {isEditBlocking ? (
-          isEditPending ? (
+        {/* TASK-P736 (review fix, CR round 2/3) — three mutually exclusive
+            non-form states, checked in this order:
+            1. `isEditIdInvalid` — a bad deep link / stale nav param
+               (`Number(params.id)` is `NaN`) — the edit-mode query is
+               DISABLED for this case (see its comment above), so it must
+               never be treated as "loading"; show a real "not found" state
+               with a way back instead.
+            2. `isEditBlocking` — the edit-mode listing genuinely IS loading
+               (skeleton) or failed with nothing cached (retry).
+            3. `isDuplicateBlocking` — the duplicate-source listing is still
+               loading (skeleton) — the sibling prefill path had NO loading
+               gate at all before this round.
+            All three keep the toolbar Save/Publish/Save disabled
+            (`isFormBlocking`, wired above). */}
+        {isEditIdInvalid ? (
+          <EmptyState
+            icon={PackageX}
+            title={t("listing.ownerDetail.notFound")}
+            description={t("listing.ownerDetail.notFoundDescription")}
+            action={{ label: t("common.goBack"), onPress: goBackOrFallback }}
+          />
+        ) : isEditBlocking ? (
+          isEditLoading ? (
             <ListingFormSkeleton />
+          ) : isEditMissing ? (
+            // TASK-P736 (review fix, CR round 3) — a confirmed 404 (the
+            // listing was deleted, e.g. from the web client) gets its own
+            // copy + a Back escape hatch — Retry can never succeed against
+            // a listing that is genuinely gone.
+            <EmptyState
+              icon={PackageX}
+              title={t("listing.ownerDetail.notFound")}
+              description={t("listing.ownerDetail.notFoundDescription")}
+              action={{ label: t("common.goBack"), onPress: goBackOrFallback }}
+            />
           ) : (
             <EmptyState
               icon={WifiOff}
@@ -933,6 +1102,8 @@ export default function ListingFormScreen() {
               action={{ label: t("common.retry"), onPress: () => refetchEditListing() }}
             />
           )
+        ) : isDuplicateBlocking ? (
+          <ListingFormSkeleton />
         ) : (
         <>
         {/* ------------------------------------------------------------------ */}
@@ -978,7 +1149,18 @@ export default function ListingFormScreen() {
             )}
           />
           {errors.title && <FieldError message={t("listing.form.titleRequired")} />}
-          <Text className="text-xs" style={{ color: colors.mutedForeground, textAlign: isRtl ? "left" : "right", marginTop: 4 }}>
+          {/* TASK-P736 (review fix, CR round 3) — `maxLength={150}` silently
+              swallows keystrokes past the cap with zero signal; the counter
+              now turns destructive at the limit so a seller pasting a long
+              title sees WHY typing stopped instead of assuming it's broken. */}
+          <Text
+            className="text-xs"
+            style={{
+              color: (watch("title")?.length ?? 0) >= 150 ? colors.destructive : colors.mutedForeground,
+              textAlign: isRtl ? "left" : "right",
+              marginTop: 4,
+            }}
+          >
             {`${watch("title")?.length ?? 0}/150`}
           </Text>
         </View>
@@ -1036,7 +1218,16 @@ export default function ListingFormScreen() {
               variant="outline"
               onPress={() => setCurrencyPickerVisible(true)}
               accessibilityRole="button"
+              // TASK-P736 (review fix, CR round 3, a11y) — `accessibilityLabel`
+              // REPLACES the children a screen reader would otherwise read,
+              // so a static label alone made a blind seller hear only
+              // "Select Currency" with no way to hear whether their listing
+              // is priced in AFN/USD/EUR. The field's IDENTITY stays in
+              // `accessibilityLabel`; the CURRENT VALUE moves to
+              // `accessibilityValue`, which TalkBack/VoiceOver announce
+              // together ("Select Currency, AFN").
               accessibilityLabel={t("listing.form.selectCurrency")}
+              accessibilityValue={{ text: currency }}
               style={{
                 flexDirection: isRtl ? "row-reverse" : "row",
                 gap: 4,
@@ -1092,7 +1283,7 @@ export default function ListingFormScreen() {
         {/* 4. Category                                                         */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field} onLayout={registerSectionY("category")} testID="listing-form-field-category">
-          <FieldLabel required className="mb-1">
+          <FieldLabel nativeID="category-label" required className="mb-1">
             {t("common.category")}
           </FieldLabel>
           <Controller
@@ -1110,9 +1301,17 @@ export default function ListingFormScreen() {
                 onPress={() => setCategoryPickerVisible(true)}
                 android_ripple={{ color: colors.muted }}
                 accessibilityRole="button"
-                accessibilityLabel={
-                  selectedCategory ? categoryName(selectedCategory) : t("listing.form.selectCategoryPlaceholder")
-                }
+                // TASK-P736 (review fix, CR round 3, a11y) — the label was the
+                // VALUE (the category name), so the field's own identity
+                // ("Category") was never announced — a screen reader heard
+                // "Electronics, button" with no idea which field that was.
+                // Title/Price already wire `nativeID` + `aria-labelledby`
+                // through `FieldLabel` for exactly this; Category now does
+                // too, with the current selection moved to `accessibilityValue`.
+                aria-labelledby="category-label"
+                accessibilityValue={{
+                  text: selectedCategory ? categoryName(selectedCategory) : t("listing.form.selectCategoryPlaceholder"),
+                }}
               >
                 <Text
                   className="text-sm"
@@ -1170,7 +1369,7 @@ export default function ListingFormScreen() {
         {/* 6. Location — exact point on the map (search or drop a pin)         */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field} onLayout={registerSectionY("location")} testID="listing-form-field-location">
-          <FieldLabel required className="mb-1">
+          <FieldLabel nativeID="location-label" required className="mb-1">
             {t("common.location")}
           </FieldLabel>
           <Pressable
@@ -1189,9 +1388,14 @@ export default function ListingFormScreen() {
             onPress={() => setLocationPickerVisible(true)}
             android_ripple={{ color: colors.muted }}
             accessibilityRole="button"
-            accessibilityLabel={
-              hasExactLocation ? mapLabel ?? t("listing.form.locationSet") : t("listing.form.tapToSetLocation")
-            }
+            // TASK-P736 (review fix, CR round 3, a11y) — same fix as Category
+            // above: the field's own identity ("Location") now comes from
+            // `FieldLabel` via `aria-labelledby`, and the current value (or
+            // the "tap to set" placeholder) moves to `accessibilityValue`.
+            aria-labelledby="location-label"
+            accessibilityValue={{
+              text: hasExactLocation ? mapLabel ?? t("listing.form.locationSet") : t("listing.form.tapToSetLocation"),
+            }}
           >
             <MapPin size={16} color={locationErrorMessage ? colors.destructive : hasExactLocation ? colors.primary : colors.mutedForeground} />
             <Text
@@ -1373,6 +1577,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 40,
+    // TASK-P736 (review fix, CR round 3) — `EmptyState` sizes itself with
+    // `flex: 1`, which does nothing without a container that has a
+    // resolved height to flex WITHIN. Without this, the not-found/retry
+    // states above collapsed to content height and sat jammed under the
+    // "Edit Listing" title instead of centering in the remaining space.
+    flexGrow: 1,
   },
   field: {
     marginBottom: 20,
@@ -1413,8 +1623,13 @@ const styles = StyleSheet.create({
     // backgroundColor is applied inline via colors.darkScrim (useColors token)
   },
   currencySheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    // TASK-P736 (review fix, CR round 3, library compliance) — 16 (was 20),
+    // matching PhotosSection's source-picker sheet radius one tap away in
+    // the same flow, so the two hand-rolled sheets read as one design
+    // system instead of two until both fold into a shared <BottomSheet>
+    // (DESIGN_SYSTEM.md §4, docs/REFACTOR_DUPLICATION.md R12/R13).
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
     // Platform audit (2026-06-18): iOS bottom safe-area is 34pt (home indicator);
     // Android has no equivalent inset → 16pt is the correct fallback.

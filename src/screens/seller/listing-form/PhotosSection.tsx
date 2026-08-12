@@ -293,21 +293,15 @@ export function PhotosSection({
         </Text>
       )}
 
-      {/* Horizontal strip — destructive border wraps the whole strip when the
-          seller tried to publish/save with zero photos and then re-added
-          some (brief window before the error clears). */}
-      <View
-        style={
-          error
-            ? {
-                borderWidth: 1.5,
-                borderColor: colors.destructive,
-                borderRadius: 12,
-                padding: 6,
-              }
-            : undefined
-        }
-      >
+      {/* TASK-P736 (review fix, CR round 3) — the destructive border that used
+          to wrap this ScrollView was unreachable dead code: `error` is only
+          ever set (in ListingForm's `handlePublishBlockers`) when
+          `photos.length === 0`, which renders the EMPTY-state branch above,
+          never this one — and `onChange` clears `photosError` in the same
+          call that brings `photos.length` above 0 (see ListingForm's
+          `onChange` for this component), so a "photos exist AND error is
+          set" render was never actually reachable. Removed rather than kept
+          as always-false dead code. */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -339,17 +333,27 @@ export function PhotosSection({
                 transition={200}
               />
 
-              {/* Cover badge — first photo only */}
+              {/* Cover badge — first photo only. TASK-P736 (review fix, CR
+                  round 3): `start`/`end` (logical, RTL-mirrors-off-native-
+                  RTL-flag) replaced with the house `xxxLtr`/`xxxRtl`
+                  convention (ListingCard.tsx's `statusOverlayLtr/Rtl`,
+                  `heartButtonLtr/Rtl`) keyed on `isRtl` (mirrors in JS) —
+                  every OTHER row in this component already mirrors that
+                  way, so `start`/`end` (which mirrors off the native RTL
+                  flag) fought the surrounding JS-driven mirroring and put
+                  this badge in the opposite corner from the identical Cover
+                  badge on the browse ListingCard under ps/fa. */}
               {index === 0 && (
                 <View
-                  style={[styles.coverBadge, { backgroundColor: colors.primary }]}
+                  style={[
+                    styles.coverBadge,
+                    isRtl ? styles.coverBadgeRtl : styles.coverBadgeLtr,
+                    { backgroundColor: colors.primary },
+                  ]}
                 >
                   <Text
-                    className="font-bold"
-                    style={{
-                      fontSize: 9,
-                      color: colors.primaryForeground,
-                    }}
+                    className="text-xs font-bold"
+                    style={{ color: colors.primaryForeground }}
                   >
                     {t("listing.form.coverLabel")}
                   </Text>
@@ -366,7 +370,11 @@ export function PhotosSection({
               {/* Remove × (only when not in reorder mode) */}
               {selectedIdx === -1 && (
                 <Pressable
-                  style={[styles.removeBtn, { backgroundColor: colors.destructive }]}
+                  style={[
+                    styles.removeBtn,
+                    isRtl ? styles.removeBtnRtl : styles.removeBtnLtr,
+                    { backgroundColor: colors.destructive },
+                  ]}
                   onPress={() => removePhoto(index)}
                   hitSlop={8}
                 >
@@ -377,7 +385,11 @@ export function PhotosSection({
               {/* Set as cover ★ (non-first only, when not in reorder mode) */}
               {index !== 0 && selectedIdx === -1 && (
                 <Pressable
-                  style={[styles.coverBtn, { backgroundColor: colors.darkScrim }]}
+                  style={[
+                    styles.coverBtn,
+                    isRtl ? styles.coverBtnRtl : styles.coverBtnLtr,
+                    { backgroundColor: colors.darkScrim },
+                  ]}
                   onPress={() => promoteToFirst(index)}
                   hitSlop={8}
                 >
@@ -405,7 +417,6 @@ export function PhotosSection({
           </Pressable>
         )}
       </ScrollView>
-      </View>
 
       {error && <FieldError message={error} />}
 
@@ -460,6 +471,18 @@ function SourcePickerSheet({
           },
         ]}
       >
+        {/* TASK-P736 (review fix, CR round 3, library compliance) — drag
+            handle added to match the currency picker sheet (ListingForm.tsx)
+            one tap away in the same flow; both sheets now share the same
+            radius (16) and hairline border weight too, so they read as one
+            design system instead of two. Folding both into a shared
+            <BottomSheet> + <SheetRow> (DESIGN_SYSTEM.md §4,
+            docs/REFACTOR_DUPLICATION.md R12/R13) is tracked separately —
+            this is the minimum-acceptable geometry alignment in the
+            meantime. */}
+        <View style={styles.sheetHandleRow}>
+          <View style={[styles.sheetHandleBar, { backgroundColor: colors.border }]} />
+        </View>
         {/* TASK-P736 (review fix) — the "add a photo" flow has 4 tap targets
             in total (empty-state card / "+" tile, both testID="photos-add-button"
             above, PLUS these two source-choice rows); each gets its own
@@ -574,18 +597,26 @@ const styles = StyleSheet.create({
     width: THUMB,
     height: THUMB,
   },
-  // TASK-P736 (review fix, CR round 2) — `start`/`end` (logical, RTL-aware)
-  // replace the previous hardcoded `left`/`right`, matching DESIGN_SYSTEM.md
-  // §8 ("never hard-code left/right"). Without this, the Cover badge, the
-  // remove ✕, and the set-as-cover ★ all stayed pinned to the same physical
-  // corner under ps/fa instead of mirroring with the rest of the RTL layout.
+  // TASK-P736 (review fix, CR round 3) — `left`/`right` via the house
+  // `xxxLtr`/`xxxRtl` convention (ListingCard.tsx's `statusOverlayLtr/Rtl`,
+  // `heartButtonLtr/Rtl`), NOT logical `start`/`end`. `start`/`end` mirror
+  // off the NATIVE RTL flag (`I18nManager.forceRTL`), but every row in this
+  // component mirrors in JS via `flexDirection: isRtl ? "row-reverse" :
+  // "row"` (the documented convention, mobile.prompt.md §6/~77 files) — the
+  // two mechanisms fought each other, putting the Cover badge/✕/★ in the
+  // OPPOSITE corner from the identical overlays on ListingCard under ps/fa.
   coverBadge: {
     position: "absolute",
     bottom: 5,
-    start: 5,
     borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  coverBadgeLtr: {
+    left: 5,
+  },
+  coverBadgeRtl: {
+    right: 5,
   },
   swapOverlay: {
     position: "absolute",
@@ -593,6 +624,9 @@ const styles = StyleSheet.create({
     start: 0,
     end: 0,
     bottom: 0,
+    // `start`/`end` here are correct either way — they cover the FULL width
+    // (0/0) regardless of which physical side is "start", so there is no
+    // LTR/RTL corner to get wrong, unlike the corner-anchored overlays above.
     // backgroundColor applied inline via colors.darkScrim (useColors token)
     alignItems: "center",
     justifyContent: "center",
@@ -600,23 +634,33 @@ const styles = StyleSheet.create({
   removeBtn: {
     position: "absolute",
     top: 4,
-    end: 4,
     width: 28,
     height: 28,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
+  removeBtnLtr: {
+    right: 4,
+  },
+  removeBtnRtl: {
+    left: 4,
+  },
   coverBtn: {
     position: "absolute",
     top: 4,
-    start: 4,
     width: 28,
     height: 28,
     borderRadius: 14,
     // backgroundColor applied inline via colors.darkScrim (useColors token)
     alignItems: "center",
     justifyContent: "center",
+  },
+  coverBtnLtr: {
+    left: 4,
+  },
+  coverBtnRtl: {
+    right: 4,
   },
   addTile: {
     width: THUMB,
@@ -634,12 +678,23 @@ const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    borderTopWidth: 1,
+    // TASK-P736 (review fix, CR round 3) — hairline (was a hardcoded `1`),
+    // matching the currency picker sheet's border weight (ListingForm.tsx).
+    borderTopWidth: StyleSheet.hairlineWidth,
     // Platform audit (2026-06-18): iOS bottom safe-area is 34pt (home indicator);
     // Android has no equivalent inset so 16pt is the correct fallback.
     // useSafeAreaInsets().bottom is preferred at runtime (handled in the component
     // via Math.max(insets.bottom, 16)) — this StyleSheet default is a secondary guard.
     paddingBottom: Platform.OS === "ios" ? 34 : 16,
+  },
+  sheetHandleRow: {
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  sheetHandleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
   },
   sheetRow: {
     paddingVertical: 16,

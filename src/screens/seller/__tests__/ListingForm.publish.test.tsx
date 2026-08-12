@@ -361,3 +361,135 @@ describe("ListingForm — Save Draft only needs title/price/category (TASK-V395)
     expect(screen.queryByText("listing.form.locationRequired")).toBeNull();
   });
 });
+
+// ── 5. Edit-mode loading/error gate (TASK-P736, review fix, CR round 2/3) ──────
+//
+// Regression coverage for the "never fail silently became fails wrongly"
+// defect: before the CR round 2 skeleton existed, ListingForm rendered every
+// field with its EMPTY default value while the edit-mode `getMyListing`
+// query was still in flight, so an un-gated Publish press fired this card's
+// own "Add Photos, Title, Price, Category, Location..." toast for a listing
+// that actually has all of them. CR round 3 then found the gate itself could
+// never resolve for a bad id (`isPending` never turns `false` on a DISABLED
+// query) — case (c) below pins that fix.
+
+describe("ListingForm — edit-mode loading gate", () => {
+  it("shows the skeleton (not the blank form) while getMyListing is still in flight, and a Publish tap in that window calls no API and fires no toast", async () => {
+    mockParamsState.current = { id: "42" };
+    // Never resolves — the query stays genuinely "loading" for this test.
+    mockListingsAPI.getMyListing.mockReturnValue(new Promise(() => {}));
+
+    renderListingForm();
+
+    await waitFor(() => {
+      expect(mockListingsAPI.getMyListing).toHaveBeenCalled();
+    });
+    expect(screen.getByTestId("listing-form-skeleton")).toBeTruthy();
+    // Never the blank-but-usable form this bug used to show.
+    expect(screen.queryByPlaceholderText("listing.titlePlaceholder")).toBeNull();
+
+    // The toolbar's Publish control still exists (disabled) — tapping it
+    // while blocked must be a true no-op, never a wrong-blockers toast.
+    fireEvent.press(screen.getByText("listing.publish"));
+
+    expect(mockListingsAPI.createListingWithImages).not.toHaveBeenCalled();
+    expect(mockListingsAPI.updateListingWithImages).not.toHaveBeenCalled();
+    expect(mockListingsAPI.publishListing).not.toHaveBeenCalled();
+    expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  it("on a load failure with nothing cached, shows the generic retry fallback, and Retry refetches and reveals the real form", async () => {
+    mockParamsState.current = { id: "42" };
+    mockListingsAPI.getMyListing.mockRejectedValueOnce(new Error("network down"));
+    mockListingsAPI.getMyListing.mockResolvedValueOnce(makeListing());
+
+    renderListingForm();
+
+    await waitFor(() => {
+      expect(screen.getByText("common.errorTitle")).toBeTruthy();
+    });
+    expect(screen.getByText("common.errorDescription")).toBeTruthy();
+    expect(screen.queryByTestId("listing-form-skeleton")).toBeNull();
+    // Publish/Save Draft never reachable in this state — real API never hit.
+    expect(mockListingsAPI.createListingWithImages).not.toHaveBeenCalled();
+    expect(mockListingsAPI.updateListingWithImages).not.toHaveBeenCalled();
+
+    fireEvent.press(screen.getByText("common.retry"));
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
+    });
+    expect(mockListingsAPI.getMyListing).toHaveBeenCalledTimes(2);
+  });
+
+  it("never gets stuck on the skeleton for an invalid/non-numeric id (bad deep link) — shows a real not-found state instead", async () => {
+    // `Number("abc")` is `NaN`; the edit-mode query is DISABLED for this
+    // case (see ListingForm.tsx's `isEditIdInvalid`) — CR round 3's fix:
+    // before it, `isPending` on a disabled query never resolves to `false`,
+    // so this case latched the skeleton (and disabled Save/Publish) FOREVER
+    // with no toast, no retry, nothing but the back button.
+    mockParamsState.current = { id: "abc" };
+
+    renderListingForm();
+
+    // Must NOT be permanently stuck on the loading skeleton.
+    expect(screen.queryByTestId("listing-form-skeleton")).toBeNull();
+    // The query for an invalid id is disabled — it must never even be called.
+    expect(mockListingsAPI.getMyListing).not.toHaveBeenCalled();
+    // A real, escapable state is shown instead.
+    expect(screen.getByText("listing.ownerDetail.notFound")).toBeTruthy();
+    expect(screen.getByText("common.goBack")).toBeTruthy();
+  });
+
+  it("on a confirmed 404 (listing genuinely deleted), shows the not-found copy with a Back action instead of a Retry that can never succeed", async () => {
+    mockParamsState.current = { id: "42" };
+    mockListingsAPI.getMyListing.mockRejectedValueOnce({ response: { status: 404 } });
+
+    renderListingForm();
+
+    await waitFor(() => {
+      expect(screen.getByText("listing.ownerDetail.notFound")).toBeTruthy();
+    });
+    expect(screen.getByText("listing.ownerDetail.notFoundDescription")).toBeTruthy();
+    expect(screen.queryByText("common.errorTitle")).toBeNull();
+    expect(screen.queryByText("common.retry")).toBeNull();
+    expect(screen.getByText("common.goBack")).toBeTruthy();
+  });
+});
+
+// ── 6. Save on an already-LIVE listing uses "live" copy, not "publish" copy ───
+// TASK-P736 (review fix, CR round 3, trust/copy) — an active listing is not
+// being published; toasting "Add Photos to publish this listing" for a
+// listing that is already live reads as if it were still a draft.
+
+describe("ListingForm — blocked Save on an already-active listing", () => {
+  it("removing the last photo then Save toasts liveBlocked (not publishBlocked) and shows the live-specific inline message", async () => {
+    mockParamsState.current = { id: "42" };
+    mockListingsAPI.getMyListing.mockResolvedValueOnce(makeListing({ status: "active" }));
+
+    renderListingForm();
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
+    });
+
+    // isPublished (active !== draft) → single "Save" button, not "Save Draft"/"Publish".
+    expect(screen.queryByText("listing.form.saveDraft")).toBeNull();
+
+    // Seller removes their only photo.
+    act(() => {
+      (mockPhotosSectionState.props?.onChange as (p: unknown[]) => void)([]);
+    });
+
+    fireEvent.press(screen.getByText("common.save"));
+
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith("listing.form.liveBlocked");
+    });
+    expect(mockToastError).not.toHaveBeenCalledWith("listing.form.publishBlocked");
+    expect(mockPhotosSectionState.props?.error).toBe("listing.form.photoRequiredLive");
+
+    // Never a silent no-op, and never actually saved with zero photos.
+    expect(mockListingsAPI.updateListingWithImages).not.toHaveBeenCalled();
+  });
+});

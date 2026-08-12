@@ -18,19 +18,35 @@ import type { ListingStatus } from "./StatusBadge";
  *   active   -> successAlpha / success    (green — live)
  *   reserved -> warningAlpha / warning    (amber — held for a buyer)
  *   sold     -> secondary / secondaryForeground (grey — archived)
+ *
+ * TASK-K729 (review fix, MEDIUM — dark mode / status hierarchy): `edge` is a
+ * THIRD, separate field for `ListingStatusBanner`'s leading accent border
+ * only — it must NOT reuse `text`. `text` is tuned for legibility as a LABEL
+ * colour (StatusBadge's pill text, SaleBuyerCard's headline), so for `sold`
+ * it resolves to `secondaryForeground` — near-black in light, near-WHITE in
+ * dark. Reusing that as a 4px card-edge border made the archived/dimmed
+ * `sold` state the single loudest, highest-contrast element on the whole
+ * notice (louder than the primary CTA), while the amber `reserved` edge —
+ * the state that's actually still awaiting buyer action — read as quieter.
+ * `edge` is tuned instead for "how loud should this state's accent BAR be":
+ *   draft    -> border            (quiet — not yet published, no signal needed)
+ *   active   -> success           (green — live, matches the pill text)
+ *   reserved -> warning           (amber attention state — matches the pill text)
+ *   sold     -> mutedForeground   (grey — archived/dimmed, per DESIGN_SYSTEM.md §2,
+ *                                  identical in both themes, never near-white)
  */
 export function getStatusAccent(
   status: ListingStatus,
   colors: ReturnType<typeof useColors>
-): { bg: string; text: string } {
+): { bg: string; text: string; edge: string } {
   switch (status) {
     case "active":
-      return { bg: colors.successAlpha, text: colors.success };
+      return { bg: colors.successAlpha, text: colors.success, edge: colors.success };
     case "reserved":
-      return { bg: colors.warningAlpha, text: colors.warning };
+      return { bg: colors.warningAlpha, text: colors.warning, edge: colors.warning };
     case "sold":
-      return { bg: colors.secondary, text: colors.secondaryForeground };
+      return { bg: colors.secondary, text: colors.secondaryForeground, edge: colors.mutedForeground };
     default:
-      return { bg: colors.muted, text: colors.mutedForeground };
+      return { bg: colors.muted, text: colors.mutedForeground, edge: colors.border };
   }
 }

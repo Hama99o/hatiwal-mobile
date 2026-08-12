@@ -35,4 +35,22 @@ describe("normalizeDigits", () => {
   it("leaves non-digit characters (e.g. a stray letter) untouched", () => {
     expect(normalizeDigits("abc۱23")).toBe("abc123");
   });
+
+  // TASK-P736 (review fix, CR round 3) — the Arabic decimal separator ٫
+  // survived the round-2 digit fix untouched, so a fa/ps keypad's fractional
+  // price still failed `Number(...)` one keystroke later.
+  it("converts the Arabic decimal separator ٫ (U+066B) to an ASCII dot", () => {
+    expect(normalizeDigits("۱۲٫۵")).toBe("12.5");
+    expect(Number(normalizeDigits("۱۲٫۵"))).toBe(12.5);
+  });
+
+  it("strips the Arabic thousands separator ٬ (U+066C)", () => {
+    expect(normalizeDigits("۸٬۰۰۰")).toBe("8000");
+    expect(Number(normalizeDigits("۸٬۰۰۰"))).toBe(8000);
+  });
+
+  it("strips the Arabic comma ، (U+060C) used as a group separator", () => {
+    expect(normalizeDigits("۸،۰۰۰")).toBe("8000");
+    expect(Number(normalizeDigits("۸،۰۰۰"))).toBe(8000);
+  });
 });

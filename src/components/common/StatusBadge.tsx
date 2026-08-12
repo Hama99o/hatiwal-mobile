@@ -3,6 +3,7 @@ import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { getStatusAccent } from "./statusAccent";
+import { withAlpha } from "@/lib/color";
 
 export type ListingStatus = "draft" | "active" | "reserved" | "sold";
 
@@ -78,6 +79,16 @@ export function StatusBadge({ status, overlay = false }: StatusBadgeProps) {
         paddingHorizontal: 8,
         paddingVertical:  2,
         alignSelf:        "flex-start",
+        // TASK-K729 (review fix, LOW — contrast, only partially achieved by
+        // ListingStatusBanner's colors.card move): even on a card/background
+        // surface, `sold`'s fill (colors.secondary) sits at ~1.2:1 against
+        // white/near-black — the pill still has almost no SHAPE, only its
+        // label reads. A subtle 25%-alpha edge in the label's own colour
+        // (withAlpha, never string concatenation — see lib/color.ts) gives
+        // every status pill a real boundary on ANY surface (card, page
+        // background, or a tinted accent fill) without adding a new token.
+        borderWidth: 1,
+        borderColor: withAlpha(accent.text, 0.25),
       }}
       accessibilityRole="text"
     >

@@ -42,6 +42,7 @@
   "confirm": "Confirm",
   "language": "Language",
   "retry": "Retry",
+  "listSeparator": ", ",
   "notFound": "Not found",
   "required": "is required",
   "comingSoon": "Coming soon",

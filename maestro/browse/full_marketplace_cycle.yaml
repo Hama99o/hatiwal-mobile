@@ -11,6 +11,17 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
+# TASK-P736 — Publish now requires >=1 photo and an exact map pin; add both
+# before filling the rest of the form (mirrors the block added to
+# create_listing_with_condition.yaml for the same card).
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- tapOn: "Gallery"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Cover"
 - tapOn: "Title"
 - inputText: "Marketplace Cycle Phone"
 - tapOn: "Price"
@@ -19,9 +30,26 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Electronics"
 - waitForAnimationToEnd
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+- assertVisible: "Pick location on map"
+- tapOn: "Search a province…"
+- inputText: "Kabul"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- tapOn: "Confirm location"
+- waitForAnimationToEnd
+- assertNotVisible: "Tap to set exact location on map"
 - tapOn: "Publish"
 - waitForAnimationToEnd
-- assertVisible: "Listing posted"
+# TASK-J952: publishing lands on the owner detail with PublishSuccessSheet —
+# "Listing posted" was removed with that card; this now matches
+# create_listing_with_condition.yaml / create_listing_publish_direct.yaml.
+- assertVisible: "Your listing is live!"
+- tapOn: "Done"
+- waitForAnimationToEnd
 
 # ── Step 2: Buyer finds the listing and saves it ─────────────────────────────
 - launchApp:
