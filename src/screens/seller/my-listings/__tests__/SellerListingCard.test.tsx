@@ -24,7 +24,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { Listing } from "@/api/listings";
+import type { Listing, ListingSale } from "@/api/listings";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
 
@@ -790,6 +790,53 @@ describe("SellerListingCard — stats display", () => {
   it("renders zero views without crashing", () => {
     renderCard(makeListing({ viewsCount: 0 }));
     expect(screen.getByText("listing.viewsCount")).toBeTruthy();
+  });
+});
+
+// ── 11b. TASK-R418 compact "Reserved for {name}" / "Sold to {name}" line ───────
+// CR fix (CYCLE-4, LOW): `seller-card-sale-line` previously had zero coverage
+// (a "dead testID" — present in the component, asserted by nothing).
+
+describe("SellerListingCard — compact sale line (TASK-R418)", () => {
+  const sale = (overrides: Partial<ListingSale> = {}): ListingSale => ({
+    id: 9,
+    status: "reserved",
+    finalPrice: 85000,
+    currency: "AFN",
+    completedAt: null,
+    buyer: { id: 42, name: "Ahmad Karimi", avatarUrl: null, verified: true },
+    conversationId: 77,
+    ...overrides,
+  });
+
+  it("renders the reserved sale line with the buyer's name", () => {
+    renderCard(makeListing({ status: "reserved", sale: sale() }));
+    expect(screen.getByTestId("seller-card-sale-line")).toBeTruthy();
+    expect(screen.getByText("listing.sale.reservedFor")).toBeTruthy();
+  });
+
+  it("renders the sold sale line with the buyer's name", () => {
+    renderCard(makeListing({ status: "sold", sale: sale({ status: "sold" }) }));
+    expect(screen.getByText("listing.sale.soldTo")).toBeTruthy();
+  });
+
+  it("does not render the sale line when the listing has no sale", () => {
+    renderCard(makeListing({ status: "active", sale: null }));
+    expect(screen.queryByTestId("seller-card-sale-line")).toBeNull();
+  });
+
+  it("falls back to the generic buyer label instead of throwing when buyer is missing", () => {
+    // Guards against the exact shape the CR flagged: `sale.buyer.name` used
+    // unguarded would throw here since `buyer` is falsy.
+    expect(() =>
+      renderCard(
+        makeListing({
+          status: "reserved",
+          sale: sale({ buyer: undefined as unknown as ListingSale["buyer"] }),
+        })
+      )
+    ).not.toThrow();
+    expect(screen.getByText("listing.sale.reservedFor")).toBeTruthy();
   });
 });
 

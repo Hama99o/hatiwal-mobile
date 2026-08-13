@@ -273,6 +273,32 @@ export const LongTitleUnread: Story = {
   },
 };
 
+// ── Row1 crowding regression guard (TASK-J471 review fix) — a vehicles-scale
+//    price ("AFN 1,250,000") + a >7-day-old timestamp (which includes the
+//    year, e.g. "Jun 1, 2024") used to sit in the same row as the role pill
+//    and could overflow/clip at 360pt width. The pill now lives in row2
+//    (beside the participant name), so row1 only ever fits title + price +
+//    time — this story is the layout's regression guard at that width. ──────
+
+export const LongPriceOldTimestampWithRolePill: Story = {
+  args: {
+    item: makeConversation({
+      viewerRole: "buyer",
+      lastMessageAt: "2024-01-15T09:00:00Z", // > 7 days before `now` (2024-06-15)
+      listing: {
+        id: 1,
+        title: "Toyota Corolla 2018",
+        thumbnailUrl: "https://picsum.photos/seed/corolla/200/200",
+        status: "active",
+        price: 1_250_000,
+        currency: "AFN",
+      },
+    }),
+    onDelete: action("delete"),
+  },
+  decorators: [(Story: React.ComponentType) => <View style={{ width: 360, backgroundColor: "#fff" }}><Story /></View>],
+};
+
 // ── RTL (Pashto / Dari) ───────────────────────────────────────────────────────
 
 export const RTLPashto: Story = {

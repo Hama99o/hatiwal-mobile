@@ -84,6 +84,46 @@ export const Sold: Story = {
   args: { listing: makeListing({ status: "sold" }) },
 };
 
+// TASK-R418 — reserved with a recorded buyer: the compact "Reserved for
+// {name}" line under the ExpiryBadge. CYCLE-4 design-review fix: this line
+// now uses colors.foreground (not colors.warning, which read at ~3.0:1
+// bare on the card background) for AA contrast in both themes.
+export const ReservedWithBuyer: Story = {
+  args: {
+    listing: makeListing({
+      status: "reserved",
+      sale: {
+        id: 9,
+        status: "reserved",
+        finalPrice: 80000,
+        currency: "AFN",
+        completedAt: null,
+        buyer: { id: 42, name: "Ahmad Karimi", avatarUrl: null, verified: true },
+        conversationId: 77,
+      },
+    }),
+  },
+};
+
+// TASK-R418 — sold with a recorded buyer: the compact "Sold to {name}" line
+// (colors.mutedForeground — dimmed/archived, unchanged by the contrast fix).
+export const SoldWithBuyer: Story = {
+  args: {
+    listing: makeListing({
+      status: "sold",
+      sale: {
+        id: 10,
+        status: "sold",
+        finalPrice: 78000,
+        currency: "AFN",
+        completedAt: "2026-07-10T12:00:00Z",
+        buyer: { id: 43, name: "Fatima Rahimi", avatarUrl: null, verified: false },
+        conversationId: 78,
+      },
+    }),
+  },
+};
+
 // Active, expiring soon (3 days) — warning ExpiryBadge
 export const ExpiringSoon: Story = {
   args: {

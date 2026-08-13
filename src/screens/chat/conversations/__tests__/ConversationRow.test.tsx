@@ -90,6 +90,18 @@ jest.mock("@/stores/chat.store", () => ({
 
 const NOW = "2026-06-25T09:00:00Z";
 
+// TASK-J471 (review fix): `listing.price`/`listing.currency` below match the
+// REAL `GET /api/v1/conversations` (`:list` view) payload, not just the
+// `:detailed` single-conversation view — see
+// hatiwal-api/app/serializers/conversation_serializer.rb's `:list` block
+// (`field(:listing) { ... price: c.listing.price, currency: c.listing.currency }`)
+// and its covering request spec
+// (hatiwal-api/spec/requests/api/v1/conversations_spec.rb, "includes the
+// listing's price and currency for the inbox PriceTag"). Before that fix the
+// `:list` view never sent these fields, so this fixture — despite being a
+// valid `Conversation` per the TS union type — described a payload the inbox
+// never actually receives, and the suite passed while production rendered
+// nothing.
 function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
   return {
     id: 1,

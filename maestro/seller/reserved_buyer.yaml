@@ -18,8 +18,10 @@ appId: com.hatiwal.app
 #   - Owner detail shows the SaleBuyerCard: "Reserved for Ahmad Karimi",
 #     the buyer's name via the shared UserIdentity row, and the agreed price
 #     line (since it differs from the listing's asking price)
-#   - "Message Ahmad Karimi" lands directly in the existing conversation
-#     thread (not a generic conversations list)
+#   - CYCLE-4 design-review fix: the identity row + Message control are now
+#     ONE collapsed row (tapped via testID, not the old full-width
+#     "Message {name}" button text) — the Message control lands directly in
+#     the existing conversation thread (not a generic conversations list)
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
@@ -67,7 +69,11 @@ appId: com.hatiwal.app
 - assertVisible: "Ahmad Karimi"
 
 # ── One-tap Message CTA — lands directly in the existing thread ──────────
-- tapOn: "Message Ahmad Karimi"
+# CYCLE-4: the identity + Message control collapsed into one row, sized to
+# content, so the control is tapped by its stable testID rather than the
+# (now-shortened) button copy.
+- tapOn:
+    id: "sale-buyer-message-button"
 - waitForAnimationToEnd
 
 # Conversation thread screen, not a generic list — the composer + the

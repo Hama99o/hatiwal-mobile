@@ -7,8 +7,10 @@
  *  3. Sold state — "Sold to {name}" headline
  *  4. Final-price line shown only when it differs from the listing's asking price
  *  5. Final-price line hidden when finalPrice === listing.price
- *  6. "Message {name}" navigates to the conversation route when conversationId is present
- *  7. "Message {name}" falls back to listing-conversations when conversationId is null
+ *  6. Message control navigates to the conversation route when conversationId is present
+ *  7. Message control falls back to listing-conversations (relabeled) when conversationId is null
+ *  8. CYCLE-4: UserIdentity's onPress lands on the buyer's profile
+ *  9. CYCLE-4: completedAt renders as "Sold on {date}" for a sold sale
  */
 
 import React from "react";
@@ -155,5 +157,66 @@ describe("SaleBuyerCard", () => {
     render(<SaleBuyerCard listing={listing} />);
 
     expect(screen.getByText("listing.sale.noBuyerRecorded")).toBeTruthy();
+  });
+
+  // ── CYCLE-4 design-review fixes ─────────────────────────────────────────────
+
+  it("navigates to the buyer's profile when the collapsed UserIdentity row is tapped", () => {
+    const mockPush = jest.fn();
+    jest.spyOn(require("expo-router"), "useRouter").mockReturnValue({
+      push: mockPush,
+      replace: jest.fn(),
+      back: jest.fn(),
+    });
+
+    const listing = buildListing({ sale: buildSale({ buyer: { id: 42, name: "Ahmad Karimi", avatarUrl: null, verified: true } }) });
+    render(<SaleBuyerCard listing={listing} />);
+
+    fireEvent.press(screen.getByTestId("sale-buyer-identity"));
+
+    expect(mockPush).toHaveBeenCalledWith("/(main)/seller/42");
+  });
+
+  it("does not attach a profile onPress when the buyer is missing entirely", () => {
+    const listing = buildListing({
+      sale: buildSale({ buyer: undefined as unknown as ListingSale["buyer"] }),
+    });
+    render(<SaleBuyerCard listing={listing} />);
+    // Non-pressable UserIdentity renders without a testID on the Pressable
+    // wrapper (see UserIdentity.tsx) — asserting the root testID still
+    // resolves confirms the row renders without a profile-nav crash.
+    expect(screen.queryByTestId("sale-buyer-card")).toBeTruthy();
+  });
+
+  it("renders 'Sold on {date}' for a sold sale with completedAt", () => {
+    const listing = buildListing({
+      status: "sold",
+      sale: buildSale({ status: "sold", completedAt: "2026-07-05T10:00:00Z" }),
+    });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.getByText("listing.sale.soldOn")).toBeTruthy();
+  });
+
+  it("does not render a sold-on date for a reserved sale", () => {
+    const listing = buildListing({ status: "reserved", sale: buildSale({ status: "reserved" }) });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.queryByText("listing.sale.soldOn")).toBeNull();
+  });
+
+  it("relabels the Message control to 'View Conversations' when there is no direct conversation", () => {
+    const listing = buildListing({ sale: buildSale({ conversationId: null }) });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.getByText("listing.ownerDetail.viewConversations")).toBeTruthy();
+    expect(screen.queryByText("common.message")).toBeNull();
+  });
+
+  it("shows the compact 'Message' label when a direct conversation exists", () => {
+    const listing = buildListing({ sale: buildSale({ conversationId: 77 }) });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.getByText("common.message")).toBeTruthy();
   });
 });

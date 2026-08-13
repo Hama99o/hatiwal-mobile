@@ -60,6 +60,14 @@ export interface Conversation {
     title: string;
     thumbnailUrl: string | null;
     status: string;
+    /**
+     * TASK-J471: present on BOTH the `:list` view (GET /conversations, the
+     * inbox) and the `:detailed` view (GET /conversations/:id) — see
+     * `conversation_serializer.rb`. Both columns are `NOT NULL` at the DB
+     * level (`listings.price`/`listings.currency`), so in practice this is
+     * always populated whenever `listing` itself is non-null. `?` here is
+     * defensive typing only, not a signal that either view can omit it.
+     */
     price?: number;
     currency?: string;
     location?: string;

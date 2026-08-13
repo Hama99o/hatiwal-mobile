@@ -199,7 +199,7 @@ export function ConversationRow({
         {/* ── Text content ────────────────────────────────────────────────── */}
         <View style={styles.content}>
 
-          {/* Title (+ role pill) + price + time */}
+          {/* Title + price + time */}
           <View style={[styles.row1, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
             <View style={[styles.titleGroup, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
               <Text
@@ -211,23 +211,18 @@ export function ConversationRow({
               >
                 {item.listing?.title ?? t("chat.title")}
               </Text>
-              {/* Role hint (TASK-R517) — which side of this thread the viewer is on */}
-              {item.viewerRole ? (
-                <View style={styles.rolePillWrap} testID={`role-pill-${item.id}`}>
-                  <Badge
-                    label={t(
-                      item.viewerRole === "seller" ? "chat.role.selling" : "chat.role.buying"
-                    )}
-                    variant="muted"
-                    style={styles.rolePill}
-                  />
-                </View>
-              ) : null}
             </View>
             {/* Price (TASK-J471, design north star: price-prominence) — renders
                 null when the listing has no price (PriceTag itself returns null),
                 so no extra wrapper here to avoid an empty flex-gap slot. Muted
-                tone on a sold/reserved row, matching the dimmed title/thumbnail. */}
+                tone on a sold/reserved row, matching the dimmed title/thumbnail.
+                TASK-J471 (review fix): the role pill (TASK-R517) used to live
+                in this row too — with a vehicles-scale price (e.g.
+                "AFN 1,250,000") and a >7-day-old timestamp (which includes the
+                year), the three fixed-width items plus the title could exceed
+                the row's content width and clip/overlap the timestamp. The
+                pill moved to row2 (beside the participant name) so row1 only
+                ever has to fit title + price + time. */}
             <PriceTag
               price={item.listing?.price}
               currency={item.listing?.currency}
@@ -247,16 +242,36 @@ export function ConversationRow({
             ) : null}
           </View>
 
-          {/* Participant name + verified — via shared UserIdentity (never hand-roll) */}
-          {otherName ? (
+          {/* Participant name + verified (shared UserIdentity, never hand-roll)
+              + role hint (TASK-R517: which side of this thread the viewer is
+              on). Renders if either piece exists — mirrors the pre-J471
+              behaviour where the role pill never depended on the participant
+              name resolving. Name wrapped in flex:1/minWidth:0 so it shrinks
+              first; the pill (fixed-width) is never the one that clips. */}
+          {otherName || item.viewerRole ? (
             <View style={[styles.row2, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
-              <UserIdentity
-                name={otherName}
-                verified={other?.verified ?? false}
-                showAvatar={false}
-                size={28}
-                nameSize={12}
-              />
+              {otherName ? (
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <UserIdentity
+                    name={otherName}
+                    verified={other?.verified ?? false}
+                    showAvatar={false}
+                    size={28}
+                    nameSize={12}
+                  />
+                </View>
+              ) : null}
+              {item.viewerRole ? (
+                <View style={styles.rolePillWrap} testID={`role-pill-${item.id}`}>
+                  <Badge
+                    label={t(
+                      item.viewerRole === "seller" ? "chat.role.selling" : "chat.role.buying"
+                    )}
+                    variant="muted"
+                    style={styles.rolePill}
+                  />
+                </View>
+              ) : null}
             </View>
           ) : null}
 
@@ -483,20 +498,20 @@ const styles = StyleSheet.create({
   content:  { flex: 1, minWidth: 0 },
 
   row1: { alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 3 },
-  // Holds the title + role pill together as one flexible group so the
-  // timestamp (flexShrink: 0 below) never gets pushed off-screen — the title
-  // itself is flexShrink: 1 (never flex: 1) so it truncates before the pill
-  // or the timestamp ever get squeezed out.
+  // Holds just the title now (TASK-J471 review fix: the role pill used to
+  // live here too — see the PriceTag comment above for why it moved to
+  // row2). flex: 1 so the title claims all of row1's leftover space once
+  // price + time have taken theirs, and shrinks to 0 first under pressure.
   titleGroup: { flex: 1, alignItems: "center", gap: 6, minWidth: 0 },
-  // flex: 1 (not flexShrink: 1) — TASK-J471: with a PriceTag + timestamp now
-  // also sharing row1, the title must actively shrink to zero-basis so a long
-  // title never pushes the price or the time off-screen/truncated.
   title: { fontSize: 14, fontWeight: "700", lineHeight: 19, flex: 1 },
   rolePillWrap: { flexShrink: 0 },
   rolePill: { paddingHorizontal: 8 },
   time:  { fontSize: 11, flexShrink: 0, marginTop: 1 },
 
-  row2:  { alignItems: "center", gap: 4, marginBottom: 3 },
+  // gap: 6 (not 4) — TASK-J471: now also hosts the role pill (moved from
+  // row1), so the name and pill get a touch more breathing room than the
+  // tighter row3 preview/badge pairing.
+  row2:  { alignItems: "center", gap: 6, marginBottom: 3 },
 
   row3:        { alignItems: "center", justifyContent: "space-between" },
   previewInner:{ flex: 1, alignItems: "center", gap: 4 },

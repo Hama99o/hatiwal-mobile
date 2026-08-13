@@ -90,8 +90,10 @@ export const NoAvatarPhoto: Story = {
   },
 };
 
-// Legacy reserve/sold with no buyer identified — the fallback conversation route,
-// exercised via the Message button (see Jest tests); visually identical to Reserved.
+// Legacy reserve/sold with a buyer but no matching conversation — CYCLE-4:
+// the compact action relabels to "View Conversations" (instead of implying a
+// one-tap DM into a thread that doesn't exist) and falls back to the
+// listing-conversations list; see Jest tests for the routing assertion.
 export const NoConversationRecorded: Story = {
   args: {
     listing: buildListing({

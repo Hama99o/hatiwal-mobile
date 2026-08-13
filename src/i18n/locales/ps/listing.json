@@ -232,6 +232,7 @@
     "soldTo": "{{name}} ته خرڅ شو",
     "messageBuyer": "{{name}} ته پیغام ورکړئ",
     "finalPrice": "موافقه شویه بیه",
-    "noBuyerRecorded": "د پیرودونکي معلومات نشته"
+    "noBuyerRecorded": "د پیرودونکي معلومات نشته",
+    "soldOn": "په {{date}} خرڅ شو"
   }
 }

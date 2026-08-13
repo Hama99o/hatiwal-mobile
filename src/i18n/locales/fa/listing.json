@@ -232,6 +232,7 @@
     "soldTo": "به {{name}} فروخته شد",
     "messageBuyer": "پیام به {{name}}",
     "finalPrice": "قیمت توافق‌شده",
-    "noBuyerRecorded": "معلومات خریدار موجود نیست"
+    "noBuyerRecorded": "معلومات خریدار موجود نیست",
+    "soldOn": "در {{date}} فروخته شد"
   }
 }

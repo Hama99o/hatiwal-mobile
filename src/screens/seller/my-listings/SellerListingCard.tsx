@@ -208,13 +208,21 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
           {/* TASK-R418: compact "Reserved for {name}" / "Sold to {name}" line —
               reserved/sold rows only, text-only (no second avatar stack on the
               card; the full buyer card with avatar lives on the owner detail
-              screen). Renders nothing when there is no recorded buyer. */}
+              screen). Renders nothing when there is no recorded buyer.
+              CYCLE-4 design-review fix: `colors.warning` is tuned as a LABEL
+              colour paired with `warningAlpha` background (see
+              getStatusAccent) — used bare on the card's own background it
+              reads at ~3.0:1, under the 4.5:1 AA floor. `foreground` (bold,
+              for the still-actionable "reserved" state) / `mutedForeground`
+              (dimmed, for the archived "sold" state) both meet AA in light
+              and dark. CR fix (LOW): guard `sale.buyer?.name` the same way
+              SaleBuyerCard does, instead of assuming it is always present. */}
           {listing.sale && (
             <Text
               style={{
                 fontSize: 12,
                 fontWeight: "600",
-                color: listing.sale.status === "sold" ? colors.mutedForeground : colors.warning,
+                color: listing.sale.status === "sold" ? colors.mutedForeground : colors.foreground,
                 marginTop: 6,
                 textAlign: isRtl ? "right" : "left",
               }}
@@ -222,8 +230,8 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
               testID="seller-card-sale-line"
             >
               {listing.sale.status === "sold"
-                ? t("listing.sale.soldTo", { name: listing.sale.buyer.name })
-                : t("listing.sale.reservedFor", { name: listing.sale.buyer.name })}
+                ? t("listing.sale.soldTo", { name: listing.sale.buyer?.name || t("listing.sale.noBuyerRecorded") })
+                : t("listing.sale.reservedFor", { name: listing.sale.buyer?.name || t("listing.sale.noBuyerRecorded") })}
             </Text>
           )}
 

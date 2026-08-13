@@ -232,6 +232,7 @@
     "soldTo": "Sold to {{name}}",
     "messageBuyer": "Message {{name}}",
     "finalPrice": "Agreed price",
-    "noBuyerRecorded": "Buyer info unavailable"
+    "noBuyerRecorded": "Buyer info unavailable",
+    "soldOn": "Sold on {{date}}"
   }
 }

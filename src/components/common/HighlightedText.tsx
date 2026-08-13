@@ -21,10 +21,20 @@ interface HighlightedTextProps {
  * (list-level search, TASK-Z684) instead of a second hand-rolled copy.
  * Zero behavioural change from the original: regex-escaped, case-insensitive
  * split on `query`, `.trim()`'d internally so this can never disagree with
- * whatever filter/search predicate already selected the row/message (both
- * `filterConversations` and the in-thread filter trim their term too) —
- * `colors.warningAlpha` background + `colors.warning` foreground + 700 weight
- * on every matched segment.
+ * whatever filter/search predicate already selected the row/message on
+ * whitespace handling (both `filterConversations` and the in-thread filter
+ * trim their term too) — `colors.warningAlpha` background + `colors.warning`
+ * foreground + 700 weight on every matched segment.
+ *
+ * Known gap (non-behavioural, tracked as a follow-up): `filterConversations`
+ * also runs both the needle and haystack through `normalizeDigits` (Latin ↔
+ * Eastern-Arabic/Persian numerals) before matching, so a Latin-digit search
+ * term correctly SELECTS a row whose preview renders Eastern-Arabic digits
+ * (ps/fa `formatCurrency` output) — but this component matches on the raw,
+ * un-normalized string, so that row's matched amount won't actually get
+ * highlighted. Matching-on-normalized-then-mapping-back-to-original-offsets
+ * would change this component's matching behaviour, which is explicitly out
+ * of scope for this verbatim extraction.
  */
 export function HighlightedText({ text, query, baseStyle, numberOfLines }: HighlightedTextProps) {
   const colors = useColors();
