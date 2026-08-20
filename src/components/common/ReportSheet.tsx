@@ -30,7 +30,7 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 import { useMutation } from "@tanstack/react-query";
 import { X, Flag } from "lucide-react-native";
 

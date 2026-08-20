@@ -23,7 +23,7 @@ import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 import { MapPin, ChevronRight, ChevronLeft, User, Phone, Globe, Check, PlaneTakeoff } from "lucide-react-native";
 
 import { Text } from "@/components/reusables/text";
@@ -326,9 +326,9 @@ export default function EditProfileScreen() {
                   onChangeText={onChange}
                   onBlur={onBlur}
                   placeholder={t("profile.edit.fields.firstname")}
+                  error={!!errors.firstname}
                   style={{
                     textAlign: isRtl ? "right" : "left",
-                    borderColor: errors.firstname ? colors.destructive : colors.border,
                   }}
                   autoCapitalize="words"
                   returnKeyType="next"
@@ -351,9 +351,9 @@ export default function EditProfileScreen() {
                   onChangeText={onChange}
                   onBlur={onBlur}
                   placeholder={t("profile.edit.fields.lastname")}
+                  error={!!errors.lastname}
                   style={{
                     textAlign: isRtl ? "right" : "left",
-                    borderColor: errors.lastname ? colors.destructive : colors.border,
                   }}
                   autoCapitalize="words"
                   returnKeyType="next"
@@ -385,9 +385,9 @@ export default function EditProfileScreen() {
                   onBlur={onBlur}
                   placeholder={t("profile.edit.fields.phone")}
                   keyboardType="phone-pad"
+                  error={!!errors.phone}
                   style={{
                     textAlign: isRtl ? "right" : "left",
-                    borderColor: errors.phone ? colors.destructive : colors.border,
                   }}
                   returnKeyType="next"
                 />
@@ -409,9 +409,9 @@ export default function EditProfileScreen() {
                   onChangeText={onChange}
                   onBlur={onBlur}
                   placeholder={t("profile.edit.fields.bioPlaceholder")}
+                  error={!!errors.bio}
                   style={{
                     textAlign: isRtl ? "right" : "left",
-                    borderColor: errors.bio ? colors.destructive : colors.border,
                     minHeight: 100,
                   }}
                 />

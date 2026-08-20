@@ -8,7 +8,7 @@ import React, { useState } from "react";
 import { View, Linking, Pressable, Platform, Modal, Dimensions, ActivityIndicator, Text as RNText } from "react-native";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 import {
   MapPin,
   Clock,

@@ -18,7 +18,7 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 import { X, MessageCircle } from "lucide-react-native";
 
 import { conversationsAPI } from "@/api/conversations";

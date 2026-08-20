@@ -19,7 +19,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react-native";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 import { NoResultsIllustration } from "@/components/common/empty-illustrations";
 
 import { ListingFeed } from "@/components/common/ListingFeed";

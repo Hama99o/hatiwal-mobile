@@ -25,7 +25,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
 import { Heart } from "lucide-react-native";
 import { SavedIllustration } from "@/components/common/empty-illustrations";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { ListingCard } from "@/components/common/ListingCard";

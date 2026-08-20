@@ -29,7 +29,7 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Send, Plus, ShieldBan, Search, X, Flag } from "lucide-react-native";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";

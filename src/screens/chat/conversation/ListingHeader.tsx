@@ -30,7 +30,7 @@ import { ReviewPromptSheet } from "@/components/common/ReviewPromptSheet";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { listingsAPI } from "@/api/listings";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 
 interface ListingInfo {
   id: number;

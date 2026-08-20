@@ -24,7 +24,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreVertical } from "lucide-react-native";
 import * as Linking from "expo-linking";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";

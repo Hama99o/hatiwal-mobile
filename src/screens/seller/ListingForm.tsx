@@ -51,7 +51,7 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useCategoryName } from "@/hooks/useCategoryName";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 
 import { confirmAlert } from "@/utils/alert";
 import { normalizeDigits } from "@/utils/normalizeDigits";
@@ -1188,9 +1188,9 @@ export default function ListingFormScreen() {
                 onBlur={field.onBlur}
                 placeholder={t("listing.titlePlaceholder")}
                 maxLength={150}
+                error={!!errors.title}
                 style={{
                   textAlign: isRtl ? "right" : "left",
-                  borderColor: errors.title ? colors.destructive : colors.border,
                 }}
                 aria-labelledby="title-label"
                 // TASK-P736 (review fix, a11y, iOS) — `aria-labelledby` maps
@@ -1255,11 +1255,11 @@ export default function ListingFormScreen() {
                   // TASK-P736 (review fix, a11y, iOS) — see the identical
                   // fix on the Title Input above.
                   accessibilityLabel={t("common.price")}
+                  error={!!errors.price}
                   style={[
                     styles.priceInput,
                     {
                       textAlign: isRtl ? "right" : "left",
-                      borderColor: errors.price ? colors.destructive : colors.border,
                     },
                   ]}
                 />

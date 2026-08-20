@@ -21,7 +21,7 @@ import {
   ChevronRight,
 } from "lucide-react-native";
 import { ChatIllustration } from "@/components/common/empty-illustrations";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 
 import {
   conversationsAPI,

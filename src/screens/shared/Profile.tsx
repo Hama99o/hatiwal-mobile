@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/reusables/skeleton";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useFocusEffect } from "expo-router";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 import {
   Sun,
   Moon,

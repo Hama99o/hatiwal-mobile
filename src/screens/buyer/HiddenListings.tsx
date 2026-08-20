@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
 import { EyeOff, RotateCcw } from "lucide-react-native";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { Button } from "@/components/reusables/button";

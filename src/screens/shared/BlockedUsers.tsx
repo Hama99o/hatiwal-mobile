@@ -18,7 +18,7 @@ import React, { useCallback, useRef, useState } from "react";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "expo-router";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 import { ShieldOff } from "lucide-react-native";
 
 import { Text } from "@/components/reusables/text";

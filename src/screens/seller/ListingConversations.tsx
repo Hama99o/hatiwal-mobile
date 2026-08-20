@@ -51,7 +51,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner-native";
+import { toast } from "@/lib/toast";
 import { MessageCircle } from "lucide-react-native";
 
 import {
