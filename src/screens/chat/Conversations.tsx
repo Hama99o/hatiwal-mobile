@@ -2,12 +2,24 @@ import {
   View,
   Pressable,
   ScrollView,
+  StyleSheet,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
 } from "react-native";
 import { useCallback, useRef, useState } from "react";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MessageCircle, CheckCheck, Archive, SearchX, ShoppingBag, Store } from "lucide-react-native";
+import {
+  MessageCircle,
+  CheckCheck,
+  Archive,
+  SearchX,
+  ShoppingBag,
+  Store,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react-native";
 import { ChatIllustration } from "@/components/common/empty-illustrations";
 import { toast } from "sonner-native";
 
@@ -22,6 +34,7 @@ import { useChatStore } from "@/stores/chat.store";
 import { Text } from "@/components/reusables/text";
 import { Badge } from "@/components/reusables/badge";
 import { SearchBar } from "@/components/common/SearchBar";
+import { FilterChip } from "@/components/common/FilterChip";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import {
   UniversalList,
@@ -107,6 +120,41 @@ export default function ConversationsScreen() {
   // exist" (search only ever filters what's already in memory).
   const [pageInfo, setPageInfo] = useState({ currentPage: 1, totalPages: 1 });
   const hasUnloadedConversations = pageInfo.currentPage < pageInfo.totalPages;
+
+  // ── Chip-row scroll affordance (review fix) ─────────────────────────────────
+  // The read-state + role chip row can hold up to 5 chips plus a divider,
+  // which overflows a 375px screen — `chipRowOverflow` tracks whether there
+  // is unscrolled content on either edge (independent of reading direction,
+  // so it stays correct in RTL without guessing which edge is "first") and
+  // renders a small chevron hint so Buying/Selling are never silently
+  // off-screen and undiscovered.
+  const [chipRowOverflow, setChipRowOverflow] = useState({ start: false, end: false });
+  const chipRowWidthRef = useRef(0);
+
+  const updateChipRowOverflow = useCallback(
+    (contentOffsetX: number, contentWidth: number) => {
+      const containerWidth = chipRowWidthRef.current;
+      if (containerWidth <= 0 || contentWidth <= containerWidth + 1) {
+        setChipRowOverflow({ start: false, end: false });
+        return;
+      }
+      setChipRowOverflow({
+        start: contentOffsetX > 2,
+        end: contentOffsetX + containerWidth < contentWidth - 2,
+      });
+    },
+    []
+  );
+
+  const handleChipRowScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      updateChipRowOverflow(
+        e.nativeEvent.contentOffset.x,
+        e.nativeEvent.contentSize.width
+      );
+    },
+    [updateChipRowOverflow]
+  );
 
   const setUnreadMessageTotal = useChatStore((s) => s.setUnreadMessageTotal);
 
@@ -331,6 +379,7 @@ export default function ConversationsScreen() {
       <ConversationRow
         item={item}
         tabMode={tabMode}
+        role={role}
         searchTerm={searchTerm}
         onDelete={handleDelete}
         onMarkRead={handleMarkRead}
@@ -341,15 +390,24 @@ export default function ConversationsScreen() {
     ),
     skeletonCount:     5,
     SkeletonComponent: ConversationRowSkeleton,
+    // Review fix: the icon/title/description/action below are now ordered
+    // TAB-FIRST (archived checked before role) — `role` is deliberately not
+    // reset when switching tabs (it composes with Archived, same as the
+    // fetcher), so without this ordering an empty Archived+Selling view used
+    // to show the inbox-flavored "No one has messaged you about your items
+    // yet" copy AND its "Post a listing" CTA, neither of which make sense on
+    // an archive (you don't fix an empty archive by posting a listing).
+    // Archived always gets the plain archive-empty copy and no CTA,
+    // regardless of which role scope narrowed it to empty.
     emptyIcon:
       hasSearchTerm
         ? SearchX
-        : role === "selling"
-          ? Store
-          : role === "buying"
-            ? ShoppingBag
-            : tabMode === "archived"
-              ? Archive
+        : tabMode === "archived"
+          ? Archive
+          : role === "selling"
+            ? Store
+            : role === "buying"
+              ? ShoppingBag
               : filter === "unread"
                 ? CheckCheck
                 : MessageCircle,
@@ -363,12 +421,12 @@ export default function ConversationsScreen() {
     emptyTitle:
       hasSearchTerm
         ? t("chat.search.noMatchTitle", { term: trimmedSearchTerm })
-        : role === "selling"
-          ? t("chat.empty.sellingTitle")
-          : role === "buying"
-            ? t("chat.empty.buyingTitle")
-            : tabMode === "archived"
-              ? t("chat.archive.empty")
+        : tabMode === "archived"
+          ? t("chat.archive.empty")
+          : role === "selling"
+            ? t("chat.empty.sellingTitle")
+            : role === "buying"
+              ? t("chat.empty.buyingTitle")
               : filter === "unread"
                 ? t("chat.filter.noUnread")
                 : t("chat.noConversations"),
@@ -385,34 +443,36 @@ export default function ConversationsScreen() {
           // never allowed.
           ? t("chat.search.noMatchDescriptionPartial")
           : t("chat.search.noMatchDescription")
-        : role === "selling"
-          ? t("chat.empty.sellingDescription")
-          : role === "buying"
-            ? t("chat.empty.buyingDescription")
-            : tabMode === "archived"
-              ? t("chat.archive.emptyDescription")
+        : tabMode === "archived"
+          ? t("chat.archive.emptyDescription")
+          : role === "selling"
+            ? t("chat.empty.sellingDescription")
+            : role === "buying"
+              ? t("chat.empty.buyingDescription")
               : filter === "unread"
                 ? t("chat.filter.noUnreadDescription")
                 : t("chat.noConversationsDescription"),
     emptyAction:
       hasSearchTerm
         ? { label: t("chat.search.clearSearch"), onPress: () => setSearchTerm("") }
-        : role === "selling"
-          ? {
-              label:   t("listing.postListing"),
-              onPress: () => router.push("/(main)/listing/new" as never),
-            }
-          : role === "buying"
+        : tabMode === "archived"
+          ? undefined
+          : role === "selling"
             ? {
-                label:   t("chat.empty.browseAction"),
-                onPress: () => router.push("/(main)/(tabs)/browse" as never),
+                label:   t("listing.postListing"),
+                onPress: () => router.push("/(main)/listing/new" as never),
               }
-            : tabMode !== "archived" && filter !== "unread"
+            : role === "buying"
               ? {
                   label:   t("chat.empty.browseAction"),
                   onPress: () => router.push("/(main)/(tabs)/browse" as never),
                 }
-              : undefined,
+              : filter !== "unread"
+                ? {
+                    label:   t("chat.empty.browseAction"),
+                    onPress: () => router.push("/(main)/(tabs)/browse" as never),
+                  }
+                : undefined,
     contentPaddingBottom: 100,
   };
 
@@ -529,18 +589,30 @@ export default function ConversationsScreen() {
           })}
         </View>
 
-        {/* Combined filter chip row — only shown in Inbox tab. Holds TWO
-            independent groups in one horizontally-scrollable row so we never
-            add a 4th always-visible header row: read-state (All/Unread/Read,
-            client-side, unchanged) and role (Buying/Selling, server-side,
-            TASK-R517). Scrolls rather than shrinking so neither group ever
-            clips at narrow widths (e.g. 375px). */}
-        {tabMode === "inbox" && (
+        {/* Combined filter chip row. Holds TWO independent groups in one
+            horizontally-scrollable row so we never add a 4th always-visible
+            header row: read-state (All/Unread/Read, client-side, Inbox-only
+            — read/unread has no meaning once a thread is archived) and role
+            (Buying/Selling, server-side, TASK-R517). The role group renders
+            in BOTH tabs (review fix): `role` composes with Archived too (see
+            the fetcher above), so the chip that controls it — and lets the
+            user clear it — must stay visible and reachable there, not just
+            in the Inbox. Scrolls rather than shrinking so neither group ever
+            clips at narrow widths (e.g. 375px); the chevron hints below make
+            the overflow discoverable instead of silently off-screen. */}
+        <View
+          style={{ marginTop: 8 }}
+          onLayout={(e) => {
+            chipRowWidthRef.current = e.nativeEvent.layout.width;
+          }}
+        >
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             testID="conversations-filter-chip-row"
-            style={{ marginTop: 8 }}
+            onContentSizeChange={(w) => updateChipRowOverflow(0, w)}
+            onScroll={handleChipRowScroll}
+            scrollEventThrottle={32}
             contentContainerStyle={{
               flexDirection: isRtl ? "row-reverse" : "row",
               alignItems:    "center",
@@ -548,141 +620,65 @@ export default function ConversationsScreen() {
               paddingVertical: 2,
             }}
           >
-            {INBOX_FILTER_OPTIONS.map(({ key, labelKey }) => {
-              const isActive = filter === key;
-              return (
-                // Review fix: the 44pt MIN_TAP_TARGET now lives on this
-                // TRANSPARENT outer Pressable, not on the visible pill —
-                // `minHeight: 44` used to sit on the SAME node as the pill's
-                // `backgroundColor`/`borderRadius`, growing the visible chip
-                // from ~28pt to a near-square 44pt lozenge. The inner View
-                // below carries the actual pill visuals at its original
-                // compact size; the tap target stays 44 either way.
-                <Pressable
+            {tabMode === "inbox" &&
+              INBOX_FILTER_OPTIONS.map(({ key, labelKey }) => (
+                <FilterChip
                   key={key}
+                  label={t(labelKey)}
+                  isActive={filter === key}
                   onPress={() => setFilter(key)}
+                  isRtl={isRtl}
                   testID={`filter-chip-${key}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isActive }}
-                  accessibilityLabel={t(labelKey)}
-                  style={{ minHeight: 44, justifyContent: "center" }}
-                >
-                  <View
-                    style={{
-                      flexDirection:   isRtl ? "row-reverse" : "row",
-                      alignItems:      "center",
-                      justifyContent:  "center",
-                      gap:             5,
-                      paddingVertical: 7,
-                      paddingHorizontal: 13,
-                      borderRadius:    999,
-                      borderWidth:     isActive ? 1 : 0,
-                      // Dark-mode fix: `secondary` and `muted` (and their
-                      // `*Foreground`s) resolve to the IDENTICAL token in
-                      // dark mode (useColors.ts) — the active chip used to be
-                      // pixel-identical to the inactive ones. `primaryAlpha`
-                      // + a `primary` border/text never collides with any
-                      // other selection state on this screen (the role group
-                      // below uses a solid `primary` FILL, so the two groups
-                      // stay visually distinct too).
-                      backgroundColor: isActive ? colors.primaryAlpha : colors.muted,
-                      borderColor:     colors.primary,
-                    }}
-                  >
-                    {key === "unread" && (
-                      <View
-                        style={{
-                          width:           6,
-                          height:          6,
-                          borderRadius:    3,
-                          backgroundColor: colors.primary,
-                        }}
-                      />
-                    )}
-                    {key === "read" && (
-                      <CheckCheck
-                        size={11}
-                        color={isActive ? colors.primary : colors.mutedForeground}
-                      />
-                    )}
-                    <Text
-                      style={{
-                        fontSize:   13,
-                        fontWeight: "600",
-                        color:      isActive ? colors.primary : colors.foreground,
-                      }}
-                    >
-                      {t(labelKey)}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
+                  dot={key === "unread"}
+                  icon={key === "read" ? CheckCheck : undefined}
+                />
+              ))}
 
-            {/* Divider between the read-state group and the role group */}
-            <View
-              style={{
-                width:           1,
-                height:          18,
-                backgroundColor: colors.border,
-                marginHorizontal: 2,
-              }}
-            />
+            {/* Divider between the read-state group and the role group —
+                only meaningful when both groups render together (Inbox). */}
+            {tabMode === "inbox" && (
+              <View
+                style={{
+                  width:           1,
+                  height:          18,
+                  backgroundColor: colors.border,
+                  marginHorizontal: 2,
+                }}
+              />
+            )}
 
-            {ROLE_FILTER_OPTIONS.map(({ key, labelKey }) => {
-              const isActive = role === key;
-              return (
-                // Same outer-44pt / inner-compact-pill split as the
-                // read-state chips above (review fix) — this group's active
-                // treatment (solid `primary` fill) was already dark-mode-safe
-                // and is unchanged, just resized.
-                <Pressable
-                  key={key}
-                  onPress={() => setRole((prev) => (prev === key ? null : key))}
-                  testID={`role-chip-${key}`}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isActive }}
-                  accessibilityLabel={t(labelKey)}
-                  style={{ minHeight: 44, justifyContent: "center" }}
-                >
-                  <View
-                    style={{
-                      flexDirection:   isRtl ? "row-reverse" : "row",
-                      alignItems:      "center",
-                      justifyContent:  "center",
-                      gap:             5,
-                      paddingVertical: 7,
-                      paddingHorizontal: 13,
-                      borderRadius:    999,
-                      backgroundColor: isActive ? colors.primary : colors.muted,
-                    }}
-                  >
-                    {key === "selling" ? (
-                      <Store
-                        size={12}
-                        color={isActive ? colors.primaryForeground : colors.mutedForeground}
-                      />
-                    ) : (
-                      <ShoppingBag
-                        size={12}
-                        color={isActive ? colors.primaryForeground : colors.mutedForeground}
-                      />
-                    )}
-                    <Text
-                      style={{
-                        fontSize:   13,
-                        fontWeight: "600",
-                        color:      isActive ? colors.primaryForeground : colors.foreground,
-                      }}
-                    >
-                      {t(labelKey)}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
+            {ROLE_FILTER_OPTIONS.map(({ key, labelKey }) => (
+              <FilterChip
+                key={key}
+                label={t(labelKey)}
+                icon={key === "selling" ? Store : ShoppingBag}
+                isActive={role === key}
+                onPress={() => setRole((prev) => (prev === key ? null : key))}
+                isRtl={isRtl}
+                testID={`role-chip-${key}`}
+              />
+            ))}
           </ScrollView>
-        )}
+
+          {/* Scroll-discoverability hints (review fix) — a small chevron on
+              whichever edge still has unscrolled chips, computed purely from
+              scroll geometry so it stays correct in RTL without guessing
+              which edge is "first". `pointerEvents="none"` — decorative only. */}
+          {chipRowOverflow.start && (
+            <View pointerEvents="none" style={styles.chipEdgeHintLeft}>
+              <View style={[styles.chipEdgeHintBubble, { backgroundColor: colors.card }]}>
+                <ChevronLeft size={12} color={colors.mutedForeground} />
+              </View>
+            </View>
+          )}
+          {chipRowOverflow.end && (
+            <View pointerEvents="none" style={styles.chipEdgeHintRight}>
+              <View style={[styles.chipEdgeHintBubble, { backgroundColor: colors.card }]}>
+                <ChevronRight size={12} color={colors.mutedForeground} />
+              </View>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* ── List (UniversalList — FlashList-backed) ─────────────────────── */}
@@ -692,3 +688,15 @@ export default function ConversationsScreen() {
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  chipEdgeHintLeft:  { position: "absolute", left: 0, top: 0, bottom: 0, justifyContent: "center" },
+  chipEdgeHintRight: { position: "absolute", right: 0, top: 0, bottom: 0, justifyContent: "center" },
+  chipEdgeHintBubble: {
+    width:          18,
+    height:         18,
+    borderRadius:   9,
+    alignItems:     "center",
+    justifyContent: "center",
+  },
+});

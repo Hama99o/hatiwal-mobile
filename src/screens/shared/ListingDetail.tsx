@@ -72,6 +72,7 @@ import { conversationsAPI } from "@/api/conversations";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ListingStatusBanner } from "@/components/common/ListingStatusBanner";
+import { ListingUnavailableActions } from "@/components/common/ListingUnavailableActions";
 import { ConditionBadge } from "@/components/common/ConditionBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
 import { UserIdentity } from "@/components/common/UserIdentity";
@@ -439,8 +440,15 @@ export default function ListingDetailScreen() {
             </View>
           )}
 
-          {/* Price — most prominent text element on screen */}
-          <PriceTag price={listing.price} currency={listing.currency} size="lg" />
+          {/* Price — most prominent text element on screen. TASK-N317: sold is
+              final and reads as archived (tone="muted"); reserved can still
+              fall through to a real sale, so it keeps the full-strength price. */}
+          <PriceTag
+            price={listing.price}
+            currency={listing.currency}
+            size="lg"
+            tone={listing.status === "sold" ? "muted" : "default"}
+          />
 
           {/* Price-drop badge — subtle pill below price, only when a recent drop exists */}
           {listing.priceDropPercent != null && listing.priceDropPercent > 0 && (
@@ -869,8 +877,8 @@ export default function ListingDetailScreen() {
               </Button>
             </View>
           </>
-        ) : (
-          /* Sold / reserved / own listing → informational notice only */
+        ) : isOwnListing ? (
+          /* Owner's own listing → informational notice only — unchanged. */
           <View
             style={[
               styles.noticeBanner,
@@ -882,13 +890,39 @@ export default function ListingDetailScreen() {
           >
             <Ban size={16} color={colors.mutedForeground} />
             <Text style={{ fontSize: 14, fontWeight: "600", color: colors.mutedForeground }}>
-              {isOwnListing
-                ? t("listing.detail.ownListingNotice")
-                : listing.status === "sold"
-                ? t("listing.detail.soldNotice")
-                : listing.status === "reserved"
-                ? t("listing.detail.reservedNotice")
-                : t("listing.detail.unavailableNotice")}
+              {t("listing.detail.ownListingNotice")}
+            </Text>
+          </View>
+        ) : listing.status === "sold" || listing.status === "reserved" ? (
+          /* TASK-N317: the sold/reserved dead end — was a flat notice box with
+             no next action. Now offers "See similar in {category}" (+ a ±30%
+             price band when the already-fetched `similar` rail proves it holds
+             live stock) and "More from {seller}", degrading to whichever of
+             the two is actually reachable, never an empty button row. */
+          <ListingUnavailableActions
+            status={listing.status}
+            category={listing.category}
+            price={listing.price}
+            currency={listing.currency}
+            similarPrices={(similar ?? []).map((l: Listing) => l.price)}
+            sellerId={listing.seller?.id}
+            sellerName={listing.seller?.name}
+          />
+        ) : (
+          /* Any other non-contactable, non-owner state (e.g. a draft that
+             somehow reached this screen) → generic notice, unchanged. */
+          <View
+            style={[
+              styles.noticeBanner,
+              {
+                flexDirection: isRtl ? "row-reverse" : "row",
+                backgroundColor: colors.muted,
+              },
+            ]}
+          >
+            <Ban size={16} color={colors.mutedForeground} />
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.mutedForeground }}>
+              {t("listing.detail.unavailableNotice")}
             </Text>
           </View>
         )}

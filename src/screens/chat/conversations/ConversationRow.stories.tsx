@@ -166,6 +166,36 @@ export const BuyingRole: Story = {
   },
 };
 
+// Review fix regression guards — the pill is skipped when the screen's
+// active role filter already matches this row's viewerRole (redundant
+// signal, e.g. every row in a Selling-only list), but still renders in the
+// mixed/unfiltered inbox even when `role` is explicitly the OTHER value.
+export const SellingRoleHiddenWhenSellingFilterActive: Story = {
+  args: {
+    item: makeConversation({ viewerRole: "seller" }),
+    role: "selling",
+    onDelete: action("delete"),
+  },
+};
+
+export const BuyingRoleHiddenWhenBuyingFilterActive: Story = {
+  args: {
+    item: makeConversation({ viewerRole: "buyer" }),
+    role: "buying",
+    onDelete: action("delete"),
+  },
+};
+
+export const SellingRoleVisibleWhenBuyingFilterActive: Story = {
+  // A mixed result set can't happen server-side today, but the pill logic
+  // must still be correct if it ever does — only an EXACT match hides it.
+  args: {
+    item: makeConversation({ viewerRole: "seller" }),
+    role: "buying",
+    onDelete: action("delete"),
+  },
+};
+
 export const UnverifiedParticipant: Story = {
   args: {
     item: makeConversation({
@@ -398,6 +428,68 @@ export const DarkSurfaceSold: Story = {
         currency: "AFN",
       },
     }),
+    onDelete: action("delete"),
+  },
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("en");
+      return (
+        <View style={{ backgroundColor: "#0f172a" }}>
+          <Story />
+        </View>
+      );
+    },
+  ],
+};
+
+// ── "listing" context (TASK-Q847) — the per-listing conversations screen
+//    (ListingConversations.tsx). Every row shares the SAME listing (it's the
+//    screen's own header), so the listing thumbnail/title/PriceTag/
+//    StatusBadge group is dropped and the buyer's UserIdentity (avatar +
+//    name + verified tag) is promoted to the row's headline instead. The
+//    preview line, unread badge, time, and long-press menu are unchanged. ──
+
+export const ListingContext: Story = {
+  args: {
+    item: makeConversation({ unreadCount: 2 }),
+    context: "listing",
+    onDelete: action("delete"),
+  },
+};
+
+export const ListingContextOffer: Story = {
+  args: {
+    item: makeConversation({
+      lastMessageKind: "offer",
+      lastMessageBody: "75000|AFN",
+    }),
+    context: "listing",
+    onDelete: action("delete"),
+  },
+};
+
+export const ListingContextRtl: Story = {
+  args: {
+    item: makeConversation({ unreadCount: 1 }),
+    context: "listing",
+    onDelete: action("delete"),
+  },
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("ps");
+      return (
+        <View style={{ backgroundColor: "#fff" }}>
+          <Story />
+        </View>
+      );
+    },
+  ],
+};
+
+export const ListingContextDark: Story = {
+  args: {
+    item: makeConversation({ unreadCount: 2 }),
+    context: "listing",
     onDelete: action("delete"),
   },
   decorators: [

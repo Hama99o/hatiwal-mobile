@@ -62,6 +62,9 @@ jest.mock("lucide-react-native", () => ({
   MoreVertical: "MoreVertical",
   Archive: "Archive",
   ArchiveRestore: "ArchiveRestore",
+  // TASK-R517: the role pill's leading icon.
+  Store: "Store",
+  ShoppingBag: "ShoppingBag",
 }));
 
 // ── @/lib/animation — reduce-motion + pulse mocks ─────────────────────────────
@@ -603,6 +606,51 @@ describe("ConversationRow — role pill", () => {
     render(<ConversationRow item={item} onDelete={jest.fn()} />);
     expect(screen.queryByTestId("role-pill-3")).toBeNull();
   });
+
+  // Review fix: the screen's active role scope makes the pill redundant —
+  // every row in a Selling-only list is trivially "Selling".
+  it("does NOT render the pill when the active role filter matches viewerRole (selling)", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({ id: 4, viewerRole: "seller" })}
+        role="selling"
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.queryByTestId("role-pill-4")).toBeNull();
+  });
+
+  it("does NOT render the pill when the active role filter matches viewerRole (buying)", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({ id: 5, viewerRole: "buyer" })}
+        role="buying"
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.queryByTestId("role-pill-5")).toBeNull();
+  });
+
+  it("still renders the pill when the active role filter does NOT match viewerRole", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({ id: 6, viewerRole: "seller" })}
+        role="buying"
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByTestId("role-pill-6")).toBeTruthy();
+  });
+
+  it("still renders the pill in the mixed/unfiltered inbox (role undefined)", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({ id: 7, viewerRole: "buyer" })}
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByTestId("role-pill-7")).toBeTruthy();
+  });
 });
 
 // ── 7. Edge cases ─────────────────────────────────────────────────────────────
@@ -755,6 +803,111 @@ describe("ConversationRow — listing price", () => {
       />
     );
     expect(screen.getByText("USD 300")).toBeTruthy();
+  });
+});
+
+// ── 8b. "listing" context (TASK-Q847) ────────────────────────────────────────
+// The per-listing conversations screen (ListingConversations.tsx) renders
+// every row with context="listing" — the listing thumbnail/title/PriceTag/
+// StatusBadge group is dropped (every row already shares the SAME listing,
+// which is the screen's own header) and the buyer's UserIdentity is
+// promoted to the row's headline. The preview line, unread badge, time, and
+// long-press menu must stay identical to the inbox.
+
+describe("ConversationRow — listing context (TASK-Q847)", () => {
+  it("defaults to inbox context (renders the listing title) when context is omitted", () => {
+    render(<ConversationRow item={makeConversation()} onDelete={jest.fn()} />);
+    expect(screen.getByText("Lenovo ThinkPad X1 Carbon")).toBeTruthy();
+  });
+
+  it("hides the listing title when context is 'listing'", () => {
+    render(
+      <ConversationRow item={makeConversation()} context="listing" onDelete={jest.fn()} />
+    );
+    expect(screen.queryByText("Lenovo ThinkPad X1 Carbon")).toBeNull();
+  });
+
+  it("hides the listing price (PriceTag) when context is 'listing'", () => {
+    render(
+      <ConversationRow item={makeConversation()} context="listing" onDelete={jest.fn()} />
+    );
+    // formatCurrency is mocked as `${currency} ${amount}` — see src/__tests__/setup.ts.
+    expect(screen.queryByText("AFN 85000")).toBeNull();
+  });
+
+  it("shows the buyer's name exactly once (promoted to the row headline) when context is 'listing'", () => {
+    render(
+      <ConversationRow item={makeConversation()} context="listing" onDelete={jest.fn()} />
+    );
+    // Inbox context would additionally repeat the name in row2 — listing
+    // context must show it only once, as the headline.
+    expect(screen.getAllByText("Ahmad Karimi")).toHaveLength(1);
+  });
+
+  it("still shows the last-message preview text when context is 'listing'", () => {
+    render(
+      <ConversationRow item={makeConversation()} context="listing" onDelete={jest.fn()} />
+    );
+    expect(screen.getByText("Is this still available?")).toBeTruthy();
+  });
+
+  it("formats an offer preview (never the raw metadata) when context is 'listing'", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({ lastMessageKind: "offer", lastMessageBody: "75000|AFN" })}
+        context="listing"
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByText("chat.preview.offer")).toBeTruthy();
+    expect(screen.queryByText("75000|AFN")).toBeNull();
+  });
+
+  it("still shows the unread badge when context is 'listing'", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({ id: 200, unreadCount: 4 })}
+        context="listing"
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByTestId("unread-badge-200")).toBeTruthy();
+  });
+
+  it("still opens the same long-press action menu when context is 'listing'", () => {
+    render(
+      <ConversationRow item={makeConversation({ id: 201 })} context="listing" onDelete={jest.fn()} />
+    );
+    fireEvent(screen.getByTestId("conversation-row-201"), "longPress");
+    expect(screen.getByTestId("conversation-action-menu")).toBeTruthy();
+    expect(screen.getByTestId("menu-mark-unread")).toBeTruthy();
+    expect(screen.getByTestId("menu-archive")).toBeTruthy();
+    expect(screen.getByTestId("menu-delete")).toBeTruthy();
+  });
+
+  it("still fires onDelete with the conversation id after confirmAlert in listing context", () => {
+    const { confirmAlert } = require("@/utils/alert") as { confirmAlert: jest.Mock };
+    confirmAlert.mockImplementation(
+      (_title: string, _msg: string, buttons: Array<{ onPress?: () => void; style?: string }>) => {
+        const destructive = buttons.find((b) => b.style === "destructive");
+        destructive?.onPress?.();
+      }
+    );
+    const onDelete = jest.fn();
+    render(
+      <ConversationRow item={makeConversation({ id: 202 })} context="listing" onDelete={onDelete} />
+    );
+    fireEvent(screen.getByTestId("conversation-row-202"), "longPress");
+    fireEvent.press(screen.getByTestId("menu-delete"));
+    expect(onDelete).toHaveBeenCalledWith(202);
+  });
+
+  it("renders without crashing when otherParticipant is undefined in listing context", () => {
+    const item = makeConversation();
+    delete (item as Partial<Conversation>).otherParticipant;
+    expect(() =>
+      render(<ConversationRow item={item} context="listing" onDelete={jest.fn()} />)
+    ).not.toThrow();
   });
 });
 

@@ -1,0 +1,92 @@
+appId: com.hatiwal.app
+---
+# TASK-N317 — Listing detail: sold/reserved recovery actions
+#
+# The old sold/reserved dead end was a flat grey box with a status sentence
+# and NO next step. It's now `ListingUnavailableActions`: the same status
+# sentence PLUS a primary "See similar in {category}" button (with a ±30%
+# price band when the already-fetched `similar` rail proves it holds live
+# stock) and a secondary "More from {seller}" link — never an empty button
+# row, and reserved additionally shows the "may free up" line that sold does
+# NOT (a sold item is final; the same line there would be a false promise).
+#
+# Prerequisites:
+#   - A SOLD listing and a RESERVED listing exist, each viewable by a guest
+#     (NOT the logged-in test buyer's own listing), each with a category that
+#     has other active listings (so the recovery CTA isn't itself a dead end)
+#     and a seller. The seed data's "Wedding Dress" (sold, clothes) and
+#     "Canon EOS 200D DSLR Camera" / "Suzuki Mehran" (reserved, electronics /
+#     vehicles) fixtures satisfy this.
+#   - Set SOLD_LISTING_ID / RESERVED_LISTING_ID env vars before running:
+#       SOLD_LISTING_ID=7 RESERVED_LISTING_ID=8 \
+#         maestro test maestro/browse/listing_detail_sold_recovery.yaml
+
+# ── Sold listing — deep link straight to the detail screen (guest browsing
+#    is supported, no login wall — see maestro/share/open_listing_deep_link.yaml) ──
+- launchApp:
+    clearState: true
+    stopApp: true
+- openLink: "hatiwal://listing/${SOLD_LISTING_ID:-1}"
+- assertVisible:
+    id: "seller-profile-link"
+    label: "Sold listing detail renders without a login wall"
+
+# No flat dead-end box remains — the recovery card is always on screen for a
+# non-owner viewing a sold/reserved listing.
+- assertVisible:
+    id: "listing-unavailable-actions"
+    label: "Recovery card visible in place of the old flat notice box"
+
+# A well-formed fixture (a category with other active stock) always shows the
+# primary recovery CTA — never an empty button row.
+- assertVisible:
+    id: "unavailable-see-similar"
+    label: "Primary 'See similar in {category}' CTA visible"
+- assertVisible:
+    id: "unavailable-more-from-seller"
+    optional: true
+    label: "Secondary 'More from {seller}' CTA — omitted only if this seller has no other active listings"
+
+# Sold is final — the reserved-only "may free up" line must NOT appear here.
+- assertNotVisible:
+    id: "unavailable-reserved-may-free-up"
+    label: "'May free up' line never shown for a sold listing"
+
+# Tapping the primary CTA lands on Browse, pre-filtered by category (+ price
+# band when applicable) — never back on the dead sold listing.
+- tapOn:
+    id: "unavailable-see-similar"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "browse-search-bar"
+    label: "Primary CTA navigates to Browse"
+
+# ── Reserved listing — same recovery card, plus the "may free up" line ──────
+- launchApp:
+    clearState: false
+    stopApp: true
+- openLink: "hatiwal://listing/${RESERVED_LISTING_ID:-2}"
+- assertVisible:
+    id: "seller-profile-link"
+    label: "Reserved listing detail renders without a login wall"
+- assertVisible:
+    id: "listing-unavailable-actions"
+- assertVisible:
+    id: "unavailable-reserved-may-free-up"
+    label: "Reserved shows the may-free-up line — sold does not (asserted above)"
+- assertVisible:
+    id: "unavailable-see-similar"
+    label: "Primary 'See similar in {category}' CTA visible for the reserved fixture too"
+- assertVisible:
+    id: "unavailable-more-from-seller"
+    optional: true
+    label: "Secondary CTA — omitted only if this seller has no other active listings"
+
+# Tapping "More from {seller}" lands on that seller's public profile.
+- tapOn:
+    id: "unavailable-more-from-seller"
+    optional: true
+- assertVisible:
+    text: "Seller Profile"
+    optional: true
+    label: "Secondary CTA navigates to the seller's public profile"

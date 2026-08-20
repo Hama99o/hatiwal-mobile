@@ -11,12 +11,12 @@ appId: com.hatiwal.app
 # Switch to Unread
 - tapOn: "Unread"
 - waitForAnimationToEnd
-# Either shows unread conversations or empty "All caught up!" state
-- assertVisible:
-    anyOf:
-      - "All caught up!"
-      - "No unread messages right now."
-      - "Messages"
+# Either shows unread conversations or empty "All caught up!" state — the
+# `anyOf` property doesn't exist on assertVisible in this Maestro version
+# (2.7.0 exits 1 with "Unknown Property: anyOf"); `assertTrue`+`condition`
+# with the JS-like `visible()` helper is the documented way to branch.
+- assertTrue:
+    condition: ${visible("All caught up!") || visible("No unread messages right now.")}
 # Switch to Read
 - tapOn: "Read"
 - waitForAnimationToEnd

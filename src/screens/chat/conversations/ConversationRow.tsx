@@ -11,7 +11,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { Camera, Trash2, CheckCheck, MailOpen, MoreVertical, Archive, ArchiveRestore } from "lucide-react-native";
+import { Camera, Trash2, CheckCheck, MailOpen, MoreVertical, Archive, ArchiveRestore, Store, ShoppingBag } from "lucide-react-native";
 import { useReduceMotion } from "@/lib/animation";
 
 import { type Conversation } from "@/api/conversations";
@@ -55,6 +55,18 @@ interface ConversationRowProps {
   /** "inbox" (default) or "archived" — controls which menu items appear */
   tabMode?: "inbox" | "archived";
   /**
+   * TASK-Q847 — "inbox" (default) or "listing". On the per-listing
+   * conversations screen (`ListingConversations`) every row already shares
+   * the SAME listing — it's the screen's header — so the listing
+   * thumbnail/title/`PriceTag`/`StatusBadge` group is redundant there and is
+   * dropped; the buyer `UserIdentity` (avatar + name + verified tag) is
+   * promoted to the row's headline instead. Purely additive: every other
+   * branch (preview line, unread badge, time, long-press menu) renders
+   * identically regardless of `context`, and the default keeps the inbox
+   * byte-for-byte unchanged.
+   */
+  context?: "inbox" | "listing";
+  /**
    * TASK-J471 — the active inbox search term (Conversations.tsx's
    * `searchTerm`). Drives `HighlightedText` on the preview line so the row
    * shows visually *why* it matched — the identical treatment used for
@@ -63,6 +75,16 @@ interface ConversationRowProps {
    * what was already selected.
    */
   searchTerm?: string;
+  /**
+   * TASK-R517 — the screen's currently-active role scope ("buying" | "selling"
+   * | undefined/null for both). When the active scope already matches this
+   * row's `viewerRole`, the pill is redundant — every row in a Selling-only
+   * list is trivially "Selling" and repeating it just eats width from
+   * `titleGroup` (whose `title` has `flexShrink: 1`) for zero new
+   * information. The pill still renders in the unfiltered mixed inbox, where
+   * it's the only signal for which side of that specific thread you're on.
+   */
+  role?: "buying" | "selling" | null;
   onDelete: (id: number) => void;
   onMarkRead?: (id: number) => void;
   onMarkUnread?: (id: number) => void;
@@ -73,7 +95,9 @@ interface ConversationRowProps {
 export function ConversationRow({
   item,
   tabMode = "inbox",
+  context = "inbox",
   searchTerm,
+  role,
   onDelete,
   onMarkRead,
   onMarkUnread,
@@ -92,6 +116,15 @@ export function ConversationRow({
   const unread    = item.unreadCount ?? 0;
   const isInactive =
     item.listing?.status === "sold" || item.listing?.status === "reserved";
+
+  // TASK-R517 — this row's role hint, mapped from the serializer's
+  // buyer/seller vocabulary to the screen's filter vocabulary so it can be
+  // compared against the active `role` scope below.
+  const viewerRoleMode: "buying" | "selling" | null =
+    item.viewerRole === "seller" ? "selling" : item.viewerRole === "buyer" ? "buying" : null;
+  // Skip the pill when the active role scope already tells the user which
+  // side every row is on (review fix) — see the `role` prop doc comment.
+  const showRolePill = Boolean(viewerRoleMode) && role !== viewerRoleMode;
 
   // ── Preview ───────────────────────────────────────────────────────────────
   // Shared with `filterConversations` (TASK-Z684 list search) — the row must
@@ -169,48 +202,68 @@ export function ConversationRow({
           { flexDirection: isRtl ? "row-reverse" : "row" },
         ]}
       >
-        {/* ── Thumbnail: fixed 54×54 container, image fills via absoluteFillObject ── */}
-        <View
-          style={[styles.thumb, { backgroundColor: colors.muted }]}
-        >
-          {item.listing?.thumbnailUrl ? (
-            <Image
-              source={{ uri: item.listing.thumbnailUrl }}
-              contentFit="cover"
-              transition={200}
-              style={[
-                StyleSheet.absoluteFillObject,
-                isInactive && styles.thumbFaded,
-              ]}
-            />
-          ) : (
-            <View style={styles.thumbIcon}>
-              <Camera size={22} color={colors.mutedForeground} />
-            </View>
-          )}
-          {isInactive && item.listing?.status && (
-            <StatusBadge
-              status={item.listing.status as ListingStatus}
-              overlay
-            />
-          )}
-        </View>
+        {/* ── Thumbnail: fixed 54×54 container, image fills via absoluteFillObject ──
+            TASK-Q847: skipped entirely in "listing" context — every row on
+            that screen shares the SAME listing (the screen's own header), so
+            a repeated listing photo/status badge would be redundant. The
+            buyer's avatar (via UserIdentity below) is the row's leading
+            visual there instead. */}
+        {context === "listing" ? null : (
+          <View
+            style={[styles.thumb, { backgroundColor: colors.muted }]}
+          >
+            {item.listing?.thumbnailUrl ? (
+              <Image
+                source={{ uri: item.listing.thumbnailUrl }}
+                contentFit="cover"
+                transition={200}
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  isInactive && styles.thumbFaded,
+                ]}
+              />
+            ) : (
+              <View style={styles.thumbIcon}>
+                <Camera size={22} color={colors.mutedForeground} />
+              </View>
+            )}
+            {isInactive && item.listing?.status && (
+              <StatusBadge
+                status={item.listing.status as ListingStatus}
+                overlay
+              />
+            )}
+          </View>
+        )}
 
         {/* ── Text content ────────────────────────────────────────────────── */}
         <View style={styles.content}>
 
-          {/* Title + price + time */}
+          {/* Title + price + time (inbox) — OR buyer identity + time (listing,
+              TASK-Q847): the listing title/PriceTag/StatusBadge group is
+              dropped there and the buyer `UserIdentity` (avatar + name +
+              verified tag) is promoted to the row's headline instead. */}
           <View style={[styles.row1, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
             <View style={[styles.titleGroup, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.title,
-                  { color: isInactive ? colors.mutedForeground : colors.foreground },
-                ]}
-              >
-                {item.listing?.title ?? t("chat.title")}
-              </Text>
+              {context === "listing" ? (
+                <UserIdentity
+                  name={otherName || t("chat.unknownUser")}
+                  avatarUrl={other?.avatarUrl}
+                  verified={other?.verified ?? false}
+                  size={32}
+                  nameSize={14}
+                />
+              ) : (
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.title,
+                    { color: isInactive ? colors.mutedForeground : colors.foreground },
+                  ]}
+                >
+                  {item.listing?.title ?? t("chat.title")}
+                </Text>
+              )}
             </View>
             {/* Price (TASK-J471, design north star: price-prominence) — renders
                 null when the listing has no price (PriceTag itself returns null),
@@ -222,13 +275,17 @@ export function ConversationRow({
                 year), the three fixed-width items plus the title could exceed
                 the row's content width and clip/overlap the timestamp. The
                 pill moved to row2 (beside the participant name) so row1 only
-                ever has to fit title + price + time. */}
-            <PriceTag
-              price={item.listing?.price}
-              currency={item.listing?.currency}
-              size="sm"
-              tone={isInactive ? "muted" : "default"}
-            />
+                ever has to fit title + price + time.
+                TASK-Q847: dropped entirely in "listing" context — every row
+                shares the same listing, so a repeated price is redundant. */}
+            {context === "listing" ? null : (
+              <PriceTag
+                price={item.listing?.price}
+                currency={item.listing?.currency}
+                size="sm"
+                tone={isInactive ? "muted" : "default"}
+              />
+            )}
             {timeLabel ? (
               <Text
                 style={[
@@ -247,8 +304,11 @@ export function ConversationRow({
               on). Renders if either piece exists — mirrors the pre-J471
               behaviour where the role pill never depended on the participant
               name resolving. Name wrapped in flex:1/minWidth:0 so it shrinks
-              first; the pill (fixed-width) is never the one that clips. */}
-          {otherName || item.viewerRole ? (
+              first; the pill (fixed-width) is never the one that clips.
+              TASK-Q847: skipped entirely in "listing" context — the buyer's
+              name is already the row1 headline there, so repeating it here
+              would be a duplicate. */}
+          {context === "inbox" && (otherName || showRolePill) ? (
             <View style={[styles.row2, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
               {otherName ? (
                 <View style={{ flex: 1, minWidth: 0 }}>
@@ -261,13 +321,19 @@ export function ConversationRow({
                   />
                 </View>
               ) : null}
-              {item.viewerRole ? (
+              {/* TASK-R517 review fix: `Store`/`ShoppingBag` icon (matching
+                  the Conversations.tsx role chips) so Buying vs Selling never
+                  relies on an 11px text read alone, and `variant="secondary"`
+                  (not "muted") for AA-contrast text on the pill in light mode
+                  — Badge's `muted` text/bg pairing sits under the 4.5:1 floor. */}
+              {showRolePill ? (
                 <View style={styles.rolePillWrap} testID={`role-pill-${item.id}`}>
                   <Badge
                     label={t(
-                      item.viewerRole === "seller" ? "chat.role.selling" : "chat.role.buying"
+                      viewerRoleMode === "selling" ? "chat.role.selling" : "chat.role.buying"
                     )}
-                    variant="muted"
+                    variant="secondary"
+                    icon={viewerRoleMode === "selling" ? Store : ShoppingBag}
                     style={styles.rolePill}
                   />
                 </View>

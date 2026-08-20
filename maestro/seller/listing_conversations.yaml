@@ -1,0 +1,72 @@
+appId: com.hatiwal.app
+---
+# TASK-Q847 — the seller's per-listing "conversations about this listing"
+# screen (ListingConversations.tsx, reached from My Shop's "N chats" link).
+#
+# Regression guard for the bug this task fixed: the screen used to render a
+# raw, unformatted "75000|AFN" for an offer's last-message preview instead of
+# the shared, locale-formatted "Offer: 75,000 AFN" every other conversation
+# surface (the main inbox) already used. Also verifies real pagination/error
+# states are wired (UniversalList), not a single unpaginated fetch, and that
+# tapping a row still opens the real conversation thread.
+#
+# Uses "Men Winter Jacket XL Black" (active, seller-owned) — the same fixture
+# offer_send_and_accept.yaml already uses to create a fresh offer via the
+# real "Make an Offer" flow, so this test is self-contained and never
+# depends on pre-seeded conversation data.
+
+# ── 1) Buyer sends an offer, creating a conversation on this listing ───────
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Men Winter Jacket XL Black"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Men Winter Jacket XL Black"
+- waitForAnimationToEnd
+
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- assertVisible: "Send Offer"
+- tapOn:
+    id: "offer-amount-input"
+- inputText: "75000"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+- assertVisible: "75,000"
+
+# ── 2) Seller opens the listing's own conversations screen from My Shop ────
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Men Winter Jacket XL Black"
+    direction: DOWN
+    timeout: 8000
+
+- tapOn:
+    text: ".*chats.*"
+- waitForAnimationToEnd
+
+# ── 3) Formatted offer preview — never the raw "75000|AFN" metadata ────────
+
+- assertVisible: ".*Offer.*75,000.*"
+- assertNotVisible: "75000|AFN"
+
+# ── 4) Tap the row — opens the real conversation thread ────────────────────
+
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+
+# ── 5) Back to the listing conversations screen ─────────────────────────────
+
+- back
+- waitForAnimationToEnd
+- assertVisible: "Messages"

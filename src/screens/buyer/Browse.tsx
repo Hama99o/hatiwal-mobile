@@ -58,8 +58,20 @@ export default function BrowseScreen() {
   // ── URL params — support pre-filtering via ?categoryId=<n> (from category hub) ──
   // subcategoryName is passed when the user tapped a subcategory chip in the hub,
   // so Browse can show a labelled removable active-filter chip in the header.
-  const { categoryId: categoryIdParam, subcategoryName: subcategoryNameParam } =
-    useLocalSearchParams<{ categoryId?: string; subcategoryName?: string }>();
+  // priceMin/priceMax (TASK-N317) arrive alongside categoryId from the
+  // sold/reserved recovery CTA (ListingUnavailableActions' "See similar in
+  // {category}" button) — a ±30% price band around the dead listing's price.
+  const {
+    categoryId: categoryIdParam,
+    subcategoryName: subcategoryNameParam,
+    priceMin: priceMinParam,
+    priceMax: priceMaxParam,
+  } = useLocalSearchParams<{
+    categoryId?: string;
+    subcategoryName?: string;
+    priceMin?: string;
+    priceMax?: string;
+  }>();
 
   // ── Filter state ──────────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -128,13 +140,26 @@ export default function BrowseScreen() {
       // Store its label so BrowseHeader can show a removable chip with the name.
       // When absent the buyer tapped a top-level card → clear any prior subcategory label.
       setSubcategoryLabel(subcategoryNameParam ?? null);
+      // TASK-N317: a price band deep-linked from the sold/reserved recovery
+      // CTA arrives alongside categoryId — apply it as REAL filter state (not
+      // just a display value) so computeActiveFilterCount counts it exactly
+      // like a manually-entered price filter, and the active-filter pill
+      // reflects it. Only set when present — a plain category-hub tap (no
+      // band) must not clobber a price filter the buyer set manually.
+      if (priceMinParam) setPriceMin(priceMinParam);
+      if (priceMaxParam) setPriceMax(priceMaxParam);
       // Clear params so the next hub-tap (same or different id) is always a
       // genuine param transition that re-fires this effect.
-      router.setParams({ categoryId: undefined, subcategoryName: undefined });
+      router.setParams({
+        categoryId: undefined,
+        subcategoryName: undefined,
+        priceMin: undefined,
+        priceMax: undefined,
+      });
     }
     // Intentionally NOT clearing the filter state when param is absent — the
     // user may still have set a category through the inline chip row.
-  }, [categoryIdParam, subcategoryNameParam]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [categoryIdParam, subcategoryNameParam, priceMinParam, priceMaxParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Search debounce ───────────────────────────────────────────────────────
   // Once a search term settles, record it in history so BrowseHeader's "recent

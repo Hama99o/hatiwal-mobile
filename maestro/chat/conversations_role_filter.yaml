@@ -1,66 +1,104 @@
 appId: com.hatiwal.app
 ---
 # TASK-R517 — Chat inbox: Buying vs Selling role filter chips
-# Happy path: chip row renders, tapping Buying/Selling narrows the inbox to
-# that server-side role scope (and composes with the default "All" state),
-# tapping the active chip again deselects back to the mixed inbox.
-# Error/empty: a role with no matching threads shows the role-aware empty
-# state (never the generic "No conversations" copy).
+#
+# Uses login_seller.yaml (seller@hatiwal.test), the ONE E2E fixture account
+# that deterministically has BOTH a Selling side (7 seeded conversations
+# where it's the seller — see db/seeds/e2e.rb) and exactly one Buying thread
+# (its own message to newbuyer@hatiwal.test's "Mountain Bike 26-inch Steel
+# Frame" listing). login.yaml's default buyer@hatiwal.test has zero Selling
+# threads, which made every prior assertion here tautological (chip exists /
+# tapping doesn't crash) instead of proving the scope actually narrows the
+# list.
+#
+# Happy path: chip row renders, tapping Selling narrows to the seller's OWN
+# selling threads (asserted via a listing title only a Selling thread has),
+# tapping Buying narrows to its one buying thread (asserted via the Mountain
+# Bike listing title, which is invisible while Selling is active), tapping
+# the active chip again deselects back to the mixed inbox. Composition:
+# selecting Selling and switching to Archived keeps the chip visible and the
+# scope applied (review fix — it used to be an invisible, uncleanable filter
+# there). Per-row hint: the Buying thread's role pill is asserted by its
+# stable `role-pill-<id>` testID, not by text (chat.role.selling and
+# chat.filter.selling both localize to "Selling", so text lookups would be
+# ambiguous the moment both are on screen at once).
 
-- runFlow: ../_helpers/login.yaml
+- runFlow: ../_helpers/login_seller.yaml
 - tapOn: "Chats"
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 
-# Chip row is visible alongside All/Unread/Read
+# Chip row is visible alongside All/Unread/Read, and the mixed inbox shows
+# both a Selling-only listing and the one Buying-side listing.
 - assertVisible: "All"
-- assertVisible: "Buying"
-- assertVisible: "Selling"
+- assertVisible:
+    id: "role-chip-buying"
+- assertVisible:
+    id: "role-chip-selling"
+- assertVisible: "Lenovo ThinkPad Laptop Core i5 8GB"
+- assertVisible: "Mountain Bike 26-inch Steel Frame"
+# Per-row role hint (acceptance #5) — the mixed/unfiltered inbox is the ONE
+# place the pill is never redundant (every row's role differs), so at least
+# one `role-pill-<id>` must be on screen. Matched by testID regex, never by
+# text — chat.role.selling and chat.filter.selling both localize to
+# "Selling", so a getText("Selling") lookup would be ambiguous the moment
+# both the chip and a pill are on screen together.
+- assertVisible:
+    id: "role-pill-.*"
 
-# Selling — narrows to threads where the caller is the seller, or shows the
-# seller-specific empty state if this test account has none.
+# Selling — narrows to threads where seller@hatiwal.test is the seller. The
+# Buying-side thread's listing must disappear; a Selling-side one stays.
 - tapOn:
     id: "role-chip-selling"
 - waitForAnimationToEnd
-- assertVisible:
-    anyOf:
-      - "Selling"
-      - "No one has messaged you about your items yet"
+- assertVisible: "Lenovo ThinkPad Laptop Core i5 8GB"
+- assertNotVisible: "Mountain Bike 26-inch Steel Frame"
 
 # Tapping the active chip again deselects it — back to the mixed inbox.
 - tapOn:
     id: "role-chip-selling"
 - waitForAnimationToEnd
-- assertVisible: "Messages"
+- assertVisible: "Mountain Bike 26-inch Steel Frame"
 
-# Buying — narrows to threads where the caller is the buyer, or shows the
-# buyer-specific empty state.
+# Buying — narrows to the one thread where seller@hatiwal.test is the buyer.
 - tapOn:
     id: "role-chip-buying"
 - waitForAnimationToEnd
-- assertVisible:
-    anyOf:
-      - "Buying"
-      - "You haven't messaged any seller yet"
-
-# Empty state (when present) offers a way back into browsing.
-- assertVisible:
-    anyOf:
-      - "Browse Listings"
-      - "Buying"
+- assertVisible: "Mountain Bike 26-inch Steel Frame"
+- assertNotVisible: "Lenovo ThinkPad Laptop Core i5 8GB"
 
 # Deselect back to the full inbox.
 - tapOn:
     id: "role-chip-buying"
 - waitForAnimationToEnd
-- assertVisible: "Messages"
+- assertVisible: "Lenovo ThinkPad Laptop Core i5 8GB"
+- assertVisible: "Mountain Bike 26-inch Steel Frame"
 
-# Role filter composes with the Archived tab too.
+# ── Role filter composes with the Archived tab (review fix) ────────────────
+# Selecting Selling, then switching to Archived, must keep the chip visible
+# (and tappable) there instead of silently narrowing the archive with no way
+# to clear it — the exact "hidden, uncleanable filter" bug this flow guards
+# against.
+- tapOn:
+    id: "role-chip-selling"
+- waitForAnimationToEnd
 - tapOn:
     id: "tab-archived"
 - waitForAnimationToEnd
 - assertVisible: "Archived"
+- assertVisible:
+    id: "role-chip-selling"
+# All/Unread/Read has no meaning once archived — it must NOT show here.
+- assertNotVisible: "Unread"
+
+# Back to Inbox — the Selling scope (still active) narrows it again.
 - tapOn:
     id: "tab-inbox"
 - waitForAnimationToEnd
-- assertVisible: "Messages"
+- assertVisible: "Lenovo ThinkPad Laptop Core i5 8GB"
+- assertNotVisible: "Mountain Bike 26-inch Steel Frame"
+
+# Clean up the scope so this flow doesn't leak state into a later run.
+- tapOn:
+    id: "role-chip-selling"
+- waitForAnimationToEnd

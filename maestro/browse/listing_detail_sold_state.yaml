@@ -1,19 +1,40 @@
 appId: com.hatiwal.app
 ---
-# Sold listing detail — shows sold notice, no contact button
+# Sold listing detail — non-owner view.
+#
+# This flow was previously a no-op: it asserted "Bazaar" three times without
+# ever opening a sold listing, so it proved nothing about the sold state.
+# It now covers the narrow "does the active-listing contact bar correctly
+# disappear" contract; the recovery CTAs themselves (TASK-N317) — "See
+# similar in {category}" / "More from {seller}" and their navigation — are
+# covered by maestro/browse/listing_detail_sold_recovery.yaml.
+#
+# Prerequisites:
+#   - A SOLD listing exists, viewable by a guest (NOT the logged-in test
+#     buyer's own listing). Set SOLD_LISTING_ID before running:
+#       SOLD_LISTING_ID=7 maestro test maestro/browse/listing_detail_sold_state.yaml
 
-- runFlow: ../_helpers/login.yaml
-- assertVisible: "Bazaar"
-- waitForAnimationToEnd
-# The seller@hatiwal.test account has a "sold" listing in the feed
-# Search for it or scroll until found
-- assertVisible: "Bazaar"
-# Scroll to find a listing with "Sold" overlay
+- launchApp:
+    clearState: true
+    stopApp: true
+- openLink: "hatiwal://listing/${SOLD_LISTING_ID:-1}"
+- assertVisible:
+    id: "seller-profile-link"
+    label: "Sold listing detail renders without a login wall"
+
+# The active-listing contact controls must be completely gone for a sold
+# listing — this is the whole reason the sticky bar has a separate branch.
+- assertNotVisible: "Contact Seller"
+- assertNotVisible: "Make an Offer"
+
+# TASK-N317: the recovery card takes their place — never the old flat box
+# with no next action.
+- assertVisible:
+    id: "listing-unavailable-actions"
+    label: "Recovery card renders instead of the old flat notice box"
+
+# The rest of the page still renders normally for a sold listing.
+- assertVisible: "Description"
 - scroll
-- scroll
-- waitForAnimationToEnd
-# Open a sold listing detail (if the sold one appears in feed)
-# Note: sold listings may be filtered out of browse — this tests the edge case
-# where a user navigates directly to a sold listing URL via deep link
-# This flow verifies the "sold notice" banner if shown
-- assertVisible: "Bazaar"
+- assertVisible: "Seller"
+- back

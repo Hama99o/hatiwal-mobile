@@ -1,28 +1,3 @@
-/* ⚠️  DISABLED — DOES NOT COMPILE. Renamed out of Jest's testMatch on purpose.
- *
- * Orphaned partial work: this file was written for TASK-R517 (chat inbox
- * Buying/Selling role scope) by a dev agent that was killed by a session limit
- * mid-task, so the screen changes it tests may not all exist yet.
- *
- * It fails at TRANSFORM time, not at runtime:
- *   TypeError: Property declarations[0] of VariableDeclaration expected node to
- *   be of a type ["VariableDeclarator"] but instead got undefined
- *     at visitVariableDeclarator (babel-plugin-jest-hoist/build/index.js:359)
- *
- * What is already ruled out (do not redo this):
- *   • @babel/parser parses the file cleanly — it is NOT a syntax error.
- *   • babel.transformSync without babel-preset-jest succeeds; the crash needs
- *     babel-plugin-jest-hoist.
- *   • Not a stale cache (reproduces after jest --clearCache).
- *   • Removing any ONE of the six jest.mock blocks does not fix it.
- *   • `const mockSetUnreadMessageTotal = jest.fn()` reproduced in isolation,
- *     both before and after a jest.mock call, does NOT fail — so the trigger is
- *     a combination, not that declaration alone.
- *
- * To re-enable: fix the transform, rename back to Conversations.test.tsx, and
- * confirm `npx jest src/screens/chat/__tests__/Conversations` is green.
- */
-
 /**
  * Conversations screen — unit tests (TASK-R517: Buying/Selling role scope).
  *
@@ -35,12 +10,20 @@
  *    active, the fetcher must NOT overwrite the chat-tab unread badge with
  *    the role-scoped subset — it keeps the last unfiltered total.
  *  - Role-aware empty states (Selling → Post a listing CTA, Buying → Browse CTA).
+ *  - The role chip (and its filter) survives switching to the Archived tab
+ *    (composition — review fix for the "hidden, uncleanable filter" bug).
+ *  - Archived + role-active empty state uses the plain archive copy, not the
+ *    inbox-flavored role copy/CTA (review fix, tab-first ordering).
  *
- * UniversalList and ConversationRow are replaced by lightweight test doubles
- * (same pattern as HiddenListings.test.tsx / BlockedUsers.test.tsx) so this
- * stays a fast unit test of the screen's own filter/fetcher wiring —
- * ConversationRow's own rendering is already covered by
- * conversations/__tests__/ConversationRow.test.tsx.
+ * `ConversationRow` and `UniversalList` are replaced by MANUAL jest mocks
+ * (`../conversations/__mocks__/ConversationRow.tsx`,
+ * `@/components/common/__mocks__/UniversalList.tsx`) rather than inline
+ * `jest.mock(path, factory)` calls — see the doc comments on those two files:
+ * a hoisted mock factory that BOTH requires a module and returns a JSX
+ * element crashes babel-plugin-jest-hoist in this toolchain
+ * ("VariableDeclaration ... declarations[0] ... undefined"), which is
+ * exactly why this file was previously disabled as `.broken`. Enable a
+ * manual mock with a bare `jest.mock(path)` (no factory) instead.
  */
 
 import React from "react";
@@ -79,80 +62,12 @@ jest.mock("@/api/conversations", () => {
   };
 });
 
-// Lightweight ConversationRow double — row internals are already covered by
-// ConversationRow's own test file; here we only need the listing title so
-// this stays a fast unit test of the screen's filter/fetcher wiring.
-jest.mock("@/screens/chat/conversations/ConversationRow", () => {
-  const React = require("react");
-  const { Text: RNText, Pressable } = require("react-native");
-
-  function MockConversationRow(props: any) {
-    return (
-      <Pressable testID={`row-${props.item.id}`}>
-        <RNText>{props.item.listing?.title}</RNText>
-      </Pressable>
-    );
-  }
-
-  return { ConversationRow: MockConversationRow };
-});
-
-// UniversalList test double — calls the fetcher on mount / whenever the
-// config changes, and renders items or the empty state (mirrors the pattern
-// already used by HiddenListings.test.tsx).
-jest.mock("@/components/common/UniversalList", () => {
-  const ReactLib = require("react");
-  const { View, Text: RNText } = require("react-native");
-
-  function MockUniversalList({ config }: { config: Record<string, any> }) {
-    const [state, setState] = ReactLib.useState<{ items: any[]; loaded: boolean }>({
-      items: [],
-      loaded: false,
-    });
-
-    ReactLib.useEffect(() => {
-      let cancelled = false;
-      config
-        .fetcher({ page: 1, perPage: config.perPage ?? 20 })
-        .then((result: { items: any[] }) => {
-          if (!cancelled) setState({ items: result.items, loaded: true });
-        })
-        .catch(() => {
-          if (!cancelled) setState({ items: [], loaded: true });
-        });
-      return () => {
-        cancelled = true;
-      };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [config.id, config.fetcher, config.refreshKey]);
-
-    if (!state.loaded) return <View testID="universal-list-loading" />;
-
-    if (state.items.length === 0) {
-      return (
-        <View testID="universal-list-empty">
-          <RNText>{config.emptyTitle}</RNText>
-          {config.emptyAction && (
-            <RNText testID="empty-action" onPress={config.emptyAction.onPress}>
-              {config.emptyAction.label}
-            </RNText>
-          )}
-        </View>
-      );
-    }
-
-    return (
-      <View testID="universal-list">
-        {state.items.map((item: { id: number }) => {
-          const rendered = config.renderItem({ item, index: 0 });
-          return rendered ? ReactLib.cloneElement(rendered, { key: String(item.id) }) : null;
-        })}
-      </View>
-    );
-  }
-
-  return { UniversalList: MockUniversalList };
-});
+// Manual mocks (see file header) — ConversationRow's own rendering is already
+// covered by conversations/__tests__/ConversationRow.test.tsx; here we only
+// need the listing title so this stays a fast unit test of the screen's own
+// filter/fetcher wiring.
+jest.mock("@/screens/chat/conversations/ConversationRow");
+jest.mock("@/components/common/UniversalList");
 
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
 
@@ -288,6 +203,94 @@ describe("Conversations — role chip row", () => {
         expect.objectContaining({ role: "buying" })
       )
     );
+  });
+});
+
+describe("Conversations — role scope composes with the Archived tab (review fix)", () => {
+  it("keeps the role chip visible (and active) after switching to Archived", async () => {
+    render(<ConversationsScreen />);
+    await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("role-chip-selling"));
+    });
+    await waitFor(() =>
+      expect(conversationsAPI.getConversations).toHaveBeenLastCalledWith(
+        expect.objectContaining({ role: "selling" })
+      )
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("tab-archived"));
+    });
+
+    // The chip must still be reachable in Archived — the bug this guards
+    // against was the chip disappearing (gated on tabMode === "inbox") while
+    // the filter itself kept silently narrowing the archive with no way to
+    // clear it from that screen.
+    expect(screen.getByTestId("role-chip-selling")).toBeTruthy();
+    await waitFor(() =>
+      expect(conversationsAPI.getConversations).toHaveBeenLastCalledWith(
+        expect.objectContaining({ archived: true, role: "selling" })
+      )
+    );
+  });
+
+  it("lets the user clear the role scope from the Archived tab", async () => {
+    render(<ConversationsScreen />);
+    await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("role-chip-selling"));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("tab-archived"));
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("role-chip-selling"));
+    });
+
+    await waitFor(() =>
+      expect(conversationsAPI.getConversations).toHaveBeenLastCalledWith(
+        expect.objectContaining({ archived: true, role: undefined })
+      )
+    );
+  });
+
+  it("does NOT show the read-state (All/Unread/Read) chips in the Archived tab", async () => {
+    render(<ConversationsScreen />);
+    await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("tab-archived"));
+    });
+
+    expect(screen.queryByTestId("filter-chip-all")).toBeNull();
+    expect(screen.queryByTestId("filter-chip-unread")).toBeNull();
+    expect(screen.queryByTestId("filter-chip-read")).toBeNull();
+    // The role group is still there.
+    expect(screen.getByTestId("role-chip-selling")).toBeTruthy();
+  });
+
+  it("shows the plain archive-empty copy (not the role/inbox copy or CTA) when Archived+Selling is empty", async () => {
+    (conversationsAPI.getConversations as jest.Mock).mockResolvedValue(makeResult([]));
+    render(<ConversationsScreen />);
+    await waitFor(() => expect(screen.getByTestId("universal-list-empty")).toBeTruthy());
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("role-chip-selling"));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("tab-archived"));
+    });
+
+    await waitFor(() => expect(screen.getByText("chat.archive.empty")).toBeTruthy());
+    // Neither the Selling-flavored inbox copy nor its CTA (which doesn't
+    // make sense on an archive) should appear.
+    expect(screen.queryByText("chat.empty.sellingTitle")).toBeNull();
+    expect(screen.queryByText("listing.postListing")).toBeNull();
+    expect(screen.queryByTestId("empty-action")).toBeNull();
   });
 });
 

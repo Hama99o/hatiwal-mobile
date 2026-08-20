@@ -1,6 +1,19 @@
 appId: com.hatiwal.app
 ---
 # Login with empty email and password — validation messages shown
+#
+# The Sign In button has no client-side empty-field guard (Login.tsx only
+# disables it while `loading`), so tapping it with blank fields submits the
+# request; the backend's devise_token_auth rejects it exactly like a wrong
+# password would (`bad_credentials: "Invalid login credentials. Please try
+# again."` — see devise_token_auth's config/locales/en.yml), and Login.tsx
+# renders that string verbatim. Review fix: the previous `anyOf: ["Email",
+# "Invalid email or password", "error"]` both used a YAML property
+# (`anyOf`) that doesn't exist on `assertVisible` in this Maestro version
+# (2.7.0 exits 1 with "Unknown Property: anyOf") AND, even syntax-fixed,
+# would never have matched the real backend copy — "Email" (the field
+# label, always on screen) and the "error" substring were silently carrying
+# every prior run.
 
 - launchApp:
     clearState: true
@@ -11,9 +24,4 @@ appId: com.hatiwal.app
 # Submit empty form
 - tapOn: "Sign In"
 - waitForAnimationToEnd
-# Should show validation or server error
-- assertVisible:
-    anyOf:
-      - "Email"
-      - "Invalid email or password"
-      - "error"
+- assertVisible: "Invalid login credentials. Please try again."
