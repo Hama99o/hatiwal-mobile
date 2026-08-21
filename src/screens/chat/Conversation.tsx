@@ -1410,14 +1410,21 @@ export function ConversationScreen() {
       {/* Message list */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        // Platform audit (2026-06-18):
-        //   iOS "padding" — adds padding at the bottom so the input bar lifts with
-        //   the keyboard. Correct on all iOS versions.
-        //   Android "height" — shrinks the KAV container height so the FlatList +
-        //   input bar layout recalculates above the keyboard. Correct on all Android
-        //   versions. Intentional: both branches have correct, tested fallbacks.
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={88}
+        // iOS: "padding" adds bottom padding so the composer lifts with the
+        // keyboard, and the offset compensates for the navigation header, which
+        // iOS does NOT account for.
+        //
+        // Android: nothing. AndroidManifest sets
+        // android:windowSoftInputMode="adjustResize", so the OS already shrinks
+        // the window to sit above the keyboard — this view only has to not
+        // interfere. It previously used behavior="height" AND the same
+        // keyboardVerticalOffset={88}, which double-counted the inset: the OS
+        // resized, KAV shrank again, and the offset added a further 88px, leaving
+        // a large dead gap between the composer and the keyboard (reported on a
+        // real device). Passing undefined makes KAV a plain View, which is the
+        // correct pairing for adjustResize.
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
       >
         <FlatList
           ref={flatListRef}
