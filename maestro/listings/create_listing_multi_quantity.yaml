@@ -55,9 +55,12 @@ appId: com.hatiwal.app
 - inputText: "QA Phone Cases Bulk 15"
 - tapOn: "Enter price"
 - inputText: "400"
-# The numeric keypad covers the lower half of the form, including the category
-# row — without this the next tap fails on an element that is simply hidden.
-- hideKeyboard
+# Dismiss the keypad by tapping the screen heading, never the hide-keyboard
+# command: on Android that sends BACK, and a dirty form intercepts BACK as
+# "leave the screen" — so it raises "Discard changes?" over everything and the
+# next step fails on a dialog instead of the form (run-034). Tapping an inert
+# heading blurs the field with no navigation.
+- tapOn: "Create Listing"
 
 - scrollUntilVisible:
     element:
@@ -88,7 +91,12 @@ appId: com.hatiwal.app
 
 # Turn it on — the field appears, pre-filled "2" (flipping the switch already
 # means "more than one", so the next keystroke just fixes the number).
-- tapOn: "I have more than one"
+# The switch by testID, not the label text: both carry the same
+# accessibilityLabel, and Maestro matches the visible Text — which used to be
+# inert, so the tap did nothing (run-038). The row is pressable now too, but a
+# flow should target the control it means.
+- tapOn:
+    id: "listing-form-quantity-switch"
 - waitForAnimationToEnd
 - assertVisible:
     id: "listing-form-quantity-input"
@@ -96,22 +104,25 @@ appId: com.hatiwal.app
 - tapOn:
     id: "listing-form-quantity-input"
 - inputText: "15"
-- hideKeyboard
+- tapOn: "Create Listing"
 # Prove the field holds 15 and not "215" — the pre-filled "2" must be replaced,
 # the same hazard that sold a whole batch in run-018.
 - assertVisible:
     id: "listing-form-quantity-input"
     text: "15"
 
-- tapOn: "Describe your item..."
-- inputText: "QA fixture — a box of 15 identical cases."
-- hideKeyboard
-
 - scrollUntilVisible:
     element:
-      text: "Save Draft"
+      text: "Describe your item..."
     direction: DOWN
     timeout: 10000
+- tapOn: "Describe your item..."
+- inputText: "QA fixture — a box of 15 identical cases."
+
+# Straight to Save Draft — no keyboard dance needed. It lives in the FIXED top
+# toolbar beside Publish, which the keypad never covers and scrolling never
+# moves; the earlier "tap the heading to blur" trick only worked while that
+# heading happened to be on screen (run-040).
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
 

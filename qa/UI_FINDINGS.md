@@ -105,6 +105,26 @@ legible even while being deliberately quiet.
 **Fix:** dropped the extra opacity. Still small, muted and underlined — quiet,
 but readable.
 
+### UI-012 · A long message could only fail at send time
+**Where:** Chat composer (both the new-conversation and in-thread composers)
+**Severity:** medium — same class as the price bug, found by looking for it
+**Found by:** writing edge-case flows rather than by a failing happy path
+
+`hatiwal-api` enforces `validates :body, length: { maximum: 1000 }`. The composer
+enforced nothing — no `maxLength`. So a user could type 2000 characters, tap
+Send, and lose it to a 422 that nothing on screen had warned about. Before the
+`apiErrorMessage` work they would have seen only the word "Error".
+
+**Fix:** `maxLength={MESSAGE_MAX_LENGTH}` on both composers, with the constant in
+its own module (`src/screens/chat/messageLimits.ts`) so the two composers cannot
+drift from each other.
+
+The real long-term risk is the two limits drifting, so
+`src/screens/chat/__tests__/messageLength.contract.test.ts` **reads the Rails
+model** and fails if client and server disagree — rather than restating 1000 and
+hoping. (It skips, loudly, if the API repo is not checked out, so it can never be
+a false red.)
+
 ---
 
 ## OPEN
@@ -270,6 +290,64 @@ The QA rig disables emulator animations (`qa.sh up`), which is exactly what this
 reports. Reanimated says it is dev-only. It would not fire on a normal phone
 unless the user has Reduce Motion on — in which case it is correct, and
 `useReduceMotion()` already honours it throughout the app.
+
+### UI-011 · The quantity never reached the API on create/edit — FIXED
+**Where:** Create/Edit listing → "I have more than one" → any number
+**Severity:** HIGH — the feature did not work at all on the path that starts it
+**Evidence:** `qa/reports/run-041`, confirmed in the DB
+
+The seller typed 15, the field held 15 (asserted), and the listing was stored
+with **`quantity: 1`**. So the toggle, the input, the validation and the API all
+worked — and the number was thrown away in between.
+
+`createListingWithImages` / `updateListingWithImages` build their multipart body
+field by field, i.e. an explicit ALLOW-LIST. `quantity` was never appended, so it
+was collected, validated, and silently dropped on the way out. Nothing upstream
+could detect it: the form was right, the backend was right, the value was simply
+gone. The web client had it right (`me.ts` appends `listing[quantity]`), which is
+what made the gap invisible — parity checks compared features, not payloads.
+
+Worth noting how it hid: 11 Jest tests covered the form and asserted the value
+reached `createListingWithImages`'s ARGUMENTS. None asserted what the function
+put on the WIRE. A unit test one layer too high is exactly as blind as no test.
+
+**Fixed:** both builders now always append `listing[quantity]` (unconditionally,
+so a seller can also turn a batch back into a single item), plus 6 new tests in
+`src/api/__tests__/listingsMultipart.test.ts` that assert the FormData itself.
+
+A note on that test file, because the obvious approach does not work here: the
+first attempt used MSW like the rest of `listings.test.ts`, and **MSW does not
+intercept the `multipart/form-data` request these builders issue** — axios fell
+through to the REAL dev API on `localhost:3007` and each test hung on the 120s
+upload timeout (a 900s run died at exit 143). Worth knowing before writing
+another upload test: mock the `http` module instead, which keeps the assertion on
+the payload — the thing under test — and runs in 14ms rather than never.
+
+Verified: `run-042` PASS, and the created draft reads `qty=15 multi=true`.
+
+### UI-012 · A toggle row's label was inert, and no Switch had a testID — FIXED
+**Where:** Create listing → the "I have more than one" / "Price is negotiable" rows
+**Severity:** medium (UX + a11y + testability)
+**Evidence:** `qa/reports/run-038`
+
+The row is 44pt tall, but only the ~44x24 switch responded to touch — tapping the
+label, the obvious target and the platform convention for a settings row, did
+nothing. Found because a flow tapping the label never turned it on.
+
+Also: the shared `Switch` (`components/reusables/switch.tsx`) had **no testID
+prop at all**, so no flow could target a specific switch. Matching by
+accessibilityLabel does not work either, because on a label+switch row the
+label is the SAME string as the Text beside it — and Maestro matches the Text.
+Every switch in the app was effectively untappable from a flow.
+
+**Fixed:** the quantity row is now a `Pressable` that owns the switch semantics
+(`accessibilityRole="switch"` + `accessibilityState.checked` + the label) with
+the inner Switch deliberately carrying no label, so a screen reader announces it
+once rather than twice; and `Switch` gained a `testID`.
+
+**Still open:** the adjacent **Negotiable** row has the identical inert-label
+problem. Left alone deliberately — it is not part of this feature and the file is
+being edited concurrently — but it is the same two-line fix.
 
 ### RIG-001 · Two sessions on one emulator produce fake launcher failures
 **Severity:** blocks device QA while it lasts

@@ -338,6 +338,11 @@ export const listingsAPI = {
       latitude?: number;
       longitude?: number;
       negotiable?: boolean;
+      /**
+       * How many identical units. Omit for a single item — the column defaults
+       * to 1 on the backend.
+       */
+      quantity?: number;
     },
     imageUris: string[]
   ): Promise<Listing> => {
@@ -354,6 +359,13 @@ export const listingsAPI = {
     if (data.longitude != null) form.append("listing[longitude]", String(data.longitude));
     // Always send negotiable so the backend receives an explicit boolean rather than defaulting
     form.append("listing[negotiable]", String(data.negotiable ?? true));
+    // Always sent, for the same reason as negotiable and one more: this builder
+    // is an explicit field-by-field allow-list, so a new form field that is not
+    // added HERE is collected, validated, and then silently dropped on the way
+    // out. That is exactly what happened — the seller typed 15, the field held
+    // 15, and the API stored 1 (QA run-041). Sending it unconditionally also
+    // lets a seller turn a batch back into a single item.
+    form.append("listing[quantity]", String(data.quantity ?? 1));
 
     await Promise.all(imageUris.map((uri) => appendImageUri(form, uri, "listing[images][]")));
 
@@ -375,6 +387,11 @@ export const listingsAPI = {
       latitude?: number;
       longitude?: number;
       negotiable?: boolean;
+      /**
+       * How many identical units. Omit for a single item — the column defaults
+       * to 1 on the backend.
+       */
+      quantity?: number;
     },
     imageUris: string[],
     // signed_ids of existing photos the user removed — purged server-side.
@@ -392,6 +409,13 @@ export const listingsAPI = {
     if (data.latitude != null) form.append("listing[latitude]", String(data.latitude));
     if (data.longitude != null) form.append("listing[longitude]", String(data.longitude));
     form.append("listing[negotiable]", String(data.negotiable ?? true));
+    // Always sent, for the same reason as negotiable and one more: this builder
+    // is an explicit field-by-field allow-list, so a new form field that is not
+    // added HERE is collected, validated, and then silently dropped on the way
+    // out. That is exactly what happened — the seller typed 15, the field held
+    // 15, and the API stored 1 (QA run-041). Sending it unconditionally also
+    // lets a seller turn a batch back into a single item.
+    form.append("listing[quantity]", String(data.quantity ?? 1));
 
     await Promise.all(imageUris.map((uri) => appendImageUri(form, uri, "listing[images][]")));
     removedImageIds.forEach((sid) => form.append("listing[removed_image_ids][]", sid));

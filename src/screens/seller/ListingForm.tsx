@@ -386,6 +386,20 @@ export default function ListingFormScreen() {
     },
   });
 
+  // One handler shared by the switch AND the row around it. The row is 44pt tall
+  // but only the ~44x24 switch used to respond to touch, so a tap on the label —
+  // the obvious target, and the whole platform convention for a settings row —
+  // did nothing. Found on-device: a flow tapping the label never turned it on.
+  const toggleMultipleUnits = useCallback(
+    (on: boolean) => {
+      setHasMultipleUnits(on);
+      // Off collapses back to exactly the single-item listing this was before the
+      // toggle was ever touched.
+      setValue("quantity", on ? 2 : 1, { shouldDirty: true });
+    },
+    [setValue]
+  );
+
   // Draft autosave (new listings only) — so a half-written post survives leaving the screen.
   const [restorableDraft, setRestorableDraft] = useState<DraftSnapshot | null>(null);
 
@@ -1404,7 +1418,12 @@ export default function ListingFormScreen() {
               A numeric input rather than a stepper on purpose: the case this
               feature was asked for is 15 bags, and 14 taps on a "+" is worse
               than two keystrokes. */}
-          <View
+          <Pressable
+            onPress={() => toggleMultipleUnits(!hasMultipleUnits)}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: hasMultipleUnits }}
+            accessibilityLabel={t("listing.form.multipleUnitsLabel")}
+            testID="listing-form-quantity-row"
             style={{
               flexDirection: isRtl ? "row-reverse" : "row",
               alignItems: "center",
@@ -1420,17 +1439,18 @@ export default function ListingFormScreen() {
                 {t("listing.form.multipleUnitsLabel")}
               </Text>
             </View>
+            {/* No accessibilityLabel here: the ROW above owns the switch
+                semantics (role + checked state + label), so repeating it on the
+                inner control makes a screen reader announce the same sentence
+                twice and gives two elements the same label. testID stays — it is
+                not an accessibility attribute, and a flow should be able to
+                target the control itself. */}
             <Switch
               checked={hasMultipleUnits}
-              onCheckedChange={(on) => {
-                setHasMultipleUnits(on);
-                // Off collapses back to exactly the single-item listing this was
-                // before the toggle was ever touched.
-                setValue("quantity", on ? 2 : 1, { shouldDirty: true });
-              }}
-              accessibilityLabel={t("listing.form.multipleUnitsLabel")}
+              onCheckedChange={toggleMultipleUnits}
+              testID="listing-form-quantity-switch"
             />
-          </View>
+          </Pressable>
 
           {hasMultipleUnits && (
             <Controller

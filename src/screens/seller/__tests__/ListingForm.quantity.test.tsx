@@ -47,7 +47,6 @@ beforeEach(() => {
   resetListingFormMocks();
 });
 
-const SWITCH_LABEL = "listing.form.multipleUnitsLabel";
 const QUANTITY_INPUT = "listing-form-quantity-input";
 
 /** Fills the three fields a draft needs, so a submit is never blocked by
@@ -61,9 +60,12 @@ async function fillMinimumDraft(title = "Rice Bags") {
   });
 }
 
-function toggleMultipleUnits(on: boolean) {
+/** The ROW is the accessible switch (role + checked state + label); the inner
+ *  Switch deliberately carries no label so nothing is announced twice. Pressing
+ *  the row is also what a real seller does — it is the 44pt target. */
+function toggleMultipleUnits(_on: boolean) {
   act(() => {
-    fireEvent(screen.getByLabelText(SWITCH_LABEL), "onCheckedChange", on);
+    fireEvent.press(screen.getByTestId("listing-form-quantity-row"));
   });
 }
 
@@ -78,7 +80,7 @@ describe("ListingForm — a seller with one item", () => {
   it("shows the collapsed switch OFF and no number input at all", () => {
     renderListingForm();
 
-    expect(screen.getByLabelText(SWITCH_LABEL)).toBeTruthy();
+    expect(screen.getByTestId("listing-form-quantity-row")).toBeTruthy();
     expect(screen.queryByTestId(QUANTITY_INPUT)).toBeNull();
   });
 
@@ -163,9 +165,11 @@ describe("ListingForm — editing a listing that already has a count", () => {
     // Without the seeding, the switch reads OFF while the form silently holds
     // 15 — the seller can neither see the number nor correct it.
     await waitFor(() => expect(screen.getByTestId(QUANTITY_INPUT).props.value).toBe("15"));
-    // @rn-primitives/switch reports its state through accessibilityState.checked
-    // (it passes `aria-checked`, which RN maps to that) — there is no `value` prop.
-    expect(screen.getByLabelText(SWITCH_LABEL).props.accessibilityState.checked).toBe(true);
+    // The row publishes the state now, so this is also the a11y contract: one
+    // element, role switch, checked true.
+    expect(
+      screen.getByTestId("listing-form-quantity-row").props.accessibilityState.checked
+    ).toBe(true);
   });
 
   it("reopens a single-unit listing with the switch OFF and nothing revealed", async () => {

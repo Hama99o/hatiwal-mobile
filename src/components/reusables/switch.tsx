@@ -13,9 +13,17 @@ interface SwitchProps {
   onCheckedChange: (checked: boolean) => void;
   disabled?: boolean;
   accessibilityLabel?: string;
+  /**
+   * The shared Switch had no testID at all, so no E2E flow could target a
+   * specific switch: `tapOn` had to match the accessibilityLabel, which on a
+   * label+switch row is the SAME string as the visible Text beside it — and
+   * Maestro matches the Text, which is not the control. Every switch in the app
+   * was effectively untappable from a flow.
+   */
+  testID?: string;
 }
 
-export function Switch({ checked, onCheckedChange, disabled, accessibilityLabel }: SwitchProps) {
+export function Switch({ checked, onCheckedChange, disabled, accessibilityLabel, testID }: SwitchProps) {
   const colors = useColors();
   const translateX = React.useRef(new Animated.Value(checked ? 20 : 2)).current;
 
@@ -33,6 +41,7 @@ export function Switch({ checked, onCheckedChange, disabled, accessibilityLabel 
       onCheckedChange={onCheckedChange}
       disabled={disabled}
       accessibilityLabel={accessibilityLabel}
+      testID={testID}
       style={{
         width: 44,
         height: 24,
