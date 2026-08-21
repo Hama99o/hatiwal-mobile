@@ -1,0 +1,103 @@
+appId: com.hatiwal.app
+---
+# Multi-quantity — docs/SPIKE_LISTING_QUANTITY.md, Tier 1.
+#
+# The behaviour this flow exists to protect is the one that would have broken
+# the feed: selling SOME of a batch must leave the listing ACTIVE with the rest
+# still browsable. Retiring it on the first sale is the failure mode the whole
+# `record_units_sold!` / `sold_out` split in the API exists to prevent, and no
+# unit test catches it end to end — the listing has to actually still be there
+# on the next screen.
+#
+# Fixture: "Phone Case Silicone Clear - Wholesale" (seller@hatiwal.test, 15
+# units, one seeded conversation with buyer@hatiwal.test — see
+# hatiwal-api/db/seeds/e2e.rb). It is the ONLY multi-unit fixture, so every
+# other flow keeps exercising the single-item majority case.
+#
+# NOTE: shares the seeded buyer-conversation with nothing else, but it DOES
+# mutate stock (15 → 12). Re-running without an E2E DB reset starts from 12,
+# which still passes every assertion below except the literal "15" in the
+# pre-sale stock pill — so reset between suite passes.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+- tapOn: "Active"
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      text: "Phone Case Silicone Clear - Wholesale"
+    direction: DOWN
+    timeout: 8000
+
+- tapOn: "Phone Case Silicone Clear - Wholesale"
+- waitForAnimationToEnd
+
+# ── The seller's own view states the batch, not just "active" ────────────────
+# "N of M left" phrasing here (not the buyer's bare "N in stock"): the seller
+# needs to see progress through the batch.
+- assertVisible:
+    id: "stock-badge-owner"
+
+# The price says which number it is — a bare "400" on a 15-unit listing reads as
+# the price of the whole box.
+- assertVisible: "each"
+
+# ── Sell 3 of the 15 ────────────────────────────────────────────────────────
+- tapOn: "More"
+- waitForAnimationToEnd
+- tapOn: "Mark as Sold"
+- waitForAnimationToEnd
+
+- assertVisible: "Who bought this item?"
+
+# The quantity field is NOT offered until a real buyer is chosen — a sale to
+# someone not on Hatiwal records no transaction for a quantity to attach to.
+- assertNotVisible:
+    id: "buyer-picker-quantity"
+
+- tapOn: "Ahmad Karimi"
+- waitForAnimationToEnd
+
+# Pre-filled with the whole remainder, so "I sold the lot" stays one tap.
+- assertVisible:
+    id: "buyer-picker-quantity"
+# The remainder is stated, so the number is never typed blind.
+- assertVisible: "15 available"
+# And the final-price field says out loud that it is per item.
+- assertVisible: "The price for one item"
+
+# Sell three of them.
+- tapOn:
+    id: "buyer-picker-quantity"
+- inputText: "3"
+- hideKeyboard
+
+- tapOn: "Confirm sold"
+- waitForAnimationToEnd
+
+- assertVisible: "Listing marked as sold"
+
+# REV2 fires on any buyer-recorded sale — dismissed here, it has its own flow.
+- tapOn: "Not now"
+- waitForAnimationToEnd
+
+# ── THE INVARIANT: 12 left, and the listing is still live ───────────────────
+# Not "Sold". A partial sale must never retire a listing that still has stock.
+- assertVisible: "Active"
+- assertNotVisible: "Sold"
+- assertVisible:
+    id: "stock-badge-owner"
+
+# And it is still in the seller's Active tab, not archived out of it.
+- tapOn: "Back"
+- waitForAnimationToEnd
+- tapOn: "Active"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Phone Case Silicone Clear - Wholesale"
+    direction: DOWN
+    timeout: 8000
