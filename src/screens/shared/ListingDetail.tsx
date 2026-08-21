@@ -1011,6 +1011,7 @@ export default function ListingDetailScreen() {
       {/* ── Make an offer sheet — only rendered when listing is negotiable ─── */}
       {isNegotiable && <OfferSheet
         visible={showOfferSheet}
+        perUnit={hasStockToShow(listing)}
         onClose={() => setShowOfferSheet(false)}
         onSend={handleSendOffer}
         offerAmount={offerAmount}

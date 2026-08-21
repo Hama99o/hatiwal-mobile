@@ -77,6 +77,17 @@ interface OfferSheetProps {
   /** Defaults to `"offer"` — every pre-existing call site is unchanged. */
   mode?: OfferSheetMode;
   /**
+   * Multi-quantity: the listing has several identical units, so the reference
+   * price above the input is PER UNIT (docs/SPIKE_LISTING_QUANTITY.md).
+   *
+   * Without it a buyer offering on 15 bags reads "Listed price: AFN 14,000" and
+   * cannot tell whether their own number should be for one or for the lot — and
+   * an offer carries no quantity of its own, so nothing downstream disambiguates
+   * it. Saying "each" on the reference line at least fixes the anchor. Only ever
+   * meaningful in `mode="offer"`; a counter references a specific prior offer.
+   */
+  perUnit?: boolean;
+  /**
    * TASK-C381 (review fix, DR): `listing.detail.noPaymentNote` ("this is
    * just a message to the seller") is role-coded true ONLY for
    * ListingDetail's own buyer-only "Make an Offer" CTA — the sheet's other
@@ -102,6 +113,7 @@ export function OfferSheet({
   price,
   isBusy,
   mode = "offer",
+  perUnit = false,
   inThread = false,
 }: OfferSheetProps) {
   const { t } = useTranslation();
@@ -192,6 +204,7 @@ export function OfferSheet({
           {t(isCounter ? "chat.offer.previousOfferAt" : "listing.detail.listedPrice", {
             price: formatCurrency(price, currency),
           })}
+          {!isCounter && perUnit ? ` (${t("listing.stock.each")})` : ""}
         </Text>
 
         {/* Offer / counter amount label */}

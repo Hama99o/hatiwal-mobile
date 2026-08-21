@@ -419,3 +419,31 @@ describe("OfferSheet — inThread prop (role-neutral safety note)", () => {
     expect(screen.queryByText("chat.offer.threadNote")).toBeNull();
   });
 });
+
+// ── Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md) ──────────────────────────
+//
+// An offer carries no quantity of its own, so nothing downstream can
+// disambiguate "I offer 12,000" on a 15-unit listing. Saying "each" on the
+// reference line at least fixes the anchor the buyer is reasoning from.
+
+describe("OfferSheet — per-unit reference price", () => {
+  it("marks the listed price as per-unit on a multi-unit listing", () => {
+    render(<OfferSheet {...buildProps({ price: 14000, perUnit: true })} />);
+    expect(screen.getByText(/listing\.stock\.each/)).toBeTruthy();
+  });
+
+  it("leaves the listed price bare on a single-item listing", () => {
+    render(<OfferSheet {...buildProps({ price: 14000 })} />);
+    expect(screen.queryByText(/listing\.stock\.each/)).toBeNull();
+  });
+
+  // A counter references a SPECIFIC prior offer, whose amount already means
+  // whatever the two of them agreed it means — "each" would be an assertion the
+  // offer feature does not make.
+  it("never marks a counter's reference amount as per-unit", () => {
+    render(
+      <OfferSheet {...buildProps({ mode: "counter", price: 9500, perUnit: true })} />
+    );
+    expect(screen.queryByText(/listing\.stock\.each/)).toBeNull();
+  });
+});

@@ -1773,6 +1773,9 @@ export function ConversationScreen() {
           onChangeAmount={setThreadOfferAmount}
           currency={conversation.listing.currency ?? "AFN"}
           price={conversation.listing.price ?? 0}
+          // The buyer's offer anchor must be per-unit on a batch listing, same
+          // as on the listing detail — an offer carries no quantity of its own.
+          perUnit={conversation.listing.multiUnit === true}
           isBusy={isSendingThreadOffer}
           // Review fix (DR): role-neutral safety note — this button is
           // usable by either participant, unlike ListingDetail's buyer-only
