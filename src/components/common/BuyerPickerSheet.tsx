@@ -172,6 +172,13 @@ export function BuyerPickerSheet({
   // sale is then one edit to one field.
   const asksQuantity = action === "sold" && (remainingQuantity ?? 1) > 1;
   const [quantityText, setQuantityText] = useState(String(remainingQuantity ?? 1));
+  // Typed more than exists. Drives the destructive hint below — the confirm is
+  // still allowed (it clamps, and so does the API), because refusing outright
+  // would strand a seller whose stock changed under them mid-sheet. Declared
+  // AFTER quantityText: a const reading it above its own declaration is a TDZ
+  // crash, not a lint nit.
+  const exceedsStock =
+    asksQuantity && Number(quantityText) > (remainingQuantity ?? 1);
   useEffect(() => {
     setQuantityText(String(remainingQuantity ?? 1));
   }, [remainingQuantity]);
@@ -509,16 +516,31 @@ export function BuyerPickerSheet({
                       onChangeText={(v) => setQuantityText(v.replace(/[^0-9]/g, ""))}
                       placeholder={String(remainingQuantity ?? 1)}
                       keyboardType="numeric"
+                      // THE FIELD IS PRE-FILLED with the whole remainder, so a
+                      // plain tap just places a cursor and typing INSERTS: a
+                      // seller who means 3 produces "153", which the clamp below
+                      // then silently turns into "sold all 15" — the listing
+                      // retires and their remaining stock is gone. Found on a
+                      // real device (QA run-018: typed 3, recorded 15).
+                      // Selecting on focus makes typing REPLACE, which is the
+                      // only sane behaviour for a pre-filled numeric field.
+                      selectTextOnFocus
                       style={{ textAlign: isRtl ? "right" : "left" }}
                       testID="buyer-picker-quantity"
                     />
                     <Text
                       style={{
-                        color: colors.mutedForeground,
+                        // Destructive when the number exceeds what is left. It
+                        // still clamps (the API clamps too), but silently
+                        // clamping is how a typo became a sold-out listing —
+                        // the seller has to be able to SEE that the number they
+                        // typed is not the number that will be recorded.
+                        color: exceedsStock ? colors.destructive : colors.mutedForeground,
                         fontSize: 12,
                         marginTop: 4,
                         textAlign: isRtl ? "right" : "left",
                       }}
+                      testID="buyer-picker-quantity-hint"
                     >
                       {t("listing.stock.unitsAvailable", { count: remainingQuantity ?? 1 })}
                     </Text>

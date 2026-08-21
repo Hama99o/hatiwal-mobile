@@ -49,6 +49,20 @@ export function hasStockToShow(listing: StockFields | null | undefined): boolean
 }
 
 /**
+ * Whether any units have actually sold yet.
+ *
+ * Drives the seller's phrasing: "15 of 15 left" is literally true on a listing
+ * nobody has bought from, but it reads as noise — there is no progress to show
+ * and the second number just repeats the first. Seen on-device during QA
+ * (qa/reports/run-017) and fixed there: the owner gets the plain "15 in stock"
+ * until the first sale, and "12 of 15 left" once the count means something.
+ */
+export function hasSoldSome(listing: StockFields | null | undefined): boolean {
+  if (!listing) return false;
+  return availableUnitsOf(listing) < totalUnitsOf(listing);
+}
+
+/**
  * Running out — the amber treatment.
  *
  * Two rules OR'd, mirroring ExpiryBadge's absolute-plus-proportional pair rather

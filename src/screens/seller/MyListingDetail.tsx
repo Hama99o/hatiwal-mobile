@@ -56,7 +56,7 @@ import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
 import { Badge } from "@/components/reusables/badge";
-import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow } from "@/utils/stock";
+import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow, hasSoldSome } from "@/utils/stock";
 import { SaleBuyerCard } from "@/components/common/SaleBuyerCard";
 import { ListingMapSection } from "@/components/common/ListingMapSection";
 import { BuyerPickerSheet } from "@/components/common/BuyerPickerSheet";
@@ -348,10 +348,18 @@ export default function MyListingDetailScreen() {
             {hasStockToShow(listing) && (
               <View testID="stock-badge-owner">
                 <Badge
-                  label={t("listing.stock.leftOfTotal", {
-                    available: formatNumber(availableUnitsOf(listing)),
-                    total: formatNumber(totalUnitsOf(listing)),
-                  })}
+                  label={
+                    // "15 of 15 left" is noise before the first sale — no
+                    // progress to show, and the second number just repeats the
+                    // first. Switch to the progress phrasing only once it says
+                    // something (QA run-017).
+                    hasSoldSome(listing)
+                      ? t("listing.stock.leftOfTotal", {
+                          available: formatNumber(availableUnitsOf(listing)),
+                          total: formatNumber(totalUnitsOf(listing)),
+                        })
+                      : t("listing.stock.inStock", { count: availableUnitsOf(listing) })
+                  }
                   variant={isLowStock(availableUnitsOf(listing), totalUnitsOf(listing)) ? "warning" : "muted"}
                 />
               </View>

@@ -549,6 +549,42 @@ describe("BuyerPickerSheet — sold quantity", () => {
     );
   });
 
+  // QA run-018, found on a real device: the field is pre-filled with the whole
+  // remainder, so tapping it only places a cursor — typing "3" produced "153",
+  // the clamp silently made that 15, and the listing SOLD OUT and retired. One
+  // mistyped digit destroyed the seller's remaining stock, with no payment
+  // system and no undo. Typing must REPLACE the pre-filled value.
+  it("selects the pre-filled count on focus, so typing replaces instead of appending", async () => {
+    renderSheet({ action: "sold", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("Ahmad"));
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+
+    expect(screen.getByTestId("buyer-picker-quantity").props.selectTextOnFocus).toBe(true);
+  });
+
+  it("warns visibly when the typed count exceeds the stock instead of silently clamping", async () => {
+    renderSheet({ action: "sold", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("Ahmad"));
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+
+    const hint = () => screen.getByTestId("buyer-picker-quantity-hint");
+    const calm = hint().props.style.color;
+
+    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "153");
+    expect(hint().props.style.color).not.toBe(calm);
+  });
+
+  it("keeps the hint calm for a count within the stock", async () => {
+    renderSheet({ action: "sold", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("Ahmad"));
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+
+    const hint = () => screen.getByTestId("buyer-picker-quantity-hint");
+    const calm = hint().props.style.color;
+    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "3");
+    expect(hint().props.style.color).toBe(calm);
+  });
+
   it("re-syncs the pre-filled count when the remaining stock changes under it", async () => {
     // The seller logs one sale, the query refetches, and the sheet is reopened
     // for a second buyer — it must offer the NEW remainder, not the stale one.

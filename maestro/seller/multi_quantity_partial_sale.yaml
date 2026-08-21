@@ -19,7 +19,48 @@ appId: com.hatiwal.app
 # which still passes every assertion below except the literal "15" in the
 # pre-sale stock pill — so reset between suite passes.
 
-- runFlow: ../_helpers/login_seller.yaml
+# LOGIN — deliberately explicit rather than either shared helper.
+#
+# `login_seller.yaml` is still on the pre-rig shape (`clearState: true` with no
+# open_bundle.yaml), so it lands in the expo-dev-client launcher and dies before
+# its first assertion (verified, run-014).
+#
+# `login.yaml` is fixed, but it WARM-launches and signs in only "if the login
+# form is actually on screen" — so passing it EMAIL/PASSWORD is a no-op whenever
+# a session already exists, and the flow silently runs as whoever was signed in
+# last. That is exactly what happened in run-015: still the BUYER, who owns no
+# listings, so My Shop read "0 listings" on every tab and the failure looked like
+# a missing fixture. Worth knowing before 61 seller flows are pointed at a
+# warm-launch helper.
+#
+# This flow asserts a specific seller's stock, so identity cannot be inherited:
+# clear state and sign in as the seller outright. Costs ~60s, buys certainty.
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- tapOn: "Email"
+- inputText: "seller@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+- assertNotVisible: "Login"
+
+# Seller mode.
+- tapOn: "Me"
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Switch to Seller Mode"
+    commands:
+      - tapOn: "Switch to Seller Mode"
+      - waitForAnimationToEnd
+- assertVisible: "Switch to Buyer Mode"
+
 - tapOn: "My Shop"
 - waitForAnimationToEnd
 
@@ -46,7 +87,17 @@ appId: com.hatiwal.app
 - assertVisible: "each"
 
 # ── Sell 3 of the 15 ────────────────────────────────────────────────────────
-- tapOn: "More"
+# The action row sits below the description and the 7-day views chart, so it is
+# off-screen on arrival — `tapOn` does not scroll to find its target. Anchored on
+# the testID rather than the word "More": the label is `listing.actions.more`,
+# which is localized, and the button also contains an icon.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-more-action"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "lifecycle-more-action"
 - waitForAnimationToEnd
 - tapOn: "Mark as Sold"
 - waitForAnimationToEnd
@@ -70,24 +121,41 @@ appId: com.hatiwal.app
 - assertVisible: "The price for one item"
 
 # Sell three of them.
+# Tapping selects the pre-filled value (selectTextOnFocus), so this REPLACES
+# the 15 rather than appending to it. run-018 proved the danger: without that,
+# "3" became "153", the clamp made it 15, and the whole batch sold.
 - tapOn:
     id: "buyer-picker-quantity"
 - inputText: "3"
 - hideKeyboard
+# Prove the field holds exactly 3 BEFORE confirming — this is the assertion that
+# would have caught run-018 at the point of failure instead of after the sale.
+- assertVisible:
+    id: "buyer-picker-quantity"
+    text: "3"
 
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
 
-- assertVisible: "Listing marked as sold"
-
-# REV2 fires on any buyer-recorded sale — dismissed here, it has its own flow.
+# NOT the success toast. REV2's review sheet opens the instant a sale records a
+# buyer and covers the toast, so asserting the toast is a race the sheet usually
+# wins (run-019 failed on exactly that, while the sale had gone through
+# perfectly). The review prompt IS the durable proof: it only appears when the
+# sale recorded a real buyer.
+- extendedWaitUntil:
+    visible: "How was Ahmad Karimi as a buyer?"
+    timeout: 30000
 - tapOn: "Not now"
 - waitForAnimationToEnd
 
 # ── THE INVARIANT: 12 left, and the listing is still live ───────────────────
 # Not "Sold". A partial sale must never retire a listing that still has stock.
+- scrollUntilVisible:
+    element:
+      id: "stock-badge-owner"
+    direction: UP
+    timeout: 10000
 - assertVisible: "Active"
-- assertNotVisible: "Sold"
 - assertVisible:
     id: "stock-badge-owner"
 
