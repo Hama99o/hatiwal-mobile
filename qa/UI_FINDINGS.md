@@ -226,6 +226,51 @@ progress to show.
 "15 in stock" until the first sale, and "12 of 15 left" once the count means
 something. Lives in the shared module so the web client inherits the same rule.
 
+### UI-010 · The warning strip at the bottom on every launch — one of three FIXED
+**Where:** every app launch, dev build — the collapsed yellow LogBox bar
+**Severity:** medium. The bar itself is dev-only (LogBox does not exist in a
+release build), but one of the three causes is a genuine animation defect that
+ships.
+**Evidence:** logcat on a clean launch, before/after
+
+Three Reanimated warnings fire on launch. They are what the strip reports, and
+they are three separate things — worth separating rather than dismissing as one
+piece of noise:
+
+**a) `Property "opacity" of AnimatedComponent(View) may be overwritten by a
+layout animation` — REAL, FIXED.**
+`ListingCard` put an animated `opacity` (press feedback) and an `entering`
+layout animation on the SAME shadow node. Reanimated's layout animation owns
+opacity to fade the card in, so the two fought: the fade can fail to play, or
+settle at the pressed opacity. That ships — it is not just a warning.
+`AnimatedPressable` had already hit and solved the identical clash; ListingCard
+now uses the same pattern (when `entering` is active the layout animation owns
+opacity and press feedback is expressed as SCALE, which does not conflict — so
+touch feedback survives on iOS too, where there is no android_ripple).
+**Verified gone from logcat after the fix.**
+
+**b) `Reading from \`value\` during component render` (×6) — REAL, NOT FIXED.**
+Still fires. Reanimated's strict-mode message carries no component stack beyond
+expo-router's `Stack`, and it is not in our code: every `.value` in `src/` is
+inside a `useAnimatedStyle`, a `useEffect` or a press handler (checked
+exhaustively — the `field.value` hits in ListingForm are react-hook-form, not
+shared values). Six occurrences on a list screen points at a repeated component,
+most likely a THIRD-PARTY one in the feed path (FlashList, an RNR primitive,
+sonner-native).
+
+Next step, cheapest first: bisect by commenting out feed children on device, or
+temporarily raise Reanimated's logger to capture a stack. If it turns out to be a
+library, the honest options are to pin/patch it or to silence strict mode
+deliberately via `configureReanimatedLogger({ strict: false })` — that is a
+product decision (it would hide FUTURE real instances of this class too), so it
+should be made by the owner, not adopted quietly to clean up a log.
+
+**c) `Reduced motion setting is enabled on this device` — not a defect.**
+The QA rig disables emulator animations (`qa.sh up`), which is exactly what this
+reports. Reanimated says it is dev-only. It would not fire on a normal phone
+unless the user has Reduce Motion on — in which case it is correct, and
+`useReduceMotion()` already honours it throughout the app.
+
 ### RIG-001 · Two sessions on one emulator produce fake launcher failures
 **Severity:** blocks device QA while it lasts
 **Evidence:** my `run-025` failed at `open_bundle.yaml`'s "Connect" at 22:33; a

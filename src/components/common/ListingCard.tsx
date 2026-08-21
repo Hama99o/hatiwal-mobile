@@ -112,18 +112,42 @@ export function ListingCard({
   }, [onSaveToggle, listing.id, isSaved, heartScale, reduceMotion]);
 
   // ── Card press ───────────────────────────────────────────────────────────
+  // A feed card carries an `entering` layout animation (see `getEntering`
+  // below), and Reanimated's layout-animation mechanism OWNS `opacity` on that
+  // shadow node to fade the card in. Writing opacity from `useAnimatedStyle` on
+  // the same node fights it, which Reanimated reports on every app launch:
+  //
+  //   [Reanimated] Property "opacity" of AnimatedComponent(View) may be
+  //   overwritten by a layout animation.
+  //
+  // That warning is the yellow LogBox strip at the bottom of the screen on a
+  // dev build — and it is not only noise: the fade can fail to play, or settle
+  // at the pressed opacity instead of animating.
+  //
+  // Same fix `AnimatedPressable` already uses for the identical clash: when an
+  // entering animation is active, the layout animation exclusively owns opacity
+  // and press feedback is expressed as SCALE instead. Scale does not conflict,
+  // so the card still responds to touch on both platforms — unlike simply
+  // dropping the opacity, which would leave iOS with no feedback at all
+  // (Android has android_ripple either way).
+  const hasEntering = index !== undefined;
   const cardOpacity = useSharedValue(1);
-  const cardAnimStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(cardOpacity.value, { duration: 100 }),
-  }));
+  const cardScale = useSharedValue(1);
+  const cardAnimStyle = useAnimatedStyle(() =>
+    hasEntering
+      ? { transform: [{ scale: withTiming(cardScale.value, { duration: 100 }) }] }
+      : { opacity: withTiming(cardOpacity.value, { duration: 100 }) }
+  );
 
   const handlePressIn = useCallback(() => {
-    cardOpacity.value = 0.92;
-  }, [cardOpacity]);
+    if (hasEntering) cardScale.value = 0.98;
+    else cardOpacity.value = 0.92;
+  }, [hasEntering, cardScale, cardOpacity]);
 
   const handlePressOut = useCallback(() => {
-    cardOpacity.value = 1;
-  }, [cardOpacity]);
+    if (hasEntering) cardScale.value = 1;
+    else cardOpacity.value = 1;
+  }, [hasEntering, cardScale, cardOpacity]);
 
   const handlePress = useCallback(() => {
     if (onPress) {
@@ -150,7 +174,7 @@ export function ListingCard({
     return (
       <>
       <Animated.View
-        entering={index !== undefined ? getEntering(index) : undefined}
+        entering={hasEntering ? getEntering(index!) : undefined}
         style={[
           {
             overflow: "hidden",
@@ -366,7 +390,7 @@ export function ListingCard({
   return (
     <>
     <Animated.View
-      entering={index !== undefined ? getEntering(index) : undefined}
+      entering={hasEntering ? getEntering(index!) : undefined}
       style={[
         {
           overflow: "hidden",
