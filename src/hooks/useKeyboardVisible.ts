@@ -81,3 +81,48 @@ export function keyboardSafeBottom(
 ): number {
   return (keyboardVisible ? 0 : Math.max(insetBottom, minInset)) + base;
 }
+
+/**
+ * How far a bottom-anchored bar must be lifted so it sits on the keyboard.
+ *
+ * DO NOT simplify this to "the keyboard's height". Whether that is right depends
+ * on something the app cannot assume:
+ *
+ *   • If the OS does NOT shrink the window for the keyboard (iOS, and Android
+ *     under the edge-to-edge that Expo SDK 54 enforces), the container still
+ *     spans the full screen and the bar must be lifted by the whole keyboard.
+ *   • If the OS DOES shrink it (older Android `adjustResize`, some OEM skins,
+ *     iPad split view / Stage Manager), the container already ends at the
+ *     keyboard's top edge — lifting it again would leave a gap exactly as large
+ *     as the keyboard.
+ *
+ * Getting this wrong is the bug this whole module exists for, and it was wrong
+ * for four rounds because a platform was assumed rather than measured. So it is
+ * measured: pass the container's height while the keyboard is CLOSED and its
+ * height NOW. If those differ, the OS shrank it and did the work already.
+ *
+ * Self-correcting on every platform and window mode, with no Platform branch.
+ *
+ * @param keyboardHeight current keyboard height (0 when closed)
+ * @param baselineHeight container height measured with the keyboard closed
+ * @param currentHeight  container height right now
+ */
+export function keyboardBarLift(
+  keyboardHeight: number,
+  baselineHeight: number,
+  currentHeight: number
+): number {
+  if (keyboardHeight <= 0) return 0;
+  // No baseline yet (first render with the keyboard already up): assume the
+  // common case — a full-height window — rather than risk hiding the bar.
+  if (baselineHeight <= 0) return keyboardHeight;
+
+  // A tolerance, not equality: status/nav bar transitions and rotation settle a
+  // few px off, and a genuine keyboard resize is hundreds of px.
+  const shrank = baselineHeight - currentHeight > 24;
+  if (!shrank) return keyboardHeight;
+
+  // The OS shrank the container. Lift only by whatever it did NOT absorb, so a
+  // partial resize is handled too, and never below zero.
+  return Math.max(0, keyboardHeight - (baselineHeight - currentHeight));
+}

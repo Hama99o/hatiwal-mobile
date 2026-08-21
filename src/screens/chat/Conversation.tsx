@@ -28,7 +28,7 @@ import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/pe
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useKeyboardHeight, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
+import { useKeyboardHeight, keyboardBarLift, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
 import { Send, Plus, ShieldBan, Search, X, Flag } from "lucide-react-native";
 import { toast } from "@/lib/toast";
 
@@ -142,6 +142,14 @@ export function ConversationScreen() {
   const keyboardHeight = useKeyboardHeight();
   const keyboardVisible = keyboardHeight > 0;
   const [bottomBarH, setBottomBarH] = useState(0);
+  // Container height now, and its height while the keyboard was closed. The two
+  // together tell us whether the OS already shrank the window for the keyboard,
+  // which is what decides how far the bottom bar must be lifted — see
+  // keyboardBarLift. Measured rather than assumed per platform.
+  const [rootH, setRootH] = useState(0);
+  const rootBaselineH = useRef(0);
+  if (keyboardHeight === 0 && rootH > 0) rootBaselineH.current = rootH;
+  const barLift = keyboardBarLift(keyboardHeight, rootBaselineH.current, rootH);
 
   const qc = useQueryClient();
   const storeUser = useAuthStore((s) => s.user);
@@ -1207,6 +1215,7 @@ export function ConversationScreen() {
 
   return (
     <View
+      onLayout={(e) => setRootH(e.nativeEvent.layout.height)}
       style={[
         styles.container,
         { backgroundColor: colors.background },
@@ -1544,7 +1553,7 @@ export function ConversationScreen() {
           }}
           // styles.messageList plus clearance for the absolutely-positioned bottom
           // bar AND the keyboard beneath it, so the newest message is never covered.
-          contentContainerStyle={[styles.messageList, { paddingBottom: bottomBarH + keyboardHeight }]}
+          contentContainerStyle={[styles.messageList, { paddingBottom: bottomBarH + barLift }]}
           // Disable maintainVisibleContentPosition during search so the filtered
           // list doesn't jump when the query changes
           maintainVisibleContentPosition={searchVisible ? undefined : { minIndexForVisible: 0 }}
@@ -1600,7 +1609,7 @@ export function ConversationScreen() {
           by this bar's measured height so the newest message is never hidden. */}
       <View
         onLayout={(e) => setBottomBarH(e.nativeEvent.layout.height)}
-        style={{ position: "absolute", left: 0, right: 0, bottom: keyboardHeight }}
+        style={{ position: "absolute", left: 0, right: 0, bottom: barLift }}
       >
         {/* Input bar */}
         {isStartMode ? (

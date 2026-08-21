@@ -6,7 +6,7 @@
  * old `Math.max(insets.bottom, 8) + 12` reserved ~50px of dead space between the
  * input and the keyboard. Reported on a real device.
  */
-import { keyboardSafeBottom } from "../useKeyboardVisible";
+import { keyboardSafeBottom, keyboardBarLift } from "../useKeyboardVisible";
 
 describe("keyboardSafeBottom", () => {
   // A typical Android gesture-nav device: 48px inset, 8px floor, 12px base.
@@ -40,5 +40,44 @@ describe("keyboardSafeBottom", () => {
     // The closed-conversation notice uses minInset 12 rather than 8.
     expect(keyboardSafeBottom(false, 0, 12, 12)).toBe(24);
     expect(keyboardSafeBottom(false, INSET, 12, 12)).toBe(60);
+  });
+});
+
+describe("keyboardBarLift — the cross-platform case", () => {
+  const KB = 345;
+  const FULL = 932;
+
+  it("lifts by the whole keyboard when the OS does NOT shrink the window (iOS, Android edge-to-edge)", () => {
+    // Measured on the reporter's iPhone: root stayed 932 with the keyboard open.
+    expect(keyboardBarLift(KB, FULL, FULL)).toBe(KB);
+  });
+
+  it("lifts by NOTHING when the OS already shrank the window (older Android adjustResize)", () => {
+    // Container already ends at the keyboard's top edge; lifting again would
+    // reproduce the original bug with a gap exactly one keyboard tall.
+    expect(keyboardBarLift(KB, FULL, FULL - KB)).toBe(0);
+  });
+
+  it("lifts by the remainder when the OS absorbed only part of it", () => {
+    expect(keyboardBarLift(KB, FULL, FULL - 200)).toBe(145);
+  });
+
+  it("never returns a negative lift if the window shrank more than the keyboard", () => {
+    expect(keyboardBarLift(KB, FULL, FULL - 500)).toBe(0);
+  });
+
+  it("is zero whenever the keyboard is closed", () => {
+    expect(keyboardBarLift(0, FULL, FULL)).toBe(0);
+    expect(keyboardBarLift(0, 0, 0)).toBe(0);
+  });
+
+  it("assumes a full-height window when no baseline exists yet", () => {
+    // First render with the keyboard already up (rotation, returning to the
+    // screen): better to lift than to leave the bar hidden behind the keyboard.
+    expect(keyboardBarLift(KB, 0, FULL)).toBe(KB);
+  });
+
+  it("ignores small height changes — status/nav bar transitions, not a keyboard", () => {
+    expect(keyboardBarLift(KB, FULL, FULL - 10)).toBe(KB);
   });
 });
