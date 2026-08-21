@@ -6,6 +6,18 @@ module.exports = {
     "<rootDir>/src/__tests__/setup.ts",
   ],
   testMatch: ["**/__tests__/**/*.test.[jt]s?(x)"],
+  // Screen-level suites render the real component tree and drive several
+  // sequential act()/waitFor() round-trips. Each is fast on its own but 3-10x
+  // slower inside a full parallel run, where ~120 suites contend for CPU:
+  // ListingForm.routing measured 5s alone / 43s loaded, ListingForm.publish
+  // 4.7s / 14.8s, chat/Conversations 14.5s / 69s. All three failed the default
+  // 5s budget while passing in isolation — contention, not regressions.
+  //
+  // Set ONCE here rather than per file. It was previously a jest.setTimeout in
+  // individual suites, which drifted: routing had been raised while publish had
+  // not, so publish failed the same way months later, and then Conversations did
+  // too. A global budget cannot be forgotten by the next slow suite.
+  testTimeout: 45000,
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
     // Jest doesn't support package.json "exports" field — map msw subpaths to CJS

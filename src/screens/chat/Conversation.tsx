@@ -12,23 +12,25 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Dimensions,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   StyleSheet,
-  ActivityIndicator,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   TextInput,
+  View,
 } from "react-native";
 import { confirmAlert } from "@/utils/alert";
 import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/permissions";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useKeyboardVisible, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
+import { useKeyboardHeight, keyboardContentInset, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
 import { Send, Plus, ShieldBan, Search, X, Flag } from "lucide-react-native";
 import { toast } from "@/lib/toast";
 
@@ -137,8 +139,12 @@ export function ConversationScreen() {
   const colors = useColors();
   const { isRtl, formatCurrency } = useLocalization();
   const insets = useSafeAreaInsets();
-  // While the keyboard is up it IS the safe area — see useKeyboardVisible.
-  const keyboardVisible = useKeyboardVisible();
+  // Android draws edge-to-edge and does NOT resize for the keyboard, so the
+  // screen has to inset itself by the keyboard's height. See useKeyboardVisible.
+  const keyboardHeight = useKeyboardHeight();
+  const keyboardVisible = keyboardHeight > 0;
+  const [barBottom, setBarBottom] = useState(0); // DIAGNOSTIC
+  const [rootH, setRootH] = useState(0); // DIAGNOSTIC
   const qc = useQueryClient();
   const storeUser = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
@@ -1202,7 +1208,18 @@ export function ConversationScreen() {
       : undefined;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      onLayout={(e) => setRootH(e.nativeEvent.layout.height)}
+      style={[
+        styles.container,
+        { backgroundColor: colors.background },
+        // Android edge-to-edge: the window is NOT resized for the keyboard, so
+        // the whole screen insets itself by the keyboard's height and the
+        // composer lands exactly on top of it. No-op on iOS, where
+        // KeyboardAvoidingView's "padding" already does this.
+        { paddingBottom: keyboardContentInset(keyboardHeight) },
+      ]}
+    >
 
       {/* ── Nav bar — always shown, owns safe-area top ───────────────────── */}
       <View
@@ -1585,6 +1602,21 @@ export function ConversationScreen() {
         />
 
         {/* Input bar */}
+        {/* TEMPORARY DIAGNOSTIC — remove once the keyboard gap is settled.
+            Two blind fixes did not close the gap, so this prints the live numbers
+            instead of guessing: if this strip does not appear on the device, the
+            device is not running this build at all, which is itself the answer. */}
+        {__DEV__ && (
+          <View style={{ backgroundColor: "#b91c1c", paddingHorizontal: 8, paddingVertical: 3 }}>
+            <Text style={{ color: "#fff", fontSize: 10 }} testID="kbd-probe">
+              {`kb=${keyboardVisible ? "OPEN" : "shut"} inset.b=${Math.round(insets.bottom)} pad=${Math.round(
+                keyboardSafeBottom(keyboardVisible, insets.bottom, 8, 12)
+              )} win=${Math.round(Dimensions.get("window").height)} scr=${Math.round(
+                Dimensions.get("screen").height
+              )} kbEvt=${Math.round(keyboardHeight)} rootH=${Math.round(rootH)} barEnd=${Math.round(barBottom)} GAP=${Math.round(rootH - barBottom)}`}
+            </Text>
+          </View>
+        )}
         {isStartMode ? (
           // Start-conversation input
           <View
@@ -1628,6 +1660,10 @@ export function ConversationScreen() {
               onSelect={handleQuickReplySelect}
             />
           <View
+            onLayout={(e) => {
+              const { y, height } = e.nativeEvent.layout;
+              setBarBottom(y + height);
+            }}
             style={[
               styles.inputBar,
               { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: keyboardSafeBottom(keyboardVisible, insets.bottom, 8, 12) },
