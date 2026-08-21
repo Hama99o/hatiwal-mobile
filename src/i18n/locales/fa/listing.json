@@ -239,12 +239,14 @@
     "messageBuyer": "پیام به {{name}}",
     "finalPrice": "قیمت توافق‌شده",
     "noBuyerRecorded": "معلومات خریدار موجود نیست",
-    "soldOn": "در {{date}} فروخته شد"
+    "soldOn": "در {{date}} فروخته شد",
+    "unitsSold": "تعداد فروخته‌شده"
   },
   "stock": {
     "each": "هرکدام",
     "inStock": "{{count}} عدد موجود است",
     "leftOfTotal": "{{available}} از {{total}} باقی مانده",
-    "unitsAvailable": "{{count}} موجود"
+    "unitsAvailable": "{{count}} موجود",
+    "unitsCount": "{{count}} عدد"
   }
 }

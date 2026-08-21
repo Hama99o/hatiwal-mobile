@@ -239,12 +239,14 @@
     "messageBuyer": "{{name}} ته پیغام ورکړئ",
     "finalPrice": "موافقه شویه بیه",
     "noBuyerRecorded": "د پیرودونکي معلومات نشته",
-    "soldOn": "په {{date}} خرڅ شو"
+    "soldOn": "په {{date}} خرڅ شو",
+    "unitsSold": "پلورل شوې دانې"
   },
   "stock": {
     "each": "هره دانه",
     "inStock": "{{count}} دانې موجودې دي",
     "leftOfTotal": "{{available}} د {{total}} څخه پاتې",
-    "unitsAvailable": "{{count}} موجودې"
+    "unitsAvailable": "{{count}} موجودې",
+    "unitsCount": "{{count}} دانې"
   }
 }

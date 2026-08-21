@@ -74,6 +74,10 @@ export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
     : t("listing.sale.reservedFor", { name: buyerName });
 
   const showFinalPrice = sale.finalPrice != null && Number(sale.finalPrice) !== Number(listing.price);
+  // Multi-unit sales only. A batch listing's sale of 1 unit still counts —
+  // "1 of 15" is exactly what the seller needs to see — so this gates on the
+  // LISTING being multi-unit, not on the quantity being > 1.
+  const showUnitsSold = listing.multiUnit === true && sale.quantity != null;
 
   // CYCLE-4 design-review fix: completedAt was recorded on every sold
   // Transaction but never rendered anywhere on the owner surfaces. Shown as
@@ -162,6 +166,21 @@ export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
           </View>
         </Button>
       </View>
+
+      {/* How many units this buyer took — the seller's "who bought how much"
+          answer at the single-listing level (spike §0b). Only for a real
+          multi-unit sale: `quantity` is 1 on every single-item listing, so a
+          "1 unit" line would be noise on the majority of sales. */}
+      {showUnitsSold && (
+        <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6 }}>
+          <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
+            {t("listing.sale.unitsSold")}
+          </Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }}>
+            {t("listing.stock.unitsCount", { count: sale.quantity ?? 1 })}
+          </Text>
+        </View>
+      )}
 
       {showFinalPrice && (
         <View style={{ flexDirection: rowDir, alignItems: "center", gap: 6 }}>

@@ -220,3 +220,42 @@ describe("SaleBuyerCard", () => {
     expect(screen.getByText("common.message")).toBeTruthy();
   });
 });
+
+// ── Units sold — docs/SPIKE_LISTING_QUANTITY.md §0b ───────────────────────────
+//
+// The seller's "who bought how much" answer at the single-listing level. Gated
+// on the LISTING being multi-unit, not on the quantity being > 1: on a 15-bag
+// listing "1 unit" is meaningful, on a single-item listing it is noise.
+
+describe("SaleBuyerCard — units sold", () => {
+  it("shows how many units the buyer took on a multi-unit listing", () => {
+    const listing = buildListing({ multiUnit: true, sale: buildSale({ quantity: 3 }) });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.getByText("listing.sale.unitsSold")).toBeTruthy();
+    expect(screen.getByText("listing.stock.unitsCount")).toBeTruthy();
+  });
+
+  it("shows it even for a single unit of a batch — '1 of 15' is what the seller needs", () => {
+    const listing = buildListing({ multiUnit: true, sale: buildSale({ quantity: 1 }) });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.getByText("listing.sale.unitsSold")).toBeTruthy();
+  });
+
+  it("shows nothing on a single-item listing — the majority case is untouched", () => {
+    const listing = buildListing({ multiUnit: false, sale: buildSale({ quantity: 1 }) });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.queryByText("listing.sale.unitsSold")).toBeNull();
+  });
+
+  it("shows nothing when the payload predates the column", () => {
+    const sale = buildSale();
+    delete (sale as { quantity?: number }).quantity;
+    const listing = buildListing({ multiUnit: true, sale });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.queryByText("listing.sale.unitsSold")).toBeNull();
+  });
+});

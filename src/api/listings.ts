@@ -68,6 +68,12 @@ export interface ListingSale {
   status: "reserved" | "sold";
   finalPrice: number;
   currency: string;
+  /**
+   * How many units this buyer took (docs/SPIKE_LISTING_QUANTITY.md §0b). 1 on a
+   * single-item listing — the column default — so nothing changes for the
+   * majority case. `finalPrice` is PER UNIT, not the deal total.
+   */
+  quantity?: number;
   completedAt: string | null;
   buyer: {
     id: number;

@@ -239,12 +239,14 @@
     "messageBuyer": "Message {{name}}",
     "finalPrice": "Agreed price",
     "noBuyerRecorded": "Buyer info unavailable",
-    "soldOn": "Sold on {{date}}"
+    "soldOn": "Sold on {{date}}",
+    "unitsSold": "Units sold"
   },
   "stock": {
     "each": "each",
     "inStock": "{{count}} in stock",
     "leftOfTotal": "{{available}} of {{total}} left",
-    "unitsAvailable": "{{count}} available"
+    "unitsAvailable": "{{count}} available",
+    "unitsCount": "{{count}} units"
   }
 }
