@@ -13,10 +13,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   FlatList,
   Keyboard,
-  KeyboardAvoidingView,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -30,7 +28,7 @@ import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/pe
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useKeyboardHeight, keyboardContentInset, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
+import { useKeyboardHeight, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
 import { Send, Plus, ShieldBan, Search, X, Flag } from "lucide-react-native";
 import { toast } from "@/lib/toast";
 
@@ -143,8 +141,8 @@ export function ConversationScreen() {
   // screen has to inset itself by the keyboard's height. See useKeyboardVisible.
   const keyboardHeight = useKeyboardHeight();
   const keyboardVisible = keyboardHeight > 0;
-  const [barBottom, setBarBottom] = useState(0); // DIAGNOSTIC
-  const [rootH, setRootH] = useState(0); // DIAGNOSTIC
+  const [bottomBarH, setBottomBarH] = useState(0);
+
   const qc = useQueryClient();
   const storeUser = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
@@ -1209,15 +1207,11 @@ export function ConversationScreen() {
 
   return (
     <View
-      onLayout={(e) => setRootH(e.nativeEvent.layout.height)}
       style={[
         styles.container,
         { backgroundColor: colors.background },
-        // Android edge-to-edge: the window is NOT resized for the keyboard, so
-        // the whole screen insets itself by the keyboard's height and the
-        // composer lands exactly on top of it. No-op on iOS, where
-        // KeyboardAvoidingView's "padding" already does this.
-        { paddingBottom: keyboardContentInset(keyboardHeight) },
+        // No keyboard padding here. The bottom bar is absolutely positioned
+        // against this view at the keyboard's top edge — see the bar itself.
       ]}
     >
 
@@ -1427,25 +1421,10 @@ export function ConversationScreen() {
         </View>
       )}
 
-      {/* Message list */}
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        // iOS: "padding" adds bottom padding so the composer lifts with the
-        // keyboard, and the offset compensates for the navigation header, which
-        // iOS does NOT account for.
-        //
-        // Android: nothing. AndroidManifest sets
-        // android:windowSoftInputMode="adjustResize", so the OS already shrinks
-        // the window to sit above the keyboard — this view only has to not
-        // interfere. It previously used behavior="height" AND the same
-        // keyboardVerticalOffset={88}, which double-counted the inset: the OS
-        // resized, KAV shrank again, and the offset added a further 88px, leaving
-        // a large dead gap between the composer and the keyboard (reported on a
-        // real device). Passing undefined makes KAV a plain View, which is the
-        // correct pairing for adjustResize.
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
-      >
+      {/* Message list. No KeyboardAvoidingView on either platform — the bottom
+          bar is absolutely anchored to the keyboard instead (see the block after
+          this one), so nothing here has to react to the keyboard at all. */}
+      <View style={{ flex: 1 }}>
         <FlatList
           ref={flatListRef}
           data={threadRows}
@@ -1563,7 +1542,9 @@ export function ConversationScreen() {
               />
             );
           }}
-          contentContainerStyle={styles.messageList}
+          // styles.messageList plus clearance for the absolutely-positioned bottom
+          // bar AND the keyboard beneath it, so the newest message is never covered.
+          contentContainerStyle={[styles.messageList, { paddingBottom: bottomBarH + keyboardHeight }]}
           // Disable maintainVisibleContentPosition during search so the filtered
           // list doesn't jump when the query changes
           maintainVisibleContentPosition={searchVisible ? undefined : { minIndexForVisible: 0 }}
@@ -1600,23 +1581,28 @@ export function ConversationScreen() {
           }
           showsVerticalScrollIndicator={false}
         />
+      </View>
 
+      {/* THE BOTTOM BAR — absolutely anchored to the keyboard top.
+
+          Measured on device (Expo SDK 54 / Android): with the keyboard open the
+          root view stays top=0 height=932 — edge-to-edge, the window is NOT
+          resized — and the keyboard reports 345. Yet laid out in the flex column
+          this bar's bottom landed at 499 instead of 587: 88px short, with nothing
+          in the tree to account for it. The bar was flush with its container
+          (measured gapBelowComposer=0) and every sibling below it is a <Modal>,
+          which takes no layout space.
+
+          So it no longer depends on the flex chain: it is positioned against the
+          ROOT, whose bounds are known and stable, with its bottom edge exactly at
+          the keyboard top. That is arithmetic an intermediate view cannot eat, and
+          it needs no KeyboardAvoidingView on either platform. The list is padded
+          by this bar's measured height so the newest message is never hidden. */}
+      <View
+        onLayout={(e) => setBottomBarH(e.nativeEvent.layout.height)}
+        style={{ position: "absolute", left: 0, right: 0, bottom: keyboardHeight }}
+      >
         {/* Input bar */}
-        {/* TEMPORARY DIAGNOSTIC — remove once the keyboard gap is settled.
-            Two blind fixes did not close the gap, so this prints the live numbers
-            instead of guessing: if this strip does not appear on the device, the
-            device is not running this build at all, which is itself the answer. */}
-        {__DEV__ && (
-          <View style={{ backgroundColor: "#b91c1c", paddingHorizontal: 8, paddingVertical: 3 }}>
-            <Text style={{ color: "#fff", fontSize: 10 }} testID="kbd-probe">
-              {`kb=${keyboardVisible ? "OPEN" : "shut"} inset.b=${Math.round(insets.bottom)} pad=${Math.round(
-                keyboardSafeBottom(keyboardVisible, insets.bottom, 8, 12)
-              )} win=${Math.round(Dimensions.get("window").height)} scr=${Math.round(
-                Dimensions.get("screen").height
-              )} kbEvt=${Math.round(keyboardHeight)} rootH=${Math.round(rootH)} barEnd=${Math.round(barBottom)} GAP=${Math.round(rootH - barBottom)}`}
-            </Text>
-          </View>
-        )}
         {isStartMode ? (
           // Start-conversation input
           <View
@@ -1660,10 +1646,6 @@ export function ConversationScreen() {
               onSelect={handleQuickReplySelect}
             />
           <View
-            onLayout={(e) => {
-              const { y, height } = e.nativeEvent.layout;
-              setBarBottom(y + height);
-            }}
             style={[
               styles.inputBar,
               { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: keyboardSafeBottom(keyboardVisible, insets.bottom, 8, 12) },
@@ -1723,7 +1705,7 @@ export function ConversationScreen() {
             </Text>
           </View>
         )}
-      </KeyboardAvoidingView>
+      </View>
 
       {/* TASK-K487: the composer's single "+" actions sheet — Photo / File /
           Propose meetup / Make an offer (offer row gated by canOfferInThread,

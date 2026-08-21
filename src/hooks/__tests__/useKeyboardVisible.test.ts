@@ -6,8 +6,7 @@
  * old `Math.max(insets.bottom, 8) + 12` reserved ~50px of dead space between the
  * input and the keyboard. Reported on a real device.
  */
-import { keyboardSafeBottom, keyboardContentInset } from "../useKeyboardVisible";
-import { Platform } from "react-native";
+import { keyboardSafeBottom } from "../useKeyboardVisible";
 
 describe("keyboardSafeBottom", () => {
   // A typical Android gesture-nav device: 48px inset, 8px floor, 12px base.
@@ -41,23 +40,5 @@ describe("keyboardSafeBottom", () => {
     // The closed-conversation notice uses minInset 12 rather than 8.
     expect(keyboardSafeBottom(false, 0, 12, 12)).toBe(24);
     expect(keyboardSafeBottom(false, INSET, 12, 12)).toBe(60);
-  });
-});
-
-describe("keyboardContentInset", () => {
-  // Measured on device (Expo SDK 54, Android): with the keyboard open the root
-  // view's own onLayout height was still the FULL screen height (932) and the
-  // keyboard event reported 345 — the window is not resized under edge-to-edge,
-  // so the screen must inset itself by exactly the keyboard height.
-  it("insets by the full keyboard height on Android", () => {
-    (Platform as { OS: string }).OS = "android";
-    expect(keyboardContentInset(345)).toBe(345);
-    expect(keyboardContentInset(0)).toBe(0);
-  });
-
-  it("insets nothing on iOS — KeyboardAvoidingView padding already does it, so this would double-count", () => {
-    (Platform as { OS: string }).OS = "ios";
-    expect(keyboardContentInset(345)).toBe(0);
-    expect(keyboardContentInset(0)).toBe(0);
   });
 });

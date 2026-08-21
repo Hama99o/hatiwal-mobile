@@ -3,6 +3,11 @@
  *
  * WHY THIS IS NOT JUST KeyboardAvoidingView
  * -----------------------------------------
+ * NOTE ON PLATFORMS: the gap this was written for turned out to be on iOS, not
+ * Android — see Conversation.tsx's bottom-bar comment. The observations below
+ * about Android edge-to-edge still hold and are why nothing here assumes the
+ * window resizes.
+ *
  * Expo SDK 54 (RN 0.81) enforces edge-to-edge on Android, and under edge-to-edge
  * `android:windowSoftInputMode="adjustResize"` no longer shrinks the window: the
  * IME is an inset drawn OVER a full-height window. Measured on device with the
@@ -54,18 +59,6 @@ export function useKeyboardHeight(): number {
 /** Convenience: is the keyboard up? */
 export function useKeyboardVisible(): boolean {
   return useKeyboardHeight() > 0;
-}
-
-/**
- * How far the screen's content must be inset from the bottom so a pinned bar
- * lands exactly on top of the keyboard.
- *
- * ANDROID: the keyboard's height, because the window is not resized (see above).
- * iOS: 0 — `KeyboardAvoidingView behavior="padding"` already does it there, and
- * adding this too would double-count.
- */
-export function keyboardContentInset(keyboardHeight: number): number {
-  return Platform.OS === "android" ? keyboardHeight : 0;
 }
 
 /**
