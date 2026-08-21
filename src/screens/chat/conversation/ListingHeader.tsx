@@ -54,6 +54,13 @@ interface ListingInfo {
    * (docs/SPIKE_LISTING_QUANTITY.md §0c).
    */
   multiUnit?: boolean;
+  /**
+   * How many units are still available. Feeds the buyer picker's "how many did
+   * you sell?" field, so a seller closing part of a batch here gets the same
+   * choice they get on the My Listings screen — without it the thread could only
+   * ever sell the whole batch at once.
+   */
+  availableUnits?: number;
 }
 
 interface ListingHeaderProps {
@@ -302,6 +309,7 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
         price={listing.price ?? 0}
         currency={listing.currency ?? "AFN"}
         action={buyerPickerAction ?? "reserve"}
+        remainingQuantity={listing.availableUnits ?? 1}
         onConfirm={handleBuyerPickerConfirm}
         isSubmitting={isLifecycleLoading}
       />

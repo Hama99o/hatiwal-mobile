@@ -491,3 +491,52 @@ describe("ListingHeader — TASK-N071: firm-price notice", () => {
     expect(screen.queryByTestId("firm-price-chat-notice")).toBeNull();
   });
 });
+
+// ── Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md) ───────────────────────────
+//
+// The seller often closes the deal inside the thread, so the header's own
+// reserve/sold flow has to offer the same choice the My Listings screen does.
+// Without the stock passed through, this surface could only ever sell a whole
+// batch at once.
+
+describe("ListingHeader — multi-quantity", () => {
+  it("tells the buyer picker how many are left, so it can ask 'how many did you sell?'", () => {
+    // Mark Sold is the owner's action on a RESERVED listing (an active one
+    // offers Reserve) — and it is the only action that asks for a quantity.
+    render(
+      <ListingHeader
+        listing={{ ...baseListing, status: "reserved", multiUnit: true, availableUnits: 11 }}
+        isOwner
+      />
+    );
+    fireEvent.press(screen.getByText("chat.listingActions.markSold"));
+    expect(screen.getByTestId("buyer-picker-remaining")).toHaveTextContent("11");
+  });
+
+  it("reports 1 for a single-item listing, so the picker asks nothing new", () => {
+    render(
+      <ListingHeader listing={{ ...baseListing, status: "active" }} isOwner />
+    );
+    fireEvent.press(screen.getByText("chat.listingActions.reserve"));
+    expect(screen.getByTestId("buyer-picker-remaining")).toHaveTextContent("1");
+  });
+
+  // PriceTag is stubbed as a string element in this suite (see the mock at the
+  // top), so the "each" suffix itself cannot render here — PriceTag's own
+  // PriceTagPerUnit.test.tsx covers that. What this suite owns is whether the
+  // header passes the flag at all.
+  it("passes perUnit to the price on a multi-unit listing", () => {
+    render(
+      <ListingHeader
+        listing={{ ...baseListing, multiUnit: true, availableUnits: 11 }}
+        isOwner={false}
+      />
+    );
+    expect(screen.UNSAFE_getByType("PriceTag" as never).props.perUnit).toBe(true);
+  });
+
+  it("does not pass perUnit on a single-item listing", () => {
+    render(<ListingHeader listing={baseListing} isOwner={false} />);
+    expect(screen.UNSAFE_getByType("PriceTag" as never).props.perUnit).toBe(false);
+  });
+});

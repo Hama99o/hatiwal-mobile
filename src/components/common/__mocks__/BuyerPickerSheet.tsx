@@ -20,16 +20,21 @@ export function BuyerPickerSheet({
   onConfirm,
   onClose,
   action,
+  remainingQuantity,
 }: {
   visible: boolean;
-  onConfirm: (r: { buyerId?: number; finalPrice?: number }) => void;
+  onConfirm: (r: { buyerId?: number; finalPrice?: number; quantity?: number }) => void;
   onClose?: () => void;
   action: string;
+  /** Surfaced so a consumer suite can assert what the real sheet would be told
+   *  about the stock — the number that decides whether it asks "how many?". */
+  remainingQuantity?: number;
 }) {
   if (!visible) return null;
   return (
     <>
       <Text testID={`buyer-picker-visible-${action}`}>buyer-picker-open</Text>
+      <Text testID="buyer-picker-remaining">{String(remainingQuantity ?? "")}</Text>
       <Pressable onPress={() => onConfirm({})} testID="confirm-skip">
         <Text>confirm-skip</Text>
       </Pressable>
