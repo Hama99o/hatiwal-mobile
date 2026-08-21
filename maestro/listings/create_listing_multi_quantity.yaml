@@ -1,0 +1,129 @@
+appId: com.hatiwal.app
+---
+# Create a MULTI-UNIT listing — docs/SPIKE_LISTING_QUANTITY.md, Tier 1.
+#
+# The creation half of the feature had no flow at all: every create_listing_*
+# flow predates quantity, so nothing exercised the toggle or proved the number
+# reaches the API. This covers both halves of the spike's governing rule in one
+# pass:
+#
+#   1. the toggle is OFF by default, so a seller with one item is asked nothing
+#      new — asserted by the field's ABSENCE before the toggle is touched
+#   2. turning it on, typing 15, and saving produces a listing that actually
+#      says "15 in stock"
+#
+# Login is explicit rather than via ../_helpers/login_seller.yaml: that helper is
+# still on the pre-rig shape (`clearState: true` with no open_bundle.yaml) and
+# lands in the expo-dev-client launcher — see qa/UI_FINDINGS.md.
+
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- tapOn: "Email"
+- inputText: "seller@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+
+# Seller mode
+- tapOn: "Me"
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Switch to Seller Mode"
+    commands:
+      - tapOn: "Switch to Seller Mode"
+      - waitForAnimationToEnd
+- assertVisible: "Switch to Buyer Mode"
+
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+
+# "New", not "Post a listing" — the My Shop header button is labelled `New`
+# (the `postListing` string is the empty-state CTA, which is why the older
+# create flows tap a label that is not on a populated shop).
+- tapOn: "New"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "What are you selling?"
+- inputText: "QA Phone Cases Bulk 15"
+- tapOn: "Enter price"
+- inputText: "400"
+# The numeric keypad covers the lower half of the form, including the category
+# row — without this the next tap fails on an element that is simply hidden.
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+# "Electronics" is a PARENT — tapping it drills into subcategories rather than
+# selecting, so the picker sheet stays open over the form. A leaf has to be
+# chosen. (create_listing.yaml and friends stop at the parent and then act on a
+# form the sheet is still covering — same latent bug, noted in qa/UI_FINDINGS.md.)
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Accessories"
+- waitForAnimationToEnd
+
+# ── THE GOVERNING RULE ──────────────────────────────────────────────────────
+# Before the toggle is touched there must be NO quantity field: a seller with
+# one item must never see that this feature exists.
+- scrollUntilVisible:
+    element:
+      text: "I have more than one"
+    direction: DOWN
+    timeout: 10000
+- assertNotVisible:
+    id: "listing-form-quantity-input"
+
+# Turn it on — the field appears, pre-filled "2" (flipping the switch already
+# means "more than one", so the next keystroke just fixes the number).
+- tapOn: "I have more than one"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "listing-form-quantity-input"
+
+- tapOn:
+    id: "listing-form-quantity-input"
+- inputText: "15"
+- hideKeyboard
+# Prove the field holds 15 and not "215" — the pre-filled "2" must be replaced,
+# the same hazard that sold a whole batch in run-018.
+- assertVisible:
+    id: "listing-form-quantity-input"
+    text: "15"
+
+- tapOn: "Describe your item..."
+- inputText: "QA fixture — a box of 15 identical cases."
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      text: "Save Draft"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+
+# Saving a new listing lands on its own owner detail (TASK-J952).
+- assertVisible: "QA Phone Cases Bulk 15"
+- assertVisible: "Draft"
+
+# The count survived the round trip and the seller can see it. "in stock", not
+# "of 15 left" — nothing has sold, so the progress phrasing would just repeat
+# itself (UI-009).
+- assertVisible:
+    id: "stock-badge-owner"
+- assertVisible: "15 in stock"
+# And the price is marked per-unit, so 400 cannot be read as the price of the box.
+- assertVisible: "each"

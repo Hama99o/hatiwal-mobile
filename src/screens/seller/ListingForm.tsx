@@ -119,10 +119,21 @@ const TOAST_KEY: Record<BlockerMode, string> = {
 // Schema
 // ---------------------------------------------------------------------------
 
+// Mirrors hatiwal-api's `Listing::MAX_PRICE`. That `price` column is
+// decimal(12, 2), so a bigger value used to clear validation and then overflow
+// in Postgres — the app got a 500 with no field errors and the seller saw the
+// publish fail with nothing saying why. Caught here it never leaves the device.
+import { apiErrorMessage } from "@/utils/apiError";
+
+const MAX_LISTING_PRICE = 9_999_999_999.99;
+
 const listingSchema = z.object({
   title: z.string().min(1).max(150),
   // coerce handles both number and string inputs (API may return "500.0" as string)
-  price: z.coerce.number().positive({ message: "Enter a valid price greater than 0" }),
+  price: z.coerce
+    .number()
+    .positive({ message: "Enter a valid price greater than 0" })
+    .max(MAX_LISTING_PRICE, { message: "Price is too high" }),
   currency: z.enum(["AFN", "USD", "EUR"]),
   // Optional — sellers may leave it unset; mirrors the backend enum values.
   condition: z.enum(["brand_new", "like_new", "good", "fair"]).optional(),
@@ -656,8 +667,11 @@ export default function ListingFormScreen() {
         router.replace(`/(main)/my-listings/${listing.id}` as never);
       }
     },
-    onError: () => {
-      toast.error(t("listing.form.saveError"));
+    onError: (err) => {
+      // Show the server's own reason ("Price must be less than or equal to
+      // 9999999999.99") instead of a generic "couldn't save" — the seller
+      // cannot fix what they are not told.
+      toast.error(apiErrorMessage(err, t, "listing.form.saveError"));
     },
   });
 
@@ -713,8 +727,8 @@ export default function ListingFormScreen() {
       // screen — the same single-entry result `replace` gave before.
       router.dismissTo(`/(main)/my-listings/${listing.id}?published=1` as never);
     },
-    onError: () => {
-      toast.error(t("listing.form.publishError"));
+    onError: (err) => {
+      toast.error(apiErrorMessage(err, t, "listing.form.publishError"));
     },
   });
 
@@ -1334,7 +1348,20 @@ export default function ListingFormScreen() {
               )}
             </Button>
           </View>
-          {errors.price && <FieldError message={t("listing.form.priceRequired")} />}
+          {/* Distinguish "too high" from "not a valid price": showing
+              priceRequired ("greater than 0") for an over-large number tells the
+              seller the opposite of what is wrong. zod reports the max failure
+              as issue code "too_big". */}
+          {errors.price && (
+            <FieldError
+              message={t(
+                errors.price.type === "too_big" ||
+                  errors.price.type === "not_finite"
+                  ? "listing.form.priceTooHigh"
+                  : "listing.form.priceRequired"
+              )}
+            />
+          )}
 
           {/* Negotiable toggle — placed inline below price so seller sees the pairing */}
           <View
@@ -1418,6 +1445,12 @@ export default function ListingFormScreen() {
                   }}
                   keyboardType="numeric"
                   placeholder="2"
+                  // Same pre-fill hazard as the sold sheet (UI-008): the field
+                  // arrives holding "2", so a tap only places a caret and typing
+                  // 15 yields "215". Not destructive here — it is caught at
+                  // review or by the 999 ceiling — but it is the same wrong
+                  // behaviour, and a seller who meant 15 would publish 215.
+                  selectTextOnFocus
                   // Its own label, not the switch's — a screen reader landing
                   // on a bare "2" otherwise hears the toggle's sentence twice
                   // and never learns what the number means.

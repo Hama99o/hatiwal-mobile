@@ -10,15 +10,15 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**5 of 214 flows passing** · 209 still need attention
+**5 of 215 flows passing** · 210 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
 | PASS | 5 | green, and no backend error underneath |
-| FAIL-assert | 3 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-assert | 4 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 9 | failed, cause unclear — read the log |
-| UNTESTED | 196 | never executed |
+| FAIL-? | 10 | failed, cause unclear — read the log |
+| UNTESTED | 195 | never executed |
 
 ### Definition of done
 
@@ -66,12 +66,55 @@ bug class a user reports as "nothing happened".
 | `reserve_after_accept` | UNTESTED | — |  |  |  |
 | `reserve_after_buyer_accepts_counter` | UNTESTED | — |  |  |  |
 | `reserved_sold_dead_end_notice` | UNTESTED | — |  |  |  |
-| `send_message` | UNTESTED | — |  |  |  |
+| `send_message` | FAIL-? | run-026 | 27 |  | [Failed] send_message (0s) |
 | `send_multiple_messages` | UNTESTED | — |  |  |  |
 | `send_photo` | UNTESTED | — |  |  |  |
 | `start_conversation` | UNTESTED | — |  |  |  |
 | `start_conversation_and_reply` | UNTESTED | — |  |  |  |
 | `view_other_profile_from_conversation` | UNTESTED | — |  |  |  |
+
+## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
+
+0/36 passing · 36 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `create_listing` | UNTESTED | — |  |  |  |
+| `create_listing_all_fields` | UNTESTED | — |  |  |  |
+| `create_listing_category_search` | UNTESTED | — |  |  |  |
+| `create_listing_currency_eur` | UNTESTED | — |  |  |  |
+| `create_listing_currency_usd` | UNTESTED | — |  |  |  |
+| `create_listing_draft_discard` | UNTESTED | — |  |  |  |
+| `create_listing_draft_restore` | UNTESTED | — |  |  |  |
+| `create_listing_location_picker` | UNTESTED | — |  |  |  |
+| `create_listing_multi_quantity` | FAIL-assert | run-025 | 58 |  | blocked-rig | Written and syntax-checked; selectors verified from real screenshots (run-021/022 confirmed the toggle row sits below Negotiable and the category picker needs a LEAF). Not yet green: the emulator is shared with another session, whose clearState relaunches keep dropping this flow into the expo-dev-client launcher (RIG-001). Re-run on an idle device. |
+| `create_listing_province_picker` | UNTESTED | — |  |  |  |
+| `create_listing_publish_blocked` | UNTESTED | — |  |  |  |
+| `create_listing_publish_direct` | UNTESTED | — |  |  |  |
+| `create_listing_validation` | UNTESTED | — |  |  |  |
+| `create_listing_with_condition` | UNTESTED | — |  |  |  |
+| `create_listing_with_photos` | UNTESTED | — |  |  |  |
+| `delete_listing` | UNTESTED | — |  |  |  |
+| `draft_lifecycle` | UNTESTED | — |  |  |  |
+| `edit_listing` | UNTESTED | — |  |  |  |
+| `edit_listing_all_fields` | UNTESTED | — |  |  |  |
+| `edit_listing_discard` | UNTESTED | — |  |  |  |
+| `edit_listing_remove_photo` | UNTESTED | — |  |  |  |
+| `edit_listing_reorder_photos` | UNTESTED | — |  |  |  |
+| `expired_listing_badge` | UNTESTED | — |  |  |  |
+| `lifecycle_publish` | UNTESTED | — |  |  |  |
+| `lifecycle_reactivate` | UNTESTED | — |  |  |  |
+| `lifecycle_reserve` | UNTESTED | — |  |  |  |
+| `lifecycle_sold` | UNTESTED | — |  |  |  |
+| `lifecycle_unpublish` | UNTESTED | — |  |  |  |
+| `listing_analytics_sparkline` | UNTESTED | — |  |  |  |
+| `listing_conversations_list` | UNTESTED | — |  |  |  |
+| `listing_renew_flow` | UNTESTED | — |  |  |  |
+| `listing_status_counts` | UNTESTED | — |  |  |  |
+| `my_listing_detail_view` | UNTESTED | — |  |  |  |
+| `my_listings_filter_tabs` | UNTESTED | — |  |  |  |
+| `my_listings_search` | UNTESTED | — |  |  |  |
+| `price_drop_after_edit` | UNTESTED | — |  |  |  |
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile
 
@@ -115,48 +158,6 @@ bug class a user reports as "nothing happened".
 | `user_profile_listing_grid` | UNTESTED | — |  |  |  |
 | `user_profile_stats` | UNTESTED | — |  |  |  |
 | `view_mode_toggle` | UNTESTED | — |  |  |  |
-
-## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
-
-0/35 passing · 35 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `create_listing` | UNTESTED | — |  |  |  |
-| `create_listing_all_fields` | UNTESTED | — |  |  |  |
-| `create_listing_category_search` | UNTESTED | — |  |  |  |
-| `create_listing_currency_eur` | UNTESTED | — |  |  |  |
-| `create_listing_currency_usd` | UNTESTED | — |  |  |  |
-| `create_listing_draft_discard` | UNTESTED | — |  |  |  |
-| `create_listing_draft_restore` | UNTESTED | — |  |  |  |
-| `create_listing_location_picker` | UNTESTED | — |  |  |  |
-| `create_listing_province_picker` | UNTESTED | — |  |  |  |
-| `create_listing_publish_blocked` | UNTESTED | — |  |  |  |
-| `create_listing_publish_direct` | UNTESTED | — |  |  |  |
-| `create_listing_validation` | UNTESTED | — |  |  |  |
-| `create_listing_with_condition` | UNTESTED | — |  |  |  |
-| `create_listing_with_photos` | UNTESTED | — |  |  |  |
-| `delete_listing` | UNTESTED | — |  |  |  |
-| `draft_lifecycle` | UNTESTED | — |  |  |  |
-| `edit_listing` | UNTESTED | — |  |  |  |
-| `edit_listing_all_fields` | UNTESTED | — |  |  |  |
-| `edit_listing_discard` | UNTESTED | — |  |  |  |
-| `edit_listing_remove_photo` | UNTESTED | — |  |  |  |
-| `edit_listing_reorder_photos` | UNTESTED | — |  |  |  |
-| `expired_listing_badge` | UNTESTED | — |  |  |  |
-| `lifecycle_publish` | UNTESTED | — |  |  |  |
-| `lifecycle_reactivate` | UNTESTED | — |  |  |  |
-| `lifecycle_reserve` | UNTESTED | — |  |  |  |
-| `lifecycle_sold` | UNTESTED | — |  |  |  |
-| `lifecycle_unpublish` | UNTESTED | — |  |  |  |
-| `listing_analytics_sparkline` | UNTESTED | — |  |  |  |
-| `listing_conversations_list` | UNTESTED | — |  |  |  |
-| `listing_renew_flow` | UNTESTED | — |  |  |  |
-| `listing_status_counts` | UNTESTED | — |  |  |  |
-| `my_listing_detail_view` | UNTESTED | — |  |  |  |
-| `my_listings_filter_tabs` | UNTESTED | — |  |  |  |
-| `my_listings_search` | UNTESTED | — |  |  |  |
-| `price_drop_after_edit` | UNTESTED | — |  |  |  |
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 

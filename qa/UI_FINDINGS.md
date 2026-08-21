@@ -226,6 +226,28 @@ progress to show.
 "15 in stock" until the first sale, and "12 of 15 left" once the count means
 something. Lives in the shared module so the web client inherits the same rule.
 
+### RIG-001 · Two sessions on one emulator produce fake launcher failures
+**Severity:** blocks device QA while it lasts
+**Evidence:** my `run-025` failed at `open_bundle.yaml`'s "Connect" at 22:33; a
+`chat` run (`run-026`, not mine) started the same minute.
+
+The emulator is a single shared device. Nearly every flow does
+`launchApp: clearState: true`, which wipes the dev-client's remembered Metro
+server, so two concurrent sessions each keep dropping the other into the
+expo-dev-client launcher mid-flow. The symptom is `Element not found: Connect`
+or a screenshot of the Android home screen, with **no crash in logcat and the
+app running fine afterwards** — i.e. it looks like a flow bug and is not one.
+
+Before triaging any launcher-stage failure, check for a report directory you did
+not create:
+
+```bash
+ls -la --time-style=+%H:%M qa/reports/ | tail -5
+```
+
+There is no locking today. Either serialise device runs between sessions, or give
+each its own AVD.
+
 ---
 
 ## Flow defects (test bugs, not app bugs)
@@ -242,4 +264,7 @@ Recorded here too, because a wrong flow costs exactly as much time as a wrong sc
 | `_helpers/login_seller.yaml` | still on the pre-rig shape — `clearState: true` with no `open_bundle.yaml`, so it lands in the expo-dev-client launcher and every seller flow dies before its first assertion (run-014). **61 flows include it.** | give it the same warm-launch + `open_bundle` + `goto_login` treatment `login.yaml` got |
 | `login.yaml` env override | it warm-launches and signs in only *if the login form is on screen*, so passing `EMAIL`/`PASSWORD` is a **no-op whenever a session already exists** — the flow silently runs as whoever was signed in last. run-015 ran as the buyer and My Shop read "0 listings", which looks exactly like a missing fixture. | a flow that asserts a specific account's data must clear state and sign in itself (see `seller/multi_quantity_partial_sale.yaml`) |
 | `seller/mark_sold_with_buyer.yaml` and any flow asserting a post-sale toast | REV2's review sheet opens the instant a sale records a buyer and covers the toast, so `assertVisible: "Listing marked as sold"` is a race the sheet usually wins — red while the sale went through perfectly (run-019) | assert the review prompt instead: it only appears when the sale recorded a real buyer |
+| `create_listing*.yaml` (all 14) | tap `"Electronics"` and treat the category as chosen — but Electronics is a PARENT, so tapping it drills into subcategories and the picker sheet stays OPEN over the form. Every step after that acts on a form the sheet is covering. | tap a leaf (`Accessories`, `Phones & Tablets`, …) after the parent |
+| `create_listing*.yaml` | `tapOn: "Post a listing"` — that string is the EMPTY-STATE cta; a populated My Shop shows `New` in the header | tap `"New"` |
+| any flow entering a form field then tapping lower down | the numeric keypad covers the bottom half of the form, so the next `tapOn` fails on an element that is merely hidden | `hideKeyboard` + `scrollUntilVisible` |
 | `tapOn: "More"` on the owner detail | the action row sits below the description and the views chart, and `tapOn` does not scroll to its target | `scrollUntilVisible` on `id: lifecycle-more-action` — a testID, not a localized word |
