@@ -219,7 +219,10 @@
       "viewAsBuyer": "View as buyer",
       "postAnother": "Post another listing",
       "done": "Done"
-    }
+    },
+    "multipleUnitsLabel": "I have more than one",
+    "howManyUnits": "How many do you have?",
+    "howManySold": "How many did you sell?"
   },
   "shopCount_one": "{{count}} listing",
   "firmPrice": "Firm price",
@@ -237,5 +240,11 @@
     "finalPrice": "Agreed price",
     "noBuyerRecorded": "Buyer info unavailable",
     "soldOn": "Sold on {{date}}"
+  },
+  "stock": {
+    "each": "each",
+    "inStock": "{{count}} in stock",
+    "leftOfTotal": "{{available}} of {{total}} left",
+    "unitsAvailable": "{{count}} available"
   }
 }

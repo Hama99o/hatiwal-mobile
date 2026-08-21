@@ -1,3 +1,5 @@
+import { View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { Text } from "@/components/reusables/text";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
@@ -22,6 +24,20 @@ interface PriceTagProps {
   size?: PriceTagSize;
   tone?: PriceTagTone;
   className?: string;
+  /**
+   * Append "each" — for a listing with more than one unit.
+   *
+   * Lives HERE and not at the call sites on purpose. A bare "AFN 14,000" on a
+   * 15-unit listing is genuinely dangerous: buyer and seller can both agree to
+   * "40,000" meaning different things and only discover it at the meetup, with
+   * no payment system to arbitrate and no delivery to reverse. Every surface
+   * that renders this listing's price passes the same flag, so none of them can
+   * drift out of sync — see docs/SPIKE_LISTING_QUANTITY.md §0c.
+   *
+   * The number's own size, weight and colour are untouched: this disambiguates
+   * the price, it does not compete with it.
+   */
+  perUnit?: boolean;
 }
 
 // lg: hero price on Listing Detail (24sp — most prominent text after the photo)
@@ -30,8 +46,15 @@ interface PriceTagProps {
 const fontSize: Record<PriceTagSize, number> = { lg: 24, md: 17, sm: 13 };
 const fontWeight: Record<PriceTagSize, "700" | "600"> = { lg: "700", md: "700", sm: "600" };
 
-export function PriceTag({ price, currency = "AFN", size = "md", tone = "default" }: PriceTagProps) {
-  const { formatCurrency } = useLocalization();
+export function PriceTag({
+  price,
+  currency = "AFN",
+  size = "md",
+  tone = "default",
+  perUnit = false,
+}: PriceTagProps) {
+  const { formatCurrency, isRtl } = useLocalization();
+  const { t } = useTranslation();
   const colors = useColors();
 
   if (price == null) return null;
@@ -39,7 +62,7 @@ export function PriceTag({ price, currency = "AFN", size = "md", tone = "default
   const color =
     tone === "warning" ? colors.warning : tone === "muted" ? colors.mutedForeground : colors.foreground;
 
-  return (
+  const amount = (
     <Text
       style={{ color, fontSize: fontSize[size], fontWeight: fontWeight[size] }}
       numberOfLines={1}
@@ -47,5 +70,21 @@ export function PriceTag({ price, currency = "AFN", size = "md", tone = "default
     >
       {formatCurrency(price, currency)}
     </Text>
+  );
+
+  if (!perUnit) return amount;
+
+  // Row, not string concatenation: "each" is smaller and muted so it reads as a
+  // qualifier rather than part of the figure, and RTL mirrors it for free.
+  return (
+    <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "baseline", gap: 4 }}>
+      {amount}
+      <Text
+        style={{ color: colors.mutedForeground, fontSize: Math.max(11, fontSize[size] - 5) }}
+        numberOfLines={1}
+      >
+        {t("listing.stock.each")}
+      </Text>
+    </View>
   );
 }

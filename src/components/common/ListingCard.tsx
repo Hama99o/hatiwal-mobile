@@ -236,6 +236,7 @@ export function ListingCard({
               price={listing.price}
               currency={listing.currency}
               size="md"
+              perUnit={listing.multiUnit === true}
             />
 
             {/* Price-drop badge in list mode — tiny pill after price. Suppressed when
@@ -500,6 +501,7 @@ export function ListingCard({
             price={listing.price}
             currency={listing.currency}
             size="md"
+            perUnit={listing.multiUnit === true}
           />
 
           {/* Badge slot — fixed height, always rendered, holds AT MOST one badge:

@@ -219,7 +219,10 @@
       "viewAsBuyer": "دیدن به‌عنوان خریدار",
       "postAnother": "ثبت آگهی دیگر",
       "done": "تمام"
-    }
+    },
+    "multipleUnitsLabel": "بیشتر از یک عدد دارم",
+    "howManyUnits": "چند عدد دارید؟",
+    "howManySold": "چند عدد فروختید؟"
   },
   "shopCount_one": "{{count}} آگهی",
   "firmPrice": "قیمت ثابت",
@@ -237,5 +240,11 @@
     "finalPrice": "قیمت توافق‌شده",
     "noBuyerRecorded": "معلومات خریدار موجود نیست",
     "soldOn": "در {{date}} فروخته شد"
+  },
+  "stock": {
+    "each": "هرکدام",
+    "inStock": "{{count}} عدد موجود است",
+    "leftOfTotal": "{{available}} از {{total}} باقی مانده",
+    "unitsAvailable": "{{count}} موجود"
   }
 }

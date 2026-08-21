@@ -239,7 +239,7 @@ export function PublishSuccessSheet({ visible, listing, onClose }: PublishSucces
               {/* CYCLE-3 DR fix: "md" (17sp/700) — the price must outrank the
                   14sp/600 title on this summary row, matching every other
                   listing surface where price is the dominant text. */}
-              <PriceTag price={listing.price} currency={listing.currency} size="md" />
+              <PriceTag price={listing.price} currency={listing.currency} size="md" perUnit={listing.multiUnit === true} />
             </View>
           </View>
 

@@ -280,6 +280,7 @@ export function ConversationRow({
                 shares the same listing, so a repeated price is redundant. */}
             {context === "listing" ? null : (
               <PriceTag
+                perUnit={item.listing?.multiUnit === true}
                 price={item.listing?.price}
                 currency={item.listing?.currency}
                 size="sm"

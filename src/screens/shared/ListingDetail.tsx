@@ -94,6 +94,7 @@ import { AwayBanner } from "@/components/common/AwayBanner";
 import { useReduceMotion } from "@/lib/animation";
 import { getActiveLabelText } from "@/utils/activeLabelUtil";
 import { resolveShareUrl } from "@/utils/shareUtils";
+import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow } from "@/utils/stock";
 
 const { width: SW } = Dimensions.get("window");
 const GALLERY_COLLAPSE_RATIO = 0.65;
@@ -129,7 +130,7 @@ export default function ListingDetailScreen() {
   const { requireAuth } = useRequireAuth();
   const authReturnTo = `/(main)/listing/${id}`;
   const { t } = useTranslation();
-  const { isRtl, formatDate, formatCurrency } = useLocalization();
+  const { isRtl, formatDate, formatCurrency, formatNumber } = useLocalization();
   const getCategoryName = useCategoryName();
   const colors = useColors();
   const qc = useQueryClient();
@@ -177,6 +178,13 @@ export default function ListingDetailScreen() {
     queryFn: () => listingsAPI.getListing(Number(id)),
     enabled: !!id,
   });
+
+  // Stock, derived once, from the shared rules in @/utils/stock so this screen,
+  // the seller's own detail screen and the web client can never disagree about
+  // what counts as "low" on the same listing.
+  const availableUnits = availableUnitsOf(listing);
+  const totalUnits = totalUnitsOf(listing);
+  const lowStock = isLowStock(availableUnits, totalUnits);
 
   // Pull-to-refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -448,7 +456,41 @@ export default function ListingDetailScreen() {
             currency={listing.currency}
             size="lg"
             tone={listing.status === "sold" ? "muted" : "default"}
+            // "each" whenever there is more than one, so a buyer asking for 3
+            // and a seller quoting a figure cannot mean different totals — the
+            // failure this feature has to avoid is discovering that at the
+            // meetup (docs/SPIKE_LISTING_QUANTITY.md §0c).
+            perUnit={listing.multiUnit === true}
           />
+
+          {/* Stock — reuses the firm-price badge treatment below, deliberately:
+              no new visual language, and it renders ONLY for a multi-unit
+              listing, so a single-item listing is byte-identical to before.
+              Detail only, never the browse card: every card row is a
+              fixed-height slot (FlashList's grid needs equal heights) and a chip
+              would grow every card in the feed, including the single-item
+              majority. The buyer sees this before tapping Message, which is
+              where the decision is actually made. */}
+          {hasStockToShow(listing) && (
+            <View
+              testID="stock-badge-detail"
+              style={{ alignSelf: isRtl ? "flex-end" : "flex-start", marginTop: 4 }}
+            >
+              <Badge
+                label={
+                  lowStock
+                    ? t("listing.stock.leftOfTotal", {
+                        available: formatNumber(availableUnits),
+                        total: formatNumber(totalUnits),
+                      })
+                    : t("listing.stock.inStock", { count: availableUnits })
+                }
+                // Amber only when it is genuinely running out — the same token
+                // StatusBadge already uses for "reserved", not a new colour.
+                variant={lowStock ? "warning" : "muted"}
+              />
+            </View>
+          )}
 
           {/* Price-drop badge — subtle pill below price, only when a recent drop exists */}
           {listing.priceDropPercent != null && listing.priceDropPercent > 0 && (
@@ -987,6 +1029,7 @@ export default function ListingDetailScreen() {
           listingTitle={listing.title}
           listingPrice={listing.price}
           listingCurrency={listing.currency}
+          perUnit={hasStockToShow(listing)}
         />
       )}
 

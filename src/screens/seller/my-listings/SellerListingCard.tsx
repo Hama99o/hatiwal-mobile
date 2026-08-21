@@ -181,7 +181,7 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
 
         {/* Text info */}
         <View style={styles.info}>
-          <PriceTag price={listing.price} currency={listing.currency} size="md" />
+          <PriceTag price={listing.price} currency={listing.currency} size="md" perUnit={listing.multiUnit === true} />
 
           <Text
             style={{
@@ -314,6 +314,7 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
         price={listing.price}
         currency={listing.currency}
         action={buyerPicker.action}
+        remainingQuantity={buyerPicker.remainingQuantity}
         onConfirm={buyerPicker.onConfirm}
         isSubmitting={buyerPicker.isSubmitting}
       />

@@ -47,6 +47,13 @@ interface ListingInfo {
    * below the price and the offer entry point in the conversation is hidden.
    */
   negotiable?: boolean;
+  /**
+   * Multi-quantity — when true the price renders "14,000 each". The thread
+   * header is where "how much for 5?" gets asked, so a bare per-unit figure is
+   * read as the batch price at exactly the moment the deal is struck
+   * (docs/SPIKE_LISTING_QUANTITY.md §0c).
+   */
+  multiUnit?: boolean;
 }
 
 interface ListingHeaderProps {
@@ -187,7 +194,7 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
               gap: 8,
             }}
           >
-            <PriceTag price={listing.price} currency={listing.currency} size="sm" />
+            <PriceTag price={listing.price} currency={listing.currency} size="sm" perUnit={listing.multiUnit === true} />
             {listing.location ? (
               <View
                 style={{

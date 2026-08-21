@@ -41,7 +41,18 @@ import {
   ActivityIndicator,
   AccessibilityInfo,
 } from "react-native";
-import { ChevronRight, ChevronLeft, MapPin, Coins, Check, ToggleRight, Copy, WifiOff, PackageX } from "lucide-react-native";
+import {
+  Boxes,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Coins,
+  Copy,
+  MapPin,
+  PackageX,
+  ToggleRight,
+  WifiOff,
+} from "lucide-react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
@@ -133,6 +144,12 @@ const listingSchema = z.object({
   longitude: z.coerce.number().finite().optional(),
   // negotiable: whether the seller accepts price offers. Default: true.
   negotiable: z.boolean().default(true),
+  // Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md). Defaults to 1 so a seller
+  // with one item is never asked, and is never a publish blocker.
+  // No .default() — that makes the resolver's INPUT type optional while the
+  // form's value type stays required, which zod + react-hook-form cannot
+  // reconcile. Every defaultValues branch supplies 1 explicitly instead.
+  quantity: z.number().int().min(1).max(999),
 });
 
 type ListingFormValues = z.infer<typeof listingSchema>;
@@ -204,6 +221,9 @@ export default function ListingFormScreen() {
   // y (via onLayout) so a blocked Publish can scroll straight to the first
   // missing field instead of leaving the seller stranded on an unrelated
   // part of the form.
+  // Whether the quantity input is revealed. Seeded below from the listing being
+  // edited/duplicated, so a 15-unit listing reopens with its number showing.
+  const [hasMultipleUnits, setHasMultipleUnits] = useState(false);
   const [photosError, setPhotosError] = useState<string | null>(null);
   // TASK-V395 — latitude/longitude are now optional at the zod level (a draft
   // may have no pin), so zod can no longer set `errors.latitude`. This state
@@ -351,6 +371,7 @@ export default function ListingFormScreen() {
     defaultValues: {
       currency: "AFN",
       negotiable: true,
+      quantity: 1,
     },
   });
 
@@ -411,7 +432,12 @@ export default function ListingFormScreen() {
         longitude: existingListing.longitude ?? undefined,
         // Backend may return null for older listings before the column was added; treat as true.
         negotiable: existingListing.negotiable !== false,
+        quantity: existingListing.quantity ?? 1,
       });
+      // Reveal the count when the listing already has one. Without this the
+      // switch reads OFF while the form silently holds quantity: 15 — the
+      // seller can neither see the number nor correct it.
+      setHasMultipleUnits((existingListing.quantity ?? 1) > 1);
       if (existingListing.category) {
         setSelectedCategory(existingListing.category as any);
       }
@@ -459,7 +485,11 @@ export default function ListingFormScreen() {
         latitude: duplicateSource.latitude ?? undefined,
         longitude: duplicateSource.longitude ?? undefined,
         negotiable: duplicateSource.negotiable !== false,
+        quantity: duplicateSource.quantity ?? 1,
       });
+      // Same as edit mode: a duplicated batch listing must reopen showing its
+      // count, since the seller is most likely about to change it.
+      setHasMultipleUnits((duplicateSource.quantity ?? 1) > 1);
       if (duplicateSource.category) {
         setSelectedCategory(duplicateSource.category as any);
       }
@@ -1336,6 +1366,68 @@ export default function ListingFormScreen() {
               )}
             />
           </View>
+
+          {/* Multi-quantity — docs/SPIKE_LISTING_QUANTITY.md §0c.
+              THE GOVERNING RULE: a seller with one item must never see this
+              feature exist. So it is a single collapsed switch row, styled
+              exactly like Negotiable above, and the number input only appears
+              once they say they have several. No new section, no field to skip,
+              no "1" to confirm.
+
+              A numeric input rather than a stepper on purpose: the case this
+              feature was asked for is 15 bags, and 14 taps on a "+" is worse
+              than two keystrokes. */}
+          <View
+            style={{
+              flexDirection: isRtl ? "row-reverse" : "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: 8,
+              paddingHorizontal: 4,
+              borderRadius: 8,
+            }}
+          >
+            <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 8, flex: 1 }}>
+              <Boxes size={16} color={colors.mutedForeground} />
+              <Text className="text-sm" style={{ color: colors.foreground, textAlign: isRtl ? "right" : "left" }}>
+                {t("listing.form.multipleUnitsLabel")}
+              </Text>
+            </View>
+            <Switch
+              checked={hasMultipleUnits}
+              onCheckedChange={(on) => {
+                setHasMultipleUnits(on);
+                // Off collapses back to exactly the single-item listing this was
+                // before the toggle was ever touched.
+                setValue("quantity", on ? 2 : 1, { shouldDirty: true });
+              }}
+              accessibilityLabel={t("listing.form.multipleUnitsLabel")}
+            />
+          </View>
+
+          {hasMultipleUnits && (
+            <Controller
+              control={control}
+              name="quantity"
+              render={({ field }) => (
+                <Input
+                  value={String(field.value ?? "")}
+                  onChangeText={(text) => {
+                    const digits = normalizeDigits(text).replace(/[^0-9]/g, "");
+                    field.onChange(digits === "" ? 1 : Number(digits));
+                  }}
+                  keyboardType="numeric"
+                  placeholder="2"
+                  // Its own label, not the switch's — a screen reader landing
+                  // on a bare "2" otherwise hears the toggle's sentence twice
+                  // and never learns what the number means.
+                  accessibilityLabel={t("listing.form.howManyUnits")}
+                  testID="listing-form-quantity-input"
+                  style={{ marginTop: 4 }}
+                />
+              )}
+            />
+          )}
         </View>
 
         {/* ------------------------------------------------------------------ */}

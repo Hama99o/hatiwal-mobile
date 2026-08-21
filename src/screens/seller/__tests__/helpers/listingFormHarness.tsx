@@ -93,6 +93,11 @@ export function lucideIconsMock(extra: Record<string, string> = {}) {
     // TASK-P736 (review fix, CR round 3) — the `isEditIdInvalid` ("listing
     // not found", a bad deep-link id) state added this round.
     PackageX: "PackageX",
+    // Multi-quantity — the "I have more than one" switch row. An icon missing
+    // from this map is not a local failure: ListingForm renders it
+    // unconditionally, so every one of the five suites dies on
+    // `Cannot read properties of undefined (reading 'displayName')`.
+    Boxes: "Boxes",
     ...extra,
   };
 }

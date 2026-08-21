@@ -109,6 +109,16 @@ export interface Listing {
   isViewed?: boolean;
   /** TASK-N071: true by default; when explicitly false the offer composer is hidden. */
   negotiable?: boolean | null;
+  /** Total units the seller has. 1 for every ordinary listing. */
+  quantity?: number;
+  /** Units still for sale — what a buyer is shown, not the original count. */
+  availableUnits?: number;
+  /**
+   * True only when the seller said they had several. EVERY quantity affordance
+   * gates on this, so a single-item listing looks exactly as it always has —
+   * see docs/SPIKE_LISTING_QUANTITY.md §0c.
+   */
+  multiUnit?: boolean;
   expiresAt?: string | null;
   expired?: boolean;
   // Price-drop badge — present on :list, :seller_list, and :detailed views; both null if no recent drop.
@@ -495,12 +505,20 @@ export const listingsAPI = {
   // buyer. See Listing#sold_with_buyer! (hatiwal-api).
   markSold: async (
     id: number,
-    opts?: { buyerId?: number; finalPrice?: number; clearBuyer?: boolean }
+    // `quantity` is how many units this sale covered. Omit it and the API sells
+    // the whole remaining stock, which is both the single-item case and "I sold
+    // the lot" — so no client has to send a number to do the common thing.
+    opts?: { buyerId?: number; finalPrice?: number; clearBuyer?: boolean; quantity?: number }
   ): Promise<{ listing: Listing; transaction?: Transaction }> => {
     const response = await http.put(
       `/my/listings/${id}/sold`,
       opts?.buyerId || opts?.clearBuyer
-        ? convertKeysToSnake({ buyerId: opts.buyerId, finalPrice: opts.finalPrice, clearBuyer: opts.clearBuyer })
+        ? convertKeysToSnake({
+            buyerId: opts.buyerId,
+            finalPrice: opts.finalPrice,
+            clearBuyer: opts.clearBuyer,
+            quantity: opts.quantity,
+          })
         : undefined
     );
     return {

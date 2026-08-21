@@ -48,6 +48,7 @@ import { listingsAPI, type Listing } from "@/api/listings";
 import { type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 import { type ListingActionRow } from "@/components/common/ListingActionsSheet";
 import { confirmAlert } from "@/utils/alert";
+import { availableUnitsOf } from "@/utils/stock";
 
 // Query keys — exported so callers/tests can assert against the exact same
 // constants instead of hardcoding strings.
@@ -73,7 +74,10 @@ export interface UseListingLifecycleOptions {
    * to the status-independent trio (Edit/Duplicate/Delete), which is never
    * rendered anyway (the screen shows a loading/not-found state instead).
    */
-  listing: Pick<Listing, "status" | "expired"> | null | undefined;
+  // `quantity`/`availableUnits` feed the buyer picker's "how many did you sell?"
+  // field. Both optional, so a caller holding an older payload still compiles
+  // and the sheet falls back to the single-unit behaviour.
+  listing: Pick<Listing, "status" | "expired" | "quantity" | "availableUnits"> | null | undefined;
   /** Called after any successful lifecycle mutation, in addition to the automatic query invalidation below — lets the caller do extra local bookkeeping (e.g. a list screen closing a row). */
   onDone?: () => void;
   /**
@@ -96,6 +100,12 @@ export interface ListingLifecycleBuyerPicker {
   onClose: () => void;
   onConfirm: (result: BuyerPickerResult) => void;
   isSubmitting: boolean;
+  /**
+   * Units still unsold, for the sheet's "how many did you sell?" field. 1 for an
+   * ordinary listing, which makes the sheet render exactly as it always has —
+   * the whole feature stays invisible to a seller with one item.
+   */
+  remainingQuantity: number;
 }
 
 export interface ListingLifecycleReviewPrompt {
@@ -395,6 +405,10 @@ export function useListingLifecycle({
       onClose: () => setBuyerPickerAction(null),
       onConfirm: handleBuyerPickerConfirm,
       isSubmitting: reserve.isPending || markSold.isPending,
+      // The sheet only asks "how many?" when this is > 1, so nothing changes for
+      // the single-item case. Falls back to 1 rather than availableUnitsOf's 0
+      // for a listing that hasn't loaded — 0 would be read as "sold out".
+      remainingQuantity: listing ? availableUnitsOf(listing) : 1,
     },
     reviewPrompt: {
       visible: reviewPrompt !== null,

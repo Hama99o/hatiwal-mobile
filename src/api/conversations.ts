@@ -70,6 +70,15 @@ export interface Conversation {
      */
     price?: number;
     currency?: string;
+    /**
+     * Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md). Present on BOTH views —
+     * ConversationSerializer hand-rolls its own listing hash rather than reusing
+     * ListingSerializer, so these had to be added to it explicitly. `multiUnit`
+     * gates the "each" suffix on the price; without it a buyer reads a per-unit
+     * figure as the price of the whole batch in the one place the deal is struck.
+     */
+    multiUnit?: boolean;
+    availableUnits?: number;
     location?: string;
     /**
      * Whether the seller accepts price offers for this listing.

@@ -36,6 +36,13 @@ interface FirstMessageSheetProps {
   listingTitle: string;
   listingPrice: number;
   listingCurrency: string;
+  /**
+   * Multi-quantity — renders the price as "14,000 each". This sheet is the last
+   * thing a buyer sees before their first message, so it is the last chance to
+   * correct a per-unit price they may have read as the batch price
+   * (docs/SPIKE_LISTING_QUANTITY.md §0c).
+   */
+  perUnit?: boolean;
 }
 
 export function FirstMessageSheet({
@@ -45,6 +52,7 @@ export function FirstMessageSheet({
   listingTitle,
   listingPrice,
   listingCurrency,
+  perUnit = false,
 }: FirstMessageSheetProps) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
@@ -161,7 +169,7 @@ export function FirstMessageSheet({
                   must outrank the 13sp/600 title on this listing-reference
                   row, mirroring PublishSuccessSheet's summary-row treatment
                   where price is the dominant text on every listing surface. */}
-              <PriceTag price={listingPrice} currency={listingCurrency} size="md" />
+              <PriceTag price={listingPrice} currency={listingCurrency} size="md" perUnit={perUnit} />
             </View>
           </View>
 

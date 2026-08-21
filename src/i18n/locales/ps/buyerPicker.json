@@ -8,6 +8,7 @@
   "someoneElse": "چا ته چې په هاتیوال کې نه دی، پلورل شوی",
   "someoneElseHint": "هیڅ پیرودونکی نه ثبتیږي او هیڅ نظر نشي ورکول کیدی",
   "finalPriceLabel": "وروستنۍ بیه (اختیاري)",
+  "finalPricePerUnitHint": "د یوې دانې بیه",
   "finalPricePlaceholder": "لیست شوې بیه",
   "agreedPrice": "موافقه شوې بیه",
   "confirmReserve": "ریزرو تایید کړئ",

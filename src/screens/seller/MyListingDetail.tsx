@@ -55,6 +55,8 @@ import type { ListingAnalyticsEntry } from "@/api/listings";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
+import { Badge } from "@/components/reusables/badge";
+import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow } from "@/utils/stock";
 import { SaleBuyerCard } from "@/components/common/SaleBuyerCard";
 import { ListingMapSection } from "@/components/common/ListingMapSection";
 import { BuyerPickerSheet } from "@/components/common/BuyerPickerSheet";
@@ -334,13 +336,33 @@ export default function MyListingDetailScreen() {
               expired={listing.expired}
               status={listing.status}
             />
+            {/* Stock — docs/SPIKE_LISTING_QUANTITY.md. This is the seller's
+                answer to "how do I know when they're all gone?", and it belongs
+                in the status row rather than under the price: for the OWNER it
+                is lifecycle information ("6 of 15 left" is why this listing is
+                still active), not a buying signal. Always the "N of M left"
+                phrasing here, never the buyer's bare "N in stock" — a seller
+                needs to see progress through the batch, not just what remains.
+                Renders only for a multi-unit listing, so a single-item listing
+                is byte-identical to before. */}
+            {hasStockToShow(listing) && (
+              <View testID="stock-badge-owner">
+                <Badge
+                  label={t("listing.stock.leftOfTotal", {
+                    available: formatNumber(availableUnitsOf(listing)),
+                    total: formatNumber(totalUnitsOf(listing)),
+                  })}
+                  variant={isLowStock(availableUnitsOf(listing), totalUnitsOf(listing)) ? "warning" : "muted"}
+                />
+              </View>
+            )}
           </View>
 
           {/* 2b — TASK-R418: who reserved/bought it, with a one-tap Message CTA */}
           <SaleBuyerCard listing={listing} />
 
           {/* 3 — Price + title */}
-          <PriceTag price={listing.price} currency={listing.currency} size="lg" />
+          <PriceTag price={listing.price} currency={listing.currency} size="lg" perUnit={listing.multiUnit === true} />
           <Text
             style={[styles.titleText, { color: colors.foreground, textAlign: isRtl ? "right" : "left" }]}
           >
@@ -579,6 +601,7 @@ export default function MyListingDetailScreen() {
         price={listing.price}
         currency={listing.currency}
         action={buyerPicker.action}
+        remainingQuantity={buyerPicker.remainingQuantity}
         onConfirm={buyerPicker.onConfirm}
         isSubmitting={buyerPicker.isSubmitting}
       />

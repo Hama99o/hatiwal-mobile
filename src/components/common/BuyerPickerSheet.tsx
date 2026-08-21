@@ -58,6 +58,13 @@ export interface BuyerPickerResult {
   /** undefined when left blank — backend defaults to the listing price. */
   finalPrice?: number;
   /**
+   * How many units this sale covered. undefined for a single-unit listing, and
+   * undefined when the seller sold the whole remaining stock — the backend
+   * defaults to "all of it", so the common case sends nothing and costs no taps
+   * (docs/SPIKE_LISTING_QUANTITY.md §0c).
+   */
+  quantity?: number;
+  /**
    * TASK-TX02 (review fix, MAJOR) — true ONLY when the seller explicitly
    * tapped "Someone else / skip". On the wire, an absent `buyerId` alone is
    * ambiguous — it could mean either this explicit skip OR a legacy client
@@ -79,6 +86,12 @@ interface BuyerPickerSheetProps {
   currency: string;
   /** Which lifecycle action triggered the sheet — only changes the copy. */
   action: "reserve" | "sold";
+  /**
+   * Units still unsold. Pass it only for a multi-unit listing; when it is
+   * absent or 1 the sheet renders exactly as it always has, so a seller with one
+   * item sees no new field. Reserve never asks — reserve stays advisory in Tier 1.
+   */
+  remainingQuantity?: number;
   onConfirm: (result: BuyerPickerResult) => void;
   isSubmitting?: boolean;
   /**
@@ -134,6 +147,7 @@ export function BuyerPickerSheet({
   price,
   currency,
   action,
+  remainingQuantity,
   onConfirm,
   isSubmitting = false,
   preselectedBuyer = null,
@@ -153,6 +167,14 @@ export function BuyerPickerSheet({
 
   const [selected, setSelected] = useState<number | typeof SKIP | null>(null);
   const [finalPriceText, setFinalPriceText] = useState("");
+  // Pre-filled with the FULL remainder, because "I sold the lot" is the common
+  // case and the seller should not have to type a number to say it. A partial
+  // sale is then one edit to one field.
+  const asksQuantity = action === "sold" && (remainingQuantity ?? 1) > 1;
+  const [quantityText, setQuantityText] = useState(String(remainingQuantity ?? 1));
+  useEffect(() => {
+    setQuantityText(String(remainingQuantity ?? 1));
+  }, [remainingQuantity]);
   const [priceError, setPriceError] = useState(false);
 
   // Confirm mode already knows the buyer — never fetch the conversation list.
@@ -203,14 +225,23 @@ export function BuyerPickerSheet({
     }
     setPriceError(false);
 
+    // Clamp to what is actually left; the API clamps too, but a client that
+    // sends an impossible number is a client bug worth not having.
+    const parsedQty = Number(quantityText);
+    const quantity =
+      asksQuantity && Number.isFinite(parsedQty) && parsedQty > 0
+        ? Math.min(Math.trunc(parsedQty), remainingQuantity ?? 1)
+        : undefined;
+
     onConfirm({
       buyerId: selected === SKIP ? undefined : selected,
       finalPrice: selected === SKIP ? undefined : finalPrice,
+      quantity: selected === SKIP ? undefined : quantity,
       // TASK-TX02 (review fix, MAJOR) — explicit skip must be distinguishable
       // on the wire from a legacy client that never sends buyer info at all.
       clearBuyer: selected === SKIP ? true : undefined,
     });
-  }, [selected, finalPriceText, onConfirm, preselectedBuyer, price]);
+  }, [selected, finalPriceText, quantityText, asksQuantity, remainingQuantity, onConfirm, preselectedBuyer, price]);
 
   const defaultTitle = action === "reserve" ? t("buyerPicker.reserveTitle") : t("buyerPicker.soldTitle");
   const title = isConfirmMode ? confirmTitle ?? defaultTitle : defaultTitle;
@@ -463,6 +494,37 @@ export function BuyerPickerSheet({
                   {selected === SKIP && <Check size={18} color={colors.primary} />}
                 </Pressable>
 
+                {/* How many units — multi-unit sold only, so a single-item listing
+                    renders nothing new here. Sits ABOVE the final price because
+                    "how many" is answered before "for how much", and it is
+                    pre-filled with the whole remainder so the common case is
+                    still confirm-and-done. */}
+                {asksQuantity && selected !== null && selected !== SKIP && (
+                  <View style={{ marginTop: 16 }}>
+                    <Label className="mb-2" style={{ textAlign: isRtl ? "right" : "left" }}>
+                      {t("listing.form.howManySold")}
+                    </Label>
+                    <Input
+                      value={quantityText}
+                      onChangeText={(v) => setQuantityText(v.replace(/[^0-9]/g, ""))}
+                      placeholder={String(remainingQuantity ?? 1)}
+                      keyboardType="numeric"
+                      style={{ textAlign: isRtl ? "right" : "left" }}
+                      testID="buyer-picker-quantity"
+                    />
+                    <Text
+                      style={{
+                        color: colors.mutedForeground,
+                        fontSize: 12,
+                        marginTop: 4,
+                        textAlign: isRtl ? "right" : "left",
+                      }}
+                    >
+                      {t("listing.stock.unitsAvailable", { count: remainingQuantity ?? 1 })}
+                    </Text>
+                  </View>
+                )}
+
                 {/* Optional final price — only meaningful when a real buyer is selected */}
                 {selected !== null && selected !== SKIP && (
                   <View style={{ marginTop: 16 }}>
@@ -477,6 +539,17 @@ export function BuyerPickerSheet({
                       style={{ textAlign: isRtl ? "right" : "left" }}
                       testID="buyer-picker-final-price"
                     />
+                    {/* Multi-unit only: say out loud that this figure is per
+                        item. The placeholder is already the listing's own
+                        per-unit price, so a seller who sold 3 bags at 13,000
+                        each will naturally type 13,000 — but "final price" on a
+                        3-unit deal could just as easily be read as 39,000, and
+                        the number ends up in the sale record and the review. */}
+                    {asksQuantity && !priceError && (
+                      <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4, textAlign: isRtl ? "right" : "left" }}>
+                        {t("buyerPicker.finalPricePerUnitHint")}
+                      </Text>
+                    )}
                     {priceError && (
                       <Text style={{ color: colors.destructive, fontSize: 12, marginTop: 4, textAlign: isRtl ? "right" : "left" }}>
                         {t("buyerPicker.errors.invalidPrice")}

@@ -313,3 +313,42 @@ describe("MyListingDetail — post-publish success sheet routing (published para
     expect(mockSetParams).not.toHaveBeenCalled();
   });
 });
+
+// ── Owner stock badge — docs/SPIKE_LISTING_QUANTITY.md ────────────────────────
+//
+// The seller's own answer to "how do I know when they're all gone?". Always the
+// "N of M left" phrasing here, never the buyer's bare "N in stock": a seller
+// needs to see progress through the batch, not just the remainder.
+
+describe("MyListingDetail — stock badge", () => {
+  it("shows how many are left of the original count for a multi-unit listing", async () => {
+    (listingsAPI.getMyListing as jest.Mock).mockResolvedValue(
+      makeListing({ quantity: 15, availableUnits: 11, multiUnit: true })
+    );
+
+    renderScreen(makeQc());
+
+    await waitFor(() => expect(screen.getByTestId("stock-badge-owner")).toBeTruthy());
+    expect(screen.getByTestId("stock-badge-owner")).toHaveTextContent("listing.stock.leftOfTotal");
+  });
+
+  it("renders nothing at all for a single-item listing — the majority case is untouched", async () => {
+    (listingsAPI.getMyListing as jest.Mock).mockResolvedValue(
+      makeListing({ quantity: 1, availableUnits: 1, multiUnit: false })
+    );
+
+    renderScreen(makeQc());
+
+    await waitFor(() => expect(screen.getByText("Lenovo ThinkPad X1 Carbon")).toBeTruthy());
+    expect(screen.queryByTestId("stock-badge-owner")).toBeNull();
+  });
+
+  it("renders nothing when the payload predates the columns entirely", async () => {
+    (listingsAPI.getMyListing as jest.Mock).mockResolvedValue(makeListing());
+
+    renderScreen(makeQc());
+
+    await waitFor(() => expect(screen.getByText("Lenovo ThinkPad X1 Carbon")).toBeTruthy());
+    expect(screen.queryByTestId("stock-badge-owner")).toBeNull();
+  });
+});

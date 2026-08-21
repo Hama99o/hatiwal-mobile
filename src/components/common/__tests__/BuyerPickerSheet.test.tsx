@@ -423,3 +423,141 @@ describe("BuyerPickerSheet — confirm mode (preselectedBuyer)", () => {
     );
   });
 });
+
+// ── Multi-quantity: "how many did you sell?" ────────────────────────────────────
+//
+// docs/SPIKE_LISTING_QUANTITY.md, Tier 1. This is the one new decision the
+// feature asks of a seller, and the rule the spike sets is that it must never
+// appear for the majority single-unit case — a seller with one carpet answers
+// exactly the questions they answer today.
+//
+// Selling PART of the stock must leave the listing active (the API decides that
+// from this number), so a wrong number here is what would silently retire a
+// listing that still has 12 bags on it.
+
+describe("BuyerPickerSheet — sold quantity", () => {
+  it("never asks for a quantity on a single-unit listing", async () => {
+    renderSheet({ action: "sold", remainingQuantity: 1 });
+    await waitFor(() => screen.getByText("Ahmad"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    expect(screen.queryByTestId("buyer-picker-quantity")).toBeNull();
+  });
+
+  it("never asks for a quantity when remainingQuantity is not supplied at all", async () => {
+    renderSheet({ action: "sold" });
+    await waitFor(() => screen.getByText("Ahmad"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    expect(screen.queryByTestId("buyer-picker-quantity")).toBeNull();
+  });
+
+  // Reserving is a hold on the whole listing, not a partial deduction — asking
+  // "how many" there would imply a per-unit reservation the backend does not model.
+  it("never asks for a quantity when reserving, even on a 15-unit listing", async () => {
+    renderSheet({ action: "reserve", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("Ahmad"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    expect(screen.queryByTestId("buyer-picker-quantity")).toBeNull();
+  });
+
+  it("asks only once a buyer is chosen — never before", async () => {
+    renderSheet({ action: "sold", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("Ahmad"));
+
+    expect(screen.queryByTestId("buyer-picker-quantity")).toBeNull();
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    expect(screen.getByTestId("buyer-picker-quantity")).toBeTruthy();
+  });
+
+  it("pre-fills the whole remaining stock, so 'I sold them all' is one tap", async () => {
+    const { onConfirm } = renderSheet({ action: "sold", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("Ahmad"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    expect(screen.getByTestId("buyer-picker-quantity").props.value).toBe("15");
+
+    fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ buyerId: 42, quantity: 15 })
+    );
+  });
+
+  it("sends the partial count the seller typed — the case that keeps the listing active", async () => {
+    const { onConfirm } = renderSheet({ action: "sold", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("Ahmad"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "3");
+    fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
+
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ quantity: 3 }));
+  });
+
+  it("clamps above the remainder instead of overselling", async () => {
+    const { onConfirm } = renderSheet({ action: "sold", remainingQuantity: 4 });
+    await waitFor(() => screen.getByText("Ahmad"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "99");
+    fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
+
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ quantity: 4 }));
+  });
+
+  it("rejects non-digits at the keystroke, so the field can never hold a bad value", async () => {
+    renderSheet({ action: "sold", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("Ahmad"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    const input = screen.getByTestId("buyer-picker-quantity");
+    fireEvent.changeText(input, "3x");
+    expect(input.props.value).toBe("3");
+  });
+
+  it("falls back to the whole remainder when the field is cleared", async () => {
+    const { onConfirm } = renderSheet({ action: "sold", remainingQuantity: 6 });
+    await waitFor(() => screen.getByText("Ahmad"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "");
+    fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
+
+    // An empty field must not be read as 0 units — that would record a sale of
+    // nothing and leave the seller thinking they'd logged one.
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ quantity: undefined }));
+  });
+
+  it("shows how many are left, so the number is never typed blind", async () => {
+    renderSheet({ action: "sold", remainingQuantity: 12 });
+    await waitFor(() => screen.getByText("Ahmad"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    expect(screen.getByText("listing.stock.unitsAvailable")).toBeTruthy();
+  });
+
+  it("sends no quantity on the 'someone else' skip path", async () => {
+    const { onConfirm } = renderSheet({ action: "sold", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("buyerPicker.someoneElse"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-skip"));
+    fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ quantity: undefined, clearBuyer: true })
+    );
+  });
+
+  it("re-syncs the pre-filled count when the remaining stock changes under it", async () => {
+    // The seller logs one sale, the query refetches, and the sheet is reopened
+    // for a second buyer — it must offer the NEW remainder, not the stale one.
+    const { rerender } = renderSheetForRerender({ action: "sold", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("Ahmad"));
+    fireEvent.press(screen.getByTestId("buyer-row-42"));
+    expect(screen.getByTestId("buyer-picker-quantity").props.value).toBe("15");
+
+    rerender({ action: "sold", remainingQuantity: 12 });
+    expect(screen.getByTestId("buyer-picker-quantity").props.value).toBe("12");
+  });
+});

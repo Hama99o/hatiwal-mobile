@@ -219,7 +219,10 @@
       "viewAsBuyer": "د پیرودونکي په توګه کتل",
       "postAnother": "بل اعلان خپور کړئ",
       "done": "بشپړ"
-    }
+    },
+    "multipleUnitsLabel": "زه له یوې څخه ډېرې لرم",
+    "howManyUnits": "څو دانې لرې؟",
+    "howManySold": "څو دانې مو وپلورلې؟"
   },
   "shopCount_one": "{{count}} اعلان",
   "firmPrice": "ثابت قیمت",
@@ -237,5 +240,11 @@
     "finalPrice": "موافقه شویه بیه",
     "noBuyerRecorded": "د پیرودونکي معلومات نشته",
     "soldOn": "په {{date}} خرڅ شو"
+  },
+  "stock": {
+    "each": "هره دانه",
+    "inStock": "{{count}} دانې موجودې دي",
+    "leftOfTotal": "{{available}} د {{total}} څخه پاتې",
+    "unitsAvailable": "{{count}} موجودې"
   }
 }

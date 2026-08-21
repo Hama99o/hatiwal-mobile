@@ -96,3 +96,35 @@ export const AllTones: Story = {
     </View>
   ),
 };
+
+// ── Multi-quantity (docs/SPIKE_LISTING_QUANTITY.md §12) ──────────────────────
+// `perUnit` appends a muted "each" beside the amount. It exists to kill the
+// worst ambiguity the quantity feature introduces: on a 15-bag listing a bare
+// "AFN 14,000" can be read as the price of one bag or of all fifteen, and buyer
+// and seller only discover they disagreed at the meetup — there is no payment
+// step or delivery to reverse. The figure itself is unchanged, so the price
+// keeps its place in the hierarchy.
+export const PerUnit: Story = {
+  args: { price: 14000, currency: "AFN", size: "lg", perUnit: true },
+};
+
+export const PerUnitVsTotal: Story = {
+  render: () => (
+    <View style={{ gap: 12 }}>
+      {/* Single-unit listing — the majority case, visually untouched. */}
+      <PriceTag price={14000} currency="AFN" size="lg" />
+      {/* 15-unit listing — same figure, now unambiguous. */}
+      <PriceTag price={14000} currency="AFN" size="lg" perUnit />
+    </View>
+  ),
+};
+
+export const PerUnitAllSizes: Story = {
+  render: () => (
+    <View style={{ gap: 12 }}>
+      <PriceTag price={14000} currency="AFN" size="lg" perUnit />
+      <PriceTag price={14000} currency="AFN" size="md" perUnit />
+      <PriceTag price={14000} currency="AFN" size="sm" perUnit />
+    </View>
+  ),
+};

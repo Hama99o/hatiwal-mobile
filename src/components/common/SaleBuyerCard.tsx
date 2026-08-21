@@ -168,7 +168,12 @@ export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
           <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
             {t("listing.sale.finalPrice")}
           </Text>
-          <PriceTag price={sale.finalPrice} currency={sale.currency} size="sm" />
+          {/* Per unit for a multi-unit sale: the buyer picker's final-price
+              field is placeholder-seeded with the listing's own per-unit price
+              and captioned "the price for one item", so that is what this
+              figure means. Without the suffix a 3-bag sale at 13,000 each reads
+              as a 13,000 total. */}
+          <PriceTag price={sale.finalPrice} currency={sale.currency} size="sm" perUnit={listing.multiUnit === true} />
         </View>
       )}
     </View>

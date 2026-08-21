@@ -8,6 +8,7 @@
   "someoneElse": "به کسی فروخته شد که در هاتیوال نیست",
   "someoneElseHint": "هیچ خریداری ثبت نمی‌شود و امکان ثبت نظر وجود ندارد",
   "finalPriceLabel": "قیمت نهایی (اختیاری)",
+  "finalPricePerUnitHint": "قیمت یک عدد",
   "finalPricePlaceholder": "قیمت اعلان‌شده",
   "agreedPrice": "قیمت توافق‌شده",
   "confirmReserve": "تایید رزرو",

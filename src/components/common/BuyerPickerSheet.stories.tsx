@@ -208,3 +208,64 @@ export const OpenConfirmModeSubmitting: Story = {
     </QueryClientProvider>
   ),
 };
+
+// ── Multi-quantity: "how many did you sell?" ─────────────────────────────────
+// Only ever rendered when action="sold" AND more than one unit is left. On a
+// single-unit listing the sheet is byte-for-byte what it is today — the spike's
+// governing rule is that the seller of one carpet answers no new questions.
+//
+// Pre-filled with the whole remainder so "I sold the lot" stays one tap; edit it
+// down and the API keeps the listing active with the rest still browsable.
+export const OpenSoldMultiUnit: Story = {
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={14000}
+        currency="AFN"
+        action="sold"
+        remainingQuantity={15}
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};
+
+// The last two of a batch — the sale that will retire the listing.
+export const OpenSoldLastUnits: Story = {
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={14000}
+        currency="AFN"
+        action="sold"
+        remainingQuantity={2}
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};
+
+// Reserving never asks for a count, whatever the stock — a reservation is a hold
+// on the listing, not a per-unit deduction the backend models.
+export const OpenReserveMultiUnit: Story = {
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={14000}
+        currency="AFN"
+        action="reserve"
+        remainingQuantity={15}
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};
