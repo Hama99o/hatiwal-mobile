@@ -28,6 +28,7 @@ import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/pe
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardVisible, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
 import { Send, Plus, ShieldBan, Search, X, Flag } from "lucide-react-native";
 import { toast } from "@/lib/toast";
 
@@ -136,6 +137,8 @@ export function ConversationScreen() {
   const colors = useColors();
   const { isRtl, formatCurrency } = useLocalization();
   const insets = useSafeAreaInsets();
+  // While the keyboard is up it IS the safe area — see useKeyboardVisible.
+  const keyboardVisible = useKeyboardVisible();
   const qc = useQueryClient();
   const storeUser = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
@@ -1587,7 +1590,7 @@ export function ConversationScreen() {
           <View
             style={[
               styles.inputBar,
-              { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 8) + 12 },
+              { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: keyboardSafeBottom(keyboardVisible, insets.bottom, 8, 12) },
             ]}
           >
             <Input
@@ -1627,7 +1630,7 @@ export function ConversationScreen() {
           <View
             style={[
               styles.inputBar,
-              { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 8) + 12 },
+              { borderTopColor: colors.border, backgroundColor: colors.card, paddingBottom: keyboardSafeBottom(keyboardVisible, insets.bottom, 8, 12) },
             ]}
           >
             {/* TASK-K487: single "+" bottom sheet replaces the four icons
@@ -1676,7 +1679,7 @@ export function ConversationScreen() {
           <View
             style={[
               styles.closedInput,
-              { borderTopColor: colors.border, backgroundColor: colors.muted, paddingBottom: Math.max(insets.bottom, 12) + 12 },
+              { borderTopColor: colors.border, backgroundColor: colors.muted, paddingBottom: keyboardSafeBottom(keyboardVisible, insets.bottom, 12, 12) },
             ]}
           >
             <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center" }}>
