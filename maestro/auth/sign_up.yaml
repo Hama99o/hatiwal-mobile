@@ -19,7 +19,12 @@ appId: com.hatiwal.app
 - tapOn: "Phone Number"
 - inputText: "0700000001"
 - tapOn: "Email"
-- inputText: "newuser_${random}@hatiwal.test"
+# `${random}` is NOT a Maestro variable. Maestro evaluates ${...} as JavaScript,
+# so this resolved to an undefined identifier rather than a fresh value — and a
+# constant email means this flow can only ever succeed ONCE, then collides with
+# the account it created last time. `maestroRandomEmail` is the documented
+# built-in for exactly this.
+- inputText: ${maestroRandomEmail}
 - tapOn: "Password"
 - inputText: "Password123!"
 - tapOn: "Confirm Password"

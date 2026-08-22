@@ -1,14 +1,56 @@
 appId: com.hatiwal.app
 ---
-# Conversations empty state — fresh account has no messages
+# Conversations empty state — a brand-new account has no messages.
+#
+# IT REGISTERS ITS OWN ACCOUNT, because no seeded account is chat-empty. This flow
+# used to call login.yaml with a comment saying "use newbuyer account which has no
+# conversations" — but login.yaml signs in the ordinary buyer, who has three, and
+# even newbuyer is not empty: db/seeds/e2e.rb gives it a conversation as the
+# SELLER of its own listing (added later, for a different scenario, which silently
+# invalidated this flow's premise). Verified against the database: NO account
+# matching %hatiwal.test has zero conversations.
+#
+# A freshly registered user is empty by definition, needs no fixture, and cannot
+# be invalidated by a seed change later.
 
-- runFlow: ../_helpers/login.yaml
-# Use newbuyer account which has no conversations
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+
+- tapOn: "Create Account"
+- assertVisible: "Create Account"
+- tapOn: "First Name"
+- inputText: "Zahra"
+- tapOn: "Last Name"
+- inputText: "Amini"
+- tapOn: "Phone Number"
+- inputText: "0700000042"
+- tapOn: "Email"
+# Maestro's built-in — a constant address would collide with the account this
+# flow created on its previous run.
+- inputText: ${maestroRandomEmail}
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Confirm Password"
+- inputText: "Password123!"
+- tapOn: "Create Account"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Bazaar"
+    timeout: 60000
+
+# ── The empty state itself ──────────────────────────────────────────────────
 - tapOn: "Chats"
 - waitForAnimationToEnd
-- assertVisible: "No conversations"
+# "No conversations YET" (chat.noConversations) is what the default inbox renders.
+# `chat.empty.title` ("No conversations") is a dead key — the code only reaches
+# chat.empty.sellingTitle / buyingTitle when a role filter is active. Anchored
+# matching makes that one word the difference between pass and fail.
+- assertVisible: "No conversations yet"
 - assertVisible: "Browse Listings"
-# Tap Browse Listings button in empty state
+
+# And its call to action gets you out of it.
 - tapOn: "Browse Listings"
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"

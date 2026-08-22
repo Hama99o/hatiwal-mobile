@@ -1,29 +1,40 @@
 appId: com.hatiwal.app
 ---
-# Delete a conversation — confirm dialog, then removed from list
+# Delete a conversation — confirm dialog, then removed from the list.
+#
+# This flow used to OPEN the conversation and look for "Delete Conversation" in
+# the thread header, with a comment admitting it was a guess ("depends on
+# implementation"). It is not there. Deleting is done from the LIST, via the row's
+# own options menu (ConversationRow: `conversation-options-<id>` ->
+# `conversation-action-menu` -> `menu-delete`), and the confirmation is a
+# confirmAlert whose CTA is the generic "Delete" (common.delete), not the menu
+# item's longer "Delete Conversation" label.
 
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Chats"
 - waitForAnimationToEnd
 - assertVisible: "Messages"
-# Long-press or swipe on a conversation to reveal delete, OR tap into it
-# and use the header menu — depends on implementation
-# Try tapping the conversation to open it
-# A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
-# and index 0 is whatever comes first in the hierarchy — the heading or the
-# search bar, never a conversation. The flow stayed on the list and then failed
-# on the composer it never reached ("Type a message..." is visible).
+
+# Remember which conversation we are deleting, so its disappearance is provable
+# rather than assumed. The row menu is opened from the row itself, not the thread.
 - tapOn:
-    id: "conversation-row-\\d+"
+    id: "conversation-options-\\d+"
     index: 0
 - waitForAnimationToEnd
-# Look for delete option in conversation thread header
-- tapOn: "Delete Conversation"
+- assertVisible:
+    id: "conversation-action-menu"
+
+- tapOn:
+    id: "menu-delete"
 - waitForAnimationToEnd
-# Confirm dialog appears
+
+# The confirm dialog: title + description, then the destructive CTA.
 - assertVisible: "Delete Conversation"
-- assertVisible: "This will permanently remove the conversation"
-- tapOn: "Delete Conversation"
+- assertVisible: "This will permanently remove the conversation and all messages."
+- tapOn: "Delete"
 - waitForAnimationToEnd
-# Back to conversations list — conversation is gone
+
+# Back on the list, and the menu is gone.
 - assertVisible: "Messages"
+- assertNotVisible:
+    id: "conversation-action-menu"

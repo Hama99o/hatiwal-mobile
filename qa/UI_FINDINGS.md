@@ -698,6 +698,52 @@ campaign's memory:
 
 ---
 
+### UI-021 · 132 of 862 translation keys are dead — and they mislead whoever writes a test (OPEN)
+
+Not a user-visible bug, which is why it is filed here rather than fixed: it is the
+**root cause of a whole class of fake test failures**, and it cost three flows
+today before I recognised the pattern.
+
+A flow author looks for the string a screen shows, greps the locale files, finds a
+plausible key, and asserts its value. If that key is dead, the assertion can never
+pass — and the failure reads as a missing feature. Three real examples from today:
+
+| Flow asserted | From key | What the screen actually renders |
+|---|---|---|
+| `"No conversations"` | `chat.empty.title` (dead) | `chat.noConversations` -> **"No conversations yet"** |
+| `"Browse categories"` | `browse.browseCategories` (dead) | `categories.hubTitle` -> **"Categories"** |
+| `"All Categories"` | `browse.allCategories` (dead) | `common.all` -> **"All"** |
+
+One word ("yet") is the whole difference, because Maestro's text matching is an
+anchored regex.
+
+**Method.** Flatten every key in `src/i18n/locales/en/*.json`, strip i18next plural
+suffixes (`_one`/`_other`/…, which are generated and never written in code), then
+look for each key anywhere in `src/` + `app/`. Six template-literal prefixes are
+excluded as legitimately dynamic (`listing.condition.`, `listing.status.`,
+`listing.filter.`, `onboarding.slides.`, `profile.edit.language.`). Verified there
+are **no** concatenated `t("prefix." + x)` call sites at all, so the scan has no
+blind spot of that kind, and spot-checks of seven keys confirmed 0 references each.
+
+**Result: 132 of 862 (15%) are referenced nowhere.** A sample of the misleading
+ones: `browse.title` ("Browse"), `browse.startChat` ("Contact Seller"),
+`browse.viewDetails`, `browse.postedBy`, `categories.browseAll`,
+`categories.viewAll`, `categories.subcategories`, `common.chat` ("Chat" — the
+near-miss for the "Chats" tab that broke five flows), `common.active`,
+`auth.logout`, `auth.register`, `chat.thread.you`, `chat.thread.read`,
+`chat.startConversation.title`.
+
+**Deliberately NOT deleted.** These are translation content in three locales, some
+are plausibly staged for planned screens, and a sweep would be a large diff across
+files other agents are editing. The valuable half is knowing they exist.
+
+**What to do instead:** when writing a flow, never take a string from a locale file
+— take it from the **component that renders it**, or from a `hierarchy` dump of the
+real screen. `maestro --device <serial> hierarchy` is the ground truth and takes
+seconds. Better still, assert a `testID`, which no translator can move.
+
+---
+
 ### PROCESS-001 · I bulk-added another session's files by mistake (commit 7c05c8d)
 **Severity:** process, not product — but worth recording, not hiding
 

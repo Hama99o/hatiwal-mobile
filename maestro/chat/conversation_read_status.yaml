@@ -1,46 +1,66 @@
 appId: com.hatiwal.app
 ---
 # Read-receipt / unread-clearing flow:
-#   1. Open the chat tab — first conversation shows an unread badge.
-#   2. Tap into the thread — markRead fires on focus.
-#   3. Return to the list — unread badge on the row is gone.
-#   4. The chat tab badge count has decremented (or is gone if it was 1).
+#   1. Make the first conversation unread (so this flow does not depend on
+#      whatever the previous flow left behind).
+#   2. The row shows an unread badge.
+#   3. Tap into the thread — markRead fires on focus.
+#   4. Return to the list — the badge on that row is gone.
+#
+# IT CREATES ITS OWN UNREAD STATE, deliberately. It used to open the Chats tab and
+# assert `unread-badge-\d+` was already visible, which is true of a freshly seeded
+# database and false a few flows later: every flow that opens a thread marks it
+# read, so running this in a suite failed on "Assertion is false: id:
+# unread-badge-\d+ is visible" purely because of what ran before it. The row menu
+# has a "mark unread" action, so the precondition can simply be established.
 
 - runFlow: ../_helpers/login.yaml
 
-# Navigate to Chats tab
 - tapOn:
     text: "Chats"
 - waitForAnimationToEnd
+- assertVisible: "Messages"
 
-# Unread badge must be visible on the first conversation row before opening it
+# ── Establish the precondition: this row IS unread ──────────────────────────
+- tapOn:
+    id: "conversation-options-\\d+"
+    index: 0
+- waitForAnimationToEnd
+# Whichever of the two the row currently offers: if it is already unread the menu
+# shows "mark read" instead, so this is optional and the assertion below is the
+# real gate.
+- tapOn:
+    id: "menu-mark-unread"
+    optional: true
+- waitForAnimationToEnd
+# If the menu is still open (the row was already unread), close it.
+- runFlow:
+    when:
+      visible:
+        id: "conversation-action-menu"
+    commands:
+      - back
+      - waitForAnimationToEnd
+
 - assertVisible:
     id: "unread-badge-\\d+"
 
-# Open the first conversation (it has unread messages)
-# A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
-# and index 0 is whatever comes first in the hierarchy — the heading or the
-# search bar, never a conversation. The flow stayed on the list and then failed
-# on the composer it never reached ("Type a message..." is visible).
+# ── Open the thread — markRead fires on focus ───────────────────────────────
 - tapOn:
     id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
-# Give mark_read API call time to complete
-- waitForAnimationToEnd
-
-# Thread is open — input bar is visible (conversation is still open)
 - assertVisible: "Type a message..."
 
-# Go back to the conversations list
+# ── Back on the list, that row is read ──────────────────────────────────────
 - back
 - waitForAnimationToEnd
-
-# After returning, the unread badge on that row must be gone
+- assertVisible: "Messages"
 - assertNotVisible:
     id: "unread-badge-\\d+"
 
-# The tab-level badge (Expo tabBarBadge) should be gone or show a lower count.
-# When there was exactly 1 unread conversation, the tab badge disappears entirely.
-- assertNotVisible:
-    text: "1"
+# The old final step, `assertNotVisible: text: "1"`, was dropped on purpose. It was
+# meant to check the tab-bar badge had cleared, but "1" is an anchored match on ANY
+# element whose whole text is "1" — a price, a count, a date — so it could fail for
+# reasons that have nothing to do with read state, and pass while the badge was
+# still there under a different count. The row badge above is the real signal.

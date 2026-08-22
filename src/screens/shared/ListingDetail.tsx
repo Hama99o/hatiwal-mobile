@@ -837,6 +837,12 @@ export default function ListingDetailScreen() {
             hitSlop={12}
             accessibilityRole="togglebutton"
             accessibilityLabel={isSaved ? t("listing.unsave") : t("listing.save")}
+            // The more-options button two lines down has had a testID all along;
+            // the heart did not, so save/unsave flows failed on "Element not
+            // found: Id matching regex: save-toggle-button" against a working
+            // button. A testID because that label is localized AND flips on
+            // isSaved, so it cannot be matched reliably.
+            testID="save-toggle-button"
           >
             <Animated.View style={heartAnimStyle}>
               <Heart
