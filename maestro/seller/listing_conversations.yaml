@@ -36,7 +36,11 @@ appId: com.hatiwal.app
 - inputText: "75000"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
-- assertVisible: "75,000"
+# Amounts are rendered by Intl with style:"currency", so the element text is
+# "AFN 3,000" — with a NON-BREAKING space (U+00A0), seen in a device hierarchy
+# dump as "AFN\xa028,000". Maestro matches an anchored regex, so a bare number
+# never matches; the leading `.*` covers both the currency code and that space.
+- assertVisible: ".*75,000"
 
 # ── 2) Seller opens the listing's own conversations screen from My Shop ────
 

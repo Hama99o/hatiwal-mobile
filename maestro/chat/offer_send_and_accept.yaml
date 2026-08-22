@@ -65,7 +65,11 @@ appId: com.hatiwal.app
 # via .toUpperCase() in MessageBubble.tsx) -- asserting bare "Offer" is a
 # case-sensitive miss against that. "Your Offer" is the bubble's own
 # mixed-case label above the amount, and is unambiguous.
-- assertVisible: "3,000"
+# Amounts are rendered by Intl with style:"currency", so the element text is
+# "AFN 3,000" — with a NON-BREAKING space (U+00A0), seen in a device hierarchy
+# dump as "AFN\xa028,000". Maestro matches an anchored regex, so a bare number
+# never matches; the leading `.*` covers both the currency code and that space.
+- assertVisible: ".*3,000"
 - assertVisible: "Your Offer"
 
 # Sign out and back in as the real seller to accept. chat-tab has no testID

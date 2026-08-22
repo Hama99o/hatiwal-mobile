@@ -64,16 +64,6 @@ QA_GEO_LON="${QA_GEO_LON:-69.2075}"
 # selectable.
 QA_GALLERY_IMAGE="${QA_GALLERY_IMAGE:-$MOBILE_DIR/assets/icon.png}"
 
-# ── Which AVD belongs to THIS session ──────────────────────────────────────
-# Set QA_AVD_1, QA_AVD_2, … in qa.config.sh to pin a form factor per session —
-# that is the whole point of running several: one drives a tablet, another a
-# phone, a third a small phone. Without this, `qa.sh up` defaulted to the phone
-# for EVERY session, so two sessions booted the SAME AVD; the second then died
-# with "Another emulator instance is running", which names the wrong cause and
-# takes a while to see through. Falls back to AVD_PHONE so a single-session rig
-# behaves exactly as before.
-_qa_avd_var="QA_AVD_${QA_SESSION}"
-QA_AVD="${!_qa_avd_var:-$AVD_PHONE}"
 METRO_PORT="${METRO_PORT:-3008}"
 API_PORT="${API_PORT:-3007}"
 
@@ -132,6 +122,20 @@ esac
 # instance's adb.
 QA_PORT=$(( 5554 + 2 * (QA_SESSION - 1) ))
 QA_WANT_SERIAL="emulator-$QA_PORT"
+
+# ── Which AVD belongs to THIS session ──────────────────────────────────────
+# Set QA_AVD_1, QA_AVD_2, … in qa.config.sh to pin a form factor per session —
+# that is the whole point of running several: one drives a tablet, another a
+# phone, a third a small phone. Without it, `qa.sh up` defaulted to the phone for
+# EVERY session, so two sessions booted the SAME AVD and the second died with
+# "Another emulator instance is running", which names the wrong cause.
+#
+# MUST come after the QA_SESSION default above: this reads QA_SESSION, and under
+# `set -u` an unset QA_SESSION aborts every command in the rig — which is exactly
+# what happened when it was declared higher up, and it only went unnoticed because
+# every invocation had been passing QA_SESSION explicitly.
+_qa_avd_var="QA_AVD_${QA_SESSION}"
+QA_AVD="${!_qa_avd_var:-$AVD_PHONE}"
 
 # ── Run bookkeeping ────────────────────────────────────────────────────
 RUN_ID="${RUN_ID:-}"

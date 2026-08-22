@@ -27,7 +27,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Offer bubble is visible in thread
-- assertVisible: "8,000"
+# Amounts are rendered by Intl with style:"currency", so the element text is
+# "AFN 3,000" — with a NON-BREAKING space (U+00A0), seen in a device hierarchy
+# dump as "AFN\xa028,000". Maestro matches an anchored regex, so a bare number
+# never matches; the leading `.*` covers both the currency code and that space.
+- assertVisible: ".*8,000"
 - assertVisible: "Price Offer"
 
 # ── Step 2: seller counters with a new price ─────────────────────────────────
@@ -47,7 +51,7 @@ appId: com.hatiwal.app
 
 # Counter-offer card is visible
 - assertVisible: "Counter Offer"
-- assertVisible: "9,500"
+- assertVisible: ".*9,500"
 
 # ── Step 3: buyer accepts the counter ────────────────────────────────────────
 # Buyer is the other participant; the counter card shows Accept/Decline

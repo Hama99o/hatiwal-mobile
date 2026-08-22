@@ -197,6 +197,46 @@ import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
            esac
            say "dp width is what drives layout — re-run flows after changing it" ;;
 
+  # ── Work claiming: N sessions, no feature tested twice ──────────────────
+  #
+  # `claim` prints the next UNCLAIMED feature and records it atomically, so any
+  # number of sessions can run
+  #
+  #     while f=$(./qa/qa.sh claim); do ./qa/qa.sh feature "$f"; done
+  #
+  # and between them cover every feature exactly once. Without this, parallel
+  # sessions duplicate work — two emulators spending two hours on the same 42
+  # chat flows is half the fleet wasted, and it is not obvious from the logs that
+  # it happened.
+  #
+  # The lock is what makes it safe: two sessions calling `claim` in the same
+  # instant must not both get `browse`. flock serialises the read-modify-write.
+  # Exits 1 with no output when the board is empty, which ends the caller's loop.
+  claim)
+           mkdir -p "$REPORTS_DIR"
+           claims="$QA_DIR/reports/.claims"          # shared across sessions
+           exec 8>"$QA_DIR/reports/.claims.lock"
+           flock 8
+           got=""
+           for f in $(python3 -c "
+import yaml
+print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
+"); do
+             grep -qx "$f" "$claims" 2>/dev/null && continue
+             echo "$f" >> "$claims"; got="$f"; break
+           done
+           flock -u 8
+           [ -n "$got" ] || exit 1
+           printf '%s\n' "$got" ;;
+
+  # Start a new cycle: forget every claim so the fleet can sweep again.
+  claim-reset)
+           rm -f "$QA_DIR/reports/.claims"
+           ok "claims cleared — the next `claim` starts a fresh sweep" ;;
+
+  # What has been claimed so far, and by whom is implicit in the run reports.
+  claims)  cat "$QA_DIR/reports/.claims" 2>/dev/null | tr '\n' ' '; echo ;;
+
   net)     python3 "$HERE/lib/net.py" "$@" ;;
 
   register)

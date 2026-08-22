@@ -76,7 +76,11 @@ appId: com.hatiwal.app
 - tapOn: "Marketplace Cycle Phone"
 - waitForAnimationToEnd
 - assertVisible: "Marketplace Cycle Phone"
-- assertVisible: "3,500"
+# Amounts are rendered by Intl with style:"currency", so the element text is
+# "AFN 3,000" — with a NON-BREAKING space (U+00A0), seen in a device hierarchy
+# dump as "AFN\xa028,000". Maestro matches an anchored regex, so a bare number
+# never matches; the leading `.*` covers both the currency code and that space.
+- assertVisible: ".*3,500"
 # Save it
 - tapOn:
     id: "save-button"
@@ -115,7 +119,7 @@ appId: com.hatiwal.app
 - inputText: "3000"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
-- assertVisible: "3,000"
+- assertVisible: ".*3,000"
 
 # ── Step 4: Seller accepts the offer ─────────────────────────────────────────
 - launchApp:
@@ -128,7 +132,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Marketplace Cycle Phone"
 - waitForAnimationToEnd
-- assertVisible: "3,000"
+- assertVisible: ".*3,000"
 - tapOn: "Accept"
 - waitForAnimationToEnd
 - assertVisible: "Offer accepted"

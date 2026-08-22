@@ -36,12 +36,16 @@ appId: com.hatiwal.app
 - assertVisible: "Report"
 
 # ── Verify all 6 reason options are present ──────────────────────────────────
+# The reason labels are the FULL strings from report.json —
+# "Fraud or scam", "Inappropriate content", "Wrong category", "Prohibited item".
+# Maestro matches an anchored regex, so a truncated label never matches. ("Spam"
+# and "Other" happen to be complete, which is why they worked.)
 - assertVisible: "Spam"
-- assertVisible: "Fraud"
-- assertVisible: "Inappropriate"
+- assertVisible: "Fraud or scam"
+- assertVisible: "Inappropriate content"
 
 # ── Select a reason and submit ───────────────────────────────────────────────
-- tapOn: "Fraud"
+- tapOn: "Fraud or scam"
 - waitForAnimationToEnd
 
 - tapOn: "Submit report"
