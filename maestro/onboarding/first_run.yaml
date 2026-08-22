@@ -24,6 +24,7 @@ appId: com.hatiwal.app
 
 - launchApp:
     clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
 - waitForAnimationToEnd
 - assertVisible: "Welcome to Hatiwal"
 - assertVisible: "Skip"

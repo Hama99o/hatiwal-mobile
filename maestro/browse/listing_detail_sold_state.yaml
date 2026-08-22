@@ -1,4 +1,6 @@
 appId: com.hatiwal.app
+env:
+  SOLD_LISTING_ID: 1
 ---
 # Sold listing detail — non-owner view.
 #
@@ -17,7 +19,9 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: true
     stopApp: true
-- openLink: "hatiwal://listing/${SOLD_LISTING_ID:-1}"
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/skip_onboarding.yaml
+- openLink: "hatiwal://listing/${SOLD_LISTING_ID}"
 - assertVisible:
     id: "seller-profile-link"
     label: "Sold listing detail renders without a login wall"

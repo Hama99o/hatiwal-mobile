@@ -1,4 +1,7 @@
 appId: com.hatiwal.app
+env:
+  EMAIL: newbuyer@hatiwal.test
+  PASSWORD: Password123!
 ---
 # REV2 — empty state: a fresh account with no sold transactions and no
 # reviews at all. Uses newbuyer@hatiwal.test (no listings, no conversations,
@@ -13,11 +16,13 @@ appId: com.hatiwal.app
 
 - launchApp:
     clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/skip_onboarding.yaml
 - assertVisible: "Welcome to Hatiwal"
 - tapOn: "Email"
-- inputText: ${EMAIL:-"newbuyer@hatiwal.test"}
+- inputText: ${EMAIL}
 - tapOn: "Password"
-- inputText: ${PASSWORD:-"Password123!"}
+- inputText: ${PASSWORD}
 - tapOn: "Sign In"
 - assertVisible: "Bazaar"
 

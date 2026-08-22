@@ -1,15 +1,57 @@
 appId: com.hatiwal.app
+env:
+  # Maestro evaluates ${...} as JAVASCRIPT, so the bash-style default this file
+  # used to carry — ${EMAIL:-"buyer@hatiwal.test"} — did not mean "or default".
+  # It evaluated to the number NaN, and every flow typed "NaN" into both the
+  # email and password fields, then failed with "Invalid login credentials".
+  # An `env:` block is Maestro's real default mechanism; --env still overrides it.
+  EMAIL: buyer@hatiwal.test
+  PASSWORD: Password123!
 ---
-# Reusable login flow — include this in other flows with:
-# - runFlow: ../_helpers/login.yaml
-# Requires env vars: EMAIL, PASSWORD (defaults to test user below)
+# Be logged in as the buyer. Included by ~190 flows, so its cost and its
+# fragility are multiplied by 190 — this file is where both are controlled.
+#
+# WARM LAUNCH — deliberately no `clearState: true`.
+# clearState wipes three things at once and each one cost us a fragile UI dance
+# on EVERY flow:
+#   1. the dev-client's remembered Metro server  -> launcher, type URL, Connect
+#   2. the "developer menu" intro dismissal      -> sheet covering the screen
+#   3. all app state, making the app first-run    -> onboarding carousel
+# Together that was ~60s and ~10 brittle steps per flow (~3h across 213 flows).
+# A warm launch keeps all of it settled and starts most flows already signed in.
+#
+# TRADE-OFF: less isolation between flows. State carries over, so a flow that
+# genuinely needs a clean slate (onboarding, first-run, empty-state) must clear
+# it itself with `launchApp: clearState: true` and then run open_bundle.yaml.
+- launchApp
 
-- launchApp:
-    clearState: true
-- assertVisible: "Welcome to Hatiwal"
-- tapOn: "Email"
-- inputText: ${EMAIL:-"buyer@hatiwal.test"}
-- tapOn: "Password"
-- inputText: ${PASSWORD:-"Password123!"}
-- tapOn: "Sign In"
-- assertVisible: "Bazaar"
+# Each of these no-ops when the app is already past that stage.
+- runFlow: open_bundle.yaml
+- runFlow: goto_login.yaml
+
+# Sign in only if the login form is actually on screen; a warm app is usually
+# already authenticated from the previous flow.
+- runFlow:
+    when:
+      visible: "Email"
+    commands:
+      - tapOn: "Email"
+      - inputText: ${EMAIL}
+      - tapOn: "Password"
+      - inputText: ${PASSWORD}
+      - tapOn: "Sign In"
+      - waitForAnimationToEnd
+
+# Prove we are actually SIGNED IN, not merely on a screen.
+#
+# "Bazaar" is the wrong assertion: guests see it too, so this helper could
+# report success while the app was still a guest — a false pass, which is worse
+# than a failure because it hides everything downstream.
+#
+# The last tab is the tell: `app/(main)/(tabs)/_layout.tsx` titles it
+# t("sidebar.profile") -> "Me" when authenticated, and t("auth.login") ->
+# "Login" when not. So "Me" present AND "Login" absent means signed in.
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+- assertNotVisible: "Login"

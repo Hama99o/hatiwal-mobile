@@ -1,4 +1,7 @@
 appId: com.hatiwal.app
+env:
+  EMAIL: buyer@hatiwal.test
+  PASSWORD: Password123!
 ---
 # REV2 — entry point (b): the "Rate your recent deals" nudge on the buyer's
 # own Profile screen, driven by GET /my/reviews/pending. Chains off
@@ -18,11 +21,13 @@ appId: com.hatiwal.app
 # Switch to the buyer account
 - launchApp:
     clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/skip_onboarding.yaml
 - assertVisible: "Welcome to Hatiwal"
 - tapOn: "Email"
-- inputText: ${EMAIL:-"buyer@hatiwal.test"}
+- inputText: ${EMAIL}
 - tapOn: "Password"
-- inputText: ${PASSWORD:-"Password123!"}
+- inputText: ${PASSWORD}
 - tapOn: "Sign In"
 - assertVisible: "Bazaar"
 

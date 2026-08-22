@@ -1,0 +1,14 @@
+appId: com.hatiwal.app
+---
+# Reach the LOGIN screen from a first-run app.
+#
+# The real first-run path is:
+#   onboarding carousel --Skip--> guest Bazaar --Login tab--> login screen
+# Skipping onboarding alone lands on guest browse, which is what the guest_*
+# flows want — so the extra hop to Login lives here rather than in
+# skip_onboarding.yaml.
+- runFlow: skip_onboarding.yaml
+- tapOn:
+    text: "Login"
+    optional: true
+- waitForAnimationToEnd

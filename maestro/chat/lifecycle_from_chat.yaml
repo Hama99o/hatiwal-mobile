@@ -1,4 +1,7 @@
 appId: com.hatiwal.app
+env:
+  EMAIL: buyer@hatiwal.test
+  PASSWORD: Password123!
 ---
 # Lifecycle actions from the chat thread pinned listing header (seller owner only)
 #
@@ -74,9 +77,9 @@ appId: com.hatiwal.app
 # Log in as a buyer
 - assertVisible: "Welcome to Hatiwal"
 - tapOn: "Email"
-- inputText: ${EMAIL:-"buyer@hatiwal.test"}
+- inputText: ${EMAIL}
 - tapOn: "Password"
-- inputText: ${PASSWORD:-"Password123!"}
+- inputText: ${PASSWORD}
 - tapOn: "Sign In"
 - assertVisible: "Bazaar"
 - tapOn: "Chats"

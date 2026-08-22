@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# EDGE CASE — double-tapping Send must not send the message twice.
+#
+# Guard under test: `handleSend` returns early while `isSending` is true, and the
+# input is `editable={!isSending}`. A regression here duplicates messages in a
+# real conversation, which is visible to the other person and cannot be undone.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+
+- tapOn: "Type a message..."
+- inputText: "Double tap probe"
+# Two taps as fast as Maestro can issue them.
+- tapOn: "Send"
+- tapOn:
+    text: "Send"
+    optional: true
+- waitForAnimationToEnd
+
+# The message must exist exactly once. Maestro's assertVisible does not count,
+# so this asserts presence; the duplicate check is the index:1 lookup below —
+# a second identical bubble would make a second element match.
+- assertVisible: "Double tap probe"
+- assertNotVisible:
+    text: "Double tap probe"
+    index: 1

@@ -4,6 +4,8 @@ appId: com.hatiwal.app
 
 - launchApp:
     clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/skip_onboarding.yaml
 - assertVisible: "Welcome to Hatiwal"
 - tapOn: "Email"
 - inputText: "buyer@hatiwal.test"

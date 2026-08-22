@@ -1,0 +1,157 @@
+appId: com.hatiwal.app
+---
+# Enter the HATIWAL bundle from the expo-dev-client launcher.
+#
+# Needed because the QA build must be a DEBUG build (src/api/http.ts throws if a
+# non-__DEV__ build points at a local API), and debug + expo-dev-client always
+# opens a launcher instead of the app. `launchApp: clearState: true` — used by
+# 190 of 213 flows — wipes the remembered server, so this runs on nearly every flow.
+#
+# The URL is typed explicitly, never picked from the discovered list. The
+# launcher auto-discovers 10.0.2.2:8081, and 10.0.2.2 addresses the host
+# DIRECTLY (adb reverse does not intercept it) — so when another Expo project
+# holds host :8081, its bundle loads into this APK. That really happened: the dev
+# menu read "Madares" and the app died on a native module Hatiwal does not use.
+#
+# 10.0.2.2:3008 = this host's Hatiwal Metro, from inside the emulator. It does
+# not depend on WiFi vs hotspot, unlike a LAN IP.
+- runFlow:
+    when:
+      visible: "Development Build"
+    commands:
+      # The launcher has SEVERAL shapes depending on what it remembers, so every
+      # step here is optional and the real success gate is the launcher
+      # disappearing (asserted below). A hard `tapOn: "Connect"` used to fail the
+      # whole flow with "Element not found: Connect" whenever the launcher showed
+      # a remembered-server row instead of the URL field.
+      #
+      # Fast path: our own server is already listed — just open it.
+      - runFlow:
+          when:
+            visible: "10.0.2.2:3008"
+          commands:
+            - tapOn: "10.0.2.2:3008"
+            - waitForAnimationToEnd
+      # Otherwise type it in. With discovered servers present the URL field is
+      # collapsed behind this row; with none, the field is already on screen.
+      - runFlow:
+          when:
+            notVisible: "10.0.2.2:3008"
+          commands:
+            - tapOn:
+                text: "New development server"
+                optional: true
+            - waitForAnimationToEnd
+            - tapOn:
+                text: "http://localhost:8081"
+                optional: true
+            - inputText: "http://10.0.2.2:3008"
+            # NOT `hideKeyboard`: on Android Maestro implements it as a BACK
+            # press, and with no keyboard up that reaches the app and exits it
+            # to the Android launcher. Two runs ended on the home screen with no
+            # crash in logcat because of this. Enter submits the URL field
+            # directly, and the Connect tap is a fallback.
+            - pressKey: Enter
+            - waitForAnimationToEnd
+            - tapOn:
+                text: "Connect"
+                optional: true
+      # Metro transforms the bundle on first request — this can take a while.
+      - extendedWaitUntil:
+          notVisible: "Development Build"
+          timeout: 180000
+
+# Leaving the launcher is NOT the same as the app being ready: Metro then shows
+# a "Bundling nn%" banner, and anything checked during that window sees nothing
+# and silently skips. Wait for the bundle to finish before touching the UI.
+- extendedWaitUntil:
+    notVisible:
+      text: "Bundling.*"
+    timeout: 180000
+- waitForAnimationToEnd
+
+# ── Known starting state ───────────────────────────────────────────────
+# Two things stand between "bundle loaded" and "the flow can assert anything":
+#
+# 1. The dev-build developer-menu sheet covers the screen on first launch.
+#    It is a debug-build artifact, not part of the product.
+# 2. The app can come up in Pashto. Every flow asserts ENGLISH strings
+#    ("Welcome to Hatiwal", "Bazaar", …), and CLAUDE.md sets English as the
+#    default language, so pin it here rather than in 213 flows.
+# `when: visible` is a SINGLE-SHOT check. The dev-menu sheet animates in a beat
+# after the bundle finishes, so a bare conditional evaluates too early and
+# silently skips while the sheet then covers the whole screen. Wait for it (but
+# tolerate it never coming) before dismissing.
+- extendedWaitUntil:
+    visible: "This is the developer menu"
+    timeout: 30000
+    optional: true
+- tapOn:
+    text: "Continue"
+    optional: true
+- waitForAnimationToEnd
+
+# Dismissing the intro sheet can leave the FULL dev-menu panel open on top of
+# the app (it shows "Connected to: http://10.0.2.2:3008" and the tools list).
+# Back closes it; "Go home" must NOT be used — that returns to the launcher.
+- runFlow:
+    when:
+      visible: "Performance monitor"
+    commands:
+      # Dismiss the dev-menu sheet with its own "x" close control (top-right).
+      #
+      # NOT `pressKey: Back`. If the visibility check races with the sheet
+      # closing, Back reaches the app instead — and from a root screen Back
+      # EXITS to the Android launcher. That happened: a flow ran for 2m36s and
+      # ended on the home screen with no crash in logcat, which reads as a
+      # mysterious app failure. A backdrop tap can never exit the app.
+      # The panel starts at ~5% of the screen height, so a "backdrop" tap at 6%
+      # lands ON its header and does nothing — that left the panel covering the
+      # app for the rest of the flow. The close button sits at the top-right.
+      - tapOn:
+          point: "90%,10%"
+      - waitForAnimationToEnd
+      # If the panel somehow survived, try once more before moving on.
+      - runFlow:
+          when:
+            visible: "Performance monitor"
+          commands:
+            - tapOn:
+                point: "90%,10%"
+            - waitForAnimationToEnd
+
+# Pin the language to English ONLY when it is actually wrong.
+#
+# Tapping "English" unconditionally is expensive AND harmful: a language change
+# calls reloadApp() (src/lib/reloadApp.ts -> react-native-restart) to re-lay-out
+# for RTL, restarting the whole app. In dev that remount produces the red box
+# "Looks like you have configured linking in multiple places" (two
+# ContextNavigators briefly mounted), which covers the screen and makes every
+# later step fail for the wrong reason.
+#
+# Switch only when the UI is genuinely in Pashto, detected by its own heading.
+# Most flows then pay nothing at all.
+- runFlow:
+    when:
+      visible: "هاتیوال ته ښه راغلاست"
+    commands:
+      - tapOn: "English"
+      - waitForAnimationToEnd
+      - extendedWaitUntil:
+          notVisible:
+            text: "Bundling.*"
+          timeout: 180000
+      - waitForAnimationToEnd
+      # The language change calls reloadApp() (react-native-restart). In a DEBUG
+      # build that remount reliably raises a LogBox console error ("Looks like you
+      # have configured linking in multiple places"), which then covers the whole
+      # screen and makes every later step fail for an unrelated reason.
+      #
+      # Dismissed here ONLY because it is understood, dev-only, and caused by this
+      # helper's own language switch — it is recorded as a finding in
+      # qa/UI_FINDINGS.md (UI-007), not swept away. The classifier still flags
+      # red boxes that appear during the flow body itself.
+      - tapOn:
+          text: "Dismiss"
+          optional: true
+      - waitForAnimationToEnd

@@ -19,9 +19,23 @@ appId: com.hatiwal.app
 # Select category
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd
+# EVERY top-level category has children, so tapping one DRILLS IN and never
+# selects — the picker sheet stays open over the form and every step after it
+# acts on a covered screen. A leaf has to be chosen (verified against the
+# category tree: all 10 top-level categories have subcategories).
 - tapOn: "Electronics"
 - waitForAnimationToEnd
+- tapOn: "Phones & Tablets"
+- waitForAnimationToEnd
 # Fill description
+# The description sits below the category row, and the numeric keypad from the
+# price field covers the lower half of the form — so this needs a scroll, not a
+# bare tap on an element that is merely off-screen (run-047).
+- scrollUntilVisible:
+    element:
+      text: "Describe your item..."
+    direction: DOWN
+    timeout: 10000
 - tapOn: "Describe your item..."
 - inputText: "Good condition, no scratches. Comes with original charger."
 # Save as draft
@@ -32,4 +46,12 @@ appId: com.hatiwal.app
 # + the Publish action are all visible right there.
 - assertVisible: "iPhone 12 Pro - 128GB"
 - assertVisible: "Draft"
+# The action row sits below the description and the views chart, so it needs a
+# scroll. Anchored on the testID rather than the word: the label is localized
+# and the primary action changes with status (Publish for a draft).
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    timeout: 10000
 - assertVisible: "Publish"

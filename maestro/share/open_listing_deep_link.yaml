@@ -1,4 +1,6 @@
 appId: com.hatiwal.app
+env:
+  LISTING_ID: 1
 ---
 # TASK-L824 — Deep link: launch app via hatiwal://listing/<id> (cold start)
 #
@@ -18,9 +20,11 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: false
     stopApp: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/skip_onboarding.yaml
 
 # Open the app via the custom deep-link scheme
-- openLink: "hatiwal://listing/${LISTING_ID:-1}"
+- openLink: "hatiwal://listing/${LISTING_ID}"
 
 # The listing detail screen should render without a login wall.
 # We assert on testIDs / text that the detail screen renders.
@@ -34,7 +38,7 @@ appId: com.hatiwal.app
     optional: true
 
 # Warm-start scenario: app is already running, open a different listing
-- openLink: "hatiwal://listing/${LISTING_ID:-1}"
+- openLink: "hatiwal://listing/${LISTING_ID}"
 
 # Detail screen should still render — no crash on warm start
 - assertVisible:

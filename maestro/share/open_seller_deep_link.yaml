@@ -1,4 +1,6 @@
 appId: com.hatiwal.app
+env:
+  SELLER_ID: 1
 ---
 # TASK-S392 — Deep link: launch app via hatiwal://seller/<id> (cold + warm start)
 #
@@ -18,9 +20,11 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: false
     stopApp: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/skip_onboarding.yaml
 
 # Open the app via the custom deep-link scheme
-- openLink: "hatiwal://seller/${SELLER_ID:-1}"
+- openLink: "hatiwal://seller/${SELLER_ID}"
 
 # The public seller profile screen should render.
 # UserProfileScreen shows a back button and the seller's name in the header.
@@ -39,7 +43,7 @@ appId: com.hatiwal.app
     label: "No login wall for guest viewing a seller profile via deep link (cold start)"
 
 # Warm-start scenario: app is already running, open the same deep link again
-- openLink: "hatiwal://seller/${SELLER_ID:-1}"
+- openLink: "hatiwal://seller/${SELLER_ID}"
 
 # Detail screen should still render — no crash on warm start
 - assertNotVisible:

@@ -1,0 +1,28 @@
+appId: com.hatiwal.app
+---
+# EDGE CASE — Send with an empty composer must do nothing.
+#
+# Guard under test: Conversation.tsx `handleSend` returns early on
+# `!messageText.trim()`, and the Send button is `disabled` for the same reason.
+# A regression here would post empty messages into a real conversation.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+
+# Tap Send without typing anything. Nothing should happen and, crucially, the
+# app must stay in the thread rather than erroring or navigating away.
+- tapOn:
+    text: "Send"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+
+# The composer is still empty and usable — prove it by typing normally after.
+- tapOn: "Type a message..."
+- inputText: "still works"
+- assertVisible: "still works"

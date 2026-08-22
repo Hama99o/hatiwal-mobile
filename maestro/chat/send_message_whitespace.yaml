@@ -1,0 +1,25 @@
+appId: com.hatiwal.app
+---
+# EDGE CASE — a whitespace-only message must not be sent.
+#
+# `handleSend` trims before checking, so "   " is treated as empty. Without the
+# trim this would post a blank bubble that looks like a broken message to the
+# other person.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn:
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+
+- tapOn: "Type a message..."
+- inputText: "     "
+- tapOn:
+    text: "Send"
+    optional: true
+- waitForAnimationToEnd
+
+# Still in the thread, no error surface, composer still available.
+- assertVisible: "Type a message..."

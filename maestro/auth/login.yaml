@@ -4,6 +4,8 @@ appId: com.hatiwal.app
 
 - launchApp:
     clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
 - assertVisible: "Welcome to Hatiwal"
 - assertVisible: "Buy and sell locally in Afghanistan"
 - tapOn: "Email"
@@ -15,4 +17,11 @@ appId: com.hatiwal.app
 # Verify user is authenticated — Profile tab shows name
 - tapOn: "Me"
 - assertNotVisible: "Sign In"
+# Sign Out sits below the fold on the profile screen — assert after scrolling to
+# it, otherwise this fails on a logged-in user who is plainly logged in.
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Sign Out"

@@ -17,6 +17,8 @@ appId: com.hatiwal.app
 
 - launchApp:
     clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
 - waitForAnimationToEnd
 - assertVisible: "Welcome to Hatiwal"
 - tapOn: "Sign In"

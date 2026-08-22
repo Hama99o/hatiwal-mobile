@@ -1,0 +1,16 @@
+appId: com.hatiwal.app
+---
+# Get past the first-run onboarding carousel to the login screen.
+#
+# `launchApp: clearState: true` makes the app first-run, so the onboarding
+# carousel appears. Both onboarding AND the login screen show the heading
+# "Welcome to Hatiwal", so a flow can assert that successfully while sitting on
+# the WRONG screen, then fail on the next line. The login screen is the one that
+# also shows auth.subtitle ("Buy and sell locally in Afghanistan").
+#
+# Deliberately NOT part of open_bundle.yaml: onboarding/first_run.yaml exists to
+# test this carousel, and must not have it skipped out from under it.
+- tapOn:
+    text: "Skip"
+    optional: true
+- waitForAnimationToEnd

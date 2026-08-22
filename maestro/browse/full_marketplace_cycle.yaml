@@ -32,7 +32,13 @@ appId: com.hatiwal.app
 - inputText: "3500"
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd
+# EVERY top-level category has children, so tapping one DRILLS IN and never
+# selects — the picker sheet stays open over the form and every step after it
+# acts on a covered screen. A leaf has to be chosen (verified against the
+# category tree: all 10 top-level categories have subcategories).
 - tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Phones & Tablets"
 - waitForAnimationToEnd
 - tapOn: "Tap to set exact location on map"
 - waitForAnimationToEnd
