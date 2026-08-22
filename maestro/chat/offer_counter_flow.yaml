@@ -37,7 +37,7 @@ appId: com.hatiwal.app
 - assertVisible: "Previous offer"
 
 # Clear pre-filled amount and enter counter price
-- clearText
+- eraseText
 - inputText: "9500"
 - tapOn: "Send Counter"
 - waitForAnimationToEnd

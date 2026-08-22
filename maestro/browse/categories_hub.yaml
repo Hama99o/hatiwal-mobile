@@ -8,7 +8,7 @@ appId: com.hatiwal.app
 
 # Tap the "Browse categories" grid-icon affordance in the BrowseHeader
 - tapOn:
-    description: "Browse categories"
+    text: "Browse categories"
 - waitForAnimationToEnd
 
 # Hub screen is shown
@@ -47,7 +47,7 @@ appId: com.hatiwal.app
 
 # Step 2: go back to the hub
 - tapOn:
-    description: "Browse categories"
+    text: "Browse categories"
 - waitForAnimationToEnd
 - assertVisible: "Categories"
 

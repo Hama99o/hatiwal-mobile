@@ -11,7 +11,7 @@ appId: com.hatiwal.app
 # Results visible
 - assertVisible: "Bazaar"
 # Clear search — full feed returns
-- clearText
+- eraseText
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"
 # Search with no results

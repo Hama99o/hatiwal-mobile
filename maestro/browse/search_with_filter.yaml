@@ -26,5 +26,5 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "phone"
 # Clear search — back to full browse
-- clearText
+- eraseText
 - waitForAnimationToEnd

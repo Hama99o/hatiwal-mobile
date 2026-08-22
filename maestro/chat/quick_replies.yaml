@@ -23,13 +23,13 @@ appId: com.hatiwal.app
 
 # The user can edit the draft — add extra text
 - tapOn: "Is this still available?"
-- typeText: " Please let me know."
+- inputText: " Please let me know."
 - waitForAnimationToEnd
 
 # Tap the existing Send button — identified by its accessibility label (the button
 # renders only a lucide Send icon with no visible text, so we match by label)
 - tapOn:
-    accessibilityLabel: "Send"
+    text: "Send"
 - waitForAnimationToEnd
 
 # The message bubble should appear in the thread

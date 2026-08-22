@@ -12,12 +12,12 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "iPhone"
 # Search for something that doesn't exist
-- clearText
+- eraseText
 - inputText: "xyznonexistent"
 - waitForAnimationToEnd
 # Empty state shown
 - assertVisible: "No"
 # Clear search
-- clearText
+- eraseText
 - waitForAnimationToEnd
 - assertVisible: "My Listings"

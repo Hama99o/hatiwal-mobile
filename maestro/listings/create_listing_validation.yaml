@@ -21,7 +21,7 @@ appId: com.hatiwal.app
 - tapOn: "Save Draft"
 - assertVisible: "Enter a valid price greater than 0"
 # No category
-- clearText
+- eraseText
 - inputText: "100"
 - tapOn: "Save Draft"
 - assertVisible: "Please select a category"

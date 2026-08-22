@@ -11,7 +11,7 @@ appId: com.hatiwal.app
 - assertVisible: "No listings found"
 # Clear search
 - tapOn: "Search listings..."
-- clearText
+- eraseText
 - waitForAnimationToEnd
 # Feed reappears
 - assertVisible: "Bazaar"

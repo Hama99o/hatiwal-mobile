@@ -5,7 +5,8 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Me"
 - scrollUntilVisible:
-    text: "LANGUAGE"
+    element:
+      text: "LANGUAGE"
 - tapOn: "Dari (دری)"
 - waitForAnimationToEnd
 # Navigate to Bazaar tab (Dari label is "بازار")

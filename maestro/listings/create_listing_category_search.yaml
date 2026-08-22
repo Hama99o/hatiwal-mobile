@@ -18,11 +18,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Electronics"
 # Search something that doesn't exist
-- clearText
+- eraseText
 - inputText: "xyznotacategory"
 - waitForAnimationToEnd
 # Clear search and close
-- clearText
+- eraseText
 - waitForAnimationToEnd
 - tapOn: "Electronics"
 - waitForAnimationToEnd

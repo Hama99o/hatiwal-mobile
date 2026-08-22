@@ -31,7 +31,7 @@ appId: com.hatiwal.app
 
 # Lower the price
 - tapOn: "Enter price"
-- clearText
+- eraseText
 - inputText: "4000"
 
 # Save using the primary save button (for an active listing this is "Save",

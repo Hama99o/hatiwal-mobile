@@ -7,7 +7,7 @@ appId: com.hatiwal.app
 
 # Switch to Pashto to enable RTL
 - tapOn:
-    description: "Me"
+    text: "Me"
 - waitForAnimationToEnd
 - tapOn: "Language"
 - waitForAnimationToEnd
@@ -16,12 +16,12 @@ appId: com.hatiwal.app
 
 # Navigate back to Browse tab
 - tapOn:
-    description: "بازار"
+    text: "بازار"
 - waitForAnimationToEnd
 
 # Open the categories hub via the grid-icon affordance
 - tapOn:
-    description: "ډلې وګورئ"
+    text: "ډلې وګورئ"
 - waitForAnimationToEnd
 
 # Hub title in Pashto
@@ -32,6 +32,6 @@ appId: com.hatiwal.app
 
 # Back button returns to Browse
 - tapOn:
-    description: "Back"
+    text: "Back"
 - waitForAnimationToEnd
 - assertVisible: "بازار"

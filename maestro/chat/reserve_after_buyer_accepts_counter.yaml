@@ -76,7 +76,7 @@ appId: com.hatiwal.app
 - tapOn: "Counter"
 - waitForAnimationToEnd
 - assertVisible: "Counter Offer"
-- clearText
+- eraseText
 - inputText: "1300000"
 - tapOn: "Send Counter"
 - waitForAnimationToEnd

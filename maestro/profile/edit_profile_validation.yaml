@@ -9,7 +9,7 @@ appId: com.hatiwal.app
 - assertVisible: "Edit Profile"
 # Clear first name
 - tapOn: "First Name"
-- clearText
+- eraseText
 - tapOn: "Save Changes"
 - waitForAnimationToEnd
 # Validation error

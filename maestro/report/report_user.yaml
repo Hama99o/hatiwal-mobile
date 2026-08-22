@@ -4,11 +4,27 @@ appId: com.hatiwal.app
 
 - runFlow: ../_helpers/login.yaml
 - waitForAnimationToEnd
-# Open a listing and tap on the seller's name
+# Open a listing detail. THE STEP THAT OPENS ONE WAS MISSING: this flow tapped
+# "Contact Seller" — a DETAIL-screen button — while still on the Bazaar feed,
+# where it does not exist, so it never opened a listing and failed on the button
+# it should have been asserting afterwards. The comment above it said "open a
+# listing detail" the whole time.
+#
+# A NAMED seeded listing, not "the first card": it does not depend on feed
+# ordering, it is active, and it belongs to seller@hatiwal.test — so the buyer
+# running this flow sees the contact affordance rather than their own listing.
+- scrollUntilVisible:
+    element:
+      text: "Wool Blanket Handmade King Size"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Wool Blanket Handmade King Size"
+- waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd
 - scrollUntilVisible:
-    text: "Seller"
+    element:
+      text: "Seller"
 - tapOn: "Seller"
 - waitForAnimationToEnd
 # On seller profile page — tap Report User

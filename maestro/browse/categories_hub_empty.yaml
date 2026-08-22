@@ -7,7 +7,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 - tapOn:
-    description: "Browse categories"
+    text: "Browse categories"
 - waitForAnimationToEnd
 
 - assertVisible: "Categories"

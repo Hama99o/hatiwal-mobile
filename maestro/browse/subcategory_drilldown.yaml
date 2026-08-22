@@ -13,7 +13,7 @@ appId: com.hatiwal.app
 
 # ── Navigate to the Categories hub ───────────────────────────────────────────
 - tapOn:
-    description: "Browse categories"
+    text: "Browse categories"
 - waitForAnimationToEnd
 - assertVisible: "Categories"
 
@@ -49,7 +49,7 @@ appId: com.hatiwal.app
 
 # ── Clear the subcategory filter chip ────────────────────────────────────────
 - tapOn:
-    description: "Clear subcategory"
+    text: "Clear subcategory"
 - waitForAnimationToEnd
 
 # The chip must disappear after clearing
@@ -59,7 +59,7 @@ appId: com.hatiwal.app
 # ── Parent with no children keeps its original tap→Browse behavior ────────────
 # Go back to the hub and verify a childless category navigates directly
 - tapOn:
-    description: "Browse categories"
+    text: "Browse categories"
 - waitForAnimationToEnd
 - assertVisible: "Categories"
 

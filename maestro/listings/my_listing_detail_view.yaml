@@ -17,34 +17,34 @@ appId: com.hatiwal.app
 
 # Owner detail screen should be visible — verify analytics row
 - assertVisible:
-    testID: "my-listing-detail-scroll"
+    id: "my-listing-detail-scroll"
 - assertVisible:
-    testID: "analytics-views"
+    id: "analytics-views"
 - assertVisible:
-    testID: "analytics-conversations"
+    id: "analytics-conversations"
 
 # Verify lifecycle action button is present (state-dependent label)
 - assertVisible:
-    testID: "lifecycle-primary-action"
+    id: "lifecycle-primary-action"
 
 # Verify "View Conversations" link is present
 - assertVisible:
-    testID: "view-conversations-link"
+    id: "view-conversations-link"
 
 # Tap "View Conversations" and verify it navigates to listing-conversations screen
 - tapOn:
-    testID: "view-conversations-link"
+    id: "view-conversations-link"
 - waitForAnimationToEnd
 - back
 - waitForAnimationToEnd
 
 # Should be back on owner detail
 - assertVisible:
-    testID: "analytics-views"
+    id: "analytics-views"
 
 # Tap the lifecycle action button and dismiss the confirm dialog (cancel)
 - tapOn:
-    testID: "lifecycle-primary-action"
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
 - tapOn: "Cancel"
 - waitForAnimationToEnd

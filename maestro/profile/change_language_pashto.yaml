@@ -6,7 +6,8 @@ appId: com.hatiwal.app
 - tapOn: "Me"
 - waitForAnimationToEnd
 - scrollUntilVisible:
-    text: "APPEARANCE"
+    element:
+      text: "APPEARANCE"
 - assertVisible: "LANGUAGE"
 - tapOn: "Pashto (پښتو)"
 - waitForAnimationToEnd

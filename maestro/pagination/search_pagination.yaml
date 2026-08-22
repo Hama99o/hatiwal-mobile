@@ -22,5 +22,5 @@ appId: com.hatiwal.app
 
 # Clear search
 - tapOn: "Search listings..."
-- clearText
+- eraseText
 - waitForAnimationToEnd

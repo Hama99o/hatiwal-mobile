@@ -14,7 +14,7 @@ appId: com.hatiwal.app
 # TASK-K487: the composer's meetup/file/photo/offer icons are now collapsed
 # behind a single "+" actions sheet — open it first, then tap the row.
 - tapOn:
-    accessibilityLabel: "More actions"
+    text: "More actions"
 - waitForAnimationToEnd
 - tapOn: "Propose Meetup"
 - waitForAnimationToEnd

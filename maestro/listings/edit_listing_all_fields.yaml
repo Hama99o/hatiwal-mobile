@@ -12,17 +12,17 @@ appId: com.hatiwal.app
 
 # Update title
 - tapOn: "Title"
-- clearText
+- eraseText
 - inputText: "Updated Title Deep Test"
 
 # Update description
 - tapOn: "Description"
-- clearText
+- eraseText
 - inputText: "Updated description for deep test."
 
 # Update price
 - tapOn: "Price"
-- clearText
+- eraseText
 - inputText: "99000"
 
 # Change condition

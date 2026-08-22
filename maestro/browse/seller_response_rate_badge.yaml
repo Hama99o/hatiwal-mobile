@@ -22,7 +22,7 @@ appId: com.hatiwal.app
 # Open first listing (seller@hatiwal.test's active listing is first in feed)
 - tapOn:
     index: 0
-    testID: "listing-card"
+    id: "listing-card"
 - waitForAnimationToEnd
 
 # Scroll down to the Seller section
@@ -43,7 +43,7 @@ appId: com.hatiwal.app
 # ── Seller Profile: both badge rows visible ──────────────────────────────────
 # Tap the seller identity row to open their public profile
 - tapOn:
-    testID: "seller-profile-link"
+    id: "seller-profile-link"
 - waitForAnimationToEnd
 
 # The response-time string must appear under the seller avatar

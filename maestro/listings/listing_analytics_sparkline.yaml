@@ -24,7 +24,7 @@ appId: com.hatiwal.app
 
 # Owner detail scroll is present
 - assertVisible:
-    testID: "my-listing-detail-scroll"
+    id: "my-listing-detail-scroll"
 
 # Wait for analytics section to load (network fetch)
 - waitForAnimationToEnd
@@ -37,9 +37,9 @@ appId: com.hatiwal.app
 
 # ── Verify analytics stats row is still present ──────────────────────────────
 - assertVisible:
-    testID: "analytics-views"
+    id: "analytics-views"
 - assertVisible:
-    testID: "analytics-conversations"
+    id: "analytics-conversations"
 
 # ── Navigate back ─────────────────────────────────────────────────────────────
 - back

@@ -110,7 +110,7 @@ appId: com.hatiwal.app
 - assertVisible: "Edit Listing"
 
 - tapOn: "Enter price"
-- clearText
+- eraseText
 - inputText: "13500"
 
 # Editing an already-active listing shows a single "Save" button (not

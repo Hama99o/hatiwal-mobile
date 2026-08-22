@@ -15,11 +15,11 @@ appId: com.hatiwal.app
 - tapOn:
     text: "iPhone 12 Pro - 128GB"
     optional: true
-- clearText
+- eraseText
 - inputText: "iPhone 12 Pro - 256GB (Updated)"
 # Change price
 - tapOn: "Enter price"
-- clearText
+- eraseText
 - inputText: "28000"
 # Save
 - tapOn: "Save Draft"

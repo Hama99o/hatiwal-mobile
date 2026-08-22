@@ -5,10 +5,24 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
-# Tap first listing card
-- tapOn: "Contact Seller"
+# Open a listing. This step was MISSING: the flow's own comment said "tap first
+# listing card" while the command tapped "Contact Seller" — a DETAIL-screen
+# button — from the feed, where it does not exist. So the flow never opened a
+# listing and failed on the button it should have been asserting afterwards.
+# A named seeded listing rather than "the first card", so the flow does not
+# depend on feed ordering: it is active, and owned by the seller, so the buyer
+# running this sees the contact affordance.
+- scrollUntilVisible:
+    element:
+      text: "Wool Blanket Handmade King Size"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 # Verify detail screen elements
+- assertVisible: "Contact Seller"
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
 - assertVisible: "Message Seller"
 - assertVisible: "Description"
 - assertVisible: "Seller"

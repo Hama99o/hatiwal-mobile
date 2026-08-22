@@ -6,7 +6,8 @@ appId: com.hatiwal.app
 - tapOn: "Me"
 - waitForAnimationToEnd
 - scrollUntilVisible:
-    text: "LANGUAGE"
+    element:
+      text: "LANGUAGE"
 - tapOn: "Dari (دری)"
 - waitForAnimationToEnd
 # App now in Dari/RTL

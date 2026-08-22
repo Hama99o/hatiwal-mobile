@@ -11,22 +11,22 @@ appId: com.hatiwal.app
 
 # Clear and update first name
 - tapOn: "First Name"
-- clearText
+- eraseText
 - inputText: "UpdatedFirst"
 
 # Clear and update last name
 - tapOn: "Last Name"
-- clearText
+- eraseText
 - inputText: "UpdatedLast"
 
 # Clear and update bio
 - tapOn: "Bio"
-- clearText
+- eraseText
 - inputText: "I sell quality items in Kabul."
 
 # Clear and update phone
 - tapOn: "Phone"
-- clearText
+- eraseText
 - inputText: "+93700000001"
 
 # Province picker

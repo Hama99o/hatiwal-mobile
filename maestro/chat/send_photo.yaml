@@ -18,10 +18,10 @@ appId: com.hatiwal.app
 # TASK-K487: the composer's meetup/file/photo/offer icons are now collapsed
 # behind a single "+" actions sheet — open it first, then tap the Photo row.
 - tapOn:
-    accessibilityLabel: "More actions"
+    text: "More actions"
 - waitForAnimationToEnd
 - tapOn:
-    accessibilityLabel: "Attach photo"
+    text: "Attach photo"
 - waitForAnimationToEnd
 
 # Expo ImagePicker sheet should open — pick first photo from the library
@@ -43,20 +43,20 @@ appId: com.hatiwal.app
 # After returning to the app, an image bubble should appear in the thread.
 # The bubble has accessibilityRole="imagebutton" set on the Pressable.
 - assertVisible:
-    accessibilityLabel: "View photo fullscreen"
+    text: "View photo fullscreen"
 
 # Tapping the bubble opens the fullscreen viewer
 - tapOn:
-    accessibilityLabel: "View photo fullscreen"
+    text: "View photo fullscreen"
 - waitForAnimationToEnd
 
 # Fullscreen viewer is open — close button (X) must be visible
 - assertVisible:
-    accessibilityLabel: "common.close"
+    text: "common.close"
 - tapOn:
-    accessibilityLabel: "common.close"
+    text: "common.close"
 - waitForAnimationToEnd
 
 # We are back in the thread — image bubble is still present
 - assertVisible:
-    accessibilityLabel: "View photo fullscreen"
+    text: "View photo fullscreen"

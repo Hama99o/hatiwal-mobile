@@ -31,10 +31,10 @@ appId: com.hatiwal.app
 # which listing you came from.
 - tapOn:
     index: 0
-    testID: "listing-card"
+    id: "listing-card"
 - waitForAnimationToEnd
 - tapOn:
-    testID: "seller-profile-link"
+    id: "seller-profile-link"
 - waitForAnimationToEnd
 
 # Seller profile page opens
@@ -45,7 +45,7 @@ appId: com.hatiwal.app
 # The combined trust badge — locale-independent testID (asserting on the
 # rendered "N sold" copy would break the moment the label runs through ps/fa).
 - assertVisible:
-    testID: "transaction-stats-badge"
+    id: "transaction-stats-badge"
 
 # Back to listing detail
 - back
