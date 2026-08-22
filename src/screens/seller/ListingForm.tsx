@@ -1377,36 +1377,46 @@ export default function ListingFormScreen() {
             />
           )}
 
-          {/* Negotiable toggle — placed inline below price so seller sees the pairing */}
-          <View
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginTop: 12,
-              paddingVertical: 8,
-              paddingHorizontal: 4,
-              borderRadius: 8,
-            }}
-          >
-            <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 8, flex: 1 }}>
-              <ToggleRight size={16} color={colors.mutedForeground} />
-              <Text className="text-sm" style={{ color: colors.foreground, textAlign: isRtl ? "right" : "left" }}>
-                {t("listing.form.negotiableLabel")}
-              </Text>
-            </View>
-            <Controller
-              control={control}
-              name="negotiable"
-              render={({ field }) => (
+          {/* Negotiable toggle — placed inline below price so seller sees the pairing.
+              Whole row is pressable, same as the quantity row below: the row is
+              44pt tall and only the ~44x24 switch used to respond, so a tap on
+              the label — the obvious target, and the platform convention for a
+              settings row — did nothing (UI-012). The row owns the switch
+              semantics so a screen reader announces the label once, not twice. */}
+          <Controller
+            control={control}
+            name="negotiable"
+            render={({ field }) => (
+              <Pressable
+                onPress={() => field.onChange(!field.value)}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: !!field.value }}
+                accessibilityLabel={t("listing.form.negotiableLabel")}
+                testID="listing-form-negotiable-row"
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginTop: 12,
+                  paddingVertical: 8,
+                  paddingHorizontal: 4,
+                  borderRadius: 8,
+                }}
+              >
+                <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 8, flex: 1 }}>
+                  <ToggleRight size={16} color={colors.mutedForeground} />
+                  <Text className="text-sm" style={{ color: colors.foreground, textAlign: isRtl ? "right" : "left" }}>
+                    {t("listing.form.negotiableLabel")}
+                  </Text>
+                </View>
                 <Switch
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  accessibilityLabel={t("listing.form.negotiableLabel")}
+                  testID="listing-form-negotiable-switch"
                 />
-              )}
-            />
-          </View>
+              </Pressable>
+            )}
+          />
 
           {/* Multi-quantity — docs/SPIKE_LISTING_QUANTITY.md §0c.
               THE GOVERNING RULE: a seller with one item must never see this

@@ -212,3 +212,47 @@ describe("ListingForm — duplicating a listing that has a count", () => {
     await waitFor(() => expect(screen.getByTestId(QUANTITY_INPUT).props.value).toBe("15"));
   });
 });
+
+// ── UI-012: both toggle rows are tappable, not just their switches ───────────
+//
+// The rows are 44pt tall but only the ~44x24 switch used to respond, so a tap on
+// the label — the obvious target, and the platform convention for a settings row
+// — did nothing. Found on-device when a flow tapping the label never turned the
+// quantity toggle on.
+
+describe("ListingForm — the toggle rows are the tap target", () => {
+  it("pressing the quantity ROW reveals the number input", () => {
+    renderListingForm();
+    expect(screen.queryByTestId(QUANTITY_INPUT)).toBeNull();
+
+    act(() => {
+      fireEvent.press(screen.getByTestId("listing-form-quantity-row"));
+    });
+    expect(screen.getByTestId(QUANTITY_INPUT)).toBeTruthy();
+  });
+
+  it("pressing the negotiable ROW toggles it", () => {
+    renderListingForm();
+    const row = () => screen.getByTestId("listing-form-negotiable-row");
+    // Negotiable defaults to true.
+    expect(row().props.accessibilityState.checked).toBe(true);
+
+    act(() => {
+      fireEvent.press(row());
+    });
+    expect(row().props.accessibilityState.checked).toBe(false);
+  });
+
+  it("each row publishes switch semantics exactly once", () => {
+    // The inner Switch carries no accessibilityLabel: the row owns it, so a
+    // screen reader announces the label once instead of twice.
+    renderListingForm();
+    for (const id of ["listing-form-quantity-row", "listing-form-negotiable-row"]) {
+      const node = screen.getByTestId(id);
+      expect(node.props.accessibilityRole).toBe("switch");
+      expect(node.props.accessibilityState).toHaveProperty("checked");
+    }
+    expect(screen.queryAllByLabelText("listing.form.negotiableLabel")).toHaveLength(1);
+    expect(screen.queryAllByLabelText("listing.form.multipleUnitsLabel")).toHaveLength(1);
+  });
+});

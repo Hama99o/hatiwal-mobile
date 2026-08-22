@@ -1,0 +1,78 @@
+appId: com.hatiwal.app
+---
+# The BUYER's side of multi-quantity — docs/SPIKE_LISTING_QUANTITY.md.
+#
+# This is the entire user-facing point of the feature and it had no flow: a buyer
+# who assumed there was one of something learns otherwise BEFORE they message,
+# which §0c identifies as the exact moment the harm happens today. Everything
+# else (the seller's toggle, the sold sheet) exists to make this screen truthful.
+#
+# Asserts, on the real detail screen:
+#   - the price is marked per-unit, so 400 cannot be read as the price of the box
+#   - the stock pill states what is LEFT
+#   - a single-item listing shows NONE of it (the governing rule, from the buyer's
+#     side this time)
+#
+# Fixture: "Phone Case Silicone Clear - Wholesale", 15 units, seeded active
+# (hatiwal-api/db/seeds/e2e.rb). Runs as the BUYER, so it also proves these
+# fields survive the public `:detailed` view and not just the owner one.
+
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+- assertNotVisible: "Login"
+
+# ── The batch listing, from the feed ────────────────────────────────────────
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Phone Case Silicone Clear - Wholesale"
+    direction: DOWN
+    timeout: 15000
+
+# The feed card already says "each" — the per-unit price is passed at every
+# listing-price site, not just the detail hero, so a buyer scanning the grid
+# never reads 400 as the price of fifteen.
+- assertVisible: "each"
+
+- tapOn: "Phone Case Silicone Clear - Wholesale"
+- waitForAnimationToEnd
+
+# ── The detail screen: the buyer's answer ───────────────────────────────────
+- assertVisible: "Phone Case Silicone Clear - Wholesale"
+# Per-unit price beside the hero figure.
+- assertVisible: "each"
+# And how many there are. Buyer phrasing — the plain count, not the seller's
+# "N of M left" progress wording.
+- assertVisible:
+    id: "stock-badge-detail"
+- assertVisible: "15 in stock"
+
+# ── THE GOVERNING RULE, from the buyer's side ───────────────────────────────
+# A single-item listing must look exactly as it did before this feature existed:
+# no "each", no stock pill. "Wool Blanket Handmade King Size" is a seeded
+# single-unit active listing.
+- tapOn: "Back"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Wool Blanket Handmade King Size"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Wool Blanket Handmade King Size"
+- waitForAnimationToEnd
+- assertVisible: "Wool Blanket Handmade King Size"
+- assertNotVisible:
+    id: "stock-badge-detail"
+- assertNotVisible: "each"
