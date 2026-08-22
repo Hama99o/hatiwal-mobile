@@ -14,9 +14,17 @@ appId: com.hatiwal.app
 - tapOn: "Price"
 - inputText: "3000"
 
-- tapOn: "Category"
+# The category FIELD is tapped by its placeholder, "Tap to select category"
+# (listing.form.selectCategoryPlaceholder). "Category" is not a label the form
+# renders, so this never opened the picker.
+- tapOn: "Tap to select category"
 - waitForAnimationToEnd
-- tapOn: "Clothes"
+# "Clothes" is not a category — it is "Clothes & Fashion", and Maestro matches an
+# anchored regex. Using Electronics -> Phones & Tablets for the same reason the
+# other create flows do: a top-level category only DRILLS IN, so a leaf is needed.
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Phones & Tablets"
 - waitForAnimationToEnd
 
 - tapOn: "Location"

@@ -38,9 +38,17 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Category
-- tapOn: "Category"
+# The category FIELD is tapped by its placeholder, "Tap to select category"
+# (listing.form.selectCategoryPlaceholder). "Category" is not a label the form
+# renders, so this never opened the picker.
+- tapOn: "Tap to select category"
 - waitForAnimationToEnd
 - tapOn: "Electronics"
+- waitForAnimationToEnd
+# Then a LEAF. Every one of the 16 top-level categories has children, so
+# tapping "Electronics" DRILLS IN and selects nothing — the picker sheet stays
+# open over the form and every later step acts on a covered screen.
+- tapOn: "Phones & Tablets"
 - waitForAnimationToEnd
 
 # Condition

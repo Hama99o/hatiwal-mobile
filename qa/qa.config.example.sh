@@ -40,6 +40,12 @@
 # Set this to somewhere your fixtures are, or distance sorting is meaningless.
 # export QA_GEO_LAT="34.5553"     # Kabul
 # export QA_GEO_LON="69.2075"
+
+# ── Device gallery (seeded at boot) ───────────────────────────────────────
+# A fresh emulator has NO photos, so any flow that adds a photo to a listing
+# opens an empty system picker, selects nothing, and fails on the cover badge.
+# Four images are copied in at boot. Any real image works.
+# export QA_GALLERY_IMAGE="assets/icon.png"
 #
 # Optional extra profiles. `qa.sh up <name>` accepts any key defined here.
 # export AVD_SMALL="qa_phone_small"    # e.g. 5.0" 720x1280 — cramped layouts

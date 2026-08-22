@@ -107,6 +107,29 @@ emulator_boot() {
       adb_qa emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1 \
         && ok "location seeded ($QA_GEO_LAT, $QA_GEO_LON)" \
         || warn "could not seed a device location — distance/nearest flows will fail"
+
+      # ── Put photos in the GALLERY ───────────────────────────────────────
+      # A fresh emulator's gallery is EMPTY. So every "add photos to a listing"
+      # flow opens the system picker, finds nothing to select, and then fails on
+      # the cover-photo badge — `Assertion is false: "Cover" is visible` — with
+      # nothing whatsoever wrong with the app. Four create-listing flows and the
+      # whole gallery/ area were unpassable for this reason alone.
+      #
+      # MEDIA_SCANNER_SCAN_FILE is deprecated for apps but still works from adb
+      # shell, and it is what makes the files visible to the picker rather than
+      # merely present on disk (verified: the media store lists them afterwards).
+      if [ -f "$QA_GALLERY_IMAGE" ]; then
+        local n
+        adb_qa shell mkdir -p /sdcard/Pictures/QA >/dev/null 2>&1
+        for n in 1 2 3 4; do
+          adb_qa push "$QA_GALLERY_IMAGE" "/sdcard/Pictures/QA/qa_photo_$n.png" >/dev/null 2>&1
+          adb_qa shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+            -d "file:///sdcard/Pictures/QA/qa_photo_$n.png" >/dev/null 2>&1
+        done
+        ok "gallery seeded (4 photos)"
+      else
+        warn "no seed image at $QA_GALLERY_IMAGE — photo-picker flows will fail"
+      fi
       adb_qa shell settings put global animator_duration_scale 0 >/dev/null 2>&1
       ok "animations disabled (flows run faster and flake less)"
       return 0

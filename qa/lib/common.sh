@@ -58,6 +58,12 @@ AVD_HOME="${AVD_HOME:-${ANDROID_AVD_HOME:-$HOME/.android/avd}}"
 QA_GEO_LAT="${QA_GEO_LAT:-34.5553}"
 QA_GEO_LON="${QA_GEO_LON:-69.2075}"
 
+# Image copied into the device gallery at boot. A fresh emulator has NO photos, so
+# every flow that adds a photo to a listing opens an empty system picker and then
+# fails on the cover badge. Any real image will do; the app only needs something
+# selectable.
+QA_GALLERY_IMAGE="${QA_GALLERY_IMAGE:-$MOBILE_DIR/assets/icon.png}"
+
 # ── Which AVD belongs to THIS session ──────────────────────────────────────
 # Set QA_AVD_1, QA_AVD_2, … in qa.config.sh to pin a form factor per session —
 # that is the whole point of running several: one drives a tablet, another a

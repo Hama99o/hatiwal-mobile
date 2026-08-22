@@ -100,6 +100,23 @@ screen and therefore proves nothing. "The bundling banner is gone" is not "the a
 is up": that banner is itself drawn by JS, so before the first render there is
 nothing to see.
 
+### A fresh emulator is missing things the app needs, and the failures blame the app
+
+Three capabilities the app legitimately depends on are simply absent on a clean
+emulator. In each case the app behaves correctly and the FLOW fails, so the report
+points at the wrong thing. `qa.sh up` now provides all three:
+
+| Missing | What the failure looks like | Seeded by |
+|---|---|---|
+| **GPS fix** | "Couldn't determine your location. Please try again." Nearest-sort, distance filters, the map picker and "use my current location" all unpassable. | `adb emu geo fix` (Kabul; `QA_GEO_LAT`/`QA_GEO_LON`) |
+| **Photos in the gallery** | `Assertion is false: "Cover" is visible` — the picker opens empty, nothing is selected, so no cover badge. Four create-listing flows plus all of `gallery/`. | 4 images copied to `/sdcard/Pictures/QA` + a media scan (`QA_GALLERY_IMAGE`) |
+| **Radio left ON** by a failed offline flow | "Failed to connect to /10.0.2.2:3008" in the launcher, and flows failing on `"Me" is visible` — reads as a broken login | cleared in the per-flow preflight |
+
+> The general shape: when a whole *area* fails on something environmental rather
+> than a selector, suspect the device before the app. Kabul rather than the
+> emulator's default location matters too — a distance sort of Afghan fixtures
+> against Mountain View orders them meaninglessly.
+
 ### Never run `maestro` directly while a `qa.sh` run holds the device
 
 `qa.sh` takes a per-session device lock precisely because **two Maestro instances

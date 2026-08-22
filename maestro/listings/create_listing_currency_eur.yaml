@@ -15,7 +15,9 @@ appId: com.hatiwal.app
 # Open currency picker and select EUR
 - tapOn: "AFN"
 - waitForAnimationToEnd
-- assertVisible: "EUR"
+# The row reads "EUR – Euro" (en dash) — this flow already says so two lines
+# down for the tap, but asserted the bare code, which anchored matching rejects.
+- assertVisible: "EUR – Euro"
 # The currency SHEET rows read "USD – US Dollar" / "EUR – Euro" (en dash).
 # Maestro anchors its text regex, so a bare code cannot match the row.
 - tapOn: "EUR – Euro"
