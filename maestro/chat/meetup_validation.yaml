@@ -5,7 +5,12 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Chats"
 - waitForAnimationToEnd
+# A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
+# and index 0 is whatever comes first in the hierarchy — the heading or the
+# search bar, never a conversation. The flow stayed on the list and then failed
+# on the composer it never reached ("Type a message..." is visible).
 - tapOn:
+    id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
 # TASK-K487: the composer's meetup/file/photo/offer icons are now collapsed

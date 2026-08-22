@@ -25,6 +25,7 @@ env:
 - waitForAnimationToEnd
 # Open the first conversation where the seller owns the listing
 - tapOn:
+    id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
 # The pinned listing header is visible at the top of the thread
@@ -85,7 +86,12 @@ env:
 - tapOn: "Chats"
 - waitForAnimationToEnd
 # Open the same conversation (buyer's view)
+# A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
+# and index 0 is whatever comes first in the hierarchy — the heading or the
+# search bar, never a conversation. The flow stayed on the list and then failed
+# on the composer it never reached ("Type a message..." is visible).
 - tapOn:
+    id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
 # Pinned listing header is visible

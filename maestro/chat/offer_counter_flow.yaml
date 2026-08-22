@@ -10,7 +10,10 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Bazaar"
 - waitForAnimationToEnd
+# Bare `tapOn: index:` has no selector — see the note in the chat flows.
+# The feed card carries testID="listing-card".
 - tapOn:
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
 - tapOn: "Message Seller"

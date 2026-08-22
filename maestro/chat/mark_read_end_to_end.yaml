@@ -35,6 +35,7 @@ appId: com.hatiwal.app
 
 # ── Step 2: open the unread conversation ────────────────────────────────────
 - tapOn:
+    id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
 # Allow network roundtrip for mark_read PUT
@@ -70,7 +71,12 @@ appId: com.hatiwal.app
     id: "unread-badge-\\d+"
 
 # ── Step 4: re-enter the same conversation (focus fires markRead again) ──────
+# A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
+# and index 0 is whatever comes first in the hierarchy — the heading or the
+# search bar, never a conversation. The flow stayed on the list and then failed
+# on the composer it never reached ("Type a message..." is visible).
 - tapOn:
+    id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
 - waitForAnimationToEnd

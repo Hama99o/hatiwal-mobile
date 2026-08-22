@@ -75,6 +75,40 @@ These are not suggestions. Each one exists because breaking it cost real time.
 
 ---
 
+### Never ask `when: visible` about a screen you have not waited for
+
+This single mistake produced more fake app bugs than anything else in this rig,
+in three different places, and every one of them looked like a product defect on
+perfectly healthy code.
+
+`when: visible` (and `runFlow: when:`) is a **short poll that then commits to a
+verdict**. Ask it about something that has not drawn yet and the answer is "no",
+the guarded block is silently skipped, and the flow marches on against a screen
+it was never designed for. What you get in the report is an assertion failure
+several steps later, naming an element that has nothing to do with the cause.
+
+The worst instance: `open_bundle.yaml` asked *"is the launcher visible?"* 7s after
+`launchApp: clearState: true` — before expo-dev-launcher had rendered — so it
+skipped the entire enter-the-bundle block and left the app parked on the launcher
+for the whole flow. The reported failure was `Element not found: Email`. Nothing
+was wrong with the login screen; the app had never been opened.
+
+**The rule:** wait for the thing (`extendedWaitUntil`, `optional: true` where its
+absence is legal), *then* branch on it. And prefer a **positive** gate — waiting
+for something to appear — over `notVisible`, which passes instantly on a blank
+screen and therefore proves nothing. "The bundling banner is gone" is not "the app
+is up": that banner is itself drawn by JS, so before the first render there is
+nothing to see.
+
+### Never target a control by percentage `point:`
+
+A `tapOn: point: "90%,10%"` is form-factor dependent, and the rig's whole purpose
+is to run several form factors. The dev-menu close control sits a fixed ~68px from
+the right edge: 93.7% on a 1080-wide phone, **96.1% on a 2560-wide tablet**. The
+tap worked on phones for weeks and hit empty header on the tablet, leaving the dev
+panel covering the app for entire flows. Target the element — that panel exposes a
+`Close` accessibility label. Keep a point tap only as a last-resort fallback.
+
 ## 3. Environment facts you must know
 
 ### The API address is always `10.0.2.2` — never a LAN IP
@@ -399,6 +433,12 @@ cleared, so the user believed the message had sent. Flow now PASS, 0 api errors.
 | Every login fails with "Invalid login credentials" | bash-style `${EMAIL:-...}` evaluating to `NaN` | `env:` block |
 | Login "passes" but nothing is logged in | asserted `"Bazaar"`, which guests see | assert `"Me"` present and `"Login"` absent |
 | `timeout 30 adb_qa …` fails with exit 127 | `timeout` cannot execute a shell function | use `adb_qa_t <secs> …` |
+| `Element not found: Email` on a flow that logs in fine by hand | the app never left the expo-dev-launcher — a `when: visible` check ran before the launcher drew and skipped the whole enter-the-bundle block | wait, then branch (see §2); read Maestro's `--debug-output` `maestro.log`, which timestamps every command and shows the skipped body |
+| An assertion fails while the screenshot shows the app looking fine | the dev-menu panel is covering it (it is a separate window, so the app's own views are absent from the hierarchy — a `hierarchy` dump returning 3 strings is the tell) | dismiss by the `Close` label, never a percentage `point:` |
+| `rig_fail` with `(no message captured)` and an empty `.log` | `FLOW_TIMEOUT` killed Maestro before it wrote anything | it is 480s; a cold flow pays launcher entry + a full bundle transform before step 1, and a second session doubles that |
+| "Another emulator instance is running" but nothing is running | stale `hardware-qemu.ini.lock` / `multiinstance.lock` from an emulator killed uncleanly | `up` clears them when no live qemu holds the AVD; if two sessions want one AVD, give them separate ones (`QA_AVD_n`) |
+| `FLOW_REGISTER.md` suddenly reports far fewer passing flows | a second session regenerated it (fixed: it now merges every `reports/sN/`) — or you ran the generator against a stale tree | `./qa/qa.sh register`; run labels are qualified `s2/run-055` |
+| A green `PASS` row still shows a failure message in `Notes` | an auto-filled reason was being preserved as if a human wrote it (fixed) | re-run `register`; genuine triage notes are untouched |
 
 ---
 

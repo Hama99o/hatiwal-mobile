@@ -193,11 +193,34 @@ QA_SESSION=3 ./qa/qa.sh up phone         # emulator-5558 → qa/reports/s3/
 Session 1 keeps the original serial and paths, so existing habits and report
 links do not move.
 
-**Same APK, same AVD.** Instances 2+ boot the AVD with `-read-only`, which is what
-lets one AVD back several running emulators — without it the second boot fails on
-the AVD lock. They install the same built APK, so there is nothing to keep in sync.
-The cost: read-only instances cannot save a boot snapshot, so they always cold
-boot (~2 min). Session 1 keeps snapshotting and stays fast.
+**One AVD per session — pin it in `qa.config.sh`.**
+
+```bash
+export QA_AVD_1="qa_tablet"
+export QA_AVD_2="qa_phone"
+export QA_AVD_3="qa_phone_small"
+```
+
+`up` with no argument boots **this session's** AVD. An explicit `up phone` /
+`up tablet` still overrides it.
+
+Two sessions **cannot share one AVD.** Instances 2+ do pass `-read-only`, but that
+is only half the requirement: the emulator's own message is *"run **all** emulators
+with -read-only flag"*, and session 1 runs writable so it can keep a boot snapshot.
+A writable instance holds the AVD exclusively, so a read-only second boot dies with
+**"Another emulator instance is running"** — a message that sounds like a stale lock
+and sends you looking in the wrong place. That is why the mapping above is explicit,
+and why `up` refuses a collision by name instead of letting the emulator fail.
+
+They install the same built APK, so there is nothing to keep in sync — the whole
+point is the *same binary* on different screens.
+
+**Stale locks are cleared automatically.** An emulator killed uncleanly — host
+reboot, OOM, or an agent session teardown taking the process group with it —
+leaves `hardware-qemu.ini.lock` and `multiinstance.lock` in the AVD directory, and
+every later boot fails with the same misleading "already running" error. `up`
+removes them, but **only when no live qemu process holds that AVD**, so a genuinely
+running emulator is never disturbed.
 
 **Ports step by TWO.** The odd port in each pair is the adb channel, so stepping by
 one would collide with the previous instance.
@@ -211,6 +234,15 @@ The bugs this catches are the ones a phone-only rig cannot see. Two were found t
 day this landed: the listing grid was hardcoded to 2 columns (two ~600dp cards per
 row on a tablet) and chat bubbles were capped only as a *percentage* (~1000dp lines
 of text). Both had shipped; both were invisible at 400dp.
+
+The strongest case so far is **UI-020**, and it is worth reading as the argument
+for running two sessions at once. The *same flow*, on the *same APK*, at the same
+moment: the phone passed and the tablet failed. On the tablet the listing detail
+screen rendered the photo and the action bar and **nothing else** — no title, no
+price, no stock pill, no seller — because the hero's height was computed from
+width alone and came out taller than the viewport. A buyer on a tablet could not
+see what an item was or what it cost. No amount of phone testing would ever have
+shown it, and a single-session rig would have had to choose which one to look at.
 
 Real AVDs are best (real DPI, real system UI), but you only have as many as you
 create. `qa.sh profile` gives extra form factors for free on any session:
