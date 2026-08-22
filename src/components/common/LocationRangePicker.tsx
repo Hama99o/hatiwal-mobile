@@ -14,7 +14,11 @@ import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColorScheme } from "nativewind";
 import { useColors } from "@/hooks/useColors";
-import { getCurrentLocation, type GeoErrorCode } from "@/utils/geolocation";
+import {
+  getCurrentLocation,
+  getCurrentLocationIfPermitted,
+  type GeoErrorCode,
+} from "@/utils/geolocation";
 import { showPermissionDeniedAlert } from "@/lib/permissions";
 import { searchPlaces, reverseGeocode, type GeocodeResult } from "@/utils/geocoding";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -135,6 +139,40 @@ export function LocationRangePicker({
       setSelectedLabel(initialLabel);
     }
   }, [visible, initialCoords, initialRadius, initialLabel]);
+
+  // Centre on the user BY DEFAULT when we already have permission.
+  //
+  // DEFAULT_CENTER is Kabul city centre. Before this, the map always opened
+  // there and "Use my location" was the ONLY way to move it — so a seller in
+  // Herat or Kandahar who had already granted location permission still got a
+  // Kabul pin, and if they did not notice they published a listing pinned to the
+  // wrong city. On a marketplace where buyers filter by area and meet in person,
+  // that is a data bug, not a cosmetic one.
+  //
+  // Two guards make this safe:
+  //   * `initialCoords` wins — editing a listing must keep its saved pin, and a
+  //     buyer re-opening the radius filter must keep the area they chose.
+  //   * `getCurrentLocationIfPermitted` NEVER prompts. Firing the OS permission
+  //     dialog just because a sheet opened would be worse than the bug, and a
+  //     dialog shown at the wrong moment tends to get denied — which then
+  //     poisons the setting for the button that legitimately asks.
+  useEffect(() => {
+    if (!visible || initialCoords) return;
+    let cancelled = false;
+    getCurrentLocationIfPermitted().then((c) => {
+      // Don't fight the user: if they moved the pin or picked a place while the
+      // fix was in flight, leave it alone.
+      if (cancelled || !c) return;
+      setCoords((prev) =>
+        prev.latitude === DEFAULT_CENTER.latitude && prev.longitude === DEFAULT_CENTER.longitude
+          ? { latitude: c.latitude, longitude: c.longitude }
+          : prev
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, initialCoords]);
 
   const handleUseMyLocation = async () => {
     setGpsLoading(true);

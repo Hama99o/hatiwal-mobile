@@ -24,6 +24,27 @@ export interface GeoResult {
  */
 export const isGeolocationAvailable = (): boolean => true;
 
+/**
+ * Is foreground location permission ALREADY granted? Never prompts.
+ *
+ * The distinction matters: `getCurrentLocation` calls
+ * `requestForegroundPermissionsAsync`, which shows the OS dialog. That is
+ * correct when the user tapped "Use my location", and wrong on screen open —
+ * an unsolicited permission dialog is both worse UX and more likely to be
+ * denied, which then poisons the setting for later.
+ *
+ * So a screen that wants to centre on the user BY DEFAULT asks this first, and
+ * only fetches when the answer is already yes.
+ */
+export const hasLocationPermission = async (): Promise<boolean> => {
+  try {
+    const { status } = await Location.getForegroundPermissionsAsync();
+    return status === "granted";
+  } catch {
+    return false;
+  }
+};
+
 export const getCurrentLocation = async (): Promise<GeoResult> => {
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -46,6 +67,17 @@ export const getCurrentLocation = async (): Promise<GeoResult> => {
     console.warn("Geolocation error:", error);
     return { coords: null, error: "unavailable" };
   }
+};
+
+/**
+ * The current position, but ONLY if permission is already granted — never
+ * prompts. Returns null otherwise, so a caller can silently fall back to a
+ * default without pestering the user.
+ */
+export const getCurrentLocationIfPermitted = async (): Promise<LocationCoords | null> => {
+  if (!(await hasLocationPermission())) return null;
+  const result = await getCurrentLocation();
+  return result.coords;
 };
 
 // Calculate distance between two coordinates using the Haversine formula (in km)
