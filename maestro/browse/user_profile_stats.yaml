@@ -34,9 +34,12 @@ appId: com.hatiwal.app
 # literal stat label in ProfileHeader and is there for every profile.
 - assertVisible: "Active Listings"
 
-# Stats section — the labels are "Active Listings" / "Items Sold" / "Joined"
-# (profile.userProfile.*). A bare "Listings" matches none of them.
-- assertVisible: "Items Sold"
+# Stats section. ProfileHeader renders exactly TWO cells: "Active Listings" and
+# "Joined" (profile.userProfile.*). A bare "Listings" matches neither, and
+# "Items Sold" (soldItems) is a dead key.
+# NOT "Items Sold". ProfileHeader renders exactly TWO stat cells — "Active
+# Listings" and "Joined". `profile.userProfile.soldItems` ("Items Sold") is a
+# dead key, referenced nowhere in the app (UI-021).
 - assertVisible: "Joined"
 # Year present in joined date
 - assertVisible: "2024"

@@ -38,7 +38,8 @@ appId: com.hatiwal.app
 - assertVisible: "Active Listings"
 
 # Listings grid visible
-- assertVisible: "Listings"
+# The stat label is "Active Listings", not a bare "Listings".
+- assertVisible: "Active Listings"
 - assertVisible:
     id: "listing-card-0"
 

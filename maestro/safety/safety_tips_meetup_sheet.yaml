@@ -16,7 +16,12 @@ appId: com.hatiwal.app
 - tapOn:
     text: "More actions"
 - waitForAnimationToEnd
-- tapOn: "Propose Meetup"
+# The actions-sheet ROW that opens the meetup sheet (composer-action-meetup).
+# Note "Propose Meetup" is TWO different controls: this row
+# (chat.proposeMeetup) and the submit button inside the sheet
+# (chat.meetup.propose). Same words, so they must be told apart by testID.
+- tapOn:
+    id: "composer-action-meetup"
 - waitForAnimationToEnd
 - assertVisible: "Propose a Meetup"
 

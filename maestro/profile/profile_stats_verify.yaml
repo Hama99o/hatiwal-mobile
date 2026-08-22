@@ -7,11 +7,13 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Stats section visible
-- assertVisible: "Listings"
+# The stat label is "Active Listings", not a bare "Listings".
+- assertVisible: "Active Listings"
 - assertVisible: "Joined"
 
 # Member since includes year
 - assertVisible: "2024"
 
 # Listings count is a non-negative number (assert section label is there)
-- assertVisible: "Listings"
+# The stat label is "Active Listings", not a bare "Listings".
+- assertVisible: "Active Listings"

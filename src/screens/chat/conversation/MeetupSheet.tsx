@@ -231,7 +231,10 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
 
           <View style={{ height: 20 }} />
 
+          {/* testID because the label swaps to "Sending…" while submitting, so the
+              words cannot identify this button for its whole lifetime. */}
           <Button
+            testID="meetup-propose-submit"
             onPress={handlePropose}
             disabled={isSubmitting}
             style={{ width: "100%" }}

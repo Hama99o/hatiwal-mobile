@@ -24,7 +24,8 @@ appId: com.hatiwal.app
     id: "other-participant-name"
 - waitForAnimationToEnd
 # Should be on public profile / seller profile screen
-- assertVisible: "Listings"
+# The stat label is "Active Listings", not a bare "Listings".
+- assertVisible: "Active Listings"
 - assertVisible: "Member since"
 # Back returns to conversation
 - back

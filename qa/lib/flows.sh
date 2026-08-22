@@ -10,6 +10,12 @@
 # 214 flows in this repo have never once been executed, so flow_bug is the
 # expected majority on the first run. Do not "fix" the app because of one.
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+# For the self-heal path in run_feature: when the emulator dies mid-suite this
+# file boots it and reinstalls the APK rather than abandoning the run. qa.sh
+# already sources both before this file, so these are belt-and-braces for anyone
+# sourcing flows.sh on its own.
+source "$(dirname "${BASH_SOURCE[0]}")/emulator.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/app.sh"
 
 # Per-flow wall clock. 240s was too tight and produced RIG-classified failures
 # with an EMPTY log — the timeout killed Maestro before it wrote anything, which
@@ -101,6 +107,22 @@ run_feature() {
       # to 0 inside the branch, making the metro-restart path unreachable.
       case "$rc" in
         1) warn "metro died — attempting restart"; metro_restart || true ;;
+        2) # The EMULATOR is gone. Boot it rather than abandoning the run.
+           #
+           # This rig is meant to test unattended for days, and an emulator that
+           # dies at 3am used to end the night: the feature aborted and every
+           # remaining flow was recorded as rig_fail. It happened repeatedly, with
+           # no OOM kill in the kernel log and 13GB free, so the cause is not
+           # something the rig can prevent — but it can recover. One attempt, then
+           # give up honestly.
+           warn "emulator gone — attempting to boot it"
+           if emulator_boot "$QA_AVD" && app_install && rig_healthy; then
+             ok "emulator recovered — continuing with '$name'"
+           else
+             err "could not recover the emulator — aborting feature '$feature'"
+             echo "{\"feature\":\"$feature\",\"flow\":\"$name\",\"result\":\"rig_fail\",\"reason\":\"emulator died and could not be rebooted\"}" >> "$run_dir/results.jsonl"
+             return 1
+           fi ;;
         *) err "rig unhealthy before '$name' — aborting feature '$feature'"
            echo "{\"feature\":\"$feature\",\"flow\":\"$name\",\"result\":\"rig_fail\",\"reason\":\"rig unhealthy before start\"}" >> "$run_dir/results.jsonl"
            return 1 ;;

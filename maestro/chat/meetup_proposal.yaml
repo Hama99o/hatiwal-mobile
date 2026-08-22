@@ -14,7 +14,12 @@ appId: com.hatiwal.app
 - tapOn:
     text: "More actions"
 - waitForAnimationToEnd
-- tapOn: "Propose Meetup"
+# The actions-sheet ROW that opens the meetup sheet (composer-action-meetup).
+# Note "Propose Meetup" is TWO different controls: this row
+# (chat.proposeMeetup) and the submit button inside the sheet
+# (chat.meetup.propose). Same words, so they must be told apart by testID.
+- tapOn:
+    id: "composer-action-meetup"
 - waitForAnimationToEnd
 # Bottom sheet opens
 - assertVisible: "Propose a Meetup"
@@ -24,7 +29,15 @@ appId: com.hatiwal.app
 - inputText: "Shahr-e-Naw market, near the blue mosque"
 - tapOn: "When? (e.g. Tomorrow 3pm)"
 - inputText: "Tomorrow at 3pm"
-- tapOn: "Propose Meetup"
+# Dismiss the keyboard before submitting: typing the place and time leaves it
+# up, and it COVERS the submit button — the tap then failed with "Element not
+# found: Propose Meetup" while the button sat behind the keyboard. Tapping the
+# sheet heading blurs the input; `hideKeyboard` is not usable here because on
+# Android Maestro implements it as BACK, which would close the sheet.
+- tapOn: "Propose a Meetup"
+- waitForAnimationToEnd
+- tapOn:
+    id: "meetup-propose-submit"
 - waitForAnimationToEnd
 # Meetup proposal bubble visible in thread
 - assertVisible: "Meetup Proposal"

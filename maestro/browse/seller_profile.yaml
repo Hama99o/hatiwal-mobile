@@ -43,7 +43,9 @@ appId: com.hatiwal.app
 # the static title is a race the loaded screen always wins. "Active Listings" is a
 # literal stat label in ProfileHeader and is there for every profile.
 - assertVisible: "Active Listings"
-- assertVisible: "Items Sold"
+# NOT "Items Sold". ProfileHeader renders exactly TWO stat cells — "Active
+# Listings" and "Joined". `profile.userProfile.soldItems` ("Items Sold") is a
+# dead key, referenced nowhere in the app (UI-021).
 - assertVisible: "Joined"
 # Back to listing detail
 - back
