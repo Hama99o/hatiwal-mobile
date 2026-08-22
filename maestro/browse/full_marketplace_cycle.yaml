@@ -46,7 +46,10 @@ appId: com.hatiwal.app
 - tapOn: "Search a province…"
 - inputText: "Kabul"
 - waitForAnimationToEnd
+# The province suggestion rows now carry testID="province-option"; a bare
+# index tap here selected no particular element.
 - tapOn:
+    id: "province-option"
     index: 0
 - waitForAnimationToEnd
 - tapOn: "Confirm location"

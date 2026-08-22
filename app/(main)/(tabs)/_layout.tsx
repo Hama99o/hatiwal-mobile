@@ -43,6 +43,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="browse"
         options={{
+          // A locale-independent handle for the tab. Every tab label is
+          // translated AND two of them change with mode ("Bazaar"/"My Shop"),
+          // so a flow that taps a tab by its text is tied to English and to
+          // the current role. Flows were already targeting `chat-tab`, which
+          // had never existed — no tab had a testID at all.
+          tabBarButtonTestID: "browse-tab",
           title: isSeller ? t("sidebar.myListings") : t("sidebar.browse"),
           tabBarIcon: ({ color, size }) =>
             isSeller ? <Package size={size} color={color} /> : <Store size={size} color={color} />,
@@ -55,6 +61,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="categories"
         options={{
+          // A locale-independent handle for the tab. Every tab label is
+          // translated AND two of them change with mode ("Bazaar"/"My Shop"),
+          // so a flow that taps a tab by its text is tied to English and to
+          // the current role. Flows were already targeting `chat-tab`, which
+          // had never existed — no tab had a testID at all.
+          tabBarButtonTestID: "categories-tab",
           href: isSeller ? null : undefined,
           title: t("sidebar.categories"),
           tabBarIcon: ({ color, size }) => <LayoutGrid size={size} color={color} />,
@@ -68,6 +80,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="my-listings"
         options={{
+          // A locale-independent handle for the tab. Every tab label is
+          // translated AND two of them change with mode ("Bazaar"/"My Shop"),
+          // so a flow that taps a tab by its text is tied to English and to
+          // the current role. Flows were already targeting `chat-tab`, which
+          // had never existed — no tab had a testID at all.
+          tabBarButtonTestID: "my-listings-tab",
           href: null,
           title: t("sidebar.myListings"),
           tabBarIcon: ({ color, size }) => <Package size={size} color={color} />,
@@ -78,6 +96,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="saved"
         options={{
+          // A locale-independent handle for the tab. Every tab label is
+          // translated AND two of them change with mode ("Bazaar"/"My Shop"),
+          // so a flow that taps a tab by its text is tied to English and to
+          // the current role. Flows were already targeting `chat-tab`, which
+          // had never existed — no tab had a testID at all.
+          tabBarButtonTestID: "saved-tab",
           href: isAuthenticated && !isSeller ? undefined : null,
           title: t("sidebar.saved"),
           tabBarIcon: ({ color, size, focused }) => (
@@ -90,6 +114,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="chat"
         options={{
+          // A locale-independent handle for the tab. Every tab label is
+          // translated AND two of them change with mode ("Bazaar"/"My Shop"),
+          // so a flow that taps a tab by its text is tied to English and to
+          // the current role. Flows were already targeting `chat-tab`, which
+          // had never existed — no tab had a testID at all.
+          tabBarButtonTestID: "chat-tab",
           href: isAuthenticated ? undefined : null,
           title: t("sidebar.chat"),
           tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
@@ -104,6 +134,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
+          // A locale-independent handle for the tab. Every tab label is
+          // translated AND two of them change with mode ("Bazaar"/"My Shop"),
+          // so a flow that taps a tab by its text is tied to English and to
+          // the current role. Flows were already targeting `chat-tab`, which
+          // had never existed — no tab had a testID at all.
+          tabBarButtonTestID: "profile-tab",
           title: isAuthenticated ? t("sidebar.profile") : t("auth.login"),
           tabBarIcon: ({ color, size }) =>
             isAuthenticated ? (

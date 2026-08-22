@@ -9,8 +9,10 @@ tags:
 # ── Setup: log in and navigate to the Chat tab ─────────────────────────────
 - runFlow: ../auth/login.yaml
 
+# `chat-tab`, not `tab-chat`. The tabs now carry tabBarButtonTestID
+# "<route>-tab" — the convention the other 10 flows already used.
 - tapOn:
-    id: "tab-chat"
+    id: "chat-tab"
 
 # ── Happy path: mark a conversation as read ────────────────────────────────
 # Wait for the conversations list to load

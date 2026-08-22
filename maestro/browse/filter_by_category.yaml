@@ -8,7 +8,9 @@ appId: com.hatiwal.app
 # Open filter sheet, confirm the always-visible category row underneath is untouched
 - tapOn: "Filters"
 - waitForAnimationToEnd
-- assertVisible: "All Categories"
+# The chip row's unfiltered chip is "All" (common.all). "All Categories" is
+# `browse.allCategories`, a dead key the app never renders (UI-021).
+- assertVisible: "All"
 # Close the sheet — the category chip row lives outside it
 - tapOn: "Show results"
 - waitForAnimationToEnd

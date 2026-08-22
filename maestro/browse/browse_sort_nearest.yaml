@@ -10,7 +10,7 @@ appId: com.hatiwal.app
 
 # Open the filter panel
 - tapOn:
-    id: "browse.filters"
+    id: "browse-filters-toggle"   # was `browse.filters` — an i18n KEY prefix, never a testID
 - waitForAnimationToEnd
 
 # Scroll down inside the filter panel until the Sort section is visible

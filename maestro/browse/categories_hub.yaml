@@ -6,9 +6,17 @@ appId: com.hatiwal.app
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
-# Tap the "Browse categories" grid-icon affordance in the BrowseHeader
+# The hub is reached from the dedicated CATEGORIES TAB.
+#
+# There is no "Browse categories" affordance in BrowseHeader — that string comes
+# from `browse.browseCategories`, a dead translation key (UI-021), and
+# BrowseHeader.tsx says so in a comment: "The full categories hub is reached from
+# the dedicated Categories tab". The LayoutGrid icon in the header is the
+# grid/list VIEW toggle (browse.viewGrid), not a categories link.
+#
+# Targeted by testID because every tab label is translated.
 - tapOn:
-    text: "Browse categories"
+    id: "categories-tab"
 - waitForAnimationToEnd
 
 # Hub screen is shown
@@ -45,9 +53,9 @@ appId: com.hatiwal.app
     text: "Electronics"
     selected: true
 
-# Step 2: go back to the hub
+# Step 2: go back to the hub (same reason as above)
 - tapOn:
-    text: "Browse categories"
+    id: "categories-tab"
 - waitForAnimationToEnd
 - assertVisible: "Categories"
 

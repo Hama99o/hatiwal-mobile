@@ -117,6 +117,23 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={label}
+              // A stable, locale-independent handle for each tab.
+              //
+              // This bar REPLACES react-navigation's own BottomTabBar, so the
+              // `tabBarButtonTestID` option declared per screen in
+              // app/(main)/(tabs)/_layout.tsx is never read by anything unless it
+              // is honoured HERE — setting it in the options alone is a no-op, as
+              // a device hierarchy dump confirmed (the tab buttons had an
+              // accessibility label and no resource-id at all).
+              //
+              // The fallback matters as much as the option: every tab label is
+              // translated, and two of them change with mode ("Bazaar" for a
+              // buyer, "My Shop" for a seller), so a flow that taps a tab by its
+              // text is tied to English AND to the current role.
+              testID={
+                (options as { tabBarButtonTestID?: string }).tabBarButtonTestID
+                ?? `${route.name}-tab`
+              }
               onPress={onPress}
               onLongPress={onLongPress}
               style={styles.item}

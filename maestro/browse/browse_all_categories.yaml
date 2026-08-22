@@ -1,23 +1,44 @@
 appId: com.hatiwal.app
 ---
-# Bazaar — verify all category chips load and can be tapped
+# Bazaar — the category chip row loads, filters the feed, and clears again.
+#
+# This flow used to tap "All Categories" and expect a category filter SHEET to
+# open. Neither exists. `browse.allCategories` ("All Categories") is a dead
+# translation key — referenced nowhere in the app (UI-021) — and the categories
+# are an INLINE horizontal chip row, not a sheet. The chips are "All"
+# (common.all) plus each category's own name.
+#
+# It also asserted "Clothes", but the category is named "Clothes & Fashion", and
+# Maestro matches an anchored regex. Only chips that are actually on screen are
+# asserted here; the rest of the row is off to the side and would need a
+# horizontal scroll to prove nothing extra.
 
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
-# Scroll the category chips horizontally to see all
-- tapOn: "All Categories"
-- waitForAnimationToEnd
-# Category filter sheet opens — should list all categories
-- assertVisible: "Electronics"
-- assertVisible: "Clothes"
-- assertVisible: "Vehicles"
-# Tap a category
+
+# The row starts on "All", which is the unfiltered state.
+- assertVisible:
+    text: "All"
+    selected: true
+
+# ── Filter by a category ────────────────────────────────────────────────────
 - tapOn: "Electronics"
 - waitForAnimationToEnd
-# Feed is filtered
-- assertVisible: "Bazaar"
-# Clear filter — tap "All Categories" chip or the X
-- tapOn: "All Categories"
+- assertVisible:
+    text: "Electronics"
+    selected: true
+- assertNotVisible:
+    text: "All"
+    selected: true
+
+# ── Clear it again ──────────────────────────────────────────────────────────
+- tapOn:
+    text: "All"
 - waitForAnimationToEnd
-- assertVisible: "Bazaar"
+- assertVisible:
+    text: "All"
+    selected: true
+- assertNotVisible:
+    text: "Electronics"
+    selected: true

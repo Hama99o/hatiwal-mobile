@@ -138,6 +138,11 @@ export function ProvincePickerSheet({
               return (
                 <Pressable
                   key={province.value}
+                  // A handle for the filtered result rows. Province names are data,
+                  // not translations, so a flow cannot rely on their wording — and
+                  // with nothing to target, flows fell back to a bare
+                  // `tapOn: index:`, which selects no particular element at all.
+                  testID="province-option"
                   style={[
                     styles.row,
                     {

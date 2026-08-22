@@ -6,8 +6,10 @@ appId: com.hatiwal.app
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
+# See categories_hub.yaml: "Browse categories" is a dead key; the hub is the
+# Categories tab.
 - tapOn:
-    text: "Browse categories"
+    id: "categories-tab"
 - waitForAnimationToEnd
 
 - assertVisible: "Categories"

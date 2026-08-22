@@ -6,6 +6,7 @@ appId: com.hatiwal.app
 - tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
 # Scroll down to meta section where views count is shown
@@ -16,7 +17,12 @@ appId: com.hatiwal.app
 # Go back and re-open the same listing — count should increment
 - back
 - waitForAnimationToEnd
+# A bare `tapOn: index:` has NO selector: it matches every element on screen,
+# so index 0 is whatever lands first in hierarchy order — never the feed card.
+# The flow stayed on the feed and failed further down on the detail screen it
+# never opened.
 - tapOn:
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
 - scroll
