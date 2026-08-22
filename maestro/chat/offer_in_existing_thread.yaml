@@ -6,18 +6,12 @@ appId: com.hatiwal.app
 # CR fix: "chat-tab" has no testID anywhere in the tab bar (same defect
 # documented and fixed in offer_send_and_accept.yaml / reserve_after_accept.yaml)
 # — tap the "Chats" label (its actual translated tab title, sidebar.chat) instead.
-- tapOn: "Chats"
-- waitForAnimationToEnd
-
-# Open existing conversation
-# A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
-# and index 0 is whatever comes first in the hierarchy — the heading or the
-# search bar, never a conversation. The flow stayed on the list and then failed
-# on the composer it never reached ("Type a message..." is visible).
-- tapOn:
-    id: "conversation-row-\\d+"
-    index: 0
-- waitForAnimationToEnd
+# Opens the thread on a listing that is still ACTIVE, so the composer and its
+# "+" actions sheet exist. Opening "the first conversation" landed on a sold or
+# reserved listing depending on run order, and there the composer is replaced by
+# ListingUnavailableNotice — no "+" button at all. See the helper for the
+# database evidence.
+- runFlow: ../_helpers/open_active_conversation.yaml
 - assertVisible: "Chat"
 
 # Existing messages present — TASK-K487: the composer's meetup/file/photo/

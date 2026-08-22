@@ -33,6 +33,15 @@ appId: com.hatiwal.app
     index: 0
     id: "listing-card"
 - waitForAnimationToEnd
+# The seller row sits below the photo, the price, the description and the views
+# chart, so it is off-screen on arrival — and `tapOn` does not scroll to reach
+# its target. None of the ten flows that tap this had a scroll; on a tablet the
+# hero alone takes 60% of the viewport, which makes it certain.
+- scrollUntilVisible:
+    element:
+      id: "seller-profile-link"
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     id: "seller-profile-link"
 - waitForAnimationToEnd

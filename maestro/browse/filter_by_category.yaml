@@ -5,15 +5,22 @@ appId: com.hatiwal.app
 
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
-# Open filter sheet, confirm the always-visible category row underneath is untouched
-- tapOn: "Filters"
-- waitForAnimationToEnd
 # The chip row's unfiltered chip is "All" (common.all). "All Categories" is
 # `browse.allCategories`, a dead key the app never renders (UI-021).
+#
+# Asserted BEFORE the sheet is opened, and again after it closes. The original
+# order asserted it WHILE the filter sheet was open, describing the chip row as
+# "always visible regardless of the filter sheet's open state" — but the sheet is
+# a modal that covers the row, so that could not hold. What is actually worth
+# proving is that opening and closing the sheet leaves the row's selection alone.
 - assertVisible: "All"
+
+- tapOn: "Filters"
+- waitForAnimationToEnd
 # Close the sheet — the category chip row lives outside it
 - tapOn: "Show results"
 - waitForAnimationToEnd
+- assertVisible: "All"
 # Select a category (Electronics is common — adjust if seeded differently)
 - tapOn: "Electronics"
 - waitForAnimationToEnd

@@ -3,16 +3,12 @@ appId: com.hatiwal.app
 # Meetup proposal validation — place and time are required
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Chats"
-- waitForAnimationToEnd
-# A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
-# and index 0 is whatever comes first in the hierarchy — the heading or the
-# search bar, never a conversation. The flow stayed on the list and then failed
-# on the composer it never reached ("Type a message..." is visible).
-- tapOn:
-    id: "conversation-row-\\d+"
-    index: 0
-- waitForAnimationToEnd
+# Opens the thread on a listing that is still ACTIVE, so the composer and its
+# "+" actions sheet exist. Opening "the first conversation" landed on a sold or
+# reserved listing depending on run order, and there the composer is replaced by
+# ListingUnavailableNotice — no "+" button at all. See the helper for the
+# database evidence.
+- runFlow: ../_helpers/open_active_conversation.yaml
 # TASK-K487: the composer's meetup/file/photo/offer icons are now collapsed
 # behind a single "+" actions sheet — open it first, then tap the row.
 - tapOn:

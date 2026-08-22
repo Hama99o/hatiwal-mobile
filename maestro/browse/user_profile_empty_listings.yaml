@@ -15,6 +15,15 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Navigate to a seller whose profile has 0 listings
+# The seller row sits below the photo, the price, the description and the views
+# chart, so it is off-screen on arrival — and `tapOn` does not scroll to reach
+# its target. None of the ten flows that tap this had a scroll; on a tablet the
+# hero alone takes 60% of the viewport, which makes it certain.
+- scrollUntilVisible:
+    element:
+      id: "seller-profile-link"
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     # `seller-name` / `seller-identity` do not exist. The seller row on the listing
     # detail screen carries testID="seller-profile-link" (ListingDetail.tsx), which

@@ -28,7 +28,7 @@ appId: com.hatiwal.app
 # Scroll down to the Seller section
 - scrollUntilVisible:
     element:
-      text: "Usually responds"
+      text: "Usually responds.*"   # the full strings are "Usually responds within 1 hour" / "within a day" / "within a few days"
     direction: DOWN
     timeout: 5000
 
@@ -42,6 +42,15 @@ appId: com.hatiwal.app
 
 # ── Seller Profile: both badge rows visible ──────────────────────────────────
 # Tap the seller identity row to open their public profile
+# The seller row sits below the photo, the price, the description and the views
+# chart, so it is off-screen on arrival — and `tapOn` does not scroll to reach
+# its target. None of the ten flows that tap this had a scroll; on a tablet the
+# hero alone takes 60% of the viewport, which makes it certain.
+- scrollUntilVisible:
+    element:
+      id: "seller-profile-link"
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     id: "seller-profile-link"
 - waitForAnimationToEnd

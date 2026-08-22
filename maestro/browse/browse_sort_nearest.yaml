@@ -26,11 +26,17 @@ appId: com.hatiwal.app
 # off-screen to the right, and `tapOn` does not scroll to reach them. Scroll
 # the row sideways first. (This is why the chip "was not visible" while being
 # rendered unconditionally.)
-- scrollUntilVisible:
-    element:
-      text: "Nearest first"
-    direction: RIGHT
-    timeout: 15000
+# Swipe the sort ROW itself, anchored on a chip inside it.
+#
+# `scrollUntilVisible ... direction: RIGHT` swipes at the screen centre, which is
+# not necessarily on this row — it reached "Most viewed" (5th chip) but never
+# "Nearest first" (6th and last). Anchoring the swipe on a chip guarantees the
+# gesture lands on the horizontal ScrollView that needs to move.
+- swipe:
+    from:
+      text: "Most viewed"
+    direction: LEFT
+- waitForAnimationToEnd
 - assertVisible: "Nearest first"
 
 # Tap "Nearest first" — this triggers the OS location permission prompt on a

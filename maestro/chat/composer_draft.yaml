@@ -8,12 +8,12 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 
 # ── Step 1: Open the first conversation ──────────────────────────────────────
-- tapOn: "Chats"
-- waitForAnimationToEnd
-- tapOn:
-    id: "conversation-row-\\d+"
-    index: 0
-- waitForAnimationToEnd
+# Opens the thread on a listing that is still ACTIVE, so the composer and its
+# "+" actions sheet exist. Opening "the first conversation" landed on a sold or
+# reserved listing depending on run order, and there the composer is replaced by
+# ListingUnavailableNotice — no "+" button at all. See the helper for the
+# database evidence.
+- runFlow: ../_helpers/open_active_conversation.yaml
 - assertVisible: "Type a message..."
 
 # ── Step 2: Type a draft message but do NOT send ──────────────────────────────
@@ -28,9 +28,13 @@ appId: com.hatiwal.app
 - assertVisible: "Messages"
 
 # ── Step 4: Reopen the SAME conversation ─────────────────────────────────────
+# The SAME one, by name. Index 0 is the most recently active thread, and a
+# *draft* does not bump a conversation's position — so reopening index 0 here
+# could open a different thread and then assert the draft in it. The row
+# truncates the title, so this matches the prefix (see
+# _helpers/open_active_conversation.yaml).
 - tapOn:
-    id: "conversation-row-\\d+"
-    index: 0
+    text: "Phone Case.*"
 - waitForAnimationToEnd
 
 # ── Step 5: Assert the draft text is restored in the composer ────────────────
@@ -48,13 +52,9 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 
-# A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
-# and index 0 is whatever comes first in the hierarchy — the heading or the
-# search bar, never a conversation. The flow stayed on the list and then failed
-# on the composer it never reached ("Type a message..." is visible).
+# Same thread again, by name rather than position.
 - tapOn:
-    id: "conversation-row-\\d+"
-    index: 0
+    text: "Phone Case.*"
 - waitForAnimationToEnd
 
 # After a successful send the draft must be gone — composer is empty.

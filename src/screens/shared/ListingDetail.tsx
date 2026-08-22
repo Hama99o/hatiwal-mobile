@@ -760,11 +760,16 @@ export default function ListingDetailScreen() {
                 contentContainerStyle={{ paddingHorizontal: 12, gap: 10, paddingBottom: 16 }}
                 keyExtractor={(item) => String(item.id)}
                 renderItem={({ item }) => (
-                  <ListingCard
-                    listing={item}
-                    style={{ width: 160 }}
-                    onPress={() => router.replace(`/(main)/listing/${item.id}` as never)}
-                  />
+                  // Wrapped for a distinct handle: ListingCard's own testID is
+                  // "listing-card", the same as every feed card, so a flow on this
+                  // screen could not say "a card in the SIMILAR rail" specifically.
+                  <View testID="similar-listing">
+                    <ListingCard
+                      listing={item}
+                      style={{ width: 160 }}
+                      onPress={() => router.replace(`/(main)/listing/${item.id}` as never)}
+                    />
+                  </View>
                 )}
               />
             </AnimatedSection>

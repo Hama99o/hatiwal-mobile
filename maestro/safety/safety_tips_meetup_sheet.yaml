@@ -5,14 +5,12 @@ appId: com.hatiwal.app
 # the in-progress fields intact (no stacking glitches).
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Chats"
-- waitForAnimationToEnd
-# A bare `tapOn: index:` has NO selector: it matches every element on screen and
-# index N is whatever lands there in hierarchy order, not the thing meant.
-- tapOn:
-    id: "conversation-row-\\d+"
-    index: 0
-- waitForAnimationToEnd
+# Opens the thread on a listing that is still ACTIVE, so the composer and its
+# "+" actions sheet exist. Opening "the first conversation" landed on a sold or
+# reserved listing depending on run order, and there the composer is replaced by
+# ListingUnavailableNotice — no "+" button at all. See the helper for the
+# database evidence.
+- runFlow: ../_helpers/open_active_conversation.yaml
 # TASK-K487: the composer's meetup/file/photo/offer icons are now collapsed
 # behind a single "+" actions sheet — open it first, then tap the row.
 - tapOn:

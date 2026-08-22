@@ -18,7 +18,7 @@ appId: com.hatiwal.app
 - scroll
 - waitForAnimationToEnd
 # "Saved by N person/people" label is now visible
-- assertVisible: "Saved by"
+- assertVisible: "Saved by.*"   # interpolated: "Saved by 3 people" / "Saved by 1 person" (listing.savesCount)
 # Unsave — go back and re-open to confirm the row still reflects a valid state
 # (no crash, no negative/undefined count rendered)
 - tapOn:
