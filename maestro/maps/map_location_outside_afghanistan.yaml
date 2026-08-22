@@ -22,18 +22,13 @@ appId: com.hatiwal.app
 # Running it with the default Kabul fix still passes, but proves nothing — the
 # geo step is the test.
 
-- launchApp:
-    clearState: true
-- runFlow: ../_helpers/open_bundle.yaml
-- runFlow: ../_helpers/goto_login.yaml
-- tapOn: "Email"
-- inputText: "seller@hatiwal.test"
-- tapOn: "Password"
-- inputText: "Password123!"
-- tapOn: "Sign In"
-- extendedWaitUntil:
-    visible: "Me"
-    timeout: 60000
+# clearState + sign in. The helper also scrolls to "Sign In", which the
+# keyboard hides on a small screen after typing the password.
+- runFlow:
+    file: ../_helpers/login_fresh.yaml
+    env:
+      EMAIL: seller@hatiwal.test
+      PASSWORD: Password123!
 
 # ── Use the (foreign) current location in the LISTING map ───────────────────
 - tapOn: "Me"

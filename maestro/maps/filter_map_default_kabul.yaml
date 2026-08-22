@@ -13,18 +13,13 @@ appId: com.hatiwal.app
 #   - the range control is usable, so a buyer with location off is not stuck
 #   - confirming still applies a location filter
 
-- launchApp:
-    clearState: true
-- runFlow: ../_helpers/open_bundle.yaml
-- runFlow: ../_helpers/goto_login.yaml
-- tapOn: "Email"
-- inputText: "buyer@hatiwal.test"
-- tapOn: "Password"
-- inputText: "Password123!"
-- tapOn: "Sign In"
-- extendedWaitUntil:
-    visible: "Me"
-    timeout: 60000
+# clearState + sign in. The helper also scrolls to "Sign In", which the
+# keyboard hides on a small screen after typing the password.
+- runFlow:
+    file: ../_helpers/login_fresh.yaml
+    env:
+      EMAIL: buyer@hatiwal.test
+      PASSWORD: Password123!
 
 # ── Open the filter, then the map ───────────────────────────────────────────
 - tapOn: "Bazaar"
@@ -52,7 +47,11 @@ appId: com.hatiwal.app
 - tapOn:
     id: "location-radius-25"
 - waitForAnimationToEnd
-- assertVisible: "Within 25 km"
+# The chip itself renders "25 km", which is on screen whether or not it is
+# SELECTED — so asserting it here would prove nothing. "Within 25 km" belongs to
+# the filter sheet's location row and only appears once the choice is confirmed,
+# which is what the read-back at the end of this flow checks.
+- assertVisible: "25 km"
 
 # ── Confirming applies the filter, AND it is Kabul ──────────────────────────
 - tapOn:

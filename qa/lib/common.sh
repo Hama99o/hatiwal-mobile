@@ -64,6 +64,18 @@ QA_GEO_LON="${QA_GEO_LON:-69.2075}"
 # selectable.
 QA_GALLERY_IMAGE="${QA_GALLERY_IMAGE:-$MOBILE_DIR/assets/icon.png}"
 
+# Cores and RAM per emulator. THIS is what bounds how many sessions a host can
+# actually run, and getting it wrong is expensive in a way that is easy to
+# misread: four emulators at 4 cores each request all 16 cores of this machine,
+# leaving nothing for adb, Maestro, Metro or the app's own startup. The emulators
+# then cannot boot the bundle in time and EVERY flow on the newer sessions fails
+# with `"Development Build" is not visible` — which looks like a Metro problem,
+# except Metro sits at 0.8% CPU because it is never reached.
+#
+# Rule of thumb: keep (sessions x QA_EMU_CORES) at roughly half the host's cores.
+QA_EMU_CORES="${QA_EMU_CORES:-4}"
+QA_EMU_MEMORY="${QA_EMU_MEMORY:-3072}"
+
 METRO_PORT="${METRO_PORT:-3008}"
 API_PORT="${API_PORT:-3007}"
 

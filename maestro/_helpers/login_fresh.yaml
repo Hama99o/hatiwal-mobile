@@ -1,0 +1,49 @@
+appId: com.hatiwal.app
+env:
+  EMAIL: buyer@hatiwal.test
+  PASSWORD: Password123!
+---
+# Sign in from a COMPLETELY FRESH app state.
+#
+# Differs from login.yaml, which warm-launches deliberately (to avoid paying the
+# launcher + onboarding cost on 190 flows). This one starts with
+# `launchApp: clearState: true`, which runs `pm clear` and therefore also REVOKES
+# RUNTIME PERMISSIONS — the only way to guarantee a flow that needs to see the
+# location prompt actually sees it.
+#
+# Use it when the flow's subject IS the fresh state: permission prompts, first-run
+# behaviour, onboarding. Use login.yaml everywhere else; it is much cheaper.
+#
+# Pass a different account with --env EMAIL=… PASSWORD=…
+
+- launchApp:
+    clearState: true
+- runFlow: open_bundle.yaml
+- runFlow: goto_login.yaml
+
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+
+# Reach the button even when the KEYBOARD covers it.
+#
+# Typing raises the IME, and on a small screen (360dp / 720x1280) "Sign In" is
+# entirely behind it — the tap then fails with "Element not found: Sign In" on a
+# button that is simply hidden, and every flow using an inline login dies at this
+# step on that form factor only. scrollUntilVisible is the right tool because it
+# checks first and does nothing when the button is already visible, so larger
+# screens pay nothing.
+- scrollUntilVisible:
+    element:
+      text: "Sign In"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Sign In"
+
+# Prove we are actually signed in: "Me" present AND "Login" absent. Asserting
+# "Bazaar" would not do — guests see it too.
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+- assertNotVisible: "Login"

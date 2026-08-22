@@ -66,16 +66,26 @@ appId: com.hatiwal.app
                 text: "http://localhost:8081"
                 optional: true
             - inputText: "http://10.0.2.2:3008"
-            # NOT `hideKeyboard`: on Android Maestro implements it as a BACK
-            # press, and with no keyboard up that reaches the app and exits it
-            # to the Android launcher. Two runs ended on the home screen with no
-            # crash in logcat because of this. Enter submits the URL field
-            # directly, and the Connect tap is a fallback.
-            - pressKey: Enter
+            # HIDE THE KEYBOARD, THEN TAP CONNECT — in that order, deliberately.
+            #
+            # `hideKeyboard` is Back on Android, and this file rightly warns that
+            # Back with NO keyboard up reaches the app and exits it. Here the
+            # keyboard is GUARANTEED up: we just typed into the field. So the IME
+            # consumes the press, and that is what makes this safe.
+            #
+            # It has to happen before the tap because Connect is BEHIND the
+            # keyboard on a small screen. On a 360dp device (720x1280) the URL
+            # field sits at the bottom of the visible area and Connect is entirely
+            # covered — `pressKey: Enter` does not submit there either, so the app
+            # simply never left the launcher and EVERY flow on that form factor
+            # failed with `"Development Build" is not visible`. Verified by
+            # screenshot: URL correctly typed, keyboard up, Connect invisible.
+            - hideKeyboard
             - waitForAnimationToEnd
             - tapOn:
                 text: "Connect"
                 optional: true
+            - waitForAnimationToEnd
       # Metro transforms the bundle on first request — this can take a while.
       - extendedWaitUntil:
           notVisible: "Development Build"

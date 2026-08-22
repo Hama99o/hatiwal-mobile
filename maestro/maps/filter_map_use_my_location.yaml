@@ -17,18 +17,13 @@ appId: com.hatiwal.app
 # correctly reports "Couldn't determine your location" and this flow fails for a
 # device reason rather than an app reason.
 
-- launchApp:
-    clearState: true
-- runFlow: ../_helpers/open_bundle.yaml
-- runFlow: ../_helpers/goto_login.yaml
-- tapOn: "Email"
-- inputText: "buyer@hatiwal.test"
-- tapOn: "Password"
-- inputText: "Password123!"
-- tapOn: "Sign In"
-- extendedWaitUntil:
-    visible: "Me"
-    timeout: 60000
+# clearState + sign in. The helper also scrolls to "Sign In", which the
+# keyboard hides on a small screen after typing the password.
+- runFlow:
+    file: ../_helpers/login_fresh.yaml
+    env:
+      EMAIL: buyer@hatiwal.test
+      PASSWORD: Password123!
 
 - tapOn: "Bazaar"
 - waitForAnimationToEnd

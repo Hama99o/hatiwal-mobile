@@ -84,7 +84,7 @@ emulator_boot() {
   # run that produced zero results, and made `up tablet` claim another run was
   # in progress when nothing was.
   setsid "$EMULATOR_BIN" -avd "$avd" -no-boot-anim -port "$QA_PORT" "${ro[@]}" \
-    -gpu "$gpu" -memory 3072 -cores 4 \
+    -gpu "$gpu" -memory "$QA_EMU_MEMORY" -cores "$QA_EMU_CORES" \
     < /dev/null > "$REPORTS_DIR/emulator.log" 2>&1 9>&- &
 
   local waited=0
