@@ -566,7 +566,78 @@ so the disclosure lives here.
 The lesson is the boring one: stage explicit paths, every time, even when the
 list is long and the directory looks like it is all yours.
 
-### RIG-001 · Two sessions on one emulator produce fake launcher failures
+### RIG-001 · Two sessions on one emulator — SOLVED (multi-session support)
+
+**Was:** one emulator can only be driven by one Maestro at a time, so a second
+QA session was blocked — and worse, its launcher-stage failures looked like app
+bugs. Diagnosing that cost real time twice.
+
+**Now:** every command takes `QA_SESSION=n` and each session drives its own
+emulator instance, from the same APK and the same AVD:
+
+| | Session 1 | Session 2 | Session n |
+|---|---|---|---|
+| serial | `emulator-5554` | `emulator-5556` | `emulator-$((5554+2(n-1)))` |
+| reports | `qa/reports/` | `qa/reports/s2/` | `qa/reports/sn/` |
+| device lock | `reports/.device.lock` | `reports/s2/.device.lock` | `reports/sn/.device.lock` |
+
+Verified live: sessions 1 (tablet, 2560x1600) and 2 (phone, 1080x2400) up
+together, both locks held simultaneously, each resolving its own serial.
+
+Implementation notes worth keeping:
+- **`-read-only` for instances 2+.** An AVD directory carries a lock, so a second
+  `emulator -avd qa_phone` fails outright without it. Read-only lets one AVD back
+  several instances — at the cost of no boot snapshot, so they always cold boot
+  (~2 min). Session 1 keeps snapshotting and stays fast.
+- **Ports step by TWO** (5554, 5556, …) — the odd port in each pair is the adb
+  channel, so stepping by one collides with the previous instance.
+- **`resolve_device` is PINNED to the session's port**, not "the first device adb
+  lists". First-match would hand two sessions the same device — the exact
+  collision this exists to prevent, and invisible: both would appear to work
+  while corrupting each other's runs.
+- One trap already hit: the device lock lives in the reports directory, and it is
+  opened before anything else — so a missing `reports/s2/` produced
+  `flock: Bad file descriptor` → "another QA run is driving the emulator", a
+  maximally misleading way to say `mkdir`. The directory is now created up front.
+
+**Form factors.** `QA_SESSION=n ./qa/qa.sh profile small|phone|large|tablet|reset`
+overrides screen size/density, giving extra form factors without extra AVDs.
+Always `reset` when done — an override survives reboots and would silently skew
+every later run on that device. This is the class of bug that found UI-019 (grid
+hardcoded to 2 columns) and the chat-bubble cap: both shipped, both invisible at
+one width.
+
+**Portability.** The machinery is now generic: everything app-specific lives in
+`qa/qa.config.sh` (copy `qa.config.example.sh`). App id, AVDs, ports, backend
+directory, seed command and accounts are all `${VAR:-default}`, so another React
+Native project needs no edits to `qa.sh` or `qa/lib/*.sh` — only that config and
+`features.yaml`. A project with no local backend leaves `QA_SEED_CMD` empty and
+`seed` just verifies login instead of failing.
+
+Full docs: `qa/README.md` → "Several QA sessions at once" and "Using this rig on
+another app".
+
+### RIG-001b · The rig itself is UNCOMMITTED (worth knowing)
+
+`qa/qa.sh`, `qa/lib/`, `qa/README.md`, `qa/QA_HANDBOOK.md` and `qa/features.yaml`
+are all untracked — only `FLOW_REGISTER.md` and `UI_FINDINGS.md` are in git. The
+rig is another session's unlanded work, and the multi-session and portability
+changes above live inside those untracked files.
+
+Nothing is lost — it is all in the working tree — but until someone commits `qa/`,
+it exists only on this machine. Not committed here on purpose: doing so would put
+~1,400 lines of another session's scripts and docs under this session's authorship
+(the mistake recorded as PROCESS-001 below).
+
+### RIG-001c · Storage ownership — FIXED
+
+`storage/` subdirectories were root-owned (a Docker container writing into the
+bind mount), so a host-run Rails could not create blob directories and most
+attachments failed with EACCES. Fixed with `sudo chown -R "$USER" storage` and the
+e2e seed now attaches photos: 6 listings x 3 photos. Gallery flows are unblocked
+and screenshots finally show the photo-first design instead of "No photo".
+
+
 **Severity:** blocks device QA while it lasts
 **Evidence:** my `run-025` failed at `open_bundle.yaml`'s "Connect" at 22:33; a
 `chat` run (`run-026`, not mine) started the same minute.
