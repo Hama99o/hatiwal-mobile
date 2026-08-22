@@ -1,0 +1,105 @@
+appId: com.hatiwal.app
+---
+# A DEVICE OUTSIDE AFGHANISTAN MUST NOT BE BLOCKED.
+#
+# This is the case that is easy to get wrong, because the place SEARCH is
+# deliberately scoped to Afghanistan (`countrycodes=af` in utils/geocoding.ts).
+# It would be a natural mistake to scope the whole feature that way — and then a
+# seller travelling, or anyone whose GPS resolves abroad, could not set a location
+# at all.
+#
+# Verified in the code before writing this: LocationRangePicker applies no bounds,
+# reverseGeocode sends no country filter, and hatiwal-api validates only sane
+# latitude ranges (-90..90 on saved_search) with no Afghanistan constraint. This
+# flow is what keeps that true.
+#
+# PRECONDITION — the device must actually be abroad:
+#
+#     ./qa/qa.sh geo 48.8566 2.3522      # Paris
+#     ./qa/qa.sh flow maps/map_location_outside_afghanistan
+#     ./qa/qa.sh geo                     # back to Kabul afterwards
+#
+# Running it with the default Kabul fix still passes, but proves nothing — the
+# geo step is the test.
+
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- tapOn: "Email"
+- inputText: "seller@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+
+# ── Use the (foreign) current location in the LISTING map ───────────────────
+- tapOn: "Me"
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Switch to Seller Mode"
+    commands:
+      - tapOn: "Switch to Seller Mode"
+      - waitForAnimationToEnd
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "What are you selling?"
+- inputText: "Abroad Location Item"
+- tapOn: "Enter price"
+- inputText: "700"
+
+- scrollUntilVisible:
+    element:
+      text: "Tap to set exact location on map"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "location-use-my-location"
+- extendedWaitUntil:
+    visible: "While using the app"
+    timeout: 30000
+- tapOn: "While using the app"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Use My Location"
+    timeout: 60000
+
+# ── THE POINT: a foreign fix is a SUCCESS, not an error ─────────────────────
+# No failure banner, and in particular nothing that reads like a refusal. If the
+# feature were ever scoped to Afghanistan, this is where it would show.
+- assertNotVisible: "Couldn't determine your location. Please try again."
+- assertNotVisible: "Location access is blocked. Allow location access in Settings, then try again."
+- assertNotVisible: "Location isn't available on this device."
+
+# ── And it can be confirmed and saved ───────────────────────────────────────
+# reverseGeocode may return no label for a point with no nearby named feature —
+# that is fine and must NOT block confirming. The row losing its prompt is the
+# proof the pin took.
+- tapOn:
+    id: "location-confirm"
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 60000
+- assertNotVisible: "Tap to set exact location on map"
+
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Phones & Tablets"
+- waitForAnimationToEnd
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertVisible: "Abroad Location Item"
+- assertVisible: "Draft"

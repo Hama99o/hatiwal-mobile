@@ -1,0 +1,80 @@
+appId: com.hatiwal.app
+---
+# THE CREATE-LISTING MAP: search a place, drop a pin, and carry it into the form.
+#
+# The map here is `mode="point"` — a single pin, no radius — because a listing has
+# one location, not a search area. So this flow asserts the point-mode contract:
+# a place can be searched and selected, confirming updates the form row from its
+# "not set yet" prompt to the resolved place, and the pin survives into the saved
+# draft.
+#
+# Why the form row matters: a pin that is confirmed but not reflected in the form
+# is the worst outcome, because the seller believes the location is set. The row's
+# text IS the feedback.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "What are you selling?"
+- inputText: "Map Pin Test Item"
+- tapOn: "Enter price"
+- inputText: "1800"
+
+# ── Open the map from the form ──────────────────────────────────────────────
+# The row sits below title/price/category, so it needs a scroll — `tapOn` does
+# not scroll to its target.
+- scrollUntilVisible:
+    element:
+      text: "Tap to set exact location on map"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+
+# Point mode: a confirm button and a search field, and NO radius control.
+- assertVisible:
+    id: "location-confirm"
+- assertVisible:
+    id: "location-search-input"
+- assertNotVisible: "Search radius"
+
+# ── Search a real province and select it ────────────────────────────────────
+# Nominatim is scoped to Afghanistan for SEARCH (countrycodes=af), which is
+# deliberate — this is the path that relies on it.
+- tapOn:
+    id: "location-search-input"
+- inputText: "Herat"
+- extendedWaitUntil:
+    visible:
+      id: "location-search-result"
+    timeout: 45000
+- tapOn:
+    id: "location-search-result"
+- waitForAnimationToEnd
+
+# ── Confirm, and the FORM must show it ──────────────────────────────────────
+- tapOn:
+    id: "location-confirm"
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 45000
+# The prompt is gone: the row now names the place (or falls back to "Location
+# set"). Either is correct; the prompt still showing is not.
+- assertNotVisible: "Tap to set exact location on map"
+
+# ── And it survives the save ────────────────────────────────────────────────
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Phones & Tablets"
+- waitForAnimationToEnd
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertVisible: "Map Pin Test Item"
+- assertVisible: "Draft"

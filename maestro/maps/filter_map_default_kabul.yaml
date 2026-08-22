@@ -1,0 +1,79 @@
+appId: com.hatiwal.app
+---
+# THE BROWSE FILTER MAP — its default state, with no location permission.
+#
+# `launchApp: clearState: true` runs `pm clear`, which REVOKES runtime
+# permissions, so this flow starts from a genuinely permission-less app. That is
+# the precondition it needs, and it is why it does not have to shell out to adb.
+#
+# What must be true with no permission:
+#   - the map opens on KABUL (DEFAULT_CENTER) rather than nowhere
+#   - it does NOT silently prompt just for opening (getCurrentLocationIfPermitted
+#     never prompts — that is the whole reason it exists)
+#   - the range control is usable, so a buyer with location off is not stuck
+#   - confirming still applies a location filter
+
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+
+# ── Open the filter, then the map ───────────────────────────────────────────
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- tapOn:
+    id: "browse-filters-toggle"
+- waitForAnimationToEnd
+- assertVisible: "Set location & range"
+- tapOn: "Set location & range"
+- waitForAnimationToEnd
+
+# The picker is open: its own controls prove it, not a screenshot.
+- assertVisible:
+    id: "location-use-my-location"
+- assertVisible:
+    id: "location-confirm"
+- assertVisible: "Search radius"
+
+# NO permission prompt from merely opening the map. If this ever regresses, every
+# buyer who opens the filter gets an OS dialog they did not ask for.
+- assertNotVisible: "While using the app"
+- assertNotVisible: "Allow Hatiwal to access this device's location?"
+
+# ── The range control works without any location permission ─────────────────
+- tapOn:
+    id: "location-radius-25"
+- waitForAnimationToEnd
+- assertVisible: "Within 25 km"
+
+# ── Confirming applies the filter, AND it is Kabul ──────────────────────────
+- tapOn:
+    id: "location-confirm"
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 30000
+- assertVisible: "Bazaar"
+
+# Reopen the filter and read back what was stored. This is what actually proves
+# "the default is Kabul" — asserting that the picker's controls exist proves only
+# that a map opened.
+#
+# Browse stores `label ?? "<lat>, <lon>"` to 3 decimals, so with no permission the
+# row shows either a reverse-geocoded Kabul name or literally "34.555, 69.207"
+# (DEFAULT_CENTER). Both are Kabul; which one depends on whether Nominatim
+# answered, so the regex accepts either rather than making the test depend on a
+# network round-trip.
+- tapOn:
+    id: "browse-filters-toggle"
+- waitForAnimationToEnd
+- assertVisible: "Within 25 km"
+- assertVisible: "(Kabul|34\\.555).*"

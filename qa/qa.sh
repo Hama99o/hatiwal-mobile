@@ -237,6 +237,23 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   # What has been claimed so far, and by whom is implicit in the run reports.
   claims)  cat "$QA_DIR/reports/.claims" 2>/dev/null | tr '\n' ' '; echo ;;
 
+  # Move THIS session's device. `qa.sh geo` with no argument returns it to the
+  # configured default (Kabul).
+  #
+  # Needed because "the device is somewhere else" is a real test case, not a
+  # curiosity: a seller travelling, or anyone whose GPS puts them outside
+  # Afghanistan, must NOT be blocked from setting a location. The place search is
+  # deliberately scoped to Afghanistan (countrycodes=af), so it is easy to assume
+  # the whole feature is — it is not, and this command is how that stays proven.
+  #
+  #   ./qa/qa.sh geo 48.8566 2.3522    # Paris
+  #   ./qa/qa.sh geo                   # back to Kabul
+  geo)     resolve_device || die "no emulator for session $QA_SESSION"
+           lat="${1:-$QA_GEO_LAT}"; lon="${2:-$QA_GEO_LON}"
+           adb_qa emu geo fix "$lon" "$lat" >/dev/null 2>&1 \
+             && ok "session $QA_SESSION device is now at $lat, $lon" \
+             || die "could not set the device location" ;;
+
   net)     python3 "$HERE/lib/net.py" "$@" ;;
 
   register)

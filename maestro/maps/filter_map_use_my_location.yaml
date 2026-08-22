@@ -1,0 +1,73 @@
+appId: com.hatiwal.app
+---
+# "USE MY LOCATION" IN THE BROWSE FILTER — the permission prompt, the grant, and
+# the map actually moving.
+#
+# This is the case the product cares about most: a buyer taps "Use My Location"
+# and expects the map to go where they are. Three things have to happen in order,
+# and only the first two are usually tested:
+#   1. the OS permission dialog APPEARS (it must ask — it must not silently fail)
+#   2. granting it is accepted
+#   3. the coordinates actually change, and confirming carries them into the filter
+#
+# clearState wipes runtime permissions, so the prompt is guaranteed here rather
+# than depending on what a previous flow left granted.
+#
+# Precondition: the device has a GPS fix. `qa.sh up` seeds one; without it the app
+# correctly reports "Couldn't determine your location" and this flow fails for a
+# device reason rather than an app reason.
+
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- tapOn:
+    id: "browse-filters-toggle"
+- waitForAnimationToEnd
+- tapOn: "Set location & range"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "location-use-my-location"
+
+# ── 1. It must ASK ──────────────────────────────────────────────────────────
+- tapOn:
+    id: "location-use-my-location"
+- extendedWaitUntil:
+    visible: "While using the app"
+    timeout: 30000
+
+# ── 2. Granting is accepted ─────────────────────────────────────────────────
+- tapOn: "While using the app"
+- waitForAnimationToEnd
+
+# ── 3. It resolves, and says nothing about failing ──────────────────────────
+# The spinner replaces the button label while acquiring, so wait for the button
+# to come back before judging the outcome.
+- extendedWaitUntil:
+    visible: "Use My Location"
+    timeout: 60000
+# None of the failure banners may be showing. These are the real regressions:
+# a silent no-op, or an error where a fix was available.
+- assertNotVisible: "Couldn't determine your location. Please try again."
+- assertNotVisible: "Location access is blocked. Allow location access in Settings, then try again."
+- assertNotVisible: "Location request timed out. Please try again."
+
+# ── The chosen point carries into the filter ────────────────────────────────
+- tapOn:
+    id: "location-confirm"
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 30000
+- assertVisible: "Bazaar"

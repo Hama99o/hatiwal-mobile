@@ -263,6 +263,7 @@ export function LocationRangePicker({
           >
             <Search size={18} color={colors.mutedForeground} />
             <TextInput
+              testID="location-search-input"
               value={query}
               onChangeText={setQuery}
               placeholder={t("browse.searchLocation")}
@@ -289,6 +290,7 @@ export function LocationRangePicker({
               {results.map((r, i) => (
                 <Pressable
                   key={`${r.latitude},${r.longitude},${i}`}
+                  testID="location-search-result"
                   onPress={() => handleSelectResult(r)}
                   style={{
                     flexDirection: rowDir,
@@ -366,7 +368,10 @@ export function LocationRangePicker({
           )}
 
           {/* Use my location — its own dedicated button, not overlapping the map */}
+          {/* testID: while acquiring GPS the label is replaced by a spinner, so
+              the words cannot identify this button for its whole lifetime. */}
           <Pressable
+            testID="location-use-my-location"
             onPress={handleUseMyLocation}
             disabled={gpsLoading}
             style={{
@@ -402,6 +407,7 @@ export function LocationRangePicker({
                   return (
                     <Pressable
                       key={km}
+                      testID={`location-radius-${km}`}
                       onPress={() => setRadiusKm(km)}
                       style={{
                         paddingHorizontal: 16,
@@ -428,7 +434,10 @@ export function LocationRangePicker({
             </View>
           )}
 
+          {/* testID: same reason — the label swaps to a spinner while the chosen
+              point is reverse-geocoded. */}
           <Pressable
+            testID="location-confirm"
             onPress={handleConfirm}
             disabled={confirming}
             style={{

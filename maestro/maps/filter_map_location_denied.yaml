@@ -1,0 +1,68 @@
+appId: com.hatiwal.app
+---
+# DENYING location must leave the filter usable.
+#
+# The failure mode this guards against is not a crash — it is a dead end: the
+# buyer says no, and the map is then stuck with no way to pick anywhere. What the
+# app should do (and does) is show a persistent inline banner explaining the
+# state, keep the map on Kabul, and leave the range control working, so a buyer
+# who never grants location can still filter by area manually.
+#
+# The banner is deliberately PERSISTENT rather than a toast: a transient alert can
+# be missed, and then the button looks broken.
+
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- tapOn: "Email"
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- tapOn:
+    id: "browse-filters-toggle"
+- waitForAnimationToEnd
+- tapOn: "Set location & range"
+- waitForAnimationToEnd
+
+# ── Say no ──────────────────────────────────────────────────────────────────
+- tapOn:
+    id: "location-use-my-location"
+- extendedWaitUntil:
+    visible: "While using the app"
+    timeout: 30000
+# The Android dialog's refuse option. Wording varies by version, so both are
+# accepted and the assertion below is the real gate.
+- tapOn:
+    text: "Don.t allow"
+    optional: true
+- tapOn:
+    text: "Deny"
+    optional: true
+- waitForAnimationToEnd
+
+# ── The refusal is EXPLAINED, not swallowed ─────────────────────────────────
+- extendedWaitUntil:
+    visible: "Location access is blocked. Allow location access in Settings, then try again."
+    timeout: 30000
+
+# ── And the map is still usable by hand ────────────────────────────────────
+# This is the part that matters: denying location must not strand the buyer.
+- tapOn:
+    id: "location-radius-10"
+- waitForAnimationToEnd
+- assertVisible: "Within 10 km"
+- tapOn:
+    id: "location-confirm"
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 30000
+- assertVisible: "Bazaar"

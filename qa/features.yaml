@@ -47,6 +47,13 @@ features:
     jest: ["src/screens/seller/listing-form/__tests__/*", "src/screens/seller/my-listings/__tests__/*"]
     api: ["/listings", "/listings/:id", "/listings/:id/publish", "/listings/:id/reserve", "/listings/:id/sold"]
 
+  maps:
+    title: "Location pickers — create-listing pin, Browse filter range, current location, permissions"
+    flows: maps
+    smoke: [filter_map_default_kabul, create_listing_map_pin]
+    jest: ["src/components/common/__tests__/LocationRangePicker*"]
+    api: ["/listings"]
+
   gallery:
     title: "Listing photo upload, carousel, reorder, empty-photo state"
     flows: gallery
