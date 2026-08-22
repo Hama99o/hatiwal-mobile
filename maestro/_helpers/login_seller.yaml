@@ -1,20 +1,91 @@
 appId: com.hatiwal.app
+env:
+  # Maestro evaluates ${...} as JAVASCRIPT, so the bash-style default this file
+  # used to carry — ${EMAIL:-"seller@hatiwal.test"} — did not mean "or default".
+  # It evaluated to the number NaN, and every flow typed "NaN" into both the
+  # email and password fields, then failed with "Invalid login credentials".
+  # An `env:` block is Maestro's real default mechanism; --env still overrides it.
+  EMAIL: seller@hatiwal.test
+  PASSWORD: Password123!
 ---
-# Reusable seller login — logs in and switches to Seller Mode
-# Include with: - runFlow: ../_helpers/login_seller.yaml
+# Be logged in as the SELLER, in Seller Mode. Included by 60 flows — every
+# listings/* creation and edit flow, all of seller/*, and parts of chat, gallery
+# and reviews — so its cost and its fragility are multiplied by 60.
+#
+# WHY IT IS NOT `clearState: true` + assertVisible "Welcome to Hatiwal" any more:
+# that shape lands in the expo-dev-client LAUNCHER, because clearState wipes the
+# remembered Metro server. Every one of those 60 flows died at step 1 with
+# `Assertion is false: "Welcome to Hatiwal" is visible` while the app sat on the
+# launcher's "Development servers" screen (verified, run-014). It is the same
+# treatment login.yaml already received; this file just had not caught up.
+#
+# IDENTITY IS VERIFIED, NOT ASSUMED. login.yaml warm-launches and signs in only
+# "if the login form is on screen", which means passing it an EMAIL is a no-op
+# whenever a session already exists — the flow then runs as whoever was signed
+# in last. That really happened: run-015 ran as the BUYER, so My Shop read
+# "0 listings" and it looked exactly like a missing fixture. A seller flow cannot
+# tolerate that, so this helper checks WHO is signed in and switches accounts if
+# it is the wrong one.
+- launchApp
 
-- launchApp:
-    clearState: true
-- assertVisible: "Welcome to Hatiwal"
-- tapOn: "Email"
-- inputText: ${EMAIL:-"seller@hatiwal.test"}
-- tapOn: "Password"
-- inputText: ${PASSWORD:-"Password123!"}
-- tapOn: "Sign In"
-- assertVisible: "Bazaar"
-# Switch to seller mode via Profile tab
+# Both no-op when the app is already past that stage.
+- runFlow: open_bundle.yaml
+- runFlow: goto_login.yaml
+
+# ── Wrong account? Sign out first. ──────────────────────────────────────────
+# "Ahmad Karimi" is buyer@hatiwal.test; the seller is "Omar Noori" (db/seeds/e2e.rb).
+- runFlow:
+    when:
+      visible: "Me"
+    commands:
+      - tapOn: "Me"
+      - waitForAnimationToEnd
+      - runFlow:
+          when:
+            visible: "Ahmad Karimi"
+          commands:
+            - scrollUntilVisible:
+                element:
+                  text: "Sign Out"
+                direction: DOWN
+                timeout: 15000
+            - tapOn: "Sign Out"
+            - waitForAnimationToEnd
+            - tapOn:
+                text: "Sign Out"
+                optional: true
+            - waitForAnimationToEnd
+            - runFlow: goto_login.yaml
+
+# ── Sign in, only if the form is actually on screen ─────────────────────────
+- runFlow:
+    when:
+      visible: "Email"
+    commands:
+      - tapOn: "Email"
+      - inputText: ${EMAIL}
+      - tapOn: "Password"
+      - inputText: ${PASSWORD}
+      - tapOn: "Sign In"
+      - waitForAnimationToEnd
+
+# Prove we are SIGNED IN — "Me" present AND "Login" absent. "Bazaar" is the
+# wrong assertion: guests see it too, so this helper could report success while
+# the app was still a guest.
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+- assertNotVisible: "Login"
+
+# ── Seller mode ─────────────────────────────────────────────────────────────
+# Conditional, because a warm launch may already be in seller mode from the
+# previous flow.
 - tapOn: "Me"
-- assertVisible: "Switch to Seller Mode"
-- tapOn: "Switch to Seller Mode"
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Switch to Seller Mode"
+    commands:
+      - tapOn: "Switch to Seller Mode"
+      - waitForAnimationToEnd
 - assertVisible: "Switch to Buyer Mode"
-- tapOn: "Bazaar"
