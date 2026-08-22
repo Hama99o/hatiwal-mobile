@@ -54,12 +54,32 @@ export default function OnboardingScreen() {
   const handlePrimaryPress = useCallback(() => {
     if (isLastSlide) {
       finishOnboarding();
-    } else {
-      // Respect the OS "Reduce Motion" setting for the programmatic advance —
-      // snap instantly instead of animating the slide transition.
-      carouselRef.current?.next({ animated: !reduceMotion });
+      return;
     }
-  }, [isLastSlide, finishOnboarding, reduceMotion]);
+    // Respect the OS "Reduce Motion" setting for the programmatic advance —
+    // snap instantly instead of animating the slide transition.
+    const nextIndex = activeIndex + 1;
+    // `scrollTo({index})`, NOT `next()`. Two reasons, both from
+    // react-native-reanimated-carousel 4.0.3's own useCarouselController:
+    //
+    //  1. `next()` bails out entirely when
+    //     `!overscrollEnabled && !(visibleContentWidth > containerWidth)` — a
+    //     guard that has nothing to do with this screen and silently does
+    //     nothing when the container has not measured yet. `to()` (which
+    //     scrollTo delegates to for a numeric index) has no such guard, and it
+    //     is the call this file already uses for the dot indicator.
+    //  2. In the NON-ANIMATED branch both helpers set the offset directly and
+    //     never call `onScrollEnd` — which is what drives `onSnapToItem`. So
+    //     with Reduce Motion on, `activeIndex` never advanced: the primary
+    //     button stayed "Next" forever and the dots stayed on slide 1. A user
+    //     with "remove animations" enabled could not get through onboarding at
+    //     all except by skipping it (QA run-045).
+    //
+    // Hence also setting activeIndex here rather than waiting for a callback
+    // the library does not fire on this path.
+    carouselRef.current?.scrollTo({ index: nextIndex, animated: !reduceMotion });
+    if (reduceMotion) setActiveIndex(nextIndex);
+  }, [isLastSlide, finishOnboarding, reduceMotion, activeIndex]);
 
   return (
     <ScreenContainer

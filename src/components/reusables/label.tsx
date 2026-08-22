@@ -1,5 +1,5 @@
 import React from "react";
-import { Text as RNText, type TextProps } from "react-native";
+import { Text as RNText, StyleSheet, type TextProps } from "react-native";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/hooks/useColors";
@@ -20,7 +20,12 @@ interface LabelProps extends TextProps {
 export function Label({ className, children, style, ...props }: LabelProps) {
   const colors = useColors();
   const { i18n } = useTranslation();
-  const fontFamily = fontFamilyForLang(i18n.language);
+  // Weight-aware for the same reason as the shared Text: a caller passing
+  // `font-semibold`/`font-bold` (or a bold style) would otherwise keep the
+  // 400 family and get Android's fake-bold, whose wider glyph advances are not
+  // measured — clipping the last character. See src/lib/fonts.ts.
+  const flat = StyleSheet.flatten(style) as { fontWeight?: unknown } | undefined;
+  const fontFamily = fontFamilyForLang(i18n.language, flat?.fontWeight);
   return (
     <RNText
       className={cn("text-sm font-medium", className)}

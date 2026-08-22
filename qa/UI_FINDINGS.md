@@ -349,6 +349,63 @@ once rather than twice; and `Switch` gained a `testID`.
 problem. Left alone deliberately — it is not part of this feature and the file is
 being edited concurrently — but it is the same two-line fix.
 
+### UI-013 · With Reduce Motion on, onboarding cannot be advanced — FIXED
+**Where:** first-run onboarding → "Next"
+**Severity:** HIGH (accessibility) — the user cannot get through onboarding
+**Evidence:** `qa/reports/run-045/onboarding/`, and the carousel library's own source
+
+Tapping **Next** did nothing: the slide never changed and the dot indicator
+stayed on the first slide. Reproducible, and it only happens when the OS
+"Reduce Motion" / "Remove animations" setting is on — which the QA emulator has,
+and which a real user turns on for motion sensitivity or battery.
+
+Cause, from `react-native-reanimated-carousel@4.0.3`'s `useCarouselController`:
+
+- `next()` starts with
+  `if (!overscrollEnabled && !(visibleContentWidth > containerWidth)) return;`
+  — a guard unrelated to this screen that silently no-ops before it does
+  anything, e.g. while the container has not measured.
+- and in the **non-animated** branch both `next()` and `to()` set the offset
+  directly and never call `onScrollEnd` — which is what drives `onSnapToItem`.
+  `Onboarding.tsx` uses `onSnapToItem={setActiveIndex}`, so with
+  `animated: false` the JS-side `activeIndex` never advanced: the button stayed
+  "Next" forever, the dots stayed put, and `isLastSlide` was never reached. The
+  only way out of onboarding was Skip.
+
+**Fixed:** advance with `scrollTo({ index })` (which delegates to `to()` — no
+overscroll guard, and the call this file already uses for the dots) and set
+`activeIndex` locally on the reduce-motion path rather than waiting for a
+callback the library does not fire there.
+
+### UI-014 · Bold text is Android fake-bold, and clips its last character — FIXED
+**Where:** everywhere bold; visible on the first-run onboarding button
+**Severity:** medium — cosmetic, but on the first screen every new user sees
+**Evidence:** `qa/reports/run-045/onboarding/screens/first_run.png`
+
+The onboarding primary button rendered **"Nex"** and its skip link **"Ski"** —
+the last character cut off both.
+
+`src/lib/fonts.ts` said, in a comment, that "Bold is synthesized by RN from
+fontWeight ... on top of this family". RN cannot do that for a CUSTOM font
+family on Android: given `Rubik_400Regular` + `fontWeight: 700` it fake-bolds by
+smearing the glyphs, which widens their advances **without the text measurement
+accounting for it**, so the tail falls outside the measured box. Long headings
+looked fine only because they had slack.
+
+The `*_700Bold` faces were bundled and registered in `FONT_ASSETS` the whole
+time — and referenced **nowhere**. Every bold label in the app was fake-bold.
+
+**Fixed:** `fontFamilyForLang(lang, weight)` returns the real bold face for
+600/700/800/900/"bold", and the shared `Text` (plus `Label`) resolve the weight
+from the flattened style — which also covers NativeWind's
+`font-bold`/`font-semibold`, since those are merged into `style` before the
+component sees them. 23 unit tests pin the mapping and that every family the
+resolver can return is actually registered.
+
+NOTE, honestly: this fix is correct on its own merits but it is NOT what
+clipped "Next" — that Button's label carries no bold weight. "Ski" (weight 600)
+is explained; "Nex" is not, and remains open. Do not assume UI-014 closed it.
+
 ### RIG-001 · Two sessions on one emulator produce fake launcher failures
 **Severity:** blocks device QA while it lasts
 **Evidence:** my `run-025` failed at `open_bundle.yaml`'s "Connect" at 22:33; a
