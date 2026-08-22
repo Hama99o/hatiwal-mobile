@@ -1,0 +1,105 @@
+appId: com.hatiwal.app
+---
+# Editing a batch listing's count — docs/SPIKE_LISTING_QUANTITY.md.
+#
+# WHY THIS EXISTS SEPARATELY FROM create_listing_multi_quantity.yaml: the bug
+# that flow caught (UI-011 — quantity never appended to the multipart body, so
+# the seller typed 15 and the API stored 1) was present in BOTH
+# `createListingWithImages` AND `updateListingWithImages`. Only the create half
+# was verified on a device. A fix confirmed on one of two identical code paths is
+# half a fix.
+#
+# It also covers the seeding fix: reopening a batch listing must show the switch
+# already ON with its number, not OFF over a hidden 15 the seller can neither see
+# nor correct.
+#
+# Operates on the QA draft that create_listing_multi_quantity.yaml leaves behind
+# ("QA Phone Cases Bulk 15", 15 units) rather than a seeded fixture — editing a
+# shared fixture's count would break every other flow asserting 15. Run that flow
+# first, or re-run it; this one is a no-op without that draft.
+
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- tapOn: "Email"
+- inputText: "seller@hatiwal.test"
+- tapOn: "Password"
+- inputText: "Password123!"
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+
+- tapOn: "Me"
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Switch to Seller Mode"
+    commands:
+      - tapOn: "Switch to Seller Mode"
+      - waitForAnimationToEnd
+
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Draft"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "QA Phone Cases Bulk 15"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "QA Phone Cases Bulk 15"
+- waitForAnimationToEnd
+
+# The owner detail already states the batch, from the create round trip.
+- assertVisible:
+    id: "stock-badge-owner"
+- assertVisible: "15 in stock"
+
+# ── Into the edit form ──────────────────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-more-action"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "lifecycle-more-action"
+- waitForAnimationToEnd
+- tapOn: "Edit"
+- waitForAnimationToEnd
+
+# THE SEEDING FIX: the switch reopens ON, with the saved number visible. Without
+# it the row reads "off" over a hidden 15 — a value the seller can neither see
+# nor change.
+- scrollUntilVisible:
+    element:
+      id: "listing-form-quantity-row"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "listing-form-quantity-input"
+    text: "15"
+
+# ── Change it ───────────────────────────────────────────────────────────────
+# Tapping selects the pre-filled value (selectTextOnFocus), so this REPLACES the
+# 15 rather than appending — the same hazard that sold a whole batch in run-018.
+- tapOn:
+    id: "listing-form-quantity-input"
+- inputText: "20"
+- assertVisible:
+    id: "listing-form-quantity-input"
+    text: "20"
+
+# Save Draft lives in the fixed top toolbar, so no keyboard dance is needed.
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+
+# ── The count survived the UPDATE round trip ────────────────────────────────
+# This is the assertion the create flow could not make: it proves
+# `updateListingWithImages` puts listing[quantity] on the wire too.
+- assertVisible: "QA Phone Cases Bulk 15"
+- assertVisible:
+    id: "stock-badge-owner"
+- assertVisible: "20 in stock"

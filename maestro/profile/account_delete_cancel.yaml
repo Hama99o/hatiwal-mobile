@@ -1,0 +1,44 @@
+appId: com.hatiwal.app
+---
+# Deleting an account — the CANCEL path.
+#
+# Account deletion had ZERO e2e coverage (`grep -c deactivate maestro/` was 0)
+# despite being the most destructive action in the app: `authAPI.deleteAccount()`
+# schedules the account for permanent deletion and signs the user out. An
+# untested confirm dialog on an irreversible action is the worst possible place
+# to have no test.
+#
+# This is the safe half — it must NOT delete anything — so it can run against the
+# shared buyer account. The destructive half lives in
+# account_delete_and_restore.yaml, which creates its own throwaway account.
+
+- runFlow: ../_helpers/login.yaml
+
+- tapOn: "Me"
+- waitForAnimationToEnd
+
+# The control sits at the very bottom of Profile, below sign-out.
+- scrollUntilVisible:
+    element:
+      text: "Delete account"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Delete account"
+- waitForAnimationToEnd
+
+# The dialog must state what actually happens — this is a 30-day soft delete
+# with a restore window, not an instant wipe, and a user agreeing to the wrong
+# thing is the failure mode a confirm dialog exists to prevent.
+- assertVisible: "Delete your account?"
+- assertVisible: "restore it by logging back in"
+
+# Back out.
+- tapOn: "Cancel"
+- waitForAnimationToEnd
+
+# Still signed in, still on Profile, nothing happened. "Me" present AND "Login"
+# absent is the same signed-in proof the login helper uses — asserting "Me"
+# alone would pass for a guest.
+- assertVisible: "Me"
+- assertNotVisible: "Login"
+- assertNotVisible: "Your account has been deleted."
