@@ -53,7 +53,10 @@ appId: com.hatiwal.app
 - assertVisible: "Tap another photo to swap positions"
 
 # Tap second photo to set as cover (reorder)
+# A bare `tapOn: index:` has NO selector: it matches every element on screen and
+# index N is whatever lands there in hierarchy order, not the thing meant.
 - tapOn:
+    id: "listing-form-photo-thumb"
     index: 1
 - waitForAnimationToEnd
 # Cover label now on what was second photo

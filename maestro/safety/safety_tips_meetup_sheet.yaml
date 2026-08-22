@@ -7,7 +7,10 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Chats"
 - waitForAnimationToEnd
+# A bare `tapOn: index:` has NO selector: it matches every element on screen and
+# index N is whatever lands there in hierarchy order, not the thing meant.
 - tapOn:
+    id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
 # TASK-K487: the composer's meetup/file/photo/offer icons are now collapsed

@@ -7,7 +7,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Open a listing from seller@hatiwal.test
+# A bare `tapOn: index:` has NO selector: it matches every element on screen and
+# index N is whatever lands there in hierarchy order, not the thing meant.
 - tapOn:
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
 - tapOn: "Seller Name"

@@ -13,7 +13,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 # Open a conversation
+# A bare `tapOn: index:` has NO selector: it matches every element on screen and
+# index N is whatever lands there in hierarchy order, not the thing meant.
 - tapOn:
+    id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
 - assertVisible: "Type a message..."

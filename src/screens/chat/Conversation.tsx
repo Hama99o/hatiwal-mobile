@@ -94,6 +94,7 @@ import {
 // ── Reanimated imports for search bar animation ───────────────────────────────
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolate, Extrapolation } from "react-native-reanimated";
 import { usePulse, useReduceMotion } from "@/lib/animation";
+import { MESSAGE_MAX_LENGTH } from "./messageLimits";
 
 // Skeleton pulse line — uses usePulse() so the shimmer is skipped when
 // Reduce Motion is enabled (no more raw withRepeat loop here).
@@ -1279,6 +1280,12 @@ export function ConversationScreen() {
             hitSlop={8}
             style={styles.navAction}
             accessibilityLabel={isBlocked ? t("chat.block.unblockUser") : t("chat.block.blockUser")}
+            // The report button beside this one has had a testID all along; this
+            // one did not, so every flow that blocks from a thread failed on
+            // "Element not found: Id matching regex: block-user-button" while the
+            // feature worked perfectly. A testID, not the accessibilityLabel,
+            // because that label is localized and flipped by isBlocked.
+            testID="block-user-button"
           >
             <ShieldBan size={18} color={isBlocked ? colors.destructive : colors.mutedForeground} />
           </Pressable>
@@ -1435,6 +1442,8 @@ export function ConversationScreen() {
           this one), so nothing here has to react to the keyboard at all. */}
       <View style={{ flex: 1 }}>
         <FlatList
+          // Lets a flow scroll THIS list rather than guessing at the screen.
+          testID="messages-list"
           ref={flatListRef}
           data={threadRows}
           keyExtractor={threadRowKey}
@@ -1625,6 +1634,11 @@ export function ConversationScreen() {
               value={messageText}
               onChangeText={setMessageText}
               placeholder={t("chat.startConversation.placeholder")}
+              // Mirrors hatiwal-api's Message validation
+              // (`length: { maximum: 1000 }`). Without it a longer message could
+              // only fail at send time as a 422 — the user typed it all, then
+              // lost the send for a reason nothing on screen had warned about.
+              maxLength={MESSAGE_MAX_LENGTH}
               multiline
               style={[styles.textInput, { textAlign: isRtl ? "right" : "left" }] as any}
               editable={!isStarting}
@@ -1678,6 +1692,11 @@ export function ConversationScreen() {
               value={messageText}
               onChangeText={setMessageText}
               placeholder={t("chat.messagePlaceholder")}
+              // Mirrors hatiwal-api's Message validation
+              // (`length: { maximum: 1000 }`). Without it a longer message could
+              // only fail at send time as a 422 — the user typed it all, then
+              // lost the send for a reason nothing on screen had warned about.
+              maxLength={MESSAGE_MAX_LENGTH}
               multiline
               style={[styles.textInput, { textAlign: isRtl ? "right" : "left" }] as any}
               editable={!isSending}

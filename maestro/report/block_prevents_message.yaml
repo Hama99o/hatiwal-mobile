@@ -8,6 +8,7 @@ appId: com.hatiwal.app
 
 # Open a listing
 - tapOn:
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
 # Get seller name for reference
@@ -30,7 +31,10 @@ appId: com.hatiwal.app
 
 # Message button either disabled or shows "Can't message blocked user"
 - assertVisible: "Bazaar"
+# A bare `tapOn: index:` has NO selector: it matches every element on screen and
+# index N is whatever lands there in hierarchy order, not the thing meant.
 - tapOn:
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
 # "Message Seller" disabled for blocked user

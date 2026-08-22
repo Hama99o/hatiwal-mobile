@@ -8,7 +8,10 @@ appId: com.hatiwal.app
 - tapOn: "Bazaar"
 - waitForAnimationToEnd
 # Open first active listing
+# A bare `tapOn: index:` has NO selector: it matches every element on screen and
+# index N is whatever lands there in hierarchy order, not the thing meant.
 - tapOn:
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
 # Save it

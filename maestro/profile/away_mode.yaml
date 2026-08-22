@@ -32,7 +32,9 @@ appId: com.hatiwal.mobile
 
 # ── Verify AwayBanner appears on public profile ───────────────────────
 # Navigate to own profile, then to public profile via a listing
-- tapOn: "Browse"
+# The buyer feed tab is labelled "Bazaar" (sidebar.browse). Maestro text
+# matching is an anchored regex, so "Browse" never matched it.
+- tapOn: "Bazaar"
 # Find a listing from current user and open it to see seller card
 # (In a real flow, we'd navigate to a known seller's listing)
 # Verify Away banner on seller public profile screen

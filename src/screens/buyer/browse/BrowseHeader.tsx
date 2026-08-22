@@ -179,6 +179,10 @@ export function BrowseHeader({
             }}
             accessibilityRole="button"
             accessibilityLabel={t("browse.filtersToggle")}
+            // Flows were targeting `id: "browse.filters"` — which is an i18n KEY
+            // prefix (browse.filters.title), never a testID, so it could not
+            // match anything. This is the real handle.
+            testID="browse-filters-toggle"
             accessibilityState={{ expanded: showFilters }}
           >
             <Sliders

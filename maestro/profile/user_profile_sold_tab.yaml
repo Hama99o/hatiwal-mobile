@@ -6,9 +6,14 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 
 # Navigate to a public seller profile (tap a listing, then tap seller name)
-- tapOn: "Browse"
+# The buyer feed tab is labelled "Bazaar" (sidebar.browse). Maestro text
+# matching is an anchored regex, so "Browse" never matched it.
+- tapOn: "Bazaar"
 - waitForAnimationToEnd
+# A bare `tapOn: index:` has NO selector: it matches every element on screen and
+# index N is whatever lands there in hierarchy order, not the thing meant.
 - tapOn:
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
 # Tap the seller identity row to open their public profile

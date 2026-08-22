@@ -57,8 +57,12 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 
-# After a successful send the draft must be gone — composer is empty
-- assertNotVisible: "Draft that must survive navigation"
+# After a successful send the draft must be gone — composer is empty.
+#
+# NOT `assertNotVisible: "Draft that must survive navigation"`. That text was just
+# SENT, so it is on screen as a message bubble in the thread — the assertion could
+# never pass, no matter how correct the app was. The placeholder is the real proof:
+# a TextInput renders its placeholder only when its value is empty.
 - assertVisible: "Type a message..."
 
 # ── Error state: send failure keeps the draft ─────────────────────────────────
