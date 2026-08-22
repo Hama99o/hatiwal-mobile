@@ -100,6 +100,37 @@ screen and therefore proves nothing. "The bundling banner is gone" is not "the a
 is up": that banner is itself drawn by JS, so before the first render there is
 nothing to see.
 
+### Never take an expected string from a locale file
+
+**15% of the translation keys in this app are dead** — 132 of 862 are referenced
+nowhere in `src/` or `app/` (UI-021). So the natural way to write a flow is a trap:
+you grep the locale files for the wording you saw, find a plausible key, assert its
+value, and it can never match, because nothing renders that key. The failure then
+reads as a missing feature.
+
+Three flows fell into this on one afternoon, each off by a hair:
+
+| Asserted | Dead key | Actually rendered |
+|---|---|---|
+| `"No conversations"` | `chat.empty.title` | **"No conversations yet"** |
+| `"Browse categories"` | `browse.browseCategories` | **"Categories"** |
+| `"All Categories"` | `browse.allCategories` | **"All"** |
+| `"Chat"` | `common.chat` | **"Chats"** (`sidebar.chat`) |
+
+One word, and Maestro's anchored matching makes it a failure.
+
+**Take the string from the component that renders it, or from the device.**
+
+```bash
+maestro --device emulator-5554 hierarchy      # ground truth, takes seconds
+```
+
+Best of all, assert a `testID` — no translator can move it, and it survives all
+three locales. If the control you need has no `testID`, adding one is a safe change
+(it cannot alter behaviour) and is usually the right fix: `block-user-button`,
+`save-toggle-button`, `browse-filters-toggle` and `messages-list` were all added
+this way, each because the button beside them already had one.
+
 ### Never target a control by percentage `point:`
 
 A `tapOn: point: "90%,10%"` is form-factor dependent, and the rig's whole purpose
