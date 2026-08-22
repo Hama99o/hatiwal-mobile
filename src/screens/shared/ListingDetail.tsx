@@ -26,7 +26,7 @@ import {
   FlatList,
   Pressable,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   Modal,
   Share,
   Platform,
@@ -95,8 +95,9 @@ import { useReduceMotion } from "@/lib/animation";
 import { getActiveLabelText } from "@/utils/activeLabelUtil";
 import { resolveShareUrl } from "@/utils/shareUtils";
 import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow } from "@/utils/stock";
+import { apiErrorMessage } from "@/utils/apiError";
+import { galleryHeight, GALLERY_ASPECT_RATIO } from "@/utils/gallery";
 
-const { width: SW } = Dimensions.get("window");
 const GALLERY_COLLAPSE_RATIO = 0.65;
 const COLLAPSE_DISTANCE = 180;
 
@@ -137,6 +138,7 @@ export default function ListingDetailScreen() {
   const currentUser = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
+  const { width: winW, height: winH } = useWindowDimensions();
 
   // ── Local UI state ─────────────────────────────────────────────────────────
   const [isSaved, setIsSaved] = useState(false);
@@ -158,7 +160,12 @@ export default function ListingDetailScreen() {
       scrollY.value = event.contentOffset.y;
     },
   });
-  const GALLERY_H = SW * (3 / 4);
+  // Same function the gallery itself uses. This wrapper is what actually
+  // occupies space in the ScrollView, so when it was computed independently as
+  // `SW * 3/4` it stayed 960dp tall on a landscape tablet and shoved every
+  // section below the photo off the screen — the detail screen rendered as a
+  // blank rectangle with only the action bar (run-060).
+  const GALLERY_H = galleryHeight(winW, winH, GALLERY_ASPECT_RATIO);
   const galleryHeightAnim = useAnimatedStyle(() => {
     const scale = interpolate(
       scrollY.value,
@@ -249,9 +256,9 @@ export default function ListingDetailScreen() {
         });
       }
     },
-    onError: (_err, currentlySaved) => {
+    onError: (err, currentlySaved) => {
       setIsSaved(currentlySaved); // revert to the pre-tap state
-      toast.error(t("common.error"));
+      toast.error(apiErrorMessage(err, t));
     },
     onSuccess: () => {
       // Sync every cache that reflects saved state so the change actually sticks:
@@ -294,7 +301,7 @@ export default function ListingDetailScreen() {
       setOfferAmount("");
       router.push(`/(main)/conversation/${conversation.id}` as never);
     },
-    onError: () => toast.error(t("common.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -421,7 +428,7 @@ export default function ListingDetailScreen() {
       >
         {/* Gallery collapses gently as user scrolls */}
         <Animated.View style={galleryHeightAnim}>
-          <ListingGallery photos={photos} aspectRatio={4 / 3} />
+          <ListingGallery photos={photos} aspectRatio={GALLERY_ASPECT_RATIO} />
         </Animated.View>
 
         {/* ── Main info ───────────────────────────────────────────────── */}

@@ -4,19 +4,22 @@
  */
 
 import React from "react";
-import { View, Dimensions, StyleSheet } from "react-native";
+import { View, useWindowDimensions, StyleSheet } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { Skeleton } from "@/components/reusables/skeleton";
 import { useColors } from "@/hooks/useColors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useReduceMotion } from "@/lib/animation";
-
-const { width: SW } = Dimensions.get("window");
+import { galleryHeight } from "@/utils/gallery";
 
 export function DetailSkeleton() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
+  const { width: winW, height: winH } = useWindowDimensions();
+  // Must match the real gallery exactly — a skeleton that reserves a different
+  // amount of space defeats its own purpose and shifts the layout on load.
+  const heroHeight = galleryHeight(winW, winH);
   // When Reduce Motion is on, return undefined so Reanimated skips the entering transition.
   const e = (delay: number) => reduceMotion ? undefined : FadeInDown.delay(delay).duration(300);
 
@@ -28,8 +31,8 @@ export function DetailSkeleton() {
       {/* Photo area — same 4:3 aspect as the real gallery */}
       <Skeleton
         style={{
-          width: SW,
-          aspectRatio: 4 / 3,
+          width: winW,
+          height: heroHeight,
           borderRadius: 0,
           backgroundColor: colors.muted,
         }}

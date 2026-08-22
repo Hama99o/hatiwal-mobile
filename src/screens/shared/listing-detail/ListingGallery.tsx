@@ -13,7 +13,7 @@ import {
   Pressable,
   Modal,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   Platform,
 } from "react-native";
 import Animated, {
@@ -31,8 +31,7 @@ import { RemoteImage } from "@/components/common/RemoteImage";
 import { Text } from "@/components/reusables/text";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
-
-const { width: SW } = Dimensions.get("window");
+import { galleryHeight } from "@/utils/gallery";
 
 // ── Animated page dot ─────────────────────────────────────────────────────────
 function GalleryDot({ active }: { active: boolean }) {
@@ -83,8 +82,21 @@ export function ListingGallery({ photos, aspectRatio = 4 / 3 }: ListingGalleryPr
   const [modalIndex, setModalIndex] = useState(0);
 
   const modalFlatListRef = useRef<FlatList>(null);
-  const screenHeight = Dimensions.get("window").height;
-  const galleryContentHeight = screenHeight - 120;
+
+  // MEASURED PER RENDER, not once at module load.
+  //
+  // This used to be `const { width: SW } = Dimensions.get("window")` at module
+  // scope, which freezes the page width at the first import. Every page of a
+  // `pagingEnabled` list is SW wide, so after a rotation or a split-screen
+  // resize the pages no longer match the viewport and paging lands between
+  // photos. A hook re-measures on every dimension change.
+  const { width: winW, height: winH } = useWindowDimensions();
+
+  // Height comes from the SHARED rule in @/utils/gallery — ListingDetail wraps
+  // this component in an animated container sized by the same function, and if
+  // the two ever disagree the screen below the hero is pushed out of view.
+  const heroHeight = galleryHeight(winW, winH, aspectRatio);
+  const galleryContentHeight = winH - 120;
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: { index: number | null }[] }) => {
@@ -101,7 +113,7 @@ export function ListingGallery({ photos, aspectRatio = 4 / 3 }: ListingGalleryPr
       <View
         style={[
           styles.noPhotoBox,
-          { aspectRatio, backgroundColor: colors.imagePlaceholder },
+          { height: heroHeight, backgroundColor: colors.imagePlaceholder },
         ]}
       >
         <View
@@ -125,7 +137,7 @@ export function ListingGallery({ photos, aspectRatio = 4 / 3 }: ListingGalleryPr
 
   return (
     <>
-      <View style={[styles.galleryContainer, { aspectRatio, backgroundColor: colors.galleryBg }]}>
+      <View style={[styles.galleryContainer, { height: heroHeight, backgroundColor: colors.galleryBg }]}>
         {/* scaleX flip: forces LTR scroll in RTL locales; each item counter-flips content */}
         <View style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined}>
         <FlatList
@@ -142,7 +154,10 @@ export function ListingGallery({ photos, aspectRatio = 4 / 3 }: ListingGalleryPr
                 setModalIndex(index);
                 setShowModal(true);
               }}
-              style={[{ width: SW, aspectRatio }, isRtl ? { transform: [{ scaleX: -1 }] } : undefined]}
+              style={[
+                { width: winW, height: heroHeight },
+                isRtl ? { transform: [{ scaleX: -1 }] } : undefined,
+              ]}
               android_ripple={null}
             >
               <RemoteImage
@@ -219,21 +234,21 @@ export function ListingGallery({ photos, aspectRatio = 4 / 3 }: ListingGalleryPr
               keyExtractor={(_, i) => String(i)}
               onMomentumScrollEnd={(e) => {
                 const currentIndex = Math.round(
-                  e.nativeEvent.contentOffset.x / SW
+                  e.nativeEvent.contentOffset.x / winW
                 );
                 setModalIndex(currentIndex);
               }}
               initialScrollIndex={modalIndex}
               getItemLayout={(_, index) => ({
-                length: SW,
-                offset: SW * index,
+                length: winW,
+                offset: winW * index,
                 index,
               })}
               renderItem={({ item: uri, index }) => (
                 <View
                   style={[
                     {
-                      width: SW,
+                      width: winW,
                       height: galleryContentHeight,
                       alignItems: "center",
                       justifyContent: "center",
