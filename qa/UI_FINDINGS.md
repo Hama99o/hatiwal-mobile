@@ -744,6 +744,126 @@ seconds. Better still, assert a `testID`, which no translator can move.
 
 ---
 
+### RIG-006 · Why 200+ flows were red: a taxonomy, with counts (mostly FIXED)
+
+Almost none of it was the app. These flows were written across many build cycles
+and never executed, so they encode what the app looked like when each was written.
+Fourteen distinct causes, ranked by how many flows each one killed.
+
+| # | Cause | Flows | Status |
+|---:|---|---:|---|
+| 1 | **`tapOn: index:` with no selector.** An empty selector matches EVERY element, so index 0 is whatever comes first in hierarchy order — a heading, a search bar. It never touched the intended row. | 69 sites | 58 fixed; 11 left (Android photo picker — not our app, nothing to target) |
+| 2 | **Anchored-regex label misses.** Maestro's text matching is a full-string regex, not a substring. Every one of these is off by a word. | 40+ | fixed |
+| 3 | **Non-existent testIDs.** `browse.filters` (an i18n KEY prefix), `block-user-button`, `save-toggle-button`, `seller-name`, `seller-identity`, `similar-listing`, `chat-tab`, `messages-list-top`. | ~25 | fixed by ADDING the testID (see below) |
+| 4 | **No scroll before tapping something off-screen.** `tapOn` does not scroll. `seller-profile-link` was tapped by ten flows and none of them scrolled. | 10 | 7 fixed, 3 already had one |
+| 5 | **Off-screen in a HORIZONTAL scroller.** The sort chips row: "Most viewed" is 5th, "Nearest first" 6th. A centre-screen `direction: RIGHT` scroll reached one and not the other; a swipe anchored ON the row works. | 2 | fixed |
+| 6 | **The composer does not exist on a sold/reserved thread.** ~15 flows opened "the first conversation" and then used the composer. See RIG-007 — this one is subtle and was the cause of the "random" passes. | ~15 | 7 rewired to a new helper |
+| 7 | **Interpolated strings asserted as literals.** `"Saved by"` is really "Saved by 3 people"; `"Usually responds"` is "Usually responds within 1 hour". | 2 | fixed |
+| 8 | **Impossible assertions.** composer_draft sent a message and then asserted its text was NOT visible — it is in the thread as a bubble. It could never pass, however correct the app. | 1 | fixed |
+| 9 | **Test interdependence.** conversation_read_status asserted an unread badge was already there. True on a fresh seed, false once any earlier flow opened a thread. | 2 | 1 fixed (creates its own precondition) |
+| 10 | **Fixture premises that cannot hold.** conversations_empty_state wanted an account with no chats (no seeded account has one — verified in the DB); categories_hub_empty wants zero categories against a DB with 16. | 2 | 1 fixed by registering a fresh account; 1 open |
+| 11 | **Tapping a parent category EXPANDS, it does not navigate.** All 16 top-level categories have children. Same bug the create-listing picker had. | 3 | fixed |
+| 12 | **`${random}` is not a Maestro variable.** `${...}` is evaluated as JavaScript, so it was an undefined identifier; and a constant email means the flow can only pass once. | 1 | fixed (`${maestroRandomEmail}`) |
+| 13 | **`pressKey: Escape` does not dismiss an Android share sheet.** The sheet stayed on top and the next assertion failed on a button behind it. | 1 | fixed (Back) |
+| 14 | **The APK predates the manifest** — see RIG-008. | 4 | needs a rebuild |
+
+**Labels that had moved** (each one word off, each fatal):
+
+| Asserted | Reality | Where it comes from |
+|---|---|---|
+| `"Chat"` | **"Chats"** | `sidebar.chat`; `common.chat` ("Chat") is a dead key |
+| `"Browse"` | **"Bazaar"** | `sidebar.browse` |
+| `"Message Seller"` | **"Contact Seller"** | `listing.detail.contactSeller` — renamed, and 27 assertions plus three code comments still said the old name |
+| `"Clothes"` | **"Clothes & Fashion"** | category data, checked against the API |
+| `"No conversations"` | **"No conversations yet"** | `chat.noConversations`; `chat.empty.title` is dead |
+| `"Browse categories"` | *no such affordance* | `browse.browseCategories` is dead; the hub is the Categories tab |
+| `"All Categories"` | **"All"** | `browse.allCategories` is dead; the chip is `common.all` |
+
+**testIDs added** (all behaviour-neutral; in every case the control beside it
+already had one, so this was an oversight rather than a design choice):
+`block-user-button`, `save-toggle-button`, `browse-filters-toggle`,
+`messages-list`, `similar-listing`, `province-option`, and `<route>-tab` for all
+six bottom tabs.
+
+> **The one-line lesson:** a red flow is a claim about the app that has to be
+> checked against the app. Nine times out of ten today it was a claim about a
+> version of the app that no longer exists.
+
+---
+
+### RIG-007 · "The first conversation" is not a stable target — and it hid a real constraint
+
+~15 flows opened `conversation-row-\d+` index 0 and then used the composer:
+propose a meetup, make an offer, attach a photo, type a draft. They passed and
+failed apparently at random across runs, which is the signature worth chasing.
+
+The list is ordered by most recent activity, **and the flows themselves reorder
+it**. Queried mid-run, the buyer's conversations were:
+
+```
+reserved  | Traditional Kandahari Carpet 3x4        <- index 0 at that moment
+active    | Men Winter Jacket XL Black
+sold      | Xiaomi Redmi Note 11 128GB
+active    | Lenovo ThinkPad Laptop Core i5 8GB
+active    | Phone Case Silicone Clear - Wholesale
+```
+
+And the constraint they were blundering into is real product behaviour: when the
+pinned listing is sold or reserved, `Conversation.tsx` replaces the composer with
+`ListingUnavailableNotice` — **no "+" button, so no actions sheet, and offers
+disabled**. So the flow failed on "Element not found: Propose Meetup" with nothing
+whatsoever wrong with the app. Earlier in the same session index 0 was the SOLD
+thread; later it was the RESERVED one.
+
+**Fixed with `_helpers/open_active_conversation.yaml`**, which opens the multi-unit
+fixture's thread — the most durable active listing available, because a partial
+sale leaves it ACTIVE by design and only two flows touch it at all. Every other
+seeded active listing gets reserved or sold by some flow. The helper asserts the
+composer is present, so a sold-out fixture reports itself instead of looking like
+a broken app.
+
+> **Rule:** if a flow needs a composer, an offer or a meetup, it needs a thread on
+> an ACTIVE listing. Never "the first one".
+
+---
+
+### RIG-008 · The installed APK predates its own manifest, so deep links cannot work (OPEN — needs a rebuild)
+
+Four flows use `hatiwal://` links (`share/open_listing_deep_link`,
+`share/open_seller_deep_link`, `browse/listing_detail_sold_state`,
+`browse/listing_detail_sold_recovery`). All fail, and two of them fail with **no
+message at all** — the least diagnosable output the rig produces.
+
+The cause is not in the flows. `am start` reports "Activity not started, unable to
+resolve Intent", and the device agrees:
+
+```
+$ adb shell dumpsys package com.hatiwal.app     # Activity Resolver Table
+Schemes:
+    expo-dev-launcher:  ... AuthActivity
+Non-Data Actions:
+    android.intent.action.MAIN: ... MainActivity
+```
+
+`MainActivity` has **only** MAIN/LAUNCHER. The repo's
+`android/app/src/main/AndroidManifest.xml` does declare the scheme:
+
+```xml
+<data android:scheme="hatiwal"/>
+<data android:scheme="com.hatiwal.app"/>
+```
+
+but the timestamps settle it — APK built `2026-08-21 18:14`, manifest modified
+`2026-08-21 18:51`, **37 minutes later**. The manifest is right; the binary is
+stale. `pm query-activities` finds zero handlers.
+
+**Fix: rebuild the APK** (`qa.sh build`), with no emulator running. Until then
+these four flows are blocked, and it is worth knowing that **deep links are
+untested on this build** — including anything that relies on them in the share
+feature.
+
+---
+
 ### PROCESS-001 · I bulk-added another session's files by mistake (commit 7c05c8d)
 **Severity:** process, not product — but worth recording, not hiding
 
