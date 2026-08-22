@@ -18,7 +18,10 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/open_bundle.yaml
 - runFlow: ../_helpers/goto_login.yaml
 
-- tapOn: "Create Account"
+# The login screen renders this as ONE Text — "Don't have an account? Create
+# Account" — so an exact-match selector on "Create Account" can never find it.
+- tapOn:
+    id: "go-to-register"
 - assertVisible: "Create Account"
 - tapOn: "First Name"
 - inputText: "Zahra"
@@ -34,7 +37,10 @@ appId: com.hatiwal.app
 - inputText: "Password123!"
 - tapOn: "Confirm Password"
 - inputText: "Password123!"
-- tapOn: "Create Account"
+# The submit button, by testID: "Create Account" is also the screen HEADING,
+# so the words alone match two elements.
+- tapOn:
+    id: "register-submit"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Bazaar"

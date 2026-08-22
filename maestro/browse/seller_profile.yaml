@@ -23,16 +23,25 @@ appId: com.hatiwal.app
 # NOT tapping "Contact Seller" here: that opens the first-message sheet, which
 # then covers the detail screen the rest of this flow acts on. Opening the
 # listing IS the step that was missing; the contact tap was never the point.
-# Tap the seller name/avatar in the Seller section
-- assertVisible: "Seller"
-- tapOn: "Seller"
+# Open the seller's profile from the Seller section.
+#
+# "Seller" (listing.detail.seller) is the section HEADING, and tapping a heading
+# does nothing — the tappable row is `seller-profile-link`. It also sits below the
+# photo, price and description, so it needs a scroll: `tapOn` does not scroll to
+# its target.
+- scrollUntilVisible:
+    element:
+      id: "seller-profile-link"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "seller-profile-link"
 - waitForAnimationToEnd
 # Seller profile page opens
-# "Active Listings" is only the LOADING/ERROR header. Once the profile loads,
-# HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting the
-# static title is a race the loaded screen always wins. "Active Listings" is a
+# NOT "Seller Profile" — that is only the LOADING/ERROR header. Once the profile
+# loads, HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting
+# the static title is a race the loaded screen always wins. "Active Listings" is a
 # literal stat label in ProfileHeader and is there for every profile.
-- assertVisible: "Active Listings"
 - assertVisible: "Active Listings"
 - assertVisible: "Items Sold"
 - assertVisible: "Joined"

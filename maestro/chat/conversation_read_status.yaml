@@ -42,8 +42,12 @@ appId: com.hatiwal.app
       - back
       - waitForAnimationToEnd
 
-- assertVisible:
-    id: "unread-badge-\\d+"
+# WAIT for the badge: marking unread is a mutation plus a refetch, not an
+# animation, so `waitForAnimationToEnd` returns long before the badge is back.
+- extendedWaitUntil:
+    visible:
+      id: "unread-badge-\\d+"
+    timeout: 30000
 
 # ── Open the thread — markRead fires on focus ───────────────────────────────
 - tapOn:
@@ -56,8 +60,11 @@ appId: com.hatiwal.app
 - back
 - waitForAnimationToEnd
 - assertVisible: "Messages"
-- assertNotVisible:
-    id: "unread-badge-\\d+"
+# Same on the way back: clearing it is a mutation + refetch.
+- extendedWaitUntil:
+    notVisible:
+      id: "unread-badge-\\d+"
+    timeout: 30000
 
 # The old final step, `assertNotVisible: text: "1"`, was dropped on purpose. It was
 # meant to check the tab-bar badge had cleared, but "1" is an anchored match on ANY

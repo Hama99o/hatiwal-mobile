@@ -93,6 +93,20 @@ emulator_boot() {
       ok "booted in ${waited}s ($QA_SERIAL)"
       adb_qa shell settings put global window_animation_scale 0 >/dev/null 2>&1
       adb_qa shell settings put global transition_animation_scale 0 >/dev/null 2>&1
+
+      # ── Give the device a LOCATION ──────────────────────────────────────
+      # A fresh emulator has no GPS fix at all, so anything that calls
+      # getCurrentPositionAsync times out and the app shows "Couldn't determine
+      # your location. Please try again." That is the app behaving correctly, but
+      # it means every location-dependent flow fails for a reason that has nothing
+      # to do with the app: "Nearest first" sorting, distance filters, the map
+      # picker, "use my current location".
+      #
+      # Kabul, because the fixtures are Afghan cities and a distance sort against
+      # Mountain View would order them meaninglessly.
+      adb_qa emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1 \
+        && ok "location seeded ($QA_GEO_LAT, $QA_GEO_LON)" \
+        || warn "could not seed a device location — distance/nearest flows will fail"
       adb_qa shell settings put global animator_duration_scale 0 >/dev/null 2>&1
       ok "animations disabled (flows run faster and flake less)"
       return 0

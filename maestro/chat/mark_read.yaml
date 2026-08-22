@@ -46,6 +46,21 @@ tags:
       - assertNotVisible:
           id: "menu-mark-read"
 
+# CLOSE THE MENU if the conditional above did not fire.
+#
+# `menu-mark-read` is only present when the row is UNREAD; on a read row the menu
+# offers "mark unread" instead, the block skips — and the menu STAYS OPEN. The next
+# step then taps `conversation-options-\\d+`, which is behind the open modal, and
+# fails with "Element not found" on a button that is always there. Every
+# conditional that might leave a sheet open needs this.
+- runFlow:
+    when:
+      visible:
+        id: "conversation-action-menu"
+    commands:
+      - back
+      - waitForAnimationToEnd
+
 # ── Mark as unread flow ────────────────────────────────────────────────────
 # Long-press the same row again via the options button (always visible)
 - tapOn:
@@ -66,6 +81,21 @@ tags:
       # Badge should reappear
       - assertVisible:
           id: "unread-badge-\\d+"
+
+# CLOSE THE MENU if the conditional above did not fire.
+#
+# `menu-mark-read` is only present when the row is UNREAD; on a read row the menu
+# offers "mark unread" instead, the block skips — and the menu STAYS OPEN. The next
+# step then taps `conversation-options-\\d+`, which is behind the open modal, and
+# fails with "Element not found" on a button that is always there. Every
+# conditional that might leave a sheet open needs this.
+- runFlow:
+    when:
+      visible:
+        id: "conversation-action-menu"
+    commands:
+      - back
+      - waitForAnimationToEnd
 
 # ── Verify existing Delete action still works ──────────────────────────────
 - tapOn:

@@ -1,10 +1,18 @@
-import { View, Pressable, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import {
+  View,
+  Pressable,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  type TextInput,
+} from "react-native";
 import { ShoppingBag } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
+import { PasswordInput } from "@/components/common/PasswordInput";
 import { Button } from "@/components/reusables/button";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { authAPI, type User } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
@@ -26,6 +34,9 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
+  // Lets the email field's "next" key move focus instead of the user having to
+  // dismiss the keyboard and tap the password field.
+  const passwordRef = useRef<TextInput>(null);
   const colors = useColors();
   const router = useRouter();
   // When a guest taps a gated action we send them here with `returnTo` so we
@@ -270,15 +281,29 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          // Without these the OS never offers a saved email and autocorrect can
+          // silently rewrite the address, producing a login failure the user
+          // cannot see the cause of.
+          autoCorrect={false}
+          autoComplete="email"
+          textContentType="emailAddress"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => passwordRef.current?.focus()}
           style={{ marginBottom: 12, textAlign: isRtl ? "right" : "left" }}
         />
-        <Input
-          placeholder={t("auth.password")}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          style={{ marginBottom: 12, textAlign: isRtl ? "right" : "left" }}
-        />
+        <View style={{ marginBottom: 12 }}>
+          <PasswordInput
+            ref={passwordRef}
+            placeholder={t("auth.password")}
+            value={password}
+            onChangeText={setPassword}
+            purpose="current"
+            // "go" submits from the keyboard — no reaching for the button.
+            returnKeyType="go"
+            onSubmitEditing={handleLogin}
+          />
+        </View>
 
         <Pressable
           onPress={() => router.push("/(auth)/forgot-password")}
@@ -371,7 +396,10 @@ export default function LoginScreen() {
         )}
 
         <Button variant="ghost" onPress={() => router.push({ pathname: "/(auth)/register", params: returnTo ? { returnTo } : {} })}>
-          <Text style={{ color: colors.primary }}>{t("auth.noAccount")} {t("auth.registerButton")}</Text>
+          {/* testID: this renders as ONE Text — "Don't have an account? Create
+              Account" — so an exact-match selector on "Create Account" can never
+              find it. */}
+          <Text testID="go-to-register" style={{ color: colors.primary }}>{t("auth.noAccount")} {t("auth.registerButton")}</Text>
         </Button>
 
         <View style={{ marginTop: 32 }}>

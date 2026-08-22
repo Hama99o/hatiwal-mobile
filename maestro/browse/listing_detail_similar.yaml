@@ -25,7 +25,13 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Opens a new listing detail — verify we're on a detail screen
 - assertVisible: "Contact Seller"
-- assertVisible: "Description"
+# "Description" is a section heading further down the page — on arrival the hero
+# occupies the top of the screen (60% of it on a tablet), so it needs a scroll.
+- scrollUntilVisible:
+    element:
+      text: "Description"
+    direction: DOWN
+    timeout: 20000
 # Back returns to original listing detail
 - back
 - waitForAnimationToEnd

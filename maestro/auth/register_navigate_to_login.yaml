@@ -8,7 +8,10 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/goto_login.yaml
 - waitForAnimationToEnd
 - assertVisible: "Welcome to Hatiwal"
-- tapOn: "Create Account"
+# The login screen renders this as ONE Text — "Don't have an account? Create
+# Account" — so an exact-match selector on "Create Account" can never find it.
+- tapOn:
+    id: "go-to-register"
 - waitForAnimationToEnd
 - assertVisible: "Create Account"
 - tapOn: "Already have an account?"

@@ -8,7 +8,10 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/goto_login.yaml
 - waitForAnimationToEnd
 - assertVisible: "Welcome to Hatiwal"
-- tapOn: "Create Account"
+# The login screen renders this as ONE Text — "Don't have an account? Create
+# Account" — so an exact-match selector on "Create Account" can never find it.
+- tapOn:
+    id: "go-to-register"
 - waitForAnimationToEnd
 - assertVisible: "Create Account"
 # Fill with an existing email
@@ -22,7 +25,10 @@ appId: com.hatiwal.app
 - inputText: "Password123!"
 - tapOn: "Confirm Password"
 - inputText: "Password123!"
-- tapOn: "Create Account"
+# The submit button, by testID: "Create Account" is also the screen HEADING,
+# so the words alone match two elements.
+- tapOn:
+    id: "register-submit"
 - waitForAnimationToEnd
 # Server returns 422 — error shown
 - assertVisible: "Email has already been taken"

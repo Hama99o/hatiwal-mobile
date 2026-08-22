@@ -1,10 +1,11 @@
-import { View, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable, type TextInput } from "react-native";
 import { ShoppingBag } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
+import { PasswordInput } from "@/components/common/PasswordInput";
 import { Button } from "@/components/reusables/button";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
@@ -16,6 +17,14 @@ import { useColors } from "@/hooks/useColors";
 import { registerPushToken } from "@/utils/push-token";
 
 export default function RegisterScreen() {
+  // Six fields is a lot to fill on a phone. Chaining them means the keyboard's
+  // "next" walks the form instead of the user dismissing it and tapping each one.
+  const lastNameRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef = useRef<TextInput>(null);
+
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
@@ -144,45 +153,93 @@ export default function RegisterScreen() {
         placeholder={t("auth.firstName")}
         value={form.firstname}
         onChangeText={(v) => update("firstname", v)}
+        autoCapitalize="words"
+        autoComplete="given-name"
+        textContentType="givenName"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => lastNameRef.current?.focus()}
         style={inputStyle}
       />
       <Input
+        ref={lastNameRef}
         placeholder={t("auth.lastName")}
         value={form.lastname}
         onChangeText={(v) => update("lastname", v)}
+        autoCapitalize="words"
+        autoComplete="family-name"
+        textContentType="familyName"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => phoneRef.current?.focus()}
         style={inputStyle}
       />
       <Input
+        ref={phoneRef}
         placeholder={t("auth.phone")}
         value={form.phone}
         onChangeText={(v) => update("phone", v)}
         keyboardType="phone-pad"
+        autoComplete="tel"
+        textContentType="telephoneNumber"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => emailRef.current?.focus()}
         style={inputStyle}
       />
       <Input
+        ref={emailRef}
         placeholder={t("auth.email")}
         value={form.email}
         onChangeText={(v) => update("email", v)}
         keyboardType="email-address"
         autoCapitalize="none"
+        // autocorrect on an email address silently rewrites it, and the failure
+        // that follows gives the user no clue why.
+        autoCorrect={false}
+        autoComplete="email"
+        textContentType="emailAddress"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => passwordRef.current?.focus()}
         style={inputStyle}
       />
-      <Input
-        placeholder={t("auth.password")}
-        value={form.password}
-        onChangeText={(v) => update("password", v)}
-        secureTextEntry
-        style={inputStyle}
-      />
-      <Input
-        placeholder={t("auth.confirmPassword")}
-        value={form.passwordConfirmation}
-        onChangeText={(v) => update("passwordConfirmation", v)}
-        secureTextEntry
-        style={{ marginBottom: 24, textAlign }}
-      />
+      {/* Only the margin here — `inputStyle` also carries textAlign, which is a
+          text style and does not belong on a View. PasswordInput handles its own
+          RTL alignment internally. */}
+      <View style={{ marginBottom: 12 }}>
+        <PasswordInput
+          ref={passwordRef}
+          placeholder={t("auth.password")}
+          value={form.password}
+          onChangeText={(v) => update("password", v)}
+          purpose="new"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => confirmRef.current?.focus()}
+        />
+      </View>
+      <View style={{ marginBottom: 24 }}>
+        <PasswordInput
+          ref={confirmRef}
+          placeholder={t("auth.confirmPassword")}
+          value={form.passwordConfirmation}
+          onChangeText={(v) => update("passwordConfirmation", v)}
+          purpose="new"
+          returnKeyType="go"
+          onSubmitEditing={handleRegister}
+        />
+      </View>
 
-      <Button onPress={handleRegister} disabled={loading} style={{ marginBottom: 16 }}>
+      {/* testID because "Create Account" is BOTH this button's label
+          (auth.registerButton) and the screen's heading (auth.createAccount), so
+          the words alone cannot identify it. */}
+      <Button
+        testID="register-submit"
+        onPress={handleRegister}
+        disabled={loading}
+        style={{ marginBottom: 16 }}
+      >
         <Text>{loading ? t("common.loading") : t("auth.registerButton")}</Text>
       </Button>
 

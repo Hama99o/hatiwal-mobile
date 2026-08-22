@@ -8,7 +8,10 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/goto_login.yaml
 - assertVisible: "Welcome to Hatiwal"
 # Navigate to Register
-- tapOn: "Create Account"
+# The login screen renders this as ONE Text — "Don't have an account? Create
+# Account" — so an exact-match selector on "Create Account" can never find it.
+- tapOn:
+    id: "go-to-register"
 - assertVisible: "Create Account"
 - assertVisible: "Buy and sell locally in Afghanistan"
 # Fill form
@@ -29,6 +32,9 @@ appId: com.hatiwal.app
 - inputText: "Password123!"
 - tapOn: "Confirm Password"
 - inputText: "Password123!"
-- tapOn: "Create Account"
+# The submit button, by testID: "Create Account" is also the screen HEADING,
+# so the words alone match two elements.
+- tapOn:
+    id: "register-submit"
 # Lands on Bazaar after successful registration
 - assertVisible: "Bazaar"

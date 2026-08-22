@@ -32,6 +32,14 @@
 # export QA_AVD_1="qa_tablet"
 # export QA_AVD_2="qa_phone"
 # export QA_AVD_3="qa_phone_small"
+
+# ── Device location (seeded at boot) ──────────────────────────────────────
+# A fresh emulator has NO GPS fix, so anything calling getCurrentPositionAsync
+# times out and the app reports "Couldn't determine your location" — correct
+# behaviour, but it fails every distance/nearest/map flow for a non-app reason.
+# Set this to somewhere your fixtures are, or distance sorting is meaningless.
+# export QA_GEO_LAT="34.5553"     # Kabul
+# export QA_GEO_LON="69.2075"
 #
 # Optional extra profiles. `qa.sh up <name>` accepts any key defined here.
 # export AVD_SMALL="qa_phone_small"    # e.g. 5.0" 720x1280 — cramped layouts

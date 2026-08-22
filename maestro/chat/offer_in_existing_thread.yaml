@@ -12,7 +12,8 @@ appId: com.hatiwal.app
 # ListingUnavailableNotice — no "+" button at all. See the helper for the
 # database evidence.
 - runFlow: ../_helpers/open_active_conversation.yaml
-- assertVisible: "Chat"
+# (Removed `assertVisible: "Chat"` — the word is never on screen, and
+# open_active_conversation.yaml already asserts the composer.)
 
 # Existing messages present — TASK-K487: the composer's meetup/file/photo/
 # offer icons are now collapsed behind a single "+" actions sheet. CR fix

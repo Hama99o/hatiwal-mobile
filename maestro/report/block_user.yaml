@@ -25,9 +25,9 @@ appId: com.hatiwal.app
 # listing IS the step that was missing; the contact tap was never the point.
 - tapOn: "Seller"
 - waitForAnimationToEnd
-# "Active Listings" is only the LOADING/ERROR header. Once the profile loads,
-# HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting the
-# static title is a race the loaded screen always wins. "Active Listings" is a
+# NOT "Seller Profile" — that is only the LOADING/ERROR header. Once the profile
+# loads, HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting
+# the static title is a race the loaded screen always wins. "Active Listings" is a
 # literal stat label in ProfileHeader and is there for every profile.
 - assertVisible: "Active Listings"
 # Block user

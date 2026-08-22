@@ -6,11 +6,17 @@ appId: com.hatiwal.app
     clearState: true
 - runFlow: ../_helpers/open_bundle.yaml
 - runFlow: ../_helpers/goto_login.yaml
-- tapOn: "Create Account"
+# The login screen renders this as ONE Text — "Don't have an account? Create
+# Account" — so an exact-match selector on "Create Account" can never find it.
+- tapOn:
+    id: "go-to-register"
 - assertVisible: "Create Account"
 
 # Submit empty form
-- tapOn: "Create Account"
+# The submit button, by testID: "Create Account" is also the screen HEADING,
+# so the words alone match two elements.
+- tapOn:
+    id: "register-submit"
 - assertVisible: "is required"
 
 # Fill first + last name only, submit — still missing email/password
@@ -18,7 +24,10 @@ appId: com.hatiwal.app
 - inputText: "Ahmad"
 - tapOn: "Last Name"
 - inputText: "Karimi"
-- tapOn: "Create Account"
+# The submit button, by testID: "Create Account" is also the screen HEADING,
+# so the words alone match two elements.
+- tapOn:
+    id: "register-submit"
 - assertVisible: "is required"
 
 # Fill email + mismatched passwords
@@ -28,5 +37,8 @@ appId: com.hatiwal.app
 - inputText: "Password123!"
 - tapOn: "Confirm Password"
 - inputText: "DifferentPass!"
-- tapOn: "Create Account"
+# The submit button, by testID: "Create Account" is also the screen HEADING,
+# so the words alone match two elements.
+- tapOn:
+    id: "register-submit"
 - assertVisible: "Passwords do not match"

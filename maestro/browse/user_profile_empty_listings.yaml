@@ -30,9 +30,9 @@ appId: com.hatiwal.app
     # is what the other seven flows already use.
     id: "seller-profile-link"
 - waitForAnimationToEnd
-# "Active Listings" is only the LOADING/ERROR header. Once the profile loads,
-# HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting the
-# static title is a race the loaded screen always wins. "Active Listings" is a
+# NOT "Seller Profile" — that is only the LOADING/ERROR header. Once the profile
+# loads, HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting
+# the static title is a race the loaded screen always wins. "Active Listings" is a
 # literal stat label in ProfileHeader and is there for every profile.
 - assertVisible: "Active Listings"
 - assertVisible: "No listings yet"

@@ -46,6 +46,18 @@ appId: com.hatiwal.app
 # on the chip to clear and the list to settle.
 - waitForAnimationToEnd
 
+# Wait for the chip to STOP saying "Finding your location…" before tapping again.
+#
+# While acquiring GPS the chip relabels itself (`nearestLoading ?
+# browse.nearestLocationLoading : browse.sort.nearest`), so for that window the
+# text "Nearest first" does not exist on screen at all — and the toggle-off tap
+# failed with "Element not found: Nearest first" while the chip was sitting right
+# there, mid-load. `waitForAnimationToEnd` does not cover it: acquiring a location
+# is not an animation.
+- extendedWaitUntil:
+    visible: "Nearest first"
+    timeout: 30000
+
 # Tap "Nearest first" again to toggle it off (back to default newest order)
 - tapOn: "Nearest first"
 - waitForAnimationToEnd

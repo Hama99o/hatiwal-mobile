@@ -19,18 +19,33 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # ── Listing Detail: seller card response-time + rate rows ────────────────────
-# Open first listing (seller@hatiwal.test's active listing is first in feed)
+# Open a listing we KNOW belongs to seller@hatiwal.test.
+#
+# "the first listing in the feed" was an assumption, not a fact: the feed is
+# ordered by recency and other flows create listings, so the first card belongs to
+# whoever posted most recently. This badge only renders for a seller who HAS
+# response data (ResponseRateBadge returns null without it — verified in the
+# database: seller@hatiwal.test is at 90% / within_one_hour), so the flow has to
+# pick that seller's listing deliberately.
+- extendedWaitUntil:
+    visible:
+      text: "AFN.*"
+    timeout: 40000
+- scrollUntilVisible:
+    element:
+      text: "Phone Case.*"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
-    index: 0
-    id: "listing-card"
+    text: "Phone Case.*"
 - waitForAnimationToEnd
 
 # Scroll down to the Seller section
 - scrollUntilVisible:
     element:
-      text: "Usually responds.*"   # the full strings are "Usually responds within 1 hour" / "within a day" / "within a few days"
+      text: "Usually responds.*"   # "Usually responds within 1 hour" / "within a day" / "within a few days"
     direction: DOWN
-    timeout: 5000
+    timeout: 20000
 
 # The badge should contain the response-time string
 - assertVisible:

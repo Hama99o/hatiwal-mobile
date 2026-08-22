@@ -52,6 +52,12 @@ AVD_TABLET="${AVD_TABLET:-qa_tablet}"
 # Honours ANDROID_AVD_HOME when the SDK is configured with a custom location.
 AVD_HOME="${AVD_HOME:-${ANDROID_AVD_HOME:-$HOME/.android/avd}}"
 
+# Device location seeded at boot. A fresh emulator has NO GPS fix, so every
+# location-dependent flow fails on "Couldn't determine your location". Defaults to
+# Kabul so distance sorting against the Afghan fixtures is meaningful.
+QA_GEO_LAT="${QA_GEO_LAT:-34.5553}"
+QA_GEO_LON="${QA_GEO_LON:-69.2075}"
+
 # ── Which AVD belongs to THIS session ──────────────────────────────────────
 # Set QA_AVD_1, QA_AVD_2, … in qa.config.sh to pin a form factor per session —
 # that is the whole point of running several: one drives a tablet, another a

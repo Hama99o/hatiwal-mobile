@@ -13,7 +13,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd
-- assertVisible: "Chat"
+# NOT `assertVisible: "Chat"`. The tab is "Chats" and the thread screen shows the
+# listing, never the bare word "Chat" — `common.chat` ("Chat") is a dead key. The
+# composer is what proves a thread is open.
+- assertVisible: "Type a message..."
 
 # Send opening message
 - tapOn: "Type a message..."
