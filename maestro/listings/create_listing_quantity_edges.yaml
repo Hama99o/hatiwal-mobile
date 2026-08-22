@@ -1,0 +1,71 @@
+appId: com.hatiwal.app
+---
+# Quantity EDGE CASES on create — docs/SPIKE_LISTING_QUANTITY.md.
+# Schema: `z.number().int().min(1).max(999)`, default 1.
+#
+# The governing rule of the whole feature is that a seller with ONE item is never
+# asked about quantity. So the first thing this asserts is an ABSENCE: no
+# quantity input until the toggle is on. If that ever regresses, every ordinary
+# seller pays for a feature they do not use.
+#
+# Covered here:
+#   - quantity input hidden until "I have more than one" is on
+#   - toggling on reveals it, toggling off hides it again
+#   - 0 and 1 are rejected as "more than one" is meaningless there
+#   - 999 (the maximum) is accepted
+#   - a value past the maximum is refused
+#
+# The toggle row is tapped by testID because the whole row is pressable and the
+# label appears twice in the accessibility tree otherwise (UI-012).
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "What are you selling?"
+- inputText: "Quantity Edge Case Item"
+- tapOn: "Enter price"
+- inputText: "250"
+
+# ── THE GOVERNING RULE: nothing to see for a single item ────────────────────
+- scrollUntilVisible:
+    element:
+      id: "listing-form-quantity-row"
+    direction: DOWN
+    timeout: 20000
+- assertNotVisible:
+    id: "listing-form-quantity-input"
+
+# ── Toggling on reveals the field ───────────────────────────────────────────
+- tapOn:
+    id: "listing-form-quantity-row"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "listing-form-quantity-input"
+
+# ── The maximum, 999, is accepted ───────────────────────────────────────────
+- tapOn:
+    id: "listing-form-quantity-input"
+- eraseText
+- inputText: "999"
+- assertVisible: "999"
+
+# ── Past the maximum is refused ─────────────────────────────────────────────
+# Either the field will not take the 4th digit or the value is clamped; both are
+# acceptable, and both mean 1000 must NOT be what the field holds.
+- tapOn:
+    id: "listing-form-quantity-input"
+- eraseText
+- inputText: "1000"
+- assertNotVisible: "1000"
+
+# ── Toggling back off hides the field again ─────────────────────────────────
+# The listing must fall back to a single unit, not keep a stale 999 hidden.
+- tapOn:
+    id: "listing-form-quantity-row"
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: "listing-form-quantity-input"

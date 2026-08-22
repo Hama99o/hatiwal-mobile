@@ -1,0 +1,55 @@
+appId: com.hatiwal.app
+---
+# Title EDGE CASES on create. The schema is `z.string().trim().min(1).max(150)`
+# and the backend is `validates :title, presence: true, length: { maximum: 150 }`.
+#
+# The interesting case is whitespace: `.min(1)` on an UNTRIMMED string accepts
+# "   ", while Rails `presence: true` treats it as blank. Before the trim was
+# added the seller filled the form, tapped save, and got a SERVER error where an
+# inline field error belonged. This flow is what stops that regressing.
+#
+# Covered here:
+#   - whitespace-only title            -> inline "Title is required"
+#   - a 150-character title            -> accepted (the boundary, inclusive)
+#   - leading/trailing spaces          -> trimmed, not rejected
+#
+# Not covered here: the >150 case. The input carries maxLength, so the 151st
+# character cannot be typed at all — there is nothing to assert beyond the field
+# refusing it, and asserting "the text I typed is not there" is a weak test.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+# ── Whitespace-only title is NOT a title ────────────────────────────────────
+- tapOn: "What are you selling?"
+- inputText: "   "
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertVisible: "Title is required (max 150 characters)"
+
+# ── A title at the 150-char boundary is accepted ─────────────────────────────
+# Exactly 150 characters: 15 blocks of 10 ("BulkItem01".."BulkItem15").
+# Counted, not eyeballed — the first attempt at this line was 165 characters,
+# which would have tested the REJECT path while claiming to test the boundary.
+- tapOn: "What are you selling?"
+- eraseText
+- inputText: "BulkItem01BulkItem02BulkItem03BulkItem04BulkItem05BulkItem06BulkItem07BulkItem08BulkItem09BulkItem10BulkItem11BulkItem12BulkItem13BulkItem14BulkItem15"
+- tapOn: "Enter price"
+- inputText: "500"
+# The title error must be GONE — that is the assertion that proves 150 is legal
+# rather than merely "something happened".
+- assertNotVisible: "Title is required (max 150 characters)"
+
+# ── Leading/trailing spaces are trimmed, not rejected ───────────────────────
+- tapOn: "What are you selling?"
+- eraseText
+- inputText: "  Padded Title Item  "
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertNotVisible: "Title is required (max 150 characters)"
+# It gets as far as the NEXT blocker (category), which proves the title passed.
+- assertVisible: "Please select a category"

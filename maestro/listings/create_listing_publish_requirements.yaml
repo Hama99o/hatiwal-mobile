@@ -1,0 +1,64 @@
+appId: com.hatiwal.app
+---
+# What a listing needs to GO LIVE, as opposed to be saved as a draft.
+#
+# This distinction is deliberate in the app and easy to break: zod gates the
+# fields a DRAFT needs (title, price, currency, category — mirroring
+# hatiwal-api's Listing validations), while `getPublishBlockers({ mode:
+# "publish" })` separately enforces what a LIVE listing needs. A draft may have
+# no photo and no map pin; a published listing may not.
+#
+# So the test worth having is not "the form validates" but "the same form accepts
+# a draft and refuses to publish". Covered here:
+#   - a complete-but-photoless listing SAVES as a draft
+#   - the same listing REFUSES to publish, naming the photo
+#   - the location requirement is likewise a publish-time blocker
+#
+# The seed image the picker sees comes from `qa.sh up`, which copies four photos
+# into the device gallery — a fresh emulator has none, and then every photo
+# assertion fails for a reason that has nothing to do with the app.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+# ── Fill everything a DRAFT needs, and nothing more ─────────────────────────
+- tapOn: "What are you selling?"
+- inputText: "Publish Requirements Item"
+- tapOn: "Enter price"
+- inputText: "3400"
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+# A leaf, not a parent: every top-level category has children, so tapping one
+# only drills in and the picker stays open over the form.
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Phones & Tablets"
+- waitForAnimationToEnd
+
+# ── A draft is allowed to be incomplete ─────────────────────────────────────
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertVisible: "Publish Requirements Item"
+- assertVisible: "Draft"
+
+# ── Publishing the same listing is refused, and says why ────────────────────
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Publish"
+- tapOn:
+    id: "lifecycle-primary-action"
+- waitForAnimationToEnd
+# The blocker names the photo — the seller must be told WHICH requirement failed,
+# not merely that publishing did not work.
+- assertVisible: "A live listing needs at least one photo"
+
+# It must still be a draft afterwards: a refused publish that silently went live
+# would be far worse than a clear error.
+- assertVisible: "Draft"

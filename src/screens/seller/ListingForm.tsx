@@ -128,7 +128,12 @@ import { apiErrorMessage } from "@/utils/apiError";
 const MAX_LISTING_PRICE = 9_999_999_999.99;
 
 const listingSchema = z.object({
-  title: z.string().min(1).max(150),
+  // .trim() BEFORE .min(1): the backend validates `presence: true`, which treats
+  // a whitespace-only title as blank, so "   " passed here and was then rejected
+  // by the server. The seller filled the form, tapped Publish, and got a server
+  // error where an inline field error belonged. Trimming also keeps leading and
+  // trailing spaces out of stored titles.
+  title: z.string().trim().min(1).max(150),
   // coerce handles both number and string inputs (API may return "500.0" as string)
   price: z.coerce
     .number()

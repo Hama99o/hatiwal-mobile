@@ -1,0 +1,55 @@
+appId: com.hatiwal.app
+---
+# Price EDGE CASES on create. Schema: positive, and at most MAX_LISTING_PRICE
+# (9,999,999,999.99).
+#
+# The point of this flow is the DISTINCTION between the two failures. An
+# over-large price reports zod issue "too_big", and ListingForm maps that to
+# "Price is too high. Enter a smaller amount." — because showing the
+# greater-than-zero message for a huge number tells the seller the opposite of
+# what is wrong. A flow that only checked "some error appeared" would not notice
+# if that mapping broke.
+#
+# Covered here:
+#   - price 0            -> "Enter a valid price greater than 0"
+#   - price over the max -> "Price is too high…"  (NOT the greater-than-0 text)
+#   - a normal price     -> neither error
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- tapOn: "What are you selling?"
+- inputText: "Price Edge Case Item"
+
+# ── Zero is not a price ─────────────────────────────────────────────────────
+- tapOn: "Enter price"
+- inputText: "0"
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertVisible: "Enter a valid price greater than 0"
+
+# ── Over the maximum reports the RIGHT error ────────────────────────────────
+# 11 digits — one order of magnitude past MAX_LISTING_PRICE.
+- tapOn: "Enter price"
+- eraseText
+- inputText: "99999999999"
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertVisible: "Price is too high. Enter a smaller amount."
+# The two messages must not be confused for each other.
+- assertNotVisible: "Enter a valid price greater than 0"
+
+# ── A normal price clears both ──────────────────────────────────────────────
+- tapOn: "Enter price"
+- eraseText
+- inputText: "1200"
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+- assertNotVisible: "Price is too high. Enter a smaller amount."
+- assertNotVisible: "Enter a valid price greater than 0"
+# Reaches the next blocker, which proves the price was accepted.
+- assertVisible: "Please select a category"
