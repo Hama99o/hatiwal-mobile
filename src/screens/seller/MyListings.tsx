@@ -171,6 +171,7 @@ function CompactHeader({
         >
           <Pressable
             onPress={() => onViewModeChange("grid")}
+            hitSlop={8}
             style={{
               width: 34,
               height: 38,
@@ -189,6 +190,7 @@ function CompactHeader({
           </Pressable>
           <Pressable
             onPress={() => onViewModeChange("list")}
+            hitSlop={8}
             style={{
               width: 34,
               height: 38,

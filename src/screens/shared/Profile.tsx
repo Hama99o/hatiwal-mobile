@@ -49,6 +49,7 @@ import { confirmAlert } from "@/utils/alert";
 import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/permissions";
 import { setLanguage, resetLanguage, SUPPORTED_LANGUAGES, LanguageCode } from "@/i18n";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { apiErrorMessage } from "@/utils/apiError";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -374,10 +375,21 @@ function ProfileContent({
         { label: t("profile.stats.active"), value: formatNumber(user?.itemsActiveCount ?? 0) },
       ]
     : [
+        // Pass the count so the label is pluralized: a buyer with one purchase
+        // was shown "1 Items Bought". The seller labels above ("Sold",
+        // "Active") are adjectives and need no plural form.
         ...(boughtCount > 0
-          ? [ { label: t("profile.itemsBought"), value: formatNumber(boughtCount) } ]
+          ? [
+              {
+                label: t("profile.itemsBought", { count: boughtCount }),
+                value: formatNumber(boughtCount),
+              },
+            ]
           : []),
-        { label: t("profile.itemsSaved"), value: formatNumber(user?.savedItemsCount ?? 0) },
+        {
+          label: t("profile.itemsSaved", { count: user?.savedItemsCount ?? 0 }),
+          value: formatNumber(user?.savedItemsCount ?? 0),
+        },
       ];
 
   return (
@@ -467,7 +479,7 @@ export default function ProfileScreen() {
   const avatarMutation = useMutation({
     mutationFn: authAPI.updateAvatar,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["me"] }),
-    onError: () => toast.error(t("common.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
   const pickAvatar = async () => {
@@ -811,6 +823,7 @@ function SettingsSection({
                 <Pressable
                   key={value}
                   onPress={() => setTheme(value)}
+                  hitSlop={8}
                   android_ripple={{ color: colors.muted, borderless: false }}
                   accessibilityRole="button"
                   style={{
@@ -1074,12 +1087,15 @@ function SettingsSection({
               marginBottom: 4,
             }}
           >
+            {/* Matches its sibling rows (Blocked Users / My Reports): same size,
+                foreground colour, no underline. The chevron already says this
+                navigates — an underline on top of it read as a web link and
+                made one row of three look intentionally de-emphasised. */}
             <Text
               className="text-sm"
               style={{
                 flex: 1,
-                color: colors.mutedForeground,
-                textDecorationLine: "underline",
+                color: colors.foreground,
                 textAlign: isRtl ? "right" : "left",
               }}
             >
@@ -1124,7 +1140,6 @@ function SettingsSection({
           style={{
             fontSize: 12,
             color: colors.mutedForeground,
-            opacity: 0.6,
             textDecorationLine: "underline",
           }}
         >
