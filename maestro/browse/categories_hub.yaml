@@ -25,8 +25,18 @@ appId: com.hatiwal.app
 # Category cards should render with names and listing counts
 - assertVisible: "Electronics"
 
-# Tap a category card to navigate to Browse pre-filtered
+# Tapping a top-level category EXPANDS it, it does not navigate.
+#
+# Every one of the 16 top-level categories has children, and the hub card's own
+# accessibility hint says so ("Tap to see subcategories"). So this tap reveals a
+# subcategory row — "All in Electronics", "Phones & Tablets", … — and the app
+# stays on the hub. Navigating to a pre-filtered Bazaar is the "All in <name>"
+# chip (categories.allIn). The flow used to tap "Electronics" and immediately
+# assert the Bazaar chip was selected, which could never pass; the screenshot
+# showed the hub, expanded, exactly as designed.
 - tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "All in Electronics"
 - waitForAnimationToEnd
 
 # Back on Browse — verify the Electronics category chip is actively selected.
@@ -59,8 +69,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Categories"
 
-# Step 3: tap Electronics again — this is the re-selection path
+# Step 3: tap Electronics again — this is the re-selection path (expand, then
+# navigate, same as above)
 - tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "All in Electronics"
 - waitForAnimationToEnd
 
 # The filter must be re-applied: Electronics chip must be selected again.

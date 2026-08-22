@@ -41,7 +41,7 @@ appId: com.hatiwal.app
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 
 # Reset
 - back

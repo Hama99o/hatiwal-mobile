@@ -1,0 +1,56 @@
+appId: com.hatiwal.app
+---
+# Open a conversation whose listing is ACTIVE, so the composer is usable.
+#
+# WHY THIS EXISTS
+#
+# Every in-thread action — propose meetup, make an offer, attach a photo, type a
+# draft — needs a thread on an ACTIVE listing. When the pinned listing is sold or
+# reserved, Conversation.tsx replaces the composer with ListingUnavailableNotice:
+# there is no "+" button, so no actions sheet, and offers are disabled. The flow
+# then fails on "Element not found: Propose Meetup" (or "Make an Offer", or
+# "Type a message...") with nothing whatsoever wrong with the app.
+#
+# Roughly fifteen flows opened "the first conversation" instead
+# (`conversation-row-\d+` index 0). That is not a stable target: the list is
+# ordered by most recent activity, and the flows themselves reorder it. Checked
+# against the database mid-run, the buyer's conversations were
+#
+#   reserved  | Traditional Kandahari Carpet 3x4        <- index 0 at that moment
+#   active    | Men Winter Jacket XL Black
+#   sold      | Xiaomi Redmi Note 11 128GB
+#   active    | Lenovo ThinkPad Laptop Core i5 8GB
+#   active    | Phone Case Silicone Clear - Wholesale
+#
+# so index 0 was a RESERVED listing, and earlier in the same session it was the
+# SOLD one. Which explains why these flows passed and failed apparently at random.
+#
+# WHY THIS LISTING
+#
+# "Phone Case Silicone Clear - Wholesale" is the multi-unit fixture (15 units). It
+# is the most durable active thread available: a partial sale leaves it ACTIVE by
+# design — that is the whole point of the quantity feature — and only two flows
+# touch it at all. Every other seeded active listing gets reserved or sold by some
+# flow ("Men Winter Jacket XL Black" is reserved by
+# reserve_after_buyer_accepts_counter).
+#
+# Sign in first in the calling flow; this helper only navigates.
+
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+# The row TRUNCATES the title ("Phone Case Si…"), and Maestro's text matching is
+# an anchored regex — so the full title never matches a row. Match the prefix.
+- scrollUntilVisible:
+    element:
+      text: "Phone Case.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: "Phone Case.*"
+- waitForAnimationToEnd
+
+# The composer proves the listing is still active. If this fails, the fixture was
+# sold out by another flow — fix the fixture, do not "fix" the app.
+- assertVisible: "Type a message..."

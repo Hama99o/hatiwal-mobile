@@ -1,6 +1,6 @@
 appId: com.hatiwal.app
 ---
-# Blocked user: "Message Seller" button disabled or shows blocked message
+# Blocked user: "Contact Seller" button disabled or shows blocked message
 
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Bazaar"
@@ -37,5 +37,5 @@ appId: com.hatiwal.app
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
-# "Message Seller" disabled for blocked user
-- assertNotVisible: "Message Seller"
+# "Contact Seller" disabled for blocked user
+- assertNotVisible: "Contact Seller"

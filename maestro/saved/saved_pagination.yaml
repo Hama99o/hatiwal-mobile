@@ -14,7 +14,7 @@ appId: com.hatiwal.app
 - tapOn:
     index: 0
 - waitForAnimationToEnd
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 # Go back
 - back
 - waitForAnimationToEnd

@@ -23,7 +23,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 # Tap "Make an Offer"
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd

@@ -14,7 +14,10 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 - tapOn:
-    id: "seller-name"
+    # `seller-name` / `seller-identity` do not exist. The seller row on the listing
+    # detail screen carries testID="seller-profile-link" (ListingDetail.tsx), which
+    # is what the other seven flows already use.
+    id: "seller-profile-link"
 - waitForAnimationToEnd
 - assertVisible: "Seller Profile"
 

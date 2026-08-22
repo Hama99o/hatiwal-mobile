@@ -26,7 +26,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 - assertVisible: "Description"
 - scroll
 - assertVisible: "Seller"

@@ -22,8 +22,14 @@ appId: com.hatiwal.app
 # Tap Share — native OS share sheet opens
 - tapOn: "Share"
 - waitForAnimationToEnd
-# The native share sheet should be visible — dismiss it
-- pressKey: Escape
+# Dismiss the native share sheet with BACK, not Escape.
+#
+# Escape is not how Android closes a share sheet, so the sheet stayed on top and
+# the final assertion failed on "Contact Seller" — the button was there, behind
+# the sheet. Back is safe here specifically BECAUSE the sheet is on top: it
+# consumes the press. (From a root screen with nothing above it, Back would exit
+# the app — see the note in _helpers/open_bundle.yaml.)
+- pressKey: Back
 - waitForAnimationToEnd
 # Still on listing detail after dismissing share
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"

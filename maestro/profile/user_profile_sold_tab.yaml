@@ -18,7 +18,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Tap the seller identity row to open their public profile
 - tapOn:
-    id: "seller-identity"
+    # `seller-name` / `seller-identity` do not exist. The seller row on the listing
+    # detail screen carries testID="seller-profile-link" (ListingDetail.tsx), which
+    # is what the other seven flows already use.
+    id: "seller-profile-link"
 - waitForAnimationToEnd
 
 # ── Active tab (default) ─────────────────────────────────────────────────────

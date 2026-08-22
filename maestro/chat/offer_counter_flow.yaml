@@ -16,7 +16,7 @@ appId: com.hatiwal.app
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
-- tapOn: "Message Seller"
+- tapOn: "Contact Seller"
 - waitForAnimationToEnd
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd

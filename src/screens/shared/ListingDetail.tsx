@@ -11,7 +11,7 @@
  *  7. Similar listings horizontal rail
  *
  * Sticky bottom bar:
- *  - active + not own listing  → "Make an Offer" (outline) + "Message Seller" (primary)
+ *  - active + not own listing  → "Make an Offer" (outline) + "Contact Seller" (primary)
  *  - sold / reserved / own     → status notice banner (no CTA)
  *
  * Header overlay (pinned, outside ScrollView):
@@ -638,7 +638,7 @@ export default function ListingDetailScreen() {
             Not gated on lat/long: every listing ends in an in-person meetup,
             so the reminder should always be reachable here regardless of
             whether a map is shown above. Kept small/muted so it never
-            competes with the sticky "Message Seller" CTA below. */}
+            competes with the sticky "Contact Seller" CTA below. */}
         <View style={[styles.section, { paddingTop: 0, paddingBottom: 4 }]}>
           <Pressable
             onPress={() => setShowSafetyTips(true)}
@@ -673,7 +673,7 @@ export default function ListingDetailScreen() {
           </Text>
           {/* Seller identity → tap opens the public profile. The "Ask Seller"
               button that used to live here was removed: it called the exact
-              same handler as the sticky "Message Seller" CTA below, so it was a
+              same handler as the sticky "Contact Seller" CTA below, so it was a
               duplicate. Chatting now has ONE entry point (the sticky bar); this
               card is for identity + the distinct direct-call action. */}
           <View style={[styles.sellerRow, { flexDirection: isRtl ? "row-reverse" : "row" }]}>

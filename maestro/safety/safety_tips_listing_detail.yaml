@@ -14,7 +14,7 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 # Sticky CTA is present and not obscured
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 # Quiet safety-tips link near location
 - tapOn: "Meetup safety tips"
 - waitForAnimationToEnd
@@ -27,4 +27,4 @@ appId: com.hatiwal.app
 - tapOn: "Close"
 - waitForAnimationToEnd
 # Back on listing detail — CTA still intact
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"

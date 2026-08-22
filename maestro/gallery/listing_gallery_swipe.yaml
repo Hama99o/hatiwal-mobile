@@ -9,7 +9,7 @@ appId: com.hatiwal.app
 # Open a listing that has multiple photos (seller@hatiwal.test has listings with photos)
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 
 # Swipe left on the photo to see second image
 - swipe:

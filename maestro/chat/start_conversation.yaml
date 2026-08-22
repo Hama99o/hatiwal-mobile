@@ -22,8 +22,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd
-- assertVisible: "Message Seller"
-- tapOn: "Message Seller"
+- assertVisible: "Contact Seller"
+- tapOn: "Contact Seller"
 - waitForAnimationToEnd
 # First message sheet opens
 - assertVisible: "Ask about this item..."

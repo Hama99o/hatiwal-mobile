@@ -23,7 +23,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 # Save the listing via the heart button
 - tapOn:
     id: "save-toggle-button"

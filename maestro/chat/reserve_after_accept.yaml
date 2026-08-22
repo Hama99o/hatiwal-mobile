@@ -31,7 +31,7 @@ appId: com.hatiwal.app
 # CR fixes (cycle-4, both reviews) -- every selector below was checked against
 # the actual rendered copy/testIDs in ListingDetail.tsx / Conversation.tsx /
 # BuyerPickerSheet.tsx / reserveAfterAccept.ts / chat.json / buyerPicker.json:
-#  - "Message Seller" -> "Contact Seller" was the wrong fix: TASK-C381 (the
+#  - "Contact Seller" -> "Contact Seller" was the wrong fix: TASK-C381 (the
 #    composer's "+" -> Make an Offer entry point) is still CHANGES_REQUESTED
 #    and does not exist. "Make an Offer" is a SIBLING button on
 #    ListingDetail.tsx (visible alongside Contact Seller, not behind it) that

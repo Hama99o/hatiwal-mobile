@@ -20,6 +20,16 @@ appId: com.hatiwal.app
     timeout: 5000
 
 # The "Most viewed" option should be visible in the sort row
+# The sort chips live in a HORIZONTAL ScrollView, in the order newest, oldest,
+# price asc, price desc, most viewed, nearest — so the later ones start
+# off-screen to the right, and `tapOn` does not scroll to reach them. Scroll
+# the row sideways first. (This is why the chip "was not visible" while being
+# rendered unconditionally.)
+- scrollUntilVisible:
+    element:
+      text: "Most viewed"
+    direction: RIGHT
+    timeout: 15000
 - assertVisible: "Most viewed"
 
 # Tap "Most viewed" to activate it

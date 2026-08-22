@@ -13,11 +13,14 @@ appId: com.hatiwal.app
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 
 # Tap seller name/avatar → seller profile
 - tapOn:
-    id: "seller-name"
+    # `seller-name` / `seller-identity` do not exist. The seller row on the listing
+    # detail screen carries testID="seller-profile-link" (ListingDetail.tsx), which
+    # is what the other seven flows already use.
+    id: "seller-profile-link"
 - waitForAnimationToEnd
 - assertVisible: "Seller Profile"
 
@@ -30,7 +33,7 @@ appId: com.hatiwal.app
 - tapOn:
     id: "listing-card-0"
 - waitForAnimationToEnd
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 
 - back
 - waitForAnimationToEnd

@@ -16,7 +16,10 @@ appId: com.hatiwal.app
 
 # Navigate to a seller whose profile has 0 listings
 - tapOn:
-    id: "seller-name"
+    # `seller-name` / `seller-identity` do not exist. The seller row on the listing
+    # detail screen carries testID="seller-profile-link" (ListingDetail.tsx), which
+    # is what the other seven flows already use.
+    id: "seller-profile-link"
 - waitForAnimationToEnd
 - assertVisible: "Seller Profile"
 - assertVisible: "No listings yet"

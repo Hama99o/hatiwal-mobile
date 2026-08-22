@@ -16,7 +16,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Detail also shows no-photo state
 - assertVisible: "No photo"
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 
 - back
 - waitForAnimationToEnd

@@ -24,7 +24,7 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 # Opens a new listing detail — verify we're on a detail screen
-- assertVisible: "Message Seller"
+- assertVisible: "Contact Seller"
 - assertVisible: "Description"
 # Back returns to original listing detail
 - back
