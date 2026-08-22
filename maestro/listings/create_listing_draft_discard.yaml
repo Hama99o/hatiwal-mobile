@@ -15,7 +15,9 @@ appId: com.hatiwal.app
 - back
 - waitForAnimationToEnd
 # Discard confirmation dialog
-- assertVisible: "Discard listing?"
+# The dialog is `listing.form.discardTitle` — "Discard changes?", not
+# "Discard listing?". Stale expected string; the app was right.
+- assertVisible: "Discard changes?"
 - tapOn: "Discard"
 - waitForAnimationToEnd
 

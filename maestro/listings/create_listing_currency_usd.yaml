@@ -17,7 +17,9 @@ appId: com.hatiwal.app
 # Switch currency to USD
 - tapOn: "AFN"
 - waitForAnimationToEnd
-- tapOn: "USD"
+# The currency SHEET rows read "USD – US Dollar" / "EUR – Euro" (en dash).
+# Maestro anchors its text regex, so a bare code cannot match the row.
+- tapOn: "USD – US Dollar"
 - waitForAnimationToEnd
 
 - tapOn: "Category"

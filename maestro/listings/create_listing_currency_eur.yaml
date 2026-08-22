@@ -16,7 +16,9 @@ appId: com.hatiwal.app
 - tapOn: "AFN"
 - waitForAnimationToEnd
 - assertVisible: "EUR"
-- tapOn: "EUR"
+# The currency SHEET rows read "USD – US Dollar" / "EUR – Euro" (en dash).
+# Maestro anchors its text regex, so a bare code cannot match the row.
+- tapOn: "EUR – Euro"
 - waitForAnimationToEnd
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd
