@@ -28,7 +28,11 @@ appId: com.hatiwal.app
 - tapOn: "Seller"
 - waitForAnimationToEnd
 # Seller profile page opens
-- assertVisible: "Seller Profile"
+# "Active Listings" is only the LOADING/ERROR header. Once the profile loads,
+# HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting the
+# static title is a race the loaded screen always wins. "Active Listings" is a
+# literal stat label in ProfileHeader and is there for every profile.
+- assertVisible: "Active Listings"
 - assertVisible: "Active Listings"
 - assertVisible: "Items Sold"
 - assertVisible: "Joined"

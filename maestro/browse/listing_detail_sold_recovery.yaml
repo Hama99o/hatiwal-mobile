@@ -92,6 +92,6 @@ env:
     id: "unavailable-more-from-seller"
     optional: true
 - assertVisible:
-    text: "Seller Profile"
+    text: "Active Listings"
     optional: true
     label: "Secondary CTA navigates to the seller's public profile"

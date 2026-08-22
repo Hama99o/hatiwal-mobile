@@ -107,6 +107,22 @@ run_feature() {
       esac
     fi
 
+    # ── Clear airplane mode left behind by an earlier flow ────────────────
+    # Airplane mode is a DEVICE-WIDE setting that outlives the flow that set it.
+    # Two flows toggle it to test offline behaviour (chat/send_message_offline,
+    # profile/view_profile_error) and both do disable it again at the end — but a
+    # flow that FAILS never reaches its own cleanup, and then every flow after it
+    # on that device cannot reach Metro. The dev-launcher shows "Failed to connect
+    # to /10.0.2.2:3008" and the flows fail on things like `"Me" is visible`, so it
+    # reads as a broken login, or a broken app, rather than a radio that is still
+    # off. It cost a whole confirmation batch before the screenshot showed the
+    # little aeroplane in the status bar.
+    if [ "$(adb_qa shell settings get global airplane_mode_on 2>/dev/null | tr -d "\r")" = "1" ]; then
+      warn "airplane mode was left ON by an earlier flow — clearing it"
+      adb_qa shell cmd connectivity airplane-mode disable >/dev/null 2>&1
+      sleep 4   # the radios need a moment before Metro is reachable again
+    fi
+
     adb_qa logcat -c >/dev/null 2>&1
     printf '  %-46s ' "$name"
     local start; start=$(cut -d' ' -f1 /proc/uptime)

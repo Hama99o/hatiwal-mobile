@@ -18,7 +18,7 @@ appId: com.hatiwal.app
 # "seller-profile-link" testID, mirroring
 # maestro/browse/seller_response_rate_badge.yaml — "Contact Seller"/"Seller"
 # text taps never open a listing or the profile at all. Assert the badge via
-# its own stable testID (not localized copy), and drop the "Seller Profile"
+# its own stable testID (not localized copy), and drop the "Active Listings"
 # text assert — that string is the LOADING/ERROR header only; the loaded
 # header shows the seller's own name instead.
 

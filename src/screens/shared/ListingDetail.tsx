@@ -767,7 +767,16 @@ export default function ListingDetailScreen() {
                     <ListingCard
                       listing={item}
                       style={{ width: 160 }}
-                      onPress={() => router.replace(`/(main)/listing/${item.id}` as never)}
+                      // PUSH, not replace.
+                      //
+                      // `replace` swapped this screen out, so Back from the listing you
+                      // tapped went to the FEED rather than the listing you came from —
+                      // you lost your place. Every other listing navigation in the app
+                      // pushes (PublishSuccessSheet, Conversation, useListingLifecycle);
+                      // these two rails were the only exceptions, with no comment saying
+                      // why. The flow covering this rail asserts "Back returns to original
+                      // listing detail", so push is what was intended here too.
+                      onPress={() => router.push(`/(main)/listing/${item.id}` as never)}
                     />
                   </View>
                 )}
@@ -804,7 +813,16 @@ export default function ListingDetailScreen() {
                   <ListingCard
                     listing={item}
                     style={{ width: 160 }}
-                    onPress={() => router.replace(`/(main)/listing/${item.id}` as never)}
+                    // PUSH, not replace.
+                    //
+                    // `replace` swapped this screen out, so Back from the listing you
+                    // tapped went to the FEED rather than the listing you came from —
+                    // you lost your place. Every other listing navigation in the app
+                    // pushes (PublishSuccessSheet, Conversation, useListingLifecycle);
+                    // these two rails were the only exceptions, with no comment saying
+                    // why. The flow covering this rail asserts "Back returns to original
+                    // listing detail", so push is what was intended here too.
+                    onPress={() => router.push(`/(main)/listing/${item.id}` as never)}
                   />
                 )}
               />
