@@ -1,0 +1,148 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Hatiwal mobile — QA feature manifest
+#
+# The single source of truth for "what does it mean to QA feature X deeply".
+# Every feature binds together all three test layers (docs/TESTING.md) plus
+# the backend endpoints it depends on, so one command can prove a feature
+# works end to end instead of only running YAML.
+#
+#   qa.sh feature chat      → deep pass on chat only
+#   qa.sh smoke             → every feature's `smoke` flows (fast signal)
+#   qa.sh all               → every flow of every feature
+#
+# `smoke` flows are the 1-3 cheapest flows that would break FIRST if the
+# feature were broken at all. Keep that list short — it is the signal used
+# to decide whether a deep run is even worth starting.
+# ─────────────────────────────────────────────────────────────────────────
+
+features:
+  auth:
+    title: "Sign up, login, logout, session persistence, guest gating"
+    flows: auth
+    smoke: [login, session_persist]
+    jest: ["src/api/__tests__/auth*", "src/screens/shared/__tests__/*ogin*"]
+    api: ["/auth/sign_in", "/auth", "/auth/sign_out", "/users/me"]
+    # auth flows own their login — they must NOT reuse _helpers/login.yaml
+    self_login: true
+
+  onboarding:
+    title: "First-run experience"
+    flows: onboarding
+    smoke: [first_run]
+    jest: ["src/screens/shared/onboarding/__tests__/*"]
+    api: []
+    self_login: true
+
+  browse:
+    title: "Buyer browse, search, filters, sort, listing detail, seller profile"
+    flows: browse
+    smoke: [browse_listings, listing_detail, search_listings]
+    jest: ["src/api/__tests__/listings*", "src/screens/buyer/__tests__/*", "src/screens/shared/listing-detail/__tests__/*"]
+    api: ["/listings", "/listings/:id", "/categories", "/users/:id"]
+
+  listings:
+    title: "Seller create/edit/delete + full draft→active→reserved→sold lifecycle"
+    flows: listings
+    smoke: [create_listing, my_listings_filter_tabs, lifecycle_publish]
+    jest: ["src/screens/seller/listing-form/__tests__/*", "src/screens/seller/my-listings/__tests__/*"]
+    api: ["/listings", "/listings/:id", "/listings/:id/publish", "/listings/:id/reserve", "/listings/:id/sold"]
+
+  gallery:
+    title: "Listing photo upload, carousel, reorder, empty-photo state"
+    flows: gallery
+    smoke: [listing_gallery_swipe]
+    jest: ["src/components/common/__tests__/*allery*", "src/components/common/__tests__/*arousel*"]
+    api: ["/listings/:id/images"]
+    # Photo flows need a picker-seeded image on the device
+    needs_media: true
+
+  chat:
+    title: "Conversations, messages, offers, meetup arrangement, read state"
+    flows: chat
+    smoke: [conversations_list, send_message, start_conversation]
+    jest: ["src/api/__tests__/*conversation*", "src/api/__tests__/*message*", "src/screens/chat/**/__tests__/*"]
+    api: ["/conversations", "/conversations/:id/messages", "/offers", "/meetups"]
+
+  saved:
+    title: "Save / unsave a listing, saved tab, sold-while-saved"
+    flows: saved
+    smoke: [save_listing, saved_empty_state]
+    jest: ["src/api/__tests__/*saved*"]
+    api: ["/saved_listings"]
+
+  seller:
+    title: "Seller action sheet, publish, mark reserved/sold with buyer"
+    flows: seller
+    smoke: [publish_success, listing_actions_sheet]
+    jest: ["src/screens/seller/__tests__/*"]
+    api: ["/listings/:id/publish", "/listings/:id/sold"]
+
+  mode:
+    title: "Buyer ↔ seller mode switch, tab bar, persistence"
+    flows: mode
+    smoke: [mode_switcher]
+    jest: ["src/stores/__tests__/*mode*", "src/hooks/__tests__/*mode*"]
+    api: []
+
+  profile:
+    title: "Profile view/edit, language + theme switch, stats, blocked users"
+    flows: profile
+    smoke: [profile_stats_verify, edit_profile]
+    jest: ["src/screens/shared/profile/__tests__/*", "src/screens/shared/user-profile/__tests__/*"]
+    api: ["/users/me", "/users/:id", "/blocks"]
+
+  report:
+    title: "Report a listing or user, block, block side-effects"
+    flows: report
+    smoke: [report_listing, block_user]
+    jest: ["src/api/__tests__/*report*", "src/api/__tests__/*block*"]
+    api: ["/reports", "/blocks"]
+
+  reviews:
+    title: "Double-blind reviews after a sold transaction"
+    flows: reviews
+    smoke: [profile_reviews_empty_state]
+    jest: ["src/api/__tests__/*review*"]
+    api: ["/reviews", "/reviews/pending"]
+
+  safety:
+    title: "Safety tips on listing detail and in the meetup sheet"
+    flows: safety
+    smoke: [safety_tips_listing_detail]
+    jest: []
+    api: []
+
+  share:
+    title: "Deep links into a listing and a seller profile"
+    flows: share
+    smoke: [open_listing_deep_link]
+    jest: ["src/lib/__tests__/*link*"]
+    api: []
+    # Deep links are launched via adb, not a tap — see lib/flows.sh
+    deep_link: true
+
+  pagination:
+    title: "Infinite scroll across browse, search, saved, chat, my-listings"
+    flows: pagination
+    smoke: [browse_pagination]
+    jest: ["src/api/__tests__/*pagination*", "src/hooks/__tests__/*infinite*"]
+    api: ["/listings?page=", "/conversations?page="]
+    # Deep-scroll flows are slow; excluded from `smoke` by design
+    slow: true
+
+  dark_mode:
+    title: "Every main screen in dark theme + theme persistence"
+    flows: dark_mode
+    smoke: [browse_dark]
+    jest: ["src/lib/__tests__/*theme*", "src/stores/__tests__/*theme*"]
+    api: []
+    # Cross-cutting: re-runs other features' screens under a theme change
+    cross_cutting: true
+
+  rtl:
+    title: "Pashto + Dari right-to-left layout across main screens"
+    flows: rtl
+    smoke: [browse_rtl_pashto]
+    jest: ["src/lib/__tests__/*i18n*", "src/lib/__tests__/*locale*"]
+    api: []
+    cross_cutting: true

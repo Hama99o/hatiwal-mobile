@@ -4,7 +4,10 @@ appId: com.hatiwal.app
 # The conversation header has a block button next to the other participant's name.
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Chat"
+# The tab is labelled "Chats" (sidebar.chat). Maestro text matching is an
+# ANCHORED regex, not a substring, so "Chat" never matched it and the flow
+# failed at step 1 with "Element not found: Text matching regex: Chat".
+- tapOn: "Chats"
 - waitForAnimationToEnd
 # Open first conversation
 - tapOn:

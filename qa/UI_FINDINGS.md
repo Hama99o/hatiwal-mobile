@@ -546,6 +546,158 @@ phone-like proportions instead of stretching. The column count is now part of
 the FlashList `id`, because a numColumns change needs a clean remount — which
 now includes a tablet rotation.
 
+### UI-020 · TABLET/LANDSCAPE: the listing detail screen rendered NOTHING but the photo — FIXED
+
+**Severity: HIGH.** On a landscape tablet (1280×800dp) the buyer's listing detail
+screen showed the photo carousel and the sticky action bar, and nothing else.
+Title, price, the per-unit "each" marker, the stock pill, description, category,
+location and the seller block were **not below the fold — they were absent from
+the view hierarchy entirely**. A dump of the live screen returned exactly three
+strings: `1 / 3`, `Make an Offer`, `Contact Seller`.
+
+A buyer on a tablet could not see what an item was, or what it cost.
+
+**Why.** The hero's height was derived from *width alone*, in **three
+independent copies** of the same expression:
+
+| Site | Had |
+|---|---|
+| `listing-detail/ListingGallery.tsx` | `aspectRatio: 4/3` on the container and each page |
+| `shared/ListingDetail.tsx` | `GALLERY_H = SW * (3 / 4)`, driving the animated collapse wrapper |
+| `listing-detail/DetailSkeleton.tsx` | `width: SW, aspectRatio: 4/3` |
+
+`width / (4/3)` is **960dp on a 1280dp-wide viewport that is only 800dp tall**, so
+the hero alone was taller than the screen and pushed everything after it out.
+
+This is also a lesson in fixing one copy of a duplicated rule: capping only
+`ListingGallery` made it *worse-looking but equally broken* — the photo shrank
+to 480dp while `ListingDetail`'s wrapper stayed 960dp, so the screen gained a
+large blank gap and the content was still off-screen (run-060).
+
+**Fix.** One exported rule, `src/utils/gallery.ts`:
+
+```ts
+galleryHeight(w, h, aspect) = Math.min(w / aspect, h * 0.6)
+```
+
+used by all three sites. The cap never binds on a phone (411dp / 1.333 = 308dp,
+far under 60% of an 890dp viewport), so phones and portrait tablets look exactly
+as they did; only the case that would eat the screen is clamped.
+
+**Verified both ways, same APK, same flow:** `browse/listing_detail_multi_quantity`
+— tablet 1 passed / 0 failed (run-061), phone 1 passed / 0 failed (s2/run-062).
+
+**Found the second bug in the same file:** `const { width: SW } =
+Dimensions.get("window")` at **module scope** froze the page width at first
+import. Every page of the `pagingEnabled` carousel is that wide, so after a
+rotation or a split-screen resize paging landed between photos. Now
+`useWindowDimensions()`, which re-measures.
+
+> **Still open (design, not a defect):** 60% of a *landscape* tablet is still a
+> lot of photo for very little text — the content area holds about four lines
+> before the action bar. A landscape tablet wants a two-column layout (photo
+> left, details right), which is a `marketplace-designer` task, not a clamp.
+
+---
+
+### RIG-002 · `when: visible` decided before the screen existed — three separate flow-killers, FIXED
+
+All three are the same mistake in different places: **`when: visible` is a
+short-poll check that commits to a verdict**, so anything asked about a screen
+that has not drawn yet is answered "no" and silently skipped.
+
+**(a) The launcher check, which cost every tablet flow.** `open_bundle.yaml`
+wrapped the whole enter-the-bundle block in `when: visible: "Development Build"`.
+After `launchApp: clearState: true` the expo-dev-launcher needs longer than that
+to render, so the condition was evaluated **7s after launch**, concluded "not the
+launcher", and skipped the entire block — leaving the app parked on the launcher
+for the rest of the flow. Every later step then ran against the launcher's UI and
+the flow died on `Element not found: Email`, which reads as a login-screen bug.
+Measured from Maestro's own debug log (run-058):
+
+```
+13:12:20.969  Run flow when "Development Build" is visible RUNNING
+13:12:28.265  Assert that "Bundling.*" is not visible RUNNING     ← body never ran
+```
+
+Fixed with a gate that matches **either** the launcher or an already-running app,
+so it costs ~nothing in both cases and the conditional below it is evaluated
+against a screen that exists.
+
+**(b) No positive "JS is running" gate.** Leaving the launcher is not the app
+being up: the screen is **blank white for 30s+** while Metro transforms the
+bundle. The only check was `notVisible: "Bundling.*"` — but that banner is itself
+rendered by JS, so before the first render there is nothing to see and the check
+passes *instantly on a blank screen*. Now waits for the first thing that proves
+JS is rendering (the dev-menu sheet, or the app's own root).
+
+**(c) The dev-menu panel dismissal was a percentage point tap.** `point: "90%,10%"`.
+The close control sits a fixed ~68px from the right edge — 93.7% of a 1080-wide
+phone but **96.1% of a 2560-wide tablet** — so on the tablet the tap landed on
+empty header and the panel covered the app for the whole flow (run-054: identical
+flow, phone passed, tablet failed). Now targets the panel's `Close` accessibility
+label, verified on both emulators. The point tap survives only as a fallback.
+
+> **The general rule for this rig:** never ask `when: visible` about a screen you
+> have not first *waited* for. Every one of these failures presented as an app
+> bug on a healthy app.
+
+---
+
+### RIG-003 · `FLOW_TIMEOUT=240` produced rig failures with EMPTY logs — FIXED
+
+A cold flow pays the launcher URL entry plus a full Metro bundle transform
+(capped at 180s) before its first step runs; with a second session competing for
+the same Metro and the same cores, a tablet lands past 240s. `timeout` then killed
+Maestro **before it had written anything**, so the report said `rig_fail` with
+`(no message captured)` — the least diagnosable output the rig can produce.
+Now 480s, sized to the worst legal case rather than the typical one.
+
+---
+
+### RIG-004 · The rig could not recover from its own crashes — FIXED
+
+Three separate ways an unattended run died and stayed dead:
+
+| Problem | Symptom | Fix |
+|---|---|---|
+| Emulator killed uncleanly (host reboot, OOM, session teardown) left `hardware-qemu.ini.lock` + `multiinstance.lock` behind | next boot fails with **"Another emulator instance is running"** — naming the wrong cause; nothing was running | clear the locks on boot, but **only when no live qemu holds that AVD** — that guard is what makes it safe |
+| `qa.sh up` defaulted to the **phone** for every session | `QA_SESSION=1` booted `qa_phone` even with `QA_AVD_1=qa_tablet` set, so session 2 collided on the same AVD | `up` with no argument now boots **this session's** device (`QA_AVD_n`); explicit `up phone` / `up tablet` still wins |
+| Two sessions on one AVD | same misleading lock message | explicit collision check that names the conflict and tells you which variable to set |
+
+Pin the mapping in `qa.config.sh` — this is how form factors get covered in
+parallel, and it is how the UI-020 tablet bug was found:
+
+```bash
+export QA_AVD_1="qa_tablet"
+export QA_AVD_2="qa_phone"
+```
+
+---
+
+### RIG-005 · The shared board was being erased by whichever session finished last — FIXED
+
+Two bugs in `FLOW_REGISTER.md` generation, both of which quietly destroyed the
+campaign's memory:
+
+1. **Per-session blindness.** Sessions 2+ write to `reports/sN/`, and the
+   generator globbed only the caller's own directory — so each session
+   regenerated the *shared* register from its own handful of runs and overwrote
+   the other. Session 1 wrote "14/223 passing"; session 2 immediately replaced it
+   with "3/223", discarding every flow session 1 had triaged. Now merges the root
+   **and** every `sN/` directory, ordered by mtime (run numbers restart per
+   session, so `s2/run-055` must not outrank `run-060`), and run labels are
+   qualified `s2/run-055` so an evidence pointer is unambiguous.
+
+2. **Stale reasons frozen as human notes.** A failure reason was auto-filled into
+   `Notes`, then read back on the next regeneration as if a person had typed it —
+   and preserved forever. So a flow that had since been **fixed** still showed
+   `Element not found: Email` next to a green `PASS`. Auto-generated reasons are
+   now recognised and recomputed; genuine triage notes are untouched (verified:
+   19 human rows survived).
+
+---
+
 ### PROCESS-001 · I bulk-added another session's files by mistake (commit 7c05c8d)
 **Severity:** process, not product — but worth recording, not hiding
 
@@ -680,3 +832,5 @@ Recorded here too, because a wrong flow costs exactly as much time as a wrong sc
 | `create_listing*.yaml` + `seller/*` (13 flows) | selected a category by tapping a TOP-LEVEL name. All 10 top-level categories have children, so the tap DRILLS IN and never selects — the picker sheet stays open over the form and every later step acts on a covered screen | tap a leaf after the parent |
 | any flow entering a form field then tapping lower down | the numeric keypad covers the bottom half of the form, so the next `tapOn` fails on an element that is merely hidden | `hideKeyboard` + `scrollUntilVisible` |
 | `tapOn: "More"` on the owner detail | the action row sits below the description and the views chart, and `tapOn` does not scroll to its target | `scrollUntilVisible` on `id: lifecycle-more-action` — a testID, not a localized word |
+| `chat/block_from_conversation`, `chat/report_participant`, `chat/chat_older_messages_pagination`, `chat/view_other_profile_from_conversation`, `browse/full_marketplace_cycle` | tapped `"Chat"`, but the tab is labelled **"Chats"** (`sidebar.chat`). Maestro text matching is an **anchored regex, not a substring**, so this never matched and all 5 died at step 1 with `Element not found: Text matching regex: Chat`. Other chat flows already used `"Chats"` — these 5 were simply never run. | `tapOn: "Chats"` |
+| `browse/listing_detail_multi_quantity` | `waitForAnimationToEnd` returns while the feed is still skeletons, so `scrollUntilVisible` began scrolling an **empty list**, ran past where the card would later render, and gave up — reported as `No visible element found`, which reads as a missing fixture. The fixture was there the whole time (idx 3 of page 1, qty 15, confirmed over HTTP). The tablet lost this race; the phone won it. | wait for a real row (`text: "AFN.*"`) before scrolling a feed — never scroll a list you have not confirmed has data |

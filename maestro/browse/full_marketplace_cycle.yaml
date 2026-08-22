@@ -118,7 +118,10 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: false
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "Chat"
+# The tab is labelled "Chats" (sidebar.chat). Maestro text matching is an
+# ANCHORED regex, not a substring, so "Chat" never matched it and the flow
+# failed at step 1 with "Element not found: Text matching regex: Chat".
+- tapOn: "Chats"
 - waitForAnimationToEnd
 - tapOn: "Marketplace Cycle Phone"
 - waitForAnimationToEnd

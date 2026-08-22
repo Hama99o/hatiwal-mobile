@@ -35,11 +35,24 @@ appId: com.hatiwal.app
 # ── The batch listing, from the feed ────────────────────────────────────────
 - tapOn: "Bazaar"
 - waitForAnimationToEnd
+# WAIT FOR THE FEED TO HAVE DATA before scrolling through it.
+#
+# `waitForAnimationToEnd` returns while the feed is still skeletons, so
+# scrollUntilVisible began scrolling an EMPTY list, ran past where the card would
+# later be rendered, and gave up — reported as "No visible element found", which
+# reads as a missing fixture. The fixture was there the whole time (idx 3 of
+# page 1, quantity 15, confirmed over HTTP). The tablet lost this race because it
+# renders slower; the phone won it and passed. A price is the first thing every
+# card draws, so it is the cheapest proof that real rows exist.
+- extendedWaitUntil:
+    visible:
+      text: "AFN.*"
+    timeout: 40000
 - scrollUntilVisible:
     element:
       text: "Phone Case Silicone Clear - Wholesale"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 
 # The feed card already says "each" — the per-unit price is passed at every
 # listing-price site, not just the detail hero, so a buyer scanning the grid
@@ -69,7 +82,7 @@ appId: com.hatiwal.app
     element:
       text: "Wool Blanket Handmade King Size"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 - assertVisible: "Wool Blanket Handmade King Size"

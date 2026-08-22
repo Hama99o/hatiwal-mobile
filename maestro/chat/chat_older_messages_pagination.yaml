@@ -4,7 +4,10 @@ appId: com.hatiwal.app
 # Requires a seeded conversation with more than 30 messages (one full page).
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Chat"
+# The tab is labelled "Chats" (sidebar.chat). Maestro text matching is an
+# ANCHORED regex, not a substring, so "Chat" never matched it and the flow
+# failed at step 1 with "Element not found: Text matching regex: Chat".
+- tapOn: "Chats"
 - waitForAnimationToEnd
 # Open the conversation that has the most messages (index 0 = most recent)
 - tapOn:

@@ -15,6 +15,26 @@ appId: com.hatiwal.app
 #
 # 10.0.2.2:3008 = this host's Hatiwal Metro, from inside the emulator. It does
 # not depend on WiFi vs hotspot, unlike a LAN IP.
+
+# ── Wait for SOMETHING to render before deciding which state we are in ──────
+# `when: visible` below polls only briefly and then commits to a verdict. After
+# `launchApp: clearState: true` the launcher needs longer than that to draw, so
+# the check ran against a blank screen, concluded "not the launcher", and SKIPPED
+# THE ENTIRE enter-the-bundle block — leaving the app parked on the launcher for
+# the rest of the flow. Every later step then failed against the launcher's UI,
+# reported as "Element not found: Email", which looks like a login-screen bug and
+# is not one. Measured in run-058: the conditional was evaluated 7s after launch
+# and the flow burned 4m35s on the launcher.
+#
+# This gate matches EITHER the launcher or an app that is already up, so it exits
+# almost immediately in both cases rather than costing a fixed delay. Optional:
+# if nothing matches, behaviour is exactly as it was before this wait existed.
+- extendedWaitUntil:
+    visible:
+      text: "Development Build|Continue|Performance monitor|Welcome to Hatiwal|هاتیوال ته ښه راغلاست|Bazaar|Me|Email"
+    timeout: 120000
+    optional: true
+
 - runFlow:
     when:
       visible: "Development Build"
@@ -70,6 +90,25 @@ appId: com.hatiwal.app
     timeout: 180000
 - waitForAnimationToEnd
 
+# ── POSITIVE gate: wait until JS is actually rendering ──────────────────────
+# Absence of the "Bundling" banner does NOT mean the app is up. The banner is
+# itself rendered by JS, so before the first render there is nothing to see and
+# the notVisible check above passes INSTANTLY on a blank screen. The tablet made
+# this obvious: after the launcher exits it sits blank and white for 30s+ while
+# Metro transforms the bundle, so the whole helper — including the 30s dev-menu
+# wait below — burned down against an empty screen, and the flow then failed on
+# "Element not found: Email" with nothing wrong with the app (run-056; the
+# faster phone won the same race and passed).
+#
+# So wait for the first thing that PROVES JS is running: either the dev-menu
+# sheet ("Continue") / panel that covers the app, or the app's own root. Costs
+# nothing when the app is already up — it exits on the first match.
+- extendedWaitUntil:
+    visible:
+      text: "Continue|Performance monitor|Welcome to Hatiwal|هاتیوال ته ښه راغلاست|Bazaar|Me|Email"
+    timeout: 180000
+    optional: true
+
 # ── Known starting state ───────────────────────────────────────────────
 # Two things stand between "bundle loaded" and "the flow can assert anything":
 #
@@ -82,9 +121,14 @@ appId: com.hatiwal.app
 # after the bundle finishes, so a bare conditional evaluates too early and
 # silently skips while the sheet then covers the whole screen. Wait for it (but
 # tolerate it never coming) before dismissing.
+#
+# 10s, not 30s: the gate above already proved JS is rendering, and the sheet is
+# part of that first render — so this only has to absorb the animation, not a
+# bundle transform. The timeout is paid in full on every flow where the sheet
+# does not appear, 213 flows deep, so the difference is ~70 minutes a suite.
 - extendedWaitUntil:
     visible: "This is the developer menu"
-    timeout: 30000
+    timeout: 10000
     optional: true
 - tapOn:
     text: "Continue"
@@ -108,16 +152,28 @@ appId: com.hatiwal.app
       # The panel starts at ~5% of the screen height, so a "backdrop" tap at 6%
       # lands ON its header and does nothing — that left the panel covering the
       # app for the rest of the flow. The close button sits at the top-right.
+      #
+      # TARGETED BY ITS ACCESSIBILITY LABEL, not by a percentage point.
+      # A `point:` tap is FORM-FACTOR DEPENDENT and that broke the tablet: the
+      # close control sits a fixed ~68px in from the right edge, which is 93.7%
+      # of a 1080-wide phone but 96.1% of a 2560-wide tablet — so the old
+      # "90%,10%" tap landed on empty header space, did nothing, and the panel
+      # covered the app for the whole flow. The flow then failed on
+      # "Element not found: Email" with the app loaded and healthy behind it,
+      # which reads as an app bug and is not one (run-054: identical flow, phone
+      # passed, tablet failed). The panel is its own window, so its "Close" is
+      # the only match on screen. Verified on both emulators.
       - tapOn:
-          point: "90%,10%"
+          text: "Close"
+          optional: true
       - waitForAnimationToEnd
-      # If the panel somehow survived, try once more before moving on.
+      # If the panel somehow survived, fall back to the point tap.
       - runFlow:
           when:
             visible: "Performance monitor"
           commands:
             - tapOn:
-                point: "90%,10%"
+                point: "96%,10%"
             - waitForAnimationToEnd
 
 # Pin the language to English ONLY when it is actually wrong.
