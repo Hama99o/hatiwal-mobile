@@ -20,8 +20,9 @@ appId: com.hatiwal.app
     timeout: 15000
 - tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
-- tapOn: "Contact Seller"
-- waitForAnimationToEnd
+# NOT tapping "Contact Seller" here: that opens the first-message sheet, which
+# then covers the detail screen the rest of this flow acts on. Opening the
+# listing IS the step that was missing; the contact tap was never the point.
 - tapOn: "Seller"
 - waitForAnimationToEnd
 - assertVisible: "Seller Profile"

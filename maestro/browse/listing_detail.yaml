@@ -19,16 +19,24 @@ appId: com.hatiwal.app
     timeout: 15000
 - tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
-# Verify detail screen elements
+# Verify detail screen elements. NOT by tapping "Contact Seller": that opens the
+# first-message sheet, which then covers the very screen the rest of this flow is
+# asserting on (my own first pass did exactly that and failed on "Description").
+# The contact affordance is checked by its PRESENCE — sending a message is
+# chat/start_conversation.yaml's job.
 - assertVisible: "Contact Seller"
-- tapOn: "Contact Seller"
-- waitForAnimationToEnd
-- assertVisible: "Message Seller"
-- assertVisible: "Description"
-- assertVisible: "Seller"
-# Scroll down to see more
-- scroll
-- assertVisible: "Location"
+# Section headings sit below the gallery and the price block, so they need a
+# scroll rather than a bare assertion.
+- scrollUntilVisible:
+    element:
+      text: "Description"
+    direction: DOWN
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      text: "Location"
+    direction: DOWN
+    timeout: 10000
 # Back to Bazaar
 - back
 - assertVisible: "Bazaar"
