@@ -16,7 +16,7 @@
  */
 
 import React, { useCallback } from "react";
-import { View } from "react-native";
+import { View, useWindowDimensions } from "react-native";
 import type { ListRenderItemInfo } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
 
@@ -184,17 +184,35 @@ export function ListingFeed({
 
   const combinedHeader: React.ReactElement | null = ListHeaderComponent ?? null;
 
+  // ── Columns scale with the screen ─────────────────────────────────────────
+  // This was hardcoded to 2, and nothing else in the app reads the window width
+  // either. On the 1280dp tablet that meant TWO ~600dp-wide cards per row —
+  // roughly three times the intended card size, on a store-listed form factor
+  // (iPad screenshots have already been submitted for review).
+  //
+  // Derived from a target card width rather than a device check, so it also
+  // handles rotation and foldables without a device table to maintain.
+  //
+  // The phone case provably cannot regress: for any width below 2x the target,
+  // `floor(w / 260)` is 0 or 1 and the `max(2, …)` floor pins it at 2 — exactly
+  // what it was. 320-519dp -> 2 (unchanged), 780dp -> 3, 1040dp -> 4,
+  // 1280dp tablet -> 4 (capped), which keeps cards near their phone proportions
+  // instead of stretching them.
+  const { width: windowWidth } = useWindowDimensions();
+  const gridColumns = Math.min(4, Math.max(2, Math.floor(windowWidth / 260)));
+
   // ── UniversalList config ──────────────────────────────────────────────────
 
   const config: UniversalListConfig<Listing> = {
-    // viewMode is in the id so FlashList fully remounts on grid↔list switch —
-    // numColumns changes require a clean re-layout, not just a re-render.
-    id: `${id}-${viewMode}`,
+    // viewMode AND the column count are in the id so FlashList fully remounts
+    // when either changes — numColumns changes require a clean re-layout, not
+    // just a re-render (and that now includes a tablet rotation).
+    id: `${id}-${viewMode}-${gridColumns}`,
     refreshKey,
     fetcher,
     keyExtractor: (item) => String(item.id),
     renderItem,
-    numColumns: viewMode === "grid" ? 2 : 1,
+    numColumns: viewMode === "grid" ? gridColumns : 1,
     skeletonCount,
     SkeletonComponent:
       viewMode === "list" ? ListingCardListSkeleton : ListingCardSkeleton,

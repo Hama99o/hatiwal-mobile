@@ -503,6 +503,49 @@ could not verify it visually — and a layout change I cannot see is exactly the
 kind that ships a worse screen than it replaced. The pattern to copy already
 exists in `ListingCard`'s `variant="list"`.
 
+### UI-018 · The map opened in Kabul even when we knew where you were — FIXED
+**Where:** listing form → "Tap to set exact location"; buyer radius filter
+**Severity:** HIGH — publishes listings pinned to the wrong city
+**Evidence:** owner report, confirmed in code
+
+`handleUseMyLocation` is referenced exactly twice — its definition and one
+`onPress`. So the map was ONLY ever moved by a button tap, and always opened at
+`DEFAULT_CENTER` = **34.5553, 69.2075 = Kabul city centre**.
+
+A seller in Herat or Kandahar who had ALREADY granted location permission still
+got a Kabul pin. If they did not notice, they published a listing pinned to the
+wrong city — and buyers filter by area and meet in person, so this is a data
+bug, not a cosmetic one.
+
+**Fixed** with two guards that matter more than the feature itself:
+- `initialCoords` wins, and the fix only replaces coordinates that are still
+  *exactly* DEFAULT_CENTER — so editing keeps its saved pin and a late GPS
+  result cannot yank a pin the user already moved.
+- new `getCurrentLocationIfPermitted()` NEVER prompts (checks
+  `getForegroundPermissionsAsync` first). Firing the OS dialog because a sheet
+  opened would be worse than the bug, and a dialog at the wrong moment gets
+  denied — poisoning the setting for the button that legitimately asks.
+
+### UI-019 · TABLET: the grid is hardcoded to 2 columns — FIXED
+**Where:** every listing feed (Bazaar, saved, hidden, seller shop, category)
+**Severity:** medium-high on tablet — a store-listed form factor
+**Evidence:** `qa_tablet` AVD measures **2560x1600 @320dpi = 1280dp wide**
+
+`ListingFeed` set `numColumns: viewMode === "grid" ? 2 : 1`, and a sweep found
+that **nothing else in the app reads the window width either** (only Onboarding
+and ListingMapSection use `useWindowDimensions`, for other reasons). So on the
+tablet the feed showed TWO ~600dp-wide cards per row — roughly three times the
+intended card size — on a form factor whose iPad screenshots have already gone
+to App Store review.
+
+**Fixed** by deriving columns from a target card width rather than a device
+check, so rotation and foldables are handled without a device table:
+`min(4, max(2, floor(width / 260)))`. 320–519dp → 2 (**every phone unchanged,
+asserted for 11 real widths**), 780 → 3, 1040+ → 4. Capped at 4 so cards keep
+phone-like proportions instead of stretching. The column count is now part of
+the FlashList `id`, because a numColumns change needs a clean remount — which
+now includes a tablet rotation.
+
 ### PROCESS-001 · I bulk-added another session's files by mistake (commit 7c05c8d)
 **Severity:** process, not product — but worth recording, not hiding
 
