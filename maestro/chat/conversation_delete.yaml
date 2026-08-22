@@ -15,11 +15,24 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 
-# Remember which conversation we are deleting, so its disappearance is provable
-# rather than assumed. The row menu is opened from the row itself, not the thread.
-- tapOn:
-    id: "conversation-options-\\d+"
-    index: 0
+# DELETE THE ONE NOTHING ELSE NEEDS.
+#
+# This used to open the menu on `conversation-options-\\d+` index 0 — whatever
+# happens to be most recent. It passes either way, and it destroys a fixture other
+# flows depend on: five flows later failed on a missing conversation because this
+# one had removed it. A destructive flow must target something it can afford to
+# lose. The Xiaomi thread is on a SOLD listing, so nothing that needs a working
+# composer, an offer or a meetup can be using it.
+#
+# Long-pressing the ROW opens the same action menu as its kebab
+# (ConversationRow has onLongPress), and needs no relational selector.
+- scrollUntilVisible:
+    element:
+      text: "Xiaomi Redmi.*"
+    direction: DOWN
+    timeout: 20000
+- longPressOn:
+    text: "Xiaomi Redmi.*"
 - waitForAnimationToEnd
 - assertVisible:
     id: "conversation-action-menu"

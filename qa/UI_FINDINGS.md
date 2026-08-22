@@ -864,6 +864,71 @@ feature.
 
 ---
 
+### RIG-009 · Fixtures DEGRADE as the suite runs, and two sessions cannot re-seed safely (OPEN)
+
+The single biggest remaining obstacle to a suite that stays green overnight, and
+it is not a selector problem.
+
+**What happened.** I pointed the new `open_active_conversation.yaml` helper at the
+multi-unit fixture ("Phone Case Silicone Clear - Wholesale") on the grounds that it
+was the most durable active listing available: a partial sale leaves a multi-unit
+listing ACTIVE by design, and only two flows touch it. Several suite runs later:
+
+```
+multi-unit listing: qty=15 status=sold
+```
+
+`seller/multi_quantity_partial_sale` sells 3 units per run. Run it five times and
+the batch is gone — the listing retires, exactly as the feature intends. Five
+flows then failed on `No visible element found: "Phone Case.*"` and the helper's
+own comment had predicted it: *"If this fails, the fixture was sold out by another
+flow — fix the fixture, do not fix the app."*
+
+The same drift affects everything else. Mid-run the buyer's conversations were:
+
+```
+active    | Toyota Corolla 2016 Automatic      <- created BY a flow
+reserved  | Traditional Kandahari Carpet 3x4   <- reserved BY a flow
+active    | Men Winter Jacket XL Black
+sold      | Xiaomi Redmi Note 11 128GB
+active    | Lenovo ThinkPad Laptop Core i5 8GB
+sold      | Phone Case Silicone Clear - Wholesale
+```
+
+Every one of those states was reached by some earlier flow. A suite is not a set
+of independent tests against fixed data; it is a sequence that mutates shared
+data, and later flows inherit whatever earlier ones left.
+
+**Why the obvious fix is unsafe here.** Re-seeding between features (`qa.sh seed`)
+is the standard answer, and it would work for ONE session. But the two sessions
+share ONE backend, so a re-seed from the tablet resets the data under the phone's
+feet mid-flow — trading a slow drift for an abrupt, harder-to-read failure. This
+is the real cost of the multi-session design, and it is worth stating plainly
+rather than discovering it at 3am.
+
+**Options, none free:**
+
+1. **Seed between features, single-session only.** Correct and simple; gives up
+   concurrency. Best if the goal is one trustworthy overnight run.
+2. **Seed between CYCLES, not features** — both sessions idle, then seed, then
+   both start. Keeps concurrency; fixtures still drift within a cycle.
+3. **Per-session backend** (separate database or API instance per session). The
+   real fix, and the most work.
+4. **Make destructive flows restore what they consume** — a partial-sale flow that
+   tops the quantity back up, a delete flow that deletes something it created.
+   Most robust per flow, but it has to be done flow by flow.
+
+For now: **seed between cycles** (option 2), and treat a fixture-shaped failure as
+a fixture problem. The tell is a whole group of flows failing on the same missing
+fixture text while unrelated areas stay green.
+
+> Also note `conversation_delete` deletes whatever conversation sits at index 0.
+> It passes, and it destroys a fixture some other flow may be relying on. A
+> destructive flow should target something it can afford to lose — ideally
+> something it created itself.
+
+---
+
 ### PROCESS-001 · I bulk-added another session's files by mistake (commit 7c05c8d)
 **Severity:** process, not product — but worth recording, not hiding
 
