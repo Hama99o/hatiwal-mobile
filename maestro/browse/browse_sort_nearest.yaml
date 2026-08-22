@@ -13,32 +13,19 @@ appId: com.hatiwal.app
     id: "browse-filters-toggle"   # was `browse.filters` — an i18n KEY prefix, never a testID
 - waitForAnimationToEnd
 
-# Scroll down inside the filter panel until the Sort section is visible
-- scrollUntilVisible:
-    element:
-      text: "Sort"
-    direction: DOWN
-    timeout: 5000
-
-# The "Nearest first" chip should be visible alongside the other sort pills
-# The sort chips live in a HORIZONTAL ScrollView, in the order newest, oldest,
-# price asc, price desc, most viewed, nearest — so the later ones start
-# off-screen to the right, and `tapOn` does not scroll to reach them. Scroll
-# the row sideways first. (This is why the chip "was not visible" while being
-# rendered unconditionally.)
-# The sort chips sit in a horizontal ScrollView and "Nearest first" is the last of
-# six, so on a narrow screen it starts off to the right.
-# `scrollUntilVisible` is the right tool precisely because it checks first and
-# does nothing when the element is already on screen. An unconditional swipe is
-# NOT: the previous version swiped the row left, which pushed the chip OUT of
-# view on the tablet — where a device hierarchy dump shows the whole row fits and
-# "Nearest first" is already visible at [1405,971][1569,1014] of a 2560px screen.
-# The fix caused the failure it was meant to cure.
+# Scroll the SHEET down until the chip itself is on screen.
+#
+# Targeting the chip, not the "Sort" heading. Scrolling to the heading with a
+# short timeout can stop with "Sort" just barely visible at the bottom and the
+# chip row still BELOW the fold — and once that has happened no amount of
+# sideways scrolling can reveal it, which is what made this look like a missing
+# chip. On a 1280dp tablet the whole row fits, so this settles it there; a
+# hierarchy dump puts "Nearest first" at [1405,971][1569,1014] of 2560px.
 - scrollUntilVisible:
     element:
       text: "Nearest first"
-    direction: RIGHT
-    timeout: 15000
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Nearest first"
 
 # Tap "Nearest first" — this triggers the OS location permission prompt on a

@@ -100,6 +100,39 @@ screen and therefore proves nothing. "The bundling banner is gone" is not "the a
 is up": that banner is itself drawn by JS, so before the first render there is
 nothing to see.
 
+### Never run `maestro` directly while a `qa.sh` run holds the device
+
+`qa.sh` takes a per-session device lock precisely because **two Maestro instances
+on one device tear down each other's on-device driver**. Calling `maestro test`
+or even `maestro hierarchy` by hand bypasses that lock.
+
+What makes this dangerous is that it does not look like a rig failure. The
+interference produces flows that run for **two minutes and then fail on a
+plausible assertion** — "Element not found: Nearest first" — rather than the
+0-second driver death the classifier knows how to spot. I invalidated a batch of
+six confirmations this way and spent three runs "fixing" a flow that was never
+broken, because the evidence read exactly like a real selector bug. The truth was
+only in the raw log:
+
+```
+io.grpc.StatusRuntimeException: UNAVAILABLE
+java.io.IOException: Command failed (tcp:43249): closed
+```
+
+**If you need an ad-hoc probe** — a `hierarchy` dump is genuinely the fastest way
+to settle "what does this screen actually contain" — check first:
+
+```bash
+pgrep -af 'qa[.]sh flow'      # note the [.]: keeps the pattern from matching itself
+```
+
+and wait for it to be empty. Use a different session's emulator if you have one.
+
+> **Also:** never `pkill -f <pattern>` where the pattern appears in your own
+> command line — `pkill` matches the shell running it and kills you mid-edit. Twice
+> here, both times leaving a half-finished job and an exit code (144) that explains
+> nothing. Kill by PID from `pgrep -af`, or use a `[b]racket` in the pattern.
+
 ### Never take an expected string from a locale file
 
 **15% of the translation keys in this app are dead** — 132 of 862 are referenced
