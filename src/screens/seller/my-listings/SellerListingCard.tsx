@@ -242,7 +242,12 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
                 {t("listing.viewsCount", { count: formatNumber(listing.viewsCount ?? 0) })}
               </Text>
             </View>
-            {listing.conversationsCount != null && (
+            {/* Only when there ARE chats. `!= null` let 0 through, so a listing
+                nobody had messaged about rendered "0 chats" in ACCENT BLUE at
+                weight 600 — the loudest element on the card — as a tap target
+                leading to an empty screen. The views count beside it stays
+                muted, so zero was shouting louder than a real number. */}
+            {(listing.conversationsCount ?? 0) > 0 && (
               <Pressable
                 onPress={() => router.push({
                   pathname: "/(main)/listing-conversations/[id]" as never,

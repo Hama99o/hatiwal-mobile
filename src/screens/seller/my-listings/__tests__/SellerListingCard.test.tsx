@@ -893,3 +893,36 @@ describe("SellerListingCard — smoke tests", () => {
     fireEvent.press(screen.getByTestId("listing-actions-backdrop"));
   });
 });
+
+// ── The chats count hides at zero ────────────────────────────────────────────
+//
+// `conversationsCount != null` let 0 through, so a listing nobody had messaged
+// about rendered "0 chats" in accent blue at weight 600 — the loudest element on
+// the card — as a tap target leading to an empty screen. Spotted in a QA
+// screenshot (run-020), not by an assertion: nothing was "wrong", it just drew
+// the eye to nothing.
+
+describe("SellerListingCard — chats count", () => {
+  it("shows the count when there are conversations", () => {
+    renderCard(makeListing({ conversationsCount: 3 }));
+    expect(screen.getByText("listing.conversationsCount")).toBeTruthy();
+  });
+
+  it("hides it entirely at zero", () => {
+    renderCard(makeListing({ conversationsCount: 0 }));
+    expect(screen.queryByText("listing.conversationsCount")).toBeNull();
+  });
+
+  it("hides it when the field is absent", () => {
+    const l = makeListing();
+    delete (l as { conversationsCount?: number }).conversationsCount;
+    renderCard(l);
+    expect(screen.queryByText("listing.conversationsCount")).toBeNull();
+  });
+
+  // The views count is muted and always present — that contrast is the point.
+  it("still shows the views count at zero", () => {
+    renderCard(makeListing({ viewsCount: 0, conversationsCount: 0 }));
+    expect(screen.getByText("listing.viewsCount")).toBeTruthy();
+  });
+});

@@ -464,6 +464,45 @@ Two traps these audits fell into first, both worth remembering:
   real HTTP it returns a proper representations URL. Do not report that as a bug
   — check over HTTP first.
 
+### UI-016 · "0 chats" shouted in accent blue on every un-messaged listing — FIXED
+**Where:** My Shop → each seller card's meta row
+**Severity:** low, but on the seller's main screen and on most of their cards
+**Evidence:** `qa/reports/run-020/seller/screens/multi_quantity_partial_sale.png`
+
+The gate was `listing.conversationsCount != null`, which lets **0** through. So a
+listing nobody had messaged about rendered "0 chats" in `colors.primary` at
+weight 600 — the loudest element on the card — as a tap target leading to an
+empty conversations screen. The views count beside it stays muted grey, so a
+zero was shouting louder than a real number.
+
+Found by LOOKING at a screenshot, not by an assertion: nothing was broken, it
+just drew the eye to nothing. Now hidden below 1, with the views count
+deliberately still shown at zero — that contrast is the point.
+
+### UI-017 · "List" view is not a list — one card per screen (OPEN)
+**Where:** My Shop → the grid/list toggle
+**Severity:** medium — a seller with 11 listings scrolls 11 screens
+**Evidence:** same screenshot; `MyListings.tsx:400`
+
+`DESIGN_SYSTEM.md` §5 says "list = compact horizontal row", and the buyer's
+`ListingCard` implements exactly that with `variant="list"`. The SELLER's card
+has no variant at all:
+
+```jsx
+<SellerListingCard listing={item} onMutated={handleMutated} />   // no viewMode
+```
+
+`viewMode` reaches the list container but never the card, so switching to "list"
+appears to change only the column count: you get one ~1100px-tall card per row
+instead of a compact row. In the screenshot a single listing fills the screen
+between the filter chips and the tab bar.
+
+NOT fixed here, deliberately. Giving the seller card a compact variant is a real
+design change to the seller's primary screen, and the device was mid-run so I
+could not verify it visually — and a layout change I cannot see is exactly the
+kind that ships a worse screen than it replaced. The pattern to copy already
+exists in `ListingCard`'s `variant="list"`.
+
 ### PROCESS-001 · I bulk-added another session's files by mistake (commit 7c05c8d)
 **Severity:** process, not product — but worth recording, not hiding
 
