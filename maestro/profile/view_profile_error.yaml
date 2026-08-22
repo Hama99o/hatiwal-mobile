@@ -11,8 +11,7 @@ appId: com.hatiwal.app
 
 # Enable airplane mode BEFORE opening Profile so the cache is cold.
 # The first fetch will fail (with one TQ retry), then isError becomes true.
-- setAirplaneMode:
-    value: true
+- setAirplaneMode: enabled
 - waitForAnimationToEnd
 
 # Open Profile — first fetch attempts, retries once (retry:1), then fails
@@ -27,8 +26,7 @@ appId: com.hatiwal.app
 - assertVisible: "Retry"
 
 # Re-enable network and tap Retry — should refetch and return to happy path
-- setAirplaneMode:
-    value: false
+- setAirplaneMode: disabled
 - waitForAnimationToEnd
 - tapOn: "Retry"
 - waitForAnimationToEnd

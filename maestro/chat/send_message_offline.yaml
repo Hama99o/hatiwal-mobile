@@ -1,0 +1,61 @@
+appId: com.hatiwal.app
+---
+# Sending a message with NO NETWORK — the failure this app cannot afford to be
+# quiet about.
+#
+# Hatiwal is a marketplace for Afghanistan: patchy connectivity is the normal
+# case, not an edge case. If a send fails silently the user believes they have
+# reached the seller and waits for a reply that will never come — and there is no
+# payment or delivery record to reveal the mistake later.
+#
+# The code does the right thing (`handleSend`'s catch rolls the optimistic bubble
+# back and toasts `chat.thread.sendFailed`), but nothing verified it end to end.
+# `grep -c offline maestro/chat/` was 0.
+#
+# Airplane mode IS drivable from Maestro 2.7 (`setAirplaneMode: enabled`), which
+# is what makes this expressible at all — a fact discovered while fixing
+# profile/view_profile_error.yaml, whose own airplane-mode block used the wrong
+# shape and so had never run.
+#
+# ALWAYS restores the network, including on the failure paths, or every flow that
+# runs after this one fails for no app reason.
+
+- runFlow: ../_helpers/login.yaml
+
+# Open the seeded thread on the ThinkPad (buyer@hatiwal.test has one).
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+
+# ── Go offline ──────────────────────────────────────────────────────────────
+- setAirplaneMode: enabled
+- waitForAnimationToEnd
+
+- tapOn: "Type a message..."
+- inputText: "QA offline send — this must not appear to succeed"
+- hideKeyboard
+# The send button carries no testID — only `accessibilityLabel={t("chat.send")}`,
+# which Maestro matches as text. (Adding a testID would be a nicer selector, but
+# that is app code and this flow is about the offline path, not the markup.)
+- tapOn: "Send"
+
+# ── The user must be TOLD ───────────────────────────────────────────────────
+# The optimistic bubble is rolled back and an error is raised. What must never
+# happen is the composer clearing with the message apparently sent.
+- extendedWaitUntil:
+    visible: "Failed to send message. Please try again."
+    timeout: 30000
+
+# And the message must NOT be sitting in the thread looking delivered.
+- assertNotVisible: "QA offline send — this must not appear to succeed"
+
+# ── Restore the network — unconditionally ────────────────────────────────────
+- setAirplaneMode: disabled
+- waitForAnimationToEnd

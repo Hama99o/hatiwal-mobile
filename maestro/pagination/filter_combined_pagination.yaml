@@ -15,13 +15,15 @@ appId: com.hatiwal.app
 # Filter chip visible — confirms filter is active
 - assertVisible: "Electronics"
 # Scroll to bottom to trigger page 2
-- scroll:
-    direction: DOWN
-    duration: 2000
+# `scroll` takes no arguments in Maestro — a bare `- scroll` scrolls down.
+# The `direction`/`duration` map made this flow unparseable, so the
+# combined filter+pagination path was never actually tested.
+- scroll
 - waitForAnimationToEnd
-- scroll:
-    direction: DOWN
-    duration: 2000
+# `scroll` takes no arguments in Maestro — a bare `- scroll` scrolls down.
+# The `direction`/`duration` map made this flow unparseable, so the
+# combined filter+pagination path was never actually tested.
+- scroll
 - waitForAnimationToEnd
 # Filter chip still present — category filter survived pagination
 - assertVisible: "Electronics"

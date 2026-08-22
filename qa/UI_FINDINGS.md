@@ -406,6 +406,29 @@ NOTE, honestly: this fix is correct on its own merits but it is NOT what
 clipped "Next" — that Button's label carries no bold weight. "Ski" (weight 600)
 is explained; "Nex" is not, and remains open. Do not assume UI-014 closed it.
 
+### AUDITS THAT CAME BACK CLEAN (recorded so nobody re-runs them)
+
+Static audits over the whole `src/` tree, all clean as of this pass. Each one
+targets a defect class that ships silently — worth knowing they are closed:
+
+| Audit | Result |
+|---|---|
+| `t("ns.key")` present in **all three** locales | 603 keys, **0** missing from en/ps/fa, 0 drift. Now guarded by `src/i18n/__tests__/translationCoverage.test.ts` |
+| `useMutation` without `onError` | **0** — the rig's "SILENT" class has no foothold in the mutation layer |
+| Screens with `useQuery` but no `useFocusEffect` (CLAUDE.md rule) | **0** |
+| Raw `Alert.alert` instead of `confirmAlert` (CLAUDE.md rule) | **0** — the only three hits are comments saying not to use it |
+| Hardcoded hex colours in screens/components | **1**, and it is correct: `#4285F4` is Google's brand blue on the sign-in button. Brand colours must not be themed. |
+| Listing payload allow-list vs the form schema | complete on both create and update; guarded by `listingPayloadContract.test.ts` |
+
+Two traps these audits fell into first, both worth remembering:
+- **i18next plurals.** `t("browse.filtersActive", {count})` resolves to
+  `filtersActive_one`/`_other`. A naive audit reported four perfectly good keys
+  as missing. Strip `_(zero|one|two|few|many|other)$` before comparing.
+- **`rails runner` has no request context.** `thumbnail_url` returns nil there
+  even for a listing with three images, because URL generation needs a host. Over
+  real HTTP it returns a proper representations URL. Do not report that as a bug
+  — check over HTTP first.
+
 ### RIG-001 · Two sessions on one emulator produce fake launcher failures
 **Severity:** blocks device QA while it lasts
 **Evidence:** my `run-025` failed at `open_bundle.yaml`'s "Connect" at 22:33; a

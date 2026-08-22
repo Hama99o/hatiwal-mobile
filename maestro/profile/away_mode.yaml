@@ -12,7 +12,13 @@ appId: com.hatiwal.mobile
 - tapOn: "Edit Profile"
 
 # ── Toggle Away Mode ON ───────────────────────────────────────────────
-- scrollTo: "I'm away (temporarily unavailable)"
+# `scrollTo` is not a Maestro command — the selector form is
+# `scrollUntilVisible` with an `element:` wrapper.
+- scrollUntilVisible:
+    element:
+      text: "I'm away (temporarily unavailable)"
+    direction: DOWN
+    timeout: 15000
 - tapOn: "I'm away (temporarily unavailable)"
 
 # Away until date field appears
@@ -35,7 +41,13 @@ appId: com.hatiwal.mobile
 
 # ── Toggle Away Mode OFF (clear) ─────────────────────────────────────
 - tapOn: "Edit Profile"
-- scrollTo: "I'm away (temporarily unavailable)"
+# `scrollTo` is not a Maestro command — the selector form is
+# `scrollUntilVisible` with an `element:` wrapper.
+- scrollUntilVisible:
+    element:
+      text: "I'm away (temporarily unavailable)"
+    direction: DOWN
+    timeout: 15000
 - tapOn: "I'm away (temporarily unavailable)"
 
 # Confirm the date field disappears
