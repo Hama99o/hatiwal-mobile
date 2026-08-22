@@ -40,6 +40,19 @@ import { parseMeetupBody, type MeetupCoords } from "./meetupBody";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
+/**
+ * Bubbles were capped only as a PERCENTAGE (78–82%). That is fine on a phone and
+ * wrong on a tablet: at 1280dp (the qa_tablet AVD) 80% is a ~1000dp-wide line of
+ * text, far past the ~45–75 characters that is comfortably readable, so a long
+ * message became one enormous ribbon across the screen.
+ *
+ * So: percentage AND an absolute ceiling. On every phone the percentage still
+ * wins and nothing changes (80% of 430dp is 344, well under the cap); only wide
+ * screens are clamped.
+ */
+const BUBBLE_MAX_W = 520;
+const bubbleMaxWidth = (pct: number) => Math.min(SCREEN_W * pct, BUBBLE_MAX_W);
+
 // Platform audit (2026-06-18, extended TASK-M263 2026-07-04):
 //   When `coords` is present (an exact pin was set via "Pick on map"),
 //   openInMaps drops the REAL pin instead of doing a fuzzy text search:
@@ -654,7 +667,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
       >
         <View
           style={{
-            maxWidth: "78%",
+            maxWidth: bubbleMaxWidth(0.78),
             borderRadius: 18,
             borderBottomRightRadius: isMine && !isRtl ? 6 : 18,
             borderBottomLeftRadius: !isMine && !isRtl ? 6 : 18,
@@ -798,7 +811,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
       >
         <View
           style={{
-            maxWidth: "82%",
+            maxWidth: bubbleMaxWidth(0.82),
             // minWidth prevents the web flexbox min-content collapse that wrapped
             // the amount + Accept/Decline buttons character-by-character.
             minWidth: 240,
@@ -977,7 +990,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
       >
         <View
           style={{
-            maxWidth: "82%",
+            maxWidth: bubbleMaxWidth(0.82),
             minWidth: 240,
             borderRadius: 14,
             borderWidth: 1.5,
@@ -1136,7 +1149,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
       >
         <View
           style={{
-            maxWidth: "80%",
+            maxWidth: bubbleMaxWidth(0.8),
             minWidth: 240,
             borderRadius: 12,
             borderWidth: 1.5,
@@ -1270,7 +1283,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
           delayLongPress={400}
           testID="message-bubble-document-pressable"
           style={{
-            maxWidth: "78%",
+            maxWidth: bubbleMaxWidth(0.78),
             borderRadius: 14,
             borderWidth: 1,
             borderColor: isMine ? colors.primary : colors.border,
@@ -1336,7 +1349,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
           onLongPress={handleLongPress}
           delayLongPress={400}
           android_ripple={isMine && onDeleteMessage ? { color: colors.primaryAlpha } : undefined}
-          style={{ maxWidth: "78%" }}
+          style={{ maxWidth: bubbleMaxWidth(0.78) }}
           accessibilityRole="none"
           testID="message-bubble-pressable"
         >
