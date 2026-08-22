@@ -71,12 +71,30 @@ export default function RootLayout() {
         <ThemedStatusBar />
         <QueryClientProvider client={queryClient}>
           <ThemeManager onReady={() => setThemeReady(true)} />
-          {/* Hide everything until theme is resolved to avoid flash of wrong colors */}
+          {/* Hide everything until theme is resolved to avoid flash of wrong colors.
+              The opacity gate is NOT enough on its own, and that shipped a visible
+              bug: `opacity: 0` still MOUNTS AND LAYS OUT the whole tree, so every
+              Text was measured with SYSTEM-font metrics before Rubik/Zain/Noto
+              finished loading. When the fonts landed, the paint switched to the
+              brand face — whose glyph advances are wider — but Yoga had no reason
+              to re-measure, so single-line labels in tightly-measured boxes lost
+              their last character. The first-run onboarding button read "Nex" and
+              its skip link "Ski" (QA run-045/046); later screens were fine
+              because they mount after the fonts are already loaded.
+
+              So the Stack is not rendered until `ready`, which is the pattern
+              Expo's own font example uses (`if (!loaded) return null`). We cannot
+              return null from the whole component — ThemeManager below has to stay
+              mounted to report themeReady — so the gate goes here instead. This
+              also means screens mount ONCE, after fonts, rather than mounting
+              invisibly and remounting. */}
           <View style={{ flex: 1, opacity: ready ? 1 : 0 }}>
+            {ready && (
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(main)" />
             </Stack>
+            )}
             <Toaster position="top-center" richColors />
           </View>
         </QueryClientProvider>

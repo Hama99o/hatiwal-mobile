@@ -402,9 +402,44 @@ from the flattened style — which also covers NativeWind's
 component sees them. 23 unit tests pin the mapping and that every family the
 resolver can return is actually registered.
 
-NOTE, honestly: this fix is correct on its own merits but it is NOT what
-clipped "Next" — that Button's label carries no bold weight. "Ski" (weight 600)
-is explained; "Nex" is not, and remains open. Do not assume UI-014 closed it.
+NOTE: this fix is correct on its own merits — the real bold faces were bundled
+and unused — but it did NOT fix the clipping. run-046 confirmed it: "Ski"
+rendered genuinely bold afterwards and was STILL cut to "Ski". The actual cause
+is UI-015 below. Recorded rather than quietly folded into it, because "I changed
+something adjacent and the symptom persisted" is the useful part.
+
+### UI-015 · Text measured before the fonts load, so labels clip — FIXED
+**Where:** the first screen after launch; visible on onboarding
+**Severity:** medium — cosmetic, first impression, every cold start
+**Evidence:** `qa/reports/run-045` and `run-046` screenshots; `app/_layout.tsx`
+
+THE CAUSE, after two wrong guesses (fake-bold, then flex compression):
+
+```jsx
+<View style={{ flex: 1, opacity: ready ? 1 : 0 }}>   // ready = fonts+theme+auth
+```
+
+`opacity: 0` **still mounts and lays out** the entire tree. So every `Text` was
+measured with SYSTEM-font metrics before Rubik/Zain/Noto finished loading. When
+the fonts landed the paint switched to the brand face — whose glyph advances are
+wider — but nothing in the layout inputs changed, so Yoga never re-measured. A
+single-line label in a tightly-measured box therefore paints one glyph past its
+box and Android clips it. Hence "Nex" and "Ski".
+
+It explains every observation the earlier guesses could not:
+- only the FIRST screen is affected — later screens mount after fonts are loaded
+- wrapped headings are fine — they re-measure
+- the language chips are fine — generous padding absorbs the overflow
+- and it is independent of weight, which is why the bold fix changed nothing
+
+The file's own comment said "Load brand fonts before showing UI so text never
+flashes in the system font" — the intent was right, the mechanism was not.
+
+**Fixed:** the `Stack` is not rendered until `ready`, which is the pattern
+Expo's own font example uses (`if (!loaded) return null`). Returning null from
+the whole component is not an option — `ThemeManager` must stay mounted to
+report `themeReady` — so the gate sits on the Stack. Screens now mount ONCE,
+after fonts, instead of mounting invisibly and being repainted.
 
 ### AUDITS THAT CAME BACK CLEAN (recorded so nobody re-runs them)
 
