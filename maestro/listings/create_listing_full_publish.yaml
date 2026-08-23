@@ -77,14 +77,28 @@ appId: com.hatiwal.app
     timeout: 30000
 
 # ── Title and price ─────────────────────────────────────────────────────────
+# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
+# the tap returns, and the first character can land before the field has focus.
+# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
+# and the flow then failed four minutes later asserting the title it typed.
+# Not an app bug: the field is a plain react-hook-form Controller with no
+# remount or debounce, and no human types within a frame of tapping.
 - tapOn: "What are you selling?"
+- waitForAnimationToEnd
 - inputText: "QA Full Publish Bicycle"
 - scrollUntilVisible:
     element:
       text: "Enter price"
     direction: DOWN
     timeout: 20000
+# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
+# the tap returns, and the first character can land before the field has focus.
+# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
+# and the flow then failed four minutes later asserting the title it typed.
+# Not an app bug: the field is a plain react-hook-form Controller with no
+# remount or debounce, and no human types within a frame of tapping.
 - tapOn: "Enter price"
+- waitForAnimationToEnd
 - inputText: "7800"
 
 # ── Category: a LEAF, not a parent ──────────────────────────────────────────
@@ -108,7 +122,14 @@ appId: com.hatiwal.app
       text: "Describe your item..."
     direction: DOWN
     timeout: 20000
+# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
+# the tap returns, and the first character can land before the field has focus.
+# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
+# and the flow then failed four minutes later asserting the title it typed.
+# Not an app bug: the field is a plain react-hook-form Controller with no
+# remount or debounce, and no human types within a frame of tapping.
 - tapOn: "Describe your item..."
+- waitForAnimationToEnd
 - inputText: "Barely used, one owner. Collection in Kabul."
 
 # ── Location: an actual pin on the map ──────────────────────────────────────

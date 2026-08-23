@@ -22,7 +22,14 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Create Listing"
 
+# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
+# the tap returns, and the first character can land before the field has focus.
+# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
+# and the flow then failed four minutes later asserting the title it typed.
+# Not an app bug: the field is a plain react-hook-form Controller with no
+# remount or debounce, and no human types within a frame of tapping.
 - tapOn: "What are you selling?"
+- waitForAnimationToEnd
 - inputText: "Price Edge Case Item"
 
 # ── Zero is not a price ─────────────────────────────────────────────────────
@@ -35,7 +42,14 @@ appId: com.hatiwal.app
       text: "Enter price"
     direction: DOWN
     timeout: 20000
+# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
+# the tap returns, and the first character can land before the field has focus.
+# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
+# and the flow then failed four minutes later asserting the title it typed.
+# Not an app bug: the field is a plain react-hook-form Controller with no
+# remount or debounce, and no human types within a frame of tapping.
 - tapOn: "Enter price"
+- waitForAnimationToEnd
 - inputText: "0"
 - tapOn: "Save Draft"
 - waitForAnimationToEnd

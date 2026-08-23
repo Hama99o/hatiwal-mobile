@@ -10,7 +10,14 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Create Listing"
 # Fill title
+# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
+# the tap returns, and the first character can land before the field has focus.
+# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
+# and the flow then failed four minutes later asserting the title it typed.
+# Not an app bug: the field is a plain react-hook-form Controller with no
+# remount or debounce, and no human types within a frame of tapping.
 - tapOn: "What are you selling?"
+- waitForAnimationToEnd
 - inputText: "iPhone 12 Pro - 128GB"
 # Fill price
 # Scroll to the price field: typing the title raises the keyboard, and on a
@@ -22,7 +29,14 @@ appId: com.hatiwal.app
       text: "Enter price"
     direction: DOWN
     timeout: 20000
+# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
+# the tap returns, and the first character can land before the field has focus.
+# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
+# and the flow then failed four minutes later asserting the title it typed.
+# Not an app bug: the field is a plain react-hook-form Controller with no
+# remount or debounce, and no human types within a frame of tapping.
 - tapOn: "Enter price"
+- waitForAnimationToEnd
 - inputText: "25000"
 # Select currency — AFN is default, skip if already set
 # Select category
@@ -53,7 +67,14 @@ appId: com.hatiwal.app
       text: "Describe your item..."
     direction: DOWN
     timeout: 10000
+# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
+# the tap returns, and the first character can land before the field has focus.
+# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
+# and the flow then failed four minutes later asserting the title it typed.
+# Not an app bug: the field is a plain react-hook-form Controller with no
+# remount or debounce, and no human types within a frame of tapping.
 - tapOn: "Describe your item..."
+- waitForAnimationToEnd
 - inputText: "Good condition, no scratches. Comes with original charger."
 # Save as draft
 - tapOn: "Save Draft"

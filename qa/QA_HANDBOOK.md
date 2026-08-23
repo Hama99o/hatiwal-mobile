@@ -757,3 +757,29 @@ Consequences worth knowing before adding flows or sessions:
 - Cross-session interference looks like flakiness — a flow that passes alone and
   fails in the fleet. Before calling such a flow flaky, ask what the other
   session was running at that moment.
+
+## `inputText` can lose the first character — settle after the tap
+
+A device screenshot showed a saved draft titled **"Broad Location Item"** where the
+flow had typed **"Abroad Location Item"**. The leading "A" was gone, and the flow
+failed four minutes later asserting the title it had typed — reading like a
+listing-creation bug.
+
+It is not an app bug. The field is a plain react-hook-form `Controller` with
+`value` + `onChangeText`, no remount, no debounce, no transform. The cause is that
+Maestro types the instant `tapOn` returns, so the first character can land before
+the input has focus. No human types within a frame of tapping.
+
+```yaml
+- tapOn: "What are you selling?"
+- waitForAnimationToEnd          # <- without this the "A" can vanish
+- inputText: "Abroad Location Item"
+```
+
+It is intermittent, which is worse than consistent: the same flow passed earlier
+in the day, and other create flows type titles successfully. Applied to all 44
+tap→type pairs on the create form's title, price and description fields.
+
+**When triaging a "wrong text" failure, compare the strings character by
+character before assuming the app mangled the value.** "Broad" vs "Abroad" is one
+missing letter and easy to read past.
