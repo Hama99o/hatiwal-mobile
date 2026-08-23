@@ -318,7 +318,12 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
            # serializer view emits. Both are silent in production — wrong or
            # blank data, no error — and invisible to a flow unless it happens to
            # assert the one value that went missing.
-           echo; python3 "$HERE/lib/audit_contract.py" ;;
+           echo; python3 "$HERE/lib/audit_contract.py"
+           # And the fifth guards the 3-locale rule: a key missing from ps or fa
+           # falls back to ENGLISH mid-RTL-screen, and a t() key that exists
+           # nowhere renders the key itself. Both are visible to the user and
+           # invisible to every log.
+           echo; python3 "$HERE/lib/audit_i18n.py" ;;
 
   # Drop old run artifacts. They grow without bound — a debug dir, screenshots,
   # a hierarchy dump and a logcat per flow — and hit 9.6GB across 185 runs here
