@@ -1,12 +1,52 @@
 appId: com.hatiwal.app
 ---
-# Edit existing draft listing — change title and price, verify updated
+# Edit a draft listing — change title and price, verify updated.
+#
+# SELF-CONTAINED, and it has to be. The previous version edited whichever draft
+# came first, which in practice is the SEEDED "iPhone 12 Pro - 128GB", and RENAMED
+# it to "iPhone 12 Pro - 256GB (Updated)". create_listing.yaml and
+# delete_listing.yaml both reference that seeded title, so this flow silently broke
+# them for the rest of the cycle — a fixture mutation that shows up as two
+# unrelated flows failing later.
+#
+# It now creates its own draft and edits that.
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-# Tap on first draft listing
-- tapOn: "Draft"
+
+# ── Create the draft this flow will edit ────────────────────────────────────
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+- tapOn:
+    id: "listing-form-title-input"
+- eraseText
+- inputText: "QA Edit Target Original"
+- tapOn:
+    id: "listing-form-price-input"
+- eraseText
+- inputText: "12000"
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+# A LEAF: every top-level category has children.
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Phones & Tablets"
+- waitForAnimationToEnd
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+
+# ── Reopen it ───────────────────────────────────────────────────────────────
+- extendedWaitUntil:
+    visible: "QA Edit Target Original"
+    timeout: 30000
+- tapOn: "QA Edit Target Original"
 - waitForAnimationToEnd
 # "Edit" is not ON the detail screen — it is an item INSIDE the More sheet.
 # useListingLifecycle builds it into `moreActions` (key "edit", label common.edit),
@@ -25,10 +65,9 @@ appId: com.hatiwal.app
 - assertVisible: "Edit Listing"
 # Change title
 - tapOn:
-    text: "iPhone 12 Pro - 128GB"
-    optional: true
+    id: "listing-form-title-input"
 - eraseText
-- inputText: "iPhone 12 Pro - 256GB (Updated)"
+- inputText: "QA Edit Target Renamed"
 # Change price
 # Scroll to the price field: typing the title raises the keyboard, and on a
 # landscape tablet it covers the lower half of the form — so `tapOn` fails on a
@@ -46,4 +85,4 @@ appId: com.hatiwal.app
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
 # Verify updated values shown
-- assertVisible: "iPhone 12 Pro - 256GB (Updated)"
+- assertVisible: "QA Edit Target Renamed"

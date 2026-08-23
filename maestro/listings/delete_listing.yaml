@@ -1,12 +1,51 @@
 appId: com.hatiwal.app
 ---
-# Delete a listing — confirm dialog appears, listing removed, toast shown
+# Delete a listing — confirm dialog appears, listing removed, toast shown.
+#
+# SELF-CONTAINED, and this one matters most of the three: it DELETES. The previous
+# version opened whichever draft came first — in practice the seeded
+# "iPhone 12 Pro - 128GB" — and removed it. Every later flow expecting that listing
+# then failed, and the damage lasted until the next re-seed, so the cause showed up
+# nowhere near the flow that did it.
+#
+# It creates its own draft and deletes that.
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-# Open a listing
-- tapOn: "Draft"
+
+# ── Create the draft this flow will delete ──────────────────────────────────
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+- tapOn:
+    id: "listing-form-title-input"
+- eraseText
+- inputText: "QA Delete Target"
+- tapOn:
+    id: "listing-form-price-input"
+- eraseText
+- inputText: "5500"
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+# A LEAF: every top-level category has children.
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Phones & Tablets"
+- waitForAnimationToEnd
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+
+# ── Open it ─────────────────────────────────────────────────────────────────
+- extendedWaitUntil:
+    visible: "QA Delete Target"
+    timeout: 30000
+- tapOn: "QA Delete Target"
 - waitForAnimationToEnd
 # The delete action lives in the More sheet and is labelled `common.delete` =
 # "Delete". `listing.delete` ("Delete Listing") is rendered nowhere — this flow was
@@ -29,4 +68,5 @@ appId: com.hatiwal.app
 # Toast confirmation
 - assertVisible: "Listing deleted"
 # Listing no longer in list
-- assertNotVisible: "iPhone 12 Pro"
+# The listing this flow created is gone; the seeded ones are untouched.
+- assertNotVisible: "QA Delete Target"
