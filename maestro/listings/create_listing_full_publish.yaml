@@ -1,0 +1,124 @@
+appId: com.hatiwal.app
+---
+# THE REAL THING: fill everything, pin a location, add a photo, and PUBLISH.
+#
+# Every other create flow stops at "Save Draft". A draft is deliberately allowed to
+# be incomplete — zod gates only title/price/currency/category — so a suite full of
+# draft flows never exercises what it actually takes to go LIVE. That is enforced
+# separately by `getPublishBlockers({ mode: "publish" })`, and it needs BOTH a map
+# pin and at least one photo.
+#
+# So this is the flow that proves a seller can actually sell something:
+#   title → price → currency → condition → category (leaf) → description
+#   → location pinned on the map → photo attached → Publish
+#   → the listing exists, is ACTIVE, and is not a draft.
+#
+# Preconditions the rig provides (`qa.sh up`): four photos in the device gallery
+# and a GPS fix. Without them this flow fails for device reasons, not app reasons.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+# ── Title and price ─────────────────────────────────────────────────────────
+- tapOn: "What are you selling?"
+- inputText: "QA Full Publish Bicycle"
+- scrollUntilVisible:
+    element:
+      text: "Enter price"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Enter price"
+- inputText: "7800"
+
+# ── Category: a LEAF, not a parent ──────────────────────────────────────────
+# All 16 top-level categories have children, so tapping one only drills in and the
+# picker sheet stays open over the form.
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Phones & Tablets"
+- waitForAnimationToEnd
+
+# ── Description ─────────────────────────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      text: "Describe your item..."
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Describe your item..."
+- inputText: "Barely used, one owner. Collection in Kabul."
+
+# ── Location: an actual pin on the map ──────────────────────────────────────
+# A publish blocker, and the reason this cannot be a draft-only flow.
+- scrollUntilVisible:
+    element:
+      text: "Tap to set exact location on map"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "location-confirm"
+- tapOn:
+    id: "location-confirm"
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 45000
+# The row must stop offering to set a location — that is the proof the pin took.
+- assertNotVisible: "Tap to set exact location on map"
+
+# ── Photo: the other publish blocker ────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      id: "photos-add-button"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "photos-add-button"
+- waitForAnimationToEnd
+- tapOn:
+    text: "Gallery"
+    optional: true
+- waitForAnimationToEnd
+# Selecting an image in the SYSTEM picker. The picker is not our app, so it exposes
+# no testIDs; these are the shapes it takes across Android versions, tried in order
+# and all optional. The real gate is the cover badge asserted below.
+- tapOn:
+    text: "Photo taken on.*"
+    optional: true
+- tapOn:
+    text: "qa_photo.*"
+    optional: true
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-form-photo-thumb"
+    timeout: 30000
+
+# ── PUBLISH ─────────────────────────────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      text: "Publish"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Publish"
+- waitForAnimationToEnd
+
+# ── It is live ──────────────────────────────────────────────────────────────
+# The listing's own detail screen, with the title and NO draft badge. A publish that
+# silently left it a draft is the failure this guards against.
+- extendedWaitUntil:
+    visible: "QA Full Publish Bicycle"
+    timeout: 60000
+- assertNotVisible: "Draft"

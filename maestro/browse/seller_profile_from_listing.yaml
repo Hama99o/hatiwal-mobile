@@ -1,0 +1,68 @@
+appId: com.hatiwal.app
+---
+# THE SELLER-PROFILE PATH A BUYER ACTUALLY TAKES.
+#
+# Open a listing → tap through to the seller → see who they are and what else they
+# have → come back. This is the trust path: before meeting a stranger to hand over
+# cash, a buyer wants to know how long they have been here, how many things they
+# have listed, and whether anything else looks worth buying.
+#
+# Distinct from browse/seller_profile.yaml, which enters the same screen but stops
+# at the stats row. This one asserts the LISTINGS GRID on the profile and that
+# tapping one of them opens that listing — the "see their other items" journey.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+# Wait for real rows before touching the feed: waitForAnimationToEnd returns while
+# it is still skeletons, and a tap then lands on nothing.
+- extendedWaitUntil:
+    visible:
+      text: "AFN.*"
+    timeout: 40000
+
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Contact Seller"
+
+# ── Into the seller's profile ───────────────────────────────────────────────
+# The seller row is below the photo, price and description, and `tapOn` does not
+# scroll to its target.
+- scrollUntilVisible:
+    element:
+      id: "seller-profile-link"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "seller-profile-link"
+- waitForAnimationToEnd
+
+# ── Who they are ────────────────────────────────────────────────────────────
+# The loaded header shows the person's NAME, so the stat labels are the stable
+# anchors ("Seller Profile" is only the loading/error title — see UI findings).
+- extendedWaitUntil:
+    visible: "Active Listings"
+    timeout: 30000
+- assertVisible: "Joined"
+
+# ── What else they have ─────────────────────────────────────────────────────
+# The grid is the point of this flow. A profile that loads its stats but never its
+# listings is a dead end for the buyer.
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 30000
+
+# ── Tapping one of their listings opens it ──────────────────────────────────
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Contact Seller"
+
+# ── And Back returns to the profile, not out of the journey ─────────────────
+- back
+- waitForAnimationToEnd
+- assertVisible: "Active Listings"
