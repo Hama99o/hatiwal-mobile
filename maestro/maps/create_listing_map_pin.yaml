@@ -68,15 +68,20 @@ appId: com.hatiwal.app
 # Dismiss the search keyboard before confirming.
 #
 # Selecting a result does NOT dismiss it, and on a small phone the keyboard covers
-# the bottom of the sheet — where "Confirm location" is. Verified by screenshot:
-# the map was rendered, the pin was correctly on Herat, and the confirm button was
-# simply behind the keyboard, so the tap failed with "Element not found:
-# location-confirm". Safe here because we just typed, so the IME is up and
-# consumes the Back that hideKeyboard sends.
+# the bottom of the sheet — where "Confirm location" is.
 #
-# Recorded as UI-023: a real user hits this too — they must know to dismiss the
-# keyboard themselves before they can confirm.
-- hideKeyboard
+# NO `hideKeyboard` here any more, and this is the interesting part: UI-023 is
+# FIXED in the app, so LocationRangePicker now calls `Keyboard.dismiss()` itself
+# when a search result is selected. The IME is therefore already down by the time
+# this step would run — and on Android `hideKeyboard` sends BACK, which with no
+# IME to consume it CLOSED THE MAP MODAL. The flow then failed with "Element not
+# found: Id matching regex: location-confirm" on a picker it had just dismissed
+# itself, and a screenshot showed the form with "Tap to set exact location on map"
+# still unset.
+#
+# So fixing the app turned this workaround into the bug. Any flow carrying a
+# hideKeyboard as a workaround for keyboard-covers-CTA needs re-checking whenever
+# that gets fixed properly.
 - waitForAnimationToEnd
 
 # ── Confirm, and the FORM must show it ──────────────────────────────────────
