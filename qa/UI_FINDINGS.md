@@ -1045,6 +1045,36 @@ CTA that follows a text field.
 
 ---
 
+### MAPS · VERIFIED on device — what is now proven about both location pickers
+
+The user's priority. Five of six flows green on a 360dp phone; the sixth (denying
+permission) was in flight at the time of writing. What each one actually proves:
+
+| Flow | Proven |
+|---|---|
+| `filter_map_default_kabul` | The filter map opens on **Kabul** with no permission, the range control works, confirming applies the filter, and — asserted as an ABSENCE — merely opening the map does **not** trigger the OS permission dialog |
+| `filter_map_use_my_location` | With permission never asked, tapping "Use My Location" **does ask**, granting is accepted, no failure banner follows, and the point carries into the filter |
+| `filter_map_use_my_location_granted` | With permission already granted it does **not** ask again, and still resolves |
+| `create_listing_map_pin` | Point mode: search a province, select it, confirm, and the FORM ROW stops saying "Tap to set exact location on map" — then the pin survives into the saved draft |
+| `map_location_outside_afghanistan` | **A device in PARIS is not blocked.** Use-my-location resolves, no failure banner, the pin confirms, and a draft saves with those coordinates |
+| `filter_map_location_denied` | Refusing location shows the persistent banner and leaves the range control usable — a buyer who never grants location can still filter by area |
+
+**On the "outside Afghanistan" question specifically**, checked in code before
+writing the test and then proven on device: the picker applies no bounds,
+`reverseGeocode` sends no country filter, and hatiwal-api validates only sane
+latitude ranges. Only the place **search** is Afghanistan-scoped
+(`countrycodes=af` in utils/geocoding.ts), which is correct and deliberate — it is
+also the thing that makes it easy to assume the whole feature is scoped, which it
+is not. `QA_GEO_LAT/LON` as env on a single flow is how that stays proven; run it
+at Kabul and it passes while proving nothing.
+
+**Two real bugs came out of building this** — UI-022 (place names returned in
+Pashto regardless of app language, and saved that way onto listings) and UI-023
+(the search keyboard covers "Confirm location" on a phone). Neither was visible
+from the assertion text; both came from looking at the screenshot of a failing run.
+
+---
+
 ### PROCESS-001 · I bulk-added another session's files by mistake (commit 7c05c8d)
 **Severity:** process, not product — but worth recording, not hiding
 
