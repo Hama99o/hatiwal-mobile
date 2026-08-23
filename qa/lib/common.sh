@@ -174,13 +174,23 @@ step() { printf '\n'; _c blu; printf '── %s %s\n' "$*" "$(printf '─%.0s' $
 die()  { err "$*"; exit 1; }
 
 # adb against the one QA device, whichever it is
-adb_qa() { "$ADB" ${QA_SERIAL:+-s "$QA_SERIAL"} "$@"; }
+# `9>&-` CLOSES THE DEVICE-LOCK FD — every adb call, not just the emulator launch.
+#
+# hold_device_lock takes flock on fd 9, and every child inherits open fds. flock is
+# released only when the LAST holder closes it, so any adb process that hangs keeps
+# the session's lock forever. That is not hypothetical: an
+# `adb -s emulator-5556 logcat -d` was found still holding session 2's lock long
+# after emulator-5556 had died, and every later `qa.sh up` for that session
+# reported "another QA run is driving the emulator" with no such run in existence.
+# emulator.sh already did this for the emulator itself; adb needed it just as much,
+# because a dead device makes adb block indefinitely.
+adb_qa() { "$ADB" ${QA_SERIAL:+-s "$QA_SERIAL"} "$@" 9>&-; }
 
 # Same thing, but time-bounded. NOTE: `timeout` execs a binary and therefore
 # CANNOT run a shell function — `timeout 30 adb_qa ...` fails with exit 127
 # ("No such file or directory"), which silently reads as "the device is wedged".
 # Always use this wrapper when a time limit is needed.
-adb_qa_t() { local t="$1"; shift; timeout "$t" "$ADB" ${QA_SERIAL:+-s "$QA_SERIAL"} "$@"; }
+adb_qa_t() { local t="$1"; shift; timeout "$t" "$ADB" ${QA_SERIAL:+-s "$QA_SERIAL"} "$@" 9>&-; }
 
 # Resolve THIS SESSION's emulator serial into QA_SERIAL.
 #
