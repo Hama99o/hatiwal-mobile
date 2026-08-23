@@ -19,10 +19,23 @@ emulator_boot() {
     return 1
   fi
 
-  local cores load
-  cores=$(nproc); load=$(awk '{printf "%.0f", $1}' /proc/loadavg)
-  if [ "$load" -gt "$cores" ]; then
-    err "load $load > $cores cores — refusing to boot; the emulator would hang"
+  # Is the machine actually busy? Measured from CPU IDLE, not load average.
+  #
+  # Load average is not trustworthy on this host. Two kernel threads sit
+  # permanently in D state (kworker/…USBC, kacpi_notify — the box logs a stream of
+  # ACPI errors), and D-state tasks count toward load without using any CPU. So
+  # loadavg reads 25-35 while `vmstat` reports 90% idle, and the old guard —
+  # "refuse if load > cores" — then refused to boot an emulator on a completely
+  # free machine. That is a worse failure than booting on a busy one: the rig just
+  # stops, and the message blames a load that is not real.
+  #
+  # Idle% over a 1s sample is the honest signal. Kept as a guard because booting
+  # onto a genuinely saturated host DOES hang the emulator (doctor.sh step 2).
+  local idle
+  idle=$(vmstat 1 2 2>/dev/null | tail -1 | awk '{print $15}')
+  idle=${idle:-100}
+  if [ "$idle" -lt 15 ]; then
+    err "CPU only ${idle}% idle — refusing to boot; the emulator would hang"
     say "free the machine first (see: qa.sh doctor), then retry"
     return 1
   fi
