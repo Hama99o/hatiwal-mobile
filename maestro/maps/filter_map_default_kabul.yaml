@@ -60,19 +60,34 @@ appId: com.hatiwal.app
     notVisible:
       id: "location-confirm"
     timeout: 30000
-- assertVisible: "Bazaar"
 
-# Reopen the filter and read back what was stored. This is what actually proves
-# "the default is Kabul" — asserting that the picker's controls exist proves only
-# that a map opened.
+# The picker closes back to the FILTER SHEET, not to the feed — the sheet is
+# still covering the screen, so the tab bar is not visible yet. (Asserting
+# "Bazaar" here failed for exactly that reason.) Which is convenient: the
+# location row is right there, so the stored value can be read without reopening
+# anything.
 #
-# Browse stores `label ?? "<lat>, <lon>"` to 3 decimals, so with no permission the
-# row shows either a reverse-geocoded Kabul name or literally "34.555, 69.207"
+# This is what actually proves "the default is Kabul". Browse stores
+# `label ?? "<lat>, <lon>"` to 3 decimals, so with no permission the row shows
+# either a reverse-geocoded Kabul name or literally "34.555, 69.207"
 # (DEFAULT_CENTER). Both are Kabul; which one depends on whether Nominatim
 # answered, so the regex accepts either rather than making the test depend on a
 # network round-trip.
-- tapOn:
-    id: "browse-filters-toggle"
-- waitForAnimationToEnd
 - assertVisible: "Within 25 km"
-- assertVisible: "(Kabul|34\\.555).*"
+# Kabul in EITHER script. The label is whatever Nominatim returns for
+# accept-language, and utils/geocoding.ts now asks for the app's language first
+# (it used to always ask for Pashto, so an English UI got
+# "لسمه ناحیه, کابل, کابل ښاروالی" — that was a real bug this flow found). The
+# coordinate fallback covers Nominatim not answering at all.
+- assertVisible: "(.*Kabul.*|.*کابل.*|.*34\\.555.*)"
+
+# And the sheet closes onto a filtered feed. Waiting for the button to GO is the
+# reliable gate — `waitForAnimationToEnd` returns while the sheet is still
+# sliding, and the tab bar underneath is not visible until it has gone.
+- tapOn: "Show results"
+- extendedWaitUntil:
+    notVisible: "Show results"
+    timeout: 30000
+- assertVisible: "Bazaar"
+# The filter really is applied, not merely dismissed.
+- assertVisible: "1 filter active"

@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 /**
  * Free-text place search (forward geocoding) and reverse geocoding via
  * OpenStreetMap Nominatim — keyless and covers villages, towns, landmarks and
@@ -13,13 +14,39 @@ const NOMINATIM = "https://nominatim.openstreetmap.org";
 // Nominatim's usage policy REQUIRES a descriptive User-Agent identifying the
 // app — requests without one are rejected (which is why search returned nothing
 // on a native build, while the browser worked because it sends its own UA).
-// `accept-language` asks for place names in Pashto/Dari first, then English, so
-// results and labels are localized for Afghan users. Both are sent on every call.
-const NOMINATIM_HEADERS = {
-  Accept: "application/json",
-  "User-Agent": "Hatiwal/1.0 (https://hatiwal.multimagics.com)",
-  "Accept-Language": "ps,fa,en",
+// `accept-language` asks for place names in the user's CHOSEN language first (see
+// acceptLanguage below) — it used to always ask for Pashto first. Both headers are
+// sent on every call.
+// Place names come back in the language the USER chose, not always Pashto.
+//
+// This header was the fixed string "ps,fa,en", so an English-UI user picking a
+// location on the map got the label back in Pashto script — e.g. confirming Kabul
+// city centre produced "لسمه ناحیه, کابل, کابل ښاروالی" and that is what was then
+// shown in the filter row and stored on the listing. Correct for a Pashto user,
+// wrong for the other two, and the app's default language is English (CLAUDE.md).
+//
+// The chosen language goes first and the other two follow, so a name missing in
+// one language still resolves instead of coming back empty.
+const LANGUAGE_FALLBACKS: Record<string, string> = {
+  en: "en,ps,fa",
+  ps: "ps,fa,en",
+  fa: "fa,ps,en",
 };
+
+function acceptLanguage(): string {
+  const lang = (i18n.language || "en").split("-")[0];
+  return LANGUAGE_FALLBACKS[lang] ?? LANGUAGE_FALLBACKS.en;
+}
+
+// Nominatim's usage policy REQUIRES a descriptive User-Agent (see above), so the
+// headers are built per call rather than being a frozen constant.
+function nominatimHeaders(): Record<string, string> {
+  return {
+    Accept: "application/json",
+    "User-Agent": "Hatiwal/1.0 (https://hatiwal.multimagics.com)",
+    "Accept-Language": acceptLanguage(),
+  };
+}
 
 export interface GeocodeResult {
   label: string; // short, human-friendly name (e.g. "Jalalabad")
@@ -42,10 +69,10 @@ export async function searchPlaces(query: string): Promise<GeocodeResult[]> {
 
   const url =
     `${NOMINATIM}/search?format=jsonv2&addressdetails=0&limit=8` +
-    `&accept-language=ps,fa,en&countrycodes=af&q=${encodeURIComponent(q)}`;
+    `&accept-language=${acceptLanguage()}&countrycodes=af&q=${encodeURIComponent(q)}`;
 
   try {
-    const res = await fetch(url, { headers: NOMINATIM_HEADERS });
+    const res = await fetch(url, { headers: nominatimHeaders() });
     if (!res.ok) return [];
     const data = await res.json();
     return (Array.isArray(data) ? data : []).map((d: any) => {
@@ -69,9 +96,9 @@ export async function reverseGeocode(
 ): Promise<string | null> {
   const url =
     `${NOMINATIM}/reverse?format=jsonv2&zoom=14&addressdetails=0` +
-    `&accept-language=ps,fa,en&lat=${latitude}&lon=${longitude}`;
+    `&accept-language=${acceptLanguage()}&lat=${latitude}&lon=${longitude}`;
   try {
-    const res = await fetch(url, { headers: NOMINATIM_HEADERS });
+    const res = await fetch(url, { headers: nominatimHeaders() });
     if (!res.ok) return null;
     const data = await res.json();
     if (!data?.display_name) return null;

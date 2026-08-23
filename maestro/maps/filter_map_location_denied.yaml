@@ -62,12 +62,14 @@ appId: com.hatiwal.app
     notVisible:
       id: "location-confirm"
     timeout: 30000
-- assertVisible: "Bazaar"
 
-# The range chosen by hand, with location DENIED, still made it into the filter.
-# That is the whole point of this flow: refusing location must not cost the buyer
-# the feature.
-- tapOn:
-    id: "browse-filters-toggle"
-- waitForAnimationToEnd
+# Back on the FILTER SHEET (the picker closes to it, not to the feed). The range
+# chosen by hand — with location DENIED — is there. That is the whole point of
+# this flow: refusing location must not cost the buyer the feature.
 - assertVisible: "Within 10 km"
+
+- tapOn: "Show results"
+- extendedWaitUntil:
+    notVisible: "Show results"
+    timeout: 30000
+- assertVisible: "Bazaar"
