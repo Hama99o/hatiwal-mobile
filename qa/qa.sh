@@ -309,6 +309,25 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   audit)   echo; python3 "$HERE/lib/audit_labels.py"
            echo; python3 "$HERE/lib/audit_testids.py" ;;
 
+  # Drop old run artifacts. They grow without bound — a debug dir, screenshots,
+  # a hierarchy dump and a logcat per flow — and hit 9.6GB across 185 runs here
+  # while the disk was 99% full. A full disk kills the emulator mid-flow and
+  # reads like an app failure.
+  #
+  # Keeps the newest N per session (default 20), which is far more than triage
+  # needs. Screenshots that DOCUMENT a finding belong in qa/evidence/ — copy them
+  # there before pruning, because UI_FINDINGS.md cites them by path.
+  prune)   keep="${1:-20}"
+           before=$(du -sm "$REPORTS_DIR/.." 2>/dev/null | cut -f1)
+           for base in "$QA_DIR/reports" "$QA_DIR/reports/s2" "$QA_DIR/reports/s3" \
+                       "$QA_DIR/reports/s4" "$QA_DIR/reports/s5"; do
+             [ -d "$base" ] || continue
+             ls -dt "$base"/run-* 2>/dev/null | tail -n +$((keep + 1)) | xargs -r rm -rf
+           done
+           after=$(du -sm "$QA_DIR/reports" 2>/dev/null | cut -f1)
+           ok "reports pruned to newest $keep per session (${before}MB -> ${after}MB)"
+           say "disk now: $(df -h / | tail -1 | tr -s ' ' | cut -d' ' -f4) free" ;;
+
   triage)  last="$(ls -d "$REPORTS_DIR"/run-* 2>/dev/null | tail -1)"
            [ -n "$last" ] || die "no runs yet"
            python3 "$HERE/lib/report.py" "$last" ;;

@@ -37,6 +37,21 @@ SWAP_USED=$(free | awk '/Swap:/{if($2>0) printf "%.0f", $3/$2*100; else print 0}
 MEM_AVAIL=$(free -g | awk '/Mem:/{print $7}')
 [ "$MEM_AVAIL" -lt 4 ] && BLOCK "only ${MEM_AVAIL}GB RAM available (emulator needs ~3GB)" || ok "${MEM_AVAIL}GB RAM available"
 
+# DISK. Run artifacts grow without bound — screenshots, hierarchy dumps, logcats
+# and a debug dir per flow — and reached 9.6GB across 185 runs on this machine
+# while the disk sat at 99% full with 7GB free. A full disk kills the emulator
+# (seen: "device 'emulator-5580' not found" mid-flow) and Docker with it, and it
+# looks like an app failure. `qa.sh prune` clears old runs.
+DISK_FREE=$(df -BG --output=avail / 2>/dev/null | tail -1 | tr -dc '0-9')
+REPORTS_GB=$(du -sBG "$QA_DIR/reports" 2>/dev/null | cut -f1 | tr -dc '0-9')
+if [ "${DISK_FREE:-99}" -lt 8 ]; then
+  BLOCK "only ${DISK_FREE}GB disk free — the emulator will die mid-flow. Run: ./qa/qa.sh prune"
+elif [ "${DISK_FREE:-99}" -lt 20 ]; then
+  warn "${DISK_FREE}GB disk free (reports hold ${REPORTS_GB:-?}GB) — consider ./qa/qa.sh prune"
+else
+  ok "${DISK_FREE}GB disk free (reports ${REPORTS_GB:-?}GB)"
+fi
+
 step "3/8 emulator"
 if resolve_device; then
   ok "device $QA_SERIAL"
