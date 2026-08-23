@@ -10,12 +10,15 @@ appId: com.hatiwal.app
 #   2. granting it is accepted
 #   3. the coordinates actually change, and confirming carries them into the filter
 #
-# PRECONDITION — location permission must be REVOKED:
+# PRECONDITION — permissions must be at NEVER-ASKED:
 #
-#     ./qa/qa.sh perm revoke location
+#     ./qa/qa.sh perm reset
 #     ./qa/qa.sh flow maps/filter_map_use_my_location
 #
-# `launchApp: clearState: true` does NOT do it. That was my assumption and it is
+# `launchApp: clearState: true` does NOT do it, and neither does `pm revoke` —
+# revoke marks the permission USER-FIXED ("don't ask again"), so Android never
+# shows the dialog and the request returns denied immediately. Only
+# `pm reset-permissions` restores the never-asked state. That was my assumption and it is
 # wrong: checked with `dumpsys package` after several clearState flows,
 # ACCESS_FINE_LOCATION was still granted=true, so this flow failed waiting 30s for
 # a dialog the app had no reason to show. Permission state is device state, not app

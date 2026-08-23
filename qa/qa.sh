@@ -262,10 +262,25 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   # permission dialog cannot rely on clearState to produce it, and a flow that
   # means to skip the dialog cannot rely on it either. Set the state explicitly:
   #
-  #   ./qa/qa.sh perm revoke location   # then a flow WILL see the prompt
-  #   ./qa/qa.sh perm grant location    # then it will not
+  #   ./qa/qa.sh perm reset             # never-asked: a flow WILL see the prompt
+  #   ./qa/qa.sh perm grant location    # already granted: it will NOT prompt
+  #   ./qa/qa.sh perm revoke location   # denied AND user-fixed: it will not prompt either
+  #
+  # USE `reset` FOR PROMPT TESTS, NOT `revoke`. `pm revoke` marks the permission
+  # user-fixed — "don't ask again" — so Android never shows the dialog and
+  # requestForegroundPermissionsAsync returns denied immediately. Two flows failed
+  # waiting 30s for a dialog that was never going to appear.
+  # `pm reset-permissions` restores the never-asked state (granted=false with NO
+  # USER_FIXED flag), which is the only state in which the OS actually asks. It is
+  # device-wide rather than per-app, which is fine here — the emulator runs one app.
   perm)    resolve_device || die "no emulator for session $QA_SESSION"
-           action="${1:?usage: perm <grant|revoke> <location|camera|storage>}"
+           action="${1:?usage: perm <grant|revoke|reset> [location|camera|storage]}"
+           if [ "$action" = "reset" ]; then
+             adb_qa shell pm reset-permissions >/dev/null 2>&1 \
+               && ok "runtime permissions reset to never-asked on session $QA_SESSION" \
+               || die "could not reset permissions"
+             exit 0
+           fi
            group="${2:-location}"
            case "$group" in
              location) perms=(android.permission.ACCESS_FINE_LOCATION android.permission.ACCESS_COARSE_LOCATION) ;;

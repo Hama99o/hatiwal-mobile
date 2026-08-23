@@ -145,6 +145,18 @@ run_feature() {
       sleep 4   # the radios need a moment before Metro is reachable again
     fi
 
+    # ── Re-send the GPS fix ───────────────────────────────────────────────
+    # `adb emu geo fix` is a ONE-SHOT location, not a standing setting: the
+    # provider reports it and then goes stale, so a flow that asks for the
+    # CURRENT position minutes after boot gets nothing and the app correctly
+    # shows "Couldn't determine your location. Please try again." Seeding it only
+    # at boot (emulator.sh) is therefore not enough for a long suite — the later
+    # a location flow runs, the more likely it fails for a device reason.
+    #
+    # Cheap enough to do before every flow, and it makes nearest-sort, distance
+    # filters and the map pickers deterministic instead of order-dependent.
+    adb_qa emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1
+
     adb_qa logcat -c >/dev/null 2>&1
     printf '  %-46s ' "$name"
     local start; start=$(cut -d' ' -f1 /proc/uptime)

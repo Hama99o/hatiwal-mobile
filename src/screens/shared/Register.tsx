@@ -1,4 +1,11 @@
-import { View, ScrollView, Pressable, type TextInput } from "react-native";
+import {
+  View,
+  ScrollView,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  type TextInput,
+} from "react-native";
 import { ShoppingBag } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
@@ -95,9 +102,27 @@ export default function RegisterScreen() {
   const inputStyle = { marginBottom: 12, textAlign: textAlign as "right" | "left" };
 
   return (
+    // KeyboardAvoidingView + a scrollable form, matching Login.tsx.
+    //
+    // Register had NEITHER while Login had both, so on a small phone (360dp /
+    // 720x1280) the keyboard covered the "Create Account" button: the last field
+    // is Confirm Password, and typing into it hides the very button you then need.
+    // Verified as a real reachability problem on the same device where the login
+    // screen's own Sign In button had to be scrolled to.
+    //
+    // Platform behaviour copied deliberately rather than invented: iOS "padding"
+    // lifts the content, Android "height" shrinks the container so the ScrollView
+    // recalculates and the submit button stays reachable. `undefined` on Android
+    // leaves the keyboard overlapping content, which is what Login.tsx's own
+    // comment records from its 2026-06-18 platform audit.
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={{ padding: 24, paddingTop: 48 }}
+      contentContainerStyle={{ padding: 24, paddingTop: 48, paddingBottom: 48 }}
+      keyboardShouldPersistTaps="handled"
     >
       {/* Escape hatch — let guests leave the form and just browse. */}
       <Pressable
@@ -249,5 +274,6 @@ export default function RegisterScreen() {
         </Text>
       </Button>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
