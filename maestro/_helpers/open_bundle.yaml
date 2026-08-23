@@ -66,21 +66,28 @@ appId: com.hatiwal.app
                 text: "http://localhost:8081"
                 optional: true
             - inputText: "http://10.0.2.2:3008"
-            # HIDE THE KEYBOARD, THEN TAP CONNECT — in that order, deliberately.
+            # DISMISS THE KEYBOARD BY TAPPING THE HEADER — never with Back.
             #
-            # `hideKeyboard` is Back on Android, and this file rightly warns that
-            # Back with NO keyboard up reaches the app and exits it. Here the
-            # keyboard is GUARANTEED up: we just typed into the field. So the IME
-            # consumes the press, and that is what makes this safe.
+            # Connect is BEHIND THE KEYBOARD on a small screen: on a 360dp device
+            # (720x1280) the URL field sits at the bottom of the visible area and
+            # Connect is entirely covered, and `pressKey: Enter` does not submit
+            # there either — so the app never left the launcher and every flow on
+            # that form factor failed with `"Development Build" is not visible`.
             #
-            # It has to happen before the tap because Connect is BEHIND the
-            # keyboard on a small screen. On a 360dp device (720x1280) the URL
-            # field sits at the bottom of the visible area and Connect is entirely
-            # covered — `pressKey: Enter` does not submit there either, so the app
-            # simply never left the launcher and EVERY flow on that form factor
-            # failed with `"Development Build" is not visible`. Verified by
-            # screenshot: URL correctly typed, keyboard up, Connect invisible.
-            - hideKeyboard
+            # My first fix used `hideKeyboard`, and that was WORSE. hideKeyboard is
+            # Back on Android, and it is only safe while the IME is definitely up.
+            # On the paths where it was not — the remembered-server fast path, or a
+            # field that never took focus — the Back reached the launcher and EXITED
+            # THE APP. Flows then ran for five minutes against the Android home
+            # screen and failed on `"Me" is visible`, which reads as a broken login.
+            # A screenshot of the app drawer is what showed it.
+            #
+            # Tapping the launcher's own header dismisses the IME with no key event
+            # at all, so there is nothing to reach the app. Optional, because the
+            # header is not present on every launcher shape.
+            - tapOn:
+                text: "Development Build"
+                optional: true
             - waitForAnimationToEnd
             - tapOn:
                 text: "Connect"
