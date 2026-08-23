@@ -65,6 +65,65 @@ def check_selector(value, where, findings):
                 findings.append((where, f"no selector key in {sorted(value)}"))
 
 
+# ── Check 3: a tab tap issued from a screen that has no tab bar ───────────────
+# app/(main)/(tabs) holds the tab bar; listing detail, the conversation thread and
+# the owner detail are all siblings of it, NOT children. Tapping a tab from one of
+# those cannot find its target, and Maestro reports `Element not found:
+# browse-tab` — indistinguishable from a testID that was never added.
+#
+# Tracked over the PARSED step list, not the raw lines: a line scan flags the
+# `notVisible: {id: browse-tab}` inside the very guard that fixes this, because
+# the condition is read before the `back` that follows it.
+PUSHERS = ("listing-card", "seller-profile-link", "conversation-row", "seller-listing-card")
+TAB_IDS = {"browse-tab", "categories-tab", "saved-tab", "chat-tab", "profile-tab"}
+
+
+def selector_id(value):
+    if isinstance(value, dict):
+        if "element" in value:
+            return selector_id(value["element"])
+        got = value.get("id")
+        return got if isinstance(got, str) else None
+    return None
+
+
+def check_navigation(steps, where, findings):
+    """`steps` is one flow's ordered step list."""
+    pushed = None
+    for step in steps:
+        if step == "back" or (isinstance(step, dict) and "back" in step):
+            pushed = None
+            continue
+        if isinstance(step, str):
+            continue
+        if not isinstance(step, dict):
+            continue
+        if "launchApp" in step:
+            pushed = None
+            continue
+        # A guarded pop counts as a pop: it pops when the bar is absent, which is
+        # exactly the case being checked.
+        if "runFlow" in step and isinstance(step["runFlow"], dict):
+            rf = step["runFlow"]
+            cmds = rf.get("commands") or []
+            if any(c == "back" or (isinstance(c, dict) and "back" in c) for c in cmds):
+                pushed = None
+                continue
+            check_navigation(cmds, where, findings)
+            continue
+        for key in ("tapOn", "doubleTapOn", "longPressOn"):
+            if key not in step:
+                continue
+            sel = selector_id(step[key])
+            if not sel:
+                continue
+            if any(sel.startswith(q) for q in PUSHERS):
+                pushed = sel
+            elif sel in TAB_IDS and pushed:
+                findings.append((where, f"taps {sel} while pushed by {pushed} — no tab bar on that screen"))
+                pushed = None
+
+
 def walk(node, path, findings):
     if isinstance(node, dict):
         for k, v in node.items():
@@ -91,6 +150,9 @@ def main() -> int:
         files += 1
         local = []
         walk(docs, "", local)
+        for doc in docs:
+            if isinstance(doc, list):
+                check_navigation(doc, "", local)
         findings += [(f"{p}{w}", msg) for w, msg in local]
 
     print(f"audit_structure: {files} flows walked")

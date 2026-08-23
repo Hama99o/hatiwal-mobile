@@ -23,7 +23,14 @@ appId: com.hatiwal.app
 # NOT tapping "Contact Seller" here: that opens the first-message sheet, which
 # then covers the detail screen the rest of this flow acts on. Opening the
 # listing IS the step that was missing; the contact tap was never the point.
-- tapOn: "Seller"
+# The seller ROW, by testID — not the section heading above it. "Seller"
+# (listing.detail.seller) is real copy, which is why this looked right: it is the
+# heading on ListingDetail:674, and tapping a heading does nothing, so the flow
+# stayed on the detail screen and failed on the profile assertion afterwards. The
+# tappable thing is the UserIdentity row, which shows the seller's NAME. ("Seller
+# Name", used by two of these flows, is placeholder text the app never rendered.)
+- tapOn:
+    id: "seller-profile-link"
 - waitForAnimationToEnd
 # NOT "Seller Profile" — that is only the LOADING/ERROR header. Once the profile
 # loads, HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting

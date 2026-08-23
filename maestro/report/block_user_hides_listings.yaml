@@ -14,7 +14,14 @@ appId: com.hatiwal.app
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
-- tapOn: "Seller Name"
+# The seller ROW, by testID — not the section heading above it. "Seller"
+# (listing.detail.seller) is real copy, which is why this looked right: it is the
+# heading on ListingDetail:674, and tapping a heading does nothing, so the flow
+# stayed on the detail screen and failed on the profile assertion afterwards. The
+# tappable thing is the UserIdentity row, which shows the seller's NAME. ("Seller
+# Name", used by two of these flows, is placeholder text the app never rendered.)
+- tapOn:
+    id: "seller-profile-link"
 - waitForAnimationToEnd
 # NOT "Seller Profile" — that is only the LOADING/ERROR header. Once the profile
 # loads, HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting
@@ -36,6 +43,26 @@ appId: com.hatiwal.app
 - assertVisible: "User blocked"
 
 # Back to Bazaar — blocked user's listings gone
+# Pop back to the tab layout FIRST. Listing detail, the conversation thread and
+# the owner detail all live outside app/(main)/(tabs), so the tab bar is not in
+# the view tree there and a tab tap cannot find its target — it read as
+# `Element not found: <tab>`, which looks like a missing testID. Two bounded
+# blocks, not a `while`: these screens are at most two pushes deep, and an
+# unbounded loop that never reveals the bar would spin to the flow timeout.
+- runFlow:
+    when:
+      notVisible:
+        id: "browse-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      notVisible:
+        id: "browse-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd

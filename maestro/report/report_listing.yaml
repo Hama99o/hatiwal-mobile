@@ -25,6 +25,12 @@ appId: com.hatiwal.app
 # then covers the detail screen the rest of this flow acts on. Opening the
 # listing IS the step that was missing; the contact tap was never the point.
 # Tap report
+# "Report" lives inside the MORE sheet (ListingDetail:1037), not on the detail
+# screen — so tapping it directly could never work. `more-options-button` is the
+# icon-only overlay control that opens the sheet.
+- tapOn:
+    id: "more-options-button"
+- waitForAnimationToEnd
 - tapOn: "Report"
 - waitForAnimationToEnd
 # Bottom sheet opens

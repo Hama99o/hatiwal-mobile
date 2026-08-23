@@ -26,8 +26,15 @@ appId: com.hatiwal.app
 # listing IS the step that was missing; the contact tap was never the point.
 - scrollUntilVisible:
     element:
-      text: "Seller"
-- tapOn: "Seller"
+      id: "seller-profile-link"
+# The seller ROW, by testID — not the section heading above it. "Seller"
+# (listing.detail.seller) is real copy, which is why this looked right: it is the
+# heading on ListingDetail:674, and tapping a heading does nothing, so the flow
+# stayed on the detail screen and failed on the profile assertion afterwards. The
+# tappable thing is the UserIdentity row, which shows the seller's NAME. ("Seller
+# Name", used by two of these flows, is placeholder text the app never rendered.)
+- tapOn:
+    id: "seller-profile-link"
 - waitForAnimationToEnd
 # On seller profile — open the Report sheet
 - tapOn: "Report User"

@@ -26,6 +26,12 @@ appId: com.hatiwal.app
 # Open more options / report menu
 - tapOn: "More options"
 - waitForAnimationToEnd
+# "Report" lives inside the MORE sheet (ListingDetail:1037), not on the detail
+# screen — so tapping it directly could never work. `more-options-button` is the
+# icon-only overlay control that opens the sheet.
+- tapOn:
+    id: "more-options-button"
+- waitForAnimationToEnd
 - tapOn: "Report"
 - waitForAnimationToEnd
 - assertVisible: "Why are you reporting this?"

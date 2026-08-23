@@ -31,6 +31,26 @@ appId: com.hatiwal.app
 - assertVisible: "Hi, is this item available?"
 
 # Back → Chats tab — conversation listed
+# Pop back to the tab layout FIRST. Listing detail, the conversation thread and
+# the owner detail all live outside app/(main)/(tabs), so the tab bar is not in
+# the view tree there and a tab tap cannot find its target — it read as
+# `Element not found: <tab>`, which looks like a missing testID. Two bounded
+# blocks, not a `while`: these screens are at most two pushes deep, and an
+# unbounded loop that never reveals the bar would spin to the flow timeout.
+- runFlow:
+    when:
+      notVisible:
+        id: "chat-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      notVisible:
+        id: "chat-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
