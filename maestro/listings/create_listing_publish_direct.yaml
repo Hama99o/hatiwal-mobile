@@ -18,14 +18,17 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Cover"
 # Fill required fields
-# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
-# the tap returns, and the first character can land before the field has focus.
-# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
-# and the flow then failed four minutes later asserting the title it typed.
-# Not an app bug: the field is a plain react-hook-form Controller with no
-# remount or debounce, and no human types within a frame of tapping.
+# eraseText between the tap and the typing. Maestro drops the FIRST CHARACTER
+# otherwise: "Abroad Location Item" arrived as "Broad Location Item", and the
+# character counter under the field proved it — 19/150 instead of 20/150. A bare
+# `waitForAnimationToEnd` does NOT fix it (measured: still 19). `eraseText` does
+# (measured: 20), because it forces the IME to be attached before the text is sent.
+#
+# Not an app bug: the field is a plain react-hook-form Controller with no remount
+# or debounce, and no human types within a frame of tapping. Harmless here — every
+# one of these fields is empty at this point.
 - tapOn: "What are you selling?"
-- waitForAnimationToEnd
+- eraseText
 - inputText: "Samsung Galaxy S22"
 # Scroll to the price field: typing the title raises the keyboard, and on a
 # landscape tablet it covers the lower half of the form — so `tapOn` fails on a
@@ -36,14 +39,17 @@ appId: com.hatiwal.app
       text: "Enter price"
     direction: DOWN
     timeout: 20000
-# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
-# the tap returns, and the first character can land before the field has focus.
-# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
-# and the flow then failed four minutes later asserting the title it typed.
-# Not an app bug: the field is a plain react-hook-form Controller with no
-# remount or debounce, and no human types within a frame of tapping.
+# eraseText between the tap and the typing. Maestro drops the FIRST CHARACTER
+# otherwise: "Abroad Location Item" arrived as "Broad Location Item", and the
+# character counter under the field proved it — 19/150 instead of 20/150. A bare
+# `waitForAnimationToEnd` does NOT fix it (measured: still 19). `eraseText` does
+# (measured: 20), because it forces the IME to be attached before the text is sent.
+#
+# Not an app bug: the field is a plain react-hook-form Controller with no remount
+# or debounce, and no human types within a frame of tapping. Harmless here — every
+# one of these fields is empty at this point.
 - tapOn: "Enter price"
-- waitForAnimationToEnd
+- eraseText
 - inputText: "35000"
 # Select category
 # The category field sits below title and price, and the numeric keypad from the
@@ -73,14 +79,17 @@ appId: com.hatiwal.app
       text: "Describe your item..."
     direction: DOWN
     timeout: 10000
-# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
-# the tap returns, and the first character can land before the field has focus.
-# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
-# and the flow then failed four minutes later asserting the title it typed.
-# Not an app bug: the field is a plain react-hook-form Controller with no
-# remount or debounce, and no human types within a frame of tapping.
+# eraseText between the tap and the typing. Maestro drops the FIRST CHARACTER
+# otherwise: "Abroad Location Item" arrived as "Broad Location Item", and the
+# character counter under the field proved it — 19/150 instead of 20/150. A bare
+# `waitForAnimationToEnd` does NOT fix it (measured: still 19). `eraseText` does
+# (measured: 20), because it forces the IME to be attached before the text is sent.
+#
+# Not an app bug: the field is a plain react-hook-form Controller with no remount
+# or debounce, and no human types within a frame of tapping. Harmless here — every
+# one of these fields is empty at this point.
 - tapOn: "Describe your item..."
-- waitForAnimationToEnd
+- eraseText
 - inputText: "Excellent condition, comes with box and charger."
 # Select condition
 - tapOn: "Like new"

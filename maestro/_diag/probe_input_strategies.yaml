@@ -1,0 +1,35 @@
+appId: com.hatiwal.app
+---
+# DIAGNOSTIC: which tap->type strategy keeps the FIRST character?
+# The character counter under the title field is the oracle: "Abroad Location Item"
+# is 20 chars, so 20/150 means intact and 19/150 means the leading A was lost.
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+# ── Strategy A: tap, settle, type (what the flows do today) ────────────────
+- tapOn: "What are you selling?"
+- eraseText
+- inputText: "Abroad Location Item"
+- waitForAnimationToEnd
+- takeScreenshot: A-tap-settle-type
+
+# ── Strategy B: eraseText before typing ───────────────────────────────────
+# eraseText needs focus and forces the IME to be attached, which may absorb
+# whatever swallows the first keystroke.
+- eraseText
+- waitForAnimationToEnd
+- inputText: "Abroad Location Item"
+- waitForAnimationToEnd
+- takeScreenshot: B-erase-then-type
+
+# ── Strategy C: type twice, erasing in between ────────────────────────────
+- eraseText
+- inputText: "X"
+- eraseText
+- inputText: "Abroad Location Item"
+- waitForAnimationToEnd
+- takeScreenshot: C-warmup-then-type

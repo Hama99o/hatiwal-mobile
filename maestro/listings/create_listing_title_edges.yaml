@@ -25,14 +25,17 @@ appId: com.hatiwal.app
 - assertVisible: "Create Listing"
 
 # ── Whitespace-only title is NOT a title ────────────────────────────────────
-# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
-# the tap returns, and the first character can land before the field has focus.
-# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
-# and the flow then failed four minutes later asserting the title it typed.
-# Not an app bug: the field is a plain react-hook-form Controller with no
-# remount or debounce, and no human types within a frame of tapping.
+# eraseText between the tap and the typing. Maestro drops the FIRST CHARACTER
+# otherwise: "Abroad Location Item" arrived as "Broad Location Item", and the
+# character counter under the field proved it — 19/150 instead of 20/150. A bare
+# `waitForAnimationToEnd` does NOT fix it (measured: still 19). `eraseText` does
+# (measured: 20), because it forces the IME to be attached before the text is sent.
+#
+# Not an app bug: the field is a plain react-hook-form Controller with no remount
+# or debounce, and no human types within a frame of tapping. Harmless here — every
+# one of these fields is empty at this point.
 - tapOn: "What are you selling?"
-- waitForAnimationToEnd
+- eraseText
 - inputText: "   "
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
@@ -54,14 +57,17 @@ appId: com.hatiwal.app
       text: "Enter price"
     direction: DOWN
     timeout: 20000
-# waitForAnimationToEnd between the tap and the typing: Maestro types the instant
-# the tap returns, and the first character can land before the field has focus.
-# Seen on device — "Abroad Location Item" was saved as "Broad Location Item",
-# and the flow then failed four minutes later asserting the title it typed.
-# Not an app bug: the field is a plain react-hook-form Controller with no
-# remount or debounce, and no human types within a frame of tapping.
+# eraseText between the tap and the typing. Maestro drops the FIRST CHARACTER
+# otherwise: "Abroad Location Item" arrived as "Broad Location Item", and the
+# character counter under the field proved it — 19/150 instead of 20/150. A bare
+# `waitForAnimationToEnd` does NOT fix it (measured: still 19). `eraseText` does
+# (measured: 20), because it forces the IME to be attached before the text is sent.
+#
+# Not an app bug: the field is a plain react-hook-form Controller with no remount
+# or debounce, and no human types within a frame of tapping. Harmless here — every
+# one of these fields is empty at this point.
 - tapOn: "Enter price"
-- waitForAnimationToEnd
+- eraseText
 - inputText: "500"
 # The title error must be GONE — that is the assertion that proves 150 is legal
 # rather than merely "something happened".

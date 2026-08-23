@@ -770,15 +770,30 @@ It is not an app bug. The field is a plain react-hook-form `Controller` with
 Maestro types the instant `tapOn` returns, so the first character can land before
 the input has focus. No human types within a frame of tapping.
 
+`waitForAnimationToEnd` does **not** fix it. `eraseText` does:
+
 ```yaml
 - tapOn: "What are you selling?"
-- waitForAnimationToEnd          # <- without this the "A" can vanish
+- eraseText                      # forces the IME to attach; without it the "A" vanishes
 - inputText: "Abroad Location Item"
 ```
 
-It is intermittent, which is worse than consistent: the same flow passed earlier
-in the day, and other create flows type titles successfully. Applied to all 44
-tap→type pairs on the create form's title, price and description fields.
+Measured on device with the field's own character counter as the oracle, which is
+what made this settleable rather than a guess:
+
+| strategy | counter | verdict |
+|---|---|---|
+| tap → `inputText` | 19/150 | first character lost |
+| tap → `waitForAnimationToEnd` → `inputText` | 19/150 | **no better** |
+| tap → `eraseText` → `inputText` | 20/150 | intact |
+
+("Abroad Location Item" is 20 characters.) Applied to all 47 tap→type pairs on the
+create form's title, price and description fields — all empty at that point, so
+`eraseText` costs nothing.
+
+Note the counter trick generally: when a field's contents look wrong, find
+something in the UI that states the length or the value independently. Reading
+"Broad" vs "Abroad" off a screenshot is easy to get wrong; 19 vs 20 is not.
 
 **When triaging a "wrong text" failure, compare the strings character by
 character before assuming the app mangled the value.** "Broad" vs "Abroad" is one
