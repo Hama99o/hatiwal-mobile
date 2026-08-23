@@ -100,6 +100,51 @@ screen and therefore proves nothing. "The bundling banner is gone" is not "the a
 is up": that banner is itself drawn by JS, so before the first render there is
 nothing to see.
 
+### Device and account state that flows do NOT control (and must therefore assert)
+
+Four kinds of state survive `clearState: true`, so a flow that depends on any of
+them has to set or assert it explicitly. Each of these cost an hour to find because
+the resulting failure names something else entirely.
+
+| State | Survives clearState? | How it bites | What to do |
+|---|---|---|---|
+| **Runtime permissions** | Yes — and worse, **Maestro GRANTS THEM ALL on `launchApp`** | The app already has location, so it never prompts. A flow waiting for the dialog times out; `dumpsys` shows `granted=true` after every run no matter what you did first | `permissions: { all: deny }` on launchApp — the only control that holds, because it applies AFTER the launch |
+| **Buyer/seller mode** | Yes — persisted on the USER, so it also crosses devices | Seller mode has no "Bazaar" tab at all (My Shop / Chats / Me), so buyer flows fail "Element not found: Bazaar" while perfectly signed in | `_helpers/ensure_buyer_mode.yaml` (or `login_seller.yaml`, which always did this) |
+| **Airplane mode** | Yes — device-wide | Set by an offline flow that then FAILS before its own cleanup; every later flow cannot reach Metro and fails on `"Me" is visible` | cleared in the per-flow preflight (`lib/flows.sh`) |
+| **GPS fix** | It is one-shot and goes STALE | A location flow minutes into a suite gets nothing and the app correctly says "Couldn't determine your location" | re-sent before every flow; override with `QA_GEO_LAT/LON` |
+
+**`pm reset-permissions`, not `pm revoke`.** Revoke marks the permission USER-FIXED
+("don't ask again"), so Android never shows the dialog — the app gets an immediate
+denial. Only reset restores the never-asked state. `qa.sh perm reset|grant|revoke`
+does all three, but for prompt tests prefer `permissions: all: deny` in the flow.
+
+**Denying permissions surfaces a dialog you were not testing.** With permissions
+denied the app asks for notifications right after login, and its modal covers the
+tab bar — so the next tab tap fails on an element hidden behind it. The deny helper
+dismisses it first.
+
+### `tapOn` does not scroll, and the keyboard hides bottom buttons
+
+Two mechanical facts behind a large share of all failures here:
+
+**`tapOn` never scrolls to its target.** If the element is off-screen the flow fails
+with "Element not found" on something that exists. The listing form is taller than a
+phone, so 20 taps across 18 flows were aimed at fields below the fold; the seller row
+on listing detail needed a scroll in 10 flows. `scrollUntilVisible` is the fix and is
+safe to add unconditionally — it checks first and does nothing when the element is
+already visible.
+
+**A button below a text input is probably behind the keyboard.** This has now
+appeared FIVE times: the dev-launcher's Connect, the login screen's Sign In, the
+meetup sheet's submit, the map picker's "Confirm location", and Register's "Create
+Account". Two were real product bugs (Register had no `KeyboardAvoidingView` at all;
+the map picker still does not dismiss on result-select — UI-023). When a bottom CTA
+"does not exist", screenshot it before believing the selector is wrong.
+
+`hideKeyboard` is safe ONLY immediately after typing, when the IME is guaranteed up
+and consumes the Back that Maestro sends. With no keyboard up, that Back reaches the
+app and can exit it.
+
 ### A fresh emulator is missing things the app needs, and the failures blame the app
 
 Three capabilities the app legitimately depends on are simply absent on a clean
