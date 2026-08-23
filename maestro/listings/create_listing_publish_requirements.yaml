@@ -92,9 +92,20 @@ appId: com.hatiwal.app
 - tapOn:
     id: "lifecycle-primary-action"
 - waitForAnimationToEnd
-# The blocker names the photo — the seller must be told WHICH requirement failed,
-# not merely that publishing did not work.
-- assertVisible: "A live listing needs at least one photo"
+# The blocker names the missing requirement — the seller must be told WHICH one
+# failed, not merely that publishing did not work.
+#
+# The toast is `listing.form.publishBlocked` = "Add {{fields}} to publish this
+# listing", with {{fields}} joined from BLOCKER_LABEL_KEY — `common.photos` =
+# "Photos", `common.location` = "Location". This listing has neither, so both are
+# named. The regex keeps the assertion honest about "photos are named" without
+# depending on the join order.
+#
+# "A live listing needs at least one photo", asserted here before, is a string the
+# app has never had.
+- extendedWaitUntil:
+    visible: ".*Add .*Photos.* to publish this listing"
+    timeout: 20000
 
 # It must still be a draft afterwards: a refused publish that silently went live
 # would be far worse than a clear error.

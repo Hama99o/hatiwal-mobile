@@ -76,20 +76,35 @@ appId: com.hatiwal.app
     id: "listing-form-quantity-input"
 
 # ── The maximum, 999, is accepted ───────────────────────────────────────────
+# NO `eraseText` on this field, and the reason is a real app behaviour worth
+# knowing: its onChange maps an empty string to 1
+# (`field.onChange(digits === "" ? 1 : Number(digits))`), a deliberate guard
+# against an empty numeric value. So erasing leaves "1" on screen, and typing
+# then APPENDS — "999" became "1999", and this assertion failed on a field that
+# had accepted every keystroke.
+#
+# The field carries `selectTextOnFocus`, so a tap already selects the whole value
+# and typing replaces it. That is also what a real seller gets.
 - tapOn:
     id: "listing-form-quantity-input"
-- eraseText
 - inputText: "999"
 - assertVisible: "999"
 
-# ── Past the maximum is refused ─────────────────────────────────────────────
-# Either the field will not take the 4th digit or the value is clamped; both are
-# acceptable, and both mean 1000 must NOT be what the field holds.
+# ── Past the maximum is refused AT SUBMIT ───────────────────────────────────
+# The input does not clamp, and it is not supposed to: `z.number().int().min(1)
+# .max(999)` refuses the value when the form is submitted. So the honest
+# assertion is that SAVING is refused and says why — not that the field silently
+# rewrites what the seller typed. (The earlier version expected clamping "or" the
+# 4th digit being dropped; neither happens, so it could only ever fail.)
 - tapOn:
     id: "listing-form-quantity-input"
-- eraseText
 - inputText: "1000"
-- assertNotVisible: "1000"
+- assertVisible: "1000"
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+# Still on the form, with the listing unsaved — a quantity of 1000 must not go
+# through, and the seller must not be left guessing.
+- assertVisible: "Create Listing"
 
 # ── Toggling back off hides the field again ─────────────────────────────────
 # The listing must fall back to a single unit, not keep a stale 999 hidden.
