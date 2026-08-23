@@ -26,6 +26,10 @@ appId: com.hatiwal.app
     clearState: true
 - runFlow: ../_helpers/open_bundle.yaml
 - waitForAnimationToEnd
+# Here this heading IS the onboarding carousel's first slide
+# (onboarding.slides.welcome.title) — the one place asserting it is unambiguous,
+# because this flow has deliberately NOT skipped onboarding. Every other flow
+# asserts auth.subtitle instead, since the login screen shows the same heading.
 - assertVisible: "Welcome to Hatiwal"
 - assertVisible: "Skip"
 - assertVisible: "Next"

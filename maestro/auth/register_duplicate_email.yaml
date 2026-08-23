@@ -7,7 +7,19 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/open_bundle.yaml
 - runFlow: ../_helpers/goto_login.yaml
 - waitForAnimationToEnd
-- assertVisible: "Welcome to Hatiwal"
+# NOT "Welcome to Hatiwal": the onboarding carousel's FIRST SLIDE and the login
+# screen both render that exact heading (onboarding.slides.welcome.title and
+# auth.welcome), so asserting it cannot tell the two apart — a flow could pass
+# this line while sitting on onboarding and then fail on the next one.
+# auth.subtitle appears on the login screen only.
+#
+# extendedWaitUntil, not assertVisible: after `clearState` the dev client
+# re-fetches the JS bundle, and a bare assert can fire before the first screen
+# has rendered at all. guest_browse failed exactly that way after passing minutes
+# earlier — neither screen was up yet.
+- extendedWaitUntil:
+    visible: "Buy and sell locally in Afghanistan"
+    timeout: 60000
 # The login screen renders this as ONE Text — "Don't have an account? Create
 # Account" — so an exact-match selector on "Create Account" can never find it.
 - tapOn:
