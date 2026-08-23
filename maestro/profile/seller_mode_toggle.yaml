@@ -18,11 +18,19 @@ appId: com.hatiwal.app
 - tapOn: "Switch to Seller Mode"
 - waitForAnimationToEnd
 # Mode changed — banner confirms seller mode
-- assertVisible: "Seller Mode"
+# NOT "Seller Mode" (`profile.sellerMode`, dead with the banner). The toggle now
+# offering BUYER mode is what proves the switch happened.
+- extendedWaitUntil:
+    visible: "Switch to Buyer Mode"
+    timeout: 20000
 # Profile tab now shows seller-focused content
 - tapOn: "Me"
 - waitForAnimationToEnd
 # Switch back
 - tapOn: "Switch to Buyer Mode"
 - waitForAnimationToEnd
-- assertVisible: "Buyer Mode"
+# NOT "Buyer Mode" (dead with the banner). Back in buyer mode, the toggle offers
+# SELLER mode again.
+- extendedWaitUntil:
+    visible: "Switch to Seller Mode"
+    timeout: 20000

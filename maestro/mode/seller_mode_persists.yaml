@@ -1,0 +1,74 @@
+appId: com.hatiwal.app
+---
+# MODE PERSISTS — across navigation and across a relaunch.
+#
+# Replaces seller_mode_banner_persists.yaml, which checked that a mode BANNER
+# stayed visible while moving between tabs. ModeSwitcherBanner.tsx is imported by
+# nothing (UI-025), so that banner has never been on screen, and the flow also
+# asserted "Seller Mode" — `profile.sellerMode`, referenced only inside that dead
+# component.
+#
+# What IS real, and matters more: mode is persisted on the USER, not in local
+# state. Every login helper carries a warning about it because a flow that leaves
+# the account in seller mode changes what every later flow sees. So the property
+# worth testing is that the mode a seller chose survives both navigating away and
+# killing the app — and the tab bar is the honest witness, since seller mode has
+# no Bazaar tab at all.
+
+- runFlow: ../_helpers/login.yaml
+
+# ── Switch to seller mode ───────────────────────────────────────────────────
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Switch to .*"
+    timeout: 30000
+- tapOn:
+    id: "mode-toggle-button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Switch to Buyer Mode"
+    timeout: 20000
+
+# ── It survives navigating between tabs ─────────────────────────────────────
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- assertVisible: "My Shop"
+- assertNotVisible: "Bazaar"
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- assertVisible: "My Shop"
+
+# ── And it survives a RELAUNCH ──────────────────────────────────────────────
+# Not clearState: that would wipe the session as well and prove nothing about
+# persistence. A warm relaunch is the real "user closed the app" case.
+- launchApp
+- runFlow: ../_helpers/open_bundle.yaml
+- extendedWaitUntil:
+    visible: "My Shop"
+    timeout: 60000
+- assertNotVisible: "Bazaar"
+
+# ── Leave the account in BUYER mode ─────────────────────────────────────────
+# Mandatory, not tidiness: mode is stored on the user, so leaving it in seller
+# mode would put every later buyer flow on the wrong tab bar. This is the same
+# leak the two block flows had with a persisted block.
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Switch to .*"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Switch to Buyer Mode"
+    commands:
+      - tapOn:
+          id: "mode-toggle-button"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Switch to Seller Mode"
+    timeout: 20000

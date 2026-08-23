@@ -18,8 +18,16 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Switch to seller mode
+# The real switch is the profile toggle. `mode-switcher-banner` belongs to
+# ModeSwitcherBanner.tsx, which nothing imports (UI-025), so this tap never landed.
 - tapOn:
-    id: "mode-switcher-banner"
+    id: "profile-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Switch to .*"
+    timeout: 30000
+- tapOn:
+    id: "mode-toggle-button"
 - waitForAnimationToEnd
 # Maestro anchors at both ends, so a bare "Switch" cannot match
 # "Switch to Seller Mode" / "Switch to Buyer Mode".

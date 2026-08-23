@@ -9,7 +9,12 @@ appId: com.hatiwal.app
 # never matched it — the app was showing more than the flow asked for.
 - tapOn: "Switch to Buyer.*"
 - waitForAnimationToEnd
-- assertVisible: "Buyer Mode"
+# NOT "Buyer Mode": `profile.buyerMode` is referenced only inside
+# ModeSwitcherBanner.tsx, which nothing imports (UI-025), so it renders nowhere.
+# The toggle offering SELLER mode is the proof we are in buyer mode.
+- extendedWaitUntil:
+    visible: "Switch to Seller Mode"
+    timeout: 20000
 # Browse as buyer
 - tapOn: "Bazaar"
 - waitForAnimationToEnd
