@@ -1016,6 +1016,35 @@ sessions is the reliable number on this machine.
 
 ---
 
+### UI-023 · On a small phone, the search keyboard covers "Confirm location" (OPEN — design)
+
+**Severity: MEDIUM usability.** In the map picker, searching for a place leaves the
+keyboard up — selecting a result does not dismiss it — and on a 360dp/411dp phone
+the keyboard covers the bottom of the sheet, which is exactly where **"Confirm
+location"** sits.
+
+So the sequence a seller naturally follows is: search "Herat" → tap the result →
+see the pin land correctly → and then find no way to confirm it. They have to know
+to dismiss the keyboard first. Confirmed by screenshot: map rendered, pin correctly
+on هرات, confirm button entirely hidden behind the IME.
+
+Not a crash, and there IS a way through, which is why it survives — but it is the
+last step of the flow, and a seller who does not realise it will conclude the map
+is broken.
+
+**Suggested fix (not applied — it is a layout decision):** dismiss the keyboard
+when a search result is selected (`Keyboard.dismiss()` in `handleSelectResult`),
+which is what the tap already implies. Wrapping the sheet in
+`KeyboardAvoidingView`, as MeetupSheet does, would also work but changes the map's
+height while typing.
+
+The same class has now appeared four times in this app: the dev-launcher Connect
+button, the login "Sign In" button, the meetup sheet's submit, and this. **Any
+button below a text input is a candidate.** Worth a sweep of every bottom-anchored
+CTA that follows a text field.
+
+---
+
 ### PROCESS-001 · I bulk-added another session's files by mistake (commit 7c05c8d)
 **Severity:** process, not product — but worth recording, not hiding
 
