@@ -479,7 +479,7 @@ Found by LOOKING at a screenshot, not by an assertion: nothing was broken, it
 just drew the eye to nothing. Now hidden below 1, with the views count
 deliberately still shown at zero — that contrast is the point.
 
-### UI-017 · "List" view is not a list — one card per screen (OPEN)
+### UI-017 · "List" view is not a list — one card per screen — FIXED
 **Where:** My Shop → the grid/list toggle
 **Severity:** medium — a seller with 11 listings scrolls 11 screens
 **Evidence:** same screenshot; `MyListings.tsx:400`
@@ -497,11 +497,35 @@ appears to change only the column count: you get one ~1100px-tall card per row
 instead of a compact row. In the screenshot a single listing fills the screen
 between the filter chips and the tab bar.
 
-NOT fixed here, deliberately. Giving the seller card a compact variant is a real
-design change to the seller's primary screen, and the device was mid-run so I
-could not verify it visually — and a layout change I cannot see is exactly the
-kind that ships a worse screen than it replaced. The pattern to copy already
-exists in `ListingCard`'s `variant="list"`.
+**Worse than this finding first rated it.** `MyListings.tsx:343` initialises the
+toggle to `"list"`, so the broken layout is the one every seller LANDS on — not a
+mode they have to choose.
+
+**Fixed.** `SellerListingCard` takes `viewMode` and renders a compact horizontal
+row: a 112dp leading thumbnail, details beside it, action row beneath. One
+wrapper whose `flexDirection` flips — the details block and both action buttons
+are shared between layouts, so there is no second copy of the card to maintain.
+
+Verified on device (2560x1600 tablet): **3 listings on screen where there had
+been 1**, with price, status badge, title, "Sold to …" line, views/chats and both
+actions all intact.
+
+Decisions that were about not losing information in the smaller layout:
+- A "+N" pip replaces the photo pager — a 112dp thumbnail cannot carry legible
+  page dots, and swiping something that small fights the list's own scroll.
+- `StatusBadge` moves from the photo overlay into the details column.
+- The "No photo" **label** is kept rather than reduced to an icon: a photoless
+  listing cannot be published, so it is the one thing a seller must not have to
+  infer from a small grey glyph. Dropping it broke an existing unit test, which
+  is how I caught it.
+
+The same screenshot then showed a NEW defect the compact row had created: on a
+landscape tablet the action row stretched to the full card width, so "Publish"
+was a ~1750px bar and a sold listing (no primary action, so More takes `flex: 1`)
+became an enormous empty pill with a word floating in it. Capped at 520px and
+aligned to the reading direction — wider than any phone in portrait, so phones
+keep the layout they were designed with. That fix exists only because the
+screenshot was looked at; every assertion passed both before and after.
 
 ### UI-018 · The map opened in Kabul even when we knew where you were — FIXED
 **Where:** listing form → "Tap to set exact location"; buyer radius filter
