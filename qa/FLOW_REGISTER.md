@@ -16,10 +16,9 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 |---|---:|---|
 | PASS | 27 | green, and no backend error underneath |
 | SILENT | 1 | **assertions passed while the API errored** — the app told the user nothing |
-| FAIL-assert | 164 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 13 | failed, cause unclear — read the log |
-| UNTESTED | 28 | never executed |
+| FAIL-assert | 86 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-? | 10 | failed, cause unclear — read the log |
+| UNTESTED | 110 | never executed |
 
 ### Definition of done
 
@@ -31,11 +30,11 @@ bug class a user reports as "nothing happened".
 
 ## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
 
-3/42 passing · 39 open
+1/42 passing · 41 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `create_listing` | PASS | run-122 | 246 |  |  |
+| `create_listing` | FAIL-assert | s2/run-116 | 330 |  | [Failed] create_listing (5m 10s) (Assertion is false: "Me" is visible) |
 | `create_listing_all_fields` | FAIL-assert | s2/run-116 | 327 |  | [Failed] create_listing_all_fields (5m 10s) (Assertion is false: "Me" is visible) |
 | `create_listing_category_search` | FAIL-assert | s2/run-116 | 329 |  | [Failed] create_listing_category_search (5m 11s) (Assertion is false: "Me" is visible) |
 | `create_listing_currency_eur` | FAIL-assert | s2/run-116 | 330 |  | [Failed] create_listing_currency_eur (5m 13s) (Assertion is false: "Me" is visible) |
@@ -58,25 +57,25 @@ bug class a user reports as "nothing happened".
 | `delete_listing` | FAIL-assert | s2/run-116 | 327 |  | [Failed] delete_listing (5m 10s) (Assertion is false: "Me" is visible) |
 | `draft_lifecycle` | FAIL-assert | s2/run-116 | 327 |  | [Failed] draft_lifecycle (5m 10s) (Assertion is false: "Me" is visible) |
 | `edit_listing` | FAIL-assert | s2/run-116 | 327 |  | [Failed] edit_listing (5m 9s) (Assertion is false: "Me" is visible) |
-| `edit_listing_all_fields` | FAIL-assert | run-106 | 190 |  | [Failed] edit_listing_all_fields (2m 53s) (Element not found: Text matching regex: Edit) |
-| `edit_listing_discard` | FAIL-assert | run-106 | 204 |  | [Failed] edit_listing_discard (3m 1s) (Element not found: Text matching regex: Edit) |
-| `edit_listing_quantity` | FAIL-? | run-106 | 165 |  | [Failed] edit_listing_quantity (2m 25s) (No visible element found: "QA Phone Cases Bulk 15") |
-| `edit_listing_remove_photo` | FAIL-assert | run-106 | 197 |  | [Failed] edit_listing_remove_photo (2m 56s) (Element not found: Text matching regex: Edit) |
-| `edit_listing_reorder_photos` | FAIL-assert | run-106 | 195 |  | [Failed] edit_listing_reorder_photos (2m 59s) (Element not found: Text matching regex: Edit) |
-| `expired_listing_badge` | FAIL-assert | run-106 | 210 |  | [Failed] expired_listing_badge (3m 6s) (Assertion is false: "Renew Listing" is visible) |
-| `lifecycle_publish` | FAIL-assert | run-106 | 204 |  | [Failed] lifecycle_publish (3m 2s) (Element not found: Text matching regex: Publish) |
-| `lifecycle_reactivate` | FAIL-assert | run-106 | 228 |  | [Failed] lifecycle_reactivate (3m 20s) (Element not found: Text matching regex: More) |
-| `lifecycle_reserve` | FAIL-assert | run-106 | 236 |  | [Failed] lifecycle_reserve (3m 29s) (Element not found: Text matching regex: Mark as Reserved) |
-| `lifecycle_sold` | FAIL-assert | run-106 | 222 |  | [Failed] lifecycle_sold (3m 16s) (Element not found: Text matching regex: Mark as Sold) |
-| `lifecycle_unpublish` | FAIL-assert | run-106 | 223 |  | [Failed] lifecycle_unpublish (3m 17s) (Element not found: Text matching regex: More) |
-| `listing_analytics_sparkline` | FAIL-assert | run-106 | 219 |  | [Failed] listing_analytics_sparkline (3m 10s) (Assertion is false: "My Listings" is visible) |
-| `listing_conversations_list` | FAIL-assert | run-106 | 229 |  | [Failed] listing_conversations_list (3m 19s) (Assertion is false: "My Listings" is visible) |
-| `listing_renew_flow` | FAIL-assert | run-106 | 243 |  | [Failed] listing_renew_flow (3m 13s) (Assertion is false: "Renew Listing" is visible) |
-| `listing_status_counts` | PASS | run-106 | 215 |  |  |
-| `my_listing_detail_view` | FAIL-assert | run-106 | 188 |  | [Failed] my_listing_detail_view (2m 51s) (Assertion is false: "My Listings" is visible) |
-| `my_listings_filter_tabs` | FAIL-assert | run-106 | 182 |  | [Failed] my_listings_filter_tabs (2m 47s) (Assertion is false: "My Listings" is visible) |
-| `my_listings_search` | FAIL-assert | run-106 | 179 |  | [Failed] my_listings_search (2m 45s) (Assertion is false: "My Listings" is visible) |
-| `price_drop_after_edit` | FAIL-assert | run-106 | 206 |  | [Failed] price_drop_after_edit (3m 8s) (Element not found: Text matching regex: Edit) |
+| `edit_listing_all_fields` | UNTESTED | — |  |  |  |
+| `edit_listing_discard` | UNTESTED | — |  |  |  |
+| `edit_listing_quantity` | UNTESTED | — |  |  |  |
+| `edit_listing_remove_photo` | UNTESTED | — |  |  |  |
+| `edit_listing_reorder_photos` | UNTESTED | — |  |  |  |
+| `expired_listing_badge` | UNTESTED | — |  |  |  |
+| `lifecycle_publish` | UNTESTED | — |  |  |  |
+| `lifecycle_reactivate` | UNTESTED | — |  |  |  |
+| `lifecycle_reserve` | UNTESTED | — |  |  |  |
+| `lifecycle_sold` | UNTESTED | — |  |  |  |
+| `lifecycle_unpublish` | UNTESTED | — |  |  |  |
+| `listing_analytics_sparkline` | UNTESTED | — |  |  |  |
+| `listing_conversations_list` | UNTESTED | — |  |  |  |
+| `listing_renew_flow` | UNTESTED | — |  |  |  |
+| `listing_status_counts` | UNTESTED | — |  |  |  |
+| `my_listing_detail_view` | UNTESTED | — |  |  |  |
+| `my_listings_filter_tabs` | UNTESTED | — |  |  |  |
+| `my_listings_search` | UNTESTED | — |  |  |  |
+| `price_drop_after_edit` | UNTESTED | — |  |  |  |
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile
 
@@ -122,9 +121,45 @@ bug class a user reports as "nothing happened".
 | `user_profile_stats` | FAIL-assert | s2/run-113 | 326 |  | [Failed] user_profile_stats (5m 9s) (Assertion is false: "Me" is visible) |
 | `view_mode_toggle` | FAIL-assert | s2/run-113 | 330 |  | [Failed] view_mode_toggle (5m 11s) (Assertion is false: "Me" is visible) |
 
+## `profile` — Profile view/edit, language + theme switch, stats, blocked users
+
+0/29 passing · 29 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `account_delete_and_restore` | UNTESTED | — |  |  |  |
+| `account_delete_cancel` | UNTESTED | — |  |  |  |
+| `away_mode` | UNTESTED | — |  |  |  |
+| `blocked_users` | UNTESTED | — |  |  |  |
+| `change_language_dari` | UNTESTED | — |  |  |  |
+| `change_language_english` | UNTESTED | — |  |  |  |
+| `change_language_pashto` | UNTESTED | — |  |  |  |
+| `edit_profile` | UNTESTED | — |  |  |  |
+| `edit_profile_all_fields` | UNTESTED | — |  |  |  |
+| `edit_profile_avatar` | UNTESTED | — |  |  |  |
+| `edit_profile_bio_too_long` | UNTESTED | — |  |  |  |
+| `edit_profile_province_picker_deep` | UNTESTED | — |  |  |  |
+| `edit_profile_validation` | UNTESTED | — |  |  |  |
+| `hidden_listings` | UNTESTED | — |  |  |  |
+| `language_persists_across_tabs` | UNTESTED | — |  |  |  |
+| `language_switch_all_screens` | UNTESTED | — |  |  |  |
+| `profile_stats_verify` | UNTESTED | — |  |  |  |
+| `recently_viewed` | UNTESTED | — |  |  |  |
+| `recently_viewed_empty_state` | UNTESTED | — |  |  |  |
+| `seller_mode_toggle` | UNTESTED | — |  |  |  |
+| `theme_switch` | UNTESTED | — |  |  |  |
+| `transaction_stats_hidden_when_zero` | UNTESTED | — |  |  |  |
+| `transaction_stats_own_profile` | UNTESTED | — |  |  |  |
+| `transaction_stats_public_profile` | UNTESTED | — |  |  |  |
+| `transaction_stats_seller_own_profile` | UNTESTED | — |  |  |  |
+| `user_profile_sold_tab` | UNTESTED | — |  |  |  |
+| `view_profile` | UNTESTED | — |  |  |  |
+| `view_profile_error` | UNTESTED | — |  |  |  |
+| `view_seller_profile_from_profile` | UNTESTED | — |  |  |  |
+
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state
 
-12/42 passing · 30 open
+15/42 passing · 27 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -149,63 +184,27 @@ bug class a user reports as "nothing happened".
 | `meetup_proposal` | PASS | s2/run-142 | 213 |  |  |
 | `meetup_proposed_bubble_ui` | FAIL-assert | s2/run-142 | 208 |  | [Failed] meetup_proposed_bubble_ui (3m 5s) (Element not found: Text matching regex: More actions) |
 | `meetup_respond` | FAIL-assert | s2/run-142 | 192 |  | [Failed] meetup_respond (2m 49s) (Element not found: Text matching regex: Accept) |
-| `meetup_validation` | FAIL-assert | run-113 | 162 |  | [Failed] meetup_validation (2m 26s) (Element not found: Id matching regex: meetup-propose-submit) |
-| `message_long_text` | FAIL-assert | run-113 | 138 |  | [Failed] message_long_text (2m 2s) (Element not found: Text matching regex: Type a message...) |
-| `offer_counter_flow` | FAIL-assert | run-113 | 137 |  | [Failed] offer_counter_flow (2m 1s) (Element not found: Text matching regex: Make an Offer) |
-| `offer_in_existing_thread` | PASS | run-113 | 148 |  |  |
-| `offer_send_and_accept` | PASS | run-113 | 315 |  |  |
-| `offer_send_and_decline` | FAIL-assert | run-113 | 116 |  | [Failed] offer_send_and_decline (1m 39s) (Element not found: Text matching regex: Bazaar) |
-| `quick_replies` | FAIL-assert | run-113 | 126 |  | [Failed] quick_replies (1m 50s) (Element not found: Text matching regex: Is this still available?) |
-| `report_participant` | FAIL-assert | run-113 | 145 |  | [Failed] report_participant (2m 10s) (Assertion is false: "Report submitted" is visible) |
-| `reserve_after_accept` | FAIL-assert | run-113 | 114 |  | [Failed] reserve_after_accept (1m 38s) (Element not found: Text matching regex: Bazaar) |
-| `reserve_after_buyer_accepts_counter` | FAIL-assert | run-113 | 115 |  | [Failed] reserve_after_buyer_accepts_counter (1m 39s) (Element not found: Text matching regex: Bazaar) |
-| `reserved_sold_dead_end_notice` | FAIL-assert | run-113 | 304 |  | [Failed] reserved_sold_dead_end_notice (4m 46s) (Element not found: Text matching regex: Sold to someone not o |
-| `send_message` | FAIL-assert | run-113 | 145 |  | [Failed] send_message (2m 8s) (Assertion is false: "Is the price negotiable?" is visible) |
-| `send_message_double_tap` | FAIL-assert | run-113 | 143 |  | [Failed] send_message_double_tap (2m 8s) (Assertion is false: "Double tap probe" is visible) |
-| `send_message_empty` | PASS | run-113 | 121 |  |  |
-| `send_message_offline` | FAIL-assert | run-113 | 146 |  | [Failed] send_message_offline (2m 10s) (Assertion is false: "QA offline send — this must not appear to succeed |
-| `send_message_whitespace` | FAIL-assert | run-113 | 139 |  | [Failed] send_message_whitespace (2m 2s) (Assertion is false: "Type a message..." is visible) |
-| `send_multiple_messages` | FAIL-assert | run-113 | 115 |  | [Failed] send_multiple_messages (1m 38s) (Element not found: Text matching regex: Bazaar) |
-| `send_photo` | FAIL-assert | run-113 | 161 |  | [Failed] send_photo (2m 25s) (Assertion is false: "View photo fullscreen" is visible) |
+| `meetup_validation` | FAIL-assert | s2/run-142 | 156 |  | [Failed] meetup_validation (2m 16s) (Assertion is false: "Switch to .*" is visible) |
+| `message_long_text` | FAIL-assert | s2/run-142 | 471 |  | [Failed] message_long_text (7m 31s) (Element not found: Text matching regex: Type a message...) |
+| `offer_counter_flow` | FAIL-assert | s2/run-142 | 182 |  | [Failed] offer_counter_flow (2m 44s) (Element not found: Text matching regex: Make an Offer) |
+| `offer_in_existing_thread` | PASS | s2/run-142 | 181 |  |  |
+| `offer_send_and_accept` | PASS | s2/run-142 | 400 |  |  |
+| `offer_send_and_decline` | FAIL-assert | s2/run-142 | 196 |  | [Failed] offer_send_and_decline (2m 52s) (Element not found: Text matching regex: Make an Offer) |
+| `quick_replies` | FAIL-assert | s2/run-142 | 197 |  | [Failed] quick_replies (2m 56s) (Element not found: Text matching regex: Is this still available?) |
+| `report_participant` | FAIL-assert | s2/run-142 | 223 |  | [Failed] report_participant (3m 17s) (Assertion is false: "Report submitted.*" is visible) |
+| `reserve_after_accept` | FAIL-assert | s2/run-142 | 188 |  | [Failed] reserve_after_accept (2m 43s) (Element not found: Text matching regex: Make an Offer) |
+| `reserve_after_buyer_accepts_counter` | FAIL-assert | s2/run-142 | 202 |  | [Failed] reserve_after_buyer_accepts_counter (2m 59s) (Element not found: Text matching regex: Make an Offer) |
+| `reserved_sold_dead_end_notice` | FAIL-assert | s2/run-142 | 568 |  | [Failed] reserved_sold_dead_end_notice (9m) (Assertion is false: id: listing-unavailable-notice is visible) |
+| `send_message` | PASS | s2/run-142 | 189 |  |  |
+| `send_message_double_tap` | PASS | s2/run-142 | 209 |  |  |
+| `send_message_empty` | PASS | s2/run-142 | 202 |  |  |
+| `send_message_offline` | FAIL-assert ⚠1 | s2/run-106 | 160 |  | [Failed] send_message_offline (2m 13s) (Element not found: Text matching regex: Send)  ||  api: AxiosError  |
+| `send_message_whitespace` | PASS | s2/run-106 | 137 |  |  |
+| `send_multiple_messages` | FAIL-assert | s2/run-106 | 128 |  | [Failed] send_multiple_messages (1m 38s) (Element not found: Text matching regex: Bazaar) |
+| `send_photo` | FAIL-assert | s2/run-106 | 172 |  | [Failed] send_photo (2m 24s) (Assertion is false: "View photo fullscreen" is visible) |
 | `start_conversation` | FAIL-? | run-130 | 113 |  |  |
-| `start_conversation_and_reply` | FAIL-assert | run-113 | 115 |  | [Failed] start_conversation_and_reply (1m 38s) (Element not found: Text matching regex: Bazaar) |
-| `view_other_profile_from_conversation` | FAIL-assert | run-113 | 127 |  | [Failed] view_other_profile_from_conversation (1m 50s) (Element not found: Id matching regex: other-participan |
-
-## `profile` — Profile view/edit, language + theme switch, stats, blocked users
-
-0/29 passing · 29 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `account_delete_and_restore` | FAIL-assert | run-120 | 162 |  | [Failed] account_delete_and_restore (2m 22s) (Element not found: Text matching regex: Confirm Password) |
-| `account_delete_cancel` | FAIL-assert | run-120 | 153 |  | [Failed] account_delete_cancel (2m 17s) (Assertion is false: "restore it by logging back in" is visible) |
-| `away_mode` | FAIL-? | run-120 | 45 |  | [Failed] away_mode (4s) (Package com.hatiwal.mobile is not installed) |
-| `blocked_users` | FAIL-assert | run-120 | 125 |  | [Failed] blocked_users (1m 48s) (Assertion is false: "Profile" is visible) |
-| `change_language_dari` | FAIL-assert | run-120 | 127 |  | [Failed] change_language_dari (1m 50s) (Element not found: Text matching regex: Dari (دری)) |
-| `change_language_english` | FAIL-assert | run-120 | 133 |  | [Failed] change_language_english (1m 56s) (Element not found: Text matching regex: Pashto (پښتو)) |
-| `change_language_pashto` | FAIL-assert | run-120 | 123 |  | [Failed] change_language_pashto (1m 47s) (Element not found: Text matching regex: Pashto (پښتو)) |
-| `edit_profile` | FAIL-assert | run-120 | 124 |  | [Failed] edit_profile (1m 47s) (Element not found: Text matching regex: Edit) |
-| `edit_profile_all_fields` | FAIL-assert | run-120 | 133 |  | [Failed] edit_profile_all_fields (1m 56s) (Assertion is false: "Edit Profile" is visible) |
-| `edit_profile_avatar` | FAIL-assert | run-120 | 128 |  | [Failed] edit_profile_avatar (1m 52s) (Assertion is false: "Edit Profile" is visible) |
-| `edit_profile_bio_too_long` | FAIL-assert | run-120 | 129 |  | [Failed] edit_profile_bio_too_long (1m 53s) (Element not found: Text matching regex: Bio) |
-| `edit_profile_province_picker_deep` | FAIL-assert | run-120 | 126 |  | [Failed] edit_profile_province_picker_deep (1m 50s) (Element not found: Text matching regex: Province) |
-| `edit_profile_validation` | FAIL-assert | run-120 | 121 |  | [Failed] edit_profile_validation (1m 44s) (Element not found: Text matching regex: Edit) |
-| `hidden_listings` | FAIL-assert | run-120 | 127 |  | [Failed] hidden_listings (1m 49s) (Element not found: Text matching regex: Hidden Listings) |
-| `language_persists_across_tabs` | FAIL-assert | run-120 | 118 |  | [Failed] language_persists_across_tabs (1m 42s) (Element not found: Text matching regex: Language) |
-| `language_switch_all_screens` | FAIL-assert | run-120 | 124 |  | [Failed] language_switch_all_screens (1m 48s) (Element not found: Text matching regex: Language) |
-| `profile_stats_verify` | FAIL-assert | run-120 | 122 |  | [Failed] profile_stats_verify (1m 45s) (Assertion is false: "Active Listings" is visible) |
-| `recently_viewed` | FAIL-assert | run-120 | 109 |  | [Failed] recently_viewed (1m 33s) (Assertion is false: "Welcome to Hatiwal" is visible) |
-| `recently_viewed_empty_state` | FAIL-assert | run-120 | 116 |  | [Failed] recently_viewed_empty_state (1m 40s) (Assertion is false: "Welcome to Hatiwal" is visible) |
-| `seller_mode_toggle` | FAIL-assert | run-120 | 134 |  | [Failed] seller_mode_toggle (1m 59s) (Assertion is false: "Profile" is visible) |
-| `theme_switch` | FAIL-assert | run-120 | 122 |  | [Failed] theme_switch (1m 46s) (Assertion is false: "Profile" is visible) |
-| `transaction_stats_hidden_when_zero` | FAIL-assert | run-120 | 116 |  | [Failed] transaction_stats_hidden_when_zero (1m 37s) (Assertion is false: "Welcome to Hatiwal" is visible) |
-| `transaction_stats_own_profile` | FAIL-assert | run-120 | 133 |  | [Failed] transaction_stats_own_profile (1m 57s) (Assertion is false: "Profile" is visible) |
-| `transaction_stats_public_profile` | FAIL-assert | run-120 | 116 |  | [Failed] transaction_stats_public_profile (1m 40s) (Assertion is false: "Bazaar" is visible) |
-| `transaction_stats_seller_own_profile` | FAIL-assert | run-120 | 191 |  | [Failed] transaction_stats_seller_own_profile (2m 55s) (Assertion is false: "Profile" is visible) |
-| `user_profile_sold_tab` | FAIL-assert | run-120 | 116 |  | [Failed] user_profile_sold_tab (1m 40s) (Element not found: Text matching regex: Bazaar) |
-| `view_profile` | FAIL-assert | run-120 | 120 |  | [Failed] view_profile (1m 43s) (Assertion is false: "Profile" is visible) |
-| `view_profile_error` | FAIL-assert | run-120 | 135 |  | [Failed] view_profile_error (1m 59s) (Assertion is false: "Profile" is visible) |
-| `view_seller_profile_from_profile` | FAIL-assert | run-120 | 129 |  | [Failed] view_seller_profile_from_profile (1m 53s) (Assertion is false: "Profile" is visible) |
+| `start_conversation_and_reply` | FAIL-assert | s2/run-106 | 135 |  | [Failed] start_conversation_and_reply (1m 44s) (Element not found: Text matching regex: Bazaar) |
+| `view_other_profile_from_conversation` | FAIL-assert | s2/run-106 | 139 |  | [Failed] view_other_profile_from_conversation (1m 54s) (Element not found: Id matching regex: other-participan |
 
 ## `auth` — Sign up, login, logout, session persistence, guest gating
 
@@ -219,15 +218,45 @@ bug class a user reports as "nothing happened".
 | `login` | FAIL-assert | s2/run-136 | 341 |  | [Failed] login (5m 15s) (Assertion is false: "Buy and sell locally in Afghanistan" is visible) |
 | `login_deep` | FAIL-assert | s2/run-136 | 479 |  | [Failed] login_deep (7m 37s) (Assertion is false: "Buy and sell locally in Afghanistan" is visible) |
 | `login_empty_fields` | FAIL-assert | s2/run-136 | 314 |  | [Failed] login_empty_fields (4m 54s) (Assertion is false: "Buy and sell locally in Afghanistan" is visible) |
-| `login_navigate_to_register` | FAIL-assert | run-126 | 136 |  | [Failed] login_navigate_to_register (1m 57s) (Element not found: Text matching regex: Create account) |
-| `login_wrong_password` | FAIL-assert | run-126 | 154 |  | [Failed] login_wrong_password (2m 14s) (Assertion is false: "Invalid login credentials" is visible) |
-| `logout` | FAIL-assert | run-126 | 165 |  | [Failed] logout (2m 25s) (Assertion is false: "Sign Out" is visible) |
-| `logout_cancel` | FAIL-assert | run-126 | 146 |  | [Failed] logout_cancel (2m 11s) (Element not found: Text matching regex: Sign Out) |
-| `register_duplicate_email` | FAIL-assert | run-126 | 184 |  | [Failed] register_duplicate_email (2m 39s) (Element not found: Text matching regex: Confirm Password) |
-| `register_navigate_to_login` | FAIL-assert | run-126 | 170 |  | [Failed] register_navigate_to_login (2m 24s) (Element not found: Text matching regex: Already have an account? |
-| `session_persist` | FAIL-assert | run-126 | 207 |  | [Failed] session_persist (2m 57s) (Assertion is false: "Bazaar" is visible) |
-| `sign_up` | FAIL-assert | run-126 | 203 |  | [Failed] sign_up (2m 53s) (Element not found: Id matching regex: register-submit) |
-| `sign_up_validation` | FAIL-assert | run-126 | 149 |  | [Failed] sign_up_validation (2m 7s) (Assertion is false: "is required" is visible) |
+| `login_navigate_to_register` | UNTESTED | — |  |  |  |
+| `login_wrong_password` | UNTESTED | — |  |  |  |
+| `logout` | UNTESTED | — |  |  |  |
+| `logout_cancel` | UNTESTED | — |  |  |  |
+| `register_duplicate_email` | UNTESTED | — |  |  |  |
+| `register_navigate_to_login` | UNTESTED | — |  |  |  |
+| `session_persist` | UNTESTED | — |  |  |  |
+| `sign_up` | FAIL-assert | s3/run-111 | 174 |  | [Failed] sign_up (2m 35s) (Assertion is false: "Bazaar" is visible) |
+| `sign_up_validation` | UNTESTED | — |  |  |  |
+
+## `saved` — Save / unsave a listing, saved tab, sold-while-saved
+
+0/8 passing · 8 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `save_from_browse_feed` | UNTESTED | — |  |  |  |
+| `save_listing` | UNTESTED | — |  |  |  |
+| `save_multiple_listings` | UNTESTED | — |  |  |  |
+| `saved_empty_state` | UNTESTED | — |  |  |  |
+| `saved_listing_goes_sold` | UNTESTED | — |  |  |  |
+| `saved_pagination` | UNTESTED | — |  |  |  |
+| `unsave_from_browse_feed` | UNTESTED | — |  |  |  |
+| `unsave_listing` | UNTESTED | — |  |  |  |
+
+## `seller` — Seller action sheet, publish, mark reserved/sold with buyer
+
+0/8 passing · 8 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `listing_actions_sheet` | UNTESTED | — |  |  |  |
+| `listing_conversations` | UNTESTED | — |  |  |  |
+| `mark_sold_with_buyer` | UNTESTED | — |  |  |  |
+| `multi_quantity_partial_sale` | UNTESTED | — |  | fixed | Found UI-008 (HIGH): typed 3, sold all 15 — pre-filled field appended, clamp silently swallowed it, listing retired. Fixed with selectTextOnFocus + a destructive over-stock hint; same fix applied to the web dialog. Also UI-009 ("15 of 15 left" before any sale). Flow itself needed: explicit seller login (login_seller.yaml lands in the dev-client launcher; login.yaml ignores an EMAIL override when a session exists), scrollUntilVisible on `lifecycle-more-action`, and the review prompt instead of the racing toast. run-020 green, 0 api errors, DB confirms 3 sold / 12 left / still active. |
+| `publish_from_owner_detail` | UNTESTED | — |  |  |  |
+| `publish_success` | UNTESTED | — |  |  |  |
+| `reserved_buyer` | UNTESTED | — |  |  |  |
+| `save_draft` | UNTESTED | — |  |  |  |
 
 ## `report` — Report a listing or user, block, block side-effects
 
@@ -235,10 +264,10 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `block_prevents_message` | FAIL-assert | run-121 | 116 |  | [Failed] block_prevents_message (1m 39s) (Element not found: Text matching regex: Bazaar) |
-| `block_user` | FAIL-assert | run-121 | 118 |  | [Failed] block_user (1m 42s) (Assertion is false: "Bazaar" is visible) |
+| `block_prevents_message` | UNTESTED | — |  |  |  |
+| `block_user` | UNTESTED | — |  |  |  |
 | `block_user_hides_listings` | UNTESTED | — |  |  |  |
-| `report_listing` | FAIL-assert | run-046 | 113 |  | [Failed] report_listing (1m 40s) (Assertion is false: "Bazaar" is visible) |
+| `report_listing` | UNTESTED | — |  |  |  |
 | `report_listing_no_reason` | UNTESTED | — |  |  |  |
 | `report_user` | UNTESTED | — |  |  |  |
 | `report_user_from_profile` | UNTESTED | — |  |  |  |
@@ -274,35 +303,18 @@ bug class a user reports as "nothing happened".
 | `profile_quick_actions_rtl` | UNTESTED | — |  |  |  |
 | `profile_rtl` | UNTESTED | — |  |  |  |
 
-## `saved` — Save / unsave a listing, saved tab, sold-while-saved
+## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
 
-1/8 passing · 7 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `save_from_browse_feed` | UNTESTED | — |  |  |  |
-| `save_listing` | PASS | run-046 | 119 |  |  |
-| `save_multiple_listings` | UNTESTED | — |  |  |  |
-| `saved_empty_state` | FAIL-assert | run-046 | 116 |  | [Failed] saved_empty_state (1m 42s) (Assertion is false: "Welcome to Hatiwal" is visible) |
-| `saved_listing_goes_sold` | UNTESTED | — |  |  |  |
-| `saved_pagination` | UNTESTED | — |  |  |  |
-| `unsave_from_browse_feed` | UNTESTED | — |  |  |  |
-| `unsave_listing` | UNTESTED | — |  |  |  |
-
-## `seller` — Seller action sheet, publish, mark reserved/sold with buyer
-
-1/8 passing · 7 open
+0/6 passing · 6 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `listing_actions_sheet` | FAIL-assert | run-046 | 196 |  | [Failed] listing_actions_sheet (3m 3s) (Element not found: Text matching regex: Save Draft) |
-| `listing_conversations` | UNTESTED | — |  |  |  |
-| `mark_sold_with_buyer` | UNTESTED | — |  |  |  |
-| `multi_quantity_partial_sale` | PASS | run-020 | 195 | fixed | Found UI-008 (HIGH): typed 3, sold all 15 — pre-filled field appended, clamp silently swallowed it, listing retired. Fixed with selectTextOnFocus + a destructive over-stock hint; same fix applied to the web dialog. Also UI-009 ("15 of 15 left" before any sale). Flow itself needed: explicit seller login (login_seller.yaml lands in the dev-client launcher; login.yaml ignores an EMAIL override when a session exists), scrollUntilVisible on `lifecycle-more-action`, and the review prompt instead of the racing toast. run-020 green, 0 api errors, DB confirms 3 sold / 12 left / still active. |
-| `publish_from_owner_detail` | UNTESTED | — |  |  |  |
-| `publish_success` | FAIL-assert | run-046 | 154 |  | [Failed] publish_success (2m 21s) (Assertion is false: "Cover" is visible) |
-| `reserved_buyer` | UNTESTED | — |  |  |  |
-| `save_draft` | UNTESTED | — |  |  |  |
+| `browse_pagination` | UNTESTED | — |  |  |  |
+| `conversations_pagination` | UNTESTED | — |  |  |  |
+| `filter_combined_pagination` | UNTESTED | — |  |  |  |
+| `my_listings_pagination` | UNTESTED | — |  |  |  |
+| `saved_pagination_deep` | UNTESTED | — |  |  |  |
+| `search_pagination` | UNTESTED | — |  |  |  |
 
 ## `mode` — Buyer ↔ seller mode switch, tab bar, persistence
 
@@ -310,24 +322,11 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `mode_switcher` | FAIL-assert | run-117 | 122 |  | [Failed] mode_switcher (1m 45s) (Assertion is false: "Bazaar" is visible) |
-| `seller_mode_banner_persists` | FAIL-assert | run-117 | 116 |  | [Failed] seller_mode_banner_persists (1m 39s) (Element not found: Id matching regex: mode-switcher-banner) |
-| `seller_mode_my_listings_empty` | FAIL-assert | run-117 | 121 |  | [Failed] seller_mode_my_listings_empty (1m 45s) (Element not found: Text matching regex: Sign In) |
-| `seller_mode_tab_bar_changes` | FAIL-assert | run-117 | 139 |  | [Failed] seller_mode_tab_bar_changes (2m) (Assertion is false: "Bazaar" is visible) |
-| `seller_views_own_listing_buyer_mode` | FAIL-assert | run-117 | 186 |  | [Failed] seller_views_own_listing_buyer_mode (2m 49s) (Element not found: Text matching regex: Switch to Buyer |
-
-## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
-
-2/6 passing · 4 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `create_listing_map_pin` | FAIL-assert | run-145 | 327 |  | [Failed] create_listing_map_pin (5m 1s) (Element not found: Id matching regex: location-confirm) |
-| `filter_map_default_kabul` | PASS | run-145 | 239 |  |  |
-| `filter_map_location_denied` | FAIL-assert | run-145 | 280 |  | [Failed] filter_map_location_denied (4m 19s) (Assertion is false: "While using the app" is visible) |
-| `filter_map_use_my_location` | FAIL-assert | run-145 | 279 |  | [Failed] filter_map_use_my_location (4m 16s) (Assertion is false: "While using the app" is visible) |
-| `filter_map_use_my_location_granted` | PASS | run-145 | 241 |  |  |
-| `map_location_outside_afghanistan` | FAIL-assert | run-145 | 243 |  | [Failed] map_location_outside_afghanistan (3m 42s) (Assertion is false: "Abroad Location Item" is visible) |
+| `mode_switcher` | UNTESTED | — |  |  |  |
+| `seller_mode_banner_persists` | UNTESTED | — |  |  |  |
+| `seller_mode_my_listings_empty` | UNTESTED | — |  |  |  |
+| `seller_mode_tab_bar_changes` | UNTESTED | — |  |  |  |
+| `seller_views_own_listing_buyer_mode` | UNTESTED | — |  |  |  |
 
 ## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
 
@@ -336,22 +335,9 @@ bug class a user reports as "nothing happened".
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `listing_create_multi_photos` | FAIL-assert | run-144 | 280 |  | [Failed] listing_create_multi_photos (4m 11s) (Assertion is false: "Photos" is visible) |
-| `listing_edit_add_photos` | FAIL-assert | run-115 | 197 |  | [Failed] listing_edit_add_photos (2m 59s) (Element not found: Text matching regex: Edit) |
-| `listing_gallery_no_photo` | FAIL-assert | run-115 | 115 |  | [Failed] listing_gallery_no_photo (1m 39s) (Assertion is false: "Bazaar" is visible) |
-| `listing_gallery_swipe` | FAIL-assert | run-115 | 119 |  | [Failed] listing_gallery_swipe (1m 43s) (Assertion is false: "Bazaar" is visible) |
-
-## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
-
-2/6 passing · 4 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_pagination` | FAIL-assert | run-119 | 123 |  | [Failed] browse_pagination (1m 45s) (Assertion is false: "Bazaar" is visible) |
-| `conversations_pagination` | PASS | run-119 | 113 |  |  |
-| `filter_combined_pagination` | FAIL-assert | run-119 | 114 |  | [Failed] filter_combined_pagination (1m 37s) (Element not found: Text matching regex: Bazaar) |
-| `my_listings_pagination` | PASS | run-119 | 191 |  |  |
-| `saved_pagination_deep` | FAIL-assert | run-119 | 115 |  | [Failed] saved_pagination_deep (1m 39s) (Element not found: Text matching regex: Saved) |
-| `search_pagination` | FAIL-assert | run-119 | 116 |  | [Failed] search_pagination (1m 40s) (Assertion is false: "Bazaar" is visible) |
+| `listing_edit_add_photos` | UNTESTED | — |  |  |  |
+| `listing_gallery_no_photo` | UNTESTED | — |  |  |  |
+| `listing_gallery_swipe` | UNTESTED | — |  |  |  |
 
 ## `reviews` — Double-blind reviews after a sold transaction
 
@@ -360,7 +346,7 @@ bug class a user reports as "nothing happened".
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `pending_reviews_nudge` | UNTESTED | — |  |  |  |
-| `profile_reviews_empty_state` | FAIL-assert | run-045 | 122 |  | [Failed] profile_reviews_empty_state (1m 44s) (Assertion is false: "Welcome to Hatiwal" is visible) |
+| `profile_reviews_empty_state` | UNTESTED | — |  |  |  |
 | `rate_buyer_after_sale` | UNTESTED | — |  |  |  |
 
 ## `safety` — Safety tips on listing detail and in the meetup sheet
@@ -369,7 +355,7 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `safety_tips_listing_detail` | FAIL-assert | run-045 | 142 |  | [Failed] safety_tips_listing_detail (2m 5s) (Assertion is false: "Message Seller" is visible) |
+| `safety_tips_listing_detail` | UNTESTED | — |  |  |  |
 | `safety_tips_meetup_sheet` | UNTESTED | — |  |  |  |
 
 ## `share` — Deep links into a listing and a seller profile
@@ -378,7 +364,7 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `open_listing_deep_link` | FAIL-? | run-045 | 91 |  | [Failed] open_listing_deep_link (1m 14s) |
+| `open_listing_deep_link` | UNTESTED | — |  |  |  |
 | `open_seller_deep_link` | UNTESTED | — |  |  |  |
 
 ## `onboarding` — First-run experience
@@ -387,4 +373,17 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `first_run` | FAIL-redbox | run-118 | 128 |  | [Failed] first_run (1m 48s) (Assertion is false: "Buy or sell — your choice" is visible) |
+| `first_run` | UNTESTED | — |  |  |  |
+
+## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
+
+5/6 passing · 1 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `create_listing_map_pin` | PASS | run-146 | 551 |  |  |
+| `filter_map_default_kabul` | PASS | run-146 | 219 |  |  |
+| `filter_map_location_denied` | PASS | run-146 | 228 |  |  |
+| `filter_map_use_my_location` | PASS | run-146 | 237 |  |  |
+| `filter_map_use_my_location_granted` | PASS | run-146 | 205 |  |  |
+| `map_location_outside_afghanistan` | FAIL-assert | run-147 | 290 |  | [Failed] map_location_outside_afghanistan (4m 26s) (Assertion is false: "Abroad Location Item" is visible) |

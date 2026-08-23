@@ -315,8 +315,16 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   # reads like an app failure.
   #
   # Keeps the newest N per session (default 20), which is far more than triage
-  # needs. Screenshots that DOCUMENT a finding belong in qa/evidence/ — copy them
-  # there before pruning, because UI_FINDINGS.md cites them by path.
+  # needs. Two things to do FIRST, both learned the hard way:
+  #
+  #   1. Screenshots that DOCUMENT a finding belong in qa/evidence/ — copy them
+  #      there before pruning, because UI_FINDINGS.md cites them by path.
+  #   2. `qa.sh register` and commit it. Each run dir holds its own
+  #      results.jsonl, and the register is REGENERATED from those, so pruning
+  #      drops verdict history for every flow whose last run is removed. The
+  #      committed FLOW_REGISTER.md is then the only record that those flows ever
+  #      ran. (Observed: the tracked-flow count fell from 209 to 127 after a
+  #      prune, which looks like a coverage collapse and is not one.)
   prune)   keep="${1:-20}"
            before=$(du -sm "$REPORTS_DIR/.." 2>/dev/null | cut -f1)
            for base in "$QA_DIR/reports" "$QA_DIR/reports/s2" "$QA_DIR/reports/s3" \
