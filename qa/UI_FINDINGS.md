@@ -1028,7 +1028,7 @@ sessions is the reliable number on this machine.
 
 ---
 
-### UI-023 · On a small phone, the search keyboard covers "Confirm location" (OPEN — design)
+### UI-023 · On a small phone, the search keyboard covers "Confirm location" — FIXED
 
 **Severity: MEDIUM usability.** In the map picker, searching for a place leaves the
 keyboard up — selecting a result does not dismiss it — and on a 360dp/411dp phone
@@ -1044,11 +1044,32 @@ Not a crash, and there IS a way through, which is why it survives — but it is 
 last step of the flow, and a seller who does not realise it will conclude the map
 is broken.
 
-**Suggested fix (not applied — it is a layout decision):** dismiss the keyboard
-when a search result is selected (`Keyboard.dismiss()` in `handleSelectResult`),
-which is what the tap already implies. Wrapping the sheet in
-`KeyboardAvoidingView`, as MeetupSheet does, would also work but changes the map's
-height while typing.
+**Fixed** with `Keyboard.dismiss()` in `handleSelectResult`
+(`LocationRangePicker.tsx`). Picking a result means the seller is done typing, so
+the tap already implies it. `KeyboardAvoidingView` was rejected: it resizes the
+map while typing, and the picker is inside a `Modal`, where KAV on Android is
+unreliable because the modal gets its own window.
+
+**Sweep done** (this finding asked for it — "any button below a text input is a
+candidate"). Every component pairing a `TextInput` with a submit CTA now handles
+the keyboard, and there are no remaining offenders:
+
+| Component | Handling |
+|---|---|
+| `Login.tsx`, `Register.tsx` | `KeyboardAvoidingView` + `keyboardShouldPersistTaps` |
+| `Conversation.tsx` | `KeyboardAvoidingView` |
+| `ListingForm.tsx` | `KeyboardAvoidingView` + `keyboardShouldPersistTaps` |
+| `LocationRangePicker.tsx` | `Keyboard.dismiss()` + `keyboardShouldPersistTaps` |
+| `Browse.tsx`, `ListingFeed.tsx`, `SearchBar.tsx` | search field at the top, no CTA beneath it |
+| `input.tsx`, `textarea.tsx`, `PasswordInput.tsx` | primitives, no CTA of their own |
+
+Two things nearly made this sweep report the wrong answer, both worth repeating:
+grepping for `KeyboardAvoidingView` matched my own *comment* naming it, which
+marked the picker "handled" when it has no KAV at all — so the sweep must strip
+comment lines before testing. And `ListingForm` does not use a raw `TextInput`
+(it wraps `Input`), so a TextInput-only search misses the app's most important
+form. Its long-form scrolls in the create-listing flows are the form being taller
+than a tablet in landscape, not this defect.
 
 The same class has now appeared four times in this app: the dev-launcher Connect
 button, the login "Sign In" button, the meetup sheet's submit, and this. **Any

@@ -6,6 +6,7 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
+  Keyboard,
   type LayoutChangeEvent,
 } from "react-native";
 import { X, MapPin, Check, TriangleAlert, Search } from "lucide-react-native";
@@ -100,6 +101,14 @@ export function LocationRangePicker({
   }, [query]);
 
   const handleSelectResult = (result: GeocodeResult) => {
+    // Picking a result means the seller is DONE typing, and leaving the IME up
+    // hides the bottom of the sheet — which is exactly where "Confirm location"
+    // sits. On a 360dp/411dp phone the sequence was: search "Herat", tap the
+    // result, watch the pin land correctly, and then find no way to confirm it
+    // (verified by screenshot: pin on هرات, confirm button entirely behind the
+    // IME). Dismissing here is what the tap already implies, and unlike wrapping
+    // the sheet in KeyboardAvoidingView it does not resize the map while typing.
+    Keyboard.dismiss();
     setCoords({ latitude: result.latitude, longitude: result.longitude });
     setSelectedLabel(result.detail ? `${result.label}, ${result.detail}` : result.label);
     setQuery("");
