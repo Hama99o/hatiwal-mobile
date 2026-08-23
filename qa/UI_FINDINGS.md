@@ -1185,6 +1185,41 @@ Two mistakes while writing those tests, both worth knowing for the next screen t
   sits in the skeleton state and reports the state you asserted as missing. Fire
   it once from a `useEffect`.
 
+### VERIFIED · Publishing a real listing, and the seller-profile trust path
+
+Both were owner-requested by name and had never been executed. Both now PASS on
+device.
+
+**`listings/create_listing_full_publish` — PASS (377s).** The whole path a seller
+takes to actually sell something, not a draft:
+photo from the device gallery → title → price → category (a LEAF, since every
+top-level category has children) → description → a real pin on the map →
+**Publish** → the listing's own detail screen, titled, with no Draft badge.
+This is the flow that proves `getPublishBlockers({ mode: "publish" })` can be
+satisfied: a draft needs only title/price/currency/category, while a LIVE listing
+needs both a photo and a location, so a suite full of draft flows never touched it.
+
+Confirmed along the way: the map pin reverse-geocoded to "10th District, Kabul,
+Kabul District" — in English, so the `Accept-Language` fix from UI-022 holds on a
+real device.
+
+Three flow bugs stood between it and green, none of them app bugs:
+1. It scrolled DOWN for `photos-add-button`, which is the form's FIRST section
+   (ListingForm's own header numbers it "1. Photos"). It had been filling every
+   other field first, so the button was behind it the whole time.
+2. Android's photo picker selects on tap but does not RETURN until its own
+   button is pressed. A screenshot showed the photo already ticked and "Add (1)"
+   waiting in the corner while the flow waited 30s for a thumbnail that could not
+   appear. The label carries the count, hence a regex.
+3. Its first run died on `device 'emulator-5580' not found` — the emulator itself
+   had been killed by memory pressure, with an idle 1.7GB Gradle daemon from an
+   hour-old build as the largest reclaimable chunk on the machine.
+
+**`browse/seller_profile_from_listing` — PASS (237s).** listing → tap through to
+the seller → their stats → their listings grid → open one of them → back to the
+profile. The buyer's trust path before meeting a stranger with cash. Finding the
+grid needed a scroll, and looking at *why* is what turned up UI-026 below.
+
 ### MAPS · VERIFIED on device — what is now proven about both location pickers
 
 The user's priority. ALL SIX flows green on a 360dp phone. What each one actually proves:
