@@ -25,3 +25,14 @@ appId: com.hatiwal.app
       - tapOn: "Switch to Buyer Mode"
       - waitForAnimationToEnd
 - assertVisible: "Switch to Seller Mode"
+
+# ── Return to the feed ──────────────────────────────────────────────────────
+# MUST leave the app where it was found. Checking the mode requires opening the
+# profile tab, and without coming back the app sits on Profile — so a flow that
+# then taps a Browse control fails with "Element not found: Filters" while
+# `assertVisible: "Bazaar"` still passes, because that is only the TAB LABEL.
+# That regression hit flows which had been green minutes earlier
+# (filter_by_category, filter_active_sellers), and the tab label passing is
+# exactly what made it confusing.
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
