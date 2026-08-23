@@ -37,6 +37,21 @@ appId: com.hatiwal.app
     id: "profile-tab"
 - waitForAnimationToEnd
 
+# The profile screen can come up in its ERROR state — "Something went wrong / We
+# couldn't load the data" with a Retry button — when the profile fetch fails
+# transiently under emulator load. That is the app behaving correctly, but it
+# means there is no mode toggle to gate on, and this helper runs in ~200 flows,
+# so one bad fetch failed a flow for a reason unrelated to what it tests.
+#
+# Tap Retry once if it is there. Bounded on purpose: a second failure should fail
+# the flow rather than be papered over.
+- runFlow:
+    when:
+      visible: "Retry"
+    commands:
+      - tapOn: "Retry"
+      - waitForAnimationToEnd
+
 # Gate on the label with a mode-agnostic regex, then act on the testID. This is
 # BOTH steps of the check in one: the label proves the profile screen has
 # rendered, and it is the toggle's own text, so the toggle is on screen.
