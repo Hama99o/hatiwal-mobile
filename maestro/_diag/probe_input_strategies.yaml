@@ -4,7 +4,8 @@ appId: com.hatiwal.app
 # The character counter under the title field is the oracle: "Abroad Location Item"
 # is 20 chars, so 20/150 means intact and 19/150 means the leading A was lost.
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd

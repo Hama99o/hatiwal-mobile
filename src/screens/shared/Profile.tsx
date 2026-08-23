@@ -828,7 +828,7 @@ function SettingsSection({
               gap: 4,
             }}
           >
-            {THEME_OPTIONS.map(({ value, Icon }) => {
+            {THEME_OPTIONS.map(({ value, Icon, labelKey }) => {
               const isActive = theme === value;
               return (
                 <Pressable
@@ -837,6 +837,14 @@ function SettingsSection({
                   hitSlop={8}
                   android_ripple={{ color: colors.muted, borderless: false }}
                   accessibilityRole="button"
+                  // These three buttons are ICON-ONLY. `labelKey` was declared in
+                  // THEME_OPTIONS and never used, so all a screen reader could
+                  // announce was three unlabeled buttons — the user had no way to
+                  // tell Light from Dark from System. `accessibilityState` is what
+                  // conveys which one is currently on; the ring alone is visual.
+                  accessibilityLabel={t(labelKey)}
+                  accessibilityState={{ selected: isActive }}
+                  testID={`theme-option-${value}`}
                   style={{
                     width: 36,
                     height: 36,

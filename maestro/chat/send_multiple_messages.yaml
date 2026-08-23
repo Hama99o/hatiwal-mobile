@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Send 3 messages in sequence — all appear in chat thread in order
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Bare `tapOn: index:` has no selector — see the note in the chat flows.
 # The feed card carries testID="listing-card".

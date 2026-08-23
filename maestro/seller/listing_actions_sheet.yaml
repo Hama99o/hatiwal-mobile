@@ -15,7 +15,8 @@ appId: com.hatiwal.app
 #      device/simulator so a silent no-op would just hang here).
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # ── 1) Create a draft ────────────────────────────────────────────────────────
@@ -97,7 +98,8 @@ appId: com.hatiwal.app
 
 # ── 3) Back on My Shop — the Active card also shows exactly two controls ────
 
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Active"
 - waitForAnimationToEnd

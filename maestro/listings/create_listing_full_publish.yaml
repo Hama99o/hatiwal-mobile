@@ -17,7 +17,8 @@ appId: com.hatiwal.app
 # and a GPS fix. Without them this flow fails for device reasons, not app reasons.
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd

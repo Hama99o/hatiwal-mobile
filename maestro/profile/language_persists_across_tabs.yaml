@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Language persists: switch to Pashto, navigate all tabs, Pashto strings everywhere
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 - tapOn: "Language"
 - waitForAnimationToEnd

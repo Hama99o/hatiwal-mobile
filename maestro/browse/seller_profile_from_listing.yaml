@@ -12,7 +12,8 @@ appId: com.hatiwal.app
 # tapping one of them opens that listing — the "see their other items" journey.
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Wait for real rows before touching the feed: waitForAnimationToEnd returns while
 # it is still skeletons, and a tap then lands on nothing.

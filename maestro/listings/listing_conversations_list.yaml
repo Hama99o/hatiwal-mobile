@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Seller views all conversations for a specific listing (listing-conversations screen)
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Tap the "chats" count link on a listing card that has conversations
 # The seller home tab is labelled "My Shop" (sidebar.myListings).

@@ -43,7 +43,8 @@ env:
 - tapOn: "Sign In"
 - assertVisible: "Bazaar"
 
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # "Rate your recent deals" nudge — lists the SELLER (Omar Noori), never

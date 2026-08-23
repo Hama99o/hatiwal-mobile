@@ -46,7 +46,8 @@ appId: com.hatiwal.app
 
 # ── Step 1: buyer sends an offer on an active listing ───────────────────────
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:

@@ -12,7 +12,8 @@ appId: com.hatiwal.app
 # It now creates its own draft and edits that.
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # ── Create the draft this flow will edit ────────────────────────────────────

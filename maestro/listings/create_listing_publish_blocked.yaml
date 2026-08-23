@@ -19,7 +19,8 @@ appId: com.hatiwal.app
 #      scroll-to-first-blocker behavior actually fires.
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # ── 1) Zero photos blocks Publish ────────────────────────────────────────────
@@ -139,7 +140,8 @@ appId: com.hatiwal.app
 
 # ── 2) A field missing off-screen still blocks + auto-scrolls back to it ────
 
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd

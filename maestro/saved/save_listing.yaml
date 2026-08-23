@@ -29,7 +29,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Go to Saved tab
 - back
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 # Listing is saved
 - assertNotVisible: "No saved items yet"

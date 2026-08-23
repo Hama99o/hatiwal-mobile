@@ -36,9 +36,11 @@ env:
 # "Ahmad Karimi" is buyer@hatiwal.test; the seller is "Omar Noori" (db/seeds/e2e.rb).
 - runFlow:
     when:
-      visible: "Me"
+      visible:
+        id: "profile-tab"
     commands:
-      - tapOn: "Me"
+      - tapOn:
+          id: "profile-tab"
       - waitForAnimationToEnd
       - runFlow:
           when:
@@ -92,7 +94,8 @@ env:
 - waitForAnimationToEnd
 
 - extendedWaitUntil:
-    visible: "Me"
+    visible:
+      id: "profile-tab"
     timeout: 60000
 - assertNotVisible: "Login"
 

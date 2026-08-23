@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # User's own profile page — verify stats, quick actions, listings section
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
 # shows the user's NAME. Anchor on the mode toggle's label instead: it is
@@ -22,7 +23,8 @@ appId: com.hatiwal.app
 - assertVisible: "Saved Items"
 - assertVisible: "Browse Listings"
 # Tap My Listings shortcut (this is a profile quick action link, not the tab)
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Back to profile
 - back

@@ -8,7 +8,8 @@ appId: com.hatiwal.app
 # Navigate to a public seller profile (tap a listing, then tap seller name)
 # The buyer feed tab is labelled "Bazaar" (sidebar.browse). Maestro text
 # matching is an anchored regex, so "Browse" never matched it.
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # A bare `tapOn: index:` has NO selector: it matches every element on screen and
 # index N is whatever lands there in hierarchy order, not the thing meant.

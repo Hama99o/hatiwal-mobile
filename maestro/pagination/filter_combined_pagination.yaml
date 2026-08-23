@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Category filter applied → scroll to paginate → filter still active on page 2
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Apply category filter
 # NOT "Filter" (`common.filter`, a dead key). The control renders "Filters", and

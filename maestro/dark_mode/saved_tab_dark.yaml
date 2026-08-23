@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Dark mode: Saved tab renders correctly — cards visible, no text-on-dark issues
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
@@ -20,14 +21,16 @@ appId: com.hatiwal.app
 # description, views chart, action row) are taller than a phone.
 - scrollUntilVisible:
     element:
-      text: "Dark"
+      id: "theme-option-dark"
     direction: DOWN
     timeout: 20000
-- tapOn: "Dark"
+- tapOn:
+    id: "theme-option-dark"
 - waitForAnimationToEnd
 
 # First save a listing so Saved tab is non-empty
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn:
 # The card save hearts all share the id "save-button" (added to both the list
@@ -36,14 +39,16 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 # Cards render — listing visible in dark mode
 # The empty state is `saved.empty` = "No saved items yet".
 - assertNotVisible: "No saved items yet"
 
 # Reset
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
@@ -55,5 +60,6 @@ appId: com.hatiwal.app
     timeout: 20000
 - tapOn: "Appearance"
 - waitForAnimationToEnd
-- tapOn: "System"
+- tapOn:
+    id: "theme-option-system"
 - waitForAnimationToEnd

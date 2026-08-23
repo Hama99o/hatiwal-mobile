@@ -38,7 +38,8 @@ env:
 - tapOn: "Sign In"
 - assertVisible: "Bazaar"
 
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen

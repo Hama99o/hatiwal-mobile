@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Edit listing — discard unsaved changes via confirm dialog
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # "Edit" is an item INSIDE the More sheet (useListingLifecycle `moreActions`,
 # key "edit", label common.edit) — it is not on the detail screen, so scrolling

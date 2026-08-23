@@ -25,7 +25,8 @@ appId: com.hatiwal.app
 # create_listing_with_photos.yaml.
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # ── 1) Create a new listing and publish it directly ──────────────────────────

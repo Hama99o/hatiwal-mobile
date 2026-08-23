@@ -68,7 +68,8 @@ appId: com.hatiwal.app
     timeout: 60000
 
 # ── Delete it ───────────────────────────────────────────────────────────────
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
@@ -105,9 +106,11 @@ appId: com.hatiwal.app
 
 # Back in, with the same account — not a fresh signup, not a dead end.
 - extendedWaitUntil:
-    visible: "Me"
+    visible:
+      id: "profile-tab"
     timeout: 60000
 - assertNotVisible: "Login"
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 - assertVisible: "Delete Metest"

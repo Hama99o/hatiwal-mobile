@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Draft flow: create → save as draft → verify in My Listings with Draft badge → publish
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
@@ -57,7 +58,8 @@ appId: com.hatiwal.app
 - assertVisible: "Draft saved"
 
 # My Listings → Drafts tab
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # The filter tab is `listing.filter.draft` = "Draft", singular.
 - tapOn: "Draft"
@@ -76,7 +78,8 @@ appId: com.hatiwal.app
 - assertVisible: "Your listing is live!"
 
 # Now shows in Active tab
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Active"
 - waitForAnimationToEnd

@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Expired listing: badge visible on card, Renew button available in detail
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # Expired tab

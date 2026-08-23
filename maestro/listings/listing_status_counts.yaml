@@ -5,7 +5,8 @@ appId: com.hatiwal.app
 # The count appears as soon as the screen loads (parallel fetch with the list).
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # The "All" tab is selected by default; it must display a numeric count.

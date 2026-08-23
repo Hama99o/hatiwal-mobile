@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Dark mode persists: set dark → navigate all tabs → still dark after app restart
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
@@ -20,37 +21,48 @@ appId: com.hatiwal.app
 # description, views chart, action row) are taller than a phone.
 - scrollUntilVisible:
     element:
-      text: "Dark"
+      id: "theme-option-dark"
     direction: DOWN
     timeout: 20000
-- tapOn: "Dark"
+- tapOn:
+    id: "theme-option-dark"
 - waitForAnimationToEnd
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
 # description, views chart, action row) are taller than a phone.
 - scrollUntilVisible:
     element:
-      text: "Dark"
+      id: "theme-option-dark"
     direction: DOWN
     timeout: 20000
-- assertVisible: "Dark"
+# `selected: true` is the whole point of this flow. Asserting the button merely
+# EXISTS is always true — it is on screen in every theme — so the assertion
+# would pass even if the theme had reset. accessibilityState.selected is what
+# carries "this is the active theme".
+- assertVisible:
+    id: "theme-option-dark"
+    selected: true
 
 # Navigate all tabs
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # Restart and verify still dark
 - launchApp:
     clearState: false
 - waitForAnimationToEnd
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
@@ -67,11 +79,18 @@ appId: com.hatiwal.app
 # description, views chart, action row) are taller than a phone.
 - scrollUntilVisible:
     element:
-      text: "Dark"
+      id: "theme-option-dark"
     direction: DOWN
     timeout: 20000
-- assertVisible: "Dark"
+# `selected: true` is the whole point of this flow. Asserting the button merely
+# EXISTS is always true — it is on screen in every theme — so the assertion
+# would pass even if the theme had reset. accessibilityState.selected is what
+# carries "this is the active theme".
+- assertVisible:
+    id: "theme-option-dark"
+    selected: true
 
 # Reset to system
-- tapOn: "System"
+- tapOn:
+    id: "theme-option-system"
 - waitForAnimationToEnd

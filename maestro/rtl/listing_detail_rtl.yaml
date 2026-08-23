@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Listing detail in RTL (Pashto) — all elements visible, layout correct
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Language options are labelled in the CURRENT language, so the same option reads
 # "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —

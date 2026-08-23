@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # My Shop in RTL (Pashto) — cards mirrored, action buttons readable
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Language options are labelled in the CURRENT language, so the same option reads
 # "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —

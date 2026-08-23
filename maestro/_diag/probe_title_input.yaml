@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # DIAGNOSTIC: does inputText lose the first character of the title?
 # Types a known string and asserts it IMMEDIATELY, so nothing else can be blamed.
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd

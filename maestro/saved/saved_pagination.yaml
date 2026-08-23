@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Saved listings — scroll loads more, tap opens detail
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 - assertVisible: "Saved"
 # Scroll to trigger pagination (if more than 1 page)

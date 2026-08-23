@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Dark mode: switch to Dark theme from Profile, verify Bazaar renders (no blank areas)
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # `profile.theme` = "Appearance". Nothing in the app uppercases section
 # titles — same mistake as "LANGUAGE".
@@ -13,13 +14,15 @@ appId: com.hatiwal.app
 # description, views chart, action row) are taller than a phone.
 - scrollUntilVisible:
     element:
-      text: "Dark"
+      id: "theme-option-dark"
     direction: DOWN
     timeout: 20000
-- tapOn: "Dark"
+- tapOn:
+    id: "theme-option-dark"
 - waitForAnimationToEnd
 # Navigate to Bazaar — all elements should be visible in dark mode
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
@@ -27,5 +30,7 @@ appId: com.hatiwal.app
 - scroll
 - waitForAnimationToEnd
 # Switch back to system to avoid affecting other tests
-- tapOn: "Me"
-- tapOn: "System"
+- tapOn:
+    id: "profile-tab"
+- tapOn:
+    id: "theme-option-system"

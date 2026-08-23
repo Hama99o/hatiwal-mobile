@@ -6,7 +6,8 @@ appId: com.hatiwal.app
 # db/seeds/e2e.rb) — the "Sold" stat cell must be visible alongside "Active".
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
 # shows the user's NAME. Anchor on the mode toggle's label instead: it is

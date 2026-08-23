@@ -4,7 +4,8 @@ appId: com.hatiwal.app
 # Only shown in the meta row once at least one user has saved the listing.
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn:
     id: "listing-card"

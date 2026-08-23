@@ -24,7 +24,8 @@ appId: com.hatiwal.app
 - tapOn: "Password"
 - inputText: "Password123!"
 - tapOn: "Sign In"
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 - assertVisible: "No saved items yet"
 - assertVisible: "Browse listings"

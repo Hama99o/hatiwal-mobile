@@ -36,7 +36,8 @@ appId: com.hatiwal.app
       PASSWORD: Password123!
 
 # ── Use the (foreign) current location in the LISTING map ───────────────────
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 - runFlow:
     when:
@@ -44,7 +45,8 @@ appId: com.hatiwal.app
     commands:
       - tapOn: "Switch to Seller Mode"
       - waitForAnimationToEnd
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd

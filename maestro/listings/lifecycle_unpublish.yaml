@@ -6,7 +6,8 @@ appId: com.hatiwal.app
 # Unpublish is reachable from the "More" overflow sheet.
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Go to Active tab
 # Search for THIS FLOW'S disposable listing. The seed creates one per destructive

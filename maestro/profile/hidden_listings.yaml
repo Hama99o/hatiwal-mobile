@@ -11,7 +11,8 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 
 # Navigate to the Profile tab
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # Scroll down to the Activity section
@@ -52,7 +53,8 @@ appId: com.hatiwal.app
 - assertVisible: "Undo"
 
 # Navigate to the Hidden Listings management screen
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 - scroll
 - tapOn: "Hidden Listings"
@@ -77,6 +79,7 @@ appId: com.hatiwal.app
 - tapOn:
     id: "back_button"
 - waitForAnimationToEnd
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"

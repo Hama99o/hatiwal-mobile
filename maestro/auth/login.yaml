@@ -27,7 +27,8 @@ appId: com.hatiwal.app
 - tapOn: "Sign In"
 - assertVisible: "Bazaar"
 # Verify user is authenticated — Profile tab shows name
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - assertNotVisible: "Sign In"
 # Sign Out sits below the fold on the profile screen — assert after scrolling to
 # it, otherwise this fails on a logged-in user who is plainly logged in.

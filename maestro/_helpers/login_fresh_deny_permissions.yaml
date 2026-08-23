@@ -60,6 +60,7 @@ env:
 # ── Now prove we are signed in ──────────────────────────────────────────────
 # "Me" present AND "Login" absent. Asserting "Bazaar" would not do — guests see it.
 - extendedWaitUntil:
-    visible: "Me"
+    visible:
+      id: "profile-tab"
     timeout: 60000
 - assertNotVisible: "Login"

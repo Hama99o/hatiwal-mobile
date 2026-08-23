@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Chat screen in dark mode — conversations list and thread visible
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Switch to dark theme
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
@@ -11,10 +12,11 @@ appId: com.hatiwal.app
 # description, views chart, action row) are taller than a phone.
 - scrollUntilVisible:
     element:
-      text: "Dark"
+      id: "theme-option-dark"
     direction: DOWN
     timeout: 20000
-- tapOn: "Dark"
+- tapOn:
+    id: "theme-option-dark"
 - waitForAnimationToEnd
 # Navigate to Chats tab
 # The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
@@ -41,7 +43,9 @@ appId: com.hatiwal.app
 # Restore light theme
 - back
 - waitForAnimationToEnd
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
-- tapOn: "Light"
+- tapOn:
+    id: "theme-option-light"
 - waitForAnimationToEnd

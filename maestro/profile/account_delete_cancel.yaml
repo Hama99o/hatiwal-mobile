@@ -14,7 +14,8 @@ appId: com.hatiwal.app
 
 - runFlow: ../_helpers/login.yaml
 
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # The control sits at the very bottom of Profile, below sign-out.
@@ -45,6 +46,7 @@ appId: com.hatiwal.app
 # Still signed in, still on Profile, nothing happened. "Me" present AND "Login"
 # absent is the same signed-in proof the login helper uses — asserting "Me"
 # alone would pass for a guest.
-- assertVisible: "Me"
+- assertVisible:
+    id: "profile-tab"
 - assertNotVisible: "Login"
 - assertNotVisible: "Your account has been deleted."

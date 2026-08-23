@@ -27,7 +27,8 @@ appId: com.hatiwal.app
 - inputText: "Password123!"
 - tapOn: "Sign In"
 - assertVisible: "Bazaar"
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
 # shows the user's NAME. Anchor on the mode toggle's label instead: it is

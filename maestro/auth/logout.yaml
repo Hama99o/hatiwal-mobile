@@ -4,7 +4,8 @@ appId: com.hatiwal.app
 
 - runFlow: ../_helpers/login.yaml
 # Go to Profile
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 # "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
 # stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
 # `assertVisible` do not scroll to their target.
@@ -37,5 +38,6 @@ appId: com.hatiwal.app
 # Lands on Bazaar (guests can browse without auth)
 - assertVisible: "Bazaar"
 # Verify logged out — Profile tab no longer shows user name
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - assertVisible: "Sign In"

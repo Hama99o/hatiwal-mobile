@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Saved searches: apply filters → auto-saved → clear → re-apply from saved searches chip
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Apply a category filter — this combination gets auto-saved
 # NOT "Filter" (`common.filter`, a dead key). The control renders "Filters", and

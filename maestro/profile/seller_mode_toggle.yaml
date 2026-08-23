@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Profile screen — switch to seller mode from the profile tab
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
 # shows the user's NAME. Anchor on the mode toggle's label instead: it is
@@ -24,7 +25,8 @@ appId: com.hatiwal.app
     visible: "Switch to Buyer Mode"
     timeout: 20000
 # Profile tab now shows seller-focused content
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Switch back
 - tapOn: "Switch to Buyer Mode"

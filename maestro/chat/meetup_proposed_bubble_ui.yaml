@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Meetup proposal bubble shows location, date/time, and accept/decline buttons
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Bare `tapOn: index:` has no selector — see the note in the chat flows.
 # The feed card carries testID="listing-card".

@@ -31,7 +31,8 @@ appId: com.hatiwal.app
 - assertVisible: "Bazaar"
 
 # Verify profile data populated
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
 # shows the user's NAME. Anchor on the mode toggle's label instead: it is
@@ -93,6 +94,7 @@ appId: com.hatiwal.app
 - assertVisible: "Bazaar"
 
 # Profile data still there on second login
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 - assertVisible: "Ahmad"

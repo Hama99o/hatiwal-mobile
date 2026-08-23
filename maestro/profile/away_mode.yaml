@@ -38,7 +38,8 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 # Navigate to own profile, then to public profile via a listing
 # The buyer feed tab is labelled "Bazaar" (sidebar.browse). Maestro text
 # matching is an anchored regex, so "Browse" never matched it.
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 # Find a listing from current user and open it to see seller card
 # (In a real flow, we'd navigate to a known seller's listing)
 # Verify Away banner on seller public profile screen

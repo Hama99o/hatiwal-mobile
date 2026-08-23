@@ -5,7 +5,8 @@ appId: com.hatiwal.app
 
 # ── Buyer saves the listing ───────────────────────────────────────────────────
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Open first active listing
 # A bare `tapOn: index:` has NO selector: it matches every element on screen and
@@ -22,14 +23,16 @@ appId: com.hatiwal.app
     id: "save-toggle-button"
 - waitForAnimationToEnd
 # Note the listing title for later assertion
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # ── Seller marks it sold ──────────────────────────────────────────────────────
 - launchApp:
     clearState: false
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Search for THIS FLOW'S disposable listing. The seed creates one per destructive
 # flow, named after it, so this flow can ruin it without touching a fixture
@@ -64,6 +67,7 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: false
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 - assertVisible: "Sold"

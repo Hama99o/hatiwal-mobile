@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # RTL verification: Dari — Bazaar renders correctly
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - scrollUntilVisible:
     element:
       text: "Language"

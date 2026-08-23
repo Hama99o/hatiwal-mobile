@@ -12,7 +12,8 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 
 # Navigate to Profile tab
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
 # shows the user's NAME. Anchor on the mode toggle's label instead: it is
@@ -71,7 +72,8 @@ appId: com.hatiwal.app
 appId: com.hatiwal.app
 ---
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 - scroll
 # "Blocked Users" (profile.blockedUsers) is a SETTINGS ROW far down the profile

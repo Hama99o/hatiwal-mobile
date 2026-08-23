@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # RTL verification: Pashto — Bazaar renders correctly, no overflow
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - scrollUntilVisible:
     element:
       text: "Language"

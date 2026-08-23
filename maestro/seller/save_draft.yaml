@@ -20,7 +20,8 @@ appId: com.hatiwal.app
 #      unchanged by this fix).
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # ── 1) A pin-less, photo-less draft is genuinely saveable ───────────────────
@@ -95,7 +96,8 @@ appId: com.hatiwal.app
 
 # ── 2) A blocked draft is NEVER a silent no-op ───────────────────────────────
 
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
@@ -158,7 +160,8 @@ appId: com.hatiwal.app
 # ── 3) The pin-less draft round trip: edit still shows no pin; Publish   ────
 # ──    from there still fully requires a photo AND a map pin.           ────
 
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Draft No Pin No Photo Item"
 - waitForAnimationToEnd

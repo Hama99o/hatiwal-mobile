@@ -16,7 +16,8 @@ appId: com.hatiwal.app
     visible: "Switch to Seller Mode"
     timeout: 20000
 # Browse as buyer
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # Search for own listing (seeded seller listing)
 - tapOn: "Search listings..."

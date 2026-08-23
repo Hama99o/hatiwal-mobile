@@ -24,7 +24,8 @@ appId: com.hatiwal.app
 #     the existing conversation thread (not a generic conversations list)
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # Search for THIS FLOW'S disposable listing. The seed creates one per destructive

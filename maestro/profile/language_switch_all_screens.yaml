@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Language switch: EN → PS (Pashto) — key strings appear in Pashto on Bazaar + Profile
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # Open language settings

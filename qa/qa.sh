@@ -306,8 +306,13 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   # them they accounted for 37 assertions that could never have passed.
   #
   # Worth running before any long sweep, and after any copy or testID rename.
+  # audit_structure is the third: a flow can PARSE fine and still be nonsense —
+  # a `tapOn: {index: 0}` with no selector, or a `visible:` whose selector got
+  # orphaned one indent level up by a bulk edit. Both are invisible to a YAML
+  # parse check, and both fail on the step AFTER them, so they read as app bugs.
   audit)   echo; python3 "$HERE/lib/audit_labels.py"
-           echo; python3 "$HERE/lib/audit_testids.py" ;;
+           echo; python3 "$HERE/lib/audit_testids.py"
+           echo; python3 "$HERE/lib/audit_structure.py" "$HERE/../maestro" ;;
 
   # Drop old run artifacts. They grow without bound — a debug dir, screenshots,
   # a hierarchy dump and a logcat per flow — and hit 9.6GB across 185 runs here

@@ -3,19 +3,22 @@ appId: com.hatiwal.app
 # My Shop in dark mode — all listing cards visible
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
 # description, views chart, action row) are taller than a phone.
 - scrollUntilVisible:
     element:
-      text: "Dark"
+      id: "theme-option-dark"
     direction: DOWN
     timeout: 20000
-- tapOn: "Dark"
+- tapOn:
+    id: "theme-option-dark"
 - waitForAnimationToEnd
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # The seller home tab is labelled "My Shop" (sidebar.myListings).
 - assertVisible: "My Shop"
@@ -23,7 +26,9 @@ appId: com.hatiwal.app
 - scroll
 - waitForAnimationToEnd
 # Restore theme
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
-- tapOn: "Light"
+- tapOn:
+    id: "theme-option-light"
 - waitForAnimationToEnd

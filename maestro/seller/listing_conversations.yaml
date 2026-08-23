@@ -18,7 +18,8 @@ appId: com.hatiwal.app
 # ── 1) Buyer sends an offer, creating a conversation on this listing ───────
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
@@ -45,7 +46,8 @@ appId: com.hatiwal.app
 # ── 2) Seller opens the listing's own conversations screen from My Shop ────
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:

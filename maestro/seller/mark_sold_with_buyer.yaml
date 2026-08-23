@@ -21,7 +21,8 @@ appId: com.hatiwal.app
 # share this one seeded buyer-conversation fixture).
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # Search for THIS FLOW'S disposable listing. The seed creates one per destructive

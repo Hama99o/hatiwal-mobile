@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Edit profile — change first name, save, verify updated on profile screen
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Tap Edit (in Personal Info section)
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen

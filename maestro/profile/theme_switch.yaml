@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Profile — switch between light, dark, and system theme
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
 # shows the user's NAME. Anchor on the mode toggle's label instead: it is
@@ -29,16 +30,19 @@ appId: com.hatiwal.app
 # description, views chart, action row) are taller than a phone.
 - scrollUntilVisible:
     element:
-      text: "Dark"
+      id: "theme-option-dark"
     direction: DOWN
     timeout: 20000
-- tapOn: "Dark"
+- tapOn:
+    id: "theme-option-dark"
 - waitForAnimationToEnd
 # Switch to Light theme
-- tapOn: "Light"
+- tapOn:
+    id: "theme-option-light"
 - waitForAnimationToEnd
 # Switch back to System
-- tapOn: "System"
+- tapOn:
+    id: "theme-option-system"
 - waitForAnimationToEnd
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
 # shows the user's NAME. Anchor on the mode toggle's label instead: it is

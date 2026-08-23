@@ -35,10 +35,12 @@ appId: com.hatiwal.app
 - tapOn: "Sign In"
 - waitForAnimationToEnd
 - extendedWaitUntil:
-    visible: "Me"
+    visible:
+      id: "profile-tab"
     timeout: 60000
 
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 - runFlow:
     when:
@@ -47,7 +49,8 @@ appId: com.hatiwal.app
       - tapOn: "Switch to Seller Mode"
       - waitForAnimationToEnd
 
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # ── Create the batch listing this flow will edit ────────────────────────────

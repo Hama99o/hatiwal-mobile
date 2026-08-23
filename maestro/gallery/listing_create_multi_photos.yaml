@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Create listing: add multiple photos, verify Cover label on first, reorder, delete one
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd

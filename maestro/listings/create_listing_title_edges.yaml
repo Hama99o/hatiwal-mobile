@@ -18,7 +18,8 @@ appId: com.hatiwal.app
 # refusing it, and asserting "the text I typed is not there" is a weak test.
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd

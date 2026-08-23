@@ -70,8 +70,13 @@ env:
     optional: true
 - waitForAnimationToEnd
 
+# The profile TAB, by testID — the proof that the tab bar mounted, i.e. that login
+# actually landed. It used to gate on the text "Me", which is `sidebar.profile`:
+# a TRANSLATED label. Every flow that runs in Pashto or Dari passes through this
+# same gate, and the testID is identical in all three locales.
 - extendedWaitUntil:
-    visible: "Me"
+    visible:
+      id: "profile-tab"
     timeout: 60000
 - assertNotVisible: "Login"
 

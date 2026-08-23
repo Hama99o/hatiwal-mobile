@@ -27,7 +27,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Go to Saved tab
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 # The empty state is `saved.empty` = "No saved items yet".
 - assertNotVisible: "No saved items yet"

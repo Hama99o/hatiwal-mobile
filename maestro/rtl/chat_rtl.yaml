@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Chat in RTL (Pashto) — messages, input, send button in correct RTL order
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Language options are labelled in the CURRENT language, so the same option reads
 # "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —

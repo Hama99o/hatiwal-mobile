@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Profile stats: listings count, joined date visible on own profile
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # Stats section visible

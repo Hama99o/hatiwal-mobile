@@ -7,7 +7,8 @@ appId: com.hatiwal.app
 
 # ── Step 1: Seller creates and publishes a listing ───────────────────────────
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
@@ -103,7 +104,8 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: false
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Search"
 - inputText: "Marketplace Cycle Phone"
@@ -124,12 +126,14 @@ appId: com.hatiwal.app
     id: "save-toggle-button"
 - waitForAnimationToEnd
 # Verify in Saved tab
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 - assertVisible: "Marketplace Cycle Phone"
 
 # ── Step 3: Buyer messages seller + makes an offer ───────────────────────────
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Marketplace Cycle Phone"
 - waitForAnimationToEnd
@@ -182,7 +186,8 @@ appId: com.hatiwal.app
 - assertVisible: "Offer accepted"
 
 # ── Step 5: Seller marks listing reserved then sold ──────────────────────────
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Marketplace Cycle Phone"
 - waitForAnimationToEnd
@@ -197,7 +202,8 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: false
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 - assertVisible: "Marketplace Cycle Phone"
 - assertVisible: "Sold"

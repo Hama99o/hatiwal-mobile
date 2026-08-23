@@ -19,7 +19,8 @@ appId: com.hatiwal.app
 # label appears twice in the accessibility tree otherwise (UI-012).
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Post a listing"
 - waitForAnimationToEnd

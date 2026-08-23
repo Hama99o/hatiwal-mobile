@@ -29,11 +29,13 @@ appId: com.hatiwal.app
     id: "save-toggle-button"
 - waitForAnimationToEnd
 # Navigate to Saved tab to confirm it's there
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 - assertVisible: "Saved"
 # Go back to Bazaar and re-open the listing
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd
@@ -42,6 +44,7 @@ appId: com.hatiwal.app
     id: "save-toggle-button"
 - waitForAnimationToEnd
 # Navigate to Saved — should be empty now
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 - assertVisible: "No saved items yet"

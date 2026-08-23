@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Seller profile with no listings: shows "No listings yet" empty state
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 # A bare `tapOn: index:` has NO selector: it matches every element on screen,
 # so index 0 is whatever lands first in hierarchy order — never the feed card.

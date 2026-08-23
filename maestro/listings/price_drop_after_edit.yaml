@@ -15,7 +15,8 @@ appId: com.hatiwal.app
 # Prerequisites: seller has at least one active listing in seed data.
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # Tap the Active status tab to see active listings

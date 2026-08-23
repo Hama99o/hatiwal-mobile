@@ -28,7 +28,8 @@ appId: com.hatiwal.app
 # ordinary buyer login, now carries it for its own 142 flows.)
 - runFlow: ../_helpers/ensure_buyer_mode.yaml
 
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn:
     id: "browse-filters-toggle"

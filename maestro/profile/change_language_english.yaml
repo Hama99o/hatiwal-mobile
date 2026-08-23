@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Switch back to English from an RTL language — LTR layout restored
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 # First switch to Pashto
 - scrollUntilVisible:

@@ -11,7 +11,8 @@ appId: com.hatiwal.app
 # It creates its own draft and deletes that.
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 # ── Create the draft this flow will delete ──────────────────────────────────

@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Cancel logout — user stays logged in
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 # "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
 # stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
 # `assertVisible` do not scroll to their target.

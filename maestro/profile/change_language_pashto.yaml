@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Switch to Pashto — RTL layout, Pashto strings visible
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:

@@ -4,7 +4,8 @@ appId: com.hatiwal.app
 # for both buyer-mode single-column actions and the seller side-by-side row.
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # Switch to Pashto to trigger RTL

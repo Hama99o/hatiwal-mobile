@@ -46,12 +46,14 @@ appId: com.hatiwal.app
 - tapOn: "Sign In"
 - waitForAnimationToEnd
 - extendedWaitUntil:
-    visible: "Me"
+    visible:
+      id: "profile-tab"
     timeout: 60000
 - assertNotVisible: "Login"
 
 # Seller mode.
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 - runFlow:
     when:
@@ -61,7 +63,8 @@ appId: com.hatiwal.app
       - waitForAnimationToEnd
 - assertVisible: "Switch to Buyer Mode"
 
-- tapOn: "My Shop"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd
 
 - tapOn: "Active"

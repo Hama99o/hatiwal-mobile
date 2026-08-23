@@ -3,7 +3,8 @@ appId: com.hatiwal.app
 # Saved: scroll to bottom loads next page, pull-to-refresh works
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Saved"
+- tapOn:
+    id: "saved-tab"
 - waitForAnimationToEnd
 - assertVisible: "Saved"
 
