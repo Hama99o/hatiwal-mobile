@@ -5,7 +5,8 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"
 # Search for known listing
 - tapOn: "Search my listings..."
 - inputText: "iPhone"
@@ -20,4 +21,5 @@ appId: com.hatiwal.app
 # Clear search
 - eraseText
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"

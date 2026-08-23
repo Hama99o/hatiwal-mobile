@@ -5,7 +5,8 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"
 
 # Scroll through the list
 - scroll
@@ -20,4 +21,5 @@ appId: com.hatiwal.app
     direction: DOWN
     duration: 800
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"

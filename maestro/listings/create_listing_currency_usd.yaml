@@ -35,7 +35,9 @@ appId: com.hatiwal.app
 - tapOn: "Phones & Tablets"
 - waitForAnimationToEnd
 
-- tapOn: "Post Listing"
+# The publish button reads "Publish" (listing.publish). "Post a listing" is the
+# ENTRY POINT into the form (listing.postListing) — a different control.
+- tapOn: "Publish"
 - waitForAnimationToEnd
 - assertVisible: "Listing posted"
 

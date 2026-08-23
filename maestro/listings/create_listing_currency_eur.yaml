@@ -33,7 +33,8 @@ appId: com.hatiwal.app
 - tapOn: "Phones & Tablets"
 - waitForAnimationToEnd
 # Save as draft
-- tapOn: "Save as Draft"
+# The button is "Save Draft" (listing.form.saveDraft).
+- tapOn: "Save Draft"
 - waitForAnimationToEnd
 - assertVisible: "Listing saved"
 # Find it in My Shop and verify EUR price

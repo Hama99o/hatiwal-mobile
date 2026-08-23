@@ -15,7 +15,8 @@ appId: com.hatiwal.app
 # ── Navigate to My Listings and open the first listing ──────────────────────
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"
 
 # Open first listing card
 - tapOn:
@@ -44,4 +45,5 @@ appId: com.hatiwal.app
 # ── Navigate back ─────────────────────────────────────────────────────────────
 - back
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"

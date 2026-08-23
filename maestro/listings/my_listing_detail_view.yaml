@@ -8,7 +8,8 @@ appId: com.hatiwal.app
 # Navigate to My Listings
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"
 
 # Tap the first listing card to open the owner detail screen
 - tapOn:
@@ -52,4 +53,5 @@ appId: com.hatiwal.app
 # Navigate back to My Listings
 - back
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"

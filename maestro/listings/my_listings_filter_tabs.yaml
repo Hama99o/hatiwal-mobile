@@ -5,7 +5,8 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"
 # Default tab shows All
 - assertVisible: "All"
 # Tap Draft tab
@@ -27,4 +28,5 @@ appId: com.hatiwal.app
 # Back to All
 - tapOn: "All"
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"

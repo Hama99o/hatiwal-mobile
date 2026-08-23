@@ -14,7 +14,7 @@ appId: com.hatiwal.app
 - assertVisible: "Saved Items"
 - assertVisible: "Browse Listings"
 # Tap My Listings shortcut (this is a profile quick action link, not the tab)
-- tapOn: "My Listings"
+- tapOn: "My Shop"
 - waitForAnimationToEnd
 # Back to profile
 - back

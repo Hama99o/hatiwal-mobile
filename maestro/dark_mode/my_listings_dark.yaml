@@ -9,7 +9,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"
 # Listing cards render without blank/white backgrounds
 - scroll
 - waitForAnimationToEnd

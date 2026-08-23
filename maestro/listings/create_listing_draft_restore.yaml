@@ -32,7 +32,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Save as draft
-- tapOn: "Save as Draft"
+# The button is "Save Draft" (listing.form.saveDraft).
+- tapOn: "Save Draft"
 - waitForAnimationToEnd
 - assertVisible: "Saved as draft"
 

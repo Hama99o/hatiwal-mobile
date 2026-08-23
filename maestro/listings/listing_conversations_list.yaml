@@ -6,7 +6,8 @@ appId: com.hatiwal.app
 - tapOn: "My Shop"
 - waitForAnimationToEnd
 # Tap the "chats" count link on a listing card that has conversations
-- assertVisible: "My Listings"
+# The seller home tab is labelled "My Shop" (sidebar.myListings).
+- assertVisible: "My Shop"
 - tapOn:
     text: "chats"
     index: 0
