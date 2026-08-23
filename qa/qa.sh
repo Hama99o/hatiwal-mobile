@@ -312,7 +312,13 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   # parse check, and both fail on the step AFTER them, so they read as app bugs.
   audit)   echo; python3 "$HERE/lib/audit_labels.py"
            echo; python3 "$HERE/lib/audit_testids.py"
-           echo; python3 "$HERE/lib/audit_structure.py" "$HERE/../maestro" ;;
+           echo; python3 "$HERE/lib/audit_structure.py" "$HERE/../maestro"
+           # The fourth reaches across repos: a param the client sends that the
+           # controller never reads, or a field the client's TS declares that no
+           # serializer view emits. Both are silent in production — wrong or
+           # blank data, no error — and invisible to a flow unless it happens to
+           # assert the one value that went missing.
+           echo; python3 "$HERE/lib/audit_contract.py" ;;
 
   # Drop old run artifacts. They grow without bound — a debug dir, screenshots,
   # a hierarchy dump and a logcat per flow — and hit 9.6GB across 185 runs here
