@@ -8,7 +8,12 @@ appId: com.hatiwal.app
 # The tab is labelled "Chats" (sidebar.chat). Maestro text matching is an
 # ANCHORED regex, not a substring, so "Chat" never matched it and the flow
 # failed at step 1 with "Element not found: Text matching regex: Chat".
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 # A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
 # and index 0 is whatever comes first in the hierarchy — the heading or the

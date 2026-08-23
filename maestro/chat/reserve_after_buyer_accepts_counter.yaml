@@ -68,7 +68,12 @@ appId: com.hatiwal.app
 
 # ── Step 2: the seller counters with a new price — no banner yet ───────────
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 - tapOn: "Toyota Corolla 2016 Automatic"
 - waitForAnimationToEnd
@@ -87,7 +92,12 @@ appId: com.hatiwal.app
 
 # ── Step 3: the BUYER accepts the seller's counter (the O947 hole) ─────────
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 - tapOn: "Toyota Corolla 2016 Automatic"
 - waitForAnimationToEnd
@@ -106,7 +116,12 @@ appId: com.hatiwal.app
 # never fired on this path, and would still work if it HAD fired and been
 # dismissed.)
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 - tapOn: "Toyota Corolla 2016 Automatic"
 - waitForAnimationToEnd

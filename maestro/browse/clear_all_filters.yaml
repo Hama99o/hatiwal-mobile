@@ -12,7 +12,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # ── Step 1: Open the filter sheet ───────────────────────────────────────────
-- tapOn: "Filters"
+# The filters TOGGLE by testID. "Filters" is both `browse.filtersToggle` (the
+# control) and `browse.filters.title` (the sheet heading it opens), so a text
+# tap can hit the heading of an already-open sheet and do nothing.
+- tapOn:
+    id: "browse-filters-toggle"
 - waitForAnimationToEnd
 
 # ── Step 2: Apply a price min filter ────────────────────────────────────────

@@ -32,7 +32,12 @@ appId: com.hatiwal.app
 # ─── Baseline: buyer's view of the still-ACTIVE listing ──────────────────────
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
@@ -59,7 +64,12 @@ appId: com.hatiwal.app
 # ─── Seller reserves the listing from the same chat thread ───────────────────
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
@@ -81,7 +91,12 @@ appId: com.hatiwal.app
 # ─── Buyer reopens the SAME conversation — reserved notice + no offer entry ──
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
@@ -126,7 +141,12 @@ appId: com.hatiwal.app
 # ─── Seller marks the same listing sold ──────────────────────────────────────
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
@@ -148,7 +168,12 @@ appId: com.hatiwal.app
 # ─── Buyer reopens the conversation — sold notice replaces reserved ──────────
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:

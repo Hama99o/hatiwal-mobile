@@ -6,7 +6,11 @@ appId: com.hatiwal.app
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
 # Open filter sheet
-- tapOn: "Filters"
+# The filters TOGGLE by testID. "Filters" is both `browse.filtersToggle` (the
+# control) and `browse.filters.title` (the sheet heading it opens), so a text
+# tap can hit the heading of an already-open sheet and do nothing.
+- tapOn:
+    id: "browse-filters-toggle"
 - waitForAnimationToEnd
 # Set min price
 - tapOn: "Min Price"
@@ -20,7 +24,11 @@ appId: com.hatiwal.app
 # Results show (may be empty or filtered)
 - assertVisible: "Bazaar"
 # Reopen sheet and reset via its footer
-- tapOn: "Filters"
+# The filters TOGGLE by testID. "Filters" is both `browse.filtersToggle` (the
+# control) and `browse.filters.title` (the sheet heading it opens), so a text
+# tap can hit the heading of an already-open sheet and do nothing.
+- tapOn:
+    id: "browse-filters-toggle"
 - waitForAnimationToEnd
 - tapOn: "Clear all"
 - waitForAnimationToEnd

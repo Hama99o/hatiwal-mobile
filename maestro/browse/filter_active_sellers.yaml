@@ -8,7 +8,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Open filter sheet
-- tapOn: "Filters"
+# The filters TOGGLE by testID. "Filters" is both `browse.filtersToggle` (the
+# control) and `browse.filters.title` (the sheet heading it opens), so a text
+# tap can hit the heading of an already-open sheet and do nothing.
+- tapOn:
+    id: "browse-filters-toggle"
 - waitForAnimationToEnd
 
 # Scroll down to the Active sellers section if needed
@@ -27,7 +31,11 @@ appId: com.hatiwal.app
 - assertVisible: "Bazaar"
 
 # Reopen and toggle chip off
-- tapOn: "Filters"
+# The filters TOGGLE by testID. "Filters" is both `browse.filtersToggle` (the
+# control) and `browse.filters.title` (the sheet heading it opens), so a text
+# tap can hit the heading of an already-open sheet and do nothing.
+- tapOn:
+    id: "browse-filters-toggle"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element: "Active sellers"

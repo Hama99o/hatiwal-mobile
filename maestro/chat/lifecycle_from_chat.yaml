@@ -21,7 +21,12 @@ env:
 # ─── Scenario 1: Owner taps Reserve (active → reserved) ──────────────────────
 
 - runFlow: ../_helpers/login_seller.yaml
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 # Open the first conversation where the seller owns the listing
 - tapOn:
@@ -95,7 +100,12 @@ env:
 - inputText: ${PASSWORD}
 - tapOn: "Sign In"
 - assertVisible: "Bazaar"
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 # Open the same conversation (buyer's view)
 # A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen

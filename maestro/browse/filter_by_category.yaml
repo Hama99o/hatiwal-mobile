@@ -15,7 +15,11 @@ appId: com.hatiwal.app
 # proving is that opening and closing the sheet leaves the row's selection alone.
 - assertVisible: "All"
 
-- tapOn: "Filters"
+# The filters TOGGLE by testID. "Filters" is both `browse.filtersToggle` (the
+# control) and `browse.filters.title` (the sheet heading it opens), so a text
+# tap can hit the heading of an already-open sheet and do nothing.
+- tapOn:
+    id: "browse-filters-toggle"
 - waitForAnimationToEnd
 # Close the sheet — the category chip row lives outside it
 - tapOn: "Show results"

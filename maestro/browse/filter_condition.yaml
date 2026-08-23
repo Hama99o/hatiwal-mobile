@@ -5,7 +5,11 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
-- tapOn: "Filters"
+# The filters TOGGLE by testID. "Filters" is both `browse.filtersToggle` (the
+# control) and `browse.filters.title` (the sheet heading it opens), so a text
+# tap can hit the heading of an already-open sheet and do nothing.
+- tapOn:
+    id: "browse-filters-toggle"
 - waitForAnimationToEnd
 # Select "Like new" condition
 - tapOn: "Like new"
@@ -17,7 +21,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"
 # Reopen and clear via the sheet's footer
-- tapOn: "Filters"
+# The filters TOGGLE by testID. "Filters" is both `browse.filtersToggle` (the
+# control) and `browse.filters.title` (the sheet heading it opens), so a text
+# tap can hit the heading of an already-open sheet and do nothing.
+- tapOn:
+    id: "browse-filters-toggle"
 - waitForAnimationToEnd
 - tapOn: "Clear all"
 - waitForAnimationToEnd

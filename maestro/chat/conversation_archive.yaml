@@ -12,8 +12,12 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 
 # Navigate to Chats tab
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
 - tapOn:
-    text: "Chats"
+    id: "chat-tab"
 - waitForAnimationToEnd
 
 # Inbox is the default tab

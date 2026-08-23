@@ -11,7 +11,12 @@ appId: com.hatiwal.app
 # item's longer "Delete Conversation" label.
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Chats"
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
+# a label on the seller's owner-detail screen, so a text tap can land on that
+# instead — Maestro takes the first match, and the flow then carries on
+# believing it navigated. The tab id is unambiguous and locale-independent.
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 
