@@ -226,7 +226,9 @@ export default function ListingDetailScreen() {
   const sellerId = listing?.seller?.id;
   const { data: sellerListingsResponse } = useQuery({
     queryKey: ["listings-by-seller", sellerId],
-    queryFn: () => listingsAPI.getListings({ userId: sellerId, status: "active" }),
+    // No `status`: GET /listings is browsable-only, so the server drops it —
+    // this rail gets active listings either way.
+    queryFn: () => listingsAPI.getListings({ userId: sellerId }),
     enabled: !!sellerId,
   });
   const sellerListings: Listing[] = (sellerListingsResponse?.items ?? [])

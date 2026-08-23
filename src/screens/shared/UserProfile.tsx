@@ -122,8 +122,12 @@ export function UserProfileScreen() {
   const activeListingsFetcher = useCallback(
     async (query: ListQuery): Promise<ListFetchResult<Listing>> => {
       const result = await listingsAPI.getListings({
+        // No `status` here: GET /listings is the browsable feed
+        // (active.not_expired.not_removed), so the server drops the param. Sending
+        // "active" read as if this fetcher chose the status, which invited a
+        // "sold" variant that would have silently returned ACTIVE listings. The
+        // sold tab below correctly uses the dedicated sold_listings endpoint.
         userId,
-        status: "active",
         pageNumber: query.page,
         pageSize: query.perPage,
         search: debouncedSearch || undefined,
