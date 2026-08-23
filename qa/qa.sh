@@ -363,6 +363,12 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
            ok "reports pruned to newest $keep per session (${before}MB -> ${after}MB)"
            say "disk now: $(df -h / | tail -1 | tr -s ' ' | cut -d' ' -f4) free" ;;
 
+  # How much of the suite is actually tested, read from qa/history.jsonl rather
+  # than the surviving run dirs — so pruning cannot move the number. Reports
+  # written / executed / passing separately, and says outright how many verdicts
+  # are too old to trust.
+  coverage) python3 "$HERE/lib/coverage.py" ;;
+
   triage)  last="$(ls -d "$REPORTS_DIR"/run-* 2>/dev/null | tail -1)"
            [ -n "$last" ] || die "no runs yet"
            python3 "$HERE/lib/report.py" "$last" ;;
