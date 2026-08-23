@@ -34,7 +34,9 @@ appId: com.hatiwal.app
 - tapOn: "Safety tips"
 - waitForAnimationToEnd
 - assertVisible: "Meetup Safety Tips"
-- assertVisible: "Trust your instincts"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "Trust your instincts.*"
 
 # Close — meetup sheet reappears with the place field preserved
 - tapOn: "Close"

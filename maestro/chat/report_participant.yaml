@@ -52,7 +52,9 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Success toast should appear
-- assertVisible: "Report submitted"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "Report submitted.*"
 
 # ── Duplicate report (422) shows friendly error toast ────────────────────────
 # Re-open a fresh conversation and attempt to report the same user again.
@@ -64,4 +66,6 @@ appId: com.hatiwal.app
 - tapOn: "Submit report"
 - waitForAnimationToEnd
 # "Already reported" friendly toast
-- assertVisible: "already reported"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "already reported.*"

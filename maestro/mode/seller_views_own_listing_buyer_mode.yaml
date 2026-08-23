@@ -5,7 +5,9 @@ appId: com.hatiwal.app
 
 - runFlow: ../_helpers/login_seller.yaml
 # Already in seller mode — switch to buyer mode via banner
-- tapOn: "Switch to Buyer"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- tapOn: "Switch to Buyer.*"
 - waitForAnimationToEnd
 - assertVisible: "Buyer Mode"
 # Browse as buyer

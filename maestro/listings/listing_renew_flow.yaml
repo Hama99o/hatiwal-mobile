@@ -20,7 +20,9 @@ appId: com.hatiwal.app
 # Renew it
 - tapOn: "Renew Listing"
 - waitForAnimationToEnd
-- assertVisible: "Listing renewed"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "Listing renewed.*"
 
 # Now appears in Active
 - tapOn: "My Shop"

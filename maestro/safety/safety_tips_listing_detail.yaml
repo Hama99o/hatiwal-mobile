@@ -20,9 +20,15 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Sheet opens with localized tips
 - assertVisible: "Meetup Safety Tips"
-- assertVisible: "Meet in a busy, public place"
-- assertVisible: "Never pay in advance"
-- assertVisible: "Report suspicious users"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "Meet in a busy, public place.*"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "Never pay in advance.*"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "Report suspicious users.*"
 # Close the sheet
 - tapOn: "Close"
 - waitForAnimationToEnd

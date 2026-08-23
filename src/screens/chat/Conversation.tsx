@@ -1588,7 +1588,16 @@ export function ConversationScreen() {
             // thread" handle existing exactly while it was too late to aim at.
             <View
               testID="messages-list-top"
-              style={{ paddingVertical: isLoadingMore ? 14 : 0, alignItems: "center" }}
+              // height 1, not 0, when idle. A zero-size view is not VISIBLE to the
+              // accessibility tree, so Maestro could not find this anchor at all —
+              // "No visible element found: id: messages-list-top" — even though it
+              // was mounted. One pixel is imperceptible above the first bubble and
+              // makes the node real.
+              style={{
+                paddingVertical: isLoadingMore ? 14 : 0,
+                height: isLoadingMore ? undefined : 1,
+                alignItems: "center",
+              }}
             >
               {isLoadingMore ? <ActivityIndicator size="small" color={colors.primary} /> : null}
             </View>

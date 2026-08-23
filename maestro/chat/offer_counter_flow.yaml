@@ -41,7 +41,9 @@ appId: com.hatiwal.app
 
 # Counter sheet is open
 - assertVisible: "Counter Offer"
-- assertVisible: "Previous offer"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "Previous offer.*"
 
 # Clear pre-filled amount and enter counter price
 - eraseText

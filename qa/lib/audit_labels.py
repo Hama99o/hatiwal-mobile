@@ -78,6 +78,39 @@ for s, (keys, sites) in sorted(dead.items(), key=lambda kv: -len(kv[1][1])):
     print(f'{len(sites):>3} uses  "{s}"')
     print(f'          keys: {", ".join(keys)}')
     print(f'          e.g.  {sites[0]}')
+# SUBSTRING trap: Maestro matches the FULL string as a regex, so a flow asserting
+# a PREFIX of real copy never matches it. These read as "the app didn't show it"
+# when the app showed more than the flow asked for. Broken out of UNKNOWN because
+# the fix is mechanical (append .*) while the rest of UNKNOWN is mostly seed data.
+# Two exclusions, both learned from false positives on the first run:
+#   - A string the flow TYPES is matched against the field's VALUE, so a full
+#     match is correct even when the same words appear inside the placeholder
+#     ("Shahr-e-Naw market" is both typed input and part of "Where? (e.g. …)").
+#   - Text that is not app copy at all. The dev launcher's own "Continue" button
+#     got matched against the unrelated locale string "Continue with Google".
+typed = set()
+for fp in glob.glob('maestro/**/*.yaml', recursive=True):
+    for line in open(fp):
+        m = re.match(r'^\s*-?\s*inputText:\s*"([^"]+)"\s*$', line)
+        if m: typed.add(m.group(1))
+
+NOT_APP_COPY = {'Continue', 'Close', 'Dismiss', 'Minimize', 'Allow', 'Deny'}
+
+substr = {}
+for s_, sites in list(unknown.items()):
+    if len(s_) < 8: continue
+    if s_ in typed or s_ in NOT_APP_COPY: continue
+    hits = [v for v in val2keys if s_ != v and s_ in v]
+    if hits:
+        substr[s_] = (hits[0], sites)
+        del unknown[s_]
+
+print(f'\n=== SUBSTRING of real copy — can never match ({len(substr)}) ===')
+for s_, (full, sites) in sorted(substr.items(), key=lambda kv: -len(kv[1][1])):
+    print(f'{len(sites):>3} uses  "{s_}"')
+    print(f'          full copy: "{full}"')
+    print(f'          e.g.  {sites[0]}')
+
 print(f'\n=== UNKNOWN: in no en locale value ({len(unknown)}) — top 25 by use ===')
-for s, sites in sorted(unknown.items(), key=lambda kv: -len(kv[1]))[:25]:
-    print(f'{len(sites):>3} uses  "{s}"   e.g. {sites[0]}')
+for s_, sites in sorted(unknown.items(), key=lambda kv: -len(kv[1]))[:25]:
+    print(f'{len(sites):>3} uses  "{s_}"   e.g. {sites[0]}')

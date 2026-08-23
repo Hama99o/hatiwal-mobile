@@ -30,7 +30,9 @@ appId: com.hatiwal.app
 # with a restore window, not an instant wipe, and a user agreeing to the wrong
 # thing is the failure mode a confirm dialog exists to prevent.
 - assertVisible: "Delete your account?"
-- assertVisible: "restore it by logging back in"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "restore it by logging back in.*"
 
 # Back out.
 - tapOn: "Cancel"

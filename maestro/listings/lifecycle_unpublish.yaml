@@ -17,7 +17,9 @@ appId: com.hatiwal.app
 - tapOn: "Unpublish"
 - waitForAnimationToEnd
 - assertVisible: "Unpublish this listing?"
-- assertVisible: "It will be hidden from buyers"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "It will be hidden from buyers.*"
 - tapOn: "Unpublish"
 - waitForAnimationToEnd
 # Listing moved to Draft

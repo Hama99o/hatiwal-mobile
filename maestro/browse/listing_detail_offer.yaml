@@ -28,7 +28,9 @@ appId: com.hatiwal.app
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
 - assertVisible: "Make an Offer"
-- assertVisible: "No payment required"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "No payment required.*"
 # Enter an offer amount
 - tapOn: "Your offer"
 - inputText: "20000"

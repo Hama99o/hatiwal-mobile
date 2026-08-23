@@ -34,7 +34,10 @@ appId: com.hatiwal.app
 - tapOn: "Block User"
 - waitForAnimationToEnd
 - assertVisible: "Block this user?"
-- assertVisible: "Blocked users cannot contact you"
+# Maestro matches the FULL string as a regex, and the real copy continues
+# "…and their listings will be hidden." (profile.blockConfirmMessage), so the
+# bare prefix never matched. `.*` makes it a prefix match on purpose.
+- assertVisible: "Blocked users cannot contact you.*"
 - tapOn: "Block User"
 - waitForAnimationToEnd
 - assertVisible: "User blocked"

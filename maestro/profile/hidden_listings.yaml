@@ -65,7 +65,9 @@ appId: com.hatiwal.app
 # Restore it
 - tapOn: "Restore"
 - waitForAnimationToEnd
-- assertVisible: "restored"
+# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
+# never matched it — the app was showing more than the flow asked for.
+- assertVisible: "restored.*"
 
 # Go back to Browse — the listing is visible again
 - tapOn:
