@@ -27,6 +27,13 @@ export default function LanguageSwitcher({ size = "sm" }: LanguageSwitcherProps)
             onPress={() => setLanguage(lang.code as LanguageCode)}
             android_ripple={{ color: colors.muted, borderless: false }}
             accessibilityRole="button"
+            // The active pill is marked only by a fill colour, which a screen
+            // reader cannot convey. The testID is distinct from Profile's
+            // `language-option-*` on purpose: this switcher lives on Onboarding
+            // and Login, so a flow that confuses the two should fail loudly
+            // rather than tap whichever happens to be in the tree.
+            accessibilityState={{ selected: active }}
+            testID={`language-switcher-${lang.code}`}
             style={{
               paddingVertical: isLg ? 12 : 8,
               paddingHorizontal: isLg ? 20 : 16,

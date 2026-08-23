@@ -1,0 +1,40 @@
+appId: com.hatiwal.app
+---
+# Open the language picker on the Profile screen.
+#
+# WHY THIS EXISTS. All 8 rtl/ flows failed with `Element not found: .*پښتو.*` or
+# `.*دری.*` because they tapped a language option DIRECTLY after landing on
+# Profile. The option list is collapsed on mount (`languageOpen` starts false) and
+# the row that expands it sits below the fold, so the options were never in the
+# tree. The failure named the language, which read like a missing translation.
+#
+# Call this with the Profile screen already open. Afterwards the three options are
+# on screen and can be tapped by `language-option-en` / `-ps` / `-fa`.
+#
+# Everything here is targeted by testID on purpose: the row's label is translated,
+# and these flows run FROM Pashto and Dari, which is precisely when an English
+# selector cannot work.
+
+# The Preferences card is below the profile header, stats and quick actions.
+- scrollUntilVisible:
+    element:
+      id: "language-row"
+    direction: DOWN
+    timeout: 20000
+
+# The row is a toggle. If a previous step already expanded it, tapping again
+# would CLOSE it — so only tap when the options are not already showing.
+- runFlow:
+    when:
+      notVisible:
+        id: "language-option-en"
+    commands:
+      - tapOn:
+          id: "language-row"
+      - waitForAnimationToEnd
+
+# The gate: the option list is really open.
+- extendedWaitUntil:
+    visible:
+      id: "language-option-en"
+    timeout: 10000

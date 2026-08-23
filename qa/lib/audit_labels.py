@@ -13,15 +13,30 @@ Three verdicts per string:
 import json, glob, os, re, sys, subprocess
 from collections import defaultdict
 
-# ── en locale corpus: value -> [key paths] ─────────────────────────────────────
+# ── locale corpus: value -> [key paths] ───────────────────────────────────────
+# ALL THREE locales, not just en. The rtl/ flows assert Pashto and Dari copy by
+# hand ("پروفایل", "ظاهر", "خروج"), and while only en was scanned every one of
+# those landed in UNKNOWN — the bucket you skim past — so a Dari assertion that
+# no longer matched the Dari JSON was indistinguishable from seed data. `locales`
+# records which languages a value appears in, so a ps/fa string can be told apart
+# from a genuinely unknown one.
 val2keys = defaultdict(list)
-for fp in glob.glob('src/i18n/locales/en/*.json'):
+val2locales = defaultdict(set)
+for fp in glob.glob('src/i18n/locales/*/*.json'):
+    lang = os.path.basename(os.path.dirname(fp))
     ns = os.path.basename(fp)[:-5]
-    def walk(o, pre):
+    def walk(o, pre, lang=lang, ns=ns):
         if isinstance(o, dict):
             for k, v in o.items(): walk(v, pre + [k])
         elif isinstance(o, str):
-            val2keys[o].append(f'{ns}.{".".join(pre)}')
+            key = f'{ns}.{".".join(pre)}'
+            val2locales[o].add(lang)
+            if lang == 'en':
+                val2keys[o].append(key)
+            elif key not in val2keys[o]:
+                # A non-en value still needs its KEY recorded, so the
+                # "is this key rendered anywhere?" check below can run on it.
+                val2keys[o].append(key)
     walk(json.load(open(fp)), [])
 
 # ── every key referenced anywhere in tsx (one grep, not one per key) ───────────

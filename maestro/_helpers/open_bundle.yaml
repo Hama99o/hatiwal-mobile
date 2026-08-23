@@ -212,7 +212,8 @@ appId: com.hatiwal.app
       # PASHTO (that is what the gate above detected), so English reads
       # "انګلیسي" — not "English". The regex covers every form, since a later
       # flow may leave the app in Dari instead.
-      - tapOn: ".*(English|انګلیسي|انگلیسی).*"
+      - tapOn:
+          id: "language-switcher-en"
       - waitForAnimationToEnd
       - extendedWaitUntil:
           notVisible:

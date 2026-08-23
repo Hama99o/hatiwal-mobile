@@ -36,20 +36,13 @@ appId: com.hatiwal.app
 
 # ─── Scenario 2: language switcher works inside onboarding (RTL) ──────────────
 
-# Language options are labelled in the CURRENT language, so the same option reads
-# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
-# and Maestro matches the FULL string. A fixed label therefore only works from
-# one starting locale, and these flows cannot know which one the previous flow
-# left behind. The regex matches every form.
-- tapOn: ".*پښتو.*"
+- tapOn:
+
+    id: "language-switcher-ps"
 - waitForAnimationToEnd
 - assertVisible: "هاتیوال ته ښه راغلاست"
-# Language options are labelled in the CURRENT language, so the same option reads
-# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
-# and Maestro matches the FULL string. A fixed label therefore only works from
-# one starting locale, and these flows cannot know which one the previous flow
-# left behind. The regex matches every form.
-- tapOn: ".*(English|انګلیسي|انگلیسی).*"
+- tapOn:
+    id: "language-switcher-en"
 - waitForAnimationToEnd
 - assertVisible: "Welcome to Hatiwal"
 

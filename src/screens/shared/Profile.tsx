@@ -873,6 +873,13 @@ function SettingsSection({
           onPress={() => setLanguageOpen((v) => !v)}
           android_ripple={{ color: colors.muted, borderless: false }}
           accessibilityRole="button"
+          // The row's own label is translated, so it cannot identify the row from
+          // inside Pashto or Dari — which is exactly when the language picker
+          // matters most. `expanded` tells a screen reader whether the option
+          // list below is open; without it the row announces as a plain button
+          // that appears to do nothing.
+          accessibilityState={{ expanded: languageOpen }}
+          testID="language-row"
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
             alignItems: "center",
@@ -922,6 +929,12 @@ function SettingsSection({
                   <Button
                     variant="ghost"
                     onPress={() => setLanguage(code as LanguageCode)}
+                    // The three labels are native names ("English"/"پښتو"/"دری"),
+                    // identical in every locale, but the ACTIVE one is marked only
+                    // by a colour and a check icon. `selected` is what a screen
+                    // reader can read, and the testID is what a flow can target.
+                    accessibilityState={{ selected: isActive }}
+                    testID={`language-option-${code}`}
                     style={{
                       flexDirection: isRtl ? "row-reverse" : "row",
                       alignItems: "center",

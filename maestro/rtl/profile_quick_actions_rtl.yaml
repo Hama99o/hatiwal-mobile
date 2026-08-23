@@ -9,12 +9,12 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Switch to Pashto to trigger RTL
-# Language options are labelled in the CURRENT language, so the same option reads
-# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
-# and Maestro matches the FULL string. A fixed label therefore only works from
-# one starting locale, and these flows cannot know which one the previous flow
-# left behind. The regex matches every form.
-- tapOn: ".*پښتو.*"
+# The option list is COLLAPSED on mount and its row is below the fold, so
+# tapping an option straight away could never work — the helper scrolls to the
+# row and expands it first.
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-ps"
 - waitForAnimationToEnd
 
 # Navigate back to profile tab (Pashto tab label "زه", use index as fallback)
@@ -60,10 +60,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Reset to English
-# Language options are labelled in the CURRENT language, so the same option reads
-# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
-# and Maestro matches the FULL string. A fixed label therefore only works from
-# one starting locale, and these flows cannot know which one the previous flow
-# left behind. The regex matches every form.
-- tapOn: ".*(English|انګلیسي|انگلیسی).*"
+# The option list is COLLAPSED on mount and its row is below the fold, so
+# tapping an option straight away could never work — the helper scrolls to the
+# row and expands it first.
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-en"
 - waitForAnimationToEnd
