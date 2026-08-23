@@ -17,8 +17,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Navigate back to profile tab (Pashto tab label "زه", use index as fallback)
+# The profile tab by testID. The Pashto label is "زه" and the Dari one differs
+# again; the testID is identical in all three locales, which is why it exists.
+# `index: 4` matched the fifth element on screen, not the fifth tab.
 - tapOn:
-    index: 4
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # Pashto profile SCREEN HEADER visible (profile.title key — unchanged)
@@ -36,8 +39,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Navigate back to profile tab to see seller content
+# The profile tab by testID. The Pashto label is "زه" and the Dari one differs
+# again; the testID is identical in all three locales, which is why it exists.
+# `index: 4` matched the fifth element on screen, not the fifth tab.
 - tapOn:
-    index: 4
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # Seller quick-action labels visible in Pashto

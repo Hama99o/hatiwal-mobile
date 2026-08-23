@@ -12,12 +12,17 @@ appId: com.hatiwal.app
 # left behind. The regex matches every form.
 - tapOn: ".*پښتو.*"
 - waitForAnimationToEnd
-# Verify RTL is active — back to Bazaar tab (index 0)
+# Tabs by testID, not by index. A bare `index:` has NO selector — it matches
+# every element on screen and index N is whatever lands there in hierarchy
+# order, not the Nth tab. These flows used it as a "fallback" because the tab
+# labels are in Pashto here, which is exactly what the tab testIDs are for:
+# they are identical in all three locales.
 - tapOn:
-    index: 0
+    id: "browse-tab"
 - waitForAnimationToEnd
-# Open a listing detail
+# The feed card by its testID rather than index 0 of everything on screen.
 - tapOn:
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
 # Core elements visible in Pashto
@@ -29,7 +34,7 @@ appId: com.hatiwal.app
 - back
 - waitForAnimationToEnd
 - tapOn:
-    index: 4
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Language options are labelled in the CURRENT language, so the same option reads
 # "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —

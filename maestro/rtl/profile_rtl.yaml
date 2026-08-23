@@ -13,8 +13,11 @@ appId: com.hatiwal.app
 - tapOn: ".*دری.*"
 - waitForAnimationToEnd
 # Profile tab should show Dari labels
+# The profile tab by testID. The Pashto label is "زه" and the Dari one differs
+# again; the testID is identical in all three locales, which is why it exists.
+# `index: 4` matched the fifth element on screen, not the fifth tab.
 - tapOn:
-    index: 4
+    id: "profile-tab"
 - waitForAnimationToEnd
 # Profile SCREEN HEADER in Dari (profile.title key — unchanged)
 - assertVisible: "پروفایل"
