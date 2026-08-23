@@ -20,13 +20,12 @@ appId: com.hatiwal.app
 # Sheet opens with Gallery / Camera options
 - assertVisible: "Gallery"
 - assertVisible: "Camera"
-# Pick from Gallery
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-# Select first photo in picker
-- tapOn:
-    index: 0
-- waitForAnimationToEnd
+# Pick from Gallery. The helper carries the five tolerant picker steps, including
+# Android's CONFIRM button ("Add (N)") — without it the picker never returns and no
+# photo reaches the form. The bare `tapOn: index: 0/1/2` this replaces had no
+# selector at all: it matched every element on screen, so none of the three photos
+# was ever selected and every assertion below it failed.
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 
 # First photo added, "Cover" label visible
 - assertVisible: "Cover"
@@ -34,20 +33,12 @@ appId: com.hatiwal.app
 # Add a second photo
 - tapOn: "Add Photos"
 - waitForAnimationToEnd
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-- tapOn:
-    index: 1
-- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 
 # Add a third photo
 - tapOn: "Add Photos"
 - waitForAnimationToEnd
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-- tapOn:
-    index: 2
-- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 
 # Reorder hint visible when 2+ photos
 - assertVisible: "Tap another photo to swap positions"

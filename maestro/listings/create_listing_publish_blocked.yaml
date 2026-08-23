@@ -84,10 +84,19 @@ appId: com.hatiwal.app
 - tapOn: "Tap to set exact location on map"
 - waitForAnimationToEnd
 - assertVisible: "Pick location on map"
-- tapOn: "Search a province…"
-- inputText: "Kabul"
-- waitForAnimationToEnd
+# testIDs, not the placeholder + a bare index tap. "Search a province…" is the
+# placeholder (browse.searchLocation) and the index tap had no selector at all,
+# so it matched every element on screen instead of the suggestion row.
 - tapOn:
+    id: "location-search-input"
+- eraseText
+- inputText: "Kabul"
+- extendedWaitUntil:
+    visible:
+      id: "location-search-result"
+    timeout: 15000
+- tapOn:
+    id: "location-search-result"
     index: 0
 - waitForAnimationToEnd
 - tapOn: "Confirm location"
@@ -115,11 +124,8 @@ appId: com.hatiwal.app
 - tapOn:
     id: "photos-add-button"
 - waitForAnimationToEnd
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-- tapOn:
-    index: 0
-- waitForAnimationToEnd
+# Helper: tolerant picker selectors + Android's "Add (N)" confirm button.
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 - assertVisible: "Cover"
 - assertNotVisible: "Add at least one photo before publishing"
 
@@ -141,11 +147,8 @@ appId: com.hatiwal.app
 
 - tapOn: "Add Photos"
 - waitForAnimationToEnd
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-- tapOn:
-    index: 0
-- waitForAnimationToEnd
+# Helper: tolerant picker selectors + Android's "Add (N)" confirm button.
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 - assertVisible: "Cover"
 
 # Title intentionally left blank.
@@ -190,10 +193,19 @@ appId: com.hatiwal.app
 - tapOn: "Tap to set exact location on map"
 - waitForAnimationToEnd
 - assertVisible: "Pick location on map"
-- tapOn: "Search a province…"
-- inputText: "Kabul"
-- waitForAnimationToEnd
+# testIDs, not the placeholder + a bare index tap. "Search a province…" is the
+# placeholder (browse.searchLocation) and the index tap had no selector at all,
+# so it matched every element on screen instead of the suggestion row.
 - tapOn:
+    id: "location-search-input"
+- eraseText
+- inputText: "Kabul"
+- extendedWaitUntil:
+    visible:
+      id: "location-search-result"
+    timeout: 15000
+- tapOn:
+    id: "location-search-result"
     index: 0
 - waitForAnimationToEnd
 - tapOn: "Confirm location"

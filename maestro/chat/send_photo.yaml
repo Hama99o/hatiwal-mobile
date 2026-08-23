@@ -44,8 +44,20 @@ appId: com.hatiwal.app
 - tapOn:
     id: "com.apple.Photos"
     optional: true
+# The gallery item, by the labels Android's picker gives them. A bare
+# `index: 0` had no selector — it matched every element on screen — and being
+# optional it failed silently, so the flow asserted against a photo it never sent.
 - tapOn:
-    index: 0
+    text: "Photo taken on.*"
+    optional: true
+- tapOn:
+    text: "qa_photo.*"
+    optional: true
+- tapOn:
+    text: "Add \\(\\d+\\)"
+    optional: true
+- tapOn:
+    text: "Done"
     optional: true
 - waitForAnimationToEnd
 

@@ -22,10 +22,11 @@ appId: com.hatiwal.app
 - tapOn: "Add Photos"
 - waitForAnimationToEnd
 - assertVisible: "Gallery"
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-- tapOn:
-    index: 0
+# The five tolerant picker steps live in the helper, including Android's CONFIRM
+# button. A bare `tapOn: index: N` has no selector — it matches every element on
+# screen — so it never selected a photo, and the flow then failed on whatever it
+# asserted about the photo afterwards.
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 - waitForAnimationToEnd
 
 # Photo added — Cover label visible

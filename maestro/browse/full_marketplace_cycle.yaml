@@ -16,11 +16,9 @@ appId: com.hatiwal.app
 # create_listing_with_condition.yaml for the same card).
 - tapOn: "Add Photos"
 - waitForAnimationToEnd
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-- tapOn:
-    index: 0
-- waitForAnimationToEnd
+# Helper: tolerant picker selectors + Android's "Add (N)" confirm. The bare index
+# tap it replaces had no selector, so no photo was ever picked.
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 - assertVisible: "Cover"
 # TASK-P736 (review fix) — tap the input placeholders, not the "Title *" /
 # "Price *" Labels (a Label is inert text, not focusable; tapping it would

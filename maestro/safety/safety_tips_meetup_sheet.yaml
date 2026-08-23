@@ -32,7 +32,11 @@ appId: com.hatiwal.app
 
 # Fill in the place field before checking the tips, so we can confirm it
 # survives the safety-tips round trip
-- tapOn: "Where? (e.g. Shahr-e-Naw market)"
+# testIDs, not the placeholders. Maestro matches text as an ANCHORED REGEX and
+# these placeholders contain "(" and ")" — an unescaped capture group that never
+# matches the literal text, plus a "?" that makes the preceding letter optional.
+- tapOn:
+    id: "meetup-place-input"
 - inputText: "Shahr-e-Naw market"
 
 # Open the safety-tips link from inside the meetup sheet

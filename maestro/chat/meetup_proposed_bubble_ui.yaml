@@ -38,7 +38,11 @@ appId: com.hatiwal.app
 # The meetup sheet's PLACE field, by its placeholder
 # (`chat.meetup.placePlaceholder`). "Location" is not a label on this sheet at all
 # — that name belongs to the listing form, which is a different screen.
-- tapOn: "Where? (e.g. Shahr-e-Naw market)"
+# testIDs, not the placeholders. Maestro matches text as an ANCHORED REGEX and
+# these placeholders contain "(" and ")" — an unescaped capture group that never
+# matches the literal text, plus a "?" that makes the preceding letter optional.
+- tapOn:
+    id: "meetup-place-input"
 - eraseText
 - inputText: "Share Now Market"
 # The meetup sheet's confirm button is `chat.meetup.propose` = "Propose Meetup".

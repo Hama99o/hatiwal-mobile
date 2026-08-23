@@ -87,10 +87,17 @@ appId: com.hatiwal.app
 - tapOn: "Tap to set exact location on map"
 - waitForAnimationToEnd
 - assertVisible: "Pick location on map"
-- tapOn: "Search a province…"
-- inputText: "Kabul"
-- waitForAnimationToEnd
+# testIDs, not the placeholder + a selector-less index tap.
 - tapOn:
+    id: "location-search-input"
+- eraseText
+- inputText: "Kabul"
+- extendedWaitUntil:
+    visible:
+      id: "location-search-result"
+    timeout: 15000
+- tapOn:
+    id: "location-search-result"
     index: 0
 - waitForAnimationToEnd
 - tapOn: "Confirm location"
@@ -126,11 +133,8 @@ appId: com.hatiwal.app
 
 - tapOn: "Add Photos"
 - waitForAnimationToEnd
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-- tapOn:
-    index: 0
-- waitForAnimationToEnd
+# Helper: tolerant picker selectors + Android's "Add (N)" confirm button.
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 - assertVisible: "Cover"
 
 - tapOn: "Publish"

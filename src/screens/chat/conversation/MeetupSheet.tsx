@@ -150,7 +150,12 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
           >
             {t("chat.meetup.place")}
           </Text>
+          {/* testIDs: the only stable handles for these two fields. The placeholders
+              carry parentheses, and Maestro matches text as an anchored REGEX, so
+              "Where? (e.g. …)" never matches the literal placeholder — the parens
+              read as a capture group and the "?" makes the preceding "n" optional. */}
           <Input
+            testID="meetup-place-input"
             value={place}
             onChangeText={setPlace}
             placeholder={t("chat.meetup.placePlaceholder")}
@@ -219,6 +224,7 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
             {t("chat.meetup.time")}
           </Text>
           <Input
+            testID="meetup-time-input"
             value={time}
             onChangeText={setTime}
             placeholder={t("chat.meetup.timePlaceholder")}

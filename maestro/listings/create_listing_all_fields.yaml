@@ -12,11 +12,10 @@ appId: com.hatiwal.app
 # Photo first
 - tapOn: "Add Photos"
 - waitForAnimationToEnd
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-- tapOn:
-    index: 0
-- waitForAnimationToEnd
+# The helper carries the tolerant picker selectors plus Android's "Add (N)" confirm
+# button, without which the picker never returns a photo. The bare index tap it
+# replaces had no selector at all.
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 - assertVisible: "Cover"
 
 # Title

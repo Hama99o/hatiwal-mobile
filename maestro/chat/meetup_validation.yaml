@@ -40,7 +40,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Please enter a meeting place."
 # Fill place only
-- tapOn: "Where? (e.g. Shahr-e-Naw market)"
+# testIDs, not the placeholders. Maestro matches text as an ANCHORED REGEX and
+# these placeholders contain "(" and ")" — an unescaped capture group that never
+# matches the literal text, plus a "?" that makes the preceding letter optional.
+- tapOn:
+    id: "meetup-place-input"
 - inputText: "Shahr-e-Naw"
 # Dismiss the keyboard before submitting: typing the place and time leaves it
 # up, and it COVERS the submit button — the tap then failed with "Element not
@@ -54,7 +58,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Please enter a meeting time."
 # Fill time too
-- tapOn: "When? (e.g. Tomorrow 3pm)"
+- tapOn:
+    id: "meetup-time-input"
 - inputText: "Tomorrow at 3pm"
 # Dismiss the keyboard before submitting: typing the place and time leaves it
 # up, and it COVERS the submit button — the tap then failed with "Element not

@@ -65,6 +65,7 @@ appId: com.hatiwal.app
 # ── 4) Tap the row — opens the real conversation thread ────────────────────
 
 - tapOn:
+    id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
 - assertVisible: "Type a message..."

@@ -20,7 +20,11 @@ appId: com.hatiwal.app
 - assertVisible: "Read"
 
 # If conversations exist, first row is visible and tappable
+# The row itself. A bare index tap matches every element on screen, and being
+# `optional` it failed silently — the flow then asserted against the inbox it
+# never left.
 - tapOn:
+    id: "conversation-row-\\d+"
     index: 0
     optional: true
 - waitForAnimationToEnd

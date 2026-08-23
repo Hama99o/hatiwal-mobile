@@ -12,6 +12,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Tap the first saved listing to open detail
 - tapOn:
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
 - assertVisible: "Contact Seller"

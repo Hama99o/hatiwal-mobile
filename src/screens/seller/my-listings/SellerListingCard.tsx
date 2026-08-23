@@ -126,7 +126,15 @@ export function SellerListingCard({ listing, onMutated, viewMode = "list" }: Sel
       ]}
     >
       {/* Photo gallery — tap card body to open owner detail screen */}
-      <Pressable onPress={handleOpenDetail} accessibilityRole="button" accessibilityLabel={listing.title}>
+      <Pressable
+        onPress={handleOpenDetail}
+        accessibilityRole="button"
+        accessibilityLabel={listing.title}
+        // A handle for the card ITSELF, not its action buttons. Six flows opened
+        // "the first listing" with a bare `tapOn: index: 0`, which has no selector
+        // and matches every element on screen; the only other handle was the
+        // listing's title, which is fixture data.
+        testID="seller-listing-card">
         {/* One wrapper, two directions. The details block and the action row
             below are SHARED between both layouts — only the direction and the
             photo's size change, so there is no second copy of the card to keep
