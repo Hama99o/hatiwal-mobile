@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { View, StyleSheet, Pressable, FlatList, Dimensions } from "react-native";
+import { View, StyleSheet, Pressable, FlatList, useWindowDimensions } from "react-native";
 import { RemoteImage } from "@/components/common/RemoteImage";
 import Animated from "react-native-reanimated";
 import { Eye, MessageCircle, Camera, MoreHorizontal } from "lucide-react-native";
@@ -74,7 +74,12 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
     ? [listing.thumbnailUrl]
     : [];
 
-  const cardWidth = Dimensions.get("window").width - 32; // screen - horizontal padding
+  // useWindowDimensions, not Dimensions.get: this width is the photo carousel's
+  // slide width AND its snap interval, so a stale value does not just mis-size the
+  // photo — it desynchronises paging, leaving slides parked between photos. A
+  // rotation does not re-run Dimensions.get unless something else re-renders.
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = windowWidth - 32; // screen - horizontal padding
 
   // TASK-L863: all seven lifecycle mutations, confirmAlert copy, invalidation
   // and BuyerPickerSheet/ReviewPromptSheet wiring live in this ONE hook —

@@ -5,7 +5,7 @@
  * RTL-safe: mine bubbles anchor to start side in RTL.
  */
 import React, { useState } from "react";
-import { View, Linking, Pressable, Platform, Modal, Dimensions, ActivityIndicator, Text as RNText } from "react-native";
+import { View, Linking, Pressable, Platform, Modal, ActivityIndicator, Text as RNText, useWindowDimensions } from "react-native";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
@@ -38,7 +38,6 @@ import { confirmAlert } from "@/utils/alert";
 import type { Message } from "@/api/conversations";
 import { parseMeetupBody, type MeetupCoords } from "./meetupBody";
 
-const { width: SCREEN_W } = Dimensions.get("window");
 
 /**
  * Bubbles were capped only as a PERCENTAGE (78–82%). That is fine on a phone and
@@ -51,7 +50,15 @@ const { width: SCREEN_W } = Dimensions.get("window");
  * screens are clamped.
  */
 const BUBBLE_MAX_W = 520;
-const bubbleMaxWidth = (pct: number) => Math.min(SCREEN_W * pct, BUBBLE_MAX_W);
+// Takes the width rather than closing over a module-level snapshot. A
+// `Dimensions.get("window")` at module scope is frozen at IMPORT time, so it
+// survives rotation and every later layout change: a phone opened in portrait
+// kept 78% of 411dp (=320) in landscape, where the cap should have given 520.
+// This is the same freeze that made the tablet listing detail render as nothing
+// but a photo (UI-020) — that one was severe, this one is narrow, and the shape
+// of the mistake is identical.
+const bubbleMaxWidth = (pct: number, screenWidth: number) =>
+  Math.min(screenWidth * pct, BUBBLE_MAX_W);
 
 // Platform audit (2026-06-18, extended TASK-M263 2026-07-04):
 //   When `coords` is present (an exact pin was set via "Pick on map"),
@@ -425,7 +432,9 @@ function FullscreenImageViewer({
   const { t } = useTranslation();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const screenHeight = Dimensions.get("window").height;
+  // A fullscreen image viewer is the one place rotation matters most, so this
+  // must be the LIVE height, not the height at first render.
+  const { height: screenHeight } = useWindowDimensions();
 
   return (
     <Modal
@@ -515,7 +524,10 @@ function ImageMessageBubble({
   const { isRtl, formatTime } = useLocalization();
   const [fullscreenVisible, setFullscreenVisible] = useState(false);
   const attachmentUrl = message.attachmentUrl ?? null;
-  const maxImageWidth = Math.round(SCREEN_W * 0.68);
+  // Live width, for the same reason as the text bubbles: an image sized from a
+  // width captured at import time is wrong after any rotation.
+  const { width: windowWidth } = useWindowDimensions();
+  const maxImageWidth = Math.round(windowWidth * 0.68);
 
   return (
     <>
@@ -625,6 +637,7 @@ function ImageMessageBubble({
 
 export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, meetupActionsDisabled, meetupResponsePending, onOfferRespond, offerOutcome, onOfferCounter, offerActionsDisabled, offerResponsePending, searchQuery, onDeleteMessage }: MessageBubbleProps) {
   const { t } = useTranslation();
+  const { width: windowWidth } = useWindowDimensions();
   const { isRtl, formatTime, formatCurrency } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -667,7 +680,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
       >
         <View
           style={{
-            maxWidth: bubbleMaxWidth(0.78),
+            maxWidth: bubbleMaxWidth(0.78, windowWidth),
             borderRadius: 18,
             borderBottomRightRadius: isMine && !isRtl ? 6 : 18,
             borderBottomLeftRadius: !isMine && !isRtl ? 6 : 18,
@@ -811,7 +824,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
       >
         <View
           style={{
-            maxWidth: bubbleMaxWidth(0.82),
+            maxWidth: bubbleMaxWidth(0.82, windowWidth),
             // minWidth prevents the web flexbox min-content collapse that wrapped
             // the amount + Accept/Decline buttons character-by-character.
             minWidth: 240,
@@ -990,7 +1003,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
       >
         <View
           style={{
-            maxWidth: bubbleMaxWidth(0.82),
+            maxWidth: bubbleMaxWidth(0.82, windowWidth),
             minWidth: 240,
             borderRadius: 14,
             borderWidth: 1.5,
@@ -1149,7 +1162,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
       >
         <View
           style={{
-            maxWidth: bubbleMaxWidth(0.8),
+            maxWidth: bubbleMaxWidth(0.8, windowWidth),
             minWidth: 240,
             borderRadius: 12,
             borderWidth: 1.5,
@@ -1283,7 +1296,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
           delayLongPress={400}
           testID="message-bubble-document-pressable"
           style={{
-            maxWidth: bubbleMaxWidth(0.78),
+            maxWidth: bubbleMaxWidth(0.78, windowWidth),
             borderRadius: 14,
             borderWidth: 1,
             borderColor: isMine ? colors.primary : colors.border,
@@ -1349,7 +1362,7 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
           onLongPress={handleLongPress}
           delayLongPress={400}
           android_ripple={isMine && onDeleteMessage ? { color: colors.primaryAlpha } : undefined}
-          style={{ maxWidth: bubbleMaxWidth(0.78) }}
+          style={{ maxWidth: bubbleMaxWidth(0.78, windowWidth) }}
           accessibilityRole="none"
           testID="message-bubble-pressable"
         >
