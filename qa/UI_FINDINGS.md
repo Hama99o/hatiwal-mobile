@@ -1282,6 +1282,37 @@ and no assertion described. The flows said "the badge is not visible"; the cause
 were an API that reported success while doing nothing, and a sort order that put
 an empty thread first.
 
+### UI-029 · A listing could be saved at latitude 91 — off the Earth — FIXED
+
+**Where:** `POST /api/v1/my/listings`
+**Severity:** data integrity; breaks distance sort and map rendering
+**Evidence:** verified against the running API — 201 Created, and `lat=91.0` in the
+database
+
+Found while testing the owner's requirement that a location OUTSIDE Afghanistan
+must not be blocked. That requirement holds: Paris (48.8566, 2.3522) and Sydney
+(-33.8688, 151.2093) both save fine, and nothing in the API or the picker is
+scoped by country. But nothing validated the coordinate at all either.
+
+`SavedSearch` has validated `latitude` to -90..90 since it was written. `Listing`
+never did, so 91 was accepted and persisted. That is not a country restriction — it
+is the difference between *anywhere on Earth* and *off the Earth*, and it matters
+downstream: `distance_from` runs a haversine over these columns for nearest-first
+sort and radius filters, and a marker at 91°N cannot be drawn.
+
+**Fixed** with the matching validations on Listing (latitude -90..90, longitude
+-180..180, both `allow_nil`, since a listing without a pin is legal).
+
+**Why this is an API spec and not only a Maestro flow.** `map_location_outside_
+afghanistan` drives the real picker, and it PASSED while proving nothing: the
+listing it created saved 34.5553/69.2075 — Kabul's `DEFAULT_CENTER`. `adb emu geo
+fix` is only delivered while an app is actively listening, and even pumped every 2s
+it never reached expo-location, so the app correctly fell back to the default. The
+e2e flow can prove "no refusal appears"; only a request spec can prove "a foreign
+coordinate is accepted and returned unchanged". The flow's own header had warned
+that running it without the geo env "still passes, but proves nothing" — which is
+exactly what happened, twice, before anyone checked the saved row.
+
 ### MAPS · VERIFIED on device — what is now proven about both location pickers
 
 The user's priority. ALL SIX flows green on a 360dp phone. What each one actually proves:
