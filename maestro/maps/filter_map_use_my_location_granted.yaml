@@ -21,8 +21,11 @@ appId: com.hatiwal.app
       EMAIL: buyer@hatiwal.test
       PASSWORD: Password123!
 
-# Seller mode has no "Bazaar" tab, and mode persists on the USER across flows
-# and devices — so a buyer flow has to assert its own mode first.
+
+# Buyer mode, explicitly. These flows use login_fresh.yaml, which is deliberately
+# mode-NEUTRAL because map_location_outside_afghanistan signs in as the seller —
+# so the guard cannot live in that helper and belongs here. (login.yaml, the
+# ordinary buyer login, now carries it for its own 142 flows.)
 - runFlow: ../_helpers/ensure_buyer_mode.yaml
 
 - tapOn: "Bazaar"

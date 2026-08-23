@@ -55,3 +55,16 @@ env:
     visible: "Me"
     timeout: 60000
 - assertNotVisible: "Login"
+
+# ── And in BUYER mode ───────────────────────────────────────────────────────
+# This is the buyer login helper — 142 flows include it — so it owes the same
+# guarantee login_seller.yaml has always given for the seller side.
+#
+# Mode is persisted on the USER, not just locally, so it survives clearState AND
+# crosses devices: any flow that switches this account to seller mode leaves every
+# later buyer flow in seller mode. Seller mode has no "Bazaar" tab at all — the
+# tabs become My Shop / Chats / Me — so a buyer flow then fails with "Element not
+# found: Bazaar" or `"Bazaar" is visible` while being perfectly signed in.
+# Confirmed by screenshot more than once: Ahmad Karimi (the buyer) on a green
+# seller-mode profile.
+- runFlow: ensure_buyer_mode.yaml
