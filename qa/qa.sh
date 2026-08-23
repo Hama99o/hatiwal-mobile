@@ -342,6 +342,17 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   #      ran. (Observed: the tracked-flow count fell from 209 to 127 after a
   #      prune, which looks like a coverage collapse and is not one.)
   prune)   keep="${1:-20}"
+           # ARCHIVE FIRST, always. Each run dir holds its own results.jsonl and
+           # the register is REGENERATED from those, so deleting run dirs deletes
+           # verdict history — a previous prune took the tracked-flow count from
+           # 209 to 127 and the campaign lost its record of what had already been
+           # triaged. This also copies the screenshots the register cites, whose
+           # links rot at the same moment. Idempotent, so it is safe to re-run.
+           #
+           # It globs reports/sN/run-* as well as reports/run-*: an ad-hoc archive
+           # that scanned only the top level missed 200 verdicts belonging to the
+           # other sessions.
+           python3 "$HERE/lib/archive_results.py" || die "archive failed — refusing to prune"
            before=$(du -sm "$REPORTS_DIR/.." 2>/dev/null | cut -f1)
            for base in "$QA_DIR/reports" "$QA_DIR/reports/s2" "$QA_DIR/reports/s3" \
                        "$QA_DIR/reports/s4" "$QA_DIR/reports/s5"; do

@@ -53,3 +53,8 @@ yarn-error.log*
 # evidence is worth reading, never worth committing. FLOW_REGISTER.md and
 # UI_FINDINGS.md are the durable outputs and stay tracked.
 qa/reports/
+# Copies of the screenshots FLOW_REGISTER.md cites, made by `qa.sh prune` so its
+# links survive the run dirs being deleted. Same reasoning as above: worth
+# reading on this machine, not worth committing. qa/history.jsonl IS tracked —
+# it is the verdict history those copies illustrate.
+qa/evidence/
