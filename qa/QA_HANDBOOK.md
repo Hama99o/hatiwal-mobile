@@ -704,3 +704,26 @@ Related: the emulator can die outright under memory pressure, and the flow log
 then ends in `java.io.IOException: Command failed (host:transport:emulator-5580):
 device 'emulator-5580' not found` with an `AndroidDriver.close` stack. That is not
 a flow failure — check `adb devices` before triaging anything else in that run.
+
+## Fixing an app bug can turn a flow's workaround into the bug
+
+`create_listing_map_pin` was green for weeks with a `hideKeyboard` step and a
+comment explaining why it was safe: the flow had just typed, so the IME was up and
+would consume the Back that `hideKeyboard` sends on Android.
+
+Then UI-023 was fixed properly — `LocationRangePicker` now calls
+`Keyboard.dismiss()` itself when a search result is selected. The IME was already
+down, so the Back went to the app instead and **closed the map modal**. The flow
+failed with `Element not found: Id matching regex: location-confirm` on a picker
+it had dismissed itself, and the screenshot showed the form with "Tap to set exact
+location on map" still unset. A green flow went red because the app got better.
+
+So: when you fix a keyboard-covers-CTA bug, grep the suite for `hideKeyboard` and
+re-check every use. More generally, a workaround encodes an assumption about a
+defect; fixing the defect invalidates the assumption. The comment explaining why a
+workaround is safe is the thing to re-read, not to trust.
+
+Related, from the same day: `open_bundle.yaml` already carried a warning that
+`hideKeyboard` with no IME up exits the app entirely — and that warning sat four
+lines above where a `hideKeyboard` was later added anyway, costing five minutes
+per flow against the Android home screen.
