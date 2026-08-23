@@ -10,7 +10,9 @@ appId: com.hatiwal.app
     id: "mode-switcher-banner"
 - waitForAnimationToEnd
 - assertVisible: "Switch to Seller Mode"
-- tapOn: "Switch"
+# Maestro anchors at both ends, so a bare "Switch" cannot match
+# "Switch to Seller Mode" / "Switch to Buyer Mode".
+- tapOn: "Switch.*"
 - waitForAnimationToEnd
 
 # Tab bar changed — My Shop visible, Bazaar hidden or de-emphasized

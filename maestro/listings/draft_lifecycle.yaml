@@ -41,7 +41,8 @@ appId: com.hatiwal.app
 - assertVisible: "Draft saved"
 
 # 2) Publish from draft
-- tapOn: "Drafts"
+# The filter tab is `listing.filter.draft` = "Draft", singular.
+- tapOn: "Draft"
 - waitForAnimationToEnd
 - tapOn: "Lifecycle Test Item"
 - waitForAnimationToEnd

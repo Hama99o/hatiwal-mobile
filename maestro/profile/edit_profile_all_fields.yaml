@@ -25,7 +25,8 @@ appId: com.hatiwal.app
 - inputText: "I sell quality items in Kabul."
 
 # Clear and update phone
-- tapOn: "Phone"
+# `auth.phone` = "Phone Number" — anchored matching needs the full label.
+- tapOn: "Phone Number"
 - eraseText
 - inputText: "+93700000001"
 
@@ -38,7 +39,8 @@ appId: com.hatiwal.app
 # Save
 - tapOn: "Save"
 - waitForAnimationToEnd
-- assertVisible: "Profile updated"
+# `profile.edit.saved` = "Profile saved".
+- assertVisible: "Profile saved"
 
 # Verify data persisted
 - tapOn: "Edit Profile"

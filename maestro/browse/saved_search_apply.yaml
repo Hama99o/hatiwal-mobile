@@ -25,7 +25,8 @@ appId: com.hatiwal.app
 - tapOn: "Clear"
 - waitForAnimationToEnd
 # Saved search chip should appear (auto-saved the previous filter combo)
-- assertVisible: "Saved Searches"
+# `browse.savedSearch` = "Saved search" — singular, lower-case s.
+- assertVisible: "Saved search"
 # Tap the saved search to re-apply it
 - tapOn:
     id: "saved-search-chip"

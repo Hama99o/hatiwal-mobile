@@ -21,7 +21,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Block User"
 - waitForAnimationToEnd
-- tapOn: "Block"
+# `chat.block.blockUser` = "Block User".
+- tapOn: "Block User"
 - waitForAnimationToEnd
 - assertVisible: "User blocked"
 

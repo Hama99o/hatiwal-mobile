@@ -60,7 +60,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Condition
-- tapOn: "Used"
+# Conditions are brand_new / like_new / good / fair — "Used" is not one of them.
+- tapOn: "Good"
 - waitForAnimationToEnd
 
 # Location

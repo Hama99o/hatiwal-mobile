@@ -24,7 +24,8 @@ appId: com.hatiwal.app
 
 - tapOn: "Save"
 - waitForAnimationToEnd
-- assertVisible: "Profile updated"
+# `profile.edit.saved` = "Profile saved".
+- assertVisible: "Profile saved"
 
 # Go back and re-edit — Herat still selected
 - tapOn: "Edit Profile"

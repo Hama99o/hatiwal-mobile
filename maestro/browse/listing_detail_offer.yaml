@@ -37,4 +37,5 @@ appId: com.hatiwal.app
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
 # Redirected to conversation thread with the offer message
-- assertVisible: "Offer:"
+# `chat.preview.offer` = "Offer: {{price}}" — interpolated.
+- assertVisible: "Offer:.*"

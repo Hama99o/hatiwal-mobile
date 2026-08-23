@@ -44,7 +44,9 @@ appId: com.hatiwal.app
 # The button is "Save Draft" (listing.form.saveDraft).
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
-- assertVisible: "Listing saved"
+# After "Save Draft" the toast is `listing.form.savedDraft` = "Draft saved".
+# "Listing saved" exists nowhere ("Changes saved" is the EDIT toast).
+- assertVisible: "Draft saved"
 # Find it in My Shop and verify EUR price
 - tapOn: "My Shop"
 - waitForAnimationToEnd

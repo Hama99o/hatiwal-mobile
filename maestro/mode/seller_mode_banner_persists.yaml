@@ -8,7 +8,9 @@ appId: com.hatiwal.app
 - tapOn:
     id: "mode-switcher-banner"
 - waitForAnimationToEnd
-- tapOn: "Switch"
+# Maestro anchors at both ends, so a bare "Switch" cannot match
+# "Switch to Seller Mode" / "Switch to Buyer Mode".
+- tapOn: "Switch.*"
 - waitForAnimationToEnd
 - assertVisible: "Seller Mode"
 

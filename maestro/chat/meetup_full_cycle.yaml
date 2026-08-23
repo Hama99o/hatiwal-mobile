@@ -40,7 +40,8 @@ appId: com.hatiwal.app
 # Fill in place and time
 - tapOn: "Location"
 - inputText: "Kabul City Center"
-- tapOn: "Date & Time"
+# The meetup sheet labels the field `chat.meetup.time` = "Time".
+- tapOn: "Time"
 - waitForAnimationToEnd
 # Select tomorrow date (tap first available slot)
 - tapOn:
@@ -73,4 +74,5 @@ appId: com.hatiwal.app
 # `chat.meetup.accept` = "Accept".
 - tapOn: "Accept"
 - waitForAnimationToEnd
-- assertVisible: "Meetup Confirmed"
+# `chat.meetup.accepted` = "Meetup accepted".
+- assertVisible: "Meetup accepted"
