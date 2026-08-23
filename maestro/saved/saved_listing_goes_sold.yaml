@@ -51,8 +51,12 @@ appId: com.hatiwal.app
     id: "seller-card-primary-action"
     index: 0
 - waitForAnimationToEnd
+# The SECOND transition, reserved -> sold, also on the card: the flow never left
+# the list, so the detail's `lifecycle-primary-action` is not on screen. After the
+# first tap the same card re-renders with its label changed to "Mark as Sold".
 - tapOn:
-    id: "lifecycle-primary-action"
+    id: "seller-card-primary-action"
+    index: 0
 - waitForAnimationToEnd
 - assertVisible: "Sold"
 
