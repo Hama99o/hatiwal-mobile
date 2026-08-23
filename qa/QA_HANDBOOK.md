@@ -727,3 +727,33 @@ Related, from the same day: `open_bundle.yaml` already carried a warning that
 `hideKeyboard` with no IME up exits the app entirely — and that warning sat four
 lines above where a `hideKeyboard` was later added anyway, costing five minutes
 per flow against the Android home screen.
+
+## Two sessions, one database — fixture state is shared, and it bites
+
+The fleet runs two emulators, but they talk to ONE Rails API and ONE database. So
+a flow in session 1 that mutates fixture state changes what session 2 sees,
+mid-flow. This is not theoretical; it produced a failure that took three separate
+investigations to unwind:
+
+1. The e2e seed created the multi-quantity conversation with a single BUYER
+   message, leaving it one-sided.
+2. `conversation_archive` (session 1) archived the conversation above it.
+3. `composer_draft` posted to the one-sided thread, bumping it to the top.
+4. The three unread-badge flows then long-pressed that row and could never get a
+   badge back, because `mark_unread` has no inbound message to un-read — and the
+   API answered 204 anyway.
+
+Consequences worth knowing before adding flows or sessions:
+
+- **Per-feature seeding is NOT safe in a multi-session fleet.** `qa.sh seed`
+  resets the shared database, so doing it between features in one session
+  destroys whatever the other session is mid-way through. Seed only when the
+  whole fleet is stopped.
+- **Prefer flows that create what they assert.** A flow that posts its own
+  message, or creates its own listing, is immune to what the other session did.
+  `create_listing_full_publish` is the model: everything it asserts, it made.
+- **"The topmost row" is not a stable target.** Ordering is driven by
+  `last_message_at`, which any flow in either session can change.
+- Cross-session interference looks like flakiness — a flow that passes alone and
+  fails in the fleet. Before calling such a flow flaky, ask what the other
+  session was running at that moment.
