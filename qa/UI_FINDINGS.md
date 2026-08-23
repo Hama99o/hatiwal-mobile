@@ -1047,8 +1047,7 @@ CTA that follows a text field.
 
 ### MAPS · VERIFIED on device — what is now proven about both location pickers
 
-The user's priority. Five of six flows green on a 360dp phone; the sixth (denying
-permission) was in flight at the time of writing. What each one actually proves:
+The user's priority. ALL SIX flows green on a 360dp phone. What each one actually proves:
 
 | Flow | Proven |
 |---|---|
@@ -1057,7 +1056,7 @@ permission) was in flight at the time of writing. What each one actually proves:
 | `filter_map_use_my_location_granted` | With permission already granted it does **not** ask again, and still resolves |
 | `create_listing_map_pin` | Point mode: search a province, select it, confirm, and the FORM ROW stops saying "Tap to set exact location on map" — then the pin survives into the saved draft |
 | `map_location_outside_afghanistan` | **A device in PARIS is not blocked.** Use-my-location resolves, no failure banner, the pin confirms, and a draft saves with those coordinates |
-| `filter_map_location_denied` | Refusing location shows the persistent banner and leaves the range control usable — a buyer who never grants location can still filter by area |
+| `filter_map_location_denied` | **PASS.** Refusing location raises an actionable alert ("Permission Needed" + Open Settings), and behind it a PERSISTENT inline banner, and the range control still works — a buyer who never grants location can still filter by area |
 
 **On the "outside Afghanistan" question specifically**, checked in code before
 writing the test and then proven on device: the picker applies no bounds,
