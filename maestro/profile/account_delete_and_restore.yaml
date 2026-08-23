@@ -50,6 +50,16 @@ appId: com.hatiwal.app
 - inputText: "Password123!"
 # The submit button, by testID: "Create Account" is also the screen HEADING,
 # so the words alone match two elements.
+# Scroll to it: the register form is first name, last name, phone, email,
+# password and confirm password before the button, and the IME is up from the
+# field just typed. `tapOn` never scrolls, so it failed with "Element not found:
+# Id matching regex: register-submit" on a button that exists and is in the
+# bundle — just below the fold.
+- scrollUntilVisible:
+    element:
+      id: "register-submit"
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     id: "register-submit"
 - waitForAnimationToEnd

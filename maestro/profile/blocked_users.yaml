@@ -28,6 +28,15 @@ appId: com.hatiwal.app
 - scroll
 
 # Tap "Blocked Users" row
+# "Blocked Users" (profile.blockedUsers) is a SETTINGS ROW far down the profile
+# screen — below the stats, quick actions and the mode toggle — and `tapOn` never
+# scrolls to its target. It failed with "Element not found: Text matching regex:
+# Blocked Users" on a row that is simply below the fold.
+- scrollUntilVisible:
+    element:
+      text: "Blocked Users"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Blocked Users"
 - waitForAnimationToEnd
 
@@ -65,6 +74,15 @@ appId: com.hatiwal.app
 - tapOn: "Me"
 - waitForAnimationToEnd
 - scroll
+# "Blocked Users" (profile.blockedUsers) is a SETTINGS ROW far down the profile
+# screen — below the stats, quick actions and the mode toggle — and `tapOn` never
+# scrolls to its target. It failed with "Element not found: Text matching regex:
+# Blocked Users" on a row that is simply below the fold.
+- scrollUntilVisible:
+    element:
+      text: "Blocked Users"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Blocked Users"
 - waitForAnimationToEnd
 
