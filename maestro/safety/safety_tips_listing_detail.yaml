@@ -16,7 +16,16 @@ appId: com.hatiwal.app
 # Sticky CTA is present and not obscured
 - assertVisible: "Contact Seller"
 # Quiet safety-tips link near location
-- tapOn: "Meetup safety tips"
+# The safety link sits near the LOCATION block, far down the listing detail —
+# below the photo, price, description and seller row — and `tapOn` never scrolls.
+# It carries testID="safety-tips-link", which is also immune to translation.
+- scrollUntilVisible:
+    element:
+      id: "safety-tips-link"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "safety-tips-link"
 - waitForAnimationToEnd
 # Sheet opens with localized tips
 - assertVisible: "Meetup Safety Tips"

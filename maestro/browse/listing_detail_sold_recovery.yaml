@@ -32,6 +32,15 @@ env:
 - runFlow: ../_helpers/open_bundle.yaml
 - runFlow: ../_helpers/skip_onboarding.yaml
 - openLink: "hatiwal://listing/${SOLD_LISTING_ID}"
+# The seller row sits below the photo, price and description on the listing
+# detail, so it needs a scroll — neither assertVisible nor tapOn scrolls to its
+# target, and this failed as `id: seller-profile-link is visible` being false on
+# a row that is simply further down.
+- scrollUntilVisible:
+    element:
+      id: "seller-profile-link"
+    direction: DOWN
+    timeout: 20000
 - assertVisible:
     id: "seller-profile-link"
     label: "Sold listing detail renders without a login wall"
@@ -71,6 +80,15 @@ env:
     clearState: false
     stopApp: true
 - openLink: "hatiwal://listing/${RESERVED_LISTING_ID}"
+# The seller row sits below the photo, price and description on the listing
+# detail, so it needs a scroll — neither assertVisible nor tapOn scrolls to its
+# target, and this failed as `id: seller-profile-link is visible` being false on
+# a row that is simply further down.
+- scrollUntilVisible:
+    element:
+      id: "seller-profile-link"
+    direction: DOWN
+    timeout: 20000
 - assertVisible:
     id: "seller-profile-link"
     label: "Reserved listing detail renders without a login wall"

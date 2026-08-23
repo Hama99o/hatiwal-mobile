@@ -28,6 +28,15 @@ env:
 
 # The listing detail screen should render without a login wall.
 # We assert on testIDs / text that the detail screen renders.
+# The seller row sits below the photo, price and description on the listing
+# detail, so it needs a scroll — neither assertVisible nor tapOn scrolls to its
+# target, and this failed as `id: seller-profile-link is visible` being false on
+# a row that is simply further down.
+- scrollUntilVisible:
+    element:
+      id: "seller-profile-link"
+    direction: DOWN
+    timeout: 20000
 - assertVisible:
     id: "seller-profile-link"
     label: "Listing detail seller card visible after deep link"
@@ -41,6 +50,15 @@ env:
 - openLink: "hatiwal://listing/${LISTING_ID}"
 
 # Detail screen should still render — no crash on warm start
+# The seller row sits below the photo, price and description on the listing
+# detail, so it needs a scroll — neither assertVisible nor tapOn scrolls to its
+# target, and this failed as `id: seller-profile-link is visible` being false on
+# a row that is simply further down.
+- scrollUntilVisible:
+    element:
+      id: "seller-profile-link"
+    direction: DOWN
+    timeout: 20000
 - assertVisible:
     id: "seller-profile-link"
     label: "Listing detail still renders on warm start"
