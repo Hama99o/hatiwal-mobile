@@ -820,3 +820,32 @@ one pass, I appended a single `.*` to all of them. That was right for 11 and wro
 for 3, and the 3 failures looked identical to the original bug. When bulk-fixing a
 class, check each member against the real value rather than assuming they share a
 shape.
+
+## Check that the API READS every parameter the client sends
+
+The seller's "Search my listings…" typed into a box that did nothing for as long as
+it has existed. The mobile side was correct at every layer — MyListings debounced
+the field, passed `search:` to `getMyListings`, and the client appended `?search=`
+— and `Api::V1::My::ListingsController#index` never referenced
+`params[:search]`. The request arrived complete and the server ignored it.
+
+Nothing catches this by construction: the flow passes, the response is a valid
+200, and the screen renders perfectly. Only the CONTENT is wrong, and only if you
+know what it should have been.
+
+The check is cheap:
+
+```bash
+# what the client sends
+grep -rhoE 'query\.append\("([a-z_\[\]]+)"' src/api/*.ts | sed 's/.*("//;s/"//' | sort -u
+# what a given controller reads
+grep -oE "params\[:[a-z_]+\]" hatiwal-api/app/controllers/api/v1/my/listings_controller.rb | sort -u
+```
+
+Compare **per endpoint**, not globally: `search` was read by the public
+`listings_controller` all along, so a repo-wide grep found it and proved nothing.
+
+Running it over every endpoint turned up one more mismatch that is NOT a bug —
+`getMyListings` accepts a `categoryId` no caller passes, so the parameter is dead
+in the client rather than dropped by the server. Worth verifying which side is
+missing before filing anything.
