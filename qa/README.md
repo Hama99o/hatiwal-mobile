@@ -479,3 +479,29 @@ app. Check Metro before touching code.
 CPU starvation, not a broken Android Studio. Check `uptime` against `nproc`.
 This is why `build` refuses to start above 1.5x cores and `up` refuses above
 1x — never run a gradle build and the emulator at the same time.
+
+## `./qa/qa.sh audit` — run this before any long sweep
+
+Two static audits, no device needed, a few seconds each. They catch failures that
+are **impossible by construction** rather than caused by a regression, and both
+look exactly like app bugs in a flow log:
+
+- **audit_labels.py** — every literal string a flow asserts, checked against what
+  the app can render. Reports three classes: `DEAD` (the string is in the locale
+  but its key is referenced in no `.ts`/`.tsx`), `SUBSTRING` (a prefix of real
+  copy — Maestro matches the FULL string as a regex, so it can never match), and
+  `UNKNOWN` (in no locale value at all: mostly seed data, but stale or
+  wrong-cased copy hides here).
+- **audit_testids.py** — every `id:` a flow targets, checked against the testIDs
+  the app defines, including templated ones and default parameter values.
+
+Between them they accounted for **37 assertions that could never have passed** —
+dead keys, prefixes of longer copy, wrong case, renamed copy, and 19 testIDs
+pointing at nothing. Run it after any copy rename or testID change too.
+
+Both tools were wrong before they were right, and the exclusions they carry are
+the record of that: dynamic key interpolation (`t(\`listing.filter.${tab}\`)`),
+`.ts` files as well as `.tsx` (a hook owns every lifecycle label), strings the
+flow TYPES itself, Android's own dialog buttons, and ids inside `optional: true`
+steps. A first run that reports dozens of "dead" strings is a broken audit, not a
+broken suite — check a few by hand before acting on it.

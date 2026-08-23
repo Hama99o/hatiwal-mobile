@@ -299,6 +299,16 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   register)
            python3 "$HERE/lib/register.py" "$REPORTS_DIR" ;;
 
+  # Static audits — no device, no emulator, seconds to run. They catch the class
+  # of failure that is IMPOSSIBLE BY CONSTRUCTION rather than caused by a
+  # regression: an assertion on copy the app never renders, or a testID that
+  # exists nowhere. Both read exactly like app bugs in a flow log, and between
+  # them they accounted for 37 assertions that could never have passed.
+  #
+  # Worth running before any long sweep, and after any copy or testID rename.
+  audit)   echo; python3 "$HERE/lib/audit_labels.py"
+           echo; python3 "$HERE/lib/audit_testids.py" ;;
+
   triage)  last="$(ls -d "$REPORTS_DIR"/run-* 2>/dev/null | tail -1)"
            [ -n "$last" ] || die "no runs yet"
            python3 "$HERE/lib/report.py" "$last" ;;
