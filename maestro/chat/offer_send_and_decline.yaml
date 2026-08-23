@@ -11,8 +11,12 @@ appId: com.hatiwal.app
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
-- tapOn: "Contact Seller"
-- waitForAnimationToEnd
+# NO "Contact Seller" tap first. "Make an Offer" is a SIBLING of "Contact
+# Seller" directly on ListingDetail.tsx — tapping Contact Seller navigates
+# AWAY (to the thread, or to FirstMessageSheet on a first contact), and the
+# offer button is then left behind on the screen we came from. That is why
+# this failed with "Element not found: Text matching regex: Make an Offer".
+# offer_send_and_accept.yaml has always done it this way and passes.
 
 # Send offer
 - tapOn: "Make an Offer"

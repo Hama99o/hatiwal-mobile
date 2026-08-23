@@ -11,8 +11,12 @@ appId: com.hatiwal.app
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
-- tapOn: "Contact Seller"
-- waitForAnimationToEnd
+# Not a bare `tapOn: "Contact Seller"`: on a FIRST contact the app opens
+# FirstMessageSheet ("Message Seller" + a pre-filled opener + Send Message)
+# and the thread does not exist until that is sent. The helper handles both
+# paths and leaves us in the thread. Whether a thread already exists depends
+# on shared fixture state, so this cannot be assumed either way.
+- runFlow: ../_helpers/open_thread_from_listing.yaml
 
 # Propose meetup — TASK-K487: the composer's meetup/file/photo/offer icons
 # are now collapsed behind a single "+" actions sheet.

@@ -1,0 +1,36 @@
+appId: com.hatiwal.app
+---
+# Get from a listing detail into an OPEN conversation thread.
+#
+# "Contact Seller" does not always land in a thread. On a FIRST contact the app
+# opens FirstMessageSheet instead — a bottom sheet titled "Message Seller" with
+# the listing summarised, a pre-filled "Hi, is this still available?", and
+# Send Message / Cancel. The conversation does not exist until that is sent.
+#
+# So a flow that taps "Contact Seller" and then reaches for the composer works
+# only when a thread already exists — and whether it does depends on the shared
+# fixture state and on what the other fleet session has been doing. Confirmed by
+# screenshot: message_long_text failed with "Element not found: Text matching
+# regex: Type a message..." while sitting on that sheet, with everything working
+# exactly as designed.
+#
+# This helper handles both paths and leaves the app in the thread either way.
+# Call it INSTEAD of `tapOn: "Contact Seller"`.
+
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+
+# First contact: send the pre-filled opener, which creates the conversation and
+# navigates into it. Optional, because a returning buyer goes straight to the
+# thread and this sheet never appears.
+- runFlow:
+    when:
+      visible: "Send Message"
+    commands:
+      - tapOn: "Send Message"
+      - waitForAnimationToEnd
+
+# Either way, we must now be in a thread — the composer is the proof.
+- extendedWaitUntil:
+    visible: "Type a message..."
+    timeout: 30000
