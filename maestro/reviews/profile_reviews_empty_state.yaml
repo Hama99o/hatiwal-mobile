@@ -29,8 +29,14 @@ env:
 - tapOn: "Me"
 - waitForAnimationToEnd
 
-# NOT "Profile": `profile.title` is a dead key, rendered nowhere (the screen shows
-# the user's name). "Edit" (common.edit) is a real control on the profile screen.
-- assertVisible: "Edit"
+# NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
+# shows the user's NAME. Anchor on the mode toggle's label instead: it is
+# high on the screen (just under the avatar), needs no scroll, and the regex
+# keeps it independent of which mode the account is in.
+#
+# Not "Edit" either, though that IS a real control here: it lives in
+# PersonalInfoCard, well below the fold, so asserting it without a scroll
+# just trades one guaranteed failure for another.
+- assertVisible: "Switch to .*"
 - assertVisible: "No reviews yet"
 - assertNotVisible: "Rate your recent deals"
