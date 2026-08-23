@@ -23,6 +23,40 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Create Listing"
 
+# ── Photo FIRST — it is the form's first section ─────────────────────────────
+# ListingForm's own header numbers the sections "1. Photos", and PhotosSection is
+# rendered before title/price/category/description/location. The earlier version of
+# this flow filled everything else and then scrolled DOWN for the photo button,
+# which sits at the TOP: it failed with "No visible element found: id:
+# photos-add-button" while the button was simply behind it. Doing photos first
+# matches the form AND the order a seller actually works in.
+#
+# A publish blocker: `getPublishBlockers({ mode: "publish" })` refuses a live
+# listing with no photo, which is exactly what this flow exists to prove.
+- assertVisible:
+    id: "photos-add-button"
+- tapOn:
+    id: "photos-add-button"
+- waitForAnimationToEnd
+- tapOn:
+    text: "Gallery"
+    optional: true
+- waitForAnimationToEnd
+# Selecting an image in the SYSTEM picker. The picker is not our app, so it exposes
+# no testIDs; these are the shapes it takes across Android versions, tried in order
+# and all optional. The real gate is the thumbnail asserted below.
+- tapOn:
+    text: "Photo taken on.*"
+    optional: true
+- tapOn:
+    text: "qa_photo.*"
+    optional: true
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-form-photo-thumb"
+    timeout: 30000
+
 # ── Title and price ─────────────────────────────────────────────────────────
 - tapOn: "What are you selling?"
 - inputText: "QA Full Publish Bicycle"
@@ -77,34 +111,6 @@ appId: com.hatiwal.app
     timeout: 45000
 # The row must stop offering to set a location — that is the proof the pin took.
 - assertNotVisible: "Tap to set exact location on map"
-
-# ── Photo: the other publish blocker ────────────────────────────────────────
-- scrollUntilVisible:
-    element:
-      id: "photos-add-button"
-    direction: DOWN
-    timeout: 20000
-- tapOn:
-    id: "photos-add-button"
-- waitForAnimationToEnd
-- tapOn:
-    text: "Gallery"
-    optional: true
-- waitForAnimationToEnd
-# Selecting an image in the SYSTEM picker. The picker is not our app, so it exposes
-# no testIDs; these are the shapes it takes across Android versions, tried in order
-# and all optional. The real gate is the cover badge asserted below.
-- tapOn:
-    text: "Photo taken on.*"
-    optional: true
-- tapOn:
-    text: "qa_photo.*"
-    optional: true
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible:
-      id: "listing-form-photo-thumb"
-    timeout: 30000
 
 # ── PUBLISH ─────────────────────────────────────────────────────────────────
 - scrollUntilVisible:
