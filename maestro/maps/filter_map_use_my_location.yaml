@@ -77,4 +77,12 @@ appId: com.hatiwal.app
     notVisible:
       id: "location-confirm"
     timeout: 30000
+
+# Confirming returns to the FILTER SHEET, not the feed — the sheet still covers the
+# tab bar, so "Bazaar" is not visible yet. (Same correction as
+# filter_map_default_kabul; this flow was missed.) Close the sheet, then check.
+- tapOn: "Show results"
+- extendedWaitUntil:
+    notVisible: "Show results"
+    timeout: 30000
 - assertVisible: "Bazaar"
