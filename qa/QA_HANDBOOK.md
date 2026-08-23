@@ -654,3 +654,28 @@ Use that exact URL. `/index.bundle` is **not** the entry for this Expo app — i
 returns a 404 JSON body ("Unable to resolve module ./index"), and `grep -c` on a
 404 returns 0, which reads exactly like a stale bundle. Check the HTTP status
 before believing a zero.
+
+## Do not run `tsc`, `jest` or a bundle fetch while the fleet is sweeping
+
+Heavy host work starves the emulators, and the way that surfaces is a **lie**: the
+accessibility hierarchy dump comes back nearly empty, so Maestro sees none of the
+elements that are plainly on screen and fails a perfectly good assertion.
+
+Concretely: three flows failed on `Assertion is false: "Me" is visible` while the
+screenshot taken two steps earlier showed the app signed in as Ahmad Karimi in
+buyer mode with the "Me" tab visible AND focused. The hierarchy JSON for the
+failing step contained exactly one string — the status-bar clock, "1:22".
+
+**Duration is the tell.** Passing flows on this rig run a 175s median and have
+never exceeded 315s. The three contaminated failures took 372s, 447s and 462s.
+Any flow past ~330s should be treated as suspect before it is triaged as a bug.
+
+So: while `fleet.sh` runs, restrict yourself to reading and editing files. Batch
+`npx tsc`, `npx jest`, Gradle and bundle fetches into a window where the fleet is
+stopped. This is the same family of mistake as running `maestro` directly during a
+`qa.sh` run — a competing consumer that makes flows fail *plausibly* rather than
+obviously.
+
+Editing app `.tsx` files mid-sweep is its own hazard: the debug APK pulls JS from
+Metro at launch, so a flow can bundle a half-written file. Confine mid-sweep edits
+to `maestro/` and docs.
