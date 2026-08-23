@@ -8,9 +8,17 @@ appId: com.hatiwal.app
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
 - assertVisible: "Create Listing"
-- tapOn: "Title"
+# The INPUT by testID, not the label. "Title" / "Description" / "Price" are
+# non-interactive Text labels above their fields, so tapping one focuses
+# nothing and the inputText that follows goes nowhere. A testID also works when
+# the field already HAS a value (draft restore, edit), where the placeholder is
+# no longer on screen.
+- tapOn:
+    id: "listing-form-title-input"
 - inputText: "EUR Currency Test Item"
-- tapOn: "Price"
+# The INPUT by testID — see the note on the title field.
+- tapOn:
+    id: "listing-form-price-input"
 - inputText: "250"
 # Open currency picker and select EUR
 - tapOn: "AFN"

@@ -38,7 +38,11 @@ appId: com.hatiwal.app
 - assertVisible: "Propose a Meetup"
 
 # Fill in place and time
-- tapOn: "Location"
+# The meetup sheet's PLACE field, by its placeholder
+# (`chat.meetup.placePlaceholder`). "Location" is not a label on this sheet at all
+# — that name belongs to the listing form, which is a different screen.
+- tapOn: "Where? (e.g. Shahr-e-Naw market)"
+- eraseText
 - inputText: "Kabul City Center"
 # The meetup sheet labels the field `chat.meetup.time` = "Time".
 - tapOn: "Time"

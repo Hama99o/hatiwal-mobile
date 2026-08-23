@@ -35,7 +35,11 @@ appId: com.hatiwal.app
 - tapOn:
     id: "composer-action-meetup"
 - waitForAnimationToEnd
-- tapOn: "Location"
+# The meetup sheet's PLACE field, by its placeholder
+# (`chat.meetup.placePlaceholder`). "Location" is not a label on this sheet at all
+# — that name belongs to the listing form, which is a different screen.
+- tapOn: "Where? (e.g. Shahr-e-Naw market)"
+- eraseText
 - inputText: "Share Now Market"
 # The meetup sheet's confirm button is `chat.meetup.propose` = "Propose Meetup".
 - tapOn: "Propose Meetup"

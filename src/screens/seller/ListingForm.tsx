@@ -1249,6 +1249,7 @@ export default function ListingFormScreen() {
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
+                testID="listing-form-title-input"
                 placeholder={t("listing.titlePlaceholder")}
                 maxLength={150}
                 error={!!errors.title}
@@ -1312,7 +1313,8 @@ export default function ListingFormScreen() {
                   // NaN`) silently clear the field.
                   onChangeText={(v) => field.onChange(normalizeDigits(v) as unknown as number)}
                   onBlur={field.onBlur}
-                  placeholder={t("listing.pricePlaceholder")}
+                  testID="listing-form-price-input"
+                placeholder={t("listing.pricePlaceholder")}
                   keyboardType="numeric"
                   aria-labelledby="price-label"
                   // TASK-P736 (review fix, a11y, iOS) — see the identical
@@ -1587,6 +1589,7 @@ export default function ListingFormScreen() {
                 value={field.value}
                 onChangeText={field.onChange}
                 onBlur={field.onBlur}
+                testID="listing-form-description-input"
                 placeholder={t("listing.descriptionPlaceholder")}
                 numberOfLines={4}
                 style={{ textAlign: isRtl ? "right" : "left", textAlignVertical: "top" }}

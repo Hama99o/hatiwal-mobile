@@ -20,15 +20,25 @@ appId: com.hatiwal.app
 - assertVisible: "Cover"
 
 # Title
-- tapOn: "Title"
+# The INPUT by testID, not the label. "Title" / "Description" / "Price" are
+# non-interactive Text labels above their fields, so tapping one focuses
+# nothing and the inputText that follows goes nowhere. A testID also works when
+# the field already HAS a value (draft restore, edit), where the placeholder is
+# no longer on screen.
+- tapOn:
+    id: "listing-form-title-input"
 - inputText: "Samsung Galaxy S22 Used"
 
 # Description
-- tapOn: "Description"
+# The INPUT by testID — see the note on the title field.
+- tapOn:
+    id: "listing-form-description-input"
 - inputText: "Excellent condition, minor scratches on back. All accessories included."
 
 # Price
-- tapOn: "Price"
+# The INPUT by testID — see the note on the title field.
+- tapOn:
+    id: "listing-form-price-input"
 - inputText: "18000"
 
 # Currency — default is AFN, switch to USD
@@ -65,7 +75,14 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Location
-- tapOn: "Location"
+# "Location" is a non-interactive label. The row that opens the map is
+# `listing.form.tapToSetLocation` = "Tap to set exact location on map".
+- scrollUntilVisible:
+    element:
+      text: "Tap to set exact location on map"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Tap to set exact location on map"
 - waitForAnimationToEnd
 - tapOn: "Kabul"
 - waitForAnimationToEnd
