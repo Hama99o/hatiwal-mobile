@@ -269,7 +269,12 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
         // layer handles the redirect, so don't log it or flash a list error.
         const status = (err as { response?: { status?: number } } | undefined)?.response?.status;
         if (status === 401) return;
-        console.error("[UniversalList] fetch error", err);
+        // warn, not error: in a dev build `console.error` raises a FULL-SCREEN
+        // LogBox overlay, which covers the very error state the next line
+        // renders — the list's own inline error, with its retry, is what the
+        // user (and the flows) are supposed to see. A failed request is a
+        // network condition, not a bug in this component.
+        console.warn("[UniversalList] fetch error", err);
         setError(t("common.error"));
       }
     },
@@ -335,9 +340,15 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
       if (requestId !== requestIdRef.current) return;
       const status = (err as { response?: { status?: number } } | undefined)?.response?.status;
       if (status === 401) return;
-      console.error("[UniversalList] background refresh error", err);
       // A background refresh failing (e.g. device went offline) must not
       // blank an already-loaded, perfectly usable list — leave it as-is.
+      //
+      // Which is exactly why this is warn and not error: `console.error` pops a
+      // full-screen LogBox in dev, so the line below tolerated the failure while
+      // the log itself blanked the list anyway. Seen on device — a transient
+      // "AxiosError: Network Error" replaced the whole app with a red Console
+      // Error page pointing at this line.
+      console.warn("[UniversalList] background refresh error", err);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher, perPage]);

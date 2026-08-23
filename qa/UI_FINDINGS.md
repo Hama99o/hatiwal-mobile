@@ -1078,6 +1078,41 @@ CTA that follows a text field.
 
 ---
 
+### UI-024 · A tolerated network error replaced the whole app with a red error page — FIXED
+
+**Where:** any screen backed by `UniversalList` (Bazaar, saved, categories, shop…)
+**Severity:** HIGH in dev — the app becomes unusable until dismissed
+**Evidence:** `qa/reports/s2/run-132/browse/screens/categories_hub.png`
+
+The screenshot is a full-screen LogBox: *"Console Error — [UniversalList]
+background refresh error AxiosError: Network Error"*, pointing at
+`UniversalList.tsx:338`, with the app entirely hidden behind it.
+
+The code around that line is explicit that this failure is tolerated:
+
+```
+// A background refresh failing (e.g. device went offline) must not
+// blank an already-loaded, perfectly usable list — leave it as-is.
+```
+
+…and then logged it with `console.error`, which in a debug build raises exactly
+that overlay. So the handler tolerated the failure while the log blanked the list
+anyway — the one outcome the comment set out to prevent. A brief network hiccup
+was enough to trigger it.
+
+The sibling call at line 272 had the same problem for the initial fetch: it does
+`setError(t("common.error"))` to render the list's own inline error with a retry,
+and the LogBox then covered that too.
+
+**Fixed** — both are now `console.warn`. A failed request is a network condition,
+not a bug in the component, and the app already handles both cases properly. These
+were the only two `console.error` calls in `src/`.
+
+Not fixed by dismissing the overlay in the flows: `open_bundle.yaml` dismisses a
+LogBox only where it is understood, dev-only and caused by the helper's own
+language switch (UI-007). A blanket dismissal would hide real app errors, which is
+the opposite of what this rig is for.
+
 ### MAPS · VERIFIED on device — what is now proven about both location pickers
 
 The user's priority. ALL SIX flows green on a 360dp phone. What each one actually proves:
