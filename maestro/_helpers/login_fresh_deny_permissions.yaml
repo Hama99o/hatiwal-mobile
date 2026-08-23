@@ -1,0 +1,44 @@
+appId: com.hatiwal.app
+env:
+  EMAIL: buyer@hatiwal.test
+  PASSWORD: Password123!
+---
+# Sign in fresh, with runtime permissions DENIED at launch.
+#
+# THE POINT: Maestro GRANTS ALL RUNTIME PERMISSIONS on `launchApp` by default.
+# That is why a flow could never see the location dialog — the app already had
+# permission before it ran, so `requestForegroundPermissionsAsync` returned granted
+# without asking, and `dumpsys package` showed granted=true after every flow no
+# matter what was done beforehand. Neither `clearState` nor `pm reset-permissions`
+# beforehand can beat it: the grant happens at launch, after both.
+#
+# `permissions: all: deny` is the control that actually works, and it belongs in
+# the flow rather than in a shell step for exactly that reason.
+#
+# Use this for flows whose subject is the PROMPT (or a refusal). Use
+# login_fresh.yaml when the flow wants permissions already granted.
+
+- launchApp:
+    clearState: true
+    permissions:
+      all: deny
+- runFlow: open_bundle.yaml
+- runFlow: goto_login.yaml
+
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+
+# The keyboard hides "Sign In" on a small screen — scroll rather than tap blind.
+- scrollUntilVisible:
+    element:
+      text: "Sign In"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Sign In"
+
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+- assertNotVisible: "Login"

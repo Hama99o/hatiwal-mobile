@@ -10,30 +10,25 @@ appId: com.hatiwal.app
 #   2. granting it is accepted
 #   3. the coordinates actually change, and confirming carries them into the filter
 #
-# PRECONDITION — permissions must be at NEVER-ASKED:
+# NO SHELL PRECONDITION NEEDED — and this took three wrong attempts to see.
 #
-#     ./qa/qa.sh perm reset
-#     ./qa/qa.sh flow maps/filter_map_use_my_location
+# Maestro GRANTS ALL RUNTIME PERMISSIONS on `launchApp` by default. So the app
+# already had location permission before the flow ran, `requestForegroundPermissions`
+# returned granted without asking, and the flow sat waiting 30s for a dialog that
+# was never coming. `dumpsys package` showed granted=true after every run.
 #
-# `launchApp: clearState: true` does NOT do it, and neither does `pm revoke` —
-# revoke marks the permission USER-FIXED ("don't ask again"), so Android never
-# shows the dialog and the request returns denied immediately. Only
-# `pm reset-permissions` restores the never-asked state. That was my assumption and it is
-# wrong: checked with `dumpsys package` after several clearState flows,
-# ACCESS_FINE_LOCATION was still granted=true, so this flow failed waiting 30s for
-# a dialog the app had no reason to show. Permission state is device state, not app
-# state, and it has to be set explicitly.
+# Neither of my first two fixes could work, because both act BEFORE the launch that
+# then grants:
+#   * `clearState: true`        — clears data, not permissions
+#   * `qa.sh perm revoke`       — also marks the permission USER-FIXED, so Android
+#                                 would never show the dialog even if it stuck
+#   * `qa.sh perm reset`        — right idea (never-asked), still undone by launch
 #
-# For the already-granted path see filter_map_use_my_location_granted.yaml.
-#
-# Precondition: the device has a GPS fix. `qa.sh up` seeds one; without it the app
-# correctly reports "Couldn't determine your location" and this flow fails for a
-# device reason rather than an app reason.
+# `permissions: all: deny` on launchApp is the only control that holds, which is
+# why it lives in the helper this flow uses (must SEE the dialog).
 
-# clearState + sign in. The helper also scrolls to "Sign In", which the
-# keyboard hides on a small screen after typing the password.
 - runFlow:
-    file: ../_helpers/login_fresh.yaml
+    file: ../_helpers/login_fresh_deny_permissions.yaml
     env:
       EMAIL: buyer@hatiwal.test
       PASSWORD: Password123!

@@ -14,6 +14,12 @@ env:
 # Use it when the flow's subject IS the fresh state: permission prompts, first-run
 # behaviour, onboarding. Use login.yaml everywhere else; it is much cheaper.
 #
+# NOTE: Maestro GRANTS ALL RUNTIME PERMISSIONS on launchApp by default, so a flow
+# using this helper starts with location, camera and storage already granted. That
+# is usually what you want. For a flow whose subject is the permission PROMPT, use
+# login_fresh_deny_permissions.yaml — no amount of `pm reset-permissions`
+# beforehand can beat a grant that happens at launch.
+#
 # Pass a different account with --env EMAIL=… PASSWORD=…
 
 - launchApp:

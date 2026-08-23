@@ -11,10 +11,13 @@ appId: com.hatiwal.app
 # The banner is deliberately PERSISTENT rather than a toast: a transient alert can
 # be missed, and then the button looks broken.
 
-# clearState + sign in. The helper also scrolls to "Sign In", which the
-# keyboard hides on a small screen after typing the password.
+# Permissions are DENIED at launch by the helper (`permissions: all: deny`), which
+# is the only way to make the dialog appear: Maestro grants all runtime permissions
+# on launchApp by default, so without this the app already has location and never
+# asks. See the helper for why clearState and `pm reset-permissions` cannot
+# substitute — both act before the launch that grants.
 - runFlow:
-    file: ../_helpers/login_fresh.yaml
+    file: ../_helpers/login_fresh_deny_permissions.yaml
     env:
       EMAIL: buyer@hatiwal.test
       PASSWORD: Password123!

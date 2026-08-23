@@ -15,9 +15,14 @@ appId: com.hatiwal.app
 #
 # PRECONDITION — the device must actually be abroad:
 #
-#     ./qa/qa.sh geo 48.8566 2.3522      # Paris
-#     ./qa/qa.sh flow maps/map_location_outside_afghanistan
-#     ./qa/qa.sh geo                     # back to Kabul afterwards
+#     QA_GEO_LAT=48.8566 QA_GEO_LON=2.3522 \
+#       ./qa/qa.sh flow maps/map_location_outside_afghanistan
+#
+# Pass the coordinates as ENV, not via `qa.sh geo` beforehand: the per-flow
+# preflight in lib/flows.sh re-sends the fix before every flow (because
+# `adb emu geo fix` is one-shot and goes stale), so a fix set by hand would be
+# overwritten with Kabul a second later. Overriding the variables makes the
+# preflight itself send Paris.
 #
 # Running it with the default Kabul fix still passes, but proves nothing — the
 # geo step is the test.
