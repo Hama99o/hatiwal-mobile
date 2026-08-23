@@ -32,7 +32,9 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Happy path restored after retry
-- assertVisible: "Profile"
+# NOT "Profile": `profile.title` is a dead key, rendered nowhere (the screen shows
+# the user's name). "Edit" (common.edit) is a real control on the profile screen.
+- assertVisible: "Edit"
 # "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
 # stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
 # `assertVisible` do not scroll to their target.

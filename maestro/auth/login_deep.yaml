@@ -21,7 +21,9 @@ appId: com.hatiwal.app
 # Verify profile data populated
 - tapOn: "Me"
 - waitForAnimationToEnd
-- assertVisible: "Profile"
+# NOT "Profile": `profile.title` is a dead key, rendered nowhere (the screen shows
+# the user's name). "Edit" (common.edit) is a real control on the profile screen.
+- assertVisible: "Edit"
 # User name shown (Ahmad Karimi from seed data)
 - assertVisible: "Ahmad"
 

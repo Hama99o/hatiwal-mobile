@@ -17,7 +17,9 @@ appId: com.hatiwal.app
 - assertVisible: "Bazaar"
 - tapOn: "Me"
 - waitForAnimationToEnd
-- assertVisible: "Profile"
+# NOT "Profile": `profile.title` is a dead key, rendered nowhere (the screen shows
+# the user's name). "Edit" (common.edit) is a real control on the profile screen.
+- assertVisible: "Edit"
 
 # "Items Bought" stat cell must be entirely absent (not "0 Items Bought") —
 # only "Saved Items" shows in the buyer stats row.

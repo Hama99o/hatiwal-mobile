@@ -8,7 +8,9 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "Me"
 - waitForAnimationToEnd
-- assertVisible: "Profile"
+# NOT "Profile": `profile.title` is a dead key, rendered nowhere (the screen shows
+# the user's name). "Edit" (common.edit) is a real control on the profile screen.
+- assertVisible: "Edit"
 
 # Seller-mode stats row: Sold (non-zero, sourced from transactions) and
 # Active (unaffected — always shown regardless of count).

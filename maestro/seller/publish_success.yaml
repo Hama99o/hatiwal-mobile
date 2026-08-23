@@ -128,6 +128,14 @@ appId: com.hatiwal.app
 # plus "More".
 - tapOn: "More"
 - waitForAnimationToEnd
+# Below the fold: `tapOn` never scrolls to its target, and both the profile screen
+# (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
+# description, views chart, action row) are taller than a phone.
+- scrollUntilVisible:
+    element:
+      text: "Edit"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Listing"

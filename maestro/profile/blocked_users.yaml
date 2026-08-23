@@ -14,7 +14,9 @@ appId: com.hatiwal.app
 # Navigate to Profile tab
 - tapOn: "Me"
 - waitForAnimationToEnd
-- assertVisible: "Profile"
+# NOT "Profile": `profile.title` is a dead key, rendered nowhere (the screen shows
+# the user's name). "Edit" (common.edit) is a real control on the profile screen.
+- assertVisible: "Edit"
 
 # Scroll down to Privacy section
 - scroll
@@ -35,7 +37,9 @@ appId: com.hatiwal.app
 - tapOn:
     id: "back_button"
 - waitForAnimationToEnd
-- assertVisible: "Profile"
+# NOT "Profile": `profile.title` is a dead key, rendered nowhere (the screen shows
+# the user's name). "Edit" (common.edit) is a real control on the profile screen.
+- assertVisible: "Edit"
 
 ---
 # Blocked Users — unblock flow (requires a blocked user to exist)

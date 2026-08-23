@@ -40,4 +40,6 @@ appId: com.hatiwal.app
 
 # Go back to Profile
 - back
-- assertVisible: "Profile"
+# NOT "Profile": `profile.title` is a dead key, rendered nowhere (the screen shows
+# the user's name). "Edit" (common.edit) is a real control on the profile screen.
+- assertVisible: "Edit"

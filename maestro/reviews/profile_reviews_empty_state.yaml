@@ -29,6 +29,8 @@ env:
 - tapOn: "Me"
 - waitForAnimationToEnd
 
-- assertVisible: "Profile"
+# NOT "Profile": `profile.title` is a dead key, rendered nowhere (the screen shows
+# the user's name). "Edit" (common.edit) is a real control on the profile screen.
+- assertVisible: "Edit"
 - assertVisible: "No reviews yet"
 - assertNotVisible: "Rate your recent deals"

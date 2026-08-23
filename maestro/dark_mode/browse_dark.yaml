@@ -6,6 +6,14 @@ appId: com.hatiwal.app
 - tapOn: "Me"
 - waitForAnimationToEnd
 - assertVisible: "APPEARANCE"
+# Below the fold: `tapOn` never scrolls to its target, and both the profile screen
+# (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
+# description, views chart, action row) are taller than a phone.
+- scrollUntilVisible:
+    element:
+      text: "Dark"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Dark"
 - waitForAnimationToEnd
 # Navigate to Bazaar — all elements should be visible in dark mode
