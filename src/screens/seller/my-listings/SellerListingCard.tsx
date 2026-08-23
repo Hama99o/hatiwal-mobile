@@ -98,6 +98,8 @@ export function SellerListingCard({ listing, onMutated, viewMode = "list" }: Sel
   // fights the vertical scroll of the list it sits in.
   const isList = viewMode === "list";
   const THUMB_W = 112;
+  // Wider than any phone in portrait, so only tablets and landscape are clamped.
+  const ACTION_ROW_MAX = 520;
 
   // TASK-L863: all seven lifecycle mutations, confirmAlert copy, invalidation
   // and BuyerPickerSheet/ReviewPromptSheet wiring live in this ONE hook —
@@ -350,7 +352,23 @@ export function SellerListingCard({ listing, onMutated, viewMode = "list" }: Sel
           on a terminal `sold` listing with no primary, More alone takes the
           full width) plus a compact "More" trigger for everything else. */}
       <View style={[styles.actions, { borderTopColor: colors.border }]}>
-        <View style={{ flexDirection: rowDirection, gap: 8 }}>
+        {/* Cap the control row on a wide screen. Stretching to the full width of
+            a landscape tablet gave a ~1750px "Publish" bar, and a sold listing —
+            which has no primary action, so More takes flex:1 — became an enormous
+            empty pill with a word in the middle. Verified from a 2560x1600
+            screenshot. A button does not become more tappable by being wider than
+            a hand; it just stops reading as a button.
+            ACTION_ROW_MAX is generous enough to be unreachable on any phone, so
+            phones keep the full-width layout they were designed with. */}
+        <View
+          style={{
+            flexDirection: rowDirection,
+            gap: 8,
+            width: "100%",
+            maxWidth: ACTION_ROW_MAX,
+            alignSelf: isRtl ? "flex-end" : "flex-start",
+          }}
+        >
           {primaryAction && (
             <Button
               variant="default"
