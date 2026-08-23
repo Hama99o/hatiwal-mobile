@@ -13,10 +13,16 @@ appId: com.hatiwal.app
 # already ON with its number, not OFF over a hidden 15 the seller can neither see
 # nor correct.
 #
-# Operates on the QA draft that create_listing_multi_quantity.yaml leaves behind
-# ("QA Phone Cases Bulk 15", 15 units) rather than a seeded fixture — editing a
-# shared fixture's count would break every other flow asserting 15. Run that flow
-# first, or re-run it; this one is a no-op without that draft.
+# SELF-CONTAINED: it creates its own batch listing and then edits that.
+#
+# It must not edit the SEEDED multi-unit listing, because other flows assert that
+# one still has 15 units. The previous version therefore reused the draft
+# create_listing_multi_quantity.yaml leaves behind — which made it depend on run
+# ORDER, and the fleet runs two sessions against one database, so it failed with
+# `"QA Batch Edit Target 15" is visible` whenever that flow had not run first, been
+# re-run, or run on the other device.
+#
+# Creating its own costs about forty seconds and removes the coupling entirely.
 
 - launchApp:
     clearState: true
@@ -43,14 +49,54 @@ appId: com.hatiwal.app
 
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-- tapOn: "Draft"
+
+# ── Create the batch listing this flow will edit ────────────────────────────
+- tapOn: "Post a listing"
 - waitForAnimationToEnd
+- assertVisible: "Create Listing"
+- tapOn:
+    id: "listing-form-title-input"
+- eraseText
+- inputText: "QA Batch Edit Target 15"
+- tapOn:
+    id: "listing-form-price-input"
+- eraseText
+- inputText: "400"
 - scrollUntilVisible:
     element:
-      text: "QA Phone Cases Bulk 15"
+      text: "Tap to select category"
     direction: DOWN
-    timeout: 15000
-- tapOn: "QA Phone Cases Bulk 15"
+    timeout: 20000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+# A LEAF: every top-level category has children, so tapping one only drills in.
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Phones & Tablets"
+- waitForAnimationToEnd
+# The quantity field only exists once "I have more than one" is on — the governing
+# rule of the feature is that a seller with one item is never asked.
+- scrollUntilVisible:
+    element:
+      id: "listing-form-quantity-row"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "listing-form-quantity-row"
+- waitForAnimationToEnd
+# No eraseText: this field maps empty to 1 and then APPENDS, and it carries
+# selectTextOnFocus, so a tap already selects the value.
+- tapOn:
+    id: "listing-form-quantity-input"
+- inputText: "15"
+- tapOn: "Save Draft"
+- waitForAnimationToEnd
+
+# ── Reopen it ───────────────────────────────────────────────────────────────
+- extendedWaitUntil:
+    visible: "QA Batch Edit Target 15"
+    timeout: 30000
+- tapOn: "QA Batch Edit Target 15"
 - waitForAnimationToEnd
 
 # The owner detail already states the batch, from the create round trip.
@@ -107,7 +153,7 @@ appId: com.hatiwal.app
 # ── The count survived the UPDATE round trip ────────────────────────────────
 # This is the assertion the create flow could not make: it proves
 # `updateListingWithImages` puts listing[quantity] on the wire too.
-- assertVisible: "QA Phone Cases Bulk 15"
+- assertVisible: "QA Batch Edit Target 15"
 - assertVisible:
     id: "stock-badge-owner"
 - assertVisible: "20 in stock"
