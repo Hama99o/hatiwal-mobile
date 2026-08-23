@@ -1581,11 +1581,17 @@ export function ConversationScreen() {
             }
           }}
           ListHeaderComponent={
-            isLoadingMore ? (
-              <View style={{ paddingVertical: 14, alignItems: "center" }}>
-                <ActivityIndicator size="small" color={colors.primary} />
-              </View>
-            ) : null
+            // Always rendered, so the top of the thread has a stable anchor to
+            // scroll to; it collapses to zero height when nothing is loading, so
+            // it adds no space above the first message. Previously this returned
+            // null unless a page was in flight, which left the only "top of
+            // thread" handle existing exactly while it was too late to aim at.
+            <View
+              testID="messages-list-top"
+              style={{ paddingVertical: isLoadingMore ? 14 : 0, alignItems: "center" }}
+            >
+              {isLoadingMore ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+            </View>
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>

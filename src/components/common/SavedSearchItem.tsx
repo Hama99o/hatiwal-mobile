@@ -107,6 +107,9 @@ export function SavedSearchItem({ search, onPress, onDelete }: SavedSearchItemPr
   return (
     <Pressable
       onPress={onPress}
+      // Every chip shares this id; flows select the Nth with `index`. The only
+      // other handle was the search's own name, which is user data.
+      testID="saved-search-chip"
       android_ripple={{ color: colors.muted, borderless: false }}
       style={[
         styles.chip,

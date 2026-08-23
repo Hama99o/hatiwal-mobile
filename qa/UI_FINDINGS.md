@@ -1113,6 +1113,28 @@ LogBox only where it is understood, dev-only and caused by the helper's own
 language switch (UI-007). A blanket dismissal would hide real app errors, which is
 the opposite of what this rig is for.
 
+### UI-025 · ModeSwitcherBanner was built, tested and never mounted (OPEN — product)
+
+**Where:** nowhere — that is the finding
+**Severity:** low as a bug, notable as waste
+**Evidence:** `qa/lib/audit_testids.py`; 5 flow sites target `mode-switcher-banner`
+
+`src/components/common/ModeSwitcherBanner.tsx` exists, is documented ("Buyer mode
+→ blue primary strip: *Buyer Mode · Switch to Selling →*; Seller mode → amber
+warning strip"), and has its own unit tests. It is imported by nothing but those
+tests. Five flow sites in `maestro/mode/` target `mode-switcher-banner`, so they
+were written against a component the app never mounts and can never pass.
+
+Left alone deliberately. Whether the app should carry a persistent mode banner is
+a product decision — mode is already legible through the tab labels flipping
+(Bazaar ↔ My Shop) and the toggle on the profile screen — and adding a strip to
+every screen is a visible change to every screen. Rewriting the five flows to
+assert its absence would be worse: it would quietly bless the waste and destroy
+the record of an intended feature.
+
+For `product-owner`: either mount it or delete it and its tests. The flows should
+follow that decision, not pre-empt it.
+
 ### MAPS · VERIFIED on device — what is now proven about both location pickers
 
 The user's priority. ALL SIX flows green on a 360dp phone. What each one actually proves:

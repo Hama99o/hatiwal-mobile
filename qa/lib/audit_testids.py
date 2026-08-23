@@ -36,11 +36,22 @@ literal |= set(re.findall(r'(?:input|clear|button|icon|row)TestID=["\']([A-Za-z0
 tmpl  = set(re.findall(r'testID=\{`([A-Za-z0-9_\-]+?)-?\$\{', src))
 tmpl |= set(re.findall(r'testID=\{`([A-Za-z0-9_\-]+)`\}', src))
 
+# An id inside an `optional: true` step is allowed not to exist — that is what
+# optional MEANS. send_photo.yaml aims at the iOS picker's bundle id
+# ("com.apple.Photos") and tolerates its absence on Android, which is correct.
 used = defaultdict(list)
 for fp in sorted(glob.glob('maestro/**/*.yaml', recursive=True)):
-    for i, line in enumerate(open(fp), 1):
+    lines = open(fp).readlines()
+    for i, line in enumerate(lines, 1):
         m = re.match(r'^\s*id:\s*"([^"]+)"\s*$', line)
-        if m: used[m.group(1)].append(f'{fp}:{i}')
+        if not m: continue
+        indent = len(line) - len(line.lstrip())
+        optional = False
+        for nxt in lines[i:]:                       # rest of this step's block
+            ind = len(nxt) - len(nxt.lstrip())
+            if nxt.strip() and ind < indent: break
+            if re.match(r'^\s*optional:\s*true\s*$', nxt): optional = True; break
+        if not optional: used[m.group(1)].append(f'{fp}:{i}')
 
 missing = {}
 for tid, sites in used.items():
