@@ -10,14 +10,14 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**27 of 234 flows passing** · 207 still need attention
+**29 of 234 flows passing** · 205 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 27 | green, and no backend error underneath |
+| PASS | 29 | green, and no backend error underneath |
 | SILENT | 1 | **assertions passed while the API errored** — the app told the user nothing |
-| FAIL-assert | 86 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-? | 10 | failed, cause unclear — read the log |
+| FAIL-assert | 82 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-? | 12 | failed, cause unclear — read the log |
 | UNTESTED | 110 | never executed |
 
 ### Definition of done
@@ -159,7 +159,7 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state
 
-15/42 passing · 27 open
+16/42 passing · 26 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -198,13 +198,13 @@ bug class a user reports as "nothing happened".
 | `send_message` | PASS | s2/run-142 | 189 |  |  |
 | `send_message_double_tap` | PASS | s2/run-142 | 209 |  |  |
 | `send_message_empty` | PASS | s2/run-142 | 202 |  |  |
-| `send_message_offline` | FAIL-assert ⚠1 | s2/run-106 | 160 |  | [Failed] send_message_offline (2m 13s) (Element not found: Text matching regex: Send)  ||  api: AxiosError  |
-| `send_message_whitespace` | PASS | s2/run-106 | 137 |  |  |
-| `send_multiple_messages` | FAIL-assert | s2/run-106 | 128 |  | [Failed] send_multiple_messages (1m 38s) (Element not found: Text matching regex: Bazaar) |
-| `send_photo` | FAIL-assert | s2/run-106 | 172 |  | [Failed] send_photo (2m 24s) (Assertion is false: "View photo fullscreen" is visible) |
-| `start_conversation` | FAIL-? | run-130 | 113 |  |  |
-| `start_conversation_and_reply` | FAIL-assert | s2/run-106 | 135 |  | [Failed] start_conversation_and_reply (1m 44s) (Element not found: Text matching regex: Bazaar) |
-| `view_other_profile_from_conversation` | FAIL-assert | s2/run-106 | 139 |  | [Failed] view_other_profile_from_conversation (1m 54s) (Element not found: Id matching regex: other-participan |
+| `send_message_offline` | FAIL-assert ⚠1 | s2/run-142 | 245 |  | [Failed] send_message_offline (3m 40s) (Element not found: Text matching regex: Send)  ||  api: AxiosError  |
+| `send_message_whitespace` | PASS | s2/run-142 | 203 |  |  |
+| `send_multiple_messages` | PASS | s2/run-142 | 237 |  |  |
+| `send_photo` | FAIL-assert | s2/run-142 | 221 |  | [Failed] send_photo (3m 19s) (Assertion is false: "View photo fullscreen" is visible) |
+| `start_conversation` | FAIL-? | s2/run-142 | 6 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
+| `start_conversation_and_reply` | FAIL-? | s2/run-142 | 5 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
+| `view_other_profile_from_conversation` | FAIL-? | s2/run-142 | 7 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
 
 ## `auth` — Sign up, login, logout, session persistence, guest gating
 
@@ -377,7 +377,7 @@ bug class a user reports as "nothing happened".
 
 ## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
 
-5/6 passing · 1 open
+6/6 passing · 0 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -386,4 +386,4 @@ bug class a user reports as "nothing happened".
 | `filter_map_location_denied` | PASS | run-146 | 228 |  |  |
 | `filter_map_use_my_location` | PASS | run-146 | 237 |  |  |
 | `filter_map_use_my_location_granted` | PASS | run-146 | 205 |  |  |
-| `map_location_outside_afghanistan` | FAIL-assert | run-147 | 290 |  | [Failed] map_location_outside_afghanistan (4m 26s) (Assertion is false: "Abroad Location Item" is visible) |
+| `map_location_outside_afghanistan` | PASS | run-150 | 243 |  |  |

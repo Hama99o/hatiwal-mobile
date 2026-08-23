@@ -1342,6 +1342,32 @@ from the assertion text; both came from looking at the screenshot of a failing r
 
 ---
 
+### PROCESS-002 · I committed another agent's model change under my message (41e9d6f)
+
+Same family as PROCESS-001, and this time it was a single file rather than a bulk
+add. `hatiwal-api/app/models/listing.rb` already carried another agent's
+uncommitted work — a `MAX_PRICE` validation with its own comment about
+`decimal(12, 2)` overflowing in Postgres *after* validation passes and surfacing
+as a 500 with no field errors. I added coordinate validation to the same file,
+staged the file, and their change went in under my commit message.
+
+Their matching spec (`spec/models/listing_spec.rb`) is still uncommitted, so their
+work is now split: model on the branch under my name, spec in the working tree.
+
+**Not "fixed", deliberately.** Rewriting history on a shared branch would risk
+removing their model change from under them, and staging their spec would repeat
+the original mistake in the other direction. The code is safe and the suite is
+green (1401 examples); what was lost is attribution, and that is what this record
+restores.
+
+**The rule I broke is already written down**, in CLAUDE.md: *"You would commit
+other agents' half-finished work under your task's message."* Knowing the rule was
+not enough. What would have caught it: `git diff <file>` before `git add <file>`,
+every time, in this checkout — not `git status` (which showed the file as modified,
+which I had already noticed and reasoned about) but the actual diff. I had even
+listed this file as another agent's twenty minutes earlier and then edited it
+anyway without re-checking.
+
 ### PROCESS-001 · I bulk-added another session's files by mistake (commit 7c05c8d)
 **Severity:** process, not product — but worth recording, not hiding
 
