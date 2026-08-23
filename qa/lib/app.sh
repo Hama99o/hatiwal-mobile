@@ -28,6 +28,17 @@ app_build() {
     nice -n 10 ./gradlew assembleDebug --console=plain --max-workers="$workers" ) \
     2>&1 | tee "$QA_DIR/reports/build.log" | grep -E "^> Task|BUILD|FAILURE|error:" | tail -20
 
+  # Stop the Gradle daemon. It survives the build holding ~1.7GB for nothing, and
+  # the very next thing this rig does is boot 3GB emulators — so the memory it
+  # keeps is memory the emulators need. It cost a real failure: `doctor` refused a
+  # run with "only 3GB RAM available" and "swap 98% full" while the single largest
+  # reclaimable chunk was an idle daemon from a build that had finished an hour
+  # earlier. Keeping it would only pay off for a second build, and this rig builds
+  # once and then tests for hours.
+  ( cd "$MOBILE_DIR/android" && \
+    PATH="$QA_NODE_DIR:$ANDROID_HOME/platform-tools:$PATH" \
+    ./gradlew --stop >/dev/null 2>&1 ) || true
+
   [ -f "$APK_PATH" ] && ok "APK: $APK_PATH ($(du -h "$APK_PATH" | cut -f1))" \
     || { err "build produced no APK — see $QA_DIR/reports/build.log"; return 1; }
 }

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { View, StyleSheet, Pressable, FlatList, useWindowDimensions } from "react-native";
 import { RemoteImage } from "@/components/common/RemoteImage";
+import type { ListingFeedViewMode } from "@/components/common/ListingFeed";
 import Animated from "react-native-reanimated";
 import { Eye, MessageCircle, Camera, MoreHorizontal } from "lucide-react-native";
 import { usePulse } from "@/lib/animation";
@@ -56,9 +57,20 @@ interface SellerListingCardProps {
   listing: Listing;
   /** Called after any successful mutation so the parent list can refresh immediately. */
   onMutated?: () => void;
+  /**
+   * Layout, mirroring the buyer-side ListingCard:
+   *   'grid' — full-width photo carousel above the details.
+   *   'list' — compact horizontal row, per DESIGN_SYSTEM.md §5. DEFAULT, because
+   *            MyListings defaults its toggle to "list".
+   *
+   * Before this existed the toggle only changed the COLUMN COUNT, so "list" gave
+   * one ~1100px-tall card per row: a seller with 11 listings scrolled 11 screens,
+   * in the mode they land on by default.
+   */
+  viewMode?: ListingFeedViewMode;
 }
 
-export function SellerListingCard({ listing, onMutated }: SellerListingCardProps) {
+export function SellerListingCard({ listing, onMutated, viewMode = "list" }: SellerListingCardProps) {
   const { t } = useTranslation();
   const { isRtl, formatNumber } = useLocalization();
   const colors = useColors();
@@ -80,6 +92,12 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
   // rotation does not re-run Dimensions.get unless something else re-renders.
   const { width: windowWidth } = useWindowDimensions();
   const cardWidth = windowWidth - 32; // screen - horizontal padding
+
+  // The compact row shows ONE photo at a fixed size instead of a pager: a 112dp
+  // thumbnail cannot carry page dots legibly, and swiping a thumbnail that small
+  // fights the vertical scroll of the list it sits in.
+  const isList = viewMode === "list";
+  const THUMB_W = 112;
 
   // TASK-L863: all seven lifecycle mutations, confirmAlert copy, invalidation
   // and BuyerPickerSheet/ReviewPromptSheet wiring live in this ONE hook —
@@ -107,7 +125,47 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
     >
       {/* Photo gallery — tap card body to open owner detail screen */}
       <Pressable onPress={handleOpenDetail} accessibilityRole="button" accessibilityLabel={listing.title}>
-        {photos.length > 0 ? (
+        {/* One wrapper, two directions. The details block and the action row
+            below are SHARED between both layouts — only the direction and the
+            photo's size change, so there is no second copy of the card to keep
+            in step with this one. */}
+        <View style={{ flexDirection: isList ? rowDirection : "column" }}>
+        {isList ? (
+          // ── Compact leading thumbnail ──────────────────────────────────────
+          <View style={{ width: THUMB_W, aspectRatio: 4 / 3, backgroundColor: colors.muted }}>
+            {photos.length > 0 ? (
+              <PhotoSlide uri={photos[0]} width={THUMB_W} bgColor={colors.muted} />
+            ) : (
+              <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 }}>
+                <Camera size={18} color={colors.mutedForeground} />
+                {/* Keep the words, not just the icon: a listing with no photo
+                    cannot be published, so this is the one thing on the row a
+                    seller must not have to infer from a small grey glyph. */}
+                <Text
+                  style={{ fontSize: 9, color: colors.mutedForeground, marginTop: 3, textAlign: "center" }}
+                  numberOfLines={1}
+                >
+                  {t("listing.noPhoto")}
+                </Text>
+              </View>
+            )}
+            {/* A "+3" pip replaces the pager: the seller still learns there are
+                more photos without a swipe target too small to hit. */}
+            {photos.length > 1 && (
+              <View
+                style={{
+                  position: "absolute", bottom: 4, right: 4,
+                  backgroundColor: colors.darkScrim, borderRadius: 4,
+                  paddingHorizontal: 5, paddingVertical: 1,
+                }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: "700", color: colors.overlayForeground }}>
+                  +{photos.length - 1}
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : photos.length > 0 ? (
           <View style={[styles.galleryWrapper, { backgroundColor: colors.muted }]}>
             <FlatList
               ref={flatListRef}
@@ -184,9 +242,25 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
           </View>
         )}
 
-        {/* Text info */}
-        <View style={styles.info}>
-          <PriceTag price={listing.price} currency={listing.currency} size="md" perUnit={listing.multiUnit === true} />
+        {/* Text info — SHARED by both layouts */}
+        <View style={[styles.info, isList && styles.infoList]}>
+          {/* In the grid the badge sits over the photo; a 112dp thumbnail cannot
+              hold it, so in the row it leads the details instead. Either way the
+              seller sees lifecycle state without opening anything. */}
+          <View style={{ flexDirection: rowDirection, alignItems: "center", gap: 8 }}>
+            <PriceTag price={listing.price} currency={listing.currency} size="md" perUnit={listing.multiUnit === true} />
+            {isList && (
+              <View testID="seller-card-status">{isExpired ? (
+              <View style={{ backgroundColor: colors.warning, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: colors.warningForeground }}>
+                  {t("listing.expiredBadge")}
+                </Text>
+              </View>
+            ) : (
+              <StatusBadge status={listing.status} />
+            )}</View>
+            )}
+          </View>
 
           <Text
             style={{
@@ -268,6 +342,7 @@ export function SellerListingCard({ listing, onMutated }: SellerListingCardProps
               </Pressable>
             )}
           </View>
+        </View>
         </View>
       </Pressable>
 
@@ -389,6 +464,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 12,
+  },
+  // Compact row: take the space beside the thumbnail, and lose the tall padding
+  // that only makes sense under a full-width photo.
+  infoList: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   metaRow: {
     marginTop: 8,

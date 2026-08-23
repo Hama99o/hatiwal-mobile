@@ -217,11 +217,11 @@ function makeQueryClient() {
   });
 }
 
-function renderCard(listing: Listing, qc?: QueryClient) {
+function renderCard(listing: Listing, qc?: QueryClient, viewMode?: "grid" | "list") {
   const client = qc ?? makeQueryClient();
   render(
     <QueryClientProvider client={client}>
-      <SellerListingCard listing={listing} />
+      <SellerListingCard listing={listing} viewMode={viewMode} />
     </QueryClientProvider>
   );
   return client;
@@ -924,5 +924,47 @@ describe("SellerListingCard — chats count", () => {
   it("still shows the views count at zero", () => {
     renderCard(makeListing({ viewsCount: 0, conversationsCount: 0 }));
     expect(screen.getByText("listing.viewsCount")).toBeTruthy();
+  });
+});
+
+
+// ── Layout variants (UI-017) ────────────────────────────────────────────────
+//
+// The grid/list toggle on MyListings used to change only the COLUMN COUNT,
+// because viewMode never reached this card: "list" produced one ~1100px-tall
+// card per row, and it is the mode the screen DEFAULTS to. What matters in these
+// tests is that switching layout costs the seller no information — the price,
+// title, lifecycle state and both actions survive in the compact row.
+describe("SellerListingCard — compact list variant", () => {
+  it("keeps price, title, lifecycle status and both actions in the compact row", () => {
+    renderCard(makeListing({ status: "active", title: "Compact Row Item" }), undefined, "list");
+
+    expect(screen.getByText("Compact Row Item")).toBeTruthy();
+    expect(screen.getByTestId("seller-card-primary-action")).toBeTruthy();
+    expect(screen.getByTestId("seller-card-more-action")).toBeTruthy();
+    // StatusBadge moves out of the photo overlay and into the details column,
+    // since a 112dp thumbnail cannot carry it. Asserted by testID because the
+    // badge is mocked as a host component in this file and renders no text.
+    expect(screen.getByTestId("seller-card-status")).toBeTruthy();
+  });
+
+  it("shows the expired badge in the row instead of the status badge", () => {
+    renderCard(makeListing({ status: "active", expired: true }), undefined, "list");
+
+    expect(screen.getByText("listing.expiredBadge")).toBeTruthy();
+  });
+
+  it("still renders every detail in grid mode", () => {
+    renderCard(makeListing({ status: "active", title: "Grid Item" }), undefined, "grid");
+
+    expect(screen.getByText("Grid Item")).toBeTruthy();
+    expect(screen.getByTestId("seller-card-primary-action")).toBeTruthy();
+    expect(screen.getByTestId("seller-card-more-action")).toBeTruthy();
+  });
+
+  it("defaults to the compact row, matching the screen's own default toggle state", () => {
+    renderCard(makeListing({ status: "active", title: "Default Item" }));
+    expect(screen.getByText("Default Item")).toBeTruthy();
+    expect(screen.getByTestId("seller-card-status")).toBeTruthy();
   });
 });

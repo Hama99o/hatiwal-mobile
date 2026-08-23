@@ -177,3 +177,63 @@ export const NewListing: Story = {
     listing: makeListing({ viewsCount: 0, conversationsCount: 0 }),
   },
 };
+
+// ── Compact list variant (UI-017) ───────────────────────────────────────────
+//
+// Every story above renders the GRID layout. "list" is what MyListings actually
+// defaults to, and until viewMode reached this card it produced one full-height
+// card per row — a seller with 11 listings scrolling 11 screens. These cover the
+// row in the states where a compact layout is most likely to break: a long title
+// beside a fixed 112dp thumbnail, a listing with no photo at all, several photos
+// (the "+N" pip that replaces the pager), and the sold row with its buyer line.
+
+export const ListActive: Story = {
+  args: {
+    listing: makeListing({ status: "active" }),
+    viewMode: "list",
+  },
+};
+
+export const ListLongTitle: Story = {
+  args: {
+    listing: makeListing({
+      title: "Samsung Galaxy S24 Ultra 512GB Phantom Black — mint condition, never dropped, original box and all accessories included",
+    }),
+    viewMode: "list",
+  },
+};
+
+export const ListNoPhoto: Story = {
+  args: {
+    listing: makeListing({ imageUrls: [], thumbnailUrl: null }),
+    viewMode: "list",
+  },
+};
+
+export const ListManyPhotos: Story = {
+  args: {
+    listing: makeListing({
+      imageUrls: [
+        "https://picsum.photos/seed/a/600/450",
+        "https://picsum.photos/seed/b/600/450",
+        "https://picsum.photos/seed/c/600/450",
+        "https://picsum.photos/seed/d/600/450",
+      ],
+    }),
+    viewMode: "list",
+  },
+};
+
+export const ListExpired: Story = {
+  args: {
+    listing: makeListing({ status: "active", expired: true }),
+    viewMode: "list",
+  },
+};
+
+export const ListDraft: Story = {
+  args: {
+    listing: makeListing({ status: "draft" }),
+    viewMode: "list",
+  },
+};

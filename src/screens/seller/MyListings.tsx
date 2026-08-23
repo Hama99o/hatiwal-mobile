@@ -399,10 +399,15 @@ export default function MyListingsScreen() {
   const renderSellerListItem = useCallback(
     ({ item }: { item: Listing }) => (
       <View style={{ paddingBottom: 16 }}>
-        <SellerListingCard listing={item} onMutated={handleMutated} />
+        {/* viewMode was reaching the LIST (column count) but never the card, so
+            the toggle appeared to do nothing but make the single column taller. */}
+        <SellerListingCard listing={item} onMutated={handleMutated} viewMode={viewMode} />
       </View>
     ),
-    [handleMutated]
+    // viewMode MUST be a dependency: without it this callback keeps the mode it
+    // closed over and the rows never change when the seller taps the toggle —
+    // the same "nothing happens" the prop was added to fix.
+    [handleMutated, viewMode]
   );
 
   const ListHeader = (

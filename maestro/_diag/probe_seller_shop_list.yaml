@@ -1,0 +1,18 @@
+appId: com.hatiwal.app
+---
+# DIAGNOSTIC ONLY — screenshots the seller's shop in its DEFAULT view so the
+# compact row from UI-017 can be judged with eyes rather than assertions.
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn: "My Shop"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Search my listings..."
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: seller-shop-list-default
+# Then the grid, for a side-by-side comparison.
+- tapOn:
+    id: "browse-view-grid"
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: seller-shop-grid
