@@ -17,10 +17,12 @@ appId: com.hatiwal.app
 # The previous version tapped tabs and the toggle BY LABEL, and it failed in a
 # way that pointed at the flows instead of at itself. Two faults compounded:
 #
-#   1. `when: visible: "Switch to Buyer Mode"` is a SHORT POLL, and the toggle
-#      sits below the fold on a 1152-line profile screen. When it had not
-#      rendered yet the poll simply returned false, the switch was skipped, and
-#      the helper carried on in SELLER mode believing it was in buyer mode.
+#   1. `when: visible: "Switch to Buyer Mode"` is a SHORT POLL. Before the
+#      profile screen had rendered it simply returned false, the switch was
+#      skipped, and the helper carried on in SELLER mode believing it was in
+#      buyer mode. (My first fix for this scrolled to the toggle, on the wrong
+#      theory that it sat below the fold — see the gate below for why that made
+#      things worse. The real repair is waiting for the screen, not scrolling.)
 #   2. Its own last step was then `tapOn: "Bazaar"` — a tab that does not exist
 #      in seller mode. So the helper's own failure surfaced as "Element not
 #      found: Bazaar", which reads like a broken buyer flow.
@@ -35,13 +37,20 @@ appId: com.hatiwal.app
     id: "profile-tab"
 - waitForAnimationToEnd
 
-# Scroll the toggle into view before deciding anything. `tapOn` never scrolls,
-# and this control is below the fold on a phone — fault (1) above.
-- scrollUntilVisible:
-    element:
-      id: "mode-toggle-button"
-    direction: DOWN
-    timeout: 20000
+# Gate on the label with a mode-agnostic regex, then act on the testID. This is
+# BOTH steps of the check in one: the label proves the profile screen has
+# rendered, and it is the toggle's own text, so the toggle is on screen.
+#
+# It replaced a `scrollUntilVisible` on the testID, which was wrong twice over.
+# The toggle sits just under the avatar and name, NOT below the fold — I had
+# inferred "below the fold" from its line number in a 1152-line file, and a line
+# number says nothing about vertical position on screen. And because
+# scrollUntilVisible only ever scrolls DOWN, it scrolled the toggle AWAY and then
+# could not find it: "No visible element found: id: mode-toggle-button", in flows
+# where a bare assertVisible on the same id passed.
+- extendedWaitUntil:
+    visible: "Switch to .*"
+    timeout: 30000
 
 # The label tells us the mode, but the TAP targets the testID. Pressing the
 # toggle switches to whichever mode we are not in, so it is pressed only when it

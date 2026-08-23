@@ -109,11 +109,20 @@ env:
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      id: "mode-toggle-button"
-    direction: DOWN
-    timeout: 20000
+# Gate on the label with a mode-agnostic regex, then act on the testID. This is
+# BOTH steps of the check in one: the label proves the profile screen has
+# rendered, and it is the toggle's own text, so the toggle is on screen.
+#
+# It replaced a `scrollUntilVisible` on the testID, which was wrong twice over.
+# The toggle sits just under the avatar and name, NOT below the fold — I had
+# inferred "below the fold" from its line number in a 1152-line file, and a line
+# number says nothing about vertical position on screen. And because
+# scrollUntilVisible only ever scrolls DOWN, it scrolled the toggle AWAY and then
+# could not find it: "No visible element found: id: mode-toggle-button", in flows
+# where a bare assertVisible on the same id passed.
+- extendedWaitUntil:
+    visible: "Switch to .*"
+    timeout: 30000
 - runFlow:
     when:
       visible: "Switch to Seller Mode"
