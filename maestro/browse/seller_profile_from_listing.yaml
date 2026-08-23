@@ -50,9 +50,17 @@ appId: com.hatiwal.app
 # ── What else they have ─────────────────────────────────────────────────────
 # The grid is the point of this flow. A profile that loads its stats but never its
 # listings is a dead end for the buyer.
-- extendedWaitUntil:
-    visible:
+#
+# scrollUntilVisible, not extendedWaitUntil: the cards sit below the stats row,
+# the bio, the whole Ratings & Reviews block and the Active/Sold tabs, and
+# extendedWaitUntil does not scroll — it waited 30s for something that was simply
+# further down the page. (Looking at that screenshot is also what turned up the
+# search bar and category chips a one-listing seller was being shown; the app side
+# of that is fixed separately.)
+- scrollUntilVisible:
+    element:
       id: "listing-card"
+    direction: DOWN
     timeout: 30000
 
 # ── Tapping one of their listings opens it ──────────────────────────────────

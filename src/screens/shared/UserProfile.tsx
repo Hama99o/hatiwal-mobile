@@ -36,6 +36,7 @@ import { ListingsIllustration } from "@/components/common/empty-illustrations";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { Skeleton } from "@/components/reusables/skeleton";
 import { ProfileHeader } from "./user-profile/ProfileHeader";
+import { shouldShowListingFilters } from "./user-profile/listingFilters";
 import { ProfileHeaderSkeleton } from "./user-profile/ProfileHeaderSkeleton";
 import { ActionMenu } from "./user-profile/ActionMenu";
 
@@ -328,8 +329,16 @@ export function UserProfileScreen() {
         labelActive={t("profile.userProfile.tabs.active")}
         labelSold={t("profile.userProfile.tabs.sold")}
       />
-      {/* Filter bar — only shown on the Active tab */}
-      {activeTab === "active" && (
+      {/* Filter bar — Active tab, and only when there is enough to filter.
+          A seller with ONE listing was given a search box, a scrolling category
+          chip row and a grid/list toggle, which pushed their only item off the
+          bottom of the screen entirely: a buyer arriving on the trust path saw
+          stats, reviews, tabs, a search field and category chips before seeing a
+          single thing the seller had. Verified by screenshot on a 1080x2400
+          phone — "1 Active Listings", and no card visible.
+          Below the threshold everything fits in a screen or two, so filtering is
+          noise that costs the buyer the one thing they came for. */}
+      {shouldShowListingFilters(activeTab, profile.listingsCount) && (
         <ListingFiltersBar
           search={search}
           onSearchChange={setSearch}
