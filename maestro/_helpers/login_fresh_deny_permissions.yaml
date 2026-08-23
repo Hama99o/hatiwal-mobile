@@ -5,15 +5,15 @@ env:
 ---
 # Sign in fresh, with runtime permissions DENIED at launch.
 #
-# THE POINT: Maestro GRANTS ALL RUNTIME PERMISSIONS on `launchApp` by default.
-# That is why a flow could never see the location dialog — the app already had
-# permission before it ran, so `requestForegroundPermissionsAsync` returned granted
-# without asking, and `dumpsys package` showed granted=true after every flow no
-# matter what was done beforehand. Neither `clearState` nor `pm reset-permissions`
-# beforehand can beat it: the grant happens at launch, after both.
+# THE POINT: Maestro GRANTS ALL RUNTIME PERMISSIONS on `launchApp` by default. That
+# is why a flow could never see the location dialog — the app already had permission
+# before it ran, so requestForegroundPermissionsAsync returned granted without
+# asking, and `dumpsys package` showed granted=true after every flow no matter what
+# was done beforehand. Neither `clearState` nor `pm reset-permissions` beforehand can
+# beat it: the grant happens at launch, after both.
 #
-# `permissions: all: deny` is the control that actually works, and it belongs in
-# the flow rather than in a shell step for exactly that reason.
+# `permissions: all: deny` is the control that actually works, and it belongs in the
+# flow rather than a shell step for exactly that reason.
 #
 # Use this for flows whose subject is the PROMPT (or a refusal). Use
 # login_fresh.yaml when the flow wants permissions already granted.
@@ -38,25 +38,28 @@ env:
     timeout: 15000
 - tapOn: "Sign In"
 
-- extendedWaitUntil:
-    visible: "Me"
-    timeout: 60000
-- assertNotVisible: "Login"
-
-# Dismiss the NOTIFICATION prompt, which only appears on this path.
+# ── Dismiss the NOTIFICATION prompt FIRST ───────────────────────────────────
+# ORDER MATTERS, and getting it wrong cost two runs. On this path — and only this
+# path, because permissions were denied — the app asks for notification permission
+# immediately after login, with its own themed modal ("Allow Hatiwal to send you
+# notifications?") that covers the whole screen INCLUDING the tab bar.
 #
-# With permissions denied at launch, the app asks for notification permission
-# right after login — its own themed dialog ("Allow Hatiwal to send you
-# notifications?"), which covers the whole screen including the tab bar. The next
-# step in every calling flow is a tab tap, so without this it fails with
-# "Element not found: Bazaar" while the tab sits behind the modal. Answering "Don't
-# allow" keeps the device state minimal; the flows using this helper are about
-# location, not notifications.
+# So this must come before the signed-in assertion below: with the modal up,
+# `"Me" is visible` fails even though login succeeded perfectly. Answering "Don't
+# allow" keeps device state minimal — flows using this helper are about location,
+# not notifications.
 - extendedWaitUntil:
     visible: "Allow Hatiwal to send you notifications?"
-    timeout: 20000
+    timeout: 30000
     optional: true
 - tapOn:
     text: "Don.t allow"
     optional: true
 - waitForAnimationToEnd
+
+# ── Now prove we are signed in ──────────────────────────────────────────────
+# "Me" present AND "Login" absent. Asserting "Bazaar" would not do — guests see it.
+- extendedWaitUntil:
+    visible: "Me"
+    timeout: 60000
+- assertNotVisible: "Login"
