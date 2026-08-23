@@ -164,9 +164,32 @@ run_feature() {
     # filters and the map pickers deterministic instead of order-dependent.
     adb_qa emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1
 
+    # ── And KEEP sending it for the duration of the flow ──────────────────
+    # One fix before the flow is not enough, and the reason is sharper than
+    # "it goes stale": the emulator DISCARDS a fix when nothing is listening.
+    # Verified on device — `emu geo fix` answers OK while
+    # `dumpsys location` still reports `gps provider: ProviderRequest[OFF],
+    # last location=null`. The app only registers a listener when the user asks
+    # for their location, which is minutes after the preflight ran, so by then
+    # there is nothing to hand it and the app correctly falls back to Kabul.
+    #
+    # That silently defeated the one flow whose whole subject is a location
+    # ABROAD: map_location_outside_afghanistan set the device to Paris, got Kabul,
+    # and saved a listing in Kabul while asserting nothing about it.
+    #
+    # A pump every 2s means a fresh fix is always available whenever the app
+    # starts listening. Killed after the flow, so it never leaks into the next.
+    ( while :; do
+        adb_qa emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1
+        sleep 2
+      done ) &
+    local geo_pump=$!
+
     adb_qa logcat -c >/dev/null 2>&1
     printf '  %-46s ' "$name"
     local start; start=$(cut -d' ' -f1 /proc/uptime)
+
+    stop_geo_pump() { [ -n "${geo_pump:-}" ] && kill "$geo_pump" 2>/dev/null; geo_pump=""; }
 
     run_maestro() {
       local extra="$1"
@@ -192,6 +215,7 @@ run_feature() {
       run_maestro "--reinstall-driver"
       code=$?
     fi
+    stop_geo_pump   # the flow is over; never let the pump leak into the next one
     local secs; secs=$(awk -v a="$start" -v b="$(cut -d' ' -f1 /proc/uptime)" 'BEGIN{printf "%.0f", b-a}')
     adb_qa logcat -d > "$lc" 2>/dev/null
 
