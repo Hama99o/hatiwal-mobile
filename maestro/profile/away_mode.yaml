@@ -1,4 +1,4 @@
-appId: com.hatiwal.mobile
+appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow died in 5s
 ---
 # Away Mode — Seller sets / clears away_until from Edit Profile
 # Happy path: toggle on + set date → save → AwayBanner appears on seller profile

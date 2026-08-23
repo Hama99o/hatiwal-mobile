@@ -798,3 +798,25 @@ something in the UI that states the length or the value independently. Reading
 **When triaging a "wrong text" failure, compare the strings character by
 character before assuming the app mangled the value.** "Broad" vs "Abroad" is one
 missing letter and easy to read past.
+
+
+## Maestro anchors the regex at BOTH ends — one `.*` is not enough mid-string
+
+Appending `.*` to a substring assertion only works when the text is a **prefix** of
+the real copy:
+
+```yaml
+- assertVisible: "Blocked users cannot contact you.*"   # OK — it IS the prefix
+- assertVisible: "restore it by logging back in.*"      # NEVER matches
+- assertVisible: ".*restore it by logging back in.*"    # correct
+```
+
+The second one sits in the middle of "Your account will be scheduled for deletion
+… You can restore it by logging back in within 30 days.", and an anchored pattern
+starting with `restore` cannot match a string starting with `Your`.
+
+This bit me in exactly the way worth remembering: fixing 14 substring assertions in
+one pass, I appended a single `.*` to all of them. That was right for 11 and wrong
+for 3, and the 3 failures looked identical to the original bug. When bulk-fixing a
+class, check each member against the real value rather than assuming they share a
+shape.

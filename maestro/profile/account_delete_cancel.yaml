@@ -32,7 +32,11 @@ appId: com.hatiwal.app
 - assertVisible: "Delete your account?"
 # Maestro matches the FULL string as a regex, so this PREFIX of the real copy
 # never matched it — the app was showing more than the flow asked for.
-- assertVisible: "restore it by logging back in.*"
+# `.*` on BOTH sides. Maestro anchors the regex at both ends, so a trailing `.*`
+# alone only matches when the asserted text is a PREFIX of the real copy — and
+# this text sits in the MIDDLE of it. My first pass at these appended one `.*`
+# to all of them, which fixed the prefixes and left these three unmatchable.
+- assertVisible: ".*restore it by logging back in.*"
 
 # Back out.
 - tapOn: "Cancel"
