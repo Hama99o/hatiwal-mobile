@@ -18,7 +18,9 @@ appId: com.hatiwal.app
 # Confirm dialog
 - assertVisible: "Make active again?"
 - assertVisible: "This cancels the reservation and reopens the listing to buyers."
-- tapOn: "Confirm"
+# confirmAlert takes its button label per call — reactivate passes
+# t("listing.activate") = "Make active". `common.confirm` ("Confirm") is a dead key.
+- tapOn: "Make active"
 - waitForAnimationToEnd
 # Status back to Active
 - assertVisible: "Listing is active again"

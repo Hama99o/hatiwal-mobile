@@ -47,7 +47,11 @@ appId: com.hatiwal.mobile
 # nowhere. The testID is stable across both locale and auth state.
 - tapOn:
     id: "profile-tab"
-- assertNotVisible: "I'm away"
+# The rendered string is `profile.away.toggle` = "I'm away (temporarily
+# unavailable)"; "I'm away" alone is `seller.away.toggleLabel`, a dead key. This
+# assertion passed for the wrong reason — a dead string is trivially absent — so
+# it proved nothing about the banner. Maestro matches the FULL string, hence .*
+- assertNotVisible: "I'm away.*"
 
 # ── Toggle Away Mode OFF (clear) ─────────────────────────────────────
 - tapOn: "Edit Profile"

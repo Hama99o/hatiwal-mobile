@@ -35,4 +35,6 @@ appId: com.hatiwal.app
 # the static title is a race the loaded screen always wins. "Active Listings" is a
 # literal stat label in ProfileHeader and is there for every profile.
 - assertVisible: "Active Listings"
-- assertVisible: "No listings yet"
+# `profile.userProfile.noListings` = "No active listings" is what UserProfile
+# renders. "No listings yet" (listing.empty.title / listing.noListings) is dead.
+- assertVisible: "No active listings"

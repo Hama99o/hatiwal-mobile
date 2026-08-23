@@ -12,8 +12,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # ── Navigate to the Categories hub ───────────────────────────────────────────
+# NOT "Browse categories": `browse.browseCategories` is a dead key and there is
+# no such affordance in BrowseHeader. The hub is a TAB (buyer mode only).
 - tapOn:
-    text: "Browse categories"
+    id: "categories-tab"
 - waitForAnimationToEnd
 - assertVisible: "Categories"
 
@@ -58,8 +60,10 @@ appId: com.hatiwal.app
 
 # ── Parent with no children keeps its original tap→Browse behavior ────────────
 # Go back to the hub and verify a childless category navigates directly
+# NOT "Browse categories": `browse.browseCategories` is a dead key and there is
+# no such affordance in BrowseHeader. The hub is a TAB (buyer mode only).
 - tapOn:
-    text: "Browse categories"
+    id: "categories-tab"
 - waitForAnimationToEnd
 - assertVisible: "Categories"
 

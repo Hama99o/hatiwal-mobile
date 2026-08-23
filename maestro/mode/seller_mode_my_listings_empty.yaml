@@ -28,5 +28,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Empty state
-- assertVisible: "No listings yet"
+# The SELLER's own empty shop says `listing.emptyAll.title` — deliberately
+# different copy from a visitor's view of an empty profile.
+- assertVisible: "You haven't posted anything yet"
 - assertVisible: "Post a listing"

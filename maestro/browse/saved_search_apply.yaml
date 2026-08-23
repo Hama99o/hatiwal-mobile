@@ -6,7 +6,11 @@ appId: com.hatiwal.app
 - tapOn: "Bazaar"
 - waitForAnimationToEnd
 # Apply a category filter — this combination gets auto-saved
-- tapOn: "Filter"
+# NOT "Filter" (`common.filter`, a dead key). The control renders "Filters", and
+# Maestro matches the full string, so "Filter" never matched it. The testID from
+# BrowseHeader.tsx is immune to both the plural and the locale.
+- tapOn:
+    id: "browse-filters-toggle"
 - waitForAnimationToEnd
 - tapOn: "Electronics"
 - waitForAnimationToEnd
