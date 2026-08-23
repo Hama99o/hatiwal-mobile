@@ -13,18 +13,53 @@ appId: com.hatiwal.app
 # same login and must NOT be forced into buyer mode — baking it in broke the one
 # map flow that signs in as the seller.
 #
-# login_seller.yaml has always asserted its own mode this way; the buyer side
-# simply never did.
+# ── WHY THIS FILE IS TESTID-ONLY ────────────────────────────────────────────
+# The previous version tapped tabs and the toggle BY LABEL, and it failed in a
+# way that pointed at the flows instead of at itself. Two faults compounded:
+#
+#   1. `when: visible: "Switch to Buyer Mode"` is a SHORT POLL, and the toggle
+#      sits below the fold on a 1152-line profile screen. When it had not
+#      rendered yet the poll simply returned false, the switch was skipped, and
+#      the helper carried on in SELLER mode believing it was in buyer mode.
+#   2. Its own last step was then `tapOn: "Bazaar"` — a tab that does not exist
+#      in seller mode. So the helper's own failure surfaced as "Element not
+#      found: Bazaar", which reads like a broken buyer flow.
+#
+# That accounted for ~20 flows across chat, gallery, mode, report and pagination.
+# The lesson is narrow: to DETECT a mode you must not target a control whose
+# label is the very thing that changes with it. Every handle below is a testID —
+# `mode-toggle-button` (Profile.tsx) and the tab ids from
+# app/(main)/(tabs)/_layout.tsx, honoured in FloatingTabBar.tsx.
 
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
+
+# Scroll the toggle into view before deciding anything. `tapOn` never scrolls,
+# and this control is below the fold on a phone — fault (1) above.
+- scrollUntilVisible:
+    element:
+      id: "mode-toggle-button"
+    direction: DOWN
+    timeout: 20000
+
+# The label tells us the mode, but the TAP targets the testID. Pressing the
+# toggle switches to whichever mode we are not in, so it is pressed only when it
+# offers buyer mode.
 - runFlow:
     when:
       visible: "Switch to Buyer Mode"
     commands:
-      - tapOn: "Switch to Buyer Mode"
+      - tapOn:
+          id: "mode-toggle-button"
       - waitForAnimationToEnd
-- assertVisible: "Switch to Seller Mode"
+
+# Now it must OFFER seller mode — i.e. we are in buyer mode. This is the real
+# assertion of the helper, and it is the label (not the testID), because the
+# testID is present in both modes.
+- extendedWaitUntil:
+    visible: "Switch to Seller Mode"
+    timeout: 20000
 
 # ── Return to the feed ──────────────────────────────────────────────────────
 # MUST leave the app where it was found. Checking the mode requires opening the
@@ -34,5 +69,6 @@ appId: com.hatiwal.app
 # That regression hit flows which had been green minutes earlier
 # (filter_by_category, filter_active_sellers), and the tab label passing is
 # exactly what made it confusing.
-- tapOn: "Bazaar"
+- tapOn:
+    id: "browse-tab"
 - waitForAnimationToEnd

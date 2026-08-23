@@ -689,6 +689,13 @@ export default function ProfileScreen() {
         {/* Mode Toggle — RNR Button outline variant */}
         <Button
           variant="outline"
+          // Buyer/seller mode is persisted on the USER, so it leaks across flows
+          // and devices: one flow switching to seller mode leaves every later
+          // buyer flow in seller mode, where the first tab reads "My Shop" and
+          // there is no "Bazaar" at all. Targeting this control by its label
+          // means matching the mode you are trying to detect, and the label is
+          // translated on top of that — hence a stable handle.
+          testID="mode-toggle-button"
           onPress={toggleMode}
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
