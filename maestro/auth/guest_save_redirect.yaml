@@ -5,6 +5,28 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: true
 - runFlow: ../_helpers/open_bundle.yaml
+
+# ── Blank-screen recovery (this flow only) ──────────────────────────────────
+# `clearState: true` erases the dev client's remembered Metro URL, and
+# reconnecting sometimes leaves a blank white screen — logcat shows
+# `DevLauncherActivity EXITING` with a DeadObjectException. One warm relaunch
+# fixes it; the dev client remembers the server by then.
+#
+# It lives HERE and not in open_bundle.yaml because Maestro's `launchApp` GRANTS
+# ALL RUNTIME PERMISSIONS by default, with no "leave them alone" option. In the
+# shared helper it granted location to every flow and broke the two whose whole
+# subject is the permission PROMPT. This flow does not care about permissions.
+- runFlow:
+    when:
+      notVisible:
+        id: "browse-tab"
+    commands:
+      - launchApp
+      - waitForAnimationToEnd
+      - extendedWaitUntil:
+          visible:
+            text: "Skip|Bazaar|Me|Email|Buy and sell locally in Afghanistan"
+          timeout: 120000
 - runFlow: ../_helpers/goto_login.yaml
 # NOT "Welcome to Hatiwal": the onboarding carousel's FIRST SLIDE and the login
 # screen both render that exact heading (onboarding.slides.welcome.title and

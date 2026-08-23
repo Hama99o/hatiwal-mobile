@@ -229,32 +229,18 @@ appId: com.hatiwal.app
           optional: true
       - waitForAnimationToEnd
 
-# ── Blank-screen recovery ───────────────────────────────────────────────────
-# `clearState: true` runs `pm clear`, which also erases the DEV CLIENT's
-# remembered Metro URL. Reconnecting after that sometimes leaves a completely
-# WHITE screen: logcat shows `DevLauncherActivity EXITING` with a
-# DeadObjectException and the JS never renders. Confirmed by screenshot —
-# guest_browse sat on a blank white screen for 2m40s and reported the assertion
-# after it as simply false, which reads like a login-screen bug.
+# ── Blank-screen recovery: DELIBERATELY NOT HERE ────────────────────────────
+# `clearState: true` can leave the dev client on a blank white screen, and one
+# warm `launchApp` fixes it. That recovery must NOT live in this helper, because
+# Maestro's `launchApp` GRANTS ALL RUNTIME PERMISSIONS by default — only
+# `permissions: {all: deny}` overrides it, and there is no "leave them alone"
+# option.
 #
-# This is a dev-client artifact, NOT a first-run bug in the app: a release build
-# embeds its bundle and never talks to a launcher. But it cost the three guest_*
-# flows on every sweep, and one warm relaunch fixes it — by then the dev client
-# remembers the server, so the second launch loads the JS.
+# Putting it here granted location to every flow that runs open_bundle, which
+# broke the two flows whose whole subject is the permission PROMPT:
+# filter_map_location_denied and filter_map_use_my_location both went from green
+# to `Assertion is false: "While using the app" is visible` — the OS dialog never
+# appeared because the permission had already been handed over by this helper.
 #
-# Condition is the tab bar, which every RENDERED screen has (guests included).
-# On the legitimate first-run path onboarding has no tab bar either, so this
-# relaunches there too — a few seconds, and `launchApp` without clearState keeps
-# state, so onboarding is still waiting afterwards.
-- runFlow:
-    when:
-      notVisible:
-        id: "browse-tab"
-    commands:
-      - launchApp
-      - waitForAnimationToEnd
-      - extendedWaitUntil:
-          visible:
-            text: "Skip|Bazaar|Me|Email|Buy and sell locally in Afghanistan"
-          timeout: 120000
-          optional: true
+# So the recovery lives in the individual flows that need it (the guest_* ones,
+# which do not care about permissions). See maestro/auth/guest_browse.yaml.
