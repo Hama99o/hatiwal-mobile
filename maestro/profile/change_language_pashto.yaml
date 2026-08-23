@@ -7,7 +7,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      text: "APPEARANCE"
+      text: "Appearance"
 # Profile renders `profile.language` = "Language". Nothing in the app uppercases
 # section titles, so "LANGUAGE" matched nothing.
 - assertVisible: "Language"
