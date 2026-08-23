@@ -23,9 +23,16 @@ for root in ('src', 'app'):
             if '__tests__' in fp or '.stories.' in fp: continue
             src += open(fp, encoding='utf-8', errors='ignore').read()
 
-literal  = set(re.findall(r'testID=["\']([A-Za-z0-9_\-]+)["\']', src))
+# `\s*=\s*` not `=`: a component can define its id as a DEFAULT PARAMETER —
+# `testID = "listing-unavailable-actions"` in the destructured props — which is a
+# real, mounted handle. Requiring no spaces reported it as undefined.
+literal  = set(re.findall(r'testID\s*=\s*["\']([A-Za-z0-9_\-]+)["\']', src))
 literal |= set(re.findall(r'testID:\s*["\']([A-Za-z0-9_\-]+)["\']', src))
 literal |= set(re.findall(r'tabBarButtonTestID:\s*["\']([A-Za-z0-9_\-]+)["\']', src))
+# Components that expose EXTRA handles as their own props — SearchBar offers
+# container/input/clear. Matching only `testID=` reported conversations-search-clear
+# as undefined when it is passed as clearTestID two lines below the container's.
+literal |= set(re.findall(r'(?:input|clear|button|icon|row)TestID=["\']([A-Za-z0-9_\-]+)["\']', src))
 tmpl  = set(re.findall(r'testID=\{`([A-Za-z0-9_\-]+?)-?\$\{', src))
 tmpl |= set(re.findall(r'testID=\{`([A-Za-z0-9_\-]+)`\}', src))
 

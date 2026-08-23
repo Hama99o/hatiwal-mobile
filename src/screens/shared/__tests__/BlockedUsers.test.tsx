@@ -267,7 +267,7 @@ describe("BlockedUsers — unblock flow", () => {
     );
   });
 
-  it("shows an error toast on API failure and does not show success", async () => {
+  it("names the connection as the problem when the request never lands", async () => {
     autoConfirm();
     (usersAPI.unblockUser as jest.Mock).mockRejectedValueOnce(
       new Error("Network error")
@@ -279,8 +279,28 @@ describe("BlockedUsers — unblock flow", () => {
       fireEvent.press(screen.getAllByText("profile.blocked.unblockAction")[0]);
     });
 
+    // Was the bare word "Error" (common.error). A failed request the user can
+    // actually fix should say so — see src/utils/apiError.ts.
     await waitFor(() =>
-      expect(toast.error as jest.Mock).toHaveBeenCalledWith("common.error")
+      expect(toast.error as jest.Mock).toHaveBeenCalledWith("common.errorNetwork")
+    );
+    expect(toast.success as jest.Mock).not.toHaveBeenCalled();
+  });
+
+  it("shows the server's own reason when the API rejects the unblock", async () => {
+    autoConfirm();
+    (usersAPI.unblockUser as jest.Mock).mockRejectedValueOnce({
+      response: { status: 422, data: { errors: ["User is not blocked"] } },
+    });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText("Ali Khan")).toBeTruthy());
+
+    await act(async () => {
+      fireEvent.press(screen.getAllByText("profile.blocked.unblockAction")[0]);
+    });
+
+    await waitFor(() =>
+      expect(toast.error as jest.Mock).toHaveBeenCalledWith("User is not blocked")
     );
     expect(toast.success as jest.Mock).not.toHaveBeenCalled();
   });

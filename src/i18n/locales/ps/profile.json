@@ -109,7 +109,11 @@
   "recentListings": "ستاسو فعال اعلانونه",
   "viewAll": "ټول وګورئ",
   "itemsBought": "اخیستل شوي شیان",
+  "itemsBought_one": "اخیستل شوی شی",
+  "itemsBought_other": "اخیستل شوي شیان",
   "itemsSaved": "خوندي شیان",
+  "itemsSaved_one": "خوندي شی",
+  "itemsSaved_other": "خوندي شیان",
   "purchaseActivity": "د اخیستنې فعالیت",
   "edit": {
     "title": "پروفایل سمول",

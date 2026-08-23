@@ -109,7 +109,11 @@
   "recentListings": "آگهی‌های فعال شما",
   "viewAll": "مشاهده همه",
   "itemsBought": "اشیای خریداری شده",
+  "itemsBought_one": "شیء خریداری شده",
+  "itemsBought_other": "اشیای خریداری شده",
   "itemsSaved": "اشیای ذخیره شده",
+  "itemsSaved_one": "شیء ذخیره شده",
+  "itemsSaved_other": "اشیای ذخیره شده",
   "purchaseActivity": "فعالیت خرید",
   "edit": {
     "title": "ویرایش پروفایل",

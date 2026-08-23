@@ -188,6 +188,7 @@
     "addressHint": "Tell buyers where to meet you to collect the item.",
     "titleRequired": "Title is required (max 150 characters)",
     "priceRequired": "Enter a valid price greater than 0",
+    "priceTooHigh": "Price is too high. Enter a smaller amount.",
     "categoryRequired": "Please select a category",
     "saveDraft": "Save Draft",
     "draftFound": "You have an unsaved listing. Restore it?",

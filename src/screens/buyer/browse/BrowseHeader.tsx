@@ -111,6 +111,8 @@ export function BrowseHeader({
             placeholder={t("browse.searchPlaceholder")}
             containerStyle={{ flex: 1 }}
             testID="browse-search-bar"
+            // SearchBar exposes a clear-button handle; this call site never used it.
+            clearTestID="browse-search-clear"
             inputTestID="browse-search-input"
             clearTestID="browse-search-clear"
           />
@@ -135,6 +137,9 @@ export function BrowseHeader({
                 backgroundColor: viewMode === "grid" ? colors.primary : colors.muted,
               }}
               accessibilityRole="button"
+              // Locale-independent handle: the only other way in was the
+              // translated accessibilityLabel.
+              testID="browse-view-grid"
               accessibilityLabel={t("browse.viewGrid")}
               accessibilityState={{ selected: viewMode === "grid" }}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
@@ -154,6 +159,9 @@ export function BrowseHeader({
                 backgroundColor: viewMode === "list" ? colors.primary : colors.muted,
               }}
               accessibilityRole="button"
+              // Locale-independent handle: the only other way in was the
+              // translated accessibilityLabel.
+              testID="browse-view-list"
               accessibilityLabel={t("browse.viewList")}
               accessibilityState={{ selected: viewMode === "list" }}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}

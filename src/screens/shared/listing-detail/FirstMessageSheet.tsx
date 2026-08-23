@@ -28,6 +28,7 @@ import { Textarea } from "@/components/reusables/textarea";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { PriceTag } from "@/components/common/PriceTag";
+import { apiErrorMessage } from "@/utils/apiError";
 
 interface FirstMessageSheetProps {
   visible: boolean;
@@ -76,9 +77,9 @@ export function FirstMessageSheet({
 
       if (status === 422) {
         // Duplicate conversation — navigate to existing
-        toast.error(messages[0] ?? t("common.error"));
+        toast.error(messages[0] ?? apiErrorMessage(err, t));
       } else {
-        toast.error(t("common.error"));
+        toast.error(apiErrorMessage(err, t));
       }
     },
   });

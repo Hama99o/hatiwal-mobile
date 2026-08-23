@@ -20,7 +20,10 @@ appId: com.hatiwal.app
 
 # Tap the delete/X button on first photo
 - tapOn:
-    id: "photo-delete-0"
+# Every photo tile's remove control shares the id "listing-form-photo-remove";
+    # "photo-delete-0" existed nowhere. `index` picks the first tile's.
+    id: "listing-form-photo-remove"
+    index: 0
 - waitForAnimationToEnd
 # Confirm deletion if prompted
 - tapOn: "Remove"

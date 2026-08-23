@@ -359,6 +359,9 @@ export function UserProfileScreen() {
               onPress={() => setMenuVisible(true)}
               hitSlop={16}
               style={{ padding: 4 }}
+              // The overflow menu that holds Block/Report on someone else's
+              // profile. Only handle was the translated accessibilityLabel.
+              testID="more-menu"
               accessibilityLabel={t("common.actions")}
             >
               <MoreVertical size={22} color={colors.mutedForeground} />

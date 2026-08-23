@@ -49,6 +49,7 @@ import { type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 import { type ListingActionRow } from "@/components/common/ListingActionsSheet";
 import { confirmAlert } from "@/utils/alert";
 import { availableUnitsOf } from "@/utils/stock";
+import { apiErrorMessage } from "@/utils/apiError";
 
 // Query keys — exported so callers/tests can assert against the exact same
 // constants instead of hardcoding strings.
@@ -164,7 +165,7 @@ export function useListingLifecycle({
   const publish = useMutation({
     mutationFn: () => listingsAPI.publishListing(listingId),
     onSuccess: () => { invalidateAll(); toast.success(t("listing.publishSuccess")); },
-    onError: () => toast.error(t("common.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
   const reserve = useMutation({
@@ -174,7 +175,7 @@ export function useListingLifecycle({
       setBuyerPickerAction(null);
       toast.success(t("listing.reserveSuccess"));
     },
-    onError: () => toast.error(t("common.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
   const markSold = useMutation({
@@ -194,25 +195,25 @@ export function useListingLifecycle({
         });
       }
     },
-    onError: () => toast.error(t("common.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
   const unpublish = useMutation({
     mutationFn: () => listingsAPI.unpublishListing(listingId),
     onSuccess: () => { invalidateAll(); toast.success(t("listing.unpublishSuccess")); },
-    onError: () => toast.error(t("common.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
   const activate = useMutation({
     mutationFn: () => listingsAPI.activateListing(listingId),
     onSuccess: () => { invalidateAll(); toast.success(t("listing.activateSuccess")); },
-    onError: () => toast.error(t("common.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
   const renew = useMutation({
     mutationFn: () => listingsAPI.renewListing(listingId),
     onSuccess: () => { invalidateAll(); toast.success(t("listing.renewSuccess")); },
-    onError: () => toast.error(t("common.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
   const deleteListing = useMutation({
@@ -222,7 +223,7 @@ export function useListingLifecycle({
       toast.success(t("listing.deleteSuccess"));
       onDeleted?.();
     },
-    onError: () => toast.error(t("common.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
   const isBusy =

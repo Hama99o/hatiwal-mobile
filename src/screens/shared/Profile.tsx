@@ -627,6 +627,10 @@ export default function ProfileScreen() {
             style={{ marginBottom: 10 }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
+            // Its accessibilityLabel is "Edit Profile", the same text as the
+            // settings row that navigates AWAY to the edit screen — so a flow
+            // tapping that label could hit either one. This id is unambiguous.
+            testID="avatar-picker"
             accessibilityLabel={t("profile.editProfile")}
           >
             <View style={{ position: "relative" }}>

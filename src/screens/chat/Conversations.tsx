@@ -46,6 +46,7 @@ import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton
 
 import { ConversationRow } from "./conversations/ConversationRow";
 import { filterConversations } from "./conversations/filterConversations";
+import { apiErrorMessage } from "@/utils/apiError";
 
 // Backend clamps `page[size]` to this (see hatiwal-api ApplicationController::
 // MAX_PAGE_SIZE). Requesting the max in one page means, for the overwhelming
@@ -249,8 +250,8 @@ export default function ConversationsScreen() {
         setUnreadBadgeCount(total);
         // Full reset so UniversalList re-renders without the deleted row
         setResetKey((k) => k + 1);
-      } catch {
-        toast.error(t("common.error"));
+      } catch (err) {
+        toast.error(apiErrorMessage(err, t));
       }
     },
     [setUnreadMessageTotal, t]
@@ -526,6 +527,10 @@ export default function ConversationsScreen() {
             onChangeText={setSearchTerm}
             placeholder={t("chat.searchPlaceholder")}
             testID="conversations-search-bar"
+            // SearchBar exposes three handles — container, input, clear — and this
+            // call site passed the container and the clear but not the input, so
+            // flows typing into "conversations-search-input" found nothing.
+            inputTestID="conversations-search-input"
             inputTestID="conversations-search-input"
             clearTestID="conversations-search-clear"
           />

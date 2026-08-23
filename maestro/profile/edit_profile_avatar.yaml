@@ -3,12 +3,18 @@ appId: com.hatiwal.app
 # Edit profile — change avatar photo
 
 - runFlow: ../_helpers/login.yaml
-- tapOn: "Me"
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
-- tapOn: "Edit Profile"
-- waitForAnimationToEnd
-- assertVisible: "Edit Profile"
-# Tap the avatar to change it
+
+# The avatar picker lives on the PROFILE screen, not behind "Edit Profile" —
+# EditProfile.tsx has no avatar control at all, so navigating there first meant
+# the picker could never be found. The camera badge on the avatar is the affordance.
+#
+# Note the avatar's own accessibilityLabel is also "Edit Profile" (the same text
+# as the settings row that navigates away), which is why this taps the testID.
+- assertVisible:
+    id: "avatar-picker"
 - tapOn:
     id: "avatar-picker"
 - waitForAnimationToEnd

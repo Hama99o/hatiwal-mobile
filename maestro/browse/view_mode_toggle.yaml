@@ -52,7 +52,9 @@ appId: com.hatiwal.app
 
 # Clear search
 - tapOn:
-    id: "search-clear"
+# The clear (X) inside the Browse search bar. It had no handle at all until
+    # BrowseHeader passed SearchBar's clearTestID.
+    id: "browse-search-clear"
     optional: true
 
 # ── 5. Empty state still works in list mode ───────────────────────────────────

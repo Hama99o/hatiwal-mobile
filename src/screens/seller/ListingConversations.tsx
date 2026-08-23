@@ -71,6 +71,7 @@ import {
 } from "@/components/common/UniversalList";
 import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton";
 import { ConversationRow } from "@/screens/chat/conversations/ConversationRow";
+import { apiErrorMessage } from "@/utils/apiError";
 
 // Same page size the main inbox uses (Conversations.tsx) — comfortably above
 // the backend's default page size for the overwhelming majority of listings,
@@ -157,13 +158,13 @@ export default function ListingConversations() {
     onMutate: (conversationId) => {
       setRemovedIds((prev) => new Set(prev).add(conversationId));
     },
-    onError: (_err, conversationId) => {
+    onError: (err, conversationId) => {
       setRemovedIds((prev) => {
         const next = new Set(prev);
         next.delete(conversationId);
         return next;
       });
-      toast.error(t("common.error"));
+      toast.error(apiErrorMessage(err, t));
     },
     onSuccess: () => {
       invalidateConversations();

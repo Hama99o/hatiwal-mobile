@@ -31,6 +31,7 @@ import { confirmAlert } from "@/utils/alert";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { usersAPI, type PublicProfile } from "@/api/users";
+import { apiErrorMessage } from "@/utils/apiError";
 
 // ─── Skeleton row ──────────────────────────────────────────────────────────────
 
@@ -133,10 +134,10 @@ export default function BlockedUsersScreen() {
                 toast.success(t("profile.blocked.unblocked"));
                 // Trigger a silent background refetch to sync server state
                 setRefreshKey((k) => k + 1);
-              } catch {
+              } catch (err) {
                 // Rollback: restore the user to the list
                 setRemovedIds(prevListRef.current);
-                toast.error(t("common.error"));
+                toast.error(apiErrorMessage(err, t));
               } finally {
                 setPendingId(null);
               }

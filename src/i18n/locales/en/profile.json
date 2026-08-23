@@ -109,7 +109,11 @@
   "recentListings": "Your Active Listings",
   "viewAll": "View All",
   "itemsBought": "Items Bought",
+  "itemsBought_one": "Item Bought",
+  "itemsBought_other": "Items Bought",
   "itemsSaved": "Saved Items",
+  "itemsSaved_one": "Saved Item",
+  "itemsSaved_other": "Saved Items",
   "purchaseActivity": "Purchase Activity",
   "edit": {
     "title": "Edit Profile",

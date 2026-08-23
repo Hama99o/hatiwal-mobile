@@ -1253,6 +1253,10 @@ export function ConversationScreen() {
               verified={otherParticipant.verified ?? false}
               size={32}
               layout="row"
+              // UserIdentity puts this on its Pressable wrapper when onPress is
+              // set. Without it the only handle was the participant's NAME, which
+              // is seed data — so the flow broke whenever the fixture changed.
+              testID="other-participant-name"
               onPress={() => router.push(`/(main)/seller/${otherParticipant.id}` as never)}
             />
           ) : (

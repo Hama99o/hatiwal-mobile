@@ -8,6 +8,8 @@
   "back": "Back",
   "loading": "Loading...",
   "error": "Error",
+  "errorNetwork": "No connection. Check your internet and try again.",
+  "errorServer": "Something went wrong on our side. Please try again.",
   "errorTitle": "Something went wrong",
   "errorDescription": "We couldn't load the data. Check your connection and try again.",
   "success": "Success",

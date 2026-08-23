@@ -102,17 +102,27 @@ export function PendingReviewsNudge() {
                 gap: 8,
               }}
             >
-              <UserIdentity
-                name={counterparty.name}
-                avatarUrl={counterparty.avatarUrl}
-                size={36}
-                nameSize={14}
-                subtitle={transaction.listing?.title ?? undefined}
-              />
+              {/* flex: 1 so a long listing title ("Xiaomi Redmi Note 11 128GB")
+                  shrinks the identity block instead of growing the row and
+                  pushing the chevron out past the card's `overflow: "hidden"`
+                  edge, where it was being clipped in half. */}
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <UserIdentity
+                  name={counterparty.name}
+                  avatarUrl={counterparty.avatarUrl}
+                  size={36}
+                  nameSize={14}
+                  subtitle={transaction.listing?.title ?? undefined}
+                />
+              </View>
               <ChevronRight
                 size={16}
                 color={colors.mutedForeground}
-                style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined}
+                // Never let the affordance be the thing that gets squeezed out.
+                style={[
+                  { flexShrink: 0 },
+                  isRtl ? { transform: [{ scaleX: -1 }] } : null,
+                ]}
               />
             </Pressable>
           );
