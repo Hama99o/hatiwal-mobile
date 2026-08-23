@@ -31,3 +31,11 @@ export QA_AVD_5="qa_phone4"      # 411dp phone
 # failures that LOOK like app bugs, which is worse than no coverage at all.
 export QA_EMU_CORES=4
 export QA_EMU_MEMORY=3072
+
+# ── Emulator console ports ─────────────────────────────────────────────────
+# Moved off 5554 because ANOTHER project's QA rig on this machine starts there:
+# emulator-5554 was found running `qa_edu_phone` (edu-safi) while this rig
+# reported "session 1 already up" and installed Hatiwal onto it. Sessions here now
+# use 5580, 5582, … and lib/common.sh additionally verifies the AVD name before
+# driving any device, so a future collision is refused rather than adopted.
+export QA_PORT_BASE=5580

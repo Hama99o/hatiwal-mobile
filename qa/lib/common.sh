@@ -132,7 +132,11 @@ esac
 # Emulator console ports go up in TWOS (5554, 5556, 5558…) — the odd port in each
 # pair is the adb channel, so stepping by one would collide with the previous
 # instance's adb.
-QA_PORT=$(( 5554 + 2 * (QA_SESSION - 1) ))
+# Emulator console ports. Base is configurable because another project's QA rig on
+# this machine also starts at 5554 — see _device_is_ours. Moving this session's
+# range is the clean way out of a collision.
+QA_PORT_BASE="${QA_PORT_BASE:-5554}"
+QA_PORT=$(( QA_PORT_BASE + 2 * (QA_SESSION - 1) ))
 QA_WANT_SERIAL="emulator-$QA_PORT"
 
 # ── Which AVD belongs to THIS session ──────────────────────────────────────
@@ -185,18 +189,47 @@ adb_qa_t() { local t="$1"; shift; timeout "$t" "$ADB" ${QA_SERIAL:+-s "$QA_SERIA
 # — which is the exact collision the session split exists to prevent, and it
 # would be invisible: both sessions would appear to work while corrupting each
 # other's runs.
+# Is the emulator on this serial OURS? Compares the running AVD name.
+#
+# NOT paranoia — this machine runs more than one project's QA rig, and they pick
+# emulator ports the same way. `emulator-5554` was found running `qa_edu_phone`
+# (the edu-safi project's AVD) while this rig happily reported "session 1 already
+# up" and installed Hatiwal onto it. Driving another project's emulator is bad in
+# both directions: our results are meaningless, and we trample their run.
+#
+# Empty QA_AVD (or an emulator that will not answer) is treated as a match, so a
+# hand-booted device is still usable — the check only rejects a device that
+# positively identifies as a DIFFERENT AVD.
+_device_is_ours() {
+  local serial="$1" name
+  [ -n "${QA_AVD:-}" ] || return 0
+  name="$("$ADB" -s "$serial" emu avd name 2>/dev/null | head -1 | tr -d '\r')"
+  [ -n "$name" ] || return 0
+  [ "$name" = "$QA_AVD" ]
+}
+
 resolve_device() {
   if "$ADB" devices | grep -q "^${QA_WANT_SERIAL}[[:space:]]*device$"; then
-    QA_SERIAL="$QA_WANT_SERIAL"
-    export QA_SERIAL
-    return 0
+    if _device_is_ours "$QA_WANT_SERIAL"; then
+      QA_SERIAL="$QA_WANT_SERIAL"
+      export QA_SERIAL
+      return 0
+    fi
+    warn "$QA_WANT_SERIAL is running another project's AVD ($("$ADB" -s "$QA_WANT_SERIAL" emu avd name 2>/dev/null | head -1 | tr -d '\r')) — not ours"
+    say "set QA_PORT_BASE to move this session off the contended port range"
+    return 1
   fi
   # Session 1 also accepts a single emulator on a non-standard port: an emulator
   # someone booted by hand is still usable, and refusing it would be unhelpful.
   if [ "$QA_SESSION" = "1" ]; then
     local only
     only="$("$ADB" devices | awk '/emulator-[0-9]+\tdevice/{print $1}' | head -2)"
-    if [ "$(printf '%s\n' "$only" | grep -c .)" = "1" ]; then
+    # MUST verify identity here too. This convenience path is how session 1 adopted
+    # another project's emulator twice: the only device attached was
+    # `emulator-5584` running `qa_edu_phone` (edu-safi), and because it was the
+    # only one, this branch accepted it and app_install pushed Hatiwal onto their
+    # device. The port check above rejected it; this fallback happily did not.
+    if [ "$(printf '%s\n' "$only" | grep -c .)" = "1" ] && _device_is_ours "$only"; then
       QA_SERIAL="$only"; export QA_SERIAL; return 0
     fi
   fi
