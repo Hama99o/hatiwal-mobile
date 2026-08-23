@@ -1313,6 +1313,34 @@ coordinate is accepted and returned unchanged". The flow's own header had warned
 that running it without the geo env "still passes, but proves nothing" — which is
 exactly what happened, twice, before anyone checked the saved row.
 
+### UI-030 · ProvincePickerSheet is built and mounted nowhere; three flows tested it (OPEN — product)
+
+`src/screens/seller/listing-form/ProvincePickerSheet.tsx` exists, renders a
+province list under a "Select Province" heading, and is imported by **nothing**.
+Second dead component found this way, after `ModeSwitcherBanner` (UI-025).
+
+Three flows drove it, and none could ever pass:
+
+| flow | its premise | reality |
+|---|---|---|
+| `listings/create_listing_province_picker` | a province picker on the LISTING form | listings have latitude/longitude and an address; `province` is a **User** column, not a Listing one |
+| `listings/create_listing_location_picker` | tapping "Location" opens a Kabul/Kandahar list | "Location" is a non-interactive label; the control is "Tap to set exact location on map" |
+| `profile/edit_profile_province_picker_deep` | a picker sheet on Edit Profile | EditProfile renders province as an ordinary `TextInput` |
+
+The profile one is why this looked like it half-worked: the input's placeholder is
+the word "Province", so `tapOn: "Province"` hit the field and only the list that
+followed was missing.
+
+**Done in QA:** the two listing flows are deleted — the real location control is
+covered thoroughly by `maps/create_listing_map_pin` (passing) — and the profile one
+is replaced by `profile/edit_profile_province.yaml`, which tests what the field
+actually is: a value persists across a save and a reload, and clearing it is
+allowed, since `province: z.string().optional()`.
+
+**For product:** mount ProvincePickerSheet or delete it. A component with no
+caller is either an unfinished feature or 100 lines of maintenance for nothing,
+and QA cannot tell which from the outside.
+
 ### MAPS · VERIFIED on device — what is now proven about both location pickers
 
 The user's priority. ALL SIX flows green on a 360dp phone. What each one actually proves:

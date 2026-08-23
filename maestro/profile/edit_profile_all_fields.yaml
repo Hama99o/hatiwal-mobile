@@ -30,14 +30,21 @@ appId: com.hatiwal.app
 - eraseText
 - inputText: "+93700000001"
 
-# Province picker
+# Province is a plain TEXT INPUT whose placeholder is the word "Province" — not a
+# picker. ProvincePickerSheet.tsx exists but is imported by nothing (UI-030), so
+# the sheet this flow used to wait for never opened.
 - tapOn: "Province"
-- waitForAnimationToEnd
-- tapOn: "Kabul"
-- waitForAnimationToEnd
+- eraseText
+- inputText: "Herat"
 
-# Save
-- tapOn: "Save"
+# `profile.edit.saveButton` = "Save Changes"; a bare "Save" is anchored and
+# matches nothing.
+- scrollUntilVisible:
+    element:
+      text: "Save Changes"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Save Changes"
 - waitForAnimationToEnd
 # `profile.edit.saved` = "Profile saved".
 - assertVisible: "Profile saved"

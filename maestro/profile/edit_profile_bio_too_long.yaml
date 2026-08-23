@@ -13,6 +13,13 @@ appId: com.hatiwal.app
 # 501 characters — over the 500 char limit
 - inputText: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
 
-- tapOn: "Save"
+# The PROFILE form's button is `profile.edit.saveButton` = "Save Changes".
+# `common.save` ("Save") is the LISTING edit button — a different screen.
+- scrollUntilVisible:
+    element:
+      text: "Save Changes"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Save Changes"
 - waitForAnimationToEnd
 - assertVisible: "Bio is too long"

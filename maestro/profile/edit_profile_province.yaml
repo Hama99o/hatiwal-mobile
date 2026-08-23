@@ -1,0 +1,79 @@
+appId: com.hatiwal.app
+---
+# The profile's PROVINCE field — edge cases for a plain optional text input.
+#
+# This replaces edit_profile_province_picker_deep.yaml, which drove a picker sheet
+# that does not exist. `ProvincePickerSheet.tsx` is imported by nothing (recorded
+# as UI-030), and EditProfile renders province as an ordinary TextInput whose
+# placeholder is the word "Province" — which is why `tapOn: "Province"` appeared to
+# work and then the expected list of Kabul/Kandahar never came.
+#
+# What is actually worth testing here, given `province: z.string().optional()`:
+#   - a typed value persists across a save and a reload
+#   - clearing it is allowed (it is optional, so empty must not block saving)
+#   - a long value is accepted rather than silently truncated or rejected
+
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Edit Profile"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Edit Profile"
+- waitForAnimationToEnd
+
+# ── A typed province persists ────────────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      text: "Province"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Province"
+- eraseText
+- inputText: "Kandahar"
+- scrollUntilVisible:
+    element:
+      text: "Save Changes"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Save Changes"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Profile saved"
+    timeout: 20000
+
+# Reopen and confirm it was stored, not just echoed in the form.
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Edit Profile"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Edit Profile"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Kandahar"
+    direction: DOWN
+    timeout: 20000
+
+# ── Clearing it is allowed — the field is optional ───────────────────────────
+# A required-field error here would be a real bug: nothing in the schema demands
+# a province, and a seller who moves should be able to remove it.
+- tapOn: "Kandahar"
+- eraseText
+- scrollUntilVisible:
+    element:
+      text: "Save Changes"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Save Changes"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Profile saved"
+    timeout: 20000
