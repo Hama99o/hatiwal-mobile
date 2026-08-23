@@ -1220,6 +1220,41 @@ the seller → their stats → their listings grid → open one of them → back
 profile. The buyer's trust path before meeting a stranger with cash. Finding the
 grid needed a scroll, and looking at *why* is what turned up UI-026 below.
 
+### UI-027 · "Mark as unread" silently does nothing on a one-sided conversation (OPEN)
+
+**Where:** conversations list → long-press a row → Mark as unread
+**Severity:** low-frequency, but it is the "nothing happened and no error" shape
+**Evidence:** `app/controllers/api/v1/conversations_controller.rb#mark_unread`,
+confirmed against live fixture data
+
+`mark_unread` nulls `read_at` on the latest **inbound** message — a message from
+the other party — so that `unread_count_for(current_user)` becomes positive:
+
+```ruby
+latest_inbound = @conversation.messages.where.not(user_id: current_user.id)
+                              .order(created_at: :desc).limit(1)
+Message.where(id: latest_inbound).update_all(read_at: nil)
+head :no_content
+```
+
+On a conversation where the other party never replied, that subquery is empty,
+`update_all` touches 0 rows, and the endpoint still answers **204 No Content**.
+The row menu offers the action anyway (it is offered whenever unread is 0, which
+on such a conversation is always), so a user can tap "Mark as unread" repeatedly
+and nothing will ever happen — with no error to explain why.
+
+Real in the current fixtures: conversation 159 has 2 messages, both from the
+buyer, and 0 inbound. `unread_count_for(buyer)` is 0 and cannot be made positive.
+
+Not the cause of the three failing badge flows — the app's first row is
+conversation 166, which has an inbound message and can be marked unread (checked
+against `Conversation.ordered`). Found while investigating them.
+
+**Suggested fix (not applied — it is a contract decision):** have `mark_unread`
+report that there was nothing to mark, rather than 204, so the client can say so;
+or stop offering the action when the conversation has no inbound message. Either
+needs an API contract change plus client work, which is the owner's call.
+
 ### MAPS · VERIFIED on device — what is now proven about both location pickers
 
 The user's priority. ALL SIX flows green on a 360dp phone. What each one actually proves:
