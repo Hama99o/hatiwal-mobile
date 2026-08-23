@@ -144,7 +144,7 @@ it is a design call about how the app wants edge-to-edge to look.
 ### UI-005 · Bottom tab label truncated to "Categor…"
 **Where:** Bottom tab bar, English
 **Severity:** low-medium — visible on every screen of the app
-**Evidence:** `qa/reports/run-011/auth/screens/login.png`
+**Evidence:** `qa/evidence/run-011_auth_login.png`
 
 With five tabs (Bazaar · Categories · Saved · Chats · Me) the Categories label
 does not fit and renders as `Categor…`. It is the most-seen surface in the app,
@@ -190,7 +190,7 @@ is what triggers (a). Setting the default to `en` would remove both costs.
 ### UI-006 · Avatar initial in the review nudge — CLOSED, not a defect
 **Where:** Profile → "Rate your recent deals" → the circular avatar
 **Severity:** none
-**Evidence:** `qa/reports/run-011/auth/screens/login.png`
+**Evidence:** `qa/evidence/run-011_auth_login.png`
 
 **Resolved — not a defect.** `UserAvatar.tsx:21` derives it as
 `name?.charAt(0)?.toUpperCase() ?? "?"`, so "Omar Noori" yields the letter **O**.
@@ -235,7 +235,7 @@ left and still browsable**.
 ### UI-009 · "15 of 15 left" before the first sale — FIXED
 **Where:** Seller → multi-unit listing detail → stock pill
 **Severity:** low (wording)
-**Evidence:** `qa/reports/run-017/seller/screens/multi_quantity_partial_sale.png`
+**Evidence:** `qa/evidence/run-017_seller_multi_quantity_partial_sale.png`
 
 The owner phrasing is "N of M left" so a seller can see progress through a
 batch. On a listing nobody has bought from that renders **"15 of 15 left"** —
@@ -380,7 +380,7 @@ callback the library does not fire there.
 ### UI-014 · Bold text is Android fake-bold, and clips its last character — FIXED
 **Where:** everywhere bold; visible on the first-run onboarding button
 **Severity:** medium — cosmetic, but on the first screen every new user sees
-**Evidence:** `qa/reports/run-045/onboarding/screens/first_run.png`
+**Evidence:** `qa/evidence/run-045_onboarding_first_run.png`
 
 The onboarding primary button rendered **"Nex"** and its skip link **"Ski"** —
 the last character cut off both.
@@ -467,7 +467,7 @@ Two traps these audits fell into first, both worth remembering:
 ### UI-016 · "0 chats" shouted in accent blue on every un-messaged listing — FIXED
 **Where:** My Shop → each seller card's meta row
 **Severity:** low, but on the seller's main screen and on most of their cards
-**Evidence:** `qa/reports/run-020/seller/screens/multi_quantity_partial_sale.png`
+**Evidence:** `qa/evidence/run-020_seller_multi_quantity_partial_sale.png`
 
 The gate was `listing.conversationsCount != null`, which lets **0** through. So a
 listing nobody had messaged about rendered "0 chats" in `colors.primary` at
@@ -1106,7 +1106,7 @@ CTA that follows a text field.
 
 **Where:** any screen backed by `UniversalList` (Bazaar, saved, categories, shop…)
 **Severity:** HIGH in dev — the app becomes unusable until dismissed
-**Evidence:** `qa/reports/s2/run-132/browse/screens/categories_hub.png`
+**Evidence:** `qa/evidence/run-132_browse_categories_hub.png`
 
 The screenshot is a full-screen LogBox: *"Console Error — [UniversalList]
 background refresh error AxiosError: Network Error"*, pointing at
