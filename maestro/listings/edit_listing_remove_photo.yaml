@@ -5,14 +5,17 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-# Below the fold: `tapOn` never scrolls to its target, and both the profile screen
-# (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
-# description, views chart, action row) are taller than a phone.
+# "Edit" is an item INSIDE the More sheet (useListingLifecycle `moreActions`,
+# key "edit", label common.edit) — it is not on the detail screen, so scrolling
+# the page cannot reach it. Open the sheet first.
 - scrollUntilVisible:
     element:
-      text: "Edit"
+      id: "lifecycle-more-action"
     direction: DOWN
     timeout: 20000
+- tapOn:
+    id: "lifecycle-more-action"
+- waitForAnimationToEnd
 - tapOn: "Edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Listing"
