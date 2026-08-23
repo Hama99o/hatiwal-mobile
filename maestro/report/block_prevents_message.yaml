@@ -40,3 +40,37 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # "Contact Seller" disabled for blocked user
 - assertNotVisible: "Contact Seller"
+
+# ── UNBLOCK, so the block does not leak into every later flow ───────────────
+# A block is persisted on the USER, so leaving it set hides the seller's listings
+# from the buyer for the rest of the cycle — every later browse and chat flow then
+# fails, nowhere near this one, until the next re-seed. report/block_user.yaml has
+# always unblocked at the end; these two did not.
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Blocked Users"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Blocked Users"
+- waitForAnimationToEnd
+# The row's button is `profile.blocked.unblockAction` = "Unblock", by testID
+# (`unblock_button_<id>`), and it opens a confirmAlert whose confirm button is
+# `profile.blocked.unblockConfirm` = "Yes, unblock" — tapping only the first leaves
+# the dialog open and the block in place.
+- runFlow:
+    when:
+      visible:
+        id: "unblock_button_\\d+"
+    commands:
+      - tapOn:
+          id: "unblock_button_\\d+"
+          index: 0
+      - waitForAnimationToEnd
+      - tapOn: "Yes, unblock"
+      - waitForAnimationToEnd
+      - extendedWaitUntil:
+          visible: "User unblocked"
+          timeout: 20000
