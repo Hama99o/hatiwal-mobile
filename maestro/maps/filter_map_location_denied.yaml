@@ -50,7 +50,20 @@ appId: com.hatiwal.app
     optional: true
 - waitForAnimationToEnd
 
-# ── The refusal is EXPLAINED, not swallowed ─────────────────────────────────
+# ── The refusal is EXPLAINED — twice, deliberately ──────────────────────────
+# First an actionable ALERT ("Permission Needed" + Open Settings), raised by
+# showPermissionDeniedAlert for the specifically-fixable "denied" case.
+- extendedWaitUntil:
+    visible: "Permission Needed"
+    timeout: 30000
+- assertVisible: "Open Settings"
+# Dismiss it — it is a modal and covers the banner underneath, which is why
+# asserting the banner first failed.
+- tapOn: "Cancel"
+- waitForAnimationToEnd
+
+# Then the PERSISTENT inline banner, which is the part that matters: the app does
+# not rely on the user having noticed a transient alert.
 - extendedWaitUntil:
     visible: "Location access is blocked. Allow location access in Settings, then try again."
     timeout: 30000
