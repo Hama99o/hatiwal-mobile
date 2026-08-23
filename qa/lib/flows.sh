@@ -38,7 +38,32 @@ FLOW_TIMEOUT="${FLOW_TIMEOUT:-600}"
 # erroring is a SILENT FAILURE — the app looked fine and told the user nothing.
 # Assertions cannot see that class of bug, so it is detected from logcat.
 API_ERR_RE='AxiosError|Network request failed|Request failed with status code|Unhandled promise rejection|Possible Unhandled Promise'
-scan_api_errors() { grep -oiE "$API_ERR_RE.{0,110}" "$1" 2>/dev/null; }
+
+# Failures the app handles ON PURPOSE, and whose handling is the DESIGNED
+# behaviour rather than a swallowed error. Counting these as SILENT accuses the
+# app of hiding something it deliberately and correctly rode out.
+#
+# `[UniversalList] background refresh error` is the one that matters: when a
+# refresh of an already-loaded list fails, blanking a perfectly usable list is
+# worse for the user than keeping it, so the component logs a warn and leaves the
+# list alone (UniversalList.tsx, and it is why that line is `console.warn` — a
+# `console.error` raised a full-screen LogBox that blanked the list anyway).
+# browse_sort_most_viewed was marked SILENT on exactly this.
+#
+# An INITIAL fetch failure is NOT here: that one renders the inline error state
+# with a retry, and a flow passing its assertions while that state is on screen
+# genuinely is worth knowing about.
+API_TOLERATED_RE='UniversalList\] background refresh error'
+# Filter by LINE first, then extract. `grep -o` yields the match onwards — for
+# `'[UniversalList] background refresh error', [AxiosError: Network Error]` that
+# is "AxiosError: Network Error]", with the prefix that identifies it as tolerated
+# already cut off. Excluding after extraction can therefore never match, which is
+# how a first attempt at this filter left the count unchanged at 2.
+scan_api_errors() {
+  grep -iE "$API_ERR_RE" "$1" 2>/dev/null \
+    | grep -viE "$API_TOLERATED_RE" \
+    | grep -oiE "$API_ERR_RE.{0,110}"
+}
 
 # Is the rig still healthy? Metro dies with OOM (exit 137) on long runs, and
 # every flow after that point fails for no app reason.
