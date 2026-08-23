@@ -12,6 +12,14 @@ appId: com.hatiwal.app
 # Core elements still visible
 - assertVisible: "Edit Profile"
 - assertVisible: "Appearance"
+# "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
+# stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
+# `assertVisible` do not scroll to their target.
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Sign Out"
 # Restore
 - tapOn: "Light"

@@ -33,4 +33,12 @@ appId: com.hatiwal.app
 
 # Happy path restored after retry
 - assertVisible: "Profile"
+# "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
+# stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
+# `assertVisible` do not scroll to their target.
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Sign Out"

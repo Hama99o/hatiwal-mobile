@@ -14,6 +14,14 @@ appId: com.hatiwal.app
 - assertVisible: "Language"
 
 # Sign out is present (subdued ghost button at the bottom)
+# "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
+# stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
+# `assertVisible` do not scroll to their target.
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Sign Out"
 
 # Edit Profile link visible

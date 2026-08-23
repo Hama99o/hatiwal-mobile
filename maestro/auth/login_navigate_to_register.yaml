@@ -11,7 +11,12 @@ appId: com.hatiwal.app
 - tapOn: "Sign In"
 - waitForAnimationToEnd
 - assertVisible: "Sign In"
-- tapOn: "Create account"
+# The login screen renders this as ONE Text — "Don't have an account? Create
+# Account" — so no exact-match selector on either casing can find it. (This flow
+# used a lowercase "a", which is why the earlier sweep for the exact string
+# missed it.)
+- tapOn:
+    id: "go-to-register"
 - waitForAnimationToEnd
 - assertVisible: "Create Account"
 - assertVisible: "Already have an account?"

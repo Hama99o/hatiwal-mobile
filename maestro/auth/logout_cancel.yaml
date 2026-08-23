@@ -4,9 +4,25 @@ appId: com.hatiwal.app
 
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Me"
+# "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
+# stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
+# `assertVisible` do not scroll to their target.
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Sign Out"
 - assertVisible: "Are you sure you want to sign out?"
 - tapOn: "Cancel"
 # Still on Profile, still logged in
+# "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
+# stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
+# `assertVisible` do not scroll to their target.
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Sign Out"
 - assertNotVisible: "Sign In"

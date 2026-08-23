@@ -26,9 +26,25 @@ appId: com.hatiwal.app
 - assertVisible: "Ahmad"
 
 # Logout
+# "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
+# stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
+# `assertVisible` do not scroll to their target.
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Sign Out"
 - waitForAnimationToEnd
 - assertVisible: "Are you sure you want to sign out?"
+# "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
+# stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
+# `assertVisible` do not scroll to their target.
+- scrollUntilVisible:
+    element:
+      text: "Sign Out"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Sign Out"
 - waitForAnimationToEnd
 - assertVisible: "Welcome to Hatiwal"
