@@ -31,8 +31,16 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "My Shop"
 - waitForAnimationToEnd
-- tapOn: "Active"
+# Search for THIS FLOW'S disposable listing. The seed creates one per destructive
+# flow, named after it, so this flow can ruin it without touching a fixture
+# anything else asserts on. It used to act on "whichever listing comes first".
+- tapOn: "Search my listings..."
+- eraseText
+- inputText: "QA Disposable saved_listing_goes_sold"
 - waitForAnimationToEnd
+- extendedWaitUntil:
+      visible: "QA Disposable saved_listing_goes_sold"
+      timeout: 30000
 - tapOn:
     index: 0
 - waitForAnimationToEnd

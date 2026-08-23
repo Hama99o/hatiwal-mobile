@@ -24,8 +24,16 @@ appId: com.hatiwal.app
 - tapOn: "My Shop"
 - waitForAnimationToEnd
 
-- tapOn: "Active"
+# Search for THIS FLOW'S disposable listing. The seed creates one per destructive
+# flow, named after it, so this flow can ruin it without touching a fixture
+# anything else asserts on. It used to act on "whichever listing comes first".
+- tapOn: "Search my listings..."
+- eraseText
+- inputText: "QA Disposable mark_sold_with_buyer"
 - waitForAnimationToEnd
+- extendedWaitUntil:
+      visible: "QA Disposable mark_sold_with_buyer"
+      timeout: 30000
 
 - scrollUntilVisible:
     element:

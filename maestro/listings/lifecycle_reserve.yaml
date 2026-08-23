@@ -11,8 +11,20 @@ appId: com.hatiwal.app
 - tapOn: "My Shop"
 - waitForAnimationToEnd
 # Find an active listing
-- tapOn: "Active"
+# Search for THIS FLOW'S disposable listing. The seed creates one per destructive
+# flow, named after it, precisely so this flow can ruin it without touching a
+# fixture anything else asserts on. It used to act on "whichever listing comes
+# first", which was a shared one.
+- tapOn:
+    id: "browse-search-bar"
+    optional: true
+- tapOn: "Search my listings..."
+- eraseText
+- inputText: "QA Disposable lifecycle_reserve"
 - waitForAnimationToEnd
+- extendedWaitUntil:
+      visible: "QA Disposable lifecycle_reserve"
+      timeout: 30000
 - tapOn: "Mark as Reserved"
 - waitForAnimationToEnd
 # BuyerPickerSheet opens
