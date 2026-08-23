@@ -79,8 +79,16 @@ tags:
           id: "menu-mark-unread"
       - waitForAnimationToEnd
       # Badge should reappear
-      - assertVisible:
-          id: "unread-badge-\\d+"
+      # extendedWaitUntil, not assertVisible: the optimistic update in
+      # Conversations.tsx writes to `allConversationsRef.current`, a REF, so the
+      # ROW cannot re-render from it — only the tab badge updates immediately
+      # (that one goes through state). The row's badge appears when the refetch
+      # triggered by setRefreshKey lands, which is a network round-trip after
+      # the tap. Asserting instantly races it.
+      - extendedWaitUntil:
+          visible:
+            id: "unread-badge-\\d+"
+          timeout: 20000
 
 # CLOSE THE MENU if the conditional above did not fire.
 #
