@@ -8,7 +8,18 @@ appId: com.hatiwal.app
 # Open a listing
 - tapOn: "Draft"
 - waitForAnimationToEnd
-- tapOn: "Delete Listing"
+# The delete action lives in the More sheet and is labelled `common.delete` =
+# "Delete". `listing.delete` ("Delete Listing") is rendered nowhere — this flow was
+# tapping a string the app does not have, on a screen that does not hold the action.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-more-action"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-more-action"
+- waitForAnimationToEnd
+- tapOn: "Delete"
 - waitForAnimationToEnd
 # Confirm dialog
 - assertVisible: "Delete this listing?"

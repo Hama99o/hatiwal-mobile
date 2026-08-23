@@ -14,6 +14,18 @@ appId: com.hatiwal.app
 # Open "More" then tap "Unpublish" on the first active listing
 - tapOn: "More"
 - waitForAnimationToEnd
+# This action exists ONLY in the More sheet — useListingLifecycle adds it to
+# `moreActions`, never as the primary button (the primary is Publish for a draft,
+# Mark as Reserved for active, Mark as Sold for reserved, Renew when expired).
+# So the sheet has to be opened first.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-more-action"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-more-action"
+- waitForAnimationToEnd
 - tapOn: "Unpublish"
 - waitForAnimationToEnd
 - assertVisible: "Unpublish this listing?"
