@@ -827,7 +827,7 @@ a broken app.
 
 ---
 
-### RIG-008 · The installed APK predates its own manifest, so deep links cannot work (OPEN — needs a rebuild)
+### RIG-008 · The installed APK predated its own manifest, so deep links could not work — FIXED (rebuilt)
 
 Four flows use `hatiwal://` links (`share/open_listing_deep_link`,
 `share/open_seller_deep_link`, `browse/listing_detail_sold_state`,
@@ -857,10 +857,22 @@ but the timestamps settle it — APK built `2026-08-21 18:14`, manifest modified
 `2026-08-21 18:51`, **37 minutes later**. The manifest is right; the binary is
 stale. `pm query-activities` finds zero handlers.
 
-**Fix: rebuild the APK** (`qa.sh build`), with no emulator running. Until then
-these four flows are blocked, and it is worth knowing that **deep links are
-untested on this build** — including anything that relies on them in the share
-feature.
+**Fixed by rebuilding** (`qa.sh build`, with every emulator stopped — Gradle takes
+every core and a running emulator hangs). Verified on the reinstalled APK:
+
+```
+com.hatiwal.app/.MainActivity
+  Scheme: "hatiwal"
+  Scheme: "com.hatiwal.app"
+```
+
+and `am start -d "hatiwal://listing/1"` now starts instead of reporting "unable to
+resolve Intent"; `pm query-activities` finds 12 handlers where it found none.
+
+> The lesson worth keeping: `android/` is generated, and a manifest change does
+> nothing until the APK is rebuilt. The timestamps were the proof — APK 18:14,
+> manifest 18:51 — and no amount of flow debugging would have found it, because
+> the flows were correct.
 
 ---
 
