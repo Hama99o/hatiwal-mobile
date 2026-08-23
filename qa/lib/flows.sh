@@ -25,7 +25,14 @@ source "$(dirname "${BASH_SOURCE[0]}")/app.sh"
 # with a second session (QA_SESSION=2) competing for the same Metro and the same
 # host cores it lands well past 240s on a tablet. Sized to fit the worst legal
 # case rather than the typical one; a genuinely hung flow still gets caught.
-FLOW_TIMEOUT="${FLOW_TIMEOUT:-480}"
+# 600s, raised from 480 after create_listing_price_edges timed out at 481s. The
+# validation edge flows are legitimately long: each attempt taps Save Draft, waits
+# for the form to validate, and asserts both the error that should appear AND the
+# one that should not — three attempts each, on top of the ~150s a cold start costs
+# before the flow body begins. A timeout is reported as rig_fail with an empty log,
+# which is the least useful failure the rig can emit, so it is worth sizing
+# generously; a genuinely hung flow is still caught.
+FLOW_TIMEOUT="${FLOW_TIMEOUT:-600}"
 
 # Backend errors the UI may have swallowed. A flow that PASSES while the API was
 # erroring is a SILENT FAILURE — the app looked fine and told the user nothing.
