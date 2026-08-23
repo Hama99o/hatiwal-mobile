@@ -36,5 +36,20 @@ appId: com.hatiwal.app
 # so the words alone match two elements.
 - tapOn:
     id: "register-submit"
-# Lands on Bazaar after successful registration
-- assertVisible: "Bazaar"
+# Lands on Bazaar after successful registration.
+#
+# Registration is an API round-trip, so this needs a WAIT rather than a bare
+# assertion — and a brand-new account is also asked for notification permission
+# straight away, and that dialog covers the tab bar. Both were making this fail
+# after the form had been filled and submitted perfectly.
+- extendedWaitUntil:
+    visible: "Allow Hatiwal to send you notifications?"
+    timeout: 20000
+    optional: true
+- tapOn:
+    text: "Don.t allow"
+    optional: true
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Bazaar"
+    timeout: 60000

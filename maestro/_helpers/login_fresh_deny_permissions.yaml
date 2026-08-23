@@ -42,3 +42,21 @@ env:
     visible: "Me"
     timeout: 60000
 - assertNotVisible: "Login"
+
+# Dismiss the NOTIFICATION prompt, which only appears on this path.
+#
+# With permissions denied at launch, the app asks for notification permission
+# right after login — its own themed dialog ("Allow Hatiwal to send you
+# notifications?"), which covers the whole screen including the tab bar. The next
+# step in every calling flow is a tab tap, so without this it fails with
+# "Element not found: Bazaar" while the tab sits behind the modal. Answering "Don't
+# allow" keeps the device state minimal; the flows using this helper are about
+# location, not notifications.
+- extendedWaitUntil:
+    visible: "Allow Hatiwal to send you notifications?"
+    timeout: 20000
+    optional: true
+- tapOn:
+    text: "Don.t allow"
+    optional: true
+- waitForAnimationToEnd

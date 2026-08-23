@@ -63,13 +63,14 @@ appId: com.hatiwal.app
 - tapOn: "Tap to set exact location on map"
 - waitForAnimationToEnd
 
+# NO permission dialog is expected here: Maestro grants all runtime permissions on
+# launchApp, so the app already has location. That is fine — the subject of THIS
+# flow is the foreign coordinate, not the prompt (see filter_map_use_my_location
+# for the prompt itself). Asserting a dialog here just made it fail on a dialog
+# that had no reason to appear.
 - tapOn:
     id: "location-use-my-location"
-- extendedWaitUntil:
-    visible: "While using the app"
-    timeout: 30000
-- tapOn: "While using the app"
-- waitForAnimationToEnd
+# The label is replaced by a spinner while acquiring; wait for it to come back.
 - extendedWaitUntil:
     visible: "Use My Location"
     timeout: 60000
