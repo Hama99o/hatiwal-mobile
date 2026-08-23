@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# Ensure the app is in BUYER mode.
+#
+# Mode is persisted on the USER, not just locally, so it leaks between flows and
+# even between devices: a flow that switches the buyer to seller mode leaves the
+# buyer in seller mode for everything after it. Seller mode has NO "Bazaar" tab —
+# the tabs become My Shop / Chats / Me — so a buyer flow then fails with "Element
+# not found: Bazaar" while being perfectly signed in. Verified from a screenshot:
+# Ahmad Karimi (the buyer) sitting in a green seller-mode profile.
+#
+# A separate helper rather than part of login_fresh, because seller flows use the
+# same login and must NOT be forced into buyer mode — baking it in broke the one
+# map flow that signs in as the seller.
+#
+# login_seller.yaml has always asserted its own mode this way; the buyer side
+# simply never did.
+
+- tapOn: "Me"
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Switch to Buyer Mode"
+    commands:
+      - tapOn: "Switch to Buyer Mode"
+      - waitForAnimationToEnd
+- assertVisible: "Switch to Seller Mode"

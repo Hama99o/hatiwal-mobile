@@ -22,6 +22,10 @@ appId: com.hatiwal.app
       PASSWORD: Password123!
 
 # ── Open the filter, then the map ───────────────────────────────────────────
+# Seller mode has no "Bazaar" tab, and mode persists on the USER across flows
+# and devices — so a buyer flow has to assert its own mode first.
+- runFlow: ../_helpers/ensure_buyer_mode.yaml
+
 - tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
