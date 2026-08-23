@@ -51,6 +51,25 @@ env:
 # The last tab is the tell: `app/(main)/(tabs)/_layout.tsx` titles it
 # t("sidebar.profile") -> "Me" when authenticated, and t("auth.login") ->
 # "Login" when not. So "Me" present AND "Login" absent means signed in.
+# ── Dismiss the notification prompt BEFORE checking we are signed in ────────
+# The app asks for notification permission right after a first successful login,
+# with its own themed modal ("Allow Hatiwal to send you notifications?") that
+# covers the whole screen INCLUDING the tab bar. So the signed-in assertion below
+# fails on "Me" even though login worked perfectly.
+#
+# This was the single biggest failure class in the suite — 41 flows — and it
+# appears whenever the APK has just been reinstalled, because the permission is
+# then unasked. Answering "Don't allow" keeps device state minimal; no flow here
+# tests notifications.
+- extendedWaitUntil:
+    visible: "Allow Hatiwal to send you notifications?"
+    timeout: 20000
+    optional: true
+- tapOn:
+    text: "Don.t allow"
+    optional: true
+- waitForAnimationToEnd
+
 - extendedWaitUntil:
     visible: "Me"
     timeout: 60000
