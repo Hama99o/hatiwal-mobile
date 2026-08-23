@@ -1341,6 +1341,35 @@ allowed, since `province: z.string().optional()`.
 caller is either an unfinished feature or 100 lines of maintenance for nothing,
 and QA cannot tell which from the outside.
 
+### UI-031 · "Search my listings…" did nothing — the API dropped the parameter — FIXED
+
+**Where:** My Shop (the seller's main screen) → the search field
+**Severity:** HIGH for a seller with more than a screenful of listings
+**Evidence:** `qa/evidence/run-153_listings_lifecycle_reserve.png` — the box holds
+"QA Disposable lifecycle_reserve" while the header still reads **18 listings** and
+the visible cards are Lenovo, Toyota and Samsung. None of them match.
+
+The mobile side was never at fault. `MyListings` debounces the field (400ms),
+passes `search:` to `listingsAPI.getMyListings`, and the client appends
+`?search=`. But `Api::V1::My::ListingsController#index` never referenced the
+parameter, so the server returned the seller's whole list and the field looked
+broken.
+
+The public `listings_controller` has applied `Listing.search` since it was
+written. This controller simply never did — one missing line, in the one place a
+seller with fifty listings needs it most.
+
+**Fixed** with the same scope, and spec'd for the things `Listing.search` is
+careful about: case-insensitive substrings, every word of a multi-word query having
+to match, `%` treated as a literal rather than a wildcard, blank returning
+everything, and combining with the status filter rather than replacing it.
+
+Found by accident, which is worth recording: a flow was searching for its own
+disposable listing so it would stop damaging shared fixtures, and it kept acting on
+the wrong listing. The first two explanations were mine to fix — the flow tapped in
+the list instead of opening the record. The third time, the screenshot showed the
+search itself had never worked.
+
 ### MAPS · VERIFIED on device — what is now proven about both location pickers
 
 The user's priority. ALL SIX flows green on a 360dp phone. What each one actually proves:
