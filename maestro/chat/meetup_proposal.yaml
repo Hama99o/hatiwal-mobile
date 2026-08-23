@@ -11,8 +11,13 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/open_active_conversation.yaml
 # TASK-K487: the composer's meetup/file/photo/offer icons are now collapsed
 # behind a single "+" actions sheet — open it first, then tap the row.
+# The composer "+" button. NOT its accessibilityLabel ("More actions",
+# chat.composer.moreActions): that is translated, and matching it was failing
+# with "Element not found: Text matching regex: More actions" on a control
+# that is right there — it carries testID="composer-plus-button", which is
+# both locale-independent and unambiguous.
 - tapOn:
-    text: "More actions"
+    id: "composer-plus-button"
 - waitForAnimationToEnd
 # The actions-sheet ROW that opens the meetup sheet (composer-action-meetup).
 # Note "Propose Meetup" is TWO different controls: this row
