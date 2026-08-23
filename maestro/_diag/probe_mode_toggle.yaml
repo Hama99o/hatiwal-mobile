@@ -1,0 +1,37 @@
+appId: com.hatiwal.app
+env:
+  EMAIL: buyer@hatiwal.test
+  PASSWORD: Password123!
+---
+# DIAGNOSTIC ONLY — not part of any feature suite.
+# Signs in, opens the profile tab, and asserts the mode toggle by testID with no
+# scroll. The point is the FAILURE: Maestro dumps the full screen hierarchy next
+# to the screenshot, which says whether the testID reached the view at all and
+# what screen we are actually on.
+- launchApp
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- runFlow:
+    when:
+      visible: "Email"
+    commands:
+      - tapOn: "Email"
+      - inputText: ${EMAIL}
+      - tapOn: "Password"
+      - inputText: ${PASSWORD}
+      - tapOn: "Sign In"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Allow Hatiwal to send you notifications?"
+    timeout: 15000
+    optional: true
+- tapOn:
+    text: "Don.t allow"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- takeScreenshot: profile-top
+- assertVisible:
+    id: "mode-toggle-button"

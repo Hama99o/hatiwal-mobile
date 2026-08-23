@@ -8,7 +8,11 @@ appId: com.hatiwal.mobile
     file: ../_helpers/login.yaml
 
 # Navigate to Edit Profile
-- tapOn: "Profile"
+# NOT `tapOn: "Profile"`: the profile TAB is labelled t("sidebar.profile") -> "Me"
+# (and "Login" for a guest). `profile.title` = "Profile" is a dead key, rendered
+# nowhere. The testID is stable across both locale and auth state.
+- tapOn:
+    id: "profile-tab"
 - tapOn: "Edit Profile"
 
 # ── Toggle Away Mode ON ───────────────────────────────────────────────
@@ -38,7 +42,11 @@ appId: com.hatiwal.mobile
 # Find a listing from current user and open it to see seller card
 # (In a real flow, we'd navigate to a known seller's listing)
 # Verify Away banner on seller public profile screen
-- tapOn: "Profile"
+# NOT `tapOn: "Profile"`: the profile TAB is labelled t("sidebar.profile") -> "Me"
+# (and "Login" for a guest). `profile.title` = "Profile" is a dead key, rendered
+# nowhere. The testID is stable across both locale and auth state.
+- tapOn:
+    id: "profile-tab"
 - assertNotVisible: "I'm away"
 
 # ── Toggle Away Mode OFF (clear) ─────────────────────────────────────

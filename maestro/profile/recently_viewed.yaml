@@ -14,7 +14,11 @@ appId: com.hatiwal.app
 - tapOn: "Sign In"
 
 # Navigate to Profile tab
-- tapOn: "Profile"
+# NOT `tapOn: "Profile"`: the profile TAB is labelled t("sidebar.profile") -> "Me"
+# (and "Login" for a guest). `profile.title` = "Profile" is a dead key, rendered
+# nowhere. The testID is stable across both locale and auth state.
+- tapOn:
+    id: "profile-tab"
 - waitForAnimationToEnd
 
 # Scroll down to find the "Recently Viewed" row in the Activity section

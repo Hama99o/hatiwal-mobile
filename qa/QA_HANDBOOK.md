@@ -606,3 +606,51 @@ built in another session — do not treat it as finished.
 
 Do not "improve" this number by weakening assertions. A false pass costs more
 than a red flow.
+
+## `nohup … &` is not enough to survive a tool timeout — use `setsid`
+
+Launching a long QA run with `nohup bash run.sh &` and then sleeping in the same
+shell invocation loses the run. When the invocation hits its timeout the harness
+SIGTERMs the whole **process group**, and `nohup` only ignores SIGHUP — so the
+script, and the Maestro driver it had started, both die.
+
+The symptom is deceptive: the log keeps the header it printed at start
+("──── browse/search_listings") and the Maestro log keeps its last line
+("Waiting for flows to complete…"), so it reads like a flow still running, for as
+long as you care to wait. `ps` is what settles it — no `java`/maestro process
+exists at all. Six minutes were spent here believing a flow was slow when nothing
+had been running for five of them.
+
+```bash
+# survives; the run gets its own session and process group
+setsid nohup bash qa/fleet.sh 1 2 > qa/reports/fleet.log 2>&1 < /dev/null &
+```
+
+Also: verify a long run is alive by process, not by log tail. A Maestro log whose
+last line is "Waiting for flows to complete…" proves only that the line was
+written before the driver stopped.
+
+## Metro in Docker does not see host edits — restart the container after an app change
+
+`hatiwal-mobile-mobile-1` serves the debug bundle from a bind-mounted `/app`. The
+container reads the edited file correctly (`docker exec … grep` finds it), but
+Metro's watcher does not fire for host writes, so it keeps serving the bundle it
+already built. A debug APK loads its JS from Metro, so **rebuilding and
+reinstalling the APK does not pick up a `.tsx` change** — the stale JS comes over
+the wire either way.
+
+This cost a false failure: a freshly added `testID="mode-toggle-button"` reported
+`No visible element found` in a flow, while the same assertion passed in a probe
+once the container had been restarted.
+
+```bash
+docker restart hatiwal-mobile-mobile-1
+# then confirm against the bundle Metro is ACTUALLY serving:
+curl -s "http://localhost:3008/.expo/.virtual-metro-entry.bundle?platform=android&dev=true&minify=false" \
+  | grep -c my-new-testid        # expect >= 1
+```
+
+Use that exact URL. `/index.bundle` is **not** the entry for this Expo app — it
+returns a 404 JSON body ("Unable to resolve module ./index"), and `grep -c` on a
+404 returns 0, which reads exactly like a stale bundle. Check the HTTP status
+before believing a zero.
