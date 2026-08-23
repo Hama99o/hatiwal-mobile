@@ -26,6 +26,15 @@ appId: com.hatiwal.app
 - inputText: "Price Edge Case Item"
 
 # ── Zero is not a price ─────────────────────────────────────────────────────
+# Scroll to the price field: typing the title raises the keyboard, and on a
+# landscape tablet it covers the lower half of the form — so `tapOn` fails on a
+# field that exists but is hidden. Same class as the category and description
+# rows below, and the sixth place in this app where a keyboard hid a control.
+- scrollUntilVisible:
+    element:
+      text: "Enter price"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Enter price"
 - inputText: "0"
 - tapOn: "Save Draft"
@@ -34,6 +43,12 @@ appId: com.hatiwal.app
 
 # ── Over the maximum reports the RIGHT error ────────────────────────────────
 # 11 digits — one order of magnitude past MAX_LISTING_PRICE.
+# Scroll to the price field again — see the note above.
+- scrollUntilVisible:
+    element:
+      text: "Enter price"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Enter price"
 - eraseText
 - inputText: "99999999999"
@@ -44,6 +59,12 @@ appId: com.hatiwal.app
 - assertNotVisible: "Enter a valid price greater than 0"
 
 # ── A normal price clears both ──────────────────────────────────────────────
+# Scroll to the price field again — see the note above.
+- scrollUntilVisible:
+    element:
+      text: "Enter price"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Enter price"
 - eraseText
 - inputText: "1200"
