@@ -39,7 +39,8 @@ appId: com.hatiwal.app
 - tapOn: "Saved"
 - waitForAnimationToEnd
 # Cards render — listing visible in dark mode
-- assertNotVisible: "No saved listings"
+# The empty state is `saved.empty` = "No saved items yet".
+- assertNotVisible: "No saved items yet"
 
 # Reset
 - tapOn: "Me"

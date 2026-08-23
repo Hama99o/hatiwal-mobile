@@ -25,4 +25,5 @@ appId: com.hatiwal.app
 # Go to Saved — listing should be gone
 - tapOn: "Saved"
 - waitForAnimationToEnd
-- assertVisible: "No saved listings"
+# The empty state is `saved.empty` = "No saved items yet".
+- assertVisible: "No saved items yet"

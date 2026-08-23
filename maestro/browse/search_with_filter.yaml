@@ -18,7 +18,8 @@ appId: com.hatiwal.app
     id: "browse-filters-toggle"
 - waitForAnimationToEnd
 - tapOn: "Good"
-- tapOn: "Apply"
+# The filter sheet's confirm button is `browse.filters.apply` = "Show results".
+- tapOn: "Show results"
 - waitForAnimationToEnd
 # Both search term and condition filter are active
 - assertVisible: "phone"

@@ -8,7 +8,9 @@ appId: com.hatiwal.app
 - scrollUntilVisible:
     element:
       text: "APPEARANCE"
-- assertVisible: "LANGUAGE"
+# Profile renders `profile.language` = "Language". Nothing in the app uppercases
+# section titles, so "LANGUAGE" matched nothing.
+- assertVisible: "Language"
 - tapOn: "Pashto (پښتو)"
 - waitForAnimationToEnd
 # App now in Pashto/RTL — check label that exists in ps locale

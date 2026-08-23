@@ -6,7 +6,7 @@ appId: com.hatiwal.app
 - tapOn: "Me"
 - scrollUntilVisible:
     element:
-      text: "LANGUAGE"
+      text: "Language"
 - tapOn: "Dari (دری)"
 - waitForAnimationToEnd
 # Navigate to Bazaar tab (Dari label is "بازار")

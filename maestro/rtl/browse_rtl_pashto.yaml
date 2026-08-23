@@ -6,7 +6,7 @@ appId: com.hatiwal.app
 - tapOn: "Me"
 - scrollUntilVisible:
     element:
-      text: "LANGUAGE"
+      text: "Language"
 - tapOn: "Pashto (پښتو)"
 - waitForAnimationToEnd
 # Navigate to Bazaar tab (Pashto label is "بازار")

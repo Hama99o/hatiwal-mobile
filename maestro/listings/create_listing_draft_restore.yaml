@@ -58,7 +58,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Publish"
 - waitForAnimationToEnd
-- assertVisible: "Listing posted"
+# Publishing lands on the owner detail with PublishSuccessSheet.
+# "Listing posted" was removed along with the old card (TASK-J952); this matches
+# full_marketplace_cycle.yaml, which was already corrected.
+- assertVisible: "Your listing is live!"
 
 # Now shows in Active tab
 - tapOn: "My Shop"

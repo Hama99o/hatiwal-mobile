@@ -8,7 +8,7 @@ appId: com.hatiwal.app
 # First switch to Pashto
 - scrollUntilVisible:
     element:
-      text: "LANGUAGE"
+      text: "Language"
 - tapOn: "Pashto (پښتو)"
 - waitForAnimationToEnd
 # Now switch back to English — text may be in Pashto but English option exists

@@ -14,7 +14,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Electronics"
 - waitForAnimationToEnd
-- tapOn: "Apply"
+# The filter sheet's confirm button is `browse.filters.apply` = "Show results".
+- tapOn: "Show results"
 - waitForAnimationToEnd
 # Filtered results visible
 - assertVisible: "Electronics"
