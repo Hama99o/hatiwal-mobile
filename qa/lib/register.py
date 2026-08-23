@@ -9,7 +9,9 @@ week; one that is regenerated but forgets your triage notes is just as useless.
 Usage:  register.py <reports_dir> [run_dir ...]
         With no run_dir, every run-* in reports_dir is merged, newest winning.
 """
-import glob, json, os, re, sys
+import glob
+import hashlib
+import pathlib, json, os, re, sys
 
 import yaml
 
@@ -98,6 +100,23 @@ def load_results(reports_dir, run_dirs):
             r = json.loads(line)
             r["run"] = run
             res[(r["feature"], r["flow"])] = r
+
+    # STALE detection. A verdict is only true of the flow file that produced it,
+    # and several agents edit this suite while runs are in flight — so a recorded
+    # FAIL is often already answered by a fix committed minutes later. Re-triaging
+    # one of those burns a whole loop: profile/blocked_users was triaged from a run
+    # whose executed command list held a bare `scroll` before the tap, while the
+    # file on disk already had the `scrollUntilVisible` that fixes exactly that.
+    # Telling them apart meant digging Maestro's own command list out of the debug
+    # output. `flow_sha` (written by emit_result.py) makes it a one-line check.
+    root = pathlib.Path(__file__).resolve().parents[2] / "maestro"
+    for (feat, flow), r in res.items():
+        was = r.get("flow_sha")
+        if not was:
+            continue                      # run predates flow_sha — unknowable
+        spec = root / feat / f"{flow}.yaml"
+        if spec.is_file() and hashlib.sha1(spec.read_bytes()).hexdigest()[:12] != was:
+            r["stale"] = True
     return res
 
 
@@ -157,6 +176,12 @@ def main(reports_dir, run_dirs):
                 notes = ""
             if not notes and r and r.get("why"):
                 notes = r["why"][:110]
+            # The flow file changed after this verdict was recorded, so the verdict
+            # describes a flow that no longer exists. Marked rather than dropped:
+            # the run is still the newest evidence there is, it just cannot be
+            # triaged as-is. Re-run before reading anything into it.
+            if r and r.get("stale"):
+                st = f"{st} ⟳stale"
             rows.append((name, st, run, secs, api, triage, notes))
         rows_by_feat[feat] = (title, rows)
 
