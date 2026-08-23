@@ -679,3 +679,28 @@ obviously.
 Editing app `.tsx` files mid-sweep is its own hazard: the debug APK pulls JS from
 Metro at launch, so a flow can bundle a half-written file. Confine mid-sweep edits
 to `maestro/` and docs.
+
+## Killing a wrapper script leaves its `qa.sh` child holding the device lock
+
+Stopping a run by killing the script you launched is not enough. `qa.sh` holds
+`reports/.device.lock` via `flock`, and if you kill only the wrapper, the `qa.sh`
+child survives, keeps the lock, and the next `up` / `flow` / `feature` sits at
+"another QA run is driving the emulator right now — waiting for it to finish"
+forever. Pattern-matching does not find it either: the orphan shows up in `ps` as
+a bare `bash`, not as anything containing `qa.sh`.
+
+Ask the lock who holds it instead of guessing:
+
+```bash
+fuser -v qa/reports/.device.lock          # session 1
+fuser -v qa/reports/s2/.device.lock       # session 2 (per-session REPORTS_DIR)
+```
+
+Then kill those PIDs — but read the list first: it includes the process that is
+legitimately *waiting* for the lock, and killing that one just cancels the run you
+were trying to start.
+
+Related: the emulator can die outright under memory pressure, and the flow log
+then ends in `java.io.IOException: Command failed (host:transport:emulator-5580):
+device 'emulator-5580' not found` with an `AndroidDriver.close` stack. That is not
+a flow failure — check `adb devices` before triaging anything else in that run.
