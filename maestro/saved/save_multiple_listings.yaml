@@ -8,13 +8,22 @@ appId: com.hatiwal.app
 
 # Save first 3 listings
 - tapOn:
-    id: "save-button-0"
+# The card save hearts all share the id "save-button" (added to both the list
+# and grid variants); "save-button-N" existed nowhere. `index` picks the Nth.
+    id: "save-button"
+    index: 0
 - waitForAnimationToEnd
 - tapOn:
-    id: "save-button-1"
+# The card save hearts all share the id "save-button" (added to both the list
+# and grid variants); "save-button-N" existed nowhere. `index` picks the Nth.
+    id: "save-button"
+    index: 1
 - waitForAnimationToEnd
 - tapOn:
-    id: "save-button-2"
+# The card save hearts all share the id "save-button" (added to both the list
+# and grid variants); "save-button-N" existed nowhere. `index` picks the Nth.
+    id: "save-button"
+    index: 2
 - waitForAnimationToEnd
 
 # Go to Saved tab
@@ -24,8 +33,17 @@ appId: com.hatiwal.app
 
 # At least 3 items visible
 - assertVisible:
-    id: "listing-card-0"
+# The app gives EVERY feed card the same id ("listing-card"); there is no
+# "listing-card-N". Maestro selects the Nth match with `index`.
+    id: "listing-card"
+    index: 0
 - assertVisible:
-    id: "listing-card-1"
+# The app gives EVERY feed card the same id ("listing-card"); there is no
+# "listing-card-N". Maestro selects the Nth match with `index`.
+    id: "listing-card"
+    index: 1
 - assertVisible:
-    id: "listing-card-2"
+# The app gives EVERY feed card the same id ("listing-card"); there is no
+# "listing-card-N". Maestro selects the Nth match with `index`.
+    id: "listing-card"
+    index: 2

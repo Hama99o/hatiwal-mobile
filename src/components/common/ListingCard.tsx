@@ -350,6 +350,13 @@ export function ListingCard({
           {isSaved !== undefined && onSaveToggle && (
             <Pressable
               onPress={handleSaveToggle}
+              // The card's save heart had an accessibilityLabel but no testID, and
+              // that label is both translated AND state-dependent (Save/Unsave), so
+              // it is unusable as a handle. Flows were targeting "save-button-0",
+              // "-1", "-2", which existed nowhere; with a stable id they select the
+              // Nth card's heart via Maestro's `index`. Same id in both the list and
+              // grid variants so the two behave identically.
+              testID="save-button"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={{
                 width: 44,
@@ -480,6 +487,13 @@ export function ListingCard({
           {isSaved !== undefined && onSaveToggle && (
             <Pressable
               onPress={handleSaveToggle}
+              // The card's save heart had an accessibilityLabel but no testID, and
+              // that label is both translated AND state-dependent (Save/Unsave), so
+              // it is unusable as a handle. Flows were targeting "save-button-0",
+              // "-1", "-2", which existed nowhere; with a stable id they select the
+              // Nth card's heart via Maestro's `index`. Same id in both the list and
+              // grid variants so the two behave identically.
+              testID="save-button"
               style={[
                 styles.heartButton,
                 isRtl ? styles.heartButtonRtl : styles.heartButtonLtr,

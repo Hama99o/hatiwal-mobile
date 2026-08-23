@@ -30,7 +30,10 @@ appId: com.hatiwal.app
 - tapOn: "Bazaar"
 - waitForAnimationToEnd
 - tapOn:
-    id: "save-button-0"
+# The card save hearts all share the id "save-button" (added to both the list
+# and grid variants); "save-button-N" existed nowhere. `index` picks the Nth.
+    id: "save-button"
+    index: 0
 - waitForAnimationToEnd
 
 - tapOn: "Saved"

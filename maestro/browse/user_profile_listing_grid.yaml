@@ -41,11 +41,17 @@ appId: com.hatiwal.app
 # The stat label is "Active Listings", not a bare "Listings".
 - assertVisible: "Active Listings"
 - assertVisible:
-    id: "listing-card-0"
+# The app gives EVERY feed card the same id ("listing-card"); there is no
+# "listing-card-N". Maestro selects the Nth match with `index`.
+    id: "listing-card"
+    index: 0
 
 # Tap a listing in the grid → goes to listing detail
 - tapOn:
-    id: "listing-card-0"
+# The app gives EVERY feed card the same id ("listing-card"); there is no
+# "listing-card-N". Maestro selects the Nth match with `index`.
+    id: "listing-card"
+    index: 0
 - waitForAnimationToEnd
 - assertVisible: "Contact Seller"
 
