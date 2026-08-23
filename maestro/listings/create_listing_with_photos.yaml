@@ -10,13 +10,10 @@ appId: com.hatiwal.app
 # Tap add photos
 - tapOn: "Add Photos"
 - waitForAnimationToEnd
-# Photo picker opens — select from gallery
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-# Select first available photo (Maestro picks the first in the media library)
-- tapOn:
-    index: 0
-- waitForAnimationToEnd
+# The five tolerant steps that actually get a photo in live in the helper —
+# including Android's picker CONFIRM button, which a bare `tapOn: index: 0`
+# never pressed. See _helpers/attach_photo_from_gallery.yaml.
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 # Photo preview should be visible
 - assertVisible: "Cover"
 # Add title and price to make it submittable

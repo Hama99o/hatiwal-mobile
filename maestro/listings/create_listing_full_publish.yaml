@@ -38,43 +38,10 @@ appId: com.hatiwal.app
 - tapOn:
     id: "photos-add-button"
 - waitForAnimationToEnd
-- tapOn:
-    text: "Gallery"
-    optional: true
-- waitForAnimationToEnd
-# Selecting an image in the SYSTEM picker. The picker is not our app, so it exposes
-# no testIDs; these are the shapes it takes across Android versions, tried in order
-# and all optional. The real gate is the thumbnail asserted below.
-- tapOn:
-    text: "Photo taken on.*"
-    optional: true
-- tapOn:
-    text: "qa_photo.*"
-    optional: true
-- waitForAnimationToEnd
-
-# CONFIRM the selection. Android's photo picker selects on tap but does NOT
-# return until its own button is pressed — a screenshot showed the first photo
-# ticked, "Add (1)" waiting at the bottom right, and this flow patiently waiting
-# 30s for a thumbnail that could not appear while the picker was still open.
-# The label carries the count, hence the regex; "Done" and "Select" are the other
-# shapes this button takes across Android versions and picker variants.
-- tapOn:
-    text: "Add \\(\\d+\\)"
-    optional: true
-- tapOn:
-    text: "Done"
-    optional: true
-- tapOn:
-    text: "Select"
-    optional: true
-- waitForAnimationToEnd
-
-# The real gate: the picker handed a photo back to the FORM.
-- extendedWaitUntil:
-    visible:
-      id: "listing-form-photo-thumb"
-    timeout: 30000
+# The same five tolerant steps, now shared. See
+# _helpers/attach_photo_from_gallery.yaml for why each one is optional and why
+# the thumbnail is the only real gate.
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 
 # ── Title and price ─────────────────────────────────────────────────────────
 # eraseText between the tap and the typing. Maestro drops the FIRST CHARACTER

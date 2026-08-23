@@ -1,0 +1,64 @@
+appId: com.hatiwal.app
+---
+# Attach ONE photo from the device gallery to the listing form.
+#
+# Call this after the photo picker sheet is open (i.e. after tapping "Add Photos"
+# or `photos-add-button`). It leaves the form with a photo attached, proven by the
+# thumbnail assertion at the end.
+#
+# WHY A HELPER. Getting a photo in takes five tolerant steps, and the flows that
+# tried to shortcut it all failed the same way. Three of them used:
+#
+#     - tapOn:
+#         index: 0
+#
+# A bare `index` has NO SELECTOR, so it matches every element on screen and index
+# 0 is whatever comes first in the hierarchy — never the photo. They then failed on
+# `"Cover" is visible`, which reads like a broken cover badge and is actually
+# "no photo was ever selected".
+#
+# The steps are optional because the SYSTEM picker is not our app and its shape
+# differs across Android versions and picker variants. The real gate is the
+# thumbnail: it is the only thing that proves the picker handed a photo back to
+# the FORM.
+#
+# The seed images come from `qa.sh up`, which copies four photos into the device
+# gallery. A fresh emulator has none, and then every photo assertion fails for a
+# reason that has nothing to do with the app.
+
+# Some entry points show a source chooser first (Gallery / Camera).
+- tapOn:
+    text: "Gallery"
+    optional: true
+- waitForAnimationToEnd
+
+# Select the first photo. These are the labels Android's picker gives gallery
+# items; the QA seed images land as "qa_photo*".
+- tapOn:
+    text: "Photo taken on.*"
+    optional: true
+- tapOn:
+    text: "qa_photo.*"
+    optional: true
+- waitForAnimationToEnd
+
+# CONFIRM. Android's picker selects on tap but does NOT return until its own
+# button is pressed — a screenshot showed a photo ticked and "Add (1)" waiting in
+# the corner while the flow waited 30s for a thumbnail that could not appear. The
+# label carries the count, hence the regex; Done/Select are the other shapes.
+- tapOn:
+    text: "Add \\(\\d+\\)"
+    optional: true
+- tapOn:
+    text: "Done"
+    optional: true
+- tapOn:
+    text: "Select"
+    optional: true
+- waitForAnimationToEnd
+
+# The gate: the picker handed a photo back to the form.
+- extendedWaitUntil:
+    visible:
+      id: "listing-form-photo-thumb"
+    timeout: 30000

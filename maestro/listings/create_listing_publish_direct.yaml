@@ -11,11 +11,10 @@ appId: com.hatiwal.app
 # Add a photo first — TASK-P736 blocks Publish with zero photos.
 - tapOn: "Add Photos"
 - waitForAnimationToEnd
-- tapOn: "Gallery"
-- waitForAnimationToEnd
-- tapOn:
-    index: 0
-- waitForAnimationToEnd
+# The five tolerant steps that actually get a photo in live in the helper —
+# including Android's picker CONFIRM button, which a bare `tapOn: index: 0`
+# never pressed. See _helpers/attach_photo_from_gallery.yaml.
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
 - assertVisible: "Cover"
 # Fill required fields
 # eraseText between the tap and the typing. Maestro drops the FIRST CHARACTER
