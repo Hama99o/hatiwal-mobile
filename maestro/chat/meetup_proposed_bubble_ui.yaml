@@ -28,11 +28,13 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Location"
 - inputText: "Share Now Market"
-- tapOn: "Send Proposal"
+# The meetup sheet's confirm button is `chat.meetup.propose` = "Propose Meetup".
+- tapOn: "Propose Meetup"
 - waitForAnimationToEnd
 
 # Bubble shows correct UI elements
-- assertVisible: "Meetup Proposed"
+# The bubble header is `chat.meetup.proposed` = "Meetup Proposal".
+- assertVisible: "Meetup Proposal"
 - assertVisible: "Share Now Market"
 
 # Seller side would show Accept/Decline — switch to seller
@@ -51,5 +53,6 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 - assertVisible: "Share Now Market"
-- assertVisible: "Accept Meetup"
+# `chat.meetup.accept` = "Accept".
+- assertVisible: "Accept"
 - assertVisible: "Decline"

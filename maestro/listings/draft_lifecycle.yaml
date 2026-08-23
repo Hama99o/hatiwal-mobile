@@ -37,7 +37,8 @@ appId: com.hatiwal.app
 # The button is "Save Draft" (listing.form.saveDraft).
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
-- assertVisible: "Saved as draft"
+# The toast is `listing.form.savedDraft` = "Draft saved".
+- assertVisible: "Draft saved"
 
 # 2) Publish from draft
 - tapOn: "Drafts"

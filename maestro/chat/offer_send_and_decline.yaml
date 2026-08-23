@@ -17,7 +17,8 @@ appId: com.hatiwal.app
 # Send offer
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
-- tapOn: "Offer Amount"
+# `chat.offer.yourOffer` = "Your Offer"; there is no "Offer Amount" label.
+- tapOn: "Your Offer"
 - inputText: "8000"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd

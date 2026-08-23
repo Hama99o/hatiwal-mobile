@@ -15,10 +15,12 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 - assertVisible: "Expired"
-- assertVisible: "Renew Listing"
+# `listing.renew` = "Renew". "Renew Listing" has never existed.
+- assertVisible: "Renew"
 
 # Renew it
-- tapOn: "Renew Listing"
+# `listing.renew` = "Renew". "Renew Listing" has never existed.
+- tapOn: "Renew"
 - waitForAnimationToEnd
 # Maestro matches the FULL string as a regex, so this PREFIX of the real copy
 # never matched it — the app was showing more than the flow asked for.

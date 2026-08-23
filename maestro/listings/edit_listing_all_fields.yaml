@@ -34,7 +34,9 @@ appId: com.hatiwal.app
 - inputText: "99000"
 
 # Change condition
-- tapOn: "Like New"
+# `listing.condition.like_new` = "Like new" — lower-case n. Maestro matching is
+# case-sensitive, so the shouted version matched nothing.
+- tapOn: "Like new"
 - waitForAnimationToEnd
 
 # Change category
@@ -56,5 +58,7 @@ appId: com.hatiwal.app
 # dump as "AFN\xa028,000". Maestro matches an anchored regex, so a bare number
 # never matches; the leading `.*` covers both the currency code and that space.
 - assertVisible: ".*99,000"
-- assertVisible: "Like New"
+# `listing.condition.like_new` = "Like new" — lower-case n. Maestro matching is
+# case-sensitive, so the shouted version matched nothing.
+- assertVisible: "Like new"
 - assertVisible: "Vehicles"

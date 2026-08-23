@@ -135,7 +135,8 @@ appId: com.hatiwal.app
 # listing IS the step that was missing; the contact tap was never the point.
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
-- tapOn: "Your offer price"
+# `chat.offer.yourOffer` = "Your Offer".
+- tapOn: "Your Offer"
 - inputText: "3000"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd

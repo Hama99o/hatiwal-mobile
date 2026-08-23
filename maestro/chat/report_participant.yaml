@@ -48,7 +48,8 @@ appId: com.hatiwal.app
 - tapOn: "Fraud or scam"
 - waitForAnimationToEnd
 
-- tapOn: "Submit report"
+# `report.submit` = "Submit Report" — capital R.
+- tapOn: "Submit Report"
 - waitForAnimationToEnd
 
 # Success toast should appear
@@ -63,7 +64,8 @@ appId: com.hatiwal.app
     id: "report-participant-button"
 - waitForAnimationToEnd
 - tapOn: "Spam"
-- tapOn: "Submit report"
+# `report.submit` = "Submit Report" — capital R.
+- tapOn: "Submit Report"
 - waitForAnimationToEnd
 # "Already reported" friendly toast
 # Maestro matches the FULL string as a regex, so this PREFIX of the real copy

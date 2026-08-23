@@ -38,9 +38,11 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 
-- tapOn: "Send Proposal"
+# The meetup sheet's confirm button is `chat.meetup.propose` = "Propose Meetup".
+- tapOn: "Propose Meetup"
 - waitForAnimationToEnd
-- assertVisible: "Meetup Proposed"
+# The bubble header is `chat.meetup.proposed` = "Meetup Proposal".
+- assertVisible: "Meetup Proposal"
 
 # Switch to seller to respond
 - launchApp:
@@ -57,7 +59,9 @@ appId: com.hatiwal.app
     id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
-- assertVisible: "Meetup Proposed"
-- tapOn: "Accept Meetup"
+# The bubble header is `chat.meetup.proposed` = "Meetup Proposal".
+- assertVisible: "Meetup Proposal"
+# `chat.meetup.accept` = "Accept".
+- tapOn: "Accept"
 - waitForAnimationToEnd
 - assertVisible: "Meetup Confirmed"

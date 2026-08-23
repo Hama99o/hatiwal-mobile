@@ -37,7 +37,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Offer sheet should reopen after login
 - assertVisible: "Make an Offer"
-- tapOn: "Your offer price"
+# `chat.offer.yourOffer` = "Your Offer".
+- tapOn: "Your Offer"
 - inputText: "1500"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
