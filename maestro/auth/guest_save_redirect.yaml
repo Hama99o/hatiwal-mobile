@@ -17,7 +17,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Tap the save heart as a guest — should redirect to login
 - tapOn:
-    id: "save-button"
+    # The heart on listing detail is `save-toggle-button` — added when this
+    # class of failure was traced (its label is localized AND flips on isSaved,
+    # so a testID is the only stable handle). `save-button` never existed.
+    id: "save-toggle-button"
 - waitForAnimationToEnd
 - assertVisible: "Sign In"
 # Complete login

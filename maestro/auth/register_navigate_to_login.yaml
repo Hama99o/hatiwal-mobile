@@ -14,7 +14,10 @@ appId: com.hatiwal.app
     id: "go-to-register"
 - waitForAnimationToEnd
 - assertVisible: "Create Account"
-- tapOn: "Already have an account?"
+# The link renders as ONE Text: "Already have an account? Sign In"
+# (auth.haveAccount + auth.loginButton). Anchored matching needs the whole
+# string, or a prefix regex.
+- tapOn: "Already have an account\\?.*"
 - waitForAnimationToEnd
 - assertVisible: "Sign In"
 - assertVisible: "Create account"

@@ -23,6 +23,13 @@ appId: com.hatiwal.app
 - inputText: "buyer@hatiwal.test"
 - tapOn: "Password"
 - inputText: "Password123!"
+# "Confirm Password" is the LAST field on the register form, so it is below the
+# fold once the keyboard is up from the fields above it. `tapOn` does not scroll.
+- scrollUntilVisible:
+    element:
+      text: "Confirm Password"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Confirm Password"
 - inputText: "Password123!"
 # The submit button, by testID: "Create Account" is also the screen HEADING,
