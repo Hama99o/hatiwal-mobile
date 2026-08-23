@@ -48,23 +48,15 @@ appId: com.hatiwal.app
 # Mark as Sold is reachable from the "More" overflow sheet (TASK-L863).
 - tapOn: "More"
 - waitForAnimationToEnd
-# Open THIS listing's own detail and act there. Finding the card in the list is
-# not enough: the list still holds every other listing, so a text tap on
-# "Mark as Reserved" / "Mark as Sold" matches the FIRST card carrying that
-# button — which is a different listing. Verified from a screenshot: the search
-# text was in the box, the header still read "18 listings", and this flow
-# reserved QA Disposable my_listing_detail_view instead of its own.
-- tapOn: "QA Disposable mark_sold_with_buyer"
-- waitForAnimationToEnd
-# The primary action on the owner detail, by testID — its label changes with
-# status, and it sits below the photo and description.
-- scrollUntilVisible:
-    element:
-      id: "lifecycle-primary-action"
-    direction: DOWN
-    timeout: 20000
+# With the search working (the API used to drop it — UI-031), the list holds
+# exactly ONE card, so its own action button is unambiguous and there is no need
+# to open the detail at all. Tapping the title did not navigate anyway: after
+# typing, the first tap outside the field goes to dismissing the IME, so the flow
+# stayed on the list and then looked for the DETAIL's `lifecycle-primary-action`.
+# Verified by screenshot — header "1 listing", one card, still on My Shop.
 - tapOn:
-    id: "lifecycle-primary-action"
+    id: "seller-card-primary-action"
+    index: 0
 - waitForAnimationToEnd
 
 # BuyerPickerSheet opens — "Who bought this item?"
