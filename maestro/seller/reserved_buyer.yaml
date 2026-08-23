@@ -48,7 +48,23 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Owner detail screen — single primary lifecycle button for an active listing
-- tapOn: "Mark as Reserved"
+# Open THIS listing's own detail and act there. Finding the card in the list is
+# not enough: the list still holds every other listing, so a text tap on
+# "Mark as Reserved" / "Mark as Sold" matches the FIRST card carrying that
+# button — which is a different listing. Verified from a screenshot: the search
+# text was in the box, the header still read "18 listings", and this flow
+# reserved QA Disposable my_listing_detail_view instead of its own.
+- tapOn: "QA Disposable reserved_buyer"
+- waitForAnimationToEnd
+# The primary action on the owner detail, by testID — its label changes with
+# status, and it sits below the photo and description.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
 
 # BuyerPickerSheet opens with the seeded conversation

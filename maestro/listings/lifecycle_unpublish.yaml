@@ -20,8 +20,10 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
       visible: "QA Disposable lifecycle_unpublish"
       timeout: 30000
-# Open "More" then tap "Unpublish" on the first active listing
-- tapOn: "More"
+# Open THIS listing's own detail first. Tapping "More" in the list hits whichever
+# card is first, not the searched one — the list is not filtered by the search box
+# in a way a text tap can rely on.
+- tapOn: "QA Disposable lifecycle_unpublish"
 - waitForAnimationToEnd
 # This action exists ONLY in the More sheet — useListingLifecycle adds it to
 # `moreActions`, never as the primary button (the primary is Publish for a draft,

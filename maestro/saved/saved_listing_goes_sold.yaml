@@ -41,12 +41,23 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
       visible: "QA Disposable saved_listing_goes_sold"
       timeout: 30000
+# Open THIS listing's own detail. A bare `tapOn: index: 0` has no selector at all —
+# it matches every element on screen — and a text tap on "Mark as Reserved" would
+# hit whichever card carries that button first, not the searched one.
+- tapOn: "QA Disposable saved_listing_goes_sold"
+- waitForAnimationToEnd
+# active -> reserved, then reserved -> sold, both through the primary action, whose
+# label changes with the status it is about to leave.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    timeout: 20000
 - tapOn:
-    index: 0
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
-- tapOn: "Mark as Reserved"
-- waitForAnimationToEnd
-- tapOn: "Mark as Sold"
+- tapOn:
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
 - assertVisible: "Sold"
 
