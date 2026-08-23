@@ -208,7 +208,11 @@ appId: com.hatiwal.app
     when:
       visible: "هاتیوال ته ښه راغلاست"
     commands:
-      - tapOn: "English"
+      # The option is labelled in the CURRENT language, and here the app is in
+      # PASHTO (that is what the gate above detected), so English reads
+      # "انګلیسي" — not "English". The regex covers every form, since a later
+      # flow may leave the app in Dari instead.
+      - tapOn: ".*(English|انګلیسي|انگلیسی).*"
       - waitForAnimationToEnd
       - extendedWaitUntil:
           notVisible:

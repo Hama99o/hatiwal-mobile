@@ -5,7 +5,12 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - tapOn: "Me"
 - waitForAnimationToEnd
-- tapOn: "Pashto (پښتو)"
+# Language options are labelled in the CURRENT language, so the same option reads
+# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
+# and Maestro matches the FULL string. A fixed label therefore only works from
+# one starting locale, and these flows cannot know which one the previous flow
+# left behind. The regex matches every form.
+- tapOn: ".*پښتو.*"
 - waitForAnimationToEnd
 # Open Chats tab (Pashto label is "چټونه", use index as fallback)
 - tapOn:
@@ -28,5 +33,10 @@ appId: com.hatiwal.app
 - tapOn:
     index: 4
 - waitForAnimationToEnd
-- tapOn: "English"
+# Language options are labelled in the CURRENT language, so the same option reads
+# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
+# and Maestro matches the FULL string. A fixed label therefore only works from
+# one starting locale, and these flows cannot know which one the previous flow
+# left behind. The regex matches every form.
+- tapOn: ".*(English|انګلیسي|انگلیسی).*"
 - waitForAnimationToEnd

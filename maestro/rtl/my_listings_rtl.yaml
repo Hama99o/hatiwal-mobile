@@ -5,20 +5,28 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn: "Me"
 - waitForAnimationToEnd
-- tapOn: "Pashto (پښتو)"
+# Language options are labelled in the CURRENT language, so the same option reads
+# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
+# and Maestro matches the FULL string. A fixed label therefore only works from
+# one starting locale, and these flows cannot know which one the previous flow
+# left behind. The regex matches every form.
+- tapOn: ".*پښتو.*"
 - waitForAnimationToEnd
 # Switch to seller mode (Pashto label)
 - tapOn:
     index: 4
 - waitForAnimationToEnd
-- tapOn: "د پلور حالت ته لاړ شئ"
+# ps profile.switchToSeller is "د پلورونکي حالت ته لاړ شئ" — the flow had
+# "پلور" where the app says "پلورونکي", so it could never match.
+- tapOn: "د پلورونکي حالت ته لاړ شئ"
 - waitForAnimationToEnd
 # Open My Shop in Pashto (tab index 3, Pashto label "زما هټۍ")
 - tapOn:
     index: 3
 - waitForAnimationToEnd
 # Pashto screen header for My Listings
-- assertVisible: "زما توکي"
+# ps sidebar.myListings is "زما هټۍ" ("my shop"), not "زما توکي" ("my items").
+- assertVisible: "زما هټۍ"
 # Cards render without crash
 - scroll
 - waitForAnimationToEnd
@@ -26,5 +34,10 @@ appId: com.hatiwal.app
 - tapOn:
     index: 4
 - waitForAnimationToEnd
-- tapOn: "English"
+# Language options are labelled in the CURRENT language, so the same option reads
+# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
+# and Maestro matches the FULL string. A fixed label therefore only works from
+# one starting locale, and these flows cannot know which one the previous flow
+# left behind. The regex matches every form.
+- tapOn: ".*(English|انګلیسي|انگلیسی).*"
 - waitForAnimationToEnd

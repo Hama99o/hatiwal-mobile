@@ -14,7 +14,12 @@ appId: com.hatiwal.app
 - assertVisible: "دری"
 
 # Switch to Pashto
-- tapOn: "پښتو"
+# Language options are labelled in the CURRENT language, so the same option reads
+# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
+# and Maestro matches the FULL string. A fixed label therefore only works from
+# one starting locale, and these flows cannot know which one the previous flow
+# left behind. The regex matches every form.
+- tapOn: ".*پښتو.*"
 - waitForAnimationToEnd
 
 # Profile SCREEN HEADER in Pashto (profile.title key — unchanged)
@@ -34,7 +39,12 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "ژبه"
 - waitForAnimationToEnd
-- tapOn: "دری"
+# Language options are labelled in the CURRENT language, so the same option reads
+# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
+# and Maestro matches the FULL string. A fixed label therefore only works from
+# one starting locale, and these flows cannot know which one the previous flow
+# left behind. The regex matches every form.
+- tapOn: ".*دری.*"
 - waitForAnimationToEnd
 # Profile SCREEN HEADER in Dari (profile.title key — unchanged)
 - assertVisible: "پروفایل"
@@ -44,7 +54,12 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "زبان"
 - waitForAnimationToEnd
-- tapOn: "English"
+# Language options are labelled in the CURRENT language, so the same option reads
+# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
+# and Maestro matches the FULL string. A fixed label therefore only works from
+# one starting locale, and these flows cannot know which one the previous flow
+# left behind. The regex matches every form.
+- tapOn: ".*(English|انګلیسي|انگلیسی).*"
 - waitForAnimationToEnd
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
 # shows the user's NAME. Anchor on the mode toggle's label instead: it is

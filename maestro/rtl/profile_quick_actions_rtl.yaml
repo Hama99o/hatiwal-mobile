@@ -8,7 +8,12 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Switch to Pashto to trigger RTL
-- tapOn: "Pashto (پښتو)"
+# Language options are labelled in the CURRENT language, so the same option reads
+# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
+# and Maestro matches the FULL string. A fixed label therefore only works from
+# one starting locale, and these flows cannot know which one the previous flow
+# left behind. The regex matches every form.
+- tapOn: ".*پښتو.*"
 - waitForAnimationToEnd
 
 # Navigate back to profile tab (Pashto tab label "زه", use index as fallback)
@@ -48,5 +53,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Reset to English
-- tapOn: "English"
+# Language options are labelled in the CURRENT language, so the same option reads
+# "Pashto (پښتو)" from English, "پښتو" from Pashto and "پشتو (پښتو)" from Dari —
+# and Maestro matches the FULL string. A fixed label therefore only works from
+# one starting locale, and these flows cannot know which one the previous flow
+# left behind. The regex matches every form.
+- tapOn: ".*(English|انګلیسي|انگلیسی).*"
 - waitForAnimationToEnd
