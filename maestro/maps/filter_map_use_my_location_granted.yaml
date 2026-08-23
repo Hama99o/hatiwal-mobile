@@ -1,0 +1,53 @@
+appId: com.hatiwal.app
+---
+# "USE MY LOCATION" WHEN PERMISSION IS ALREADY GRANTED.
+#
+# The complement to filter_map_use_my_location: that flow proves the app ASKS when
+# it has to, this one proves it does NOT ask when it already has permission, and
+# that the location still resolves. Both matter — a re-prompt on every tap is as
+# wrong as never prompting.
+#
+# PRECONDITION — location permission must be GRANTED:
+#
+#     ./qa/qa.sh perm grant location
+#     ./qa/qa.sh flow maps/filter_map_use_my_location_granted
+#
+# clearState does not change permission state either way (verified with
+# `dumpsys package`), so this must be set explicitly.
+
+- runFlow:
+    file: ../_helpers/login_fresh.yaml
+    env:
+      EMAIL: buyer@hatiwal.test
+      PASSWORD: Password123!
+
+- tapOn: "Bazaar"
+- waitForAnimationToEnd
+- tapOn:
+    id: "browse-filters-toggle"
+- waitForAnimationToEnd
+- tapOn: "Set location & range"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "location-use-my-location"
+
+# NO dialog — it already has permission. Asking again would be a bug.
+- assertNotVisible: "While using the app"
+
+# And it resolves: the button label comes back (it is a spinner while acquiring)
+# with no failure banner.
+- extendedWaitUntil:
+    visible: "Use My Location"
+    timeout: 60000
+- assertNotVisible: "Couldn't determine your location. Please try again."
+- assertNotVisible: "Location access is blocked. Allow location access in Settings, then try again."
+
+# The resolved point is usable.
+- tapOn:
+    id: "location-confirm"
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 45000
+- assertVisible: "Within 5 km"

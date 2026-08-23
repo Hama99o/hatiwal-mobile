@@ -929,6 +929,93 @@ fixture text while unrelated areas stay green.
 
 ---
 
+### UI-022 · Map place names came back in PASHTO regardless of the app's language — FIXED
+
+**Severity: MEDIUM, and it affects stored data.** In an English UI, confirming
+Kabul city centre on the map produced this label:
+
+```
+لسمه ناحیه, کابل, کابل ښاروالی
+```
+
+That string is then shown in the filter row *and saved on the listing*. So a
+listing created by an English-speaking seller carried a Pashto location.
+
+`utils/geocoding.ts` sent a fixed `Accept-Language: ps,fa,en` header (and the same
+in the query string) on every Nominatim call. Correct for a Pashto user, wrong for
+the other two — and English is the app's default language per CLAUDE.md. The
+comment above it even described this as intentional localisation "for Afghan
+users", which is how it survived: it reads like a decision rather than an
+oversight.
+
+Fixed by asking for the user's chosen language first, with the other two as
+fallbacks so a name missing in one language still resolves instead of coming back
+empty:
+
+| App language | Accept-Language |
+|---|---|
+| `en` | `en,ps,fa` |
+| `ps` | `ps,fa,en` |
+| `fa` | `fa,ps,en` |
+
+Found by the new `maps` flows — specifically by *looking at the screenshot* of a
+failing assertion rather than only reading the error. The assertion that failed was
+mine (`"Kabul"` did not match), but the reason it did not match was the bug.
+
+---
+
+### RIG-010 · `clearState: true` does NOT reset runtime permissions — FIXED (new `qa.sh perm`)
+
+I assumed Maestro's `clearState: true` (a `pm clear`) revoked runtime permissions,
+and wrote two map flows on that basis: one to see the location dialog, one to deny
+it. Both failed, waiting 30s for a dialog the app had no reason to show.
+
+`dumpsys package` settled it — after several clearState flows:
+
+```
+android.permission.ACCESS_FINE_LOCATION: granted=true
+```
+
+**Permission state is DEVICE state, not app state.** A flow cannot produce or
+avoid a permission prompt by clearing app data; it has to be set explicitly. New
+command:
+
+```bash
+./qa/qa.sh perm revoke location    # then a flow WILL see the prompt
+./qa/qa.sh perm grant  location    # then it will not
+```
+
+Both paths are now separate flows with the precondition written at the top —
+`filter_map_use_my_location` (must ask) and `filter_map_use_my_location_granted`
+(must NOT ask, and must still resolve). A re-prompt on every tap is as wrong as
+never prompting, so both are worth asserting.
+
+---
+
+### RIG-011 · The fleet is bounded by CPU, and over-subscribing it produces confident nonsense (FIXED, documented)
+
+Running four sessions looked like four times the coverage. It was not: sessions 3
+and 4 failed **every** flow with `"Development Build" is not visible`, which reads
+as a Metro problem — while Metro sat at **0.8% CPU**, because nothing ever reached
+it.
+
+Four emulators at `-cores 4` request all 16 cores of this host, starving adb,
+Maestro and the app's own startup. The tells:
+
+- flows take 250s+ instead of ~150s
+- the Maestro on-device driver dies with `viewHierarchy` gRPC errors
+- whole sessions red while other sessions on the same commit are green
+
+`QA_EMU_CORES` / `QA_EMU_MEMORY` are now configurable, with the rule of thumb
+written down: **keep sessions × cores at about half the host's cores.** Two
+sessions is the reliable number on this machine.
+
+> The danger is not the wasted time — it is that the extra sessions produce
+> *plausible-looking failures*. Two sessions of real results beat four sessions
+> where half the board is fiction.
+
+---
+
 ### PROCESS-001 · I bulk-added another session's files by mistake (commit 7c05c8d)
 **Severity:** process, not product — but worth recording, not hiding
 

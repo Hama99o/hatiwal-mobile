@@ -254,6 +254,31 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
              && ok "session $QA_SESSION device is now at $lat, $lon" \
              || die "could not set the device location" ;;
 
+  # Grant or revoke a runtime permission for the app under test.
+  #
+  # NEEDED because `launchApp: clearState: true` does NOT reset runtime
+  # permissions — verified with `dumpsys package`: after several clearState flows,
+  # ACCESS_FINE_LOCATION was still granted=true. So a flow that means to see the
+  # permission dialog cannot rely on clearState to produce it, and a flow that
+  # means to skip the dialog cannot rely on it either. Set the state explicitly:
+  #
+  #   ./qa/qa.sh perm revoke location   # then a flow WILL see the prompt
+  #   ./qa/qa.sh perm grant location    # then it will not
+  perm)    resolve_device || die "no emulator for session $QA_SESSION"
+           action="${1:?usage: perm <grant|revoke> <location|camera|storage>}"
+           group="${2:-location}"
+           case "$group" in
+             location) perms=(android.permission.ACCESS_FINE_LOCATION android.permission.ACCESS_COARSE_LOCATION) ;;
+             camera)   perms=(android.permission.CAMERA) ;;
+             storage)  perms=(android.permission.READ_EXTERNAL_STORAGE android.permission.READ_MEDIA_IMAGES) ;;
+             *)        die "unknown permission group '$group' (location|camera|storage)" ;;
+           esac
+           case "$action" in grant|revoke) ;; *) die "action must be grant or revoke" ;; esac
+           for p in "${perms[@]}"; do
+             adb_qa shell pm "$action" "$APP_ID" "$p" >/dev/null 2>&1
+           done
+           ok "$action ${group} for $APP_ID on session $QA_SESSION" ;;
+
   net)     python3 "$HERE/lib/net.py" "$@" ;;
 
   register)
