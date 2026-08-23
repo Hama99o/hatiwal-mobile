@@ -17,6 +17,14 @@ appId: com.hatiwal.app
 # The category FIELD is tapped by its placeholder, "Tap to select category"
 # (listing.form.selectCategoryPlaceholder). "Category" is not a label the form
 # renders, so this never opened the picker.
+# The category field sits below title and price, and the numeric keypad from the
+# price field covers the lower half of the form — so it needs a scroll, not a bare
+# tap on an element that is merely off-screen.
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd
 # "Clothes" is not a category — it is "Clothes & Fashion", and Maestro matches an

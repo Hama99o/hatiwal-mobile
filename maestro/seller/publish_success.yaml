@@ -48,6 +48,14 @@ appId: com.hatiwal.app
 - tapOn: "Enter price"
 - inputText: "12000"
 
+# The category field sits below title and price, and the numeric keypad from the
+# price field covers the lower half of the form — so it needs a scroll, not a bare
+# tap on an element that is merely off-screen.
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd
 # EVERY top-level category has children, so tapping one DRILLS IN and never
