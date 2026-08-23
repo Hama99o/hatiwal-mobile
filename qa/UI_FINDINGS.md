@@ -1220,7 +1220,7 @@ the seller → their stats → their listings grid → open one of them → back
 profile. The buyer's trust path before meeting a stranger with cash. Finding the
 grid needed a scroll, and looking at *why* is what turned up UI-026 below.
 
-### UI-027 · "Mark as unread" silently does nothing on a one-sided conversation (OPEN)
+### UI-027 · "Mark as unread" silently did nothing on a one-sided conversation — FIXED
 
 **Where:** conversations list → long-press a row → Mark as unread
 **Severity:** low-frequency, but it is the "nothing happened and no error" shape
@@ -1250,10 +1250,37 @@ Not the cause of the three failing badge flows — the app's first row is
 conversation 166, which has an inbound message and can be marked unread (checked
 against `Conversation.ordered`). Found while investigating them.
 
-**Suggested fix (not applied — it is a contract decision):** have `mark_unread`
-report that there was nothing to mark, rather than 204, so the client can say so;
-or stop offering the action when the conversation has no inbound message. Either
-needs an API contract change plus client work, which is the owner's call.
+**Fixed.** `mark_unread` now returns 422 naming the reason when the UPDATE touches
+no rows. The mobile client already rolls back its optimistic update and shows an
+error toast on a non-2xx, so silence became a message with no client change. The
+e2e seed also gives the multi-quantity conversation a seller reply, so no fixture
+conversation is one-sided any more.
+
+**And it had a twin.** Chasing the same three flows turned up a second cause:
+
+### UI-028 · Empty conversations floated to the TOP of the inbox — FIXED
+
+`Conversation.ordered` was `order(last_message_at: :desc, created_at: :desc)`. A
+conversation exists from the moment a buyer opens a thread on a listing, before
+sending anything, so `last_message_at` is legitimately NULL for a while — and
+**Postgres sorts NULLs FIRST in a DESC order**. Empty threads therefore ranked
+above conversations with real recent activity: confirmed against QA data, an empty
+conversation sitting above one whose last message was minutes old. In a
+marketplace inbox that pushes live negotiations down the list.
+
+It is also why the badge flows could not work: they act on the topmost row, and an
+empty conversation cannot be marked read or unread — there is no message to mark.
+
+Fixed with Arel's `.nulls_last`, deliberately not `Arel.sql("… DESC NULLS LAST")`:
+the raw-SQL form cannot be reversed, so `.last` on the scope raises
+`IrreversibleOrderError` — which is how the existing spec caught it. Nothing in
+`app/` reverses this scope today, but a scope that explodes on `.last` is a trap
+for the next caller.
+
+Worth noting what these two have in common: both are states the fixtures produced
+and no assertion described. The flows said "the badge is not visible"; the causes
+were an API that reported success while doing nothing, and a sort order that put
+an empty thread first.
 
 ### MAPS · VERIFIED on device — what is now proven about both location pickers
 
