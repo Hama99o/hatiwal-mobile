@@ -8,7 +8,13 @@ appId: com.hatiwal.app
 # Find a draft listing and open it
 - tapOn: "Draft"
 - waitForAnimationToEnd
-- tapOn: "Publish"
+# Publish from the CARD, not the detail — this flow never opens a listing. Every
+# draft card carries its own primary-action button reading "Publish", so a text tap
+# lands on whichever card happens to be first in the hierarchy. The filter is set
+# to Draft, so index 0 is a draft either way, but the testID says what is meant.
+- tapOn:
+    id: "seller-card-primary-action"
+    index: 0
 - waitForAnimationToEnd
 # Confirm dialog
 - assertVisible: "Publish this listing?"

@@ -54,7 +54,17 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Lifecycle Test Item"
 - waitForAnimationToEnd
-- tapOn: "Publish"
+# The primary action on the owner detail, by testID. It sits below the photo,
+# description and views chart, so a text tap cannot reach it — and its LABEL
+# changes with status (Publish for a draft, Mark as Reserved for active, Mark as
+# Sold for reserved, Renew when expired), so the testID is the stable handle.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
 # Publishing lands on the owner detail with PublishSuccessSheet.
 # "Listing posted" was removed along with the old card (TASK-J952); this matches
