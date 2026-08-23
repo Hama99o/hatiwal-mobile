@@ -1135,6 +1135,32 @@ the record of an intended feature.
 For `product-owner`: either mount it or delete it and its tests. The flows should
 follow that decision, not pre-empt it.
 
+### QA-001 · An empty state the e2e environment cannot produce (RESOLVED — moved layer)
+
+`maestro/browse/categories_hub_empty.yaml` asserted "No categories yet" on the
+categories hub. The seed ships 16 categories and the rig cannot stub an API
+response — `qa.sh net` only rewrites .env LAN addresses for real-phone runs — so
+the flow was permanently red for a reason that had nothing to do with the app.
+
+An empty/error state driven purely by an API response belongs at the unit layer,
+where the response is ours to choose. The screen had **no unit tests at all**, so
+`src/screens/buyer/__tests__/Categories.test.tsx` now covers all three
+response-driven states: `[]` -> empty state, a rejection -> error state whose
+Retry actually refetches, and rows -> categories render and the empty state does
+not. The Maestro flow is deleted: a flow that cannot pass is not coverage, it is
+a permanent red mark that trains you to ignore the board.
+
+Two mistakes while writing those tests, both worth knowing for the next screen test:
+- `jest.mock("@/api/categories", …)` replaced the WHOLE module, but it also
+  exports `localizedCategoryName`, which the screen uses for every category's
+  display name. The call became `undefined(...)`, threw during render, and
+  reported as "Unable to find node on an unmounted component" rather than as a
+  missing mock. Use `...jest.requireActual(...)`.
+- Mocking `useFocusEffect` as `(cb) => cb()` runs it on EVERY render, so the
+  screen's refetch-on-focus loops forever and `isLoading` never clears. The test
+  sits in the skeleton state and reports the state you asserted as missing. Fire
+  it once from a `useEffect`.
+
 ### MAPS · VERIFIED on device — what is now proven about both location pickers
 
 The user's priority. ALL SIX flows green on a 360dp phone. What each one actually proves:
