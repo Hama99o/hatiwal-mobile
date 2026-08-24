@@ -63,6 +63,13 @@ appId: com.hatiwal.app
       id: "register-submit"
     direction: DOWN
     timeout: 20000
+# Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
+# stops as soon as the target is in the hierarchy, which can still be behind the
+# keyboard. Maestro then reports the tap COMPLETED while the touch lands on the
+# keyboard — register_duplicate_email submitted nothing at all, and the Rails log
+# showed no register POST for the whole run.
+- hideKeyboard
+- waitForAnimationToEnd
 - tapOn:
     id: "register-submit"
 # Lands on Bazaar after successful registration.

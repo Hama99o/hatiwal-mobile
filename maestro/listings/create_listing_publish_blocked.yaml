@@ -228,6 +228,13 @@ appId: com.hatiwal.app
 - assertNotVisible: "What are you selling?"
 
 # Publish from the always-visible top toolbar while scrolled to the bottom.
+# Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
+# stops as soon as the target is in the hierarchy, which can still be behind the
+# keyboard. Maestro then reports the tap COMPLETED while the touch lands on the
+# keyboard — register_duplicate_email submitted nothing at all, and the Rails log
+# showed no register POST for the whole run.
+- hideKeyboard
+- waitForAnimationToEnd
 - tapOn: "Publish"
 - waitForAnimationToEnd
 

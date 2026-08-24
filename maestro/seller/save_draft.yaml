@@ -187,6 +187,13 @@ appId: com.hatiwal.app
 - assertVisible: "Tap to set exact location on map"
 - assertNotVisible: "Location is required — buyers filter listings by area"
 
+# Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
+# stops as soon as the target is in the hierarchy, which can still be behind the
+# keyboard. Maestro then reports the tap COMPLETED while the touch lands on the
+# keyboard — register_duplicate_email submitted nothing at all, and the Rails log
+# showed no register POST for the whole run.
+- hideKeyboard
+- waitForAnimationToEnd
 - tapOn: "Publish"
 - waitForAnimationToEnd
 

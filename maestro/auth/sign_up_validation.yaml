@@ -27,7 +27,10 @@ appId: com.hatiwal.app
     timeout: 20000
 - tapOn:
     id: "register-submit"
-- assertVisible: "is required"
+# Register builds each message as `t("auth.firstName") + " " + t("common.required")`
+# -> "First Name is required". Maestro matches the WHOLE string, so the bare
+# fragment never matched. `.*` on both sides makes it the substring check intended.
+- assertVisible: ".*is required.*"
 
 # Fill first + last name only, submit — still missing email/password
 - tapOn: "First Name"
@@ -46,9 +49,19 @@ appId: com.hatiwal.app
       id: "register-submit"
     direction: DOWN
     timeout: 20000
+# Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
+# stops as soon as the target is in the hierarchy, which can still be behind the
+# keyboard. Maestro then reports the tap COMPLETED while the touch lands on the
+# keyboard — register_duplicate_email submitted nothing at all, and the Rails log
+# showed no register POST for the whole run.
+- hideKeyboard
+- waitForAnimationToEnd
 - tapOn:
     id: "register-submit"
-- assertVisible: "is required"
+# Register builds each message as `t("auth.firstName") + " " + t("common.required")`
+# -> "First Name is required". Maestro matches the WHOLE string, so the bare
+# fragment never matched. `.*` on both sides makes it the substring check intended.
+- assertVisible: ".*is required.*"
 
 # Fill email + mismatched passwords
 - tapOn: "Email"
@@ -76,6 +89,13 @@ appId: com.hatiwal.app
       id: "register-submit"
     direction: DOWN
     timeout: 20000
+# Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
+# stops as soon as the target is in the hierarchy, which can still be behind the
+# keyboard. Maestro then reports the tap COMPLETED while the touch lands on the
+# keyboard — register_duplicate_email submitted nothing at all, and the Rails log
+# showed no register POST for the whole run.
+- hideKeyboard
+- waitForAnimationToEnd
 - tapOn:
     id: "register-submit"
 - assertVisible: "Passwords do not match"
