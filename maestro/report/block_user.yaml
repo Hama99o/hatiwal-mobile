@@ -90,20 +90,29 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible: "Unblock User"
     timeout: 15000
-# CLOSE IT. An open ActionMenu is a modal: it covers the tab bar, so the next tab
-# tap fails with `Element not found: browse-tab` — which is how
-# block_user_hides_listings failed.
-- tapOn: "Cancel"
-- waitForAnimationToEnd
-# Profile now shows "Unblock User" option
-- assertVisible: "Unblock User"
-# Unblock
+# Do NOT close the menu here. The flipped item is both the proof the block landed
+# (UI-035: the profile itself shows no blocked state) and where the unblock lives,
+# so both happen from this one open menu. My first version tapped "Cancel" and
+# then asserted "Unblock User" — which had just been closed along with the menu.
+
+# Unblock from the menu that is already open.
 - tapOn: "Unblock User"
 - waitForAnimationToEnd
-# Toast again — the durable proof is the action flipping back to "Block User".
-- assertVisible:
-    text: "User unblocked"
-    optional: true
+- extendedWaitUntil:
+    visible: "User unblocked"
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible: "User unblocked"
+    timeout: 20000
+
+# The item has flipped back. unblockMutation.onSuccess closes the menu too, so
+# this needs its own reopen — then CLOSE it, because an open ActionMenu is a modal
+# covering the tab bar (`Element not found: browse-tab`).
+- tapOn:
+    id: "more-menu"
+- waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Block User"
     timeout: 15000
+- tapOn: "Cancel"
+- waitForAnimationToEnd
