@@ -49,6 +49,16 @@ appId: com.hatiwal.app
     index: 0
     text: "Bazaar"
 - waitForAnimationToEnd
+# OPEN A LISTING FIRST. The heart is a listing-DETAIL control and the step above
+# only taps the Bazaar TAB, so this was looking for it on the FEED — hence
+# `Element not found: save-toggle-button` on an app that renders it fine.
+- scrollUntilVisible:
+    element:
+      text: "Wool Blanket Handmade King Size"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Wool Blanket Handmade King Size"
+- waitForAnimationToEnd
 # Tap the save heart as a guest — should redirect to login
 - tapOn:
     # The heart on listing detail is `save-toggle-button` — added when this

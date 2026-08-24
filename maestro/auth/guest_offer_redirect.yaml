@@ -47,6 +47,17 @@ appId: com.hatiwal.app
     index: 0
     text: "Bazaar"
 - waitForAnimationToEnd
+# OPEN A LISTING FIRST. Both "Make an Offer" and the heart are listing-DETAIL
+# controls, and the step before this only taps the Bazaar TAB — so the flow was
+# looking for them on the FEED. That is why they failed with `Element not found`
+# on an app that renders them perfectly.
+- scrollUntilVisible:
+    element:
+      text: "Wool Blanket Handmade King Size"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Wool Blanket Handmade King Size"
+- waitForAnimationToEnd
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
 # Redirected to login
