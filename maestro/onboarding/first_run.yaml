@@ -80,8 +80,16 @@ appId: com.hatiwal.app
 
 - launchApp:
     clearState: true
+# open_bundle again. clearState runs `pm clear`, which wipes the dev client's
+# REMEMBERED METRO SERVER — so a second clearState in the same flow drops back
+# into the launcher, exactly like the first one does. The flow's opening
+# clearState is followed by open_bundle for that reason; this one was not, so
+# everything after it asserted against the launcher screen.
+- runFlow: ../_helpers/open_bundle.yaml
 - waitForAnimationToEnd
-- assertVisible: "Welcome to Hatiwal"
+- extendedWaitUntil:
+    visible: "Welcome to Hatiwal"
+    timeout: 60000
 - tapOn: "Skip"
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"
