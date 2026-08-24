@@ -99,6 +99,13 @@ env:
     timeout: 60000
 - assertNotVisible: "Login"
 
+# Language leaks between flows the same way mode does. It goes HERE, after the
+# auth gate: before it, a guest tab bar labels that tab "Login" rather than "Me",
+# so the helper's English gate would fire on the LOGIN screen and hunt for a
+# language row that only exists on Profile. It also has to precede the mode check
+# below, which reads "Switch to …" — English copy.
+- runFlow: ensure_english.yaml
+
 # ── Seller mode ─────────────────────────────────────────────────────────────
 # Conditional, because a warm launch may already be in seller mode from the
 # previous flow.

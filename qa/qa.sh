@@ -42,7 +42,18 @@ PY
 }
 
 new_run() {
-  RUN_ID="$(cd "$HERE" && python3 -c "import os;print(max([d for d in os.listdir('reports') if d.startswith('run-')]+['run-000'])[4:])" 2>/dev/null)"
+  # DIRECTORIES named run-<digits>, and nothing else. `max()` over everything in
+  # reports/ that merely STARTS WITH "run-" picked up a log file: with
+  # reports/run-report-fix.log present, "run-report-fix.log" sorts above
+  # "run-171", `[4:]` yielded "report-fix.log", the `10#` arithmetic failed, and
+  # the run wrote to a directory literally named "run-" — which the next run then
+  # collided with. Costly to notice, because results still landed somewhere.
+  RUN_ID="$(cd "$HERE" && python3 -c "
+import os, re
+ns = [int(m.group(1)) for d in os.listdir('reports')
+      if os.path.isdir(os.path.join('reports', d))
+      for m in [re.fullmatch(r'run-(\d+)', d)] if m]
+print(max(ns) if ns else 0)" 2>/dev/null)"
   RUN_ID="run-$(printf '%03d' $((10#${RUN_ID:-0} + 1)))"
   RUN_DIR="$REPORTS_DIR/$RUN_ID"; mkdir -p "$RUN_DIR"; echo "$RUN_DIR"
 }

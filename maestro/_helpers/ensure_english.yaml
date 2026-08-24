@@ -1,0 +1,38 @@
+appId: com.hatiwal.app
+---
+# Ensure the app is in ENGLISH.
+#
+# Language is persisted on the USER (`preferred_language`) and in AsyncStorage, so
+# it leaks between flows exactly the way seller mode does — and unlike mode, there
+# was no guard for it. An rtl/ flow that switches to Pashto or Dari and then fails
+# before its "reset to English" step leaves EVERY later flow in that locale, and
+# every English assertion in the suite fails on a screen that is perfectly correct.
+#
+# Seen in evidence: dark_mode/theme_persists_after_navigate scrolling for
+# `theme-option-dark` on a Bazaar feed whose listings read
+# "یخچال ال جی دو درب کم کارکرد / مزار شریف" — the app had been sitting in a
+# non-English locale since an rtl run hours earlier.
+#
+# THE GATE IS THE TAB LABEL. "Me" is `sidebar.profile`, which is "زه" in Pashto and
+# different again in Dari, and the tab bar is on screen at this point in every
+# login helper — so one short poll answers "are we in English?" for free in the
+# common case. This is the one place a TRANSLATED label is the right selector:
+# detecting a locale needs something that changes with it.
+- runFlow:
+    when:
+      notVisible: "Me"
+    commands:
+      - tapOn:
+          id: "profile-tab"
+      - waitForAnimationToEnd
+      # The picker is collapsed on mount and its row is below the fold.
+      - runFlow: open_language_picker.yaml
+      - tapOn:
+          id: "language-option-en"
+      - waitForAnimationToEnd
+      # Back to the feed. Leaving the app on Profile breaks the next Browse step
+      # while `assertVisible` on the tab label still passes — the trap documented
+      # at the end of ensure_buyer_mode.yaml.
+      - tapOn:
+          id: "browse-tab"
+      - waitForAnimationToEnd

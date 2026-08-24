@@ -136,4 +136,10 @@ env:
 # found: Bazaar" or `"Bazaar" is visible` while being perfectly signed in.
 # Confirmed by screenshot more than once: Ahmad Karimi (the buyer) on a green
 # seller-mode profile.
+# BEFORE the mode check, not after: ensure_buyer_mode detects the mode from the
+# toggle's LABEL ("Switch to Buyer Mode"), which only reads that way in English.
+# In Pashto its 30s gate on "Switch to .*" cannot match, so a leaked locale broke
+# the mode guard too.
+- runFlow: ensure_english.yaml
+
 - runFlow: ensure_buyer_mode.yaml

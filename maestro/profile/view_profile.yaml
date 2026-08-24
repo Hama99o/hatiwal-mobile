@@ -27,7 +27,11 @@ appId: com.hatiwal.app
       text: "Appearance"
     direction: DOWN
     timeout: 20000
-- assertVisible: "Appearance"
+# "Appearance" (profile.theme) sits in the Preferences card near the BOTTOM of the
+# profile screen — below the stats, the quick actions, the pending-reviews nudge
+# and PERSONAL INFO — so asserting it on arrival fails on a screen that is
+# perfectly correct. The scroll below is the stronger proof anyway: it lands on a
+# control INSIDE that card.
 - assertVisible: "Language"
 
 # Sign out is present (subdued ghost button at the bottom)
