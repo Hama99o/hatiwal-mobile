@@ -1540,6 +1540,77 @@ each its own AVD.
 
 ---
 
+## UI-032 · Icon-only controls that named themselves to nobody — FIXED
+
+Three groups of controls in Profile identified themselves ONLY visually. Each is
+a real accessibility defect independent of QA, and each also made a whole feature
+untestable.
+
+**The Appearance selector.** Light / Dark / System are three icon-only
+`Pressable`s with `accessibilityRole="button"` and nothing else — no label, no
+state. `THEME_OPTIONS` had carried a `labelKey` for each since it was written and
+never used it. A screen reader announced three indistinguishable buttons, and the
+active one was conveyed by a border colour alone. 8 dark_mode/profile flows failed
+with `No visible element found: "Dark"` because the word genuinely was not in the
+tree.
+
+**The language row.** Its own label is translated, so nothing could identify it
+from inside Pashto or Dari — the case where a language switcher matters most. It
+also gave no hint that it expands: it announced as a button that appeared to do
+nothing.
+
+**The language options**, in both places they appear (Profile's inline picker and
+`LanguageSwitcher`, used on Onboarding and Login). The three native names render
+as text, but the ACTIVE one was marked by fill colour and a check icon only.
+
+Fixed with `accessibilityLabel`, `accessibilityState` (`selected` / `expanded`)
+and testIDs: `theme-option-{light,dark,system}`, `language-row`,
+`language-option-{en,ps,fa}`, `language-switcher-{en,ps,fa}`. The two option sets
+are named differently on purpose — they are different screens, and a flow that
+confuses them should fail loudly rather than tap whatever is in the tree.
+
+`theme_persists_after_navigate` now asserts `selected: true` rather than the
+button's mere existence, which is true in every theme and would have made the
+flow pass even if the theme had reset.
+
+---
+
+## UI-033 · A no-op API parameter that three places reasoned about — FIXED
+
+`GET /listings` scopes to `Listing.browsable` (active.not_expired.not_removed)
+and never reads `params[:status]`. Both clients sent it anyway — six call sites in
+web, two in mobile — and two comments had grown around what it does:
+`listings.ts` claimed a category query "leaks non-browsable stock through
+`status`" (it cannot), and `unavailable-actions.tsx` credited the sold-item
+guarantee to the param rather than to the endpoint.
+
+Harmless today, since every caller sent "active", which is what browsable already
+means. The trap is the next "sold" tab: `status=sold` would return a full page of
+ACTIVE listings — wrong data, no error. Sold stock has its own endpoint.
+
+Removed from both clients (removing the field from web's `ListingsQuery` is what
+found four of the six sites) and stated at the source in the controller.
+
+---
+
+## UI-034 · Category#parent_id was declared by both clients and sent by nobody — FIXED
+
+`CategorySerializer` never emitted `parent_id`, while mobile's `Category.parentId`,
+web's `types.ts` and a mobile unit test all treated it as present — the test
+asserting it against a hand-written mock the API never produces. So `parentId` was
+`undefined` on every category, and `parentId === null`, the natural test for "is
+this top-level?", was false for all of them including the parents.
+
+Nothing read it yet, so it was a latent trap rather than a live bug. Emitting the
+column makes three declarations true instead of deleting them from two clients and
+a passing test.
+
+Found by `qa/lib/audit_contract.py`, which diffs per endpoint what the client
+sends against what the controller reads, and what the client's TypeScript declares
+against what the serializer emits.
+
+---
+
 ## Flow defects (test bugs, not app bugs)
 
 Recorded here too, because a wrong flow costs exactly as much time as a wrong screen.

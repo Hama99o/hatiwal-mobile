@@ -120,6 +120,29 @@ def load_results(reports_dir, run_dirs):
     return res
 
 
+def slowest_pass():
+    """The longest a flow has ever taken and still passed, from qa/history.jsonl.
+
+    Derived rather than hard-coded: it is the only defensible line between "slow"
+    and "outside the range anything succeeds in", and it moves as the suite and
+    the machine change. Falls back to a wide default when there is no history.
+    """
+    hist = pathlib.Path(__file__).resolve().parents[1] / "history.jsonl"
+    if not hist.exists():
+        return 600
+    best = 0
+    for line in hist.read_text().splitlines():
+        if not line.strip():
+            continue
+        r = json.loads(line)
+        if r.get("result") == "pass":
+            best = max(best, r.get("seconds") or 0)
+    return best or 600
+
+
+SLOWEST_PASS = slowest_pass()
+
+
 def parse_human_columns():
     """Recover Triage + Notes from the existing register so they survive."""
     keep = {}
@@ -182,6 +205,16 @@ def main(reports_dir, run_dirs):
             # triaged as-is. Re-run before reading anything into it.
             if r and r.get("stale"):
                 st = f"{st} ⟳stale"
+            # Slower than ANY flow has ever passed. Deliberately not a
+            # "looks slow" heuristic: across 88 passes and 304 failures in
+            # qa/history.jsonl the two medians are 205s and 210s, so duration
+            # tells you almost nothing — I had been dismissing failures at
+            # 372-462s as starvation while the slowest PASS on record is 551s.
+            # Above that line a flow is outside the range anything is known to
+            # succeed in, which is worth saying and is all that is worth saying.
+            # Three rows in all of history qualify; chat_rtl once took 9065s.
+            if r and r.get("result") != "pass" and (r.get("seconds") or 0) > SLOWEST_PASS:
+                st = f"{st} ⚠slow"
             rows.append((name, st, run, secs, api, triage, notes))
         rows_by_feat[feat] = (title, rows)
 
