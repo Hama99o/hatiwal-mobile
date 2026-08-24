@@ -31,4 +31,12 @@ appId: com.hatiwal.app
     id: "go-to-register"
 - waitForAnimationToEnd
 - assertVisible: "Create Account"
-- assertVisible: "Already have an account?"
+# Register.tsx renders `{t("auth.haveAccount")} {t("auth.loginButton")}` as ONE
+# text node — "Already have an account? Sign In" — and Maestro matches the whole
+# string, so asserting the first half alone never matched. Unlike "Sign In" and
+# "Create Account", which are also standalone button labels, this half exists
+# nowhere else in the app.
+# No backslash: `\?` is not a valid escape inside a YAML double-quoted string, and
+# it is not needed — as a regex, `account?.*` matches "accoun" + an optional "t",
+# then `.*` absorbs "? Sign In".
+- assertVisible: "Already have an account?.*"

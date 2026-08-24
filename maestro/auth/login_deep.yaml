@@ -51,7 +51,10 @@ appId: com.hatiwal.app
 # just trades one guaranteed failure for another.
 - assertVisible: "Switch to .*"
 # User name shown (Ahmad Karimi from seed data)
-- assertVisible: "Ahmad"
+# The profile renders the FULL name, "Ahmad Karimi", and Maestro matches the whole
+# string — so the bare first name never matched. Prefix on purpose: the surname
+# is fixture data and this flow is not about it.
+- assertVisible: "Ahmad.*"
 
 # Logout
 # "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
@@ -111,4 +114,7 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-- assertVisible: "Ahmad"
+# The profile renders the FULL name, "Ahmad Karimi", and Maestro matches the whole
+# string — so the bare first name never matched. Prefix on purpose: the surname
+# is fixture data and this flow is not about it.
+- assertVisible: "Ahmad.*"
