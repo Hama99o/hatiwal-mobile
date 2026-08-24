@@ -384,6 +384,17 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   # are too old to trust.
   coverage) python3 "$HERE/lib/coverage.py" ;;
 
+  # Re-run ONLY the failing flows whose file has changed since that verdict.
+  # `flow_sha` makes it exact, so a handful of stale rows no longer costs a
+  # whole feature at ~4 minutes per unchanged flow.
+  restale) python3 "$HERE/lib/stale_flows.py" > "$QA_DIR/reports/.stale" || exit 1
+           n=$(wc -l < "$QA_DIR/reports/.stale")
+           say "$n flow(s) with a stale FAIL verdict"
+           while read -r spec; do
+             [ -n "$spec" ] || continue
+             "$0" flow "$spec"
+           done < "$QA_DIR/reports/.stale" ;;
+
   triage)  last="$(ls -d "$REPORTS_DIR"/run-* 2>/dev/null | tail -1)"
            [ -n "$last" ] || die "no runs yet"
            python3 "$HERE/lib/report.py" "$last" ;;
