@@ -1611,6 +1611,32 @@ against what the serializer emits.
 
 ---
 
+## UI-035 · Blocking someone leaves no trace on their profile — OPEN
+
+Block a user from their profile and the screen looks **exactly the same**
+afterwards. `isBlocked` in `UserProfile.tsx` is passed to `ActionMenu` and used to
+choose block-vs-unblock, and that is all it does — there is no banner, no badge,
+no change to the header or the listings area. The only feedback is a toast that is
+gone in a few seconds, and the menu closes as soon as you tap the item.
+
+So to answer "did that work?" or "have I already blocked this person?", the user
+has to reopen the ⋮ menu and read whether it says Block or Unblock. For a safety
+feature in a marketplace where people meet strangers in person, that is too
+little: blocking is a decision someone makes when they feel unsafe, and it should
+visibly hold.
+
+Found while looking for something durable to assert after a block. There was
+nothing, which is the finding. The three flows now reopen the menu, because that
+is the app's only lasting signal.
+
+Suggested: a persistent blocked state on the profile — the listings area replaced
+with "You blocked this user. Their listings are hidden." and an Unblock action
+inline, so the state is visible without opening a menu. `Conversation.tsx` already
+does the equivalent: it hides the composer and flips the icon's
+accessibilityLabel, so a blocked thread cannot be mistaken for an open one.
+
+---
+
 ## Flow defects (test bugs, not app bugs)
 
 Recorded here too, because a wrong flow costs exactly as much time as a wrong screen.
