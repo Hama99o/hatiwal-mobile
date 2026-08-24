@@ -75,7 +75,19 @@ appId: com.hatiwal.app
 - tapOn: "Confirm reserve"
 - waitForAnimationToEnd
 
-- assertVisible: "Listing marked as reserved"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+
+# single check right after an action is a race — and any wait in front of it
+
+# loses that race, turning a successful action red. Polling keeps the check at
+
+# full strength while removing the timing dependency.
+
+- extendedWaitUntil:
+
+    visible: "Listing marked as reserved"
+
+    timeout: 15000
 
 # ── SaleBuyerCard on the owner detail screen ──────────────────────────────
 - assertVisible: "Reserved for Ahmad Karimi"

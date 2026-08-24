@@ -67,7 +67,13 @@ appId: com.hatiwal.app
 - tapOn: "Delete"
 - waitForAnimationToEnd
 # Toast confirmation
-- assertVisible: "Listing deleted"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Listing deleted"
+    timeout: 15000
 # Listing no longer in list
 # The listing this flow created is gone; the seeded ones are untouched.
 - assertNotVisible: "QA Delete Target"

@@ -32,7 +32,13 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 
 # Save
 - tapOn: "Save Changes"
-- assertVisible: "Profile saved"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Profile saved"
+    timeout: 15000
 
 # ── Verify AwayBanner appears on public profile ───────────────────────
 # Navigate to own profile, then to public profile via a listing
@@ -69,4 +75,10 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 - assertNotVisible: "Away until (YYYY-MM-DD)"
 
 - tapOn: "Save Changes"
-- assertVisible: "Profile saved"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Profile saved"
+    timeout: 15000

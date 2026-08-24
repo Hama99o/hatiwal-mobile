@@ -85,7 +85,13 @@ appId: com.hatiwal.app
 - tapOn: "Sold to someone not on Hatiwal"
 - tapOn: "Confirm reserve"
 - waitForAnimationToEnd
-- assertVisible: "Listing marked as reserved"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Listing marked as reserved"
+    timeout: 15000
 - assertVisible: "Reserved"
 
 # ─── Buyer reopens the SAME conversation — reserved notice + no offer entry ──
@@ -162,7 +168,13 @@ appId: com.hatiwal.app
 - tapOn: "Sold to someone not on Hatiwal"
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
-- assertVisible: "Listing marked as sold"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Listing marked as sold"
+    timeout: 15000
 - assertVisible: "Sold"
 
 # ─── Buyer reopens the conversation — sold notice replaces reserved ──────────

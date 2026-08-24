@@ -48,7 +48,13 @@ env:
 - tapOn: "Confirm reserve"
 - waitForAnimationToEnd
 # Success toast appears
-- assertVisible: "Listing marked as reserved"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Listing marked as reserved"
+    timeout: 15000
 # StatusBadge in the pinned header updates to Reserved
 - assertVisible: "Reserved"
 # Reserve button is gone; Mark Sold appears instead
@@ -66,7 +72,13 @@ env:
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
 # Success toast
-- assertVisible: "Listing marked as sold"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Listing marked as sold"
+    timeout: 15000
 # StatusBadge updates to Sold
 - assertVisible: "Sold"
 # No lifecycle button remains (sold is terminal)

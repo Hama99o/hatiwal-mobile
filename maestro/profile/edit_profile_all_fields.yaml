@@ -48,7 +48,13 @@ appId: com.hatiwal.app
 - tapOn: "Save Changes"
 - waitForAnimationToEnd
 # `profile.edit.saved` = "Profile saved".
-- assertVisible: "Profile saved"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Profile saved"
+    timeout: 15000
 
 # Verify data persisted
 - tapOn: "Edit Profile"

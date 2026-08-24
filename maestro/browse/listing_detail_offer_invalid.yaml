@@ -28,11 +28,23 @@ appId: com.hatiwal.app
 # Try sending with empty offer
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
-- assertVisible: "Enter a valid amount"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Enter a valid amount"
+    timeout: 15000
 # Try with 0
 - tapOn: "Your offer"
 - eraseText
 - inputText: "0"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
-- assertVisible: "Enter a valid amount"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Enter a valid amount"
+    timeout: 15000

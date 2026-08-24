@@ -40,7 +40,13 @@ appId: com.hatiwal.app
 - tapOn: "Unpublish"
 - waitForAnimationToEnd
 # Listing moved to Draft
-- assertVisible: "Listing unpublished"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Listing unpublished"
+    timeout: 15000
 # Navigate to Draft tab — listing appears there
 - tapOn: "Draft"
 - waitForAnimationToEnd

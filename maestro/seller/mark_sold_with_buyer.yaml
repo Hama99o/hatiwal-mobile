@@ -80,7 +80,13 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Sale recorded — success toast fires
-- assertVisible: "Listing marked as sold"
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Listing marked as sold"
+    timeout: 15000
 
 # REV2: the double-blind review prompt opens automatically — dismiss it here
 # (out of scope for this flow) so the underlying Sold badge is checkable.

@@ -334,7 +334,11 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
            # falls back to ENGLISH mid-RTL-screen, and a t() key that exists
            # nowhere renders the key itself. Both are visible to the user and
            # invisible to every log.
-           echo; python3 "$HERE/lib/audit_i18n.py" ;;
+           echo; python3 "$HERE/lib/audit_i18n.py"
+           # Sixth: a flow asserting a TOAST as if it were persistent. A toast
+           # lives ~3s, so a single check is a race and any wait in front of it
+           # loses — the action succeeds and the flow goes red anyway.
+           echo; python3 "$HERE/lib/audit_toasts.py" ;;
 
   # Drop old run artifacts. They grow without bound — a debug dir, screenshots,
   # a hierarchy dump and a logcat per flow — and hit 9.6GB across 185 runs here

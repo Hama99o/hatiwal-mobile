@@ -60,7 +60,13 @@ appId: com.hatiwal.app
 - tapOn: "Submit Report"
 - waitForAnimationToEnd
 # Success toast appears
-- assertVisible: "Report submitted. Thank you."
+# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
+# single check right after an action is a race — and any wait in front of it
+# loses that race, turning a successful action red. Polling keeps the check at
+# full strength while removing the timing dependency.
+- extendedWaitUntil:
+    visible: "Report submitted. Thank you."
+    timeout: 15000
 - waitForAnimationToEnd
 # Block follow-up dialog appears — decline it
 - assertVisible: "Block this user?"
