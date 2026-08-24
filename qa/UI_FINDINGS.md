@@ -1637,6 +1637,31 @@ accessibilityLabel, so a blocked thread cannot be mistaken for an open one.
 
 ---
 
+## UI-036 · An empty login form spent a request to be told the wrong thing — FIXED
+
+Submitting Login with both fields blank POSTed to `/auth/sign_in`, took a 401, and
+rendered the API's message: **"Invalid login credentials. Please try again."**
+
+That is wrong on the facts. Nothing was invalid — the fields were EMPTY — so the
+screen blamed the user for credentials they had not entered, and told them nothing
+about what to do. And it is a network round-trip to learn something the screen
+already knew, which on a slow or metered connection is exactly the cost this app
+should not be paying.
+
+`Register.tsx` has validated its required fields since it was written, building
+"<field> is required" from `t("common.required")`. Login was the inconsistency, so
+it now does the same: "Email is required", "Password is required", no request.
+
+Found as a SILENT verdict, which is what that classification is for: the flow
+`auth/login_empty_fields` PASSED — it asserted the API's error text and got it —
+while logcat showed two 401s. Green assertions sitting on top of a failing request
+is precisely the case where a passing flow is still reporting a defect.
+
+The flow now asserts the client-side message, so it is checking the app's own
+behaviour rather than the server's.
+
+---
+
 ## Flow defects (test bugs, not app bugs)
 
 Recorded here too, because a wrong flow costs exactly as much time as a wrong screen.

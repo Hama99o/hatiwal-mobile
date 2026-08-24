@@ -129,6 +129,23 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
+    // Validate before spending a request. Submitting the empty form used to POST
+    // to /auth/sign_in, take a 401, and render the API's "Invalid login
+    // credentials. Please try again." — which is wrong on the facts: nothing was
+    // invalid, the fields were EMPTY. On a slow or metered connection that is a
+    // round-trip to learn something the screen already knew.
+    //
+    // Register.tsx has validated its required fields this way from the start
+    // (t("common.required")); Login was the inconsistency.
+    const missing: string[] = [];
+    if (!email.trim()) missing.push(`${t("auth.email")} ${t("common.required")}`);
+    if (!password) missing.push(`${t("auth.password")} ${t("common.required")}`);
+    if (missing.length > 0) {
+      setError(missing.join(" "));
+      setBlockedNotice(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setBlockedNotice(null);

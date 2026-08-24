@@ -38,4 +38,12 @@ appId: com.hatiwal.app
 # Submit empty form
 - tapOn: "Sign In"
 - waitForAnimationToEnd
-- assertVisible: "Invalid login credentials. Please try again."
+# The app now VALIDATES before sending. Submitting empty fields used to POST to
+# /auth/sign_in and render the API's "Invalid login credentials. Please try
+# again." — wrong on the facts (nothing was invalid; the fields were empty) and a
+# wasted round-trip. This flow passed while logcat showed two 401s, which is the
+# SILENT class the rig exists to catch: green assertions over a failing request.
+#
+# Register.tsx already validated its required fields as "<field> is required";
+# Login now matches. The `.*` covers both fields being reported together.
+- assertVisible: "Email is required.*"
