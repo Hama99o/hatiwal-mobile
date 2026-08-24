@@ -34,13 +34,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Block from seller profile
-- tapOn:
-    id: "more-menu"
-- waitForAnimationToEnd
 # OPEN THE ⋮ MENU FIRST. On UserProfile, Block/Unblock/Report live in ActionMenu
-# behind `more-menu` — they are not on the screen itself, so tapping them
-# directly reported `Element not found: Text matching regex: Block User` on a
-# profile that was rendering perfectly.
+# behind `more-menu`, so tapping them directly reported `Element not found: Text
+# matching regex: Block User` on a profile that was rendering perfectly. Exactly
+# ONE tap: with the menu already open, `more-menu` sits behind the modal and is
+# not in the tree, so a second tap fails with `Element not found: more-menu`.
 - tapOn:
     id: "more-menu"
 - waitForAnimationToEnd
