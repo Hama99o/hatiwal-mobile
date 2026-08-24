@@ -46,6 +46,16 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
+# Scroll first. The Appearance card is near the BOTTOM of Profile — below the
+# stats, quick actions, pending-reviews nudge and PERSONAL INFO — and `tapOn`
+# never scrolls. These reset taps at the end of a flow LACKED the scroll their
+# opening tap had, and browse_dark failed on `Element not found:
+# theme-option-system` for exactly that reason.
+- scrollUntilVisible:
+    element:
+      id: "theme-option-light"
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     id: "theme-option-light"
 - waitForAnimationToEnd
