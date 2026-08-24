@@ -33,7 +33,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { clearCachedPushToken } from "@/utils/push-token";
 import { authAPI, type User } from "@/api/auth";
-import { warningsAPI } from "@/api/warnings";
+import { warningsAPI , type UserWarning } from "@/api/warnings";
 import { WarningBanner } from "@/components/common/WarningBanner";
 import { AwayBanner } from "@/components/common/AwayBanner";
 import { UserIdentity } from "@/components/common/UserIdentity";
@@ -731,7 +731,7 @@ export default function ProfileScreen() {
           <WarningBanner
             activeCount={warningsData.activeCount}
             threshold={warningsData.threshold}
-            warnings={warningsData.warnings.filter((w) => w.active)}
+            warnings={warningsData.warnings.filter((w: UserWarning) => w.active)}
           />
         </View>
       )}

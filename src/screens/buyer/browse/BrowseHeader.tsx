@@ -114,7 +114,6 @@ export function BrowseHeader({
             // SearchBar exposes a clear-button handle; this call site never used it.
             clearTestID="browse-search-clear"
             inputTestID="browse-search-input"
-            clearTestID="browse-search-clear"
           />
 
           {/* View mode toggle: grid / list */}

@@ -168,7 +168,14 @@ const listingSchema = z.object({
   quantity: z.number().int().min(1).max(999),
 });
 
-type ListingFormValues = z.infer<typeof listingSchema>;
+// z.input, not z.infer. `negotiable: z.boolean().default(true)` makes the field
+// OPTIONAL on the way in (the default supplies it) and REQUIRED on the way out,
+// and `z.infer` is the output side — so useForm was typed with a shape its own
+// resolver cannot produce, which is the TS2322/TS2345 trio this file has carried.
+// The values a FORM holds are input values: the user may not have touched the
+// switch yet. Runtime behaviour is unchanged — the default is still true and
+// defaultValues still sets it explicitly.
+type ListingFormValues = z.input<typeof listingSchema>;
 
 // Local autosave of an in-progress NEW listing (text fields only — not photos,
 // whose local URIs may not survive an app restart). Restored on next open.
@@ -1417,7 +1424,13 @@ export default function ListingFormScreen() {
                   </Text>
                 </View>
                 <Switch
-                  checked={field.value}
+                  // `?? true` mirrors the schema's own default. With the form
+                  // typed on the INPUT side this field is boolean | undefined
+                  // until the user touches it, and the Switch needs a concrete
+                  // value — undefined would render it unchecked, i.e. showing
+                  // "not negotiable" for a listing that will be saved as
+                  // negotiable.
+                  checked={field.value ?? true}
                   onCheckedChange={field.onChange}
                   testID="listing-form-negotiable-switch"
                 />

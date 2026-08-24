@@ -26,8 +26,8 @@ export function SavedSearches({ onSelectSearch }: SavedSearchesProps) {
     onMutate: async (id: number) => {
       await qc.cancelQueries({ queryKey: ["saved-searches"] });
       const previous = qc.getQueryData<SavedSearch[]>(["saved-searches"]);
-      qc.setQueryData<SavedSearch[]>(["saved-searches"], (old) =>
-        (old ?? []).filter((s) => s.id !== id)
+      qc.setQueryData<SavedSearch[]>(["saved-searches"], (old: SavedSearch[] | undefined) =>
+        (old ?? []).filter((s: SavedSearch) => s.id !== id)
       );
       return { previous };
     },
@@ -86,7 +86,7 @@ export function SavedSearches({ onSelectSearch }: SavedSearchesProps) {
           gap: 8,
         }}
       >
-        {searches.map((search) => (
+        {searches.map((search: SavedSearch) => (
           <SavedSearchItem
             key={search.id}
             search={search}

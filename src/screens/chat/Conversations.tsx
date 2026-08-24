@@ -531,7 +531,6 @@ export default function ConversationsScreen() {
             // call site passed the container and the clear but not the input, so
             // flows typing into "conversations-search-input" found nothing.
             inputTestID="conversations-search-input"
-            inputTestID="conversations-search-input"
             clearTestID="conversations-search-clear"
           />
         </View>
