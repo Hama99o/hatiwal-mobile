@@ -849,3 +849,36 @@ Running it over every endpoint turned up one more mismatch that is NOT a bug —
 `getMyListings` accepts a `categoryId` no caller passes, so the parameter is dead
 in the client rather than dropped by the server. Worth verifying which side is
 missing before filing anything.
+
+## An audit I built and threw away: "modal-only strings"
+
+Four failures had the same shape — a flow reaching for a label that only exists
+inside an overlay, without opening it: "Report" in the listing detail's More
+sheet, "Block User" in UserProfile's ActionMenu, "Blocked Users" as a settings row
+below the fold, and the report flow's success toast being covered by the "also
+block this user?" alert. Each reported `Element not found: <label>` on a screen
+that was rendering perfectly.
+
+Tempting to automate, and I did. It does not work by static analysis:
+
+- Treating any file containing `confirmAlert(` as a modal made every string in
+  Profile.tsx and ListingForm.tsx "modal-only": 499 candidates.
+- Narrowing to *Sheet/*Menu/*Dialog files plus keys inside `confirmAlert(...)`
+  argument lists got it to 101 — and the first fourteen were still wrong, because
+  "Sign Out" is a real row on Profile AND the confirm button of its own alert.
+  "Block User" is the same: a menu item and an alert button.
+
+A string being in an overlay is not a property of the string, it is a property of
+the JSX position, and telling them apart needs the render tree rather than a
+regex. An audit that is wrong in its first fourteen rows teaches you to ignore it,
+which is worse than not having it.
+
+What IS mechanically detectable is in `audit_structure.py`: opening a modal menu
+twice (the opener sits behind its own modal), and tapping a tab while one is open
+(the modal covers the tab bar). Both are about the SEQUENCE, not the string, and
+both are exact.
+
+For the string case the reliable move is manual and cheap: when a label is not
+found on a screen you believe renders it, grep the component and look at what
+gates it — `{!isOwnListing && ...}`, `{menuVisible && ...}`, a `view :detailed`.
+The four cases above each took one grep once the question was asked that way.
