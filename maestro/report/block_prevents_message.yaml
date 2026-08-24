@@ -71,20 +71,44 @@ appId: com.hatiwal.app
 - tapOn: "Cancel"
 - waitForAnimationToEnd
 
-# Navigate back to listing detail
-- back
-- waitForAnimationToEnd
-
-# Message button either disabled or shows "Can't message blocked user"
-- assertVisible: "Bazaar"
-# A bare `tapOn: index:` has NO selector: it matches every element on screen and
-# index N is whatever lands there in hierarchy order, not the thing meant.
+# ── What blocking actually does to messaging ────────────────────────────────
+# The old steps here could not work, and their premise was wrong twice over:
+#
+#   `- back` then `assertVisible: "Bazaar"` — one back lands on the LISTING
+#   DETAIL, which is outside app/(main)/(tabs), so there is no tab bar and no
+#   "Bazaar" label to see.
+#
+#   then `tapOn: listing-card` and `assertNotVisible: "Contact Seller"` — a
+#   detail screen has no cards, and once back on the feed the blocked seller's
+#   listings are HIDDEN, so index 0 is somebody else's listing, where Contact
+#   Seller is present and correct. The assertion would fail on healthy behaviour.
+#
+# Hiding the listings IS how blocking prevents contact: with the listing gone from
+# the feed there is no route to the composer. So that is what this asserts —
+# the seller's own listing absent, and the feed still working (someone else's card
+# present, not an empty screen, which would pass for the wrong reason).
+- runFlow:
+    when:
+      notVisible:
+        id: "browse-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      notVisible:
+        id: "browse-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
 - tapOn:
-    id: "listing-card"
-    index: 0
+    id: "browse-tab"
 - waitForAnimationToEnd
-# "Contact Seller" disabled for blocked user
-- assertNotVisible: "Contact Seller"
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- assertNotVisible: "Wool Blanket Handmade King Size"
 
 # ── UNBLOCK, so the block does not leak into every later flow ───────────────
 # A block is persisted on the USER, so leaving it set hides the seller's listings
