@@ -882,3 +882,32 @@ For the string case the reliable move is manual and cheap: when a label is not
 found on a screen you believe renders it, grep the component and look at what
 gates it — `{!isOwnListing && ...}`, `{menuVisible && ...}`, a `view :detailed`.
 The four cases above each took one grep once the question was asked that way.
+
+## `LogBox` in the logcat means an OVERLAY was covering the app
+
+The rig classifies a failure as `app_error` when the logcat mentions
+`Console Error`, `Uncaught Error` or **LogBox**. That third one is easy to
+misread as noise; it is the most useful of the three.
+
+LogBox is React Native's dev overlay. When it appears in the logcat alongside view
+strings (`LogBoxData.js:225:39`, `tooltipText: null`, `viewIdR…`) it was IN THE
+VIEW TREE — i.e. a box was drawn over the app. While it is up, neither a person nor
+a flow can tap what is behind it, so the failure reads as a missing element:
+
+    mode/seller_views_own_listing_buyer_mode
+      → `Element not found: Id matching regex: profile-tab`
+      → LogBox was sitting on the tab bar
+
+So when a control that certainly exists is "not found", grep the logcat for LogBox
+before doubting the selector. Two cases found this way:
+
+- `[UniversalList] fetch error` logged with `console.error` raised a full-screen
+  LogBox that blanked the very list whose inline error state was supposed to show.
+  Fixed by making it `console.warn` (the error state is the user-facing part).
+- The expo-dev-client's linking config conflicting with expo-router's raised a
+  LogBox over the tab bar. Not actionable — one `scheme`, one routing plugin — so
+  it is silenced by exact string in `app/_layout.tsx`. LogBox is inert in release,
+  so suppressing a known non-issue costs users nothing and stops it hiding the UI.
+
+The rule that follows: **never `console.error` for a condition the app already
+handles.** The log itself becomes a worse bug than the thing it reports.
