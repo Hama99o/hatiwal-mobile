@@ -37,6 +37,13 @@ appId: com.hatiwal.app
 # Switch to seller to decline
 - launchApp:
     clearState: false
+# Wait for the tab bar, not just for animations. A warm relaunch remounts the tree
+# and re-bootstraps auth; `waitForAnimationToEnd` returns well before that, so a
+# tab tap fires into a screen still coming up and silently does nothing.
+- extendedWaitUntil:
+    visible:
+      id: "chat-tab"
+    timeout: 60000
 - waitForAnimationToEnd
 - tapOn:
     id: "chat-tab"

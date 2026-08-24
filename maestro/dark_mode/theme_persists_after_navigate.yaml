@@ -60,7 +60,16 @@ appId: com.hatiwal.app
 # Restart and verify still dark
 - launchApp:
     clearState: false
-- waitForAnimationToEnd
+# WAIT FOR THE TAB BAR, not just for animations. A warm relaunch remounts the
+# whole tree and re-bootstraps auth, and `waitForAnimationToEnd` returns long
+# before that finishes — so the profile-tab tap fired into a screen that was still
+# coming up, did nothing, and the app stayed on Bazaar. The hierarchy at failure
+# was the FEED (search box, category chips, "Within 5 km"), while the assertion
+# was looking for a Profile control.
+- extendedWaitUntil:
+    visible:
+      id: "profile-tab"
+    timeout: 60000
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
