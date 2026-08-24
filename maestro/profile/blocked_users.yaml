@@ -109,4 +109,9 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Success toast should appear
-- assertVisible: "User unblocked"
+# Transient toast, kept optional. There is no "Block User" action on the Blocked
+# Users management screen, so the durable proof here is the row leaving the
+# list — which the steps below already assert.
+- assertVisible:
+    text: "User unblocked"
+    optional: true

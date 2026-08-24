@@ -50,7 +50,16 @@ appId: com.hatiwal.app
 # `chat.block.blockUser` = "Block User".
 - tapOn: "Block User"
 - waitForAnimationToEnd
-- assertVisible: "User blocked"
+# A TOAST, not a persistent element — it is gone within a few seconds, and the
+# `waitForAnimationToEnd` before this can outlast it, so asserting it is a race
+# the toast usually loses. `optional` keeps the check without letting it decide
+# the flow; the DURABLE proof follows: the action flips to "Unblock User".
+- assertVisible:
+    text: "User blocked"
+    optional: true
+- extendedWaitUntil:
+    visible: "Unblock User"
+    timeout: 15000
 
 # Back to Bazaar — blocked user's listings gone
 # Pop back to the tab layout FIRST. Listing detail, the conversation thread and

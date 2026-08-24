@@ -36,13 +36,33 @@ appId: com.hatiwal.app
 # Confirm
 - tapOn: "Block User"
 - waitForAnimationToEnd
-- assertVisible: "User blocked"
+# The toast is transient AND its copy is `chat.block.blockSuccess` = "User
+# blocked." WITH A PERIOD — Maestro anchors the whole string, so the bare
+# "User blocked" never matched it. Optional, with the period covered.
+- assertVisible:
+    text: "User blocked.*"
+    optional: true
+# The durable proof on THIS screen. `block-user-button` renders only a ShieldBan
+# icon, but it carries accessibilityLabel={isBlocked ? "Unblock User" :
+# "Block User"} — Android exposes that as contentDescription and Maestro matches
+# it as text, so the flipped label IS assertable. (Not `chat.block.blocked`:
+# audit_labels reports that key as DEAD — no component renders it.)
+- extendedWaitUntil:
+    visible: "Unblock User"
+    timeout: 15000
 # Input should now be disabled or a blocked notice visible
 - assertNotVisible: "Type a message..."
 # Unblock — tap the same button (now shows Unblock)
 - tapOn:
     id: "block-user-button"
 - waitForAnimationToEnd
-- assertVisible: "User unblocked"
+# Same again: `chat.block.unblockSuccess` is "User unblocked." with a period.
+- assertVisible:
+    text: "User unblocked.*"
+    optional: true
+# Durable proof: the blocked notice is gone and the composer is back.
+- extendedWaitUntil:
+    visible: "Type a message..."
+    timeout: 15000
 # Input re-enabled after unblock
 - assertVisible: "Type a message..."
