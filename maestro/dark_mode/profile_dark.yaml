@@ -10,6 +10,15 @@ appId: com.hatiwal.app
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
 # description, views chart, action row) are taller than a phone.
+# These two live at the TOP of Profile — the mode toggle just under the avatar,
+# "Edit Profile" beside it — so they are asserted ON ARRIVAL, before the flow
+# scrolls down to the Appearance card. They used to be checked AFTER that
+# scroll, by which point both had left the screen: the hierarchy at failure
+# showed Profile correctly rendered from "Messages" down to "PRIVACY", with the
+# toggle simply scrolled off the top.
+- assertVisible: "Switch to .*"
+- assertVisible: "Edit Profile"
+
 - scrollUntilVisible:
     element:
       id: "theme-option-dark"
@@ -18,17 +27,6 @@ appId: com.hatiwal.app
 - tapOn:
     id: "theme-option-dark"
 - waitForAnimationToEnd
-# NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
-# shows the user's NAME. Anchor on the mode toggle's label instead: it is
-# high on the screen (just under the avatar), needs no scroll, and the regex
-# keeps it independent of which mode the account is in.
-#
-# Not "Edit" either, though that IS a real control here: it lives in
-# PersonalInfoCard, well below the fold, so asserting it without a scroll
-# just trades one guaranteed failure for another.
-- assertVisible: "Switch to .*"
-# Core elements still visible
-- assertVisible: "Edit Profile"
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
 # description, views chart, action row) are taller than a phone.

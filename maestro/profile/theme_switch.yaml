@@ -66,4 +66,14 @@ appId: com.hatiwal.app
 # Not "Edit" either, though that IS a real control here: it lives in
 # PersonalInfoCard, well below the fold, so asserting it without a scroll
 # just trades one guaranteed failure for another.
+# Scroll UP first. The mode toggle sits just under the avatar at the TOP of
+# Profile, and by this point the screen is scrolled down — either because this
+# flow scrolled to the Appearance card, or because returning from a pushed screen
+# restores the position it left. The hierarchy at failure showed Profile rendered
+# correctly from "Messages" down to "PRIVACY", with the toggle simply off the top.
+- scrollUntilVisible:
+    element:
+      text: "Switch to .*"
+    direction: UP
+    timeout: 20000
 - assertVisible: "Switch to .*"
