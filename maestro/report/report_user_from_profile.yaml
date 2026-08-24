@@ -34,6 +34,13 @@ appId: com.hatiwal.app
 # Open the 3-dot actions menu, then choose Report User
 - tapOn: "Actions"
 - waitForAnimationToEnd
+# OPEN THE ⋮ MENU FIRST. On UserProfile, Block/Unblock/Report live in ActionMenu
+# behind `more-menu` — they are not on the screen itself, so tapping them
+# directly reported `Element not found: Text matching regex: Block User` on a
+# profile that was rendering perfectly.
+- tapOn:
+    id: "more-menu"
+- waitForAnimationToEnd
 - tapOn: "Report User"
 - waitForAnimationToEnd
 - assertVisible: "Why are you reporting this?"
