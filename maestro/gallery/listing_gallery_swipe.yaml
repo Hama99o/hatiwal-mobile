@@ -7,8 +7,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Open a listing that has multiple photos (seller@hatiwal.test has listings with photos)
-- tapOn: "Contact Seller"
-- waitForAnimationToEnd
+# The assertion IS the check — "we are on the listing detail". The tap that used
+# to precede it opened the FirstMessageSheet, whose own title is "Message Seller"
+# (listing.detail.messageSeller), so the sheet covered the very button being
+# asserted and every step after it acted on a covered screen.
 - assertVisible: "Contact Seller"
 
 # Swipe left on the photo to see second image

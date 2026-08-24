@@ -20,8 +20,10 @@ appId: com.hatiwal.app
     timeout: 15000
 - tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
-- tapOn: "Contact Seller"
-- waitForAnimationToEnd
+# The assertion IS the check — "we are on the listing detail". The tap that used
+# to precede it opened the FirstMessageSheet, whose own title is "Message Seller"
+# (listing.detail.messageSeller), so the sheet covered the very button being
+# asserted and every step after it acted on a covered screen.
 - assertVisible: "Contact Seller"
 # Open more options / report menu
 - tapOn: "More options"

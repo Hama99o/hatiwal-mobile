@@ -35,8 +35,12 @@ appId: com.hatiwal.app
     timeout: 15000
 - tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
-- tapOn: "Contact Seller"
-- waitForAnimationToEnd
+# Do NOT tap "Contact Seller": it opens the FirstMessageSheet, which then covers
+# the detail screen this flow exists to inspect — including the very button, so
+# the next line failed with `Assertion is false: "Contact Seller" is visible`.
+# This flow checks that listing detail RENDERS correctly in dark mode; asserting
+# the button is present is the check, and tapping it defeats it.
+# (report/block_user.yaml carries the same note for the same reason.)
 - assertVisible: "Contact Seller"
 - assertVisible: "Description"
 - scroll
