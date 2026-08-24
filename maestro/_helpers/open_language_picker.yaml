@@ -21,6 +21,13 @@ appId: com.hatiwal.app
       id: "language-row"
     direction: DOWN
     timeout: 20000
+    # CENTER IT. `scrollUntilVisible` stops as soon as the element enters the view
+    # tree, which can leave it at the very bottom — underneath the FloatingTabBar,
+    # which overlays that edge of the screen. Maestro taps an element's CENTRE, so
+    # the tap landed on the tab bar and the picker never opened: the hierarchy at
+    # failure had `language-row` present showing "پښتو", no `language-option-*` at
+    # all, and the tab bar right there in the same dump.
+    centerElement: true
 
 # The row is a toggle. If a previous step already expanded it, tapping again
 # would CLOSE it — so only tap when the options are not already showing.

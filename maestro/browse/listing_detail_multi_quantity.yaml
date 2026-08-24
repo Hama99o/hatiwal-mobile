@@ -63,6 +63,12 @@ appId: com.hatiwal.app
     direction: DOWN
     timeout: 30000
 
+    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
+    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
+    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
+    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
+    # inside the language helper on a row that was demonstrably on screen.
+    centerElement: true
 # The feed card already says "each" — the per-unit price is passed at every
 # listing-price site, not just the detail hero, so a buyer scanning the grid
 # never reads 400 as the price of fifteen.
@@ -92,6 +98,12 @@ appId: com.hatiwal.app
       text: "Wool Blanket Handmade King Size"
     direction: DOWN
     timeout: 30000
+    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
+    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
+    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
+    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
+    # inside the language helper on a row that was demonstrably on screen.
+    centerElement: true
 - tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 - assertVisible: "Wool Blanket Handmade King Size"
