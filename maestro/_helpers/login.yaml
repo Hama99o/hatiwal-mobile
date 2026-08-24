@@ -84,6 +84,23 @@ env:
       - inputText: ${EMAIL}
       - tapOn: "Password"
       - inputText: ${PASSWORD}
+      # HIDE THE KEYBOARD BEFORE SUBMITTING. The IME is up from the password
+      # field and covers the lower half of the login screen, including this
+      # button. Maestro still reports `Tap on "Sign In"... COMPLETED`, because the
+      # element IS in the hierarchy and it taps its bounds — the touch just lands
+      # on the keyboard instead. Nothing is submitted, no request appears in the
+      # Rails log, and the screen keeps whatever "Error" was there before, so it
+      # reads as a failed login rather than an unpressed button.
+      #
+      # Confirmed from a failing flow's hierarchy dump, which held
+      # `key_pos_password_header_numbers` and the symbol row "! @ # $ % ^ & * ( )"
+      # alongside the filled form.
+      #
+      # `hideKeyboard` is Back on Android, which is safe HERE precisely because an
+      # IME is up to consume it — with no keyboard it would close a modal or exit
+      # the app, which is how it broke create_listing_map_pin once.
+      - hideKeyboard
+      - waitForAnimationToEnd
       - tapOn: "Sign In"
       - waitForAnimationToEnd
 

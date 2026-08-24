@@ -169,6 +169,18 @@ export default function LoginScreen() {
 
       enterApp(user);
     } catch (err: any) {
+      // A failed sign-in used to leave NOTHING behind: the screen showed the bare
+      // word "Error" (common.error) with no log line, so there was no way to tell
+      // wrong credentials from an unreachable API from a client-side throw before
+      // the request was even sent. That is the "it just says Error" complaint, and
+      // it cost hours here chasing a login whose POST never appeared on the wire.
+      console.warn(
+        "[Login] sign-in failed",
+        "status=", err?.response?.status,
+        "code=", err?.code,
+        "message=", err?.message,
+        "url=", err?.config?.baseURL, err?.config?.url
+      );
       const httpStatus = err?.response?.status;
       const data = err?.response?.data;
       // A blocked account is already captured as a notice by the interceptor and

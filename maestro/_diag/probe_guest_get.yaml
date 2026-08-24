@@ -1,0 +1,6 @@
+appId: com.hatiwal.app
+---
+# Does the SAME axios instance succeed on a GET from this screen?
+- tapOn: "Continue browsing"
+- waitForAnimationToEnd
+- waitForAnimationToEnd

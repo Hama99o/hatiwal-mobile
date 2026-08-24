@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# Isolate the sign-in request: does it leave the device at all?
+- launchApp
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- extendedWaitUntil:
+    visible: "Email"
+    timeout: 30000
+- tapOn: "Email"
+- eraseText
+- inputText: "buyer@hatiwal.test"
+- tapOn: "Password"
+- eraseText
+- inputText: "Password123!"
+- takeScreenshot: /tmp/probe-before-submit
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- takeScreenshot: /tmp/probe-after-submit
