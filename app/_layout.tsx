@@ -2,7 +2,7 @@ import "../src/styles/global.css";
 import "../src/i18n";
 
 import { useEffect, useState } from "react";
-import { View, useColorScheme } from "react-native";
+import { LogBox, View, useColorScheme } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useThemeStore, loadSavedTheme } from "@/stores/theme.store";
 // @ts-ignore — module is installed in Docker container; not resolvable on host
@@ -15,6 +15,23 @@ import { bootstrapAuth } from "@/stores/auth.bootstrap";
 // @ts-ignore — expo-font is installed in the Docker container; not resolvable on host
 import { useFonts } from "expo-font";
 import { FONT_ASSETS } from "@/lib/fonts";
+
+// A LogBox OVERLAY covers the app and makes controls unreachable — it is dev-only
+// (LogBox is inert in release), but while it is up neither a person nor a test can
+// tap what is behind it. This one message is not actionable: expo-dev-client
+// configures linking for its launcher and expo-router configures it for the app,
+// so React Navigation logs the conflict in dev builds. There is exactly one
+// `scheme` in app.json and expo-router is the only routing plugin.
+//
+// It cost mode/seller_views_own_listing_buyer_mode a run: the flow failed on
+// `Element not found: profile-tab` with the overlay sitting on top of the tab bar,
+// and the linking log appeared in 1 of 28 logcats, so it fires on a particular
+// dev-client reload rather than on anything the app does.
+//
+// Scoped to this exact string on purpose. Everything else still raises normally —
+// the point is to stop a known non-issue from hiding the UI, not to stop seeing
+// errors.
+LogBox.ignoreLogs(["Looks like you have configured linking in multiple places"]);
 
 const queryClient = new QueryClient({
   defaultOptions: {
