@@ -59,15 +59,15 @@ appId: com.hatiwal.app
 - tapOn: "Fraud or scam"
 - tapOn: "Submit Report"
 - waitForAnimationToEnd
-# Success toast appears
-# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
-# single check right after an action is a race — and any wait in front of it
-# loses that race, turning a successful action red. Polling keeps the check at
-# full strength while removing the timing dependency.
-- extendedWaitUntil:
-    visible: "Report submitted. Thank you."
-    timeout: 15000
-- waitForAnimationToEnd
+# NOT the success toast. For a USER report, ReportSheet's onSuccess fires the
+# toast and then presents the "also block this user?" confirmAlert — a native
+# modal that covers the toast, so the toast is not in the accessibility tree by
+# the time anything can poll for it. (report_listing asserts the same toast and
+# PASSES: a Listing report just closes the sheet, with no alert.)
+#
+# The alert itself is the better proof anyway: it only appears on a 201, it is
+# durable, and it is the actual next thing the user sees. Verified server-side —
+# the report row was INSERTed while this assertion was failing.
 # Block follow-up dialog appears — decline it
 - assertVisible: "Block this user?"
 - tapOn: "Not now"
