@@ -27,6 +27,7 @@ real debugging time in this suite:
 Exit 1 if anything is found, so `qa.sh audit` can gate on it.
 """
 import pathlib
+import re
 import sys
 
 import yaml

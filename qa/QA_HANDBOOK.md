@@ -873,6 +873,28 @@ the JSX position, and telling them apart needs the render tree rather than a
 regex. An audit that is wrong in its first fourteen rows teaches you to ignore it,
 which is worse than not having it.
 
+### The second attempt: "tapped without scrolling to it"
+
+Same outcome, three iterations, worth recording so it is not tried a fourth time.
+Four flows had genuinely reached for off-screen controls ("Blocked Users", the
+Language row, `seller-profile-link`, the theme RESET taps), so a check looked
+obvious:
+
+1. "no scroll within 12 lines" — reported `open_language_picker`, where the scroll
+   and the tap are 14 lines apart with a guard block between them. Wrong on its
+   own helper.
+2. "the suite scrolls to this selector elsewhere" — reported eight flows for
+   tapping the FIRST `listing-card` in a feed, which is on screen on arrival.
+3. same, minus selectors ever tapped with an `index:` — down to six, and two were
+   still wrong: `saved_tab_dark` scrolls to the neighbouring `"Appearance"` LABEL
+   rather than to the option's id, which puts the target on screen just as well.
+
+Whether a control needs scrolling depends on its position in a rendered layout,
+and no amount of regex over the flow recovers that. The targeted greps that found
+all four real cases took a minute each and were exact: pick the labels you know
+live in a screen's lower half, then check every tap on them for a preceding
+scroll.
+
 What IS mechanically detectable is in `audit_structure.py`: opening a modal menu
 twice (the opener sits behind its own modal), and tapping a tab while one is open
 (the modal covers the tab bar). Both are about the SEQUENCE, not the string, and
