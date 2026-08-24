@@ -1662,102 +1662,41 @@ behaviour rather than the server's.
 
 ---
 
-## UI-037 · Switching theme or language restarted the whole app — FIXED
+## UI-037/038/039 · Switch behaviour — ROLLED BACK, analysis kept
 
-Reported from device: changing language or theme "takes time and seems like
-lagging" on Android, while iOS felt smooth.
+The code for these three was reverted at the user's request: the loading indicator
+glitched on device. Previous behaviour is restored exactly — theme and language
+changes restart the app again, and neither switch shows a pending state.
 
-It was not rendering slowness. `reloadApp()` (react-native-restart) fired on EVERY
-theme change and EVERY language change, so the app was tearing itself down and
-starting again each time.
+The analysis stands and is worth keeping, because the next attempt starts here:
 
-**Why Android looked worse than iOS for the same code.** Android's restart rebuilds
-the entire React host — a blank frame and the splash while the bundle is
-re-evaluated and the view tree rebuilt — and Android's cold JS init is slower than
-iOS's to begin with. On a dev/debug build it is far worse: the restart re-fetches
-the JS bundle from Metro over the network, seconds rather than milliseconds, where
-a release iOS build reads a local Hermes-precompiled bundle. Same restart, much
-more visible.
+**Why Android felt slow and iOS smooth (UI-037).** Not rendering: `reloadApp()`
+(react-native-restart) fires on every theme change and every language change.
+Android's restart rebuilds the whole React host — blank frame plus splash — and its
+cold JS init is slower than iOS's. On a dev build it is far worse, because the
+restart re-fetches the bundle from Metro over the network rather than reading a
+local Hermes bundle. Same restart, much more visible.
 
-**Theme: the restart was obsolete.** The code justified it as "Android's live theme
-swap can be janky", which was true before colours moved into `useColors()`. That
-hook subscribes to the theme store, and there is not one `className` colour left in
-the app, so a theme change already re-renders everything reactively. Removed —
-switching theme is now instant on both platforms.
+**What is genuinely required.** Only an LTR↔RTL flip needs a restart, because
+`I18nManager.forceRTL()` takes effect on the next launch — on iOS as much as on
+Android. Theme changes and same-direction language changes (ps↔fa) do not: every
+colour comes from `useColors()`, which subscribes to the theme store, and there is
+not one `className` colour left in the app.
 
-**Language: only a DIRECTION FLIP needs it.** ps → fa are both RTL and need nothing
-but new labels, which i18next swaps reactively; en → ps/fa genuinely does need a
-restart, because `I18nManager.forceRTL()` only takes effect on the next launch. That
-last part is a React Native constraint on BOTH platforms — not an Android bug — so
-one restart survives, on the one transition that cannot avoid it.
+**Why "stay on the page" is a separate problem (UI-038).** A restart cold-starts at
+the initial route. Remembering the path and replacing into it afterwards works —
+that is what routeMemory.ts did — but a `router.replace` shortly after launch is
+itself visible, and is a plausible source of the glitch that prompted the rollback.
 
-**Mode switch (buyer ↔ seller) never restarted**, so its slowness is a different
-thing: `setMode` sets state immediately but also fires `updateMe` and the screens
-refetch. Worth measuring on device before changing anything.
+**What to be careful of next time (UI-039).** Two things the tests caught: a spinner
+must not REPLACE the option's label (it hides the choice exactly when the user wants
+confirmation), and swallowing a second press is a contract change — two presses
+previously meant two concurrent `i18n.changeLanguage` calls, one of which restarts
+the app, so that was a race worth closing deliberately rather than by accident.
 
-Fully removing the RTL restart would mean dropping native `forceRTL` for manual
-mirroring everywhere. The codebase already mixes both, and there are comments in
-PhotosSection and ListingStatusBanner about the double-flip bugs that mixing
-caused — so that is a real refactor, not a tweak, and it is not bundled in here.
-
----
-
-## UI-038 · Switching language dropped you back to the feed — FIXED
-
-Reported: "when we change lang or mode or switch it should not leave the page —
-only the thing should change but we stay at same page."
-
-The mode switch was already fine: it never navigates, and it lives on Profile, so
-you stay put. Language was the problem, and only in one case — an LTR↔RTL switch
-(en ↔ ps/fa) has to restart the app, because `I18nManager.forceRTL()` only takes
-effect on the next launch. A restart cold-starts at the initial route, so whatever
-screen you were on was lost.
-
-The restart itself cannot go away without dropping native RTL for manual mirroring
-app-wide (see UI-037). Coming back to the same screen can: `src/lib/routeMemory.ts`
-keeps the current path in memory as you navigate, writes it just before the
-restart, and a `RouteMemory` component in the root layout consumes it once on the
-way back up and replaces into it.
-
-Details that matter:
-
-- The write is AWAITED before restarting. Fire-and-forget races the process going
-  away, and losing it silently is the exact bug being fixed.
-- Only `/(main)` routes are saved. A saved auth route would fight `bootstrapAuth`
-  and could show a logged-in user the login screen.
-- The saved entry is consumed and CLEARED even when it is not restorable, so a
-  stale value cannot hijack an unrelated launch later.
-- The restore runs once per launch, guarded by a ref: `router.replace` changes the
-  path, which would otherwise re-enter the effect and fight the user's next
-  navigation.
-
-## UI-039 · The switches gave no sign they had been pressed — FIXED
-
-Reported: "the switch did not show loading or something when we click on it, so you
-can know if we need to wait."
-
-The mode toggle flipped its own label instantly and then said nothing while the
-screens behind it refetched and `updateMe` went out — so it read as "nothing
-happened". The language options were worse: no pending state at all, and on a
-direction flip the app restarted with no warning, which looks like a crash.
-
-- `mode.store` now exposes `syncing`, true while the choice is being saved. The
-  toggle shows a spinner in place of its icon and is disabled meanwhile. A FAILED
-  sync does not revert the switch — local state is authoritative for the UI, so it
-  only stops the spinner.
-- Both language pickers (Profile's inline list and `LanguageSwitcher`, used on
-  Onboarding and Login) show which option is being applied and ignore further
-  presses until it settles.
-
-Two design points came out of the tests rather than from me:
-
-- My first version REPLACED the label with the spinner, which hid the language you
-  had just chosen at the moment you wanted confirmation. The label stays; the
-  spinner sits beside it.
-- Ignoring a second press is a deliberate contract change, and
-  LanguageSwitcher.test.tsx now says so. It used to fire twice, meaning two
-  concurrent `i18n.changeLanguage` calls — and with one of them restarting the app,
-  that was a real race rather than a wasted call.
+**The mode switch never navigated and never restarted.** Its slowness is a third
+thing: `setMode` is immediate locally but also fires `updateMe` while the screens
+refetch. That wants measuring on device before anything is changed.
 
 ---
 

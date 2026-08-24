@@ -101,17 +101,11 @@ describe("LanguageSwitcher — setLanguage callbacks", () => {
     expect(mockSetLanguage).toHaveBeenCalledWith("fa");
   });
 
-  // CONTRACT CHANGE, deliberate: a press while a language is still being applied
-  // is IGNORED. It used to fire again, which meant two concurrent
-  // `i18n.changeLanguage` calls — and on an en <-> ps/fa switch one of them
-  // restarts the app (native forceRTL only applies next launch), so a double-apply
-  // was a real race, not just a wasted call. The switcher now shows a spinner and
-  // swallows further presses until the first settles.
-  it("ignores a second press while the first is still applying", () => {
+  it("calls setLanguage exactly once per press", () => {
     render(<LanguageSwitcher />);
     fireEvent.press(screen.getByText("English"));
     fireEvent.press(screen.getByText("English"));
-    expect(mockSetLanguage).toHaveBeenCalledTimes(1);
+    expect(mockSetLanguage).toHaveBeenCalledTimes(2);
   });
 
   it("does not call setLanguage on render — only on press", () => {
@@ -119,23 +113,14 @@ describe("LanguageSwitcher — setLanguage callbacks", () => {
     expect(mockSetLanguage).not.toHaveBeenCalled();
   });
 
-  // Each button still targets its OWN language — checked one at a time, because
-  // the guard above means three presses in a row only apply the first. The three
-  // single-press tests at the top of this block cover en / ps / fa individually.
-  it("each button applies its own code when pressed from idle", () => {
-    const codes = [
-      ["English", "en"],
-      ["پښتو", "ps"],
-      ["دری", "fa"],
-    ] as const;
-    for (const [label, code] of codes) {
-      mockSetLanguage.mockClear();
-      const view = render(<LanguageSwitcher />);
-      fireEvent.press(screen.getByText(label));
-      expect(mockSetLanguage).toHaveBeenCalledTimes(1);
-      expect(mockSetLanguage).toHaveBeenCalledWith(code);
-      view.unmount();
-    }
+  it("pressing different buttons each calls setLanguage with their own code", () => {
+    render(<LanguageSwitcher />);
+    fireEvent.press(screen.getByText("English"));
+    fireEvent.press(screen.getByText("پښتو"));
+    fireEvent.press(screen.getByText("دری"));
+    expect(mockSetLanguage).toHaveBeenNthCalledWith(1, "en");
+    expect(mockSetLanguage).toHaveBeenNthCalledWith(2, "ps");
+    expect(mockSetLanguage).toHaveBeenNthCalledWith(3, "fa");
   });
 });
 

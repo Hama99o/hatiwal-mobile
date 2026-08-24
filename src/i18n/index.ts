@@ -3,7 +3,6 @@ import { initReactI18next } from "react-i18next";
 import { I18nManager } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { reloadApp } from "@/lib/reloadApp";
-import { saveRouteForRestart } from "@/lib/routeMemory";
 import { authAPI } from "@/api/auth";
 import { enTranslations } from "./en";
 import { psTranslations } from "./ps";
@@ -60,15 +59,7 @@ AsyncStorage.getItem(STORAGE_KEY)
   .catch(() => {});
 
 export async function setLanguage(lang: LanguageCode): Promise<void> {
-  // Only a DIRECTION FLIP needs the restart. `I18nManager.forceRTL()` applies
-  // natively and takes effect on the next launch — on iOS as much as on Android,
-  // so that part is a React Native constraint, not an Android bug.
-  //
-  // What was an Android-only cost is restarting for language changes that do NOT
-  // flip direction: ps -> fa are both RTL, and en with the direction already LTR
-  // needs nothing but new labels, which i18next swaps reactively. This restarted
-  // on ANY change, which is why switching language felt heavy.
-  const flipsDirection = isRtlLanguage(lang) !== I18nManager.isRTL;
+  const changed = i18n.language !== lang;
   await i18n.changeLanguage(lang);
   I18nManager.forceRTL(isRtlLanguage(lang));
   // Persist locally BEFORE restarting so the stored language matches the forced
@@ -80,14 +71,9 @@ export async function setLanguage(lang: LanguageCode): Promise<void> {
   }
   // Fire-and-forget backend sync — local storage is authoritative for the UI.
   authAPI.updateMe({ preferredLanguage: lang }).catch(() => null);
-  if (flipsDirection) {
-    // Save the route BEFORE restarting, and await it — a fire-and-forget write
-    // races the process going away. Without this the restart dropped the user
-    // back on the feed from wherever they were, which is the whole complaint:
-    // only the language should change, not the page.
-    await saveRouteForRestart();
-    reloadApp();
-  }
+  // Reload on ANY language change — RN's live label/direction update is janky
+  // on Android (text sometimes stays in place); a restart applies it cleanly.
+  if (changed) reloadApp();
 }
 
 /** Apply a language from the backend user object (no API sync — backend is the source). */
@@ -102,10 +88,7 @@ export async function applyLanguageFromUser(lang: LanguageCode): Promise<void> {
   }
   // On login only reload when the direction actually flips (avoids a needless
   // restart loop on the splash/login flow for same-direction languages).
-  if (flips) {
-    await saveRouteForRestart();
-    reloadApp();
-  }
+  if (flips) reloadApp();
 }
 
 /** Reset language to English and clear storage — call on logout. */
