@@ -74,6 +74,14 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible: "User blocked"
     timeout: 20000
+# ...and then wait for the toast to CLEAR before touching the header. It is an
+# overlay: while it is up, a tap aimed at `more-menu` can land on the toast
+# instead, so the menu never opens and the next step polls a screen with no menu
+# on it for 15s. That is how this failed on `"Unblock User" is visible` even with
+# the mutation settled.
+- extendedWaitUntil:
+    notVisible: "User blocked"
+    timeout: 20000
 # The profile shows NO persistent blocked state (UI-035) — `isBlocked` feeds only
 # ActionMenu — so the flipped menu item is the app's one lasting signal.
 - tapOn:
