@@ -93,6 +93,16 @@ env:
     optional: true
 - waitForAnimationToEnd
 
+
+# One retry on a transient network failure — see login.yaml for the evidence.
+# Bounded at one tap, gated on the inline error, so wrong credentials still fail.
+- runFlow:
+    when:
+      visible: "Error"
+    commands:
+      - tapOn: "Sign In"
+      - waitForAnimationToEnd
+
 - extendedWaitUntil:
     visible:
       id: "profile-tab"

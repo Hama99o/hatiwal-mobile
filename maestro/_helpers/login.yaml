@@ -87,6 +87,25 @@ env:
       - tapOn: "Sign In"
       - waitForAnimationToEnd
 
+# ── One retry on a transient network failure ────────────────────────────────
+# The login screen renders an inline "Error" (common.error) when the sign-in
+# request fails, leaving the form filled. A single tap has no second chance, and
+# the first requests after a fresh emulator boot are unreliable: on a rig doctor
+# had just declared green — including a TCP probe from the app's own UID to
+# 10.0.2.2:3007 — the app still logged `[UniversalList] fetch error, [AxiosError:
+# Network Error]` and no sign_in POST reached Rails at all. The flow then spent
+# 60s waiting for a tab bar that could never appear.
+#
+# Tapping Sign In again is exactly what a person does, and it is BOUNDED at one:
+# wrong credentials still fail twice, so this cannot turn a real auth failure
+# green. Gated on the error being on screen, so it costs nothing normally.
+- runFlow:
+    when:
+      visible: "Error"
+    commands:
+      - tapOn: "Sign In"
+      - waitForAnimationToEnd
+
 # Prove we are actually SIGNED IN, not merely on a screen.
 #
 # "Bazaar" is the wrong assertion: guests see it too, so this helper could
