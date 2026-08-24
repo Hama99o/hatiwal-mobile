@@ -87,6 +87,53 @@ def selector_id(value):
     return None
 
 
+# ── Check 4: opening a modal menu twice, or never closing it ─────────────────
+# `more-menu` opens ActionMenu, which is a MODAL: while it is open the control
+# that opened it is behind it and not in the accessibility tree, so a second tap
+# fails with `Element not found: more-menu`. The same control is also reachable by
+# its translated accessibilityLabel ("Actions" = common.actions), and mixing the
+# two forms is how a duplicate slipped past a check that only looked for two id
+# taps.
+#
+# Leaving it open is the mirror-image bug: the modal covers the tab bar, so the
+# next tab tap fails with `Element not found: browse-tab`.
+MENU_OPENERS = {"more-menu", "more-options-button"}
+MENU_CLOSERS = {"Cancel", "Close"}
+
+
+def check_menus(steps, where, findings):
+    open_menu = None
+    for step in steps:
+        if not isinstance(step, dict):
+            continue
+        if "launchApp" in step:
+            open_menu = None
+            continue
+        if "runFlow" in step and isinstance(step["runFlow"], dict):
+            check_menus(step["runFlow"].get("commands") or [], where, findings)
+            continue
+        for key in ("tapOn", "doubleTapOn", "longPressOn"):
+            if key not in step:
+                continue
+            sel = step[key]
+            sid = selector_id(sel)
+            text = sel if isinstance(sel, str) else (sel.get("text") if isinstance(sel, dict) else None)
+            if sid in MENU_OPENERS:
+                if open_menu:
+                    findings.append((where, f"taps {sid} while {open_menu} is already open — "
+                                            "the opener sits behind the modal"))
+                open_menu = sid
+            elif text in MENU_CLOSERS or sid in MENU_CLOSERS:
+                open_menu = None
+            elif open_menu and sid and sid.endswith("-tab"):
+                findings.append((where, f"taps {sid} while {open_menu} is open — "
+                                        "the modal covers the tab bar"))
+                open_menu = None
+            elif text and open_menu:
+                # tapping an ITEM inside the menu dismisses it
+                open_menu = None
+
+
 def check_navigation(steps, where, findings):
     """`steps` is one flow's ordered step list."""
     pushed = None
@@ -153,6 +200,7 @@ def main() -> int:
         for doc in docs:
             if isinstance(doc, list):
                 check_navigation(doc, "", local)
+                check_menus(doc, "", local)
         findings += [(f"{p}{w}", msg) for w, msg in local]
 
     print(f"audit_structure: {files} flows walked")

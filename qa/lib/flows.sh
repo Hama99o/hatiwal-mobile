@@ -114,6 +114,13 @@ run_feature() {
   local out="$run_dir/$feature"; mkdir -p "$out"
   local pass=0 fail=0
 
+  # Start from a clean block table. A block hides the blocked user's listings
+  # from the blocker's feed, so one leftover block silently removes fixtures that
+  # later flows assert on — four report/ flows died together on
+  # `No visible element found: "Wool Blanket Handmade King Size"` for a listing
+  # that was present and merely hidden.
+  bash "$QA_DIR/lib/clear_blocks.sh"
+
   # Resolve THIS session's serial before the health gate runs.
   #
   # Not optional once more than one emulator can be attached: `adb_qa` falls back
@@ -273,6 +280,13 @@ run_feature() {
     # Single emit path for both outcomes — one record shape, no duplication.
     python3 "$QA_DIR/lib/emit_result.py" "$run_dir/results.jsonl" "$feature" "$name" \
       "$([ "$code" -eq 0 ] && echo pass || echo fail)" "$kind" "$secs" "$why" "$api_n"
+
+    # A block flow that fails before its unblock step leaves the block in place.
+    # Clear it here rather than per-flow: this is the only place it can leak, and
+    # the call costs ~4s of Rails boot, which is not worth paying 252 times.
+    case "$name" in
+      *block*) bash "$QA_DIR/lib/clear_blocks.sh" ;;
+    esac
   done
 
   printf '  '; _c dim; printf '%s: %s passed, %s failed\n' "$feature" "$pass" "$fail"; _r

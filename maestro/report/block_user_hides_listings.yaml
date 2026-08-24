@@ -55,20 +55,29 @@ appId: com.hatiwal.app
 # `chat.block.blockUser` = "Block User".
 - tapOn: "Block User"
 - waitForAnimationToEnd
-# The toast is transient, so it stays optional. And the profile screen shows NO
-# persistent blocked state (UI-035): `isBlocked` in UserProfile.tsx feeds only
-# ActionMenu, so after blocking the screen looks identical. The app's only
-# lasting signal is the menu item flipping — and the menu CLOSES on tap, so it
-# has to be reopened to see it.
-- assertVisible:
-    text: "User blocked"
-    optional: true
+# WAIT FOR THE MUTATION TO SETTLE FIRST, then reopen the menu. blockMutation's
+# onSuccess does setIsBlocked(true) AND setMenuVisible(false), so reopening the
+# menu while the request is still in flight means the success handler CLOSES the
+# menu a moment later and "Unblock User" never appears. The toast is the signal
+# that it landed, so it is waited for rather than treated as optional — and there
+# is deliberately no `waitForAnimationToEnd` before it, which is what used to eat
+# the toast.
+- extendedWaitUntil:
+    visible: "User blocked"
+    timeout: 20000
+# The profile shows NO persistent blocked state (UI-035) — `isBlocked` feeds only
+# ActionMenu — so the flipped menu item is the app's one lasting signal.
 - tapOn:
     id: "more-menu"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Unblock User"
     timeout: 15000
+# CLOSE IT. An open ActionMenu is a modal: it covers the tab bar, so the next tab
+# tap fails with `Element not found: browse-tab` — which is how
+# block_user_hides_listings failed.
+- tapOn: "Cancel"
+- waitForAnimationToEnd
 
 # Back to Bazaar — blocked user's listings gone
 # Pop back to the tab layout FIRST. Listing detail, the conversation thread and
