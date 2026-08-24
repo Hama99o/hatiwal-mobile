@@ -76,6 +76,15 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Phones & Tablets"
 - waitForAnimationToEnd
+# Scroll to the map row. It sits below title, price, currency, condition,
+# description and category on a form taller than the viewport, and `tapOn` never
+# scrolls — publish_success and publish_from_owner_detail both failed with
+# `Element not found: Tap to set exact location on map` on a form that renders it.
+- scrollUntilVisible:
+    element:
+      text: "Tap to set exact location on map"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Tap to set exact location on map"
 - waitForAnimationToEnd
 - assertVisible: "Pick location on map"

@@ -4,7 +4,7 @@ appId: com.hatiwal.app
 # with the agreed price and a one-tap Message CTA into that buyer's existing
 # conversation.
 #
-# Reuses the seeded "Lenovo ThinkPad Laptop Core i5 8GB" listing + its
+# Reuses the seeded "QA Disposable reserved_buyer" listing + its
 # buyer@hatiwal.test / "Ahmad Karimi" conversation (see
 # ../seller/mark_sold_with_buyer.yaml and ../reviews/rate_buyer_after_sale.yaml,
 # which share this SAME fixture to sell the listing straight to Sold). This
@@ -41,11 +41,11 @@ appId: com.hatiwal.app
 
 - scrollUntilVisible:
     element:
-      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+      text: "QA Disposable reserved_buyer"
     direction: DOWN
     timeout: 8000
 
-- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
+- tapOn: "QA Disposable reserved_buyer"
 - waitForAnimationToEnd
 
 # With the search working (the API used to drop it — UI-031), the list holds

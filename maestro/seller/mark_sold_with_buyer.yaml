@@ -2,7 +2,7 @@ appId: com.hatiwal.app
 ---
 # TASK-TX01 — Mark-sold with a recorded buyer.
 #
-# Seller opens the "Lenovo ThinkPad Laptop Core i5 8GB" active listing (has a
+# Seller opens the "QA Disposable mark_sold_with_buyer" active listing (has a
 # seeded conversation with buyer@hatiwal.test / "Ahmad Karimi" — see
 # hatiwal-api/db/seeds/e2e.rb), opens "More" (TASK-L863: an active listing's
 # primary is "Mark as Reserved" — Mark as Sold now lives in the overflow
@@ -38,11 +38,11 @@ appId: com.hatiwal.app
 
 - scrollUntilVisible:
     element:
-      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+      text: "QA Disposable mark_sold_with_buyer"
     direction: DOWN
     timeout: 8000
 
-- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
+- tapOn: "QA Disposable mark_sold_with_buyer"
 - waitForAnimationToEnd
 
 # Owner detail screen — active listing's primary is "Mark as Reserved";
