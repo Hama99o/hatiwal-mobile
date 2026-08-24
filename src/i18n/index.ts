@@ -59,7 +59,15 @@ AsyncStorage.getItem(STORAGE_KEY)
   .catch(() => {});
 
 export async function setLanguage(lang: LanguageCode): Promise<void> {
-  const changed = i18n.language !== lang;
+  // Only a DIRECTION FLIP needs the restart. `I18nManager.forceRTL()` applies
+  // natively and takes effect on the next launch — on iOS as much as on Android,
+  // so that part is a React Native constraint, not an Android bug.
+  //
+  // What was an Android-only cost is restarting for language changes that do NOT
+  // flip direction: ps -> fa are both RTL, and en with the direction already LTR
+  // needs nothing but new labels, which i18next swaps reactively. This restarted
+  // on ANY change, which is why switching language felt heavy.
+  const flipsDirection = isRtlLanguage(lang) !== I18nManager.isRTL;
   await i18n.changeLanguage(lang);
   I18nManager.forceRTL(isRtlLanguage(lang));
   // Persist locally BEFORE restarting so the stored language matches the forced
@@ -71,9 +79,7 @@ export async function setLanguage(lang: LanguageCode): Promise<void> {
   }
   // Fire-and-forget backend sync — local storage is authoritative for the UI.
   authAPI.updateMe({ preferredLanguage: lang }).catch(() => null);
-  // Reload on ANY language change — RN's live label/direction update is janky
-  // on Android (text sometimes stays in place); a restart applies it cleanly.
-  if (changed) reloadApp();
+  if (flipsDirection) reloadApp();
 }
 
 /** Apply a language from the backend user object (no API sync — backend is the source). */

@@ -1662,6 +1662,46 @@ behaviour rather than the server's.
 
 ---
 
+## UI-037 · Switching theme or language restarted the whole app — FIXED
+
+Reported from device: changing language or theme "takes time and seems like
+lagging" on Android, while iOS felt smooth.
+
+It was not rendering slowness. `reloadApp()` (react-native-restart) fired on EVERY
+theme change and EVERY language change, so the app was tearing itself down and
+starting again each time.
+
+**Why Android looked worse than iOS for the same code.** Android's restart rebuilds
+the entire React host — a blank frame and the splash while the bundle is
+re-evaluated and the view tree rebuilt — and Android's cold JS init is slower than
+iOS's to begin with. On a dev/debug build it is far worse: the restart re-fetches
+the JS bundle from Metro over the network, seconds rather than milliseconds, where
+a release iOS build reads a local Hermes-precompiled bundle. Same restart, much
+more visible.
+
+**Theme: the restart was obsolete.** The code justified it as "Android's live theme
+swap can be janky", which was true before colours moved into `useColors()`. That
+hook subscribes to the theme store, and there is not one `className` colour left in
+the app, so a theme change already re-renders everything reactively. Removed —
+switching theme is now instant on both platforms.
+
+**Language: only a DIRECTION FLIP needs it.** ps → fa are both RTL and need nothing
+but new labels, which i18next swaps reactively; en → ps/fa genuinely does need a
+restart, because `I18nManager.forceRTL()` only takes effect on the next launch. That
+last part is a React Native constraint on BOTH platforms — not an Android bug — so
+one restart survives, on the one transition that cannot avoid it.
+
+**Mode switch (buyer ↔ seller) never restarted**, so its slowness is a different
+thing: `setMode` sets state immediately but also fires `updateMe` and the screens
+refetch. Worth measuring on device before changing anything.
+
+Fully removing the RTL restart would mean dropping native `forceRTL` for manual
+mirroring everywhere. The codebase already mixes both, and there are comments in
+PhotosSection and ListingStatusBanner about the double-flip bugs that mixing
+caused — so that is a real refactor, not a tweak, and it is not bundled in here.
+
+---
+
 ## Flow defects (test bugs, not app bugs)
 
 Recorded here too, because a wrong flow costs exactly as much time as a wrong screen.
