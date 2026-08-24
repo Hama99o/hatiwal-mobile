@@ -5,10 +5,16 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: true
 - runFlow: ../_helpers/open_bundle.yaml
-- runFlow: ../_helpers/skip_onboarding.yaml
-- waitForAnimationToEnd
-- tapOn: "Sign In"
-- waitForAnimationToEnd
+# goto_login, not a bare `tapOn: "Sign In"`. skip_onboarding lands on GUEST
+# BROWSE, which has no Sign In button — the login screen is reached through the
+# last tab, which reads "Login" for a guest. That is why this failed with
+# `Element not found: Text matching regex: Sign In` after only 119s: it never got
+# to a login form at all. goto_login runs skip_onboarding itself, so it replaces
+# both steps.
+- runFlow: ../_helpers/goto_login.yaml
+- extendedWaitUntil:
+    visible: "Email"
+    timeout: 30000
 - tapOn: "Email"
 # Use a fresh buyer account with no listings
 - inputText: "new_seller@hatiwal.test"
