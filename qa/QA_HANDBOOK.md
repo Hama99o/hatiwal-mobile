@@ -974,3 +974,26 @@ already reading the old file keeps a consistent copy:
 Same for the flows a running feature is about to execute: Maestro reads each
 .yaml at flow start, so an edit lands on whichever flows have not begun — which is
 also why verdicts go stale mid-run and why `flow_sha` exists.
+
+## `centerElement: true` is not a free upgrade — it breaks LAST-item targets
+
+`scrollUntilVisible` stops the moment its target enters the view tree, which can
+leave it at the very bottom of the viewport — underneath the FloatingTabBar, which
+overlays that edge. Maestro taps an element's CENTRE, so the tap lands on the tab
+bar and nothing happens. No error; the flow carries on against a screen that never
+changed. That is what swallowed the taps in the language picker and cost two
+seller flows ~7 minutes each.
+
+`centerElement: true` fixes it — for a target with content BELOW it.
+
+It does the OPPOSITE for a target at the END of a scrollable list. I applied it to
+all 161 scroll-then-tap sites and broke the Sign Out scroll: "Sign Out" and
+"Delete account" are the last rows on Profile, so the list cannot scroll far enough
+to centre them and `centerElement` keeps trying until it times out — reporting
+`No visible element found: id: sign-out-button` while the hierarchy dump for that
+very step contains `#sign-out-button`. An element that is plainly on screen,
+reported missing, by an option added to make finding it more reliable.
+
+So: use it where the earlier bug actually bites, and read the screen first. A
+target at the bottom of its list needs no help — it is already as visible as it
+will get.

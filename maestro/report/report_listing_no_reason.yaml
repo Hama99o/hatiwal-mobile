@@ -17,12 +17,6 @@ appId: com.hatiwal.app
       text: "Wool Blanket Handmade King Size"
     direction: DOWN
     timeout: 15000
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 - tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 # NOT tapping "Contact Seller" here: that opens the first-message sheet, which

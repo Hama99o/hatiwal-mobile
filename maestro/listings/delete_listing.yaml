@@ -32,12 +32,6 @@ appId: com.hatiwal.app
       text: "Tap to select category"
     direction: DOWN
     timeout: 20000
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd
 # A LEAF: every top-level category has children.
@@ -62,12 +56,6 @@ appId: com.hatiwal.app
       id: "lifecycle-more-action"
     direction: DOWN
     timeout: 20000
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 - tapOn:
     id: "lifecycle-more-action"
 - waitForAnimationToEnd

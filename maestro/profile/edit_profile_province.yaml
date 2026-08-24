@@ -22,12 +22,6 @@ appId: com.hatiwal.app
       text: "Edit Profile"
     direction: DOWN
     timeout: 20000
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 - tapOn: "Edit Profile"
 - waitForAnimationToEnd
 
@@ -37,12 +31,6 @@ appId: com.hatiwal.app
       text: "Province"
     direction: DOWN
     timeout: 20000
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 - tapOn: "Province"
 - eraseText
 - inputText: "Kandahar"
@@ -51,12 +39,6 @@ appId: com.hatiwal.app
       text: "Save Changes"
     direction: DOWN
     timeout: 20000
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 - tapOn: "Save Changes"
 - waitForAnimationToEnd
 - extendedWaitUntil:
@@ -72,12 +54,6 @@ appId: com.hatiwal.app
       text: "Edit Profile"
     direction: DOWN
     timeout: 20000
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 - tapOn: "Edit Profile"
 - waitForAnimationToEnd
 - scrollUntilVisible:
@@ -86,12 +62,6 @@ appId: com.hatiwal.app
     direction: DOWN
     timeout: 20000
 
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 # ── Clearing it is allowed — the field is optional ───────────────────────────
 # A required-field error here would be a real bug: nothing in the schema demands
 # a province, and a seller who moves should be able to remove it.
@@ -102,12 +72,6 @@ appId: com.hatiwal.app
       text: "Save Changes"
     direction: DOWN
     timeout: 20000
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 - tapOn: "Save Changes"
 - waitForAnimationToEnd
 - extendedWaitUntil:

@@ -21,12 +21,16 @@ appId: com.hatiwal.app
       id: "language-row"
     direction: DOWN
     timeout: 20000
-    # CENTER IT. `scrollUntilVisible` stops as soon as the element enters the view
-    # tree, which can leave it at the very bottom — underneath the FloatingTabBar,
-    # which overlays that edge of the screen. Maestro taps an element's CENTRE, so
-    # the tap landed on the tab bar and the picker never opened: the hierarchy at
-    # failure had `language-row` present showing "پښتو", no `language-option-*` at
-    # all, and the tab bar right there in the same dump.
+    # centerElement HERE and almost nowhere else. Without it this row settles at
+    # the very bottom of the viewport, under the FloatingTabBar that overlays that
+    # edge, and Maestro taps an element's CENTRE — so the tap hit the tab bar and
+    # the picker never opened. Two seller flows spent ~7 minutes each on that.
+    #
+    # It is NOT safe to apply broadly, which I learned by doing it to 161 sites and
+    # breaking the Sign Out scroll: "Sign Out" and "Delete account" are the LAST
+    # rows on Profile, so the list cannot scroll far enough to centre them and
+    # `centerElement` times out on an element that is plainly on screen. Use it only
+    # for a target with content BELOW it.
     centerElement: true
 
 # The row is a toggle. If a previous step already expanded it, tapping again

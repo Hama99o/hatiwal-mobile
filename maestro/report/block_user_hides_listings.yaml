@@ -30,12 +30,6 @@ appId: com.hatiwal.app
       id: "seller-profile-link"
     direction: DOWN
     timeout: 20000
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 - tapOn:
     id: "seller-profile-link"
 - waitForAnimationToEnd
@@ -133,12 +127,6 @@ appId: com.hatiwal.app
       text: "Blocked Users"
     direction: DOWN
     timeout: 20000
-    # centerElement: `scrollUntilVisible` stops the moment the target enters the view
-    # tree, which can leave it at the very bottom — under the FloatingTabBar, which
-    # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
-    # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
-    # inside the language helper on a row that was demonstrably on screen.
-    centerElement: true
 - tapOn: "Blocked Users"
 - waitForAnimationToEnd
 # The row's button is `profile.blocked.unblockAction` = "Unblock", by testID
