@@ -953,3 +953,24 @@ those are exactly the ones worth catching.
 Two flows carry it: login_wrong_password (a 401 from wrong credentials) and
 register_duplicate_email. `login_empty_fields` used to need it and no longer does:
 the app now validates before sending, so there is no request to fail (UI-036).
+
+## Edit a rig script ATOMICALLY while a run is in flight
+
+`qa/qa.sh`, `qa/lib/*.sh` are re-read on every invocation, and a queue calls them
+constantly. Writing one in place leaves a window where a concurrent call reads a
+truncated file:
+
+    ./qa/qa.sh: line 395: `           say "$n flow(s) with a stale FAIL verdict"'
+
+`bash -n` on the finished file passes, which makes the error look impossible. It
+cost one `prune` call mid-queue; it could as easily have cost a feature run.
+
+Write to a temp file and `os.replace()` it — that swaps the inode, so anything
+already reading the old file keeps a consistent copy:
+
+    tmp = p.with_suffix(".sh.tmp"); tmp.write_text(new)
+    tmp.chmod(p.stat().st_mode); os.replace(tmp, p)
+
+Same for the flows a running feature is about to execute: Maestro reads each
+.yaml at flow start, so an edit lands on whichever flows have not begun — which is
+also why verdicts go stale mid-run and why `flow_sha` exists.
