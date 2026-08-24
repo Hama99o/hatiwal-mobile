@@ -9,11 +9,11 @@ appId: com.hatiwal.app
 - tapOn:
     text: "Me"
 - waitForAnimationToEnd
-- tapOn: "Language"
-- waitForAnimationToEnd
-# The option list is COLLAPSED on mount and its row is below the fold, so
-# tapping an option straight away could never work — the helper scrolls to the
-# row and expands it first.
+# NOT a bare `tapOn: "Language"`: that row is in the Preferences card near the
+# bottom of Profile and `tapOn` never scrolls, so it failed with `Element not
+# found: Language` on a screen that renders it perfectly. The helper scrolls to
+# the row and expands the collapsed option list, and it is idempotent — safe when
+# a later step opens the picker again.
 - runFlow: ../_helpers/open_language_picker.yaml
 - tapOn:
     id: "language-option-ps"
