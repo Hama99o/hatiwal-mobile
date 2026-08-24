@@ -126,6 +126,37 @@ case "$BUNDLE_API" in
      say "fix: HOST_IP=10.0.2.2 docker compose up -d mobile";;
 esac
 
+# ── And can the EMULATOR actually open that port? ───────────────────────────
+# The check above only inspects the URL STRING, and the one above that probes
+# from this shell. Neither says the device can reach the API, and that is the
+# path every request in every flow takes.
+#
+# It cost a whole run of false failures: 8 report/ flows died at the login gate
+# with `Assertion is false: id: profile-tab is visible`, the login screen showing
+# "Error", while the API answered the HOST in 49ms and returned 200 for
+# buyer@hatiwal.test. logcat had `[UniversalList] fetch error, [AxiosError:
+# Network Error]` — the emulator's own networking stalling under host load, with
+# the bundle still loading fine because that arrives over `adb reverse`, a
+# different path entirely.
+#
+# A TCP connect is the right depth here: no HTTP client is guaranteed to exist on
+# the device image (there is no curl, and toybox has no wget), and connect/refuse
+# is exactly the distinction that matters.
+if [ -n "${QA_SERIAL:-}" ]; then
+  API_HOSTPORT="$(printf '%s' "$BUNDLE_API" | sed -E 's#^[a-z]+://([^/]+).*#\1#')"
+  API_H="${API_HOSTPORT%%:*}"; API_P="${API_HOSTPORT##*:}"
+  if [ -n "$API_H" ] && [ -n "$API_P" ]; then
+    DEV_RC=$(adb_qa shell "toybox netcat -w 4 $API_H $API_P </dev/null >/dev/null 2>&1; echo \$?" 2>/dev/null | tr -d '\r')
+    case "$DEV_RC" in
+      0) ok "emulator can open $API_H:$API_P";;
+      "") warn "could not run the on-device API probe (no toybox netcat?)";;
+      *)  BLOCK "the EMULATOR cannot open $API_H:$API_P (rc=$DEV_RC) — every flow will fail at login"
+          say "the host may still answer fine; this is the device's own path"
+          say "usually host load or a wedged emulator: ./qa/qa.sh down && ./qa/qa.sh up";;
+    esac
+  fi
+fi
+
 step "6/8 e2e seed data"
 LOGIN=$(curl -s -m 10 -X POST "$API_URL_LOCAL/auth/sign_in" \
   -H 'Content-Type: application/json' \
