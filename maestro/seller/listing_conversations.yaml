@@ -21,6 +21,16 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
+# SEARCH, do not scroll. The Bazaar feed paginates at 20, so reaching a specific
+# title meant driving infinite scroll — this flow spent 463s doing that and still
+# did not find a listing that is present and active.
+- tapOn: "Search listings..."
+- eraseText
+- inputText: "Men Winter Jacket XL Black"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Men Winter Jacket XL Black"
+    timeout: 30000
 - scrollUntilVisible:
     element:
       text: "Men Winter Jacket XL Black"

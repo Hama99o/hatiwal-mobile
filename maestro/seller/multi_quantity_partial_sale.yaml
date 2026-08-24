@@ -174,8 +174,15 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Active"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Phone Case Silicone Clear - Wholesale"
-    direction: DOWN
-    timeout: 8000
+# SEARCH, do not scroll. My Shop holds the whole seeded catalogue plus seven
+# disposable fixtures, so finding one title by scrolling was a race against an 8s
+# budget on a tablet-height list — and it lost. The seller's search box filters
+# server-side (that parameter was being dropped by /my/listings until it was
+# fixed), which turns this into one exact step.
+- tapOn: "Search my listings..."
+- eraseText
+- inputText: "Phone Case Silicone Clear - Wholesale"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Phone Case Silicone Clear - Wholesale"
+    timeout: 30000
