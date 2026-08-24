@@ -260,6 +260,17 @@ run_feature() {
     api_sample="$(scan_api_errors "$lc" | head -2 | tr '\n' ' ' | tr -d '\r' | cut -c1-200)"
 
     if [ "$code" -eq 0 ]; then
+      # A flow whose SUBJECT is an error path will always log one. `SILENT` means
+      # "the screen looked right while a request failed" — it cannot mean that when
+      # the failing request is the thing being tested. login_wrong_password was
+      # marked SILENT for the 401 it exists to provoke.
+      #
+      # Opt-in by marker rather than inference: guessing from "does the flow assert
+      # an error string" would quietly excuse real silent failures in flows that
+      # happen to check an error somewhere.
+      if grep -q "qa:expect-api-error" "$flow" 2>/dev/null; then
+        api_n=0
+      fi
       if [ "$api_n" -gt 0 ]; then
         # Assertions passed while the backend was failing underneath.
         kind="silent_api_error"; why="$api_sample"

@@ -933,3 +933,23 @@ before doubting the selector. Two cases found this way:
 
 The rule that follows: **never `console.error` for a condition the app already
 handles.** The log itself becomes a worse bug than the thing it reports.
+
+## `qa:expect-api-error` — flows whose subject IS a failed request
+
+`SILENT` means "the assertions passed while a request failed" — the app looked
+right and told the user nothing. It is the most damning verdict the rig gives, so
+it must not fire on a flow that provokes the failure deliberately.
+
+`auth/login_wrong_password` was marked SILENT for the 401 it exists to trigger.
+Put this marker anywhere in such a flow and its API errors stop counting:
+
+    # qa:expect-api-error — reason
+
+Opt-in by marker rather than by inference. The tempting shortcut — "if the flow
+asserts an error string, expect an API error" — would quietly excuse REAL silent
+failures in any flow that happens to check an error somewhere along the way, and
+those are exactly the ones worth catching.
+
+Two flows carry it: login_wrong_password (a 401 from wrong credentials) and
+register_duplicate_email. `login_empty_fields` used to need it and no longer does:
+the app now validates before sending, so there is no request to fail (UI-036).

@@ -1,5 +1,9 @@
 appId: com.hatiwal.app
 ---
+# qa:expect-api-error — this flow PROVOKES a failed request on purpose (a 401 from
+# wrong credentials), so the rig must not read that as a SILENT failure. SILENT
+# means "the screen looked right while a request failed"; here the failing
+# request IS the subject.
 # Register with an email that already exists — shows error
 
 - launchApp:
