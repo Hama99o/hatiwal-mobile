@@ -110,6 +110,13 @@ env:
 - inputText: ${EMAIL}
 - tapOn: "Password"
 - inputText: ${PASSWORD}
+# Dismiss the IME before submitting. The keyboard covers the lower half of a
+# form, and Maestro still reports the tap COMPLETED — it finds the element in
+# the hierarchy and taps its bounds, while the touch lands on the keyboard. On
+# the login screen that swallowed EVERY sign-in in the suite: no request ever
+# reached the API and the flow blamed a missing tab bar 60s later.
+- hideKeyboard
+- waitForAnimationToEnd
 - tapOn: "Sign In"
 - assertVisible: "Bazaar"
 # The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
