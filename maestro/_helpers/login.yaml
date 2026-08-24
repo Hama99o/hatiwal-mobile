@@ -62,16 +62,18 @@ env:
           commands:
             - scrollUntilVisible:
                 element:
-                  text: "Sign Out"
+                  id: "sign-out-button"
                 direction: DOWN
                 timeout: 15000
+                centerElement: true
                 # centerElement: `scrollUntilVisible` stops the moment the target enters the view
                 # tree, which can leave it at the very bottom — under the FloatingTabBar, which
                 # overlays that edge. Maestro taps an element CENTRE, so the tap lands on the tab
                 # bar and nothing happens. That cost two seller flows ~7 minutes each, failing
                 # inside the language helper on a row that was demonstrably on screen.
                 centerElement: true
-            - tapOn: "Sign Out"
+            - tapOn:
+                id: "sign-out-button"
             - waitForAnimationToEnd
             - tapOn:
                 text: "Sign Out"
@@ -86,9 +88,14 @@ env:
     when:
       visible: "Email"
     commands:
-      - tapOn: "Email"
+      # testIDs, not the translated labels. Every handle on the login screen used
+      # to be English copy, so a locale left behind by an rtl flow made signing in
+      # impossible — and signing in is the only route back to a language picker.
+      - tapOn:
+          id: "login-email-input"
       - inputText: ${EMAIL}
-      - tapOn: "Password"
+      - tapOn:
+          id: "login-password-input"
       - inputText: ${PASSWORD}
       # HIDE THE KEYBOARD BEFORE SUBMITTING. The IME is up from the password
       # field and covers the lower half of the login screen, including this
@@ -107,7 +114,8 @@ env:
       # the app, which is how it broke create_listing_map_pin once.
       - hideKeyboard
       - waitForAnimationToEnd
-      - tapOn: "Sign In"
+      - tapOn:
+          id: "login-submit"
       - waitForAnimationToEnd
 
 # ── One retry on a transient network failure ────────────────────────────────
@@ -126,7 +134,8 @@ env:
     when:
       visible: "Error"
     commands:
-      - tapOn: "Sign In"
+      - tapOn:
+          id: "login-submit"
       - waitForAnimationToEnd
 
 # Prove we are actually SIGNED IN, not merely on a screen.

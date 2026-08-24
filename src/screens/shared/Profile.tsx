@@ -1141,6 +1141,11 @@ function SettingsSection({
       {/* ── Sign Out — standalone subdued ghost row ───────────────── */}
       <Button
         variant="ghost"
+        // testID because the login helpers have to reach this row to switch
+        // accounts, and its label is translated. With only the English word to
+        // target, a locale left over from an rtl flow made the wrong-account guard
+        // unable to sign out — so the suite could not get back to English at all.
+        testID="sign-out-button"
         onPress={handleLogout}
         style={{
           flexDirection: isRtl ? "row-reverse" : "row",

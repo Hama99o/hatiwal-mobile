@@ -305,6 +305,11 @@ export default function LoginScreen() {
         )}
 
         <Input
+          // testID: every handle on this screen was a TRANSLATED label
+          // ("Email", "Password", "Sign In"), so once the app was left in
+          // Pashto or Dari nothing could sign in — and signing in is the only
+          // way back to a language picker. A locale leak became unrecoverable.
+          testID="login-email-input"
           placeholder={t("auth.email")}
           value={email}
           onChangeText={setEmail}
@@ -324,6 +329,7 @@ export default function LoginScreen() {
         <View style={{ marginBottom: 12 }}>
           <PasswordInput
             ref={passwordRef}
+            testID="login-password-input"
             placeholder={t("auth.password")}
             value={password}
             onChangeText={setPassword}
@@ -349,7 +355,7 @@ export default function LoginScreen() {
           </Text>
         </Pressable>
 
-        <Button onPress={handleLogin} disabled={loading} style={{ marginBottom: 16 }}>
+        <Button testID="login-submit" onPress={handleLogin} disabled={loading} style={{ marginBottom: 16 }}>
           <Text>{loading ? t("common.loading") : t("auth.loginButton")}</Text>
         </Button>
 
