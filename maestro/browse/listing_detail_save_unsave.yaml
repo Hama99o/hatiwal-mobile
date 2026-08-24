@@ -39,8 +39,18 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- tapOn: "Contact Seller"
+# REOPEN THE LISTING. This tapped "Contact Seller" on the FEED, where no such
+# button exists — it is a listing-detail control and the flow had just returned to
+# Bazaar via the tab. The heart it wants is on the detail screen, so the listing
+# has to be opened again, the same way it was the first time.
+- scrollUntilVisible:
+    element:
+      text: "Wool Blanket Handmade King Size"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
+- assertVisible: "Contact Seller"
 # Unsave it
 - tapOn:
     id: "save-toggle-button"
