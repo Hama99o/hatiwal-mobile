@@ -452,7 +452,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const router = useRouter();
   const clearUser = useAuthStore((s) => s.clearUser);
-  const { mode, toggleMode } = useModeStore();
+  const { mode, toggleMode, syncing: modeSyncing } = useModeStore();
   const { theme, setTheme } = useThemeStore();
   const qc = useQueryClient();
 
@@ -701,6 +701,10 @@ export default function ProfileScreen() {
           // translated on top of that — hence a stable handle.
           testID="mode-toggle-button"
           onPress={toggleMode}
+          // Tapping this gave no sign anything was happening: the label flips at
+          // once, but the screens behind it refetch, so it read as "nothing
+          // happened — do I wait?". Disabled + spinner while the choice saves.
+          disabled={modeSyncing}
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
             alignItems: "center",
@@ -714,7 +718,9 @@ export default function ProfileScreen() {
             minHeight: 44,
           }}
         >
-          {isSeller ? (
+          {modeSyncing ? (
+            <ActivityIndicator size="small" color={isSeller ? colors.seller : colors.primary} />
+          ) : isSeller ? (
             <Store size={16} color={colors.seller} />
           ) : (
             <ShoppingBag size={16} color={colors.primary} />
@@ -793,6 +799,10 @@ function SettingsSection({
   router: ReturnType<typeof useRouter>;
 }) {
   const [languageOpen, setLanguageOpen] = useState(false);
+  // Which language is being applied. Same reasoning as the mode toggle: without
+  // it a tap looks inert, and on an en <-> ps/fa flip the app restarts (native
+  // forceRTL only applies next launch), which unannounced reads as a crash.
+  const [applyingLang, setApplyingLang] = useState<string | null>(null);
 
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language);
   const currentLangLabel = currentLang?.label ?? i18n.language;
@@ -928,7 +938,18 @@ function SettingsSection({
                 <React.Fragment key={code}>
                   <Button
                     variant="ghost"
-                    onPress={() => setLanguage(code as LanguageCode)}
+                    onPress={async () => {
+                      if (applyingLang) return;
+                      setApplyingLang(code);
+                      try {
+                        await setLanguage(code as LanguageCode);
+                      } finally {
+                        // On a direction flip the app restarts and this never
+                        // runs — the spinner should stay up until it does.
+                        setApplyingLang(null);
+                      }
+                    }}
+                    disabled={!!applyingLang}
                     // The three labels are native names ("English"/"پښتو"/"دری"),
                     // identical in every locale, but the ACTIVE one is marked only
                     // by a colour and a check icon. `selected` is what a screen
@@ -952,7 +973,11 @@ function SettingsSection({
                     >
                       {label}
                     </Text>
-                    {isActive && <Check size={15} color={colors.primary} />}
+                    {applyingLang === code ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      isActive && <Check size={15} color={colors.primary} />
+                    )}
                   </Button>
                   {!isLast && <Separator />}
                 </React.Fragment>

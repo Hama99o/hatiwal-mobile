@@ -3,6 +3,7 @@ import { initReactI18next } from "react-i18next";
 import { I18nManager } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { reloadApp } from "@/lib/reloadApp";
+import { saveRouteForRestart } from "@/lib/routeMemory";
 import { authAPI } from "@/api/auth";
 import { enTranslations } from "./en";
 import { psTranslations } from "./ps";
@@ -79,7 +80,14 @@ export async function setLanguage(lang: LanguageCode): Promise<void> {
   }
   // Fire-and-forget backend sync — local storage is authoritative for the UI.
   authAPI.updateMe({ preferredLanguage: lang }).catch(() => null);
-  if (flipsDirection) reloadApp();
+  if (flipsDirection) {
+    // Save the route BEFORE restarting, and await it — a fire-and-forget write
+    // races the process going away. Without this the restart dropped the user
+    // back on the feed from wherever they were, which is the whole complaint:
+    // only the language should change, not the page.
+    await saveRouteForRestart();
+    reloadApp();
+  }
 }
 
 /** Apply a language from the backend user object (no API sync — backend is the source). */
@@ -94,7 +102,10 @@ export async function applyLanguageFromUser(lang: LanguageCode): Promise<void> {
   }
   // On login only reload when the direction actually flips (avoids a needless
   // restart loop on the splash/login flow for same-direction languages).
-  if (flips) reloadApp();
+  if (flips) {
+    await saveRouteForRestart();
+    reloadApp();
+  }
 }
 
 /** Reset language to English and clear storage — call on logout. */

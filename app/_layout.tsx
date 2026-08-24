@@ -1,17 +1,18 @@
 import "../src/styles/global.css";
 import "../src/i18n";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LogBox, View, useColorScheme } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useThemeStore, loadSavedTheme } from "@/stores/theme.store";
 // @ts-ignore — module is installed in Docker container; not resolvable on host
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
-import { Stack } from "expo-router";
+import { Stack, router, usePathname } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner-native";
 import { bootstrapAuth } from "@/stores/auth.bootstrap";
+import { rememberRoute, consumeSavedRoute } from "@/lib/routeMemory";
 // @ts-ignore — expo-font is installed in the Docker container; not resolvable on host
 import { useFonts } from "expo-font";
 import { FONT_ASSETS } from "@/lib/fonts";
@@ -32,6 +33,35 @@ import { FONT_ASSETS } from "@/lib/fonts";
 // the point is to stop a known non-issue from hiding the UI, not to stop seeing
 // errors.
 LogBox.ignoreLogs(["Looks like you have configured linking in multiple places"]);
+
+/**
+ * Keeps the current route in memory, and once per launch returns the user to
+ * wherever a forced restart interrupted them (an LTR<->RTL language switch —
+ * `I18nManager.forceRTL` only applies on the next launch).
+ *
+ * Mounted INSIDE the Stack so `usePathname` has a router to read, and the
+ * restore is guarded to run once: `router.replace` changes the path, which would
+ * otherwise re-enter this effect and fight the user's next navigation.
+ */
+function RouteMemory() {
+  const pathname = usePathname();
+  const restored = useRef(false);
+
+  useEffect(() => {
+    rememberRoute(pathname);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    consumeSavedRoute().then((saved) => {
+      // Same path already? Nothing to do — replacing would be a pointless remount.
+      if (saved && saved !== pathname) router.replace(saved as never);
+    });
+  }, [pathname]);
+
+  return null;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -107,10 +137,13 @@ export default function RootLayout() {
               invisibly and remounting. */}
           <View style={{ flex: 1, opacity: ready ? 1 : 0 }}>
             {ready && (
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(main)" />
-            </Stack>
+            <>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(main)" />
+              </Stack>
+              <RouteMemory />
+            </>
             )}
             <Toaster position="top-center" richColors />
           </View>

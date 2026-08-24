@@ -1702,6 +1702,65 @@ caused — so that is a real refactor, not a tweak, and it is not bundled in her
 
 ---
 
+## UI-038 · Switching language dropped you back to the feed — FIXED
+
+Reported: "when we change lang or mode or switch it should not leave the page —
+only the thing should change but we stay at same page."
+
+The mode switch was already fine: it never navigates, and it lives on Profile, so
+you stay put. Language was the problem, and only in one case — an LTR↔RTL switch
+(en ↔ ps/fa) has to restart the app, because `I18nManager.forceRTL()` only takes
+effect on the next launch. A restart cold-starts at the initial route, so whatever
+screen you were on was lost.
+
+The restart itself cannot go away without dropping native RTL for manual mirroring
+app-wide (see UI-037). Coming back to the same screen can: `src/lib/routeMemory.ts`
+keeps the current path in memory as you navigate, writes it just before the
+restart, and a `RouteMemory` component in the root layout consumes it once on the
+way back up and replaces into it.
+
+Details that matter:
+
+- The write is AWAITED before restarting. Fire-and-forget races the process going
+  away, and losing it silently is the exact bug being fixed.
+- Only `/(main)` routes are saved. A saved auth route would fight `bootstrapAuth`
+  and could show a logged-in user the login screen.
+- The saved entry is consumed and CLEARED even when it is not restorable, so a
+  stale value cannot hijack an unrelated launch later.
+- The restore runs once per launch, guarded by a ref: `router.replace` changes the
+  path, which would otherwise re-enter the effect and fight the user's next
+  navigation.
+
+## UI-039 · The switches gave no sign they had been pressed — FIXED
+
+Reported: "the switch did not show loading or something when we click on it, so you
+can know if we need to wait."
+
+The mode toggle flipped its own label instantly and then said nothing while the
+screens behind it refetched and `updateMe` went out — so it read as "nothing
+happened". The language options were worse: no pending state at all, and on a
+direction flip the app restarted with no warning, which looks like a crash.
+
+- `mode.store` now exposes `syncing`, true while the choice is being saved. The
+  toggle shows a spinner in place of its icon and is disabled meanwhile. A FAILED
+  sync does not revert the switch — local state is authoritative for the UI, so it
+  only stops the spinner.
+- Both language pickers (Profile's inline list and `LanguageSwitcher`, used on
+  Onboarding and Login) show which option is being applied and ignore further
+  presses until it settles.
+
+Two design points came out of the tests rather than from me:
+
+- My first version REPLACED the label with the spinner, which hid the language you
+  had just chosen at the moment you wanted confirmation. The label stays; the
+  spinner sits beside it.
+- Ignoring a second press is a deliberate contract change, and
+  LanguageSwitcher.test.tsx now says so. It used to fire twice, meaning two
+  concurrent `i18n.changeLanguage` calls — and with one of them restarting the app,
+  that was a real race rather than a wasted call.
+
+---
+
 ## Flow defects (test bugs, not app bugs)
 
 Recorded here too, because a wrong flow costs exactly as much time as a wrong screen.
