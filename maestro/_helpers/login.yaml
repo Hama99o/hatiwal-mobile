@@ -27,6 +27,51 @@ env:
 
 # Each of these no-ops when the app is already past that stage.
 - runFlow: open_bundle.yaml
+
+# ── Wrong account? Sign out first. ──────────────────────────────────────────
+# THE MIRROR OF login_seller.yaml's GUARD, which this file never had — and it is
+# included by ~190 flows, so its absence was the widest failure cause in the suite.
+#
+# The sign-in below only fires when the login FORM is on screen. A warm app is
+# usually already authenticated, and if the previous flow used login_seller.yaml
+# it is authenticated AS THE SELLER — so a buyer flow silently ran as Omar Noori.
+# Everything that depends on not owning the listing then quietly disappears:
+#
+#   report_listing   "Report" is behind `!isOwnListing`, so the More sheet held
+#                    only Share and Close. The hierarchy proved it: three
+#                    elements, no Report.
+#   report_user /    you cannot report or block yourself.
+#   block_user
+#   Contact Seller   hidden on your own listing (`canContact` needs !isOwnListing).
+#
+# None of that reports as "wrong account" — it reports as a missing button, which
+# is why it kept being read as a stale selector.
+#
+# "Omar Noori" is seller@hatiwal.test; the buyer is "Ahmad Karimi" (db/seeds/e2e.rb).
+- runFlow:
+    when:
+      visible:
+        id: "profile-tab"
+    commands:
+      - tapOn:
+          id: "profile-tab"
+      - waitForAnimationToEnd
+      - runFlow:
+          when:
+            visible: "Omar Noori"
+          commands:
+            - scrollUntilVisible:
+                element:
+                  text: "Sign Out"
+                direction: DOWN
+                timeout: 15000
+            - tapOn: "Sign Out"
+            - waitForAnimationToEnd
+            - tapOn:
+                text: "Sign Out"
+                optional: true
+            - waitForAnimationToEnd
+
 - runFlow: goto_login.yaml
 
 # Sign in only if the login form is actually on screen; a warm app is usually
