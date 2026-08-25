@@ -22,14 +22,20 @@ appId: com.hatiwal.app
     id: "listing-form-price-input"
 - inputText: "250"
 # Open currency picker and select EUR
-- tapOn: "AFN"
+# Currency by testID, not by label. The rows read "AFN – Afghani" / "USD – US
+# Dollar" in English but "افغاني" / "امریکايي ډالر" in Pashto — the code is not in
+# the translated string at all, so every text selector here was English-only.
+- tapOn:
+    id: "listing-form-currency-trigger"
 - waitForAnimationToEnd
 # The row reads "EUR – Euro" (en dash) — this flow already says so two lines
 # down for the tap, but asserted the bare code, which anchored matching rejects.
-- assertVisible: "EUR – Euro"
+- assertVisible:
+    id: "listing-form-currency-EUR"
 # The currency SHEET rows read "USD – US Dollar" / "EUR – Euro" (en dash).
 # Maestro anchors its text regex, so a bare code cannot match the row.
-- tapOn: "EUR – Euro"
+- tapOn:
+    id: "listing-form-currency-EUR"
 - waitForAnimationToEnd
 # The category field sits below title and price, and the numeric keypad from the
 # price field covers the lower half of the form — so it needs a scroll, not a bare

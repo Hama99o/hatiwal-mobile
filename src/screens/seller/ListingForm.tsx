@@ -1339,6 +1339,11 @@ export default function ListingFormScreen() {
             <Button
               variant="outline"
               onPress={() => setCurrencyPickerVisible(true)}
+              // By id, because this control's label is the CURRENCY NAME and that
+              // is translated: "AFN – Afghani" in English is "افغاني" in Pashto,
+              // with no currency code in it at all. Text selectors here only ever
+              // worked in English.
+              testID="listing-form-currency-trigger"
               accessibilityRole="button"
               // TASK-P736 (review fix, CR round 3, a11y) — `accessibilityLabel`
               // REPLACES the children a screen reader would otherwise read,
@@ -1760,6 +1765,7 @@ export default function ListingFormScreen() {
           ).map((opt) => (
             <Pressable
               key={opt.value}
+              testID={`listing-form-currency-${opt.value}`}
               style={[
                 styles.currencyOption,
                 {

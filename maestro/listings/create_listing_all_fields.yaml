@@ -42,9 +42,14 @@ appId: com.hatiwal.app
 - inputText: "18000"
 
 # Currency — default is AFN, switch to USD
-- tapOn: "AFN"
+# Currency by testID, not by label. The rows read "AFN – Afghani" / "USD – US
+# Dollar" in English but "افغاني" / "امریکايي ډالر" in Pashto — the code is not in
+# the translated string at all, so every text selector here was English-only.
+- tapOn:
+    id: "listing-form-currency-trigger"
 - waitForAnimationToEnd
-- tapOn: "USD"
+- tapOn:
+    id: "listing-form-currency-USD"
 - waitForAnimationToEnd
 
 # Category

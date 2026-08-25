@@ -35,11 +35,16 @@ appId: com.hatiwal.app
 - inputText: "450"
 
 # Switch currency to USD
-- tapOn: "AFN"
+# Currency by testID, not by label. The rows read "AFN – Afghani" / "USD – US
+# Dollar" in English but "افغاني" / "امریکايي ډالر" in Pashto — the code is not in
+# the translated string at all, so every text selector here was English-only.
+- tapOn:
+    id: "listing-form-currency-trigger"
 - waitForAnimationToEnd
 # The currency SHEET rows read "USD – US Dollar" / "EUR – Euro" (en dash).
 # Maestro anchors its text regex, so a bare code cannot match the row.
-- tapOn: "USD – US Dollar"
+- tapOn:
+    id: "listing-form-currency-USD"
 - waitForAnimationToEnd
 
 # The category FIELD is tapped by its placeholder, "Tap to select category"
