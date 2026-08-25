@@ -31,7 +31,10 @@ appId: com.hatiwal.app
           id: "profile-tab"
           optional: true
       - waitForAnimationToEnd
-- extendedWaitUntil:
-    visible:
-      id: "login-email-input"
-    timeout: 20000
+# NO hard wait for the form here. This helper is also called on a WARM, already
+# authenticated app, where the login screen correctly never appears — asserting it
+# made listing_actions_sheet fail at 104s on `login-email-input is visible` for an
+# app that was simply already signed in. The retry above is what fixes the silent
+# miss; callers that genuinely need the form (login.yaml) already gate their
+# sign-in on it being on screen, and fail with a clear message if it is not.
+- waitForAnimationToEnd

@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# Tap the CONFIRM button of a native confirmation dialog.
+#
+# confirmAlert() (src/utils/alert.ts) is React Native's native `Alert.alert`, and
+# its confirm label is usually the SAME word as the control that opened it:
+# `t("listing.publish")` = "Publish", over a screen whose primary button is also
+# "Publish". Maestro matches text as an anchored regex across the WHOLE tree, so
+# `tapOn: "Publish"` matched both and tapped the one BEHIND the modal — the touch
+# landed on the scrim, the dialog dismissed, nothing was published, and the flow
+# then failed 15s later waiting for a toast that could never appear. It read as
+# "publish is broken" when publish had never been asked for.
+#
+# React Native maps a 2-button Android alert as [0]=negative, [1]=positive, and
+# the platform's positive button is always resource-id `android:id/button1`.
+# Same word, no ambiguity — it exists only inside the dialog.
+- tapOn:
+    id: "android:id/button1"
+- waitForAnimationToEnd

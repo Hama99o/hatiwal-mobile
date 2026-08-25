@@ -30,6 +30,7 @@
  * double-blind reviews).
  */
 import { useCallback, useMemo, useState } from "react";
+import { AccessibilityInfo } from "react-native";
 import { useRouter } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -48,6 +49,10 @@ import { listingsAPI, type Listing } from "@/api/listings";
 import { type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 import { type ListingActionRow } from "@/components/common/ListingActionsSheet";
 import { confirmAlert } from "@/utils/alert";
+import {
+  getPublishBlockers,
+  publishBlockedMessage,
+} from "@/screens/seller/listing-form/publishReadiness";
 import { availableUnitsOf } from "@/utils/stock";
 import { apiErrorMessage } from "@/utils/apiError";
 
@@ -78,7 +83,33 @@ export interface UseListingLifecycleOptions {
   // `quantity`/`availableUnits` feed the buyer picker's "how many did you sell?"
   // field. Both optional, so a caller holding an older payload still compiles
   // and the sheet falls back to the single-unit behaviour.
-  listing: Pick<Listing, "status" | "expired" | "quantity" | "availableUnits"> | null | undefined;
+  /**
+   * The listing being acted on. Deliberately a narrow Pick so any caller with a
+   * partial listing (the seller card's list payload, not just the detail view)
+   * can use this hook.
+   *
+   * The publish-readiness fields are OPTIONAL on purpose: a list payload may not
+   * carry them, and `getPublishBlockers` then reports them as blockers — which is
+   * the safe direction. It means "I cannot prove this is publishable from here",
+   * and the seller gets told what is missing instead of a 422 with no message.
+   */
+  listing:
+    | (Pick<Listing, "status" | "expired" | "quantity" | "availableUnits"> &
+        Partial<
+          Pick<
+            Listing,
+            | "title"
+            | "price"
+            | "categoryId"
+            | "latitude"
+            | "longitude"
+            | "images"
+            | "imageUrls"
+            | "imageAttachments"
+          >
+        >)
+    | null
+    | undefined;
   /** Called after any successful lifecycle mutation, in addition to the automatic query invalidation below — lets the caller do extra local bookkeeping (e.g. a list screen closing a row). */
   onDone?: () => void;
   /**
@@ -239,6 +270,59 @@ export function useListingLifecycle({
   // action EXCEPT reserve/mark-sold (those open BuyerPickerSheet instead) ──
 
   const handlePublish = useCallback(() => {
+    // Publish-readiness is decided by ONE function for the whole app
+    // (listing-form/publishReadiness.ts, which says so in its own header). This
+    // hook skipped it: it offered "Publish" on any draft, fired the request, and
+    // let the API's `photo_required_to_publish` come back 422 — surfaced only as
+    // a ~3s toast. QA caught the whole path on a photoless draft:
+    // `PUT /my/listings/505/publish -> 422`, while the screen sat on "Draft"
+    // with the Publish button still there and nothing saying a photo was needed.
+    // The seller's read of that is "I pressed Publish and nothing happened".
+    //
+    // Checked BEFORE the confirmation dialog: asking "Publish this listing?" and
+    // then refusing is worse than saying up front what is missing.
+    // Judge ONLY the fields this payload actually carries.
+    //
+    // `useListingLifecycle` is shared by the owner-detail screen and the seller
+    // CARD, and those get different payloads: the API's list serializer omits
+    // latitude/longitude entirely (they are detail-only — listing_serializer.rb
+    // line ~142), so treating "absent" as "missing" would report a `location`
+    // blocker for every card and block publishing of perfectly valid listings.
+    // Absent means "cannot judge from here", not "invalid" — so those blockers
+    // are dropped and the API stays the backstop for them.
+    const photos =
+      listing?.imageAttachments ?? listing?.images ?? listing?.imageUrls;
+    const judgeable: Record<string, boolean> = {
+      photos: photos !== undefined,
+      title: listing?.title !== undefined,
+      price: listing?.price !== undefined,
+      category: listing?.categoryId !== undefined,
+      location:
+        listing?.latitude !== undefined && listing?.longitude !== undefined,
+    };
+
+    const blockers = getPublishBlockers({
+      values: {
+        title: listing?.title,
+        price: listing?.price,
+        categoryId: listing?.categoryId,
+        latitude: listing?.latitude,
+        longitude: listing?.longitude,
+      },
+      photos: photos ?? [],
+      mode: "publish",
+    }).filter((b) => judgeable[b]);
+
+    if (blockers.length > 0) {
+      const message = publishBlockedMessage(blockers, "publish", t);
+      toast.error(message);
+      // A sonner-native toast is not announced by TalkBack on its own, and this
+      // is the only "why did nothing happen" signal — so it must reach screen
+      // readers too (same rule as ListingForm's handlePublishBlockers).
+      AccessibilityInfo.announceForAccessibility(message);
+      return;
+    }
+
     confirmAlert(
       t("listing.confirmPublish"),
       t("listing.confirmPublishDescription"),
@@ -247,7 +331,7 @@ export function useListingLifecycle({
         { text: t("listing.publish"), onPress: () => publish.mutate() },
       ]
     );
-  }, [t, publish]);
+  }, [t, publish, listing]);
 
   // TASK-TX01: Reserve/Mark-sold open the BuyerPickerSheet so the seller can
   // identify the real buyer from this listing's conversations.

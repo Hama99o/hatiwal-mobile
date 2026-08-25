@@ -220,3 +220,52 @@ export function getPublishBlockers({
 
   return PUBLISH_BLOCKER_ORDER.filter((b) => blockers.has(b));
 }
+
+/**
+ * The blocker -> short field-name key map, and the per-mode toast key.
+ *
+ * These lived inside ListingForm, which meant only that screen could phrase
+ * "you cannot publish yet, and here is what is missing". `useListingLifecycle`
+ * — the hook behind the Publish button on the owner-detail screen and the
+ * seller card — had no readiness check at all: it offered Publish on any draft,
+ * fired the request, and let the API's own `photo_required_to_publish` come
+ * back 422, surfaced only as a ~3s toast. QA caught the whole path:
+ * `PUT /my/listings/505/publish -> 422` while the screen sat on "Draft" with
+ * the Publish button still sitting there.
+ */
+const BLOCKER_LABEL_KEY: Record<PublishBlocker, string> = {
+  photos: "common.photos",
+  title: "listing.title",
+  price: "common.price",
+  category: "common.category",
+  location: "common.location",
+};
+
+export type PublishBlockerMode = "publish" | "draft" | "live";
+
+const TOAST_KEY: Record<PublishBlockerMode, string> = {
+  publish: "listing.form.publishBlocked",
+  draft: "listing.form.draftBlocked",
+  live: "listing.form.liveBlocked",
+};
+
+/**
+ * Build the user-facing "cannot publish yet" message for a blocker list.
+ *
+ * `common.listSeparator` is "، " for ps/fa and ", " for en, so the join always
+ * uses the locale's own list punctuation — a bare Latin ", " between RTL runs
+ * invites bidi-reordering artifacts and reads wrong.
+ *
+ * `t` is passed in so this file keeps its "no React, no RN imports" promise and
+ * stays unit-testable in plain Node.
+ */
+export function publishBlockedMessage(
+  blockers: PublishBlocker[],
+  mode: PublishBlockerMode,
+  t: (key: string, opts?: Record<string, unknown>) => string
+): string {
+  const fields = blockers
+    .map((b) => t(BLOCKER_LABEL_KEY[b]))
+    .join(t("common.listSeparator"));
+  return t(TOAST_KEY[mode], { fields });
+}

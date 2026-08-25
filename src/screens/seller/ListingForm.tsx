@@ -81,7 +81,12 @@ import { Button } from "@/components/reusables/button";
 
 import { PhotosSection, PhotoItem } from "./listing-form/PhotosSection";
 import { ListingFormSkeleton } from "./listing-form/ListingFormSkeleton";
-import { getPublishBlockers, PublishBlocker } from "./listing-form/publishReadiness";
+import {
+  getPublishBlockers,
+  publishBlockedMessage,
+  PublishBlocker,
+  PublishBlockerMode,
+} from "./listing-form/publishReadiness";
 import { CategoryPicker } from "@/components/common/CategoryPicker";
 import { ConditionChips } from "@/components/common/ConditionChips";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
@@ -94,26 +99,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // TASK-P736 — maps each publish blocker to the translation key for its
 // short field name; reused across all 3 locales so the toast list always
 // matches the labels already shown next to the fields themselves.
-const BLOCKER_LABEL_KEY: Record<PublishBlocker, string> = {
-  photos: "common.photos",
-  title: "listing.title",
-  price: "common.price",
-  category: "common.category",
-  location: "common.location",
-};
-
 // "publish" (new draft → live) | "draft" (Save Draft) | "live" (TASK-P736
 // review fix, CR round 3: Save on an ALREADY-live listing — same rule set as
 // "publish" via `getPublishBlockers`, but its own copy: telling a seller
 // editing an active listing to "publish this listing" reads as if their
 // live listing were still a draft).
-type BlockerMode = "publish" | "draft" | "live";
-
-const TOAST_KEY: Record<BlockerMode, string> = {
-  publish: "listing.form.publishBlocked",
-  draft: "listing.form.draftBlocked",
-  live: "listing.form.liveBlocked",
-};
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -788,7 +778,7 @@ export default function ListingFormScreen() {
   // selects which toast/photo-error string to show — none of the three ever
   // disagree on WHICH fields are missing, only on the copy around them.
   const handlePublishBlockers = useCallback(
-    (blockers: PublishBlocker[], mode: BlockerMode = "publish") => {
+    (blockers: PublishBlocker[], mode: PublishBlockerMode = "publish") => {
       if (blockers.length === 0) return;
       setPhotosError(
         blockers.includes("photos")
@@ -801,8 +791,9 @@ export default function ListingFormScreen() {
       // ("عکس‌ها, عنوان" instead of "عکس‌ها، عنوان"); `common.listSeparator`
       // is "، " for ps/fa and ", " for en, so the join always matches the
       // locale's own list punctuation.
-      const fields = blockers.map((b) => t(BLOCKER_LABEL_KEY[b])).join(t("common.listSeparator"));
-      const message = t(TOAST_KEY[mode], { fields });
+      // Phrasing lives in publishReadiness beside the rules themselves, so this
+      // screen and useListingLifecycle can never word the same block differently.
+      const message = publishBlockedMessage(blockers, mode, t);
       toast.error(message);
       // TASK-P736 (review fix, CR round 3, a11y) — a `sonner-native` toast is
       // not announced by TalkBack/VoiceOver on its own; this is the card's
@@ -839,7 +830,7 @@ export default function ListingFormScreen() {
   // for the case where even that mapping can't name a specific field — a
   // bare toast beats total silence.
   const handleInvalidSubmit = useCallback(
-    (mode: BlockerMode = "publish", fieldErrors?: FieldErrors<ListingFormValues>) => {
+    (mode: PublishBlockerMode = "publish", fieldErrors?: FieldErrors<ListingFormValues>) => {
       const blockers = getPublishBlockers({
         values: getValues(),
         photos,

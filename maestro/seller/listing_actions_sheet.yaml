@@ -98,7 +98,8 @@ appId: com.hatiwal.app
 - tapOn: "Publish"
 - waitForAnimationToEnd
 - assertVisible: "Publish this listing?"
-- tapOn: "Publish"
+# The dialog's confirm button says "Publish" — and so does the button behind it.
+- runFlow: ../_helpers/confirm_dialog.yaml
 - waitForAnimationToEnd
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
 # single check right after an action is a race — and any wait in front of it

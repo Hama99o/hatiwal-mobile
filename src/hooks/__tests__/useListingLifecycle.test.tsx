@@ -88,7 +88,44 @@ const mockToast = toast as { success: jest.Mock; error: jest.Mock };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-type MinimalListing = Pick<Listing, "status" | "expired">;
+type MinimalListing = Pick<Listing, "status" | "expired"> &
+  Partial<
+    Pick<
+      Listing,
+      | "title"
+      | "price"
+      | "categoryId"
+      | "latitude"
+      | "longitude"
+      | "images"
+      | "imageUrls"
+      | "imageAttachments"
+    >
+  >;
+
+/**
+ * A draft that is actually PUBLISHABLE.
+ *
+ * `handlePublish` now runs the app-wide `getPublishBlockers` check before it
+ * confirms anything, so `{ status: "draft" }` alone is blocked — it has no
+ * photo, title, price, category or pin. That is the point of the check: the
+ * hook used to fire the request regardless and let the API answer 422 with only
+ * a ~3s toast to show for it. Tests that exercise the publish MUTATION need a
+ * listing that can legitimately be published.
+ */
+function publishableDraft(over: Partial<MinimalListing> = {}): MinimalListing {
+  return {
+    status: "draft",
+    expired: false,
+    title: "A publishable draft",
+    price: 5000,
+    categoryId: 3,
+    latitude: 34.5553,
+    longitude: 69.2075,
+    images: ["https://example.test/photo.jpg"],
+    ...over,
+  };
+}
 
 function makeQueryClient() {
   return new QueryClient({
@@ -145,7 +182,7 @@ beforeEach(() => {
 
 describe("useListingLifecycle — primary action per status", () => {
   it("draft → Publish", () => {
-    const { result } = renderLifecycle({ status: "draft", expired: false });
+    const { result } = renderLifecycle(publishableDraft());
     expect(result.current.primaryAction?.label).toBe("listing.publish");
   });
 
@@ -185,7 +222,7 @@ describe("useListingLifecycle — primary action per status", () => {
 
 describe("useListingLifecycle — moreActions per status (no variant dropped)", () => {
   it("draft → only Edit, Duplicate, Delete", () => {
-    const { result } = renderLifecycle({ status: "draft", expired: false });
+    const { result } = renderLifecycle(publishableDraft());
     expect(result.current.moreActions.map((a) => a.key)).toEqual(["edit", "duplicate", "delete"]);
   });
 
@@ -251,7 +288,7 @@ describe("useListingLifecycle — moreActions per status (no variant dropped)", 
 describe("useListingLifecycle — confirmAlert fires before every gated mutation", () => {
   it("Publish: confirmAlert first, mutation only on confirm", async () => {
     mockListingsAPI.publishListing.mockResolvedValueOnce({ status: "active" } as Listing);
-    const { result } = renderLifecycle({ status: "draft", expired: false }, { listingId: 10 });
+    const { result } = renderLifecycle(publishableDraft(), { listingId: 10 });
 
     act(() => result.current.primaryAction!.onPress());
     expect(mockConfirmAlert).toHaveBeenCalledWith(
@@ -267,10 +304,44 @@ describe("useListingLifecycle — confirmAlert fires before every gated mutation
   });
 
   it("Publish: cancel never calls the mutation", () => {
-    const { result } = renderLifecycle({ status: "draft", expired: false });
+    const { result } = renderLifecycle(publishableDraft());
     act(() => result.current.primaryAction!.onPress());
     simulateCancel();
     expect(mockListingsAPI.publishListing).not.toHaveBeenCalled();
+  });
+
+  // ── Publish readiness ─────────────────────────────────────────────────────
+  // Regression guard for a bug QA found end to end: the hook offered "Publish"
+  // on ANY draft, fired the request, and the API answered
+  // `422 photo_required_to_publish` — surfaced only as a ~3s toast, while the
+  // screen still showed "Draft" and a Publish button. To the seller that is
+  // "I pressed Publish and nothing happened".
+
+  it("Publish: a draft with no photo is blocked BEFORE any dialog or request", () => {
+    const { result } = renderLifecycle(publishableDraft({ images: [] }));
+    act(() => result.current.primaryAction!.onPress());
+    // No confirmation dialog: asking "Publish this listing?" and then refusing
+    // is worse than saying up front what is missing.
+    expect(mockConfirmAlert).not.toHaveBeenCalled();
+    expect(mockListingsAPI.publishListing).not.toHaveBeenCalled();
+    // ...and the seller is told why, naming the missing field.
+    expect(mockToast.error).toHaveBeenCalledWith("listing.form.publishBlocked");
+  });
+
+  it("Publish: names every missing field, not just the first", () => {
+    const { result } = renderLifecycle(
+      publishableDraft({ images: [], title: "", price: undefined })
+    );
+    act(() => result.current.primaryAction!.onPress());
+    expect(mockToast.error).toHaveBeenCalledWith("listing.form.publishBlocked");
+    expect(mockListingsAPI.publishListing).not.toHaveBeenCalled();
+  });
+
+  it("Publish: a ready draft still goes through the normal confirm path", () => {
+    const { result } = renderLifecycle(publishableDraft());
+    act(() => result.current.primaryAction!.onPress());
+    expect(mockConfirmAlert).toHaveBeenCalled();
+    expect(mockToast.error).not.toHaveBeenCalled();
   });
 
   it("Unpublish (from moreActions): confirmAlert first, mutation only on confirm", async () => {
@@ -453,7 +524,7 @@ describe("useListingLifecycle — invalidation keys (mandatory: list + status pi
     mockListingsAPI.publishListing.mockResolvedValueOnce({ status: "active" } as Listing);
     const qc = makeQueryClient();
     const invalidateSpy = jest.spyOn(qc, "invalidateQueries");
-    const { result } = renderLifecycle({ status: "draft", expired: false }, { listingId: 10, qc });
+    const { result } = renderLifecycle(publishableDraft(), { listingId: 10, qc });
 
     act(() => result.current.primaryAction!.onPress());
     simulateConfirm();
@@ -488,7 +559,7 @@ describe("useListingLifecycle — invalidation keys (mandatory: list + status pi
   it("calls onDone after a successful mutation, in addition to invalidation", async () => {
     mockListingsAPI.publishListing.mockResolvedValueOnce({ status: "active" } as Listing);
     const onDone = jest.fn();
-    const { result } = renderLifecycle({ status: "draft", expired: false }, { listingId: 10, onDone });
+    const { result } = renderLifecycle(publishableDraft(), { listingId: 10, onDone });
 
     act(() => result.current.primaryAction!.onPress());
     simulateConfirm();
@@ -520,7 +591,7 @@ describe("useListingLifecycle — onDeleted fires only after a successful Delete
   it("never calls onDeleted for any other mutation (e.g. publish)", async () => {
     mockListingsAPI.publishListing.mockResolvedValueOnce({ status: "active" } as Listing);
     const onDeleted = jest.fn();
-    const { result } = renderLifecycle({ status: "draft", expired: false }, { listingId: 10, onDeleted });
+    const { result } = renderLifecycle(publishableDraft(), { listingId: 10, onDeleted });
 
     act(() => result.current.primaryAction!.onPress());
     simulateConfirm();
@@ -571,7 +642,7 @@ describe("useListingLifecycle — isBusy reflects any in-flight mutation", () =>
     mockListingsAPI.publishListing.mockImplementationOnce(
       () => new Promise((resolve) => { resolvePublish = resolve; })
     );
-    const { result } = renderLifecycle({ status: "draft", expired: false }, { listingId: 10 });
+    const { result } = renderLifecycle(publishableDraft(), { listingId: 10 });
 
     act(() => result.current.primaryAction!.onPress());
     simulateConfirm();

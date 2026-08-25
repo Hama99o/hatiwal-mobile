@@ -208,6 +208,10 @@ export default function MyListingDetailScreen() {
     onDeleted: () => router.replace("/(main)/(tabs)/my-listings" as never),
   });
 
+  // A draft has never been published, so every published-listing
+  // affordance is empty for it by definition.
+  const isDraft = listing?.status === "draft";
+
   const handleViewConversations = useCallback(() => {
     router.push({
       pathname: "/(main)/listing-conversations/[id]" as never,
@@ -395,67 +399,78 @@ export default function MyListingDetailScreen() {
           )}
         </Section>
 
-        <Separator />
-
-        {/* 4 — Analytics row */}
-        <Section delay={80} style={[styles.section, { flexDirection: rowDir, gap: 24 }]} reduceMotion={reduceMotion}>
-          <View
-            style={[styles.statBox, { backgroundColor: colors.muted, borderColor: colors.border }]}
-            testID="analytics-views"
-          >
-            <View style={[styles.rowGap, { flexDirection: rowDir, justifyContent: "center" }]}>
-              <Eye size={16} color={colors.mutedForeground} />
-              <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground }}>
-                {formatNumber(listing.viewsCount ?? 0)}
-              </Text>
-            </View>
-            <Text style={{ fontSize: 12, color: colors.mutedForeground, textAlign: "center" }}>
-              {t("listing.ownerDetail.views")}
-            </Text>
-          </View>
-
-          <Pressable
-            style={[styles.statBox, { backgroundColor: colors.muted, borderColor: colors.border }]}
-            onPress={handleViewConversations}
-            testID="analytics-conversations"
-          >
-            <View style={[styles.rowGap, { flexDirection: rowDir, justifyContent: "center" }]}>
-              <MessageCircle size={16} color={colors.primary} />
-              <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground }}>
-                {formatNumber(listing.conversationsCount ?? 0)}
-              </Text>
-            </View>
-            <Text style={{ fontSize: 12, color: colors.mutedForeground, textAlign: "center" }}>
-              {t("listing.ownerDetail.conversations")}
-            </Text>
-          </Pressable>
-        </Section>
-
-        {/* 4b — Daily views sparkline */}
-        {(isAnalyticsLoading || analyticsEntries.length > 0) && (
+        {/* 4 — Analytics, only for a listing that has actually been published.
+            A DRAFT has never been visible to anyone, so its views and chats are
+            zero by definition — yet the screen rendered "Views 0 / Chats 0" plus a
+            full "Views — last 7 days" card with a "No views yet" empty state, which
+            pushed the one control that matters — Publish — off the first screen.
+            QA hit exactly that: assertVisible "Publish" failed on a draft whose
+            visible screen was nothing but empty analytics. */}
+        {!isDraft && (
           <>
-            <Separator />
-            <Section delay={100} style={styles.section} reduceMotion={reduceMotion}>
-              <Text
-                style={[
-                  styles.sectionHead,
-                  { color: colors.foreground, textAlign: isRtl ? "right" : "left" },
-                ]}
-              >
-                {t("listing.ownerDetail.dailyViews")}
+          <Separator />
+
+          {/* 4 — Analytics row */}
+          <Section delay={80} style={[styles.section, { flexDirection: rowDir, gap: 24 }]} reduceMotion={reduceMotion}>
+            <View
+              style={[styles.statBox, { backgroundColor: colors.muted, borderColor: colors.border }]}
+              testID="analytics-views"
+            >
+              <View style={[styles.rowGap, { flexDirection: rowDir, justifyContent: "center" }]}>
+                <Eye size={16} color={colors.mutedForeground} />
+                <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground }}>
+                  {formatNumber(listing.viewsCount ?? 0)}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, textAlign: "center" }}>
+                {t("listing.ownerDetail.views")}
               </Text>
-              {allZero && !isAnalyticsLoading ? (
-                <EmptyState
-                  icon={BarChart2}
-                  title={t("listing.ownerDetail.noViewsYet")}
-                />
-              ) : (
-                <ViewsSparkline
-                  entries={analyticsEntries}
-                  loading={isAnalyticsLoading}
-                />
-              )}
-            </Section>
+            </View>
+
+            <Pressable
+              style={[styles.statBox, { backgroundColor: colors.muted, borderColor: colors.border }]}
+              onPress={handleViewConversations}
+              testID="analytics-conversations"
+            >
+              <View style={[styles.rowGap, { flexDirection: rowDir, justifyContent: "center" }]}>
+                <MessageCircle size={16} color={colors.primary} />
+                <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground }}>
+                  {formatNumber(listing.conversationsCount ?? 0)}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: colors.mutedForeground, textAlign: "center" }}>
+                {t("listing.ownerDetail.conversations")}
+              </Text>
+            </Pressable>
+          </Section>
+
+          {/* 4b — Daily views sparkline */}
+          {(isAnalyticsLoading || analyticsEntries.length > 0) && (
+            <>
+              <Separator />
+              <Section delay={100} style={styles.section} reduceMotion={reduceMotion}>
+                <Text
+                  style={[
+                    styles.sectionHead,
+                    { color: colors.foreground, textAlign: isRtl ? "right" : "left" },
+                  ]}
+                >
+                  {t("listing.ownerDetail.dailyViews")}
+                </Text>
+                {allZero && !isAnalyticsLoading ? (
+                  <EmptyState
+                    icon={BarChart2}
+                    title={t("listing.ownerDetail.noViewsYet")}
+                  />
+                ) : (
+                  <ViewsSparkline
+                    entries={analyticsEntries}
+                    loading={isAnalyticsLoading}
+                  />
+                )}
+              </Section>
+            </>
+          )}
           </>
         )}
 

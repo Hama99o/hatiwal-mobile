@@ -3,11 +3,15 @@
 # Copy of qa.config.example.sh with the values this machine actually needs.
 
 # ── Fleet: one AVD per session, one form factor each ───────────────────────
-export QA_AVD_1="qa_tablet"      # 1280dp tablet
-export QA_AVD_2="qa_phone"       # 411dp phone
+export QA_AVD_1="qa_phone"       # 411dp phone — THE primary target. Was qa_tablet:
+#   session 1 is the DEFAULT session, so "one form factor per session" quietly meant
+#   the entire suite was judged on a 2560x1600 landscape tablet and the phone was
+#   never tested at all. Bottom sheets, the tab bar and every RTL layout differ
+#   there, which is where seller 0/8, rtl 0/8, reviews 0/3 and safety 0/2 came from.
+export QA_AVD_2="qa_phone4"      # 411dp phone — distinct AVD; two sessions on one AVD dies with "Another emulator instance is running"
 export QA_AVD_3="qa_phone2"      # 360dp small phone (set via `qa.sh profile small`)
 export QA_AVD_4="qa_phone3"      # 448dp large phone (`qa.sh profile large`)
-export QA_AVD_5="qa_phone4"      # 411dp phone
+export QA_AVD_5="qa_tablet"      # tablet — explicit form-factor passes only, never the default
 
 # ── Cores per emulator — THE knob that decides how many sessions fit ──────
 # 16 cores on this host. At the default 4 cores each, FOUR emulators claim every
