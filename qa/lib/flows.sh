@@ -134,6 +134,40 @@ run_feature() {
   # noticed, because bare adb happened to pick the only device.
   resolve_device || { err "no emulator for session $QA_SESSION"; return 1; }
 
+  # ── Real fixture IDs, resolved per feature ────────────────────────────────
+  #
+  # Four flows carried HARDCODED database ids (LISTING_ID: 1, SOLD_LISTING_ID: 1,
+  # RESERVED_LISTING_ID: 2) for their deep links. Ids do not survive a database
+  # rebuild: `open_listing_deep_link` opened `hatiwal://listing/1` when the lowest
+  # listing id in the database was 81, landed on a not-found screen, and failed
+  # looking for a control that screen does not have.
+  #
+  # Resolved once per feature rather than per flow (one rails boot is ~4s), and
+  # entirely optional: if anything fails, QA_ENV_IDS stays empty and the flows fall
+  # back to their own `env:` defaults — no worse than before, and never a hard error.
+  QA_ENV_IDS=""
+  if [ -d "$API_DIR" ]; then
+    _ids="$( cd "$API_DIR" && timeout 60 bundle exec rails runner '
+      a = Listing.where(status: :active).order(:id).first
+      s = Listing.where(status: :sold).order(:id).first
+      r = Listing.where(status: :reserved).order(:id).first
+      u = User.find_by(email: "seller@hatiwal.test")
+      puts [a&.id, s&.id, r&.id, u&.id].join(" ")
+    ' 2>/dev/null | tail -1 )"
+    # `read` into named vars — NOT `set --`, which would overwrite this function's
+    # positional parameters, and "$@" here IS the list of flows to run. That would
+    # have made the feature execute nothing while looking like it worked.
+    _lid=""; _sold=""; _res=""; _sid=""
+    read -r _lid _sold _res _sid <<EOF_IDS
+$_ids
+EOF_IDS
+    [ -n "$_lid" ]  && QA_ENV_IDS="$QA_ENV_IDS --env LISTING_ID=$_lid"
+    [ -n "$_sold" ] && QA_ENV_IDS="$QA_ENV_IDS --env SOLD_LISTING_ID=$_sold"
+    [ -n "$_res" ]  && QA_ENV_IDS="$QA_ENV_IDS --env RESERVED_LISTING_ID=$_res"
+    [ -n "$_sid" ]  && QA_ENV_IDS="$QA_ENV_IDS --env SELLER_ID=$_sid"
+    [ -n "$QA_ENV_IDS" ] && ok "fixture ids:$QA_ENV_IDS" || warn "could not resolve fixture ids — flows use their own defaults"
+  fi
+
   for flow in "$@"; do
     local name; name="$(basename "$flow" .yaml)"
     local log="$out/$name.log" lc="$out/$name.logcat"
@@ -246,6 +280,7 @@ run_feature() {
         --format JUNIT --output "$out/$name.xml" \
         --debug-output "$out/debug-$name" \
         --env EMAIL="$QA_BUYER_EMAIL" --env PASSWORD="$QA_PASSWORD" \
+        ${QA_ENV_IDS} \
         --no-ansi > "$log" 2>&1
     }
 
