@@ -108,6 +108,17 @@ appId: com.hatiwal.app
 # ── 2) Draft owner detail — exactly two controls: primary Publish + More ────
 # No sheet needed for the primary action itself.
 
+# SCROLL to the actions block. It is section 7 of MyListingDetail, and on a draft
+# that has a photo and a pin — which this flow now creates, because publishing
+# requires both — the gallery and the Location map above it fill the first screen.
+# `assertVisible` does not scroll, so it failed on controls that are certainly
+# there, one screen down. (Gating the empty analytics off for drafts earlier today
+# bought space; a photo and a map spend far more than it saved. See UI-042.)
+- scrollUntilVisible:
+    element:
+      text: "Publish"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Publish"
 - assertVisible: "More"
 

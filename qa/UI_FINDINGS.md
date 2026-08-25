@@ -1778,3 +1778,37 @@ UI-030 was: the component's existence proves someone intended a picker.
 The flow (`profile/edit_profile_province`) is left testing what the app actually
 does — typed text that persists — now selected by testID rather than by the
 English placeholder.
+
+---
+
+## UI-042 — a draft's primary action is still below the fold, now under a map
+
+**Evidence:** `qa/reports/run-226/seller/debug-listing_actions_sheet/.../step-097-assertCondition-Publish.png`
+(qa_phone, 411dp). A draft that has a photo and a pin renders, top to bottom:
+full-bleed gallery (~670px), Draft badge + price + title + location + posted date,
+then a **Location section with a map, the address again, and a "Get Directions"
+button** (~900px). "Manage Listing" — the row holding Publish — is cut off at the
+bottom edge.
+
+**This is the second half of UI-041's sibling problem.** Gating the empty analytics
+block off for drafts earlier today fixed the case where a draft had NOTHING to show:
+the screen then opened on "Manage Listing → Publish + More", which is right. But a
+COMPLETE draft — photo, pin, ready to publish — spends far more vertical space than
+that fix saved, so the one action a draft exists for is off-screen again.
+
+**Worth questioning beyond the layout:** a draft is not visible to anyone, so
+"Get Directions" on it means "navigate to my own unpublished listing". The map has a
+real purpose here (the seller checks the pin landed where they meant), but the
+directions CTA does not, and it is the tallest element competing with Publish.
+
+**Not fixed, deliberately.** The obvious fix is to render the actions block earlier
+for a draft — section 7 before section 5 — but that reorders a live screen, and the
+device is mid-run so it cannot be looked at. Reordering navigation-critical layout
+on reasoning alone is what UI-040 was held back for. Options, cheapest first:
+  1. Drop "Get Directions" when `status === "draft"` (keep the map).
+  2. Render the actions block above Description/Location for a draft only.
+  3. Make the primary action sticky at the bottom on the owner detail.
+
+(1) is a two-line change and removes a control that cannot be meaningful yet;
+(2) fixes the class rather than one instance. Verify on qa_phone AND qa_phone2
+(360dp, the narrowest) before choosing.
