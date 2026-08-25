@@ -1022,3 +1022,28 @@ most a `waitForAnimationToEnd` between. Anywhere else, the IME is already down a
 you are pressing Back on the screen under test.
 
 Checked mechanically: 31 remaining uses all follow typing directly, 0 do not.
+
+## The emulator was not flaky — the kernel was killing it
+
+It died five times in one day, each death taking the running feature with it, and
+once deadlocking the entire cycle: the run sat holding the device lock with nothing
+to drive while the reboot waited for that same lock. Every symptom pointed at a
+flaky emulator (`listing_actions_sheet FAIL 549s` is a dying VM, not a slow test).
+
+`dmesg` settled it in one line:
+
+    Out of memory: Killed process (qemu-system-x86) anon-rss:4692376kB
+                   ... oom_score_adj:200
+    chrome invoked oom-killer ... Killed process (qemu-system-x86)
+
+**qemu runs with `oom_score_adj=200`** — a POSITIVE adjustment, so the kernel picks
+it before anything else on the machine. A browser tab opening was enough to take
+the rig out.
+
+`qa/lib/protect_emulator.sh` lowers that score after boot (needs `QA_SUDO_PW`; a
+negative score is privileged). It does NOT create memory — if the machine truly runs
+out, something still dies — it stops the emulator being the automatic first victim.
+
+The general lesson: when a component dies repeatedly with no error of its own,
+check whether something ELSE is killing it before treating it as unreliable. Five
+reboots went by before I looked at dmesg.
