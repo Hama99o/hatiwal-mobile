@@ -22,7 +22,17 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # App should be in RTL layout — Maestro can verify elements exist
 # but visual RTL correctness requires manual screenshot review
-- assertVisible: "پښتو"
+# The language NAME lives on the Profile screen's language row, and this flow has
+# just switched language — which RESTARTS the app (forceRTL + reloadApp) onto the
+# feed — and then navigated to Bazaar. So "پښتو" was never going to be on screen.
+#
+# Assert the locale-specific TAB label instead: it is in the tab bar wherever the app
+# lands, it changes with the locale, and `sidebar.profile` differs between Pashto
+# ("زه") and Dari ("من"), so it proves WHICH language is active — which "بازار",
+# identical in both, cannot.
+- extendedWaitUntil:
+    visible: "زه"
+    timeout: 40000
 - waitForAnimationToEnd
 # Listings are still visible (Pashto Bazaar label "بازار")
 - assertVisible:

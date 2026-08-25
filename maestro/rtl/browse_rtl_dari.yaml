@@ -20,5 +20,15 @@ appId: com.hatiwal.app
     text: "بازار"
     optional: true
 - waitForAnimationToEnd
-- assertVisible: "دری"
+# The language NAME lives on the Profile screen's language row, and this flow has
+# just switched language — which RESTARTS the app (forceRTL + reloadApp) onto the
+# feed — and then navigated to Bazaar. So "دری" was never going to be on screen.
+#
+# Assert the locale-specific TAB label instead: it is in the tab bar wherever the app
+# lands, it changes with the locale, and `sidebar.profile` differs between Pashto
+# ("زه") and Dari ("من"), so it proves WHICH language is active — which "بازار",
+# identical in both, cannot.
+- extendedWaitUntil:
+    visible: "من"
+    timeout: 40000
 - waitForAnimationToEnd
