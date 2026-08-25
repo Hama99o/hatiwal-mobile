@@ -116,6 +116,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiErrorMessage } from "@/utils/apiError";
 
 const MAX_LISTING_PRICE = 9_999_999_999.99;
+// Named so the schema rule and the message the seller reads can never drift.
+const MAX_LISTING_QUANTITY = 999;
 
 const listingSchema = z.object({
   // .trim() BEFORE .min(1): the backend validates `presence: true`, which treats
@@ -155,7 +157,7 @@ const listingSchema = z.object({
   // No .default() — that makes the resolver's INPUT type optional while the
   // form's value type stays required, which zod + react-hook-form cannot
   // reconcile. Every defaultValues branch supplies 1 explicitly instead.
-  quantity: z.number().int().min(1).max(999),
+  quantity: z.number().int().min(1).max(MAX_LISTING_QUANTITY),
 });
 
 // z.input, not z.infer. `negotiable: z.boolean().default(true)` makes the field
@@ -1512,9 +1514,26 @@ export default function ListingFormScreen() {
                   // and never learns what the number means.
                   accessibilityLabel={t("listing.form.howManyUnits")}
                   testID="listing-form-quantity-input"
+                  error={!!errors.quantity}
                   style={{ marginTop: 4 }}
                 />
               )}
+            />
+          )}
+
+          {/* Quantity had NO inline error, which made the generic fallback lie.
+              The ceiling is reachable in one keystroke: this field arrives holding
+              "2" with selectTextOnFocus, so a seller who taps and types 500 gets
+              2500, zod rejects it, and `quantity` is not in FIELD_ERROR_TO_BLOCKER
+              — so the blocker list comes back EMPTY and the seller was told
+              "Please check the highlighted fields before continuing" with nothing
+              highlighted anywhere on the screen. Now the field says what is
+              wrong and what the limit is. */}
+          {errors.quantity && (
+            <FieldError
+              message={t("listing.form.quantityOutOfRange", {
+                max: MAX_LISTING_QUANTITY,
+              })}
             />
           )}
         </View>

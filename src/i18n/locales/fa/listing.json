@@ -226,7 +226,8 @@
     "howManySold": "چند عدد فروختید؟",
     "photoPickFailed": "Couldn't open your photos. Please try again.",
     "cameraFailed": "Couldn't open the camera. Please try again.",
-    "photoLimitReached": "You can add up to {{max}} photos — {{dropped}} weren't added."
+    "photoLimitReached": "You can add up to {{max}} photos — {{dropped}} weren't added.",
+    "quantityOutOfRange": "Enter a number between 1 and {{max}}."
   },
   "shopCount_one": "{{count}} آگهی",
   "firmPrice": "قیمت ثابت",
