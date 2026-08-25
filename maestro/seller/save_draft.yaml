@@ -84,6 +84,16 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # No photo added, location picker never opened.
+# SCROLLED to. The location row sits below category, condition and description on
+# the form, and `assertVisible` does not scroll — so this failed on a row that is
+# certainly there. The assertion still means what it meant: the row must STILL be
+# offering to set a location, i.e. this draft has no pin, which is the whole point
+# of the fixture.
+- scrollUntilVisible:
+    element:
+      text: "Tap to set exact location on map"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Tap to set exact location on map"
 
 - tapOn: "Save Draft"
@@ -190,6 +200,16 @@ appId: com.hatiwal.app
 
 # Reopening the pin-less draft still shows the "tap to set" placeholder —
 # never a stale error and never a fabricated location.
+# SCROLLED to. The location row sits below category, condition and description on
+# the form, and `assertVisible` does not scroll — so this failed on a row that is
+# certainly there. The assertion still means what it meant: the row must STILL be
+# offering to set a location, i.e. this draft has no pin, which is the whole point
+# of the fixture.
+- scrollUntilVisible:
+    element:
+      text: "Tap to set exact location on map"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Tap to set exact location on map"
 - assertNotVisible: "Location is required — buyers filter listings by area"
 
