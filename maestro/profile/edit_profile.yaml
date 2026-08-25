@@ -35,4 +35,8 @@ appId: com.hatiwal.app
     visible: "Profile saved"
     timeout: 15000
 # Back on Profile — name updated
-- assertVisible: "Ahmad Updated"
+# The profile renders "firstname lastname" as ONE Text, so after changing only the
+# first name the node reads "Ahmad Updated Karimi" — and Maestro anchors the whole
+# string, so the bare first name could never match. The save itself was always
+# fine: `PUT /users/me` returned 200 with firstname "Ahmad Updated".
+- assertVisible: "Ahmad Updated .*"

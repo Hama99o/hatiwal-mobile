@@ -56,17 +56,39 @@ env:
       - tapOn:
           id: "profile-tab"
       - waitForAnimationToEnd
+      # Sign out unless we are ALREADY the intended account.
+      #
+      # This used to trigger on ONE known-wrong identity, so any OTHER account
+      # sailed through. Flows that REGISTER leave a throwaway signed in
+      # (account_delete_and_restore leaves "Delete Metest"), and every later flow
+      # then ran as a stranger: edit_profile saved firstname "Ahmad Updated" onto
+      # that account, the API returned 200, the profile rendered "Ahmad Updated
+      # Metest", and the flow failed asserting "Ahmad Updated" — a green backend
+      # and a red flow with nothing pointing at the real cause.
+      #
+      # Cost, accepted deliberately: two flows override EMAIL (maps/
+      # map_location_outside_afghanistan uses the seller). For those this signs the
+      # correct account out and straight back in — slower, same end state. The
+      # alternative was interpolating ${EXPECT_NAME} into the condition, and
+      # Maestro evaluates ${} as JavaScript; getting that wrong breaks the guard
+      # for all ~190 callers at once, which is not worth saving two sign-ins.
+      #
+      # Inverted: anything that is not the expected user gets signed out. Every
+      # step is `optional`, so a signed-OUT app (no name, no sign-out button) is a
+      # no-op instead of a failure.
       - runFlow:
           when:
-            visible: "Omar Noori"
+            notVisible: "Ahmad Karimi"
           commands:
             - scrollUntilVisible:
                 element:
                   id: "sign-out-button"
                 direction: DOWN
-                timeout: 15000
+                timeout: 10000
+                optional: true
             - tapOn:
                 id: "sign-out-button"
+                optional: true
             - waitForAnimationToEnd
             - tapOn:
                 text: "Sign Out"

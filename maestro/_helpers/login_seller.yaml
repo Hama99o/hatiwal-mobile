@@ -42,17 +42,26 @@ env:
       - tapOn:
           id: "profile-tab"
       - waitForAnimationToEnd
+      # Sign out unless we are ALREADY the seller. The mirror of login.yaml's
+      # guard, and it had the mirror bug: triggering on "Ahmad Karimi" meant it
+      # knew about exactly ONE wrong identity, so a throwaway account left signed
+      # in by a register flow ran seller flows as a stranger who owns no listings —
+      # every "your listing" assertion then failed for the wrong reason.
+      #
+      # Every step optional, so a signed-out app is a no-op.
       - runFlow:
           when:
-            visible: "Ahmad Karimi"
+            notVisible: "Omar Noori"
           commands:
             - scrollUntilVisible:
                 element:
                   id: "sign-out-button"
                 direction: DOWN
-                timeout: 15000
+                timeout: 10000
+                optional: true
             - tapOn:
                 id: "sign-out-button"
+                optional: true
             - waitForAnimationToEnd
             - tapOn:
                 text: "Sign Out"
