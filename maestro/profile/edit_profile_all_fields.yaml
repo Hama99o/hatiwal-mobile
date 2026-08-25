@@ -12,13 +12,13 @@ appId: com.hatiwal.app
 
 # Clear and update first name
 - tapOn:
-    id: "register-firstname-input"
+    id: "edit-profile-firstname-input"
 - eraseText
 - inputText: "UpdatedFirst"
 
 # Clear and update last name
 - tapOn:
-    id: "register-lastname-input"
+    id: "edit-profile-lastname-input"
 - eraseText
 - inputText: "UpdatedLast"
 
@@ -30,7 +30,7 @@ appId: com.hatiwal.app
 # Clear and update phone
 # `auth.phone` = "Phone Number" — anchored matching needs the full label.
 - tapOn:
-    id: "register-phone-input"
+    id: "edit-profile-phone-input"
 - eraseText
 - inputText: "+93700000001"
 

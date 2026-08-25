@@ -20,7 +20,7 @@ appId: com.hatiwal.app
 - assertVisible: "Edit Profile"
 # Change first name
 - tapOn:
-    id: "register-firstname-input"
+    id: "edit-profile-firstname-input"
 - eraseText
 - inputText: "Ahmad Updated"
 # Save

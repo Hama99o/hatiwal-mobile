@@ -325,6 +325,7 @@ export default function EditProfileScreen() {
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
+                  testID="edit-profile-firstname-input"
                   placeholder={t("profile.edit.fields.firstname")}
                   error={!!errors.firstname}
                   style={{
@@ -350,6 +351,7 @@ export default function EditProfileScreen() {
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
+                  testID="edit-profile-lastname-input"
                   placeholder={t("profile.edit.fields.lastname")}
                   error={!!errors.lastname}
                   style={{
@@ -383,6 +385,7 @@ export default function EditProfileScreen() {
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
+                  testID="edit-profile-phone-input"
                   placeholder={t("profile.edit.fields.phone")}
                   keyboardType="phone-pad"
                   error={!!errors.phone}
@@ -408,6 +411,7 @@ export default function EditProfileScreen() {
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
+                  testID="edit-profile-bio-input"
                   placeholder={t("profile.edit.fields.bioPlaceholder")}
                   error={!!errors.bio}
                   style={{
@@ -440,6 +444,7 @@ export default function EditProfileScreen() {
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
+                  testID="edit-profile-city-input"
                   placeholder={t("profile.edit.fields.city")}
                   style={{ textAlign: isRtl ? "right" : "left" }}
                   returnKeyType="next"
@@ -460,6 +465,7 @@ export default function EditProfileScreen() {
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
+                  testID="edit-profile-province-input"
                   placeholder={t("profile.edit.fields.province")}
                   style={{ textAlign: isRtl ? "right" : "left" }}
                   returnKeyType="done"
