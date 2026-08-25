@@ -12,10 +12,14 @@ appId: com.hatiwal.app
 # description, views chart, action row) are taller than a phone.
 - scrollUntilVisible:
     element:
-      text: "Edit"
+      id: "profile-edit-button"
     direction: DOWN
     timeout: 20000
-- tapOn: "Edit"
+# By testID: "Edit" is `common.edit`, translated, and the profile screen also
+# carries "Edit Profile" on the AVATAR — which opens the photo picker rather than
+# navigating. This id is the one control that goes to the edit screen.
+- tapOn:
+    id: "profile-edit-button"
 - waitForAnimationToEnd
 - assertVisible: "Edit Profile"
 # Change first name

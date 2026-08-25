@@ -6,7 +6,18 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-- tapOn: "Edit Profile"
+# The edit-screen button by testID. `tapOn: "Edit Profile"` hit the AVATAR, whose
+# accessibilityLabel is that exact string — so instead of navigating it opened the
+# Android photo PICKER, which then sat over the app and poisoned every later flow
+# (away_mode, edit_profile_all_fields, edit_profile_province all failed underneath
+# it). Profile.tsx warns about the collision in a comment; this is the id it means.
+- scrollUntilVisible:
+    element:
+      id: "profile-edit-button"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "profile-edit-button"
 - waitForAnimationToEnd
 - assertVisible: "Edit Profile"
 
@@ -74,7 +85,18 @@ appId: com.hatiwal.app
     timeout: 15000
 
 # Verify data persisted
-- tapOn: "Edit Profile"
+# The edit-screen button by testID. `tapOn: "Edit Profile"` hit the AVATAR, whose
+# accessibilityLabel is that exact string — so instead of navigating it opened the
+# Android photo PICKER, which then sat over the app and poisoned every later flow
+# (away_mode, edit_profile_all_fields, edit_profile_province all failed underneath
+# it). Profile.tsx warns about the collision in a comment; this is the id it means.
+- scrollUntilVisible:
+    element:
+      id: "profile-edit-button"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "profile-edit-button"
 - waitForAnimationToEnd
 - assertVisible: "UpdatedFirst"
 - assertVisible: "UpdatedLast"

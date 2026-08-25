@@ -239,6 +239,11 @@ function PersonalInfoCard({ user, handleEdit }: { user: User; handleEdit: () => 
           variant="ghost"
           size="sm"
           onPress={handleEdit}
+          // The ONLY control that navigates to the edit screen. The avatar above
+          // carries accessibilityLabel "Edit Profile", so a flow selecting that
+          // text hits the avatar and opens the photo PICKER instead — which is
+          // exactly how the picker kept leaking across flows.
+          testID="profile-edit-button"
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
             alignItems: "center",
