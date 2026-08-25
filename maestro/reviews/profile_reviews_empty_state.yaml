@@ -17,7 +17,12 @@ env:
 - launchApp:
     clearState: true
 - runFlow: ../_helpers/open_bundle.yaml
-- runFlow: ../_helpers/skip_onboarding.yaml
+# goto_login, not skip_onboarding. Skipping onboarding alone lands on guest
+# BAZAAR — goto_login.yaml says so in its own header — and this flow then expects
+# the login screen, so `auth.subtitle` was never on screen and the wait timed out
+# before a single credential was typed. goto_login does the skip AND the extra hop
+# to Login, and skip_onboarding is a no-op once past that stage.
+- runFlow: ../_helpers/goto_login.yaml
 # NOT "Welcome to Hatiwal": the onboarding carousel's FIRST SLIDE and the login
 # screen both render that exact heading (onboarding.slides.welcome.title and
 # auth.welcome), so asserting it cannot tell the two apart — a flow could pass
