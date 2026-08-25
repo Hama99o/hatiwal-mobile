@@ -115,12 +115,6 @@ appId: com.hatiwal.app
 # the login screen that swallowed EVERY sign-in in the suite: no request ever
 # reached the API and the flow blamed a missing tab bar 60s later.
 - waitForAnimationToEnd
-# Location is a PUBLISH BLOCKER (getPublishBlockers, mode "publish"), so the pin
-# has to exist before Publish will do anything. Without it the app correctly
-# refuses and says "Location is required — buyers filter listings by area", and
-# this flow then failed asserting a successful publish.
-- runFlow: ../_helpers/set_listing_location.yaml
-
 - tapOn: "Publish"
 - waitForAnimationToEnd
 # TASK-J952: publishing lands on the owner detail with PublishSuccessSheet

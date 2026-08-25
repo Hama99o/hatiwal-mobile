@@ -114,15 +114,6 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertNotVisible: "Tap to set exact location on map"
 
-# Location is a PUBLISH BLOCKER (getPublishBlockers, mode "publish"), so the pin
-# has to exist before Publish will do anything. Without it the app correctly
-# refuses and says "Location is required — buyers filter listings by area", and
-# this flow then failed asserting a successful publish.
-# Set BEFORE "Save Draft": the location row lives on the CREATE FORM, and this
-# flow publishes later from the draft's DETAIL screen, where that row does not
-# exist at all. The draft carries the coordinates forward.
-- runFlow: ../_helpers/set_listing_location.yaml
-
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
 - assertVisible: "Draft"

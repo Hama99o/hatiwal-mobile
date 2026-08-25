@@ -17,6 +17,31 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## Before inserting a step into N flows, check whether they already do it
+
+I added a shared location step to nine publish flows because they "never set a
+location". Five of them already did — via a different mechanism
+(`location-search-input` + "Confirm location" rather than the map-pin row) — and
+one of those five even asserted `notVisible: "Tap to set exact location on map"`
+immediately beforehand, proving its pin had taken. My helper then looked for that
+exact prompt and could not find it, so the insertion did not just duplicate work:
+**it broke five flows that were already doing the right thing.**
+`create_listing_publish_blocked` failed on it four minutes in.
+
+What made this avoidable is the part worth remembering. I ran an audit before
+committing and it passed — but it checked the wrong precondition. It asked "is the
+step in a place where the create form is still on screen?" (a real question, which
+caught three genuinely misplaced insertions) and never asked the more basic one:
+**"does this flow already do this, by any means?"**
+
+So when a change is a bulk insertion, the audit needs both halves:
+
+1. Does the target already do this ANOTHER WAY? Grep for the capability, not for
+   the helper name — a second mechanism will not match the name you are adding.
+2. Is the insertion point valid for this flow's state?
+
+A passing audit only proves the question you asked was satisfied.
+
 ## Audits that correctly produce no change
 
 Keeping these written down so they are not re-derived, and so the sweep is not
