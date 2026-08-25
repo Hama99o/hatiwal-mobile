@@ -1721,3 +1721,30 @@ Recorded here too, because a wrong flow costs exactly as much time as a wrong sc
 | `tapOn: "More"` on the owner detail | the action row sits below the description and the views chart, and `tapOn` does not scroll to its target | `scrollUntilVisible` on `id: lifecycle-more-action` — a testID, not a localized word |
 | `chat/block_from_conversation`, `chat/report_participant`, `chat/chat_older_messages_pagination`, `chat/view_other_profile_from_conversation`, `browse/full_marketplace_cycle` | tapped `"Chat"`, but the tab is labelled **"Chats"** (`sidebar.chat`). Maestro text matching is an **anchored regex, not a substring**, so this never matched and all 5 died at step 1 with `Element not found: Text matching regex: Chat`. Other chat flows already used `"Chats"` — these 5 were simply never run. | `tapOn: "Chats"` |
 | `browse/listing_detail_multi_quantity` | `waitForAnimationToEnd` returns while the feed is still skeletons, so `scrollUntilVisible` began scrolling an **empty list**, ran past where the card would later render, and gave up — reported as `No visible element found`, which reads as a missing fixture. The fixture was there the whole time (idx 3 of page 1, qty 15, confirmed over HTTP). The tablet lost this race; the phone won it. | wait for a real row (`text: "AFN.*"`) before scrolling a feed — never scroll a list you have not confirmed has data |
+
+---
+
+## UI-040 — the Categories tab label is truncated to "Categor…"
+
+**Evidence:** `qa/reports/run-224/profile/screens/blocked_users.png` (qa_phone,
+1080x2400 @420dpi = 411dp). The tab bar reads
+`Bazaar | Categor… | Saved | Chats | Me`.
+
+Five tabs share the bar; `styles.label` is `fontSize: 10.5, maxWidth: 76` with
+`numberOfLines={1}`, and at 411dp the tab's own width is the binding constraint,
+not `maxWidth`. So the primary navigation shows a clipped word.
+
+**It is worse in Dari than in English.** `sidebar.categories` is "Categories"
+(en), "ډلې" (ps — short, fine), and "دسته‌بندی‌ها" (fa — longer than the English).
+Any fix has to hold for fa, so shortening only the English string fixes nothing.
+
+**NOT fixed yet, deliberately.** The obvious changes are all pixel judgements —
+drop to 10px, allow two lines, trim the tab's horizontal padding, or give the tab
+its own shorter label key — and the device was mid-run, so none of them could be
+checked on a real screen. Shipping an unverified layout tweak to the primary
+navigation is worse than leaving a known clip. Verify on qa_phone AND on
+`qa_phone2` (360dp, the narrowest) in all three locales before choosing.
+
+A shorter label is a product-copy decision, not a QA one: "Categories" is the
+concept the screen actually shows, so renaming it to "Explore"/"Browse" collides
+with Bazaar. Prefer the layout fix.
