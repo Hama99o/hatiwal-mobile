@@ -16,6 +16,24 @@ appId: com.hatiwal.app
 # selector cannot work.
 
 # The Preferences card is below the profile header, stats and quick actions.
+# BE ON PROFILE FIRST.
+#
+# A language switch that flips direction RESTARTS the app (forceRTL + reloadApp),
+# and it comes back on its INITIAL route — not on Profile, where it was when the
+# switch was made. change_language_english switched to Pashto and then called this
+# helper again: it scrolled a screen that has no language row at all, timed out,
+# and failed with `No visible element found: id: language-row` after burning
+# 8m19s. Every caller that switches language twice has the same shape, so the
+# recovery belongs here rather than in each flow.
+- runFlow:
+    when:
+      notVisible:
+        id: "language-row"
+    commands:
+      - tapOn:
+          id: "profile-tab"
+      - waitForAnimationToEnd
+
 - scrollUntilVisible:
     element:
       id: "language-row"
