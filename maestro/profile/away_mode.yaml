@@ -27,7 +27,16 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 
 # Away until date field appears
 - assertVisible: "Away until (YYYY-MM-DD)"
-- tapOn: "Away until (YYYY-MM-DD)"
+# By testID. "Away until (YYYY-MM-DD)" is `profile.away.untilLabel` — the LABEL
+# above the field, not the field, so tapping it focuses nothing and the inputText
+# that follows goes nowhere. The input's own placeholder is just "YYYY-MM-DD".
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-away-until-input"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "edit-profile-away-until-input"
 - inputText: "2030-12-31"
 
 # Save

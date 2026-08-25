@@ -566,6 +566,7 @@ export default function EditProfileScreen() {
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
+                    testID="edit-profile-away-until-input"
                     placeholder="YYYY-MM-DD"
                     keyboardType="numeric"
                     maxLength={10}
