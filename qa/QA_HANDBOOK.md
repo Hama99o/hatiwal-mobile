@@ -997,3 +997,28 @@ reported missing, by an option added to make finding it more reliable.
 So: use it where the earlier bug actually bites, and read the screen first. A
 target at the bottom of its list needs no help — it is already as visible as it
 will get.
+
+## `hideKeyboard` is BACK. Only use it directly after typing.
+
+On Android `hideKeyboard` presses Back. That is safe only while an IME is up to
+consume it. With no keyboard, Back does what Back does — closes the screen.
+
+I hit this twice. First it broke create_listing_map_pin by closing the map modal.
+Then I swept `hideKeyboard` into 17 flows before their submit buttons, reasoning
+"typing happened earlier, so the IME must be up". It is not: anything between the
+typing and the submit can dismiss it — a category sheet, a photo picker, a map
+modal. In create_listing_publish_direct the sequence was
+
+    - tapOn: "Confirm location"     # closes the map modal, IME already gone
+    - hideKeyboard                  # → BACK → leaves the form
+    - tapOn: "Publish"              # now behind a "Discard changes?" alert
+
+and the hierarchy dump at failure was that alert: CANCEL / DISCARD. Four publish
+flows failed on `Element not found: Publish` for a button that was simply behind a
+dialog my own step had raised.
+
+THE RULE: `hideKeyboard` belongs immediately after `inputText`/`eraseText`, with at
+most a `waitForAnimationToEnd` between. Anywhere else, the IME is already down and
+you are pressing Back on the screen under test.
+
+Checked mechanically: 31 remaining uses all follow typing directly, 0 do not.

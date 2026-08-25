@@ -119,7 +119,6 @@ appId: com.hatiwal.app
 # the hierarchy and taps its bounds, while the touch lands on the keyboard. On
 # the login screen that swallowed EVERY sign-in in the suite: no request ever
 # reached the API and the flow blamed a missing tab bar 60s later.
-- hideKeyboard
 - waitForAnimationToEnd
 - tapOn: "Publish"
 - waitForAnimationToEnd
@@ -251,7 +250,6 @@ appId: com.hatiwal.app
 # keyboard. Maestro then reports the tap COMPLETED while the touch lands on the
 # keyboard — register_duplicate_email submitted nothing at all, and the Rails log
 # showed no register POST for the whole run.
-- hideKeyboard
 - waitForAnimationToEnd
 - tapOn: "Publish"
 - waitForAnimationToEnd

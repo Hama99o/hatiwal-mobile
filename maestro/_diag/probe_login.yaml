@@ -19,7 +19,6 @@ appId: com.hatiwal.app
 # the hierarchy and taps its bounds, while the touch lands on the keyboard. On
 # the login screen that swallowed EVERY sign-in in the suite: no request ever
 # reached the API and the flow blamed a missing tab bar 60s later.
-- hideKeyboard
 - waitForAnimationToEnd
 - tapOn: "Sign In"
 - waitForAnimationToEnd
