@@ -27,7 +27,13 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 # Core elements visible in Pashto
-- assertVisible: "د پلورونکي سره اړیکه"
+# The app renders `listing.detail.contactSeller`, whose Pashto value is
+# "پلورونکي سره اړیکه". The string asserted before had the leading "د " because it
+# came from `browse.startChat` — a DEAD key that nothing references, whose English
+# value is identical ("Contact Seller") but whose Pashto translation diverged. So this
+# assertion could only ever fail, and only in Pashto: in English and Dari the two keys
+# hold the same string, so no other flow noticed.
+- assertVisible: "پلورونکي سره اړیکه"
 # Scroll to see seller section
 - scroll
 - waitForAnimationToEnd
