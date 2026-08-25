@@ -59,9 +59,22 @@ env:
                 direction: DOWN
                 timeout: 10000
                 optional: true
-            - tapOn:
-                id: "sign-out-button"
-                optional: true
+            # ...then act ONLY if the button is really there. `optional: true` on the TAP was
+            # the hole: a sign-out that failed to land said nothing and the flow carried on as
+            # the WRONG USER. safety_tips_listing_detail ran as the seller and its screenshot
+            # proves it — "Expires in 30 days" is the ExpiryBadge, which ListingDetail renders
+            # only when isOwnListing, and Contact Seller is correctly hidden on your own
+            # listing. The flow then failed asserting it, blaming the app.
+            #
+            # Gating on the button being PRESENT keeps the signed-out case a clean no-op while
+            # making a failed sign-out impossible to miss.
+            - runFlow:
+                when:
+                  visible:
+                    id: "sign-out-button"
+                commands:
+                  - tapOn:
+                      id: "sign-out-button"
             - waitForAnimationToEnd
             - tapOn:
                 text: "Sign Out"
