@@ -31,10 +31,11 @@ appId: com.hatiwal.app
 # present and active. Same fix as multi_quantity_partial_sale.
 - tapOn: "Search my listings..."
 - inputText: "Lenovo ThinkPad Laptop Core i5 8GB"
-# hideKeyboard IMMEDIATELY after inputText, nothing in between: it is the BACK button
-# on Android and only safe while an IME is up to consume it. Gboard floats over the
-# middle of the list on this emulator, right where the first result lands.
-- hideKeyboard
+# NO hideKeyboard here. Back is not reliably consumed by the IME on a search screen —
+# the screen handles it, clearing the query and remounting the list:
+# rate_buyer_after_sale's screenshot shows the filter back on "All 37", the search box
+# empty and the list "Refreshing…". It is also unnecessary, because the first search
+# result sits directly under the search box, above where the keyboard covers.
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Lenovo ThinkPad Laptop Core i5 8GB"

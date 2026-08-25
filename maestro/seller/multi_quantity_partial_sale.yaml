@@ -96,13 +96,11 @@ appId: com.hatiwal.app
 # top of My Shop.
 - tapOn: "Search my listings..."
 - inputText: "Phone Case Silicone Clear - Wholesale"
-# hideKeyboard IMMEDIATELY after inputText, with nothing between. It is the BACK
-# button on Android and is only safe while an IME is up to consume it — put a scroll
-# in front of it and it presses Back out of the app instead, which is how
-# listing_conversations ended up screenshotting the Android app drawer today. The
-# keyboard does have to go: on this emulator Gboard floats over the middle of the
-# list, exactly where the first result lands.
-- hideKeyboard
+# NO hideKeyboard here. Back is not reliably consumed by the IME on a search screen —
+# the screen handles it, clearing the query and remounting the list:
+# rate_buyer_after_sale's screenshot shows the filter back on "All 37", the search box
+# empty and the list "Refreshing…". It is also unnecessary, because the first search
+# result sits directly under the search box, above where the keyboard covers.
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Phone Case Silicone Clear - Wholesale"
