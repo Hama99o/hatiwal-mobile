@@ -85,11 +85,28 @@ appId: com.hatiwal.app
 - tapOn: "Active"
 - waitForAnimationToEnd
 
-- scrollUntilVisible:
-    element:
-      text: "Phone Case Silicone Clear - Wholesale"
-    direction: DOWN
-    timeout: 8000
+# SEARCH, do not scroll to it. This fixture is a SEEDED listing among many the
+# seller owns, so it is not near the top and an 8s scroll budget cannot reach it —
+# "No visible element found" for a listing that is present and active.
+# listing_conversations learned this the expensive way: its comment records spending
+# 463s driving infinite scroll and still not finding a listing that was there.
+#
+# The 8s scrolls in the other seller flows are fine and are left alone: they look for
+# listings the flow just created, or "QA Disposable ..." fixtures, which are at the
+# top of My Shop.
+- tapOn: "Search my listings..."
+- inputText: "Phone Case Silicone Clear - Wholesale"
+# hideKeyboard IMMEDIATELY after inputText, with nothing between. It is the BACK
+# button on Android and is only safe while an IME is up to consume it — put a scroll
+# in front of it and it presses Back out of the app instead, which is how
+# listing_conversations ended up screenshotting the Android app drawer today. The
+# keyboard does have to go: on this emulator Gboard floats over the middle of the
+# list, exactly where the first result lands.
+- hideKeyboard
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Phone Case Silicone Clear - Wholesale"
+    timeout: 20000
 
 - tapOn: "Phone Case Silicone Clear - Wholesale"
 - waitForAnimationToEnd
