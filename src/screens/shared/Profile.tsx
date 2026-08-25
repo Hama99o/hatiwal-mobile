@@ -46,6 +46,7 @@ import { useModeStore, resetMode } from "@/stores/mode.store";
 import { useThemeStore, ThemePreference, resetTheme } from "@/stores/theme.store";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
+import { fontFamilyForLang } from "@/lib/fonts";
 import { confirmAlert } from "@/utils/alert";
 import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/permissions";
 import { setLanguage, resetLanguage, SUPPORTED_LANGUAGES, LanguageCode } from "@/i18n";
@@ -959,7 +960,14 @@ function SettingsSection({
                   >
                     <Text
                       className={isActive ? "text-sm font-semibold" : "text-sm"}
-                      style={{ color: isActive ? colors.primary : colors.foreground }}
+                      style={{
+                        color: isActive ? colors.primary : colors.foreground,
+                        // Its own script's font, not the app's — same reason as
+                        // LanguageSwitcher: this list shows all three languages at once,
+                        // and Rubik (en) / Zain (fa) do not cover Pashto's extended
+                        // letters, so "پښتو" broke unless the app was already in Pashto.
+                        fontFamily: fontFamilyForLang(code, isActive ? "700" : "400"),
+                      }}
                     >
                       {label}
                     </Text>

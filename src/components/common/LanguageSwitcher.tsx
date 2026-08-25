@@ -3,6 +3,7 @@ import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
 import { useColors } from "@/hooks/useColors";
 import { SUPPORTED_LANGUAGES, setLanguage, type LanguageCode } from "@/i18n";
+import { fontFamilyForLang } from "@/lib/fonts";
 
 type LanguageSwitcherProps = {
   // "sm" — compact pills (default, used in Profile settings inline picker)
@@ -48,6 +49,18 @@ export default function LanguageSwitcher({ size = "sm" }: LanguageSwitcherProps)
                 color: active ? colors.primaryForeground : colors.foreground,
                 fontWeight: active ? "700" : "400",
                 fontSize: isLg ? 16 : 14,
+                // EACH LABEL IN ITS OWN SCRIPT'S FONT — not the app's.
+                //
+                // Everything else is drawn with fontFamilyForLang(ACTIVE language),
+                // which is correct when the text IS in that language. This control is
+                // the one place three scripts appear at once, so inheriting the app
+                // font renders two of them in a face that cannot cover them: in English
+                // everything gets Rubik (Latin only), and in Dari everything gets Zain,
+                // which — as fonts.ts says itself — does not reliably carry Pashto's
+                // extended letters (ټ ډ ړ ږ ښ ګ ڼ ې). "پښتو" contains ښ, so it rendered
+                // broken in English and Dari and correctly only once the app was
+                // already in Pashto. Reported from the device.
+                fontFamily: fontFamilyForLang(lang.code, active ? "700" : "400"),
               }}
             >
               {lang.label}

@@ -25,8 +25,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Open the categories hub via the grid-icon affordance
+# The categories TAB by id. "ډلې وګورئ" is `browse.browseCategories`, a DEAD key —
+# it exists in all three locale files and no screen renders it, so this tap could
+# never land. browse/categories_hub.yaml already uses this id.
 - tapOn:
-    text: "ډلې وګورئ"
+    id: "categories-tab"
 - waitForAnimationToEnd
 
 # Hub title in Pashto
