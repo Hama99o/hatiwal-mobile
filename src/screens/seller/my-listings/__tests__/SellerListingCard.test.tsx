@@ -206,6 +206,24 @@ const makeListing = (overrides: Partial<Listing> = {}): Listing => ({
   ...overrides,
 });
 
+/**
+ * A draft that is actually PUBLISHABLE.
+ *
+ * `makeListing` deliberately has no photo and no pin (imageUrls: [], latitude and
+ * longitude null), which is a listing that CANNOT be published — publishing requires
+ * both. useListingLifecycle now checks that before it confirms anything, so the
+ * publish-path tests need a listing that can legitimately go live. The block itself
+ * is covered by the hook's own tests.
+ */
+const makePublishableDraft = (overrides: Partial<Listing> = {}): Listing =>
+  makeListing({
+    status: "draft",
+    imageUrls: ["https://example.test/photo.jpg"],
+    latitude: 34.5553,
+    longitude: 69.2075,
+    ...overrides,
+  });
+
 // ── Render helper ──────────────────────────────────────────────────────────────
 
 function makeQueryClient() {
@@ -313,7 +331,7 @@ describe("SellerListingCard — primary action button per status", () => {
 
 describe("SellerListingCard — publish action (primary)", () => {
   it("calls confirmAlert when the primary Publish button is tapped", () => {
-    renderCard(makeListing({ status: "draft" }));
+    renderCard(makePublishableDraft());
     fireEvent.press(screen.getByText("listing.publish"));
     expect(mockConfirmAlert).toHaveBeenCalledTimes(1);
     expect(mockConfirmAlert).toHaveBeenCalledWith(
@@ -328,7 +346,7 @@ describe("SellerListingCard — publish action (primary)", () => {
 
   it("calls listingsAPI.publishListing with the listing id on confirm", async () => {
     mockListingsAPI.publishListing.mockResolvedValueOnce(makeListing({ status: "active" }));
-    renderCard(makeListing({ status: "draft", id: 10 }));
+    renderCard(makePublishableDraft({ id: 10 }));
 
     fireEvent.press(screen.getByText("listing.publish"));
     simulateConfirm();
@@ -343,7 +361,7 @@ describe("SellerListingCard — publish action (primary)", () => {
     const qc = makeQueryClient();
     const invalidateSpy = jest.spyOn(qc, "invalidateQueries");
 
-    renderCard(makeListing({ status: "draft", id: 10 }), qc);
+    renderCard(makePublishableDraft({ id: 10 }), qc);
 
     fireEvent.press(screen.getByText("listing.publish"));
     simulateConfirm();
@@ -357,7 +375,7 @@ describe("SellerListingCard — publish action (primary)", () => {
   });
 
   it("does NOT call listingsAPI.publishListing when cancel is pressed", () => {
-    renderCard(makeListing({ status: "draft" }));
+    renderCard(makePublishableDraft());
     fireEvent.press(screen.getByText("listing.publish"));
 
     const buttons = mockConfirmAlert.mock.calls[0][2] as Array<{
