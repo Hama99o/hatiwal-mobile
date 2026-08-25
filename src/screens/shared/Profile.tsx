@@ -40,6 +40,7 @@ import { UserIdentity } from "@/components/common/UserIdentity";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { RatingDisplay } from "@/components/common/RatingDisplay";
 import { PendingReviewsNudge } from "@/screens/shared/profile/PendingReviewsNudge";
+import { ConfirmEmailBanner } from "@/components/common/ConfirmEmailBanner";
 import { useAuthStore } from "@/stores/auth.store";
 import { useModeStore, resetMode } from "@/stores/mode.store";
 import { useThemeStore, ThemePreference, resetTheme } from "@/stores/theme.store";
@@ -747,6 +748,11 @@ export default function ProfileScreen() {
       )}
 
       {/* ── REV2 — "Rate your recent deals" nudge (renders nothing when empty) ── */}
+      {/* Unconfirmed email — informs and offers a resend, never blocks. The API is
+          non-blocking too (allow_unconfirmed_access_for = nil), so this must not
+          pretend otherwise. Renders nothing once confirmed. */}
+      <ConfirmEmailBanner email={user.email} confirmed={user.emailConfirmed} />
+
       <PendingReviewsNudge />
 
       {/* ── Content — one unified layout; mode only changes stats + actions ── */}

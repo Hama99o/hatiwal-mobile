@@ -20,6 +20,15 @@ export interface User {
   sellerMode: boolean;
   status: string;
   verified?: boolean;
+  /**
+   * Whether this account's email address has been confirmed.
+   *
+   * The API sends a boolean, not the timestamp — the client only needs it to
+   * decide whether to show the "confirm your email" prompt. Undefined on an older
+   * API build, which is treated as CONFIRMED so the prompt can never appear
+   * spuriously for someone who cannot act on it.
+   */
+  emailConfirmed?: boolean;
   activeWarningsCount?: number;
   warningThreshold?: number;
   itemsActiveCount?: number;
@@ -139,6 +148,21 @@ export const authAPI = {
   validateToken: async (): Promise<User> => {
     const response = await http.get("/auth/validate_token");
     return convertKeysToCamel(response.data.data) as User;
+  },
+
+  /**
+   * Ask the API to send the confirmation email again.
+   *
+   * DeviseTokenAuth's own endpoint (POST /auth/confirmation). `redirect_url` is
+   * required by DTA for this action; the API's configured confirm URL is the only
+   * destination it will actually honour (see its ConfirmationsController), so what
+   * is sent here cannot redirect a user anywhere else.
+   *
+   * Resend matters more than it looks: without it, every confirmation email that
+   * lands in spam is a dead account with no way back.
+   */
+  resendConfirmation: async (email: string): Promise<void> => {
+    await http.post("/auth/confirmation", { email });
   },
 
   forgotPassword: async (email: string): Promise<void> => {
