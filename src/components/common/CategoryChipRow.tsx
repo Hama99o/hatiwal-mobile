@@ -120,10 +120,22 @@ export function CategoryChipRow({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: 12,
+          // 16, not 12 — the same page gutter the search bar and the card grid use,
+          // so the first chip lines up with them instead of sitting closer to the
+          // screen edge than everything above and below it.
+          paddingHorizontal: 16,
           gap: 8,
           alignItems: "center",
-          flexDirection: isRtl ? "row-reverse" : "row",
+          // NO `row-reverse` here. A horizontal ScrollView is ALREADY laid out
+          // right-to-left when I18nManager.isRTL is on, so reversing the content
+          // container on top of that flips it back: the first chip ("All") ends up
+          // at the far LEFT while an RTL scroller starts scrolled to the RIGHT — so
+          // "ټول" was off-screen entirely and the row opened mid-list with a chip
+          // sliced against the border. Reported from the device in Pashto.
+          //
+          // Note this applies to a horizontal SCROLLER's content container only. The
+          // chips' own icon+label rows below still need isRtl row-reverse, because a
+          // plain flex row does not flip itself.
           height: 56,
         }}
       >
