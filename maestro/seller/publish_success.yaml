@@ -166,6 +166,15 @@ appId: com.hatiwal.app
 # Edit now lives in the "More" overflow sheet (TASK-L863) — an active
 # listing's owner detail renders only its primary action ("Mark as Reserved")
 # plus "More".
+# SCROLL to it. This is the owner detail, where the actions row is section 7 —
+# below the gallery, the price/title block and the Location map. `tapOn` does not
+# scroll, hence "Element not found: More" for a control one screen down. Third
+# flow to hit this today (UI-042); the underlying layout is the thing worth fixing.
+- scrollUntilVisible:
+    element:
+      text: "More"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "More"
 - waitForAnimationToEnd
 # "Edit" is an item INSIDE the More sheet (useListingLifecycle `moreActions`,
