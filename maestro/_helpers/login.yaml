@@ -151,9 +151,17 @@ env:
 # Tapping Sign In again is exactly what a person does, and it is BOUNDED at one:
 # wrong credentials still fail twice, so this cannot turn a real auth failure
 # green. Gated on the error being on screen, so it costs nothing normally.
+#
+# THE GATE MUST TRACK THE APP'S COPY. Login.tsx used to fall back to
+# `t("common.error")` — the bare word "Error" — for a transport failure, which is
+# what this gate was written against. It now routes through apiErrorMessage, so the
+# same failure renders `common.errorNetwork`: "No connection. Check your internet
+# and try again." A gate on "Error" alone would silently stop firing and this retry
+# would protect nothing, for all ~200 flows that include this helper. Matching both
+# strings, anchored, so a bare "Error" from any other path still counts.
 - runFlow:
     when:
-      visible: "Error"
+      visible: "(No connection.*|Error)"
     commands:
       - tapOn:
           id: "login-submit"

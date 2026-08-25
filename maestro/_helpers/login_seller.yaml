@@ -137,7 +137,11 @@ env:
 # Bounded at one tap, gated on the inline error, so wrong credentials still fail.
 - runFlow:
     when:
-      visible: "Error"
+      # Same coupling as login.yaml: Login.tsx now renders common.errorNetwork
+      # ("No connection…") for a transport failure instead of the bare
+      # common.error ("Error") this gate was written against, so it has to match
+      # both or the retry silently stops firing.
+      visible: "(No connection.*|Error)"
     commands:
       - tapOn:
           id: "login-submit"
