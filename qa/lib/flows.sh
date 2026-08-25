@@ -217,6 +217,21 @@ run_feature() {
       done ) &
     local geo_pump=$!
 
+    # HOME first, so a flow never inherits the previous flow's foreground.
+    #
+    # `launchApp` brings Hatiwal forward but does NOT dismiss a SYSTEM surface
+    # sitting on top of it. away_mode failed with "No visible element found:
+    # I'm away (temporarily unavailable)" while the screenshot showed the Android
+    # photo picker — left open by an earlier flow, with the app perfectly fine
+    # underneath. That is a 3-minute false failure caused entirely by the flow
+    # before it.
+    #
+    # HOME and not force-stop: force-stop makes the next launch a COLD start,
+    # which brings back the dev-client's Metro reconnect dance that the warm-launch
+    # design (login.yaml) exists to avoid. HOME just moves the leftover surface out
+    # of the way and leaves the app warm.
+    adb_qa_t 25 shell input keyevent KEYCODE_HOME >/dev/null 2>&1
+
     adb_qa_t 25 logcat -c >/dev/null 2>&1
     printf '  %-46s ' "$name"
     local start; start=$(cut -d' ' -f1 /proc/uptime)
