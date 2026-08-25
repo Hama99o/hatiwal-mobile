@@ -1748,3 +1748,33 @@ navigation is worse than leaving a known clip. Verify on qa_phone AND on
 A shorter label is a product-copy decision, not a QA one: "Categories" is the
 concept the screen actually shows, so renaming it to "Explore"/"Browse" collides
 with Bazaar. Prefer the layout fix.
+
+---
+
+## UI-041 — province is free text, and the picker built for it is wired to nothing
+
+`ProvincePickerSheet` exists as a component and is **imported by no screen** —
+confirmed by grep across `src/**/*.tsx`. EditProfile renders province as a plain
+`Input` with a `profile.edit.fields.province` placeholder, so a seller types their
+province by hand.
+
+**Why it matters beyond tidiness.** Province is location data the marketplace
+filters and sorts on. Free text guarantees it drifts — "Kabul", "kabul", "KBL",
+"کابل" are four different provinces to a database, and Afghanistan has 34 fixed
+ones, so there is no case where free text is more correct than a list. Distance
+and province filters quietly under-match, and nothing about the failure is
+visible: the seller sees their listing saved, and buyers filtering by province
+just never see it.
+
+The mobile app already has the province list to bind to (the sheet was written
+against it), so the gap is wiring, not design.
+
+**Not fixed here.** Wiring an unused picker into a live profile form changes what
+sellers can enter and how existing free-text values are migrated — that is a
+product decision with a data-migration question attached (what happens to
+provinces already saved as free text?), not a QA fix. Raised for the same reason
+UI-030 was: the component's existence proves someone intended a picker.
+
+The flow (`profile/edit_profile_province`) is left testing what the app actually
+does — typed text that persists — now selected by testID rather than by the
+English placeholder.

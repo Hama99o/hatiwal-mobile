@@ -26,12 +26,15 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # ── A typed province persists ────────────────────────────────────────────────
+# By testID, not the placeholder. "Province" is `profile.edit.fields.province`,
+# so the text selector only worked while the app happened to be in English.
 - scrollUntilVisible:
     element:
-      text: "Province"
+      id: "edit-profile-province-input"
     direction: DOWN
     timeout: 20000
-- tapOn: "Province"
+- tapOn:
+    id: "edit-profile-province-input"
 - eraseText
 - inputText: "Kandahar"
 - scrollUntilVisible:
