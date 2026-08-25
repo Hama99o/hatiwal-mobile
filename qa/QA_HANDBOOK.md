@@ -1344,6 +1344,50 @@ you are pressing Back on the screen under test.
 
 Checked mechanically: 31 remaining uses all follow typing directly, 0 do not.
 
+### Amendment (run-234): I could not reproduce the Modal case
+
+I first read the meetup family's failures as proof that `hideKeyboard` is unsafe
+even directly after typing, because `MeetupSheet` is a native `<Modal>` wiring
+`onRequestClose={handleClose}` — so a Back press is ambiguous between the IME and
+the Modal, and losing that race would clear the form.
+
+That mechanism is plausible and I could not demonstrate it. The failures I built
+it on turned out to be bundle reloads triggered by my own edits (see the next
+section). The rule above stands as written and measured; treat the Modal case as
+an open question, not a finding.
+
+What the episode does justify, on its own merits: tap a submit control **by
+testID** rather than by label whenever the label changes while submitting —
+`meetup-propose-submit` swaps to "Sending…", and its own source comment says so.
+
+## Editing app source while a run is in flight reloads the app
+
+This cost me a false app bug, a false UI finding, and an unnecessary patch to a
+component that was working correctly.
+
+The QA build is a **dev client talking to Metro**. Saving any file under `src/`
+pushes an update, and the dev client reloads the bundle. Mid-flow that means:
+
+* the screen goes blank, showing `Loading from <host>:3008…`
+* every `assertVisible` against the app fails, with whatever selector the flow
+  had reached — so the failure lands on an arbitrary, innocent-looking step
+* the app comes back at its **initial route**, so the screenshot the rig takes
+  after Maestro exits shows the **Bazaar feed**, not the screen under test
+
+The feed-at-failure screenshot is the signature. I saw it three times and read it
+three different ways before checking a per-step screenshot from inside the run,
+which said `Loading from 192.168.1.24:3008…` in plain text.
+
+THE RULE: while a suite or a flow is running, do not save files under `src/`.
+Edit flow YAML, docs and rig scripts freely — none of those are bundled. If an
+app fix cannot wait, stop the run first, then edit, then re-run the affected
+flows. Same family of constraint as "never build the APK while the emulator
+runs", and easier to violate by accident, because saving a file feels harmless.
+
+Corollary for triage: any failure whose screenshot shows the feed, or whose
+selector has no plausible relationship to the step before it, is suspect if you
+were editing at the time. Re-run it clean before believing it.
+
 ## The emulator was not flaky — the kernel was killing it
 
 It died five times in one day, each death taking the running feature with it, and

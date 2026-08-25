@@ -1812,3 +1812,26 @@ on reasoning alone is what UI-040 was held back for. Options, cheapest first:
 (1) is a two-line change and removes a control that cannot be meaningful yet;
 (2) fixes the class rather than one instance. Verify on qa_phone AND qa_phone2
 (360dp, the narrowest) before choosing.
+
+---
+
+## UI-043 — WITHDRAWN (my own edit reloaded the app mid-flow)
+
+Filed and retracted the same hour. I claimed the meetup sheet clipped its
+heading, and then its submit button, once the keyboard was up, on the strength
+of two `Element not found` failures.
+
+Both were artefacts of my own editing. The screenshot taken at the exact failing
+step reads **"Loading from 192.168.1.24:3008…"** on a blank screen: I had just
+saved `MeetupSheet.tsx`, Metro pushed the update, and the dev client reloaded the
+bundle mid-flow. Nothing was clipped — there was no app on screen to clip. The
+app then finished reloading at its initial route, which is why every failure
+screenshot in run-232 and run-234 showed the Bazaar feed rather than the sheet.
+
+A probe run with no edit in flight shows the sheet rendering correctly with the
+time field focused: the heading, the safety-tips link and a full-width
+"Propose Meetup" button are all visible and reachable. `MeetupSheet.tsx` needed
+no change; a change I had made on this false premise was reverted.
+
+The real finding is a rig rule, not a UI defect — see "Editing app source while a
+run is in flight reloads the app" in QA_HANDBOOK.md.

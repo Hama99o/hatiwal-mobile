@@ -10,15 +10,15 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**39 of 232 flows passing** · 193 still need attention
+**49 of 232 flows passing** · 182 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 39 | green, and no backend error underneath |
-| SILENT | 1 | **assertions passed while the API errored** — the app told the user nothing |
-| FAIL-assert | 102 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-? | 25 | failed, cause unclear — read the log |
-| UNTESTED | 65 | never executed |
+| PASS | 49 | green, and no backend error underneath |
+| FAIL-assert | 94 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-? | 29 | failed, cause unclear — read the log |
+| (rig) | 1 | rig broke mid-run — result meaningless, re-run |
+| UNTESTED | 59 | never executed |
 
 ### Definition of done
 
@@ -74,31 +74,31 @@ bug class a user reports as "nothing happened".
 
 ## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
 
-5/40 passing · 34 open
+12/40 passing · 20 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `create_listing` | FAIL-assert | run-216 | 194 |  | [Failed] create_listing (2m 57s) (Assertion is false: "Switch to .*" is visible) |
-| `create_listing_all_fields` | FAIL-assert | run-216 | 277 |  | [Failed] create_listing_all_fields (4m 21s) (Element not found: Id matching regex: listing-form-description-in |
-| `create_listing_category_search` | PASS | run-216 | 269 |  |  |
-| `create_listing_currency_eur` | FAIL-assert | run-216 | 294 |  | [Failed] create_listing_currency_eur (4m 34s) (Element not found: Id matching regex: browse-tab) |
-| `create_listing_currency_usd` | FAIL-assert | run-216 | 286 |  | [Failed] create_listing_currency_usd (4m 27s) (Assertion is false: "Your listing is live!" is visible) |
-| `create_listing_draft_discard` | PASS | run-216 | 249 |  |  |
-| `create_listing_draft_restore` | FAIL-assert | run-216 | 247 |  | [Failed] create_listing_draft_restore (3m 47s) (Element not found: Id matching regex: listing-form-description |
-| `create_listing_full_publish` | SILENT ⚠1 | run-216 | 302 |  | AxiosError |
-| `create_listing_multi_quantity` | FAIL-assert ⟳stale | run-216 | 281 | fixed | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
-| `create_listing_price_edges` | FAIL-? | run-216 | 338 |  | [Failed] create_listing_price_edges (5m 21s) |
-| `create_listing_publish_blocked` | FAIL-assert | s2/run-151 | 264 |  | [Failed] create_listing_publish_blocked (4m 3s) (Element not found: Text matching regex: Tap to set exact loca |
-| `create_listing_publish_direct` | FAIL-assert | s2/run-151 | 235 |  | [Failed] create_listing_publish_direct (3m 37s) (Assertion is false: "Cover" is visible) |
-| `create_listing_publish_requirements` | FAIL-assert | s2/run-151 | 276 |  | [Failed] create_listing_publish_requirements (4m 16s) (Assertion is false: "A live listing needs at least one  |
-| `create_listing_quantity_edges` | FAIL-assert | s2/run-151 | 255 |  | [Failed] create_listing_quantity_edges (3m 58s) (Assertion is false: "999" is visible) |
-| `create_listing_title_edges` | PASS | s2/run-151 | 271 |  |  |
-| `create_listing_validation` | PASS | s2/run-151 | 233 |  |  |
-| `create_listing_with_condition` | FAIL-assert | s2/run-151 | 231 |  | [Failed] create_listing_with_condition (3m 32s) (Assertion is false: "Cover" is visible) |
-| `create_listing_with_photos` | FAIL-assert | s2/run-151 | 219 |  | [Failed] create_listing_with_photos (3m 21s) (Assertion is false: "Cover" is visible) |
-| `delete_listing` | FAIL-assert | s2/run-151 | 211 |  | [Failed] delete_listing (3m 15s) (Element not found: Text matching regex: Delete Listing) |
-| `draft_lifecycle` | FAIL-assert | s2/run-151 | 260 |  | [Failed] draft_lifecycle (4m 4s) (Element not found: Text matching regex: Publish) |
-| `edit_listing` | FAIL-? | s2/run-151 | 224 |  | [Failed] edit_listing (3m 29s) (No visible element found: "Edit") |
+| `create_listing` | FAIL-assert | run-225 | 230 |  | [Failed] create_listing (3m 32s) (Assertion is false: id: profile-tab is visible) |
+| `create_listing_all_fields` | FAIL-assert ⟳stale | run-225 | 284 |  | [Failed] create_listing_all_fields (4m 23s) (Element not found: Text matching regex: USD) |
+| `create_listing_category_search` | PASS | run-225 | 188 |  |  |
+| `create_listing_currency_eur` | FAIL-assert ⟳stale | run-225 | 245 |  | [Failed] create_listing_currency_eur (3m 47s) (Element not found: Id matching regex: browse-tab) |
+| `create_listing_currency_usd` | FAIL-assert ⟳stale | run-225 | 257 |  | [Failed] create_listing_currency_usd (3m 59s) (Assertion is false: "Your listing is live!" is visible) |
+| `create_listing_draft_discard` | PASS | run-225 | 167 |  |  |
+| `create_listing_draft_restore` | FAIL-assert ⟳stale | run-225 | 214 |  | [Failed] create_listing_draft_restore (3m 18s) (Element not found: Id matching regex: listing-form-description |
+| `create_listing_full_publish` | PASS | run-225 | 287 |  | AxiosError |
+| `create_listing_multi_quantity` | PASS | run-225 | 254 | fixed | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
+| `create_listing_price_edges` | PASS | run-225 | 220 |  |  |
+| `create_listing_publish_blocked` | FAIL-? ⟳stale | run-225 | 271 |  | [Failed] create_listing_publish_blocked (4m 12s) (No visible element found: "Tap to set exact location on map" |
+| `create_listing_publish_direct` | FAIL-? | run-225 | 314 |  | [Failed] create_listing_publish_direct (4m 57s) (No visible element found: "Tap to set exact location on map") |
+| `create_listing_publish_requirements` | PASS | run-225 | 209 |  |  |
+| `create_listing_quantity_edges` | FAIL-assert ⟳stale | run-225 | 212 |  | [Failed] create_listing_quantity_edges (3m 16s) (Assertion is false: "1000" is visible) |
+| `create_listing_title_edges` | PASS | run-225 | 245 |  |  |
+| `create_listing_validation` | PASS | run-225 | 201 |  |  |
+| `create_listing_with_condition` | FAIL-assert ⟳stale | run-225 | 487 |  | [Failed] create_listing_with_condition (7m 49s) (Assertion is false: "Like new" is visible) |
+| `create_listing_with_photos` | PASS | run-225 | 236 |  |  |
+| `delete_listing` | PASS | run-225 | 230 |  |  |
+| `draft_lifecycle` | FAIL-assert ⟳stale | run-225 | 219 |  | [Failed] draft_lifecycle (3m 23s) (Assertion is false: "Your listing is live!" is visible) |
+| `edit_listing` | PASS | run-225 | 232 |  |  |
 | `edit_listing_all_fields` | FAIL-? | s2/run-151 | 221 |  | [Failed] edit_listing_all_fields (3m 25s) (No visible element found: "Edit") |
 | `edit_listing_discard` | FAIL-? | s2/run-151 | 220 |  | [Failed] edit_listing_discard (3m 23s) (No visible element found: "Edit") |
 | `edit_listing_quantity` | FAIL-assert | s2/run-151 | 197 |  | [Failed] edit_listing_quantity (3m) (Assertion is false: "QA Phone Cases Bulk 15" is visible) |
@@ -119,70 +119,34 @@ bug class a user reports as "nothing happened".
 | `my_listings_search` | FAIL-assert | s2/run-151 | 220 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/login_seller.yaml:53:31 |
 | `price_drop_after_edit` | FAIL-? | s2/run-151 | 212 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/login_seller.yaml:53:31 |
 
-## `profile` — Profile view/edit, language + theme switch, stats, blocked users
-
-3/29 passing · 26 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `account_delete_and_restore` | FAIL-assert | s2/run-156 | 207 |  | [Failed] account_delete_and_restore (3m 8s) (Assertion is false: "Bazaar" is visible) |
-| `account_delete_cancel` | FAIL-assert | s2/run-156 | 460 |  | [Failed] account_delete_cancel (7m 19s) (Assertion is false: "Me" is visible) |
-| `away_mode` | FAIL-assert | s2/run-156 | 466 |  | [Failed] away_mode (7m 27s) (Assertion is false: "Me" is visible) |
-| `blocked_users` | FAIL-assert | s2/run-156 | 457 |  | [Failed] blocked_users (7m 18s) (Assertion is false: "Me" is visible) |
-| `change_language_dari` | FAIL-assert | s2/run-156 | 458 |  | [Failed] change_language_dari (7m 18s) (Assertion is false: "Me" is visible) |
-| `change_language_english` | FAIL-assert | s2/run-156 | 455 |  | [Failed] change_language_english (7m 17s) (Assertion is false: "Me" is visible) |
-| `change_language_pashto` | FAIL-assert | s2/run-156 | 453 |  | [Failed] change_language_pashto (7m 15s) (Assertion is false: "Me" is visible) |
-| `edit_profile` | FAIL-assert | s2/run-156 | 460 |  | [Failed] edit_profile (7m 21s) (Assertion is false: "Me" is visible) |
-| `edit_profile_all_fields` | FAIL-assert | s2/run-156 | 463 |  | [Failed] edit_profile_all_fields (7m 23s) (Assertion is false: "Me" is visible) |
-| `edit_profile_avatar` | FAIL-assert | s2/run-156 | 467 |  | [Failed] edit_profile_avatar (7m 20s) (Assertion is false: "Me" is visible) |
-| `edit_profile_bio_too_long` | FAIL-assert | s2/run-156 | 464 |  | [Failed] edit_profile_bio_too_long (7m 20s) (Assertion is false: "Me" is visible) |
-| `edit_profile_province` | FAIL-assert | s2/run-156 | 468 |  | [Failed] edit_profile_province (7m 23s) (Assertion is false: "Me" is visible) |
-| `edit_profile_validation` | FAIL-assert | s2/run-156 | 468 |  | [Failed] edit_profile_validation (7m 25s) (Assertion is false: "Me" is visible) |
-| `hidden_listings` | FAIL-assert | s2/run-156 | 463 |  | [Failed] hidden_listings (7m 19s) (Assertion is false: "Me" is visible) |
-| `language_persists_across_tabs` | FAIL-assert | s2/run-156 | 463 |  | [Failed] language_persists_across_tabs (7m 20s) (Assertion is false: "Me" is visible) |
-| `language_switch_all_screens` | FAIL-assert | s2/run-156 | 454 |  | [Failed] language_switch_all_screens (7m 16s) (Assertion is false: "Me" is visible) |
-| `profile_stats_verify` | FAIL-assert | s2/run-156 | 463 |  | [Failed] profile_stats_verify (7m 18s) (Assertion is false: "Me" is visible) |
-| `recently_viewed` | FAIL-assert | s2/run-156 | 157 |  | [Failed] recently_viewed (2m 18s) (Assertion is false: "Buy and sell locally in Afghanistan" is visible) |
-| `recently_viewed_empty_state` | FAIL-assert | s2/run-156 | 160 |  | [Failed] recently_viewed_empty_state (2m 20s) (Assertion is false: "Buy and sell locally in Afghanistan" is vi |
-| `seller_mode_toggle` | PASS | s2/run-156 | 187 |  |  |
-| `theme_switch` | FAIL-assert | s2/run-156 | 168 |  | [Failed] theme_switch (2m 28s) (Element not found: Id matching regex: theme-option-light) |
-| `transaction_stats_hidden_when_zero` | FAIL-assert | s2/run-156 | 157 |  | [Failed] transaction_stats_hidden_when_zero (2m 16s) (Assertion is false: "Buy and sell locally in Afghanistan |
-| `transaction_stats_own_profile` | FAIL-assert | s2/run-156 | 183 |  | [Failed] transaction_stats_own_profile (2m 41s) (Assertion is false: "Items Bought" is visible) |
-| `transaction_stats_public_profile` | FAIL-assert | s2/run-156 | 170 |  | [Failed] transaction_stats_public_profile (2m 30s) (Assertion is false: id: transaction-stats-badge is visible |
-| `transaction_stats_seller_own_profile` | PASS | s2/run-156 | 205 |  |  |
-| `user_profile_sold_tab` | FAIL-? | s2/run-156 | 168 |  | [Failed] user_profile_sold_tab (2m 29s) |
-| `view_profile` | FAIL-assert | s2/run-156 | 178 |  | [Failed] view_profile (2m 38s) (Assertion is false: "Edit Profile" is visible) |
-| `view_profile_error` | PASS | s2/run-156 | 188 |  | AxiosError |
-| `view_seller_profile_from_profile` | FAIL-assert | s2/run-156 | 177 |  | [Failed] view_seller_profile_from_profile (2m 37s) (Assertion is false: "Switch to .*" is visible) |
-
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state
 
-16/42 passing · 25 open
+15/42 passing · 19 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `archive_conversation` | PASS | s2/run-142 | 227 |  |  |
-| `block_from_conversation` | FAIL-assert | s2/run-142 | 210 |  | [Failed] block_from_conversation (3m 6s) (Assertion is false: "Blocked users cannot contact you" is visible) |
-| `chat_older_messages_pagination` | FAIL-? | s2/run-142 | 193 |  | [Failed] chat_older_messages_pagination (2m 46s) (No visible element found: id: messages-list-top) |
-| `composer_draft` | PASS | s2/run-142 | 228 |  |  |
-| `conversation_archive` | PASS | s2/run-142 | 224 |  |  |
-| `conversation_delete` | PASS | s2/run-142 | 215 |  |  |
-| `conversation_read_status` | FAIL-assert | s2/run-142 | 226 |  | [Failed] conversation_read_status (3m 20s) (Assertion is false: id: unread-badge-\d+ is visible) |
-| `conversations-search` | PASS | s2/run-142 | 305 |  |  |
-| `conversations_empty_state` | FAIL-assert | s2/run-142 | 290 |  | [Failed] conversations_empty_state (4m 27s) (Assertion is false: "Bazaar" is visible) |
-| `conversations_filter` | FAIL-? | s2/run-142 | 208 |  | [Failed] conversations_filter (3m 3s) |
-| `conversations_list` | PASS | s2/run-142 | 198 |  |  |
-| `conversations_role_filter` | PASS | s2/run-142 | 307 |  |  |
-| `delete_message` | PASS | s2/run-142 | 195 |  |  |
-| `lifecycle_from_chat` | FAIL-assert | s2/run-142 | 315 |  | [Failed] lifecycle_from_chat (4m 54s) (Assertion is false: "Reserve" is visible) |
-| `mark_read` | FAIL-assert | s2/run-142 | 242 |  | [Failed] Mark conversation read/unread from conversations list (3m 36s) (Assertion is false: id: unread-badge- |
-| `mark_read_end_to_end` | FAIL-assert | s2/run-142 | 181 |  | [Failed] mark_read_end_to_end (2m 40s) (Assertion is false: id: unread-badge-\d+ is visible) |
-| `meetup_decline` | FAIL-assert | s2/run-142 | 196 |  | [Failed] meetup_decline (2m 54s) (Element not found: Text matching regex: Decline) |
-| `meetup_full_cycle` | FAIL-assert | s2/run-142 | 192 |  | [Failed] meetup_full_cycle (2m 51s) (Element not found: Text matching regex: More actions) |
-| `meetup_proposal` | PASS | s2/run-142 | 213 |  |  |
-| `meetup_proposed_bubble_ui` | FAIL-assert | s2/run-142 | 208 |  | [Failed] meetup_proposed_bubble_ui (3m 5s) (Element not found: Text matching regex: More actions) |
-| `meetup_respond` | FAIL-assert | s2/run-142 | 192 |  | [Failed] meetup_respond (2m 49s) (Element not found: Text matching regex: Accept) |
-| `meetup_validation` | FAIL-assert | s2/run-142 | 156 |  | [Failed] meetup_validation (2m 16s) (Assertion is false: "Switch to .*" is visible) |
+| `archive_conversation` | PASS | run-232 | 189 |  |  |
+| `block_from_conversation` | FAIL-assert ⟳stale | run-232 | 175 |  | [Failed] block_from_conversation (2m 41s) (Assertion is false: "Blocked users cannot contact you.*" is visible |
+| `chat_older_messages_pagination` | PASS | run-232 | 156 |  |  |
+| `composer_draft` | PASS | run-232 | 185 |  |  |
+| `conversation_archive` | PASS | run-232 | 185 |  |  |
+| `conversation_delete` | PASS | run-232 | 173 |  |  |
+| `conversation_read_status` | FAIL-assert | run-232 | 207 |  | [Failed] conversation_read_status (3m 12s) (Assertion is false: id: unread-badge-\d+ is not visible) |
+| `conversations-search` | PASS | run-232 | 246 |  |  |
+| `conversations_empty_state` | FAIL-? | run-232 | 203 |  | [Failed] conversations_empty_state (3m 6s) |
+| `conversations_filter` | FAIL-? | run-232 | 225 |  | [Failed] conversations_filter (3m 27s) |
+| `conversations_list` | PASS | run-232 | 175 |  |  |
+| `conversations_role_filter` | FAIL-assert | run-232 | 175 |  | [Failed] conversations_role_filter (2m 36s) (Assertion is false: "Mountain Bike 26-inch Steel Frame" is visibl |
+| `delete_message` | PASS | run-232 | 195 |  |  |
+| `lifecycle_from_chat` | FAIL-assert | run-232 | 184 |  | [Failed] lifecycle_from_chat (2m 46s) (Assertion is false: "Reserve" is visible) |
+| `mark_read` | (rig) ⚠slow | run-232 | 745 |  | Exception in thread "Thread-5" java.io.IOException: Command failed (host:transport:emulator-5580): device offl |
+| `mark_read_end_to_end` | FAIL-assert | run-232 | 254 |  | [Failed] mark_read_end_to_end (3m 36s) (Assertion is false: "Development Build" is not visible) |
+| `meetup_decline` | FAIL-assert ⟳stale | run-232 | 238 | flow | tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0) — order-dependent on another flow. Now two-party: buyer proposes via _helpers/propose_meetup, seller declines. 1bdaa76 |
+| `meetup_full_cycle` | FAIL-assert ⟳stale | run-232 | 204 | flow | PROVEN defect: relaunched as the same user and tried to accept its OWN bubble, but Accept renders only when `!isMine` (MessageBubble.tsx). Now switches to the seller. `hideKeyboard` also removed, and submit is by ID. 1bdaa76 |
+| `meetup_proposal` | FAIL-assert ⟳stale | run-232 | 222 | flow | run-232's failure is NOT diagnosed: the screenshot shows the Bazaar feed, the signature of a bundle reload from an edit in flight. Flow now taps `meetup-propose-submit` by ID (its label swaps to "Sending…"), which is right regardless. Needs a clean re-run. 1bdaa76 |
+| `meetup_proposed_bubble_ui` | FAIL-assert ⟳stale | run-232 | 210 | flow | PROVEN defect: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError and returns), so it could never produce a bubble. Now fills both. 1bdaa76 |
+| `meetup_respond` | FAIL-assert ⟳stale | run-232 | 176 | flow | same as meetup_decline — Accept needs a proposal from the counterpart (`!isMine` gates it). Now two-party. 1bdaa76 |
+| `meetup_validation` | FAIL-assert | run-234 | 202 | flow | same undiagnosed cause as meetup_proposal — my clipped-heading reading was withdrawn (UI-043). Submit now by ID; inline-error coverage (place/time required) kept. Needs a clean re-run. 1bdaa76 |
 | `message_long_text` | FAIL-assert | s2/run-142 | 471 |  | [Failed] message_long_text (7m 31s) (Element not found: Text matching regex: Type a message...) |
 | `offer_counter_flow` | FAIL-assert | s2/run-142 | 182 |  | [Failed] offer_counter_flow (2m 44s) (Element not found: Text matching regex: Make an Offer) |
 | `offer_in_existing_thread` | PASS | s2/run-142 | 181 |  |  |
@@ -227,6 +191,42 @@ bug class a user reports as "nothing happened".
 | `sign_up` | FAIL-assert | s3/run-111 | 174 |  | [Failed] sign_up (2m 35s) (Assertion is false: "Bazaar" is visible) |
 | `sign_up_validation` | UNTESTED | — |  |  |  |
 
+## `profile` — Profile view/edit, language + theme switch, stats, blocked users
+
+5/29 passing · 10 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `account_delete_and_restore` | FAIL-assert | run-224 | 232 |  | [Failed] account_delete_and_restore (3m 32s) (Assertion is false: "Bazaar" is visible) |
+| `account_delete_cancel` | PASS | run-224 | 460 |  |  |
+| `away_mode` | FAIL-? ⟳stale | run-224 | 172 |  | [Failed] away_mode (2m 36s) (No visible element found: "I'm away (temporarily unavailable)") |
+| `blocked_users` | PASS | run-224 | 164 |  |  |
+| `change_language_dari` | FAIL-assert ⟳stale | run-224 | 188 |  | [Failed] change_language_dari (2m 53s) (Assertion is false: "دری" is visible) |
+| `change_language_english` | FAIL-? ⟳stale | run-224 | 514 |  | [Failed] change_language_english (8m 19s) (No visible element found: id: language-row) |
+| `change_language_pashto` | FAIL-assert ⟳stale | run-224 | 505 |  | [Failed] change_language_pashto (8m 9s) (Assertion is false: "پښتو" is visible) |
+| `edit_profile` | FAIL-assert ⟳stale | run-224 | 492 |  | [Failed] edit_profile (7m 55s) (Assertion is false: "Ahmad Updated" is visible) |
+| `edit_profile_all_fields` | FAIL-assert ⟳stale | run-224 | 173 |  | [Failed] edit_profile_all_fields (2m 37s) (Assertion is false: "Edit Profile" is visible) |
+| `edit_profile_avatar` | FAIL-assert ⟳stale | run-224 | 237 |  | [Failed] edit_profile_avatar (3m 40s) (Assertion is false: "Gallery" is visible) |
+| `edit_profile_bio_too_long` | FAIL-assert ⟳stale | run-224 | 174 |  | [Failed] edit_profile_bio_too_long (2m 38s) (Element not found: Text matching regex: Bio) |
+| `edit_profile_province` | FAIL-? ⟳stale | run-224 | 181 |  | [Failed] edit_profile_province (2m 46s) (No visible element found: id: edit-profile-province-input) |
+| `edit_profile_validation` | FAIL-assert ⟳stale | run-224 | 189 |  | [Failed] edit_profile_validation (2m 52s) (Assertion is false: id: profile-tab is visible) |
+| `hidden_listings` | FAIL-assert ⟳stale | run-224 | 170 |  | [Failed] hidden_listings (2m 34s) (Element not found: Text matching regex: Hidden Listings) |
+| `language_persists_across_tabs` | FAIL-assert ⟳stale | run-224 | 258 |  | [Failed] language_persists_across_tabs (4m 2s) (Element not found: Text matching regex: ژبه) |
+| `language_switch_all_screens` | FAIL-assert ⟳stale | run-224 | 542 |  | [Failed] language_switch_all_screens (8m 44s) (Assertion is false: "پروفایل" is visible) |
+| `profile_stats_verify` | FAIL-assert | run-224 | 494 |  | [Failed] profile_stats_verify (7m 57s) (Assertion is false: "Active Listings" is visible) |
+| `recently_viewed` | FAIL-assert ⟳stale | run-224 | 171 |  | [Failed] recently_viewed (2m 30s) (Assertion is false: "Buy and sell locally in Afghanistan" is visible) |
+| `recently_viewed_empty_state` | FAIL-assert | s2/run-156 | 160 |  | [Failed] recently_viewed_empty_state (2m 20s) (Assertion is false: "Buy and sell locally in Afghanistan" is vi |
+| `seller_mode_toggle` | PASS | s2/run-156 | 187 |  |  |
+| `theme_switch` | FAIL-assert | s2/run-156 | 168 |  | [Failed] theme_switch (2m 28s) (Element not found: Id matching regex: theme-option-light) |
+| `transaction_stats_hidden_when_zero` | FAIL-assert | s2/run-156 | 157 |  | [Failed] transaction_stats_hidden_when_zero (2m 16s) (Assertion is false: "Buy and sell locally in Afghanistan |
+| `transaction_stats_own_profile` | FAIL-assert | s2/run-156 | 183 |  | [Failed] transaction_stats_own_profile (2m 41s) (Assertion is false: "Items Bought" is visible) |
+| `transaction_stats_public_profile` | FAIL-assert | s2/run-156 | 170 |  | [Failed] transaction_stats_public_profile (2m 30s) (Assertion is false: id: transaction-stats-badge is visible |
+| `transaction_stats_seller_own_profile` | PASS | s2/run-156 | 205 |  |  |
+| `user_profile_sold_tab` | FAIL-? | s2/run-156 | 168 |  | [Failed] user_profile_sold_tab (2m 29s) |
+| `view_profile` | FAIL-assert | s2/run-156 | 178 |  | [Failed] view_profile (2m 38s) (Assertion is false: "Edit Profile" is visible) |
+| `view_profile_error` | PASS | s2/run-156 | 188 |  | AxiosError |
+| `view_seller_profile_from_profile` | FAIL-assert | s2/run-156 | 177 |  | [Failed] view_seller_profile_from_profile (2m 37s) (Assertion is false: "Switch to .*" is visible) |
+
 ## `saved` — Save / unsave a listing, saved tab, sold-while-saved
 
 0/8 passing · 8 open
@@ -241,21 +241,6 @@ bug class a user reports as "nothing happened".
 | `saved_pagination` | UNTESTED | — |  |  |  |
 | `unsave_from_browse_feed` | UNTESTED | — |  |  |  |
 | `unsave_listing` | UNTESTED | — |  |  |  |
-
-## `seller` — Seller action sheet, publish, mark reserved/sold with buyer
-
-0/8 passing · 8 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `listing_actions_sheet` | FAIL-assert | run-223 | 273 |  | [Failed] listing_actions_sheet (4m 12s) (Assertion is false: "Listing published!" is visible) |
-| `listing_conversations` | FAIL-assert | run-219 | 259 |  | [Failed] listing_conversations (4m 1s) (Element not found: Text matching regex: Make an Offer) |
-| `mark_sold_with_buyer` | UNTESTED | — |  |  |  |
-| `multi_quantity_partial_sale` | UNTESTED | — |  | fixed | Found UI-008 (HIGH): typed 3, sold all 15 — pre-filled field appended, clamp silently swallowed it, listing retired. Fixed with selectTextOnFocus + a destructive over-stock hint; same fix applied to the web dialog. Also UI-009 ("15 of 15 left" before any sale). Flow itself needed: explicit seller login (login_seller.yaml lands in the dev-client launcher; login.yaml ignores an EMAIL override when a session exists), scrollUntilVisible on `lifecycle-more-action`, and the review prompt instead of the racing toast. run-020 green, 0 api errors, DB confirms 3 sold / 12 left / still active. |
-| `publish_from_owner_detail` | UNTESTED | — |  |  |  |
-| `publish_success` | UNTESTED | — |  |  |  |
-| `reserved_buyer` | UNTESTED | — |  |  |  |
-| `save_draft` | UNTESTED | — |  |  |  |
 
 ## `report` — Report a listing or user, block, block side-effects
 
@@ -287,21 +272,6 @@ bug class a user reports as "nothing happened".
 | `theme_light_all_screens` | FAIL-assert | s4/run-108 | 158 |  | [Failed] theme_light_all_screens (2m 14s) (Element not found: Text matching regex: Appearance) |
 | `theme_persists_after_navigate` | UNTESTED | — |  |  |  |
 
-## `rtl` — Pashto + Dari right-to-left layout across main screens
-
-0/8 passing · 8 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_rtl_dari` | FAIL-assert | run-212 | 224 |  | [Failed] browse_rtl_dari (3m 28s) (Assertion is false: "دری" is visible) |
-| `browse_rtl_pashto` | FAIL-assert | run-212 | 474 |  | [Failed] browse_rtl_pashto (7m 39s) (Assertion is false: id: profile-tab is visible) |
-| `categories_hub_rtl` | FAIL-assert | run-212 | 472 |  | [Failed] categories_hub_rtl (7m 37s) (Assertion is false: id: profile-tab is visible) |
-| `chat_rtl` | FAIL-assert | run-212 | 472 |  | [Failed] chat_rtl (7m 37s) (Assertion is false: id: profile-tab is visible) |
-| `listing_detail_rtl` | FAIL-assert | run-212 | 472 |  | [Failed] listing_detail_rtl (7m 37s) (Assertion is false: id: profile-tab is visible) |
-| `my_listings_rtl` | FAIL-assert | run-212 | 485 |  | [Failed] my_listings_rtl (7m 49s) (Assertion is false: id: profile-tab is visible) |
-| `profile_quick_actions_rtl` | FAIL-assert | run-212 | 473 |  | [Failed] profile_quick_actions_rtl (7m 38s) (Assertion is false: id: profile-tab is visible) |
-| `profile_rtl` | FAIL-assert | run-212 | 472 |  | [Failed] profile_rtl (7m 38s) (Assertion is false: id: profile-tab is visible) |
-
 ## `mode` — Buyer ↔ seller mode switch, tab bar, persistence
 
 0/4 passing · 4 open
@@ -313,44 +283,48 @@ bug class a user reports as "nothing happened".
 | `seller_mode_tab_bar_changes` | FAIL-assert | s2/run-156 | 172 |  | [Failed] seller_mode_tab_bar_changes (2m 34s) (Element not found: Id matching regex: mode-switcher-banner) |
 | `seller_views_own_listing_buyer_mode` | FAIL-assert | s2/run-156 | 208 |  | [Failed] seller_views_own_listing_buyer_mode (3m 11s) (Assertion is false: "Buyer Mode" is visible) |
 
-## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
+## `seller` — Seller action sheet, publish, mark reserved/sold with buyer
 
-1/4 passing · 3 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `listing_create_multi_photos` | FAIL-assert | run-210 | 215 |  | [Failed] listing_create_multi_photos (3m 19s) (Assertion is false: "Photos" is visible) |
-| `listing_edit_add_photos` | FAIL-? | run-210 | 212 |  | [Failed] listing_edit_add_photos (3m 16s) (No visible element found: "Edit") |
-| `listing_gallery_no_photo` | PASS | run-210 | 189 |  |  |
-| `listing_gallery_swipe` | FAIL-assert | run-210 | 201 |  | [Failed] listing_gallery_swipe (3m 7s) (Assertion is false: "Contact Seller" is visible) |
-
-## `safety` — Safety tips on listing detail and in the meetup sheet
-
-0/2 passing · 2 open
+0/8 passing · 1 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `safety_tips_listing_detail` | FAIL-assert | run-213 | 475 |  | [Failed] safety_tips_listing_detail (7m 39s) (Assertion is false: id: profile-tab is visible) |
-| `safety_tips_meetup_sheet` | FAIL-assert | run-213 | 485 |  | [Failed] safety_tips_meetup_sheet (7m 48s) (Assertion is false: id: profile-tab is visible) |
+| `listing_actions_sheet` | FAIL-assert ⟳stale | run-226 | 253 |  | [Failed] listing_actions_sheet (3m 58s) (Assertion is false: "Publish" is visible) |
+| `listing_conversations` | FAIL-assert ⟳stale | run-226 | 188 |  | [Failed] listing_conversations (2m 53s) (Element not found: Text matching regex: Men Winter Jacket XL Black) |
+| `mark_sold_with_buyer` | FAIL-assert ⟳stale | run-226 | 206 |  | [Failed] mark_sold_with_buyer (3m 12s) (Assertion is false: "Hi, is this laptop still available?" is visible) |
+| `multi_quantity_partial_sale` | FAIL-? ⟳stale | run-226 | 153 | fixed | Found UI-008 (HIGH): typed 3, sold all 15 — pre-filled field appended, clamp silently swallowed it, listing retired. Fixed with selectTextOnFocus + a destructive over-stock hint; same fix applied to the web dialog. Also UI-009 ("15 of 15 left" before any sale). Flow itself needed: explicit seller login (login_seller.yaml lands in the dev-client launcher; login.yaml ignores an EMAIL override when a session exists), scrollUntilVisible on `lifecycle-more-action`, and the review prompt instead of the racing toast. run-020 green, 0 api errors, DB confirms 3 sold / 12 left / still active. |
+| `publish_from_owner_detail` | FAIL-assert ⟳stale | run-226 | 235 |  | [Failed] publish_from_owner_detail (3m 40s) (Element not found: Text matching regex: More) |
+| `publish_success` | FAIL-assert ⟳stale | run-226 | 310 |  | [Failed] publish_success (4m 54s) (Element not found: Text matching regex: More) |
+| `reserved_buyer` | FAIL-assert | run-226 | 194 |  | [Failed] reserved_buyer (2m 56s) (Assertion is false: "Who's buying this item?" is visible) |
+| `save_draft` | FAIL-assert ⟳stale | run-226 | 213 |  | [Failed] save_draft (3m 16s) (Assertion is false: "Tap to set exact location on map" is visible) |
 
 ## `reviews` — Double-blind reviews after a sold transaction
 
-0/3 passing · 1 open
+1/3 passing · 1 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `pending_reviews_nudge` | FAIL-? ⟳stale | run-211 | 212 |  | [Failed] pending_reviews_nudge (3m 16s) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8GB") |
-| `profile_reviews_empty_state` | FAIL-assert ⟳stale | run-211 | 151 |  | [Failed] profile_reviews_empty_state (2m 17s) (Assertion is false: "Buy and sell locally in Afghanistan" is vi |
-| `rate_buyer_after_sale` | FAIL-? | run-211 | 185 |  | [Failed] rate_buyer_after_sale (2m 50s) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8GB") |
+| `pending_reviews_nudge` | FAIL-? | run-228 | 466 |  | [Failed] pending_reviews_nudge (7m 30s) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8GB") |
+| `profile_reviews_empty_state` | PASS | run-228 | 127 |  |  |
+| `rate_buyer_after_sale` | FAIL-assert ⟳stale | run-228 | 242 |  | [Failed] rate_buyer_after_sale (3m 47s) (Assertion is false: "Lenovo ThinkPad Laptop Core i5 8GB" is visible) |
 
-## `share` — Deep links into a listing and a seller profile
+## `safety` — Safety tips on listing detail and in the meetup sheet
 
 1/2 passing · 1 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `open_listing_deep_link` | FAIL-? | run-214 | 392 |  | [Failed] open_listing_deep_link (6m 8s) (No visible element found: id: seller-profile-link) |
-| `open_seller_deep_link` | PASS | run-214 | 380 |  |  |
+| `safety_tips_listing_detail` | FAIL-assert | run-229 | 171 |  | [Failed] safety_tips_listing_detail (2m 36s) (Assertion is false: "Contact Seller" is visible) |
+| `safety_tips_meetup_sheet` | PASS | run-229 | 187 |  |  |
+
+## `share` — Deep links into a listing and a seller profile
+
+0/2 passing · 1 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `open_listing_deep_link` | FAIL-? | run-231 | 100 |  | [Failed] open_listing_deep_link (1m 25s) (No visible element found: id: seller-profile-link) |
+| `open_seller_deep_link` | PASS ⟳stale | run-231 | 97 |  |  |
 
 ## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
 
@@ -364,6 +338,21 @@ bug class a user reports as "nothing happened".
 | `my_listings_pagination` | PASS | s2/run-156 | 202 |  |  |
 | `saved_pagination_deep` | PASS | s2/run-156 | 147 |  |  |
 | `search_pagination` | PASS | s2/run-156 | 161 |  |  |
+
+## `rtl` — Pashto + Dari right-to-left layout across main screens
+
+0/8 passing · 1 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_rtl_dari` | FAIL-assert ⟳stale | run-227 | 201 |  | [Failed] browse_rtl_dari (3m 6s) (Assertion is false: "دری" is visible) |
+| `browse_rtl_pashto` | FAIL-assert ⟳stale | run-227 | 500 |  | [Failed] browse_rtl_pashto (8m 5s) (Assertion is false: "پښتو" is visible) |
+| `categories_hub_rtl` | FAIL-assert ⟳stale | run-227 | 453 |  | [Failed] categories_hub_rtl (7m 16s) (Element not found: Text matching regex: ډلې وګورئ) |
+| `chat_rtl` | FAIL-assert ⟳stale | run-227 | 404 |  | [Failed] chat_rtl (6m 25s) (Assertion is false: id: profile-tab is visible) |
+| `listing_detail_rtl` | FAIL-assert ⟳stale | run-227 | 512 |  | [Failed] listing_detail_rtl (8m 14s) (Assertion is false: "پلورونکي سره اړیکه" is visible) |
+| `my_listings_rtl` | FAIL-assert ⟳stale | run-227 | 511 |  | [Failed] my_listings_rtl (8m 11s) (Element not found: Text matching regex: د پلورونکي حالت ته لاړ شئ) |
+| `profile_quick_actions_rtl` | FAIL-? ⟳stale | run-227 | 499 |  | [Failed] profile_quick_actions_rtl (8m 1s) (No visible element found: "شخصي معلومات") |
+| `profile_rtl` | FAIL-assert | run-227 | 490 |  | [Failed] profile_rtl (7m 55s) (Assertion is false: "ویرایش پروفایل" is visible) |
 
 ## `onboarding` — First-run experience
 
@@ -385,3 +374,14 @@ bug class a user reports as "nothing happened".
 | `filter_map_use_my_location` | PASS | s2/run-156 | 169 |  |  |
 | `filter_map_use_my_location_granted` | PASS | s2/run-156 | 153 |  |  |
 | `map_location_outside_afghanistan` | PASS | s2/run-156 | 191 |  |  |
+
+## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
+
+1/4 passing · 0 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `listing_create_multi_photos` | FAIL-assert ⟳stale | run-230 | 171 |  | [Failed] listing_create_multi_photos (2m 36s) (Assertion is false: "Photos" is visible) |
+| `listing_edit_add_photos` | FAIL-? ⟳stale | run-230 | 162 |  | [Failed] listing_edit_add_photos (2m 28s) (No visible element found: "Edit") |
+| `listing_gallery_no_photo` | PASS | run-230 | 162 |  |  |
+| `listing_gallery_swipe` | FAIL-assert ⟳stale | run-230 | 161 |  | [Failed] listing_gallery_swipe (2m 27s) (Assertion is false: "Contact Seller" is visible) |
