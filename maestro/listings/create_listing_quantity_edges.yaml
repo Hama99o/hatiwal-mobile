@@ -97,8 +97,15 @@ appId: com.hatiwal.app
 # assertion is that SAVING is refused and says why — not that the field silently
 # rewrites what the seller typed. (The earlier version expected clamping "or" the
 # 4th digit being dropped; neither happens, so it could only ever fail.)
+# eraseText first. `selectTextOnFocus` fires on a FOCUS CHANGE, and this field is
+# already focused from typing 999 above — so tapping it only moves the caret and
+# the next inputText APPENDS: the field held "9991000", and `assertVisible: "1000"`
+# (anchored) correctly refused to match it. That is the same pre-fill hazard the
+# component documents at this input (UI-008), reproduced by a flow rather than a
+# seller.
 - tapOn:
     id: "listing-form-quantity-input"
+- eraseText
 - inputText: "1000"
 - assertVisible: "1000"
 - tapOn: "Save Draft"
@@ -106,6 +113,11 @@ appId: com.hatiwal.app
 # Still on the form, with the listing unsaved — a quantity of 1000 must not go
 # through, and the seller must not be left guessing.
 - assertVisible: "Create Listing"
+# ...and the flow now PROVES the second half of that sentence. The field carried no
+# inline error until today, so the only feedback was the generic "Please check the
+# highlighted fields before continuing" with nothing highlighted — refused, but
+# unexplained. Asserting the specific message is what stops that regressing.
+- assertVisible: "Enter a number between 1 and 999."
 
 # ── Toggling back off hides the field again ─────────────────────────────────
 # The listing must fall back to a single unit, not keep a stale 999 hidden.
