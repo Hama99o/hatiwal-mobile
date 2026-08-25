@@ -11,12 +11,14 @@ appId: com.hatiwal.app
 - assertVisible: "Edit Profile"
 
 # Clear and update first name
-- tapOn: "First Name"
+- tapOn:
+    id: "register-firstname-input"
 - eraseText
 - inputText: "UpdatedFirst"
 
 # Clear and update last name
-- tapOn: "Last Name"
+- tapOn:
+    id: "register-lastname-input"
 - eraseText
 - inputText: "UpdatedLast"
 
@@ -27,7 +29,8 @@ appId: com.hatiwal.app
 
 # Clear and update phone
 # `auth.phone` = "Phone Number" — anchored matching needs the full label.
-- tapOn: "Phone Number"
+- tapOn:
+    id: "register-phone-input"
 - eraseText
 - inputText: "+93700000001"
 

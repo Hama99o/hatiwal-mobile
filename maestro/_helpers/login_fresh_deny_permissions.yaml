@@ -25,9 +25,11 @@ env:
 - runFlow: open_bundle.yaml
 - runFlow: goto_login.yaml
 
-- tapOn: "Email"
+- tapOn:
+    id: "login-email-input"
 - inputText: ${EMAIL}
-- tapOn: "Password"
+- tapOn:
+    id: "login-password-input"
 - inputText: ${PASSWORD}
 
 # The keyboard hides "Sign In" on a small screen — scroll rather than tap blind.

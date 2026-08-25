@@ -36,9 +36,11 @@ env:
 - extendedWaitUntil:
     visible: "Buy and sell locally in Afghanistan"
     timeout: 60000
-- tapOn: "Email"
+- tapOn:
+    id: "login-email-input"
 - inputText: ${EMAIL}
-- tapOn: "Password"
+- tapOn:
+    id: "login-password-input"
 - inputText: ${PASSWORD}
 # Dismiss the IME before submitting. The keyboard covers the lower half of a
 # form, and Maestro still reports the tap COMPLETED — it finds the element in

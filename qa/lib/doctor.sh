@@ -55,6 +55,25 @@ fi
 step "3/8 emulator"
 if resolve_device; then
   ok "device $QA_SERIAL"
+  # FORM FACTOR, stated out loud. The rig ran the whole suite on `qa_tablet` for
+  # cycles on end because qa.config.sh gave session 1 — the DEFAULT session — the
+  # tablet, and nothing ever printed which device was under test. At 2560x1600 the
+  # tab bar, every bottom sheet and every RTL layout differ from the phone, so the
+  # failures read as app bugs (seller 0/8, rtl 0/8, reviews 0/3, safety 0/2) and
+  # the phone, which is the product's only real target, was never exercised.
+  _AVD_NAME="$(adb_qa_t 25 emu avd name 2>/dev/null | head -1 | tr -d '\r')"
+  _WM="$(adb_qa_t 25 shell wm size 2>/dev/null | tr -d '\r' | grep -oE '[0-9]+x[0-9]+' | tail -1)"
+  _DEN="$(adb_qa_t 25 shell wm density 2>/dev/null | tr -d '\r' | grep -oE '[0-9]+' | tail -1)"
+  if [ -n "$_WM" ] && [ -n "$_DEN" ] && [ "$_DEN" -gt 0 ] 2>/dev/null; then
+    _W=${_WM%x*}; _H=${_WM#*x}
+    _SHORT=$_W; [ "$_H" -lt "$_W" ] && _SHORT=$_H
+    _DP=$(( _SHORT * 160 / _DEN ))
+    if [ "$_DP" -ge 600 ]; then
+      warn "${_AVD_NAME:-?} is a TABLET (${_WM} @${_DEN}dpi = ${_DP}dp) — Hatiwal is mobile-first; phone layout is NOT being tested"
+    else
+      ok "${_AVD_NAME:-?} phone form factor (${_WM} @${_DEN}dpi = ${_DP}dp)"
+    fi
+  fi
   [ "$(adb_qa_t 25 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] \
     && ok "boot completed" || BLOCK "device present but not finished booting"
   # Responsiveness: a starved emulator answers adb but not the UI. Probe the

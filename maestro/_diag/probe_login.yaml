@@ -7,10 +7,12 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible: "Email"
     timeout: 30000
-- tapOn: "Email"
+- tapOn:
+    id: "login-email-input"
 - eraseText
 - inputText: "buyer@hatiwal.test"
-- tapOn: "Password"
+- tapOn:
+    id: "login-password-input"
 - eraseText
 - inputText: "Password123!"
 - takeScreenshot: /tmp/probe-before-submit

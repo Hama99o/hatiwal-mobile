@@ -27,9 +27,11 @@ env:
 - runFlow: open_bundle.yaml
 - runFlow: goto_login.yaml
 
-- tapOn: "Email"
+- tapOn:
+    id: "login-email-input"
 - inputText: ${EMAIL}
-- tapOn: "Password"
+- tapOn:
+    id: "login-password-input"
 - inputText: ${PASSWORD}
 
 # Reach the button even when the KEYBOARD covers it.

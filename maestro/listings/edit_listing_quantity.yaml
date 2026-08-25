@@ -28,9 +28,11 @@ appId: com.hatiwal.app
     clearState: true
 - runFlow: ../_helpers/open_bundle.yaml
 - runFlow: ../_helpers/goto_login.yaml
-- tapOn: "Email"
+- tapOn:
+    id: "login-email-input"
 - inputText: "seller@hatiwal.test"
-- tapOn: "Password"
+- tapOn:
+    id: "login-password-input"
 - inputText: "Password123!"
 # Dismiss the IME before submitting. The keyboard covers the lower half of a
 # form, and Maestro still reports the tap COMPLETED — it finds the element in

@@ -27,29 +27,35 @@ appId: com.hatiwal.app
 - assertVisible: "Create Account"
 - assertVisible: "Buy and sell locally in Afghanistan"
 # Fill form
-- tapOn: "First Name"
+- tapOn:
+    id: "register-firstname-input"
 - inputText: "Ahmad"
-- tapOn: "Last Name"
+- tapOn:
+    id: "register-lastname-input"
 - inputText: "Karimi"
-- tapOn: "Phone Number"
+- tapOn:
+    id: "register-phone-input"
 - inputText: "0700000001"
-- tapOn: "Email"
+- tapOn:
+    id: "register-email-input"
 # `${random}` is NOT a Maestro variable. Maestro evaluates ${...} as JavaScript,
 # so this resolved to an undefined identifier rather than a fresh value — and a
 # constant email means this flow can only ever succeed ONCE, then collides with
 # the account it created last time. `maestroRandomEmail` is the documented
 # built-in for exactly this.
 - inputText: ${maestroRandomEmail}
-- tapOn: "Password"
+- tapOn:
+    id: "register-password-input"
 - inputText: "Password123!"
 # "Confirm Password" is the LAST field on the register form, so it is below the
 # fold once the keyboard is up from the fields above it. `tapOn` does not scroll.
 - scrollUntilVisible:
     element:
-      text: "Confirm Password"
+      id: "register-confirm-password-input"
     direction: DOWN
     timeout: 20000
-- tapOn: "Confirm Password"
+- tapOn:
+    id: "register-confirm-password-input"
 - inputText: "Password123!"
 # The submit button, by testID: "Create Account" is also the screen HEADING,
 # so the words alone match two elements.

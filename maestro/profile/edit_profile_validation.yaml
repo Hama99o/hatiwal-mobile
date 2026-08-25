@@ -17,7 +17,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Edit Profile"
 # Clear first name
-- tapOn: "First Name"
+- tapOn:
+    id: "register-firstname-input"
 - eraseText
 - tapOn: "Save Changes"
 - waitForAnimationToEnd

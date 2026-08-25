@@ -29,24 +29,30 @@ appId: com.hatiwal.app
 - tapOn:
     id: "go-to-register"
 - assertVisible: "Buy and sell locally in Afghanistan"
-- tapOn: "First Name"
+- tapOn:
+    id: "register-firstname-input"
 - inputText: "Delete"
-- tapOn: "Last Name"
+- tapOn:
+    id: "register-lastname-input"
 - inputText: "Metest"
-- tapOn: "Phone Number"
+- tapOn:
+    id: "register-phone-input"
 - inputText: "0700999123"
-- tapOn: "Email"
+- tapOn:
+    id: "register-email-input"
 - inputText: ${output.email}
-- tapOn: "Password"
+- tapOn:
+    id: "register-password-input"
 - inputText: "Password123!"
 # "Confirm Password" is the LAST field on the register form, so it is below the
 # fold once the keyboard is up from the fields above it. `tapOn` does not scroll.
 - scrollUntilVisible:
     element:
-      text: "Confirm Password"
+      id: "register-confirm-password-input"
     direction: DOWN
     timeout: 20000
-- tapOn: "Confirm Password"
+- tapOn:
+    id: "register-confirm-password-input"
 - inputText: "Password123!"
 # The submit button, by testID: "Create Account" is also the screen HEADING,
 # so the words alone match two elements.
@@ -103,9 +109,11 @@ appId: com.hatiwal.app
 # ── The promise: logging back in restores it ────────────────────────────────
 - tapOn: "Login"
 - waitForAnimationToEnd
-- tapOn: "Email"
+- tapOn:
+    id: "login-email-input"
 - inputText: ${output.email}
-- tapOn: "Password"
+- tapOn:
+    id: "login-password-input"
 - inputText: "Password123!"
 # Dismiss the IME before submitting. The keyboard covers the lower half of a
 # form, and Maestro still reports the tap COMPLETED — it finds the element in

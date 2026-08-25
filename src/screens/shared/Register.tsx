@@ -175,6 +175,7 @@ export default function RegisterScreen() {
       )}
 
       <Input
+        testID="register-firstname-input"
         placeholder={t("auth.firstName")}
         value={form.firstname}
         onChangeText={(v) => update("firstname", v)}
@@ -188,6 +189,7 @@ export default function RegisterScreen() {
       />
       <Input
         ref={lastNameRef}
+        testID="register-lastname-input"
         placeholder={t("auth.lastName")}
         value={form.lastname}
         onChangeText={(v) => update("lastname", v)}
@@ -201,6 +203,7 @@ export default function RegisterScreen() {
       />
       <Input
         ref={phoneRef}
+        testID="register-phone-input"
         placeholder={t("auth.phone")}
         value={form.phone}
         onChangeText={(v) => update("phone", v)}
@@ -214,6 +217,7 @@ export default function RegisterScreen() {
       />
       <Input
         ref={emailRef}
+        testID="register-email-input"
         placeholder={t("auth.email")}
         value={form.email}
         onChangeText={(v) => update("email", v)}
@@ -235,6 +239,7 @@ export default function RegisterScreen() {
       <View style={{ marginBottom: 12 }}>
         <PasswordInput
           ref={passwordRef}
+          testID="register-password-input"
           placeholder={t("auth.password")}
           value={form.password}
           onChangeText={(v) => update("password", v)}
@@ -247,6 +252,7 @@ export default function RegisterScreen() {
       <View style={{ marginBottom: 24 }}>
         <PasswordInput
           ref={confirmRef}
+          testID="register-confirm-password-input"
           placeholder={t("auth.confirmPassword")}
           value={form.passwordConfirmation}
           onChangeText={(v) => update("passwordConfirmation", v)}

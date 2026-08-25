@@ -16,3 +16,22 @@ appId: com.hatiwal.app
     id: "profile-tab"
     optional: true
 - waitForAnimationToEnd
+# That tap is `optional`, so a miss is SILENT — and the caller then fails on the
+# first field with `Element not found: Text matching regex: Email`, which reads as
+# a broken form when the truth is the app never left guest Bazaar.
+# create_listing_multi_quantity burned 4m23s that way in cycle 6. So: retry the tab
+# if the login screen is not up, then wait for the screen's own marker before
+# handing control back.
+- runFlow:
+    when:
+      notVisible:
+        id: "login-email-input"
+    commands:
+      - tapOn:
+          id: "profile-tab"
+          optional: true
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "login-email-input"
+    timeout: 20000

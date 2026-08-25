@@ -22,9 +22,11 @@ appId: com.hatiwal.app
     timeout: 60000
 - tapOn: "Sign In"
 - waitForAnimationToEnd
-- tapOn: "Email"
+- tapOn:
+    id: "login-email-input"
 - inputText: "buyer@hatiwal.test"
-- tapOn: "Password"
+- tapOn:
+    id: "login-password-input"
 - inputText: "Password123!"
 # Dismiss the IME before submitting. The keyboard covers the lower half of a
 # form, and Maestro still reports the tap COMPLETED — it finds the element in
