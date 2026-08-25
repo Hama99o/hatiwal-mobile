@@ -17,6 +17,31 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## Every cycle must re-seed, or the disposable fixtures are single-use
+
+`reserved_buyer` failed on `assertVisible: "Who's buying this item?"` — the buyer
+picker's title when RESERVING. The listing was already `reserved` from an earlier
+cycle, so its primary action had become "Mark sold" and the sheet read "Who bought
+this item?" instead. The tap worked; the app was right; the fixture was stale.
+
+The seed already handles this — `DISPOSABLE_LISTINGS` resets every status on every
+seed, and its comment predicts this exact failure ("without this a disposable listing
+is single-use ... every later cycle finds it in the wrong state and fails for a reason
+that has nothing to do with the code under test"). The mechanism was never the
+problem. **Cycle 8 simply never re-seeded**, so a fixture consumed in cycle 6 or 7
+stayed consumed.
+
+So: **run `./qa/qa.sh seed` at the START of every cycle.** Between cycles is also the
+only safe moment — re-seeding mid-cycle moves fixtures under running flows.
+
+Within a single cycle it is sufficient, because each disposable is owned by exactly
+one flow ("Safe to reserve, sell, unpublish or delete — no flow asserts anything about
+it"), so nothing else can consume it first.
+
+How to check before blaming a flow:
+
+    bundle exec rails runner 'puts Listing.find_by(title: "QA Disposable <flow>").status'
+
 ## Search for the OUTCOME, not the mechanism
 
 Three separate mistakes in one session, all the same shape:
