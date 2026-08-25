@@ -45,6 +45,28 @@ describe("authAPI.register", () => {
     expect(user.firstname).toBe("Ahmad");
   });
 
+  it("sends preferred_language, snake_cased, when the caller passes one", async () => {
+    // `preferred_language` defaults to "ps" in the database, so omitting it made
+    // every new account Pashto and flipped the app's language AND direction the
+    // moment it was created — after a sign-up completed entirely in English.
+    let capturedBody: any;
+    server.use(
+      http.post("http://localhost:3007/api/v1/auth/", async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json({ data: MOCK_USER });
+      })
+    );
+    await authAPI.register({
+      email: "new@hatiwal.test",
+      password: "Password123!",
+      passwordConfirmation: "Password123!",
+      firstname: "Ahmad",
+      lastname: "Karimi",
+      preferredLanguage: "en",
+    });
+    expect(capturedBody.preferred_language).toBe("en");
+  });
+
   it("throws on 422 validation error", async () => {
     server.use(
       http.post("http://localhost:3007/api/v1/auth/", () =>
