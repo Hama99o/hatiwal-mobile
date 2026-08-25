@@ -1,0 +1,37 @@
+appId: com.hatiwal.app
+---
+# Drop a map pin on the listing form.
+#
+# WHY THIS IS A HELPER. Location is a PUBLISH BLOCKER: getPublishBlockers requires
+# exact coordinates for mode "publish", so a create-then-publish flow that skips it
+# gets refused. Nine flows skipped it and then asserted "Your listing is live!" —
+# create_listing_currency_usd's screenshot is the whole story, sitting on the form
+# with a red "Location is required — buyers filter listings by area" under an empty
+# location row. The app was right; the flows were not.
+#
+# Only create_listing_full_publish had the steps, so they are lifted here verbatim
+# rather than pasted a ninth time.
+#
+# The row's LABEL is used to open the picker because that row has no testID; the
+# picker's own confirm button does (`location-confirm`), and that is what proves the
+# sheet actually opened rather than the tap landing on nothing.
+- scrollUntilVisible:
+    element:
+      text: "Tap to set exact location on map"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "location-confirm"
+- tapOn:
+    id: "location-confirm"
+# 45s: the map has to load tiles and reverse-geocode before it will confirm, and on
+# a loaded host that is genuinely slow — not a hang.
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 45000
+# The row must stop OFFERING to set a location. That is the proof the pin took;
+# asserting the sheet closed only proves the sheet closed.
+- assertNotVisible: "Tap to set exact location on map"

@@ -76,6 +76,12 @@ appId: com.hatiwal.app
 # keyboard — register_duplicate_email submitted nothing at all, and the Rails log
 # showed no register POST for the whole run.
 - waitForAnimationToEnd
+# Location is a PUBLISH BLOCKER (getPublishBlockers, mode "publish"), so the pin
+# has to exist before Publish will do anything. Without it the app correctly
+# refuses and says "Location is required — buyers filter listings by area", and
+# this flow then failed asserting a successful publish.
+- runFlow: ../_helpers/set_listing_location.yaml
+
 - tapOn: "Publish"
 - waitForAnimationToEnd
 # Publishing lands on the owner detail with PublishSuccessSheet.
