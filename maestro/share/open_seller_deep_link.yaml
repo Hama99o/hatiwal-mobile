@@ -29,10 +29,18 @@ env:
 # The public seller profile screen should render.
 # UserProfileScreen shows a back button and the seller's name in the header.
 # Assert on the MoreVertical options button which is visible when not viewing own profile.
+# NOT optional, and not only a negative. As written this flow could not fail: the one
+# positive assertion was `optional: true`, and `assertNotVisible: "Welcome to Hatiwal"`
+# is true on ANY screen that is not the login wall — including a not-found screen. It
+# duly PASSED while opening `hatiwal://seller/1`, a user id that does not exist in this
+# database (the lowest is 36). A test that cannot fail is worse than no test.
+#
+# The id is now required, and the seller's NAME is asserted too, which is what proves
+# the RIGHT profile loaded rather than merely some screen.
 - assertVisible:
     id: "more-options-button"
-    optional: true
     label: "Seller profile header visible after deep link"
+- assertVisible: "Omar Noori"
 
 # Assert the loading skeleton resolves — the profile header should be visible.
 # We use a broad text assertion: the seller profile renders user-facing text.
