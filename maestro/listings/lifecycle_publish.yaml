@@ -20,7 +20,10 @@ appId: com.hatiwal.app
 # Confirm dialog
 - assertVisible: "Publish this listing?"
 - assertVisible: "Your listing will be visible to all buyers."
-- tapOn: "Publish"
+# The dialog's confirm button says "Publish" — and so does the button behind it.
+# A bare text tap matched both and hit the scrim, closing the dialog without
+# publishing (proven in seller/listing_actions_sheet).
+- runFlow: ../_helpers/confirm_dialog.yaml
 - waitForAnimationToEnd
 # Status changed to Active
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a

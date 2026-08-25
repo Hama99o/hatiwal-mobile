@@ -9,6 +9,17 @@ appId: com.hatiwal.app
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
 
+# A PHOTO FIRST — this flow PUBLISHES, and publishing requires at least one photo
+# (Listing#photo_required_to_publish, and the client's own pre-check). Without one
+# the publish is refused and the flow was really testing the photo rule rather
+# than what it is named for. Photos before the text fields: filling the form first
+# raises the keyboard over `photos-add-button`, and Maestro then reports "no
+# visible element" for a button that is merely covered.
+- tapOn:
+    id: "photos-add-button"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
+
 # The INPUT by testID, not the label. "Title" / "Description" / "Price" are
 # non-interactive Text labels above their fields, so tapping one focuses
 # nothing and the inputText that follows goes nowhere. A testID also works when
