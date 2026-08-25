@@ -36,6 +36,18 @@ appId: com.hatiwal.app
       text: "Men Winter Jacket XL Black"
     direction: DOWN
     timeout: 8000
+# DISMISS THE IME before tapping a result. The keyboard is up from the search box,
+# and on this emulator Gboard is in FLOATING mode — a panel that sits over the
+# middle-left of the feed, exactly where the first result card is. Maestro reports
+# the tap COMPLETED because it finds the card in the hierarchy and taps its centre,
+# while the touch lands on the keyboard panel. The screenshot shows the card half
+# covered by it.
+#
+# `hideKeyboard` is the BACK button on Android, so it is only safe while an IME is
+# actually up to consume it — which is precisely the case here, straight after
+# inputText.
+- hideKeyboard
+- waitForAnimationToEnd
 - tapOn: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
 
