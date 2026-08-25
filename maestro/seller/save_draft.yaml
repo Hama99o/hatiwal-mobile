@@ -96,6 +96,12 @@ appId: com.hatiwal.app
 
 # ── 2) A blocked draft is NEVER a silent no-op ───────────────────────────────
 
+# BACK FIRST. Saving a brand-new draft does `router.replace` to the listing's OWNER
+# DETAIL — ListingForm says so outright ("Saving a brand-new listing as a draft →
+# land on its own owner detail ... never the Browse tab"). That is not a tab route,
+# so the tab bar is not on screen and the tab id is simply not there.
+- back
+- waitForAnimationToEnd
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd

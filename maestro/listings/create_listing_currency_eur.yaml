@@ -62,7 +62,21 @@ appId: com.hatiwal.app
 # After "Save Draft" the toast is `listing.form.savedDraft` = "Draft saved".
 # "Listing saved" exists nowhere ("Changes saved" is the EDIT toast).
 - assertVisible: "Draft saved"
-# Find it in My Shop and verify EUR price
+
+# BACK FIRST. Saving a draft navigates to the listing DETAIL screen, which is not a
+# tab route — so the tab bar is not on screen and `browse-tab` was simply not there
+# ("Element not found: Id matching regex: browse-tab"), after the flow had already
+# done everything right and created the listing (201 in the Rails log).
+- back
+- waitForAnimationToEnd
+
+# Find it in My Shop and verify EUR price. In SELLER mode the `browse` route is
+# relabelled "My Shop" (tabs/_layout.tsx: title = isSeller ? sidebar.myListings :
+# sidebar.browse), so this id is correct here — it is the same tab.
+- extendedWaitUntil:
+    visible:
+      id: "browse-tab"
+    timeout: 20000
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd

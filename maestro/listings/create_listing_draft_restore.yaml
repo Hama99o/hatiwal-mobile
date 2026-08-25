@@ -30,7 +30,15 @@ appId: com.hatiwal.app
     id: "listing-form-title-input"
 - inputText: "Draft Test Listing"
 
-# The INPUT by testID — see the note on the title field.
+# The INPUT by testID — see the note on the title field. SCROLLED to: description
+# sits below photos, title, price, the two toggles, category and condition, and
+# `tapOn` never scrolls, so it failed with "Element not found" on a field that is
+# certainly there.
+- scrollUntilVisible:
+    element:
+      id: "listing-form-description-input"
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     id: "listing-form-description-input"
 - inputText: "This is a draft"
@@ -78,6 +86,12 @@ appId: com.hatiwal.app
 - assertVisible: "Draft saved"
 
 # My Listings → Drafts tab
+# BACK FIRST. Saving a brand-new draft does `router.replace` to the listing's OWNER
+# DETAIL — ListingForm says so outright ("Saving a brand-new listing as a draft →
+# land on its own owner detail ... never the Browse tab"). That is not a tab route,
+# so the tab bar is not on screen and the tab id is simply not there.
+- back
+- waitForAnimationToEnd
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
