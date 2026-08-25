@@ -58,6 +58,14 @@ wolf, and both did so by flagging a pattern rather than a failure.
 - **Toast copy asserted without polling (4 sites).** All false positives:
   `itemsSaved` = "Saved Items" is a stat-card LABEL, not a toast. Toast handling in
   the suite already uses `extendedWaitUntil` where it matters.
+- **Asserted copy whose i18n key the app never references (1 site).** This is the
+  audit that found `profile.title` — four flows asserting a "profile screen header"
+  that is rendered nowhere — so it is worth keeping. It is now clean. Its one
+  remaining hit, `"Contact Seller"`, is a FALSE POSITIVE and shows the trap: TWO
+  keys carry that same string, `browse.startChat` (dead) and
+  `listing.detail.contactSeller` (the one actually rendered), and a value->key map
+  keeps whichever it saw first. Any future run of this audit must resolve a value to
+  ALL its keys and clear the hit if ANY of them is referenced.
 - **testIDs referenced by flows but "missing" from source (36 sites).** All 118
   resolve. The gap was the matcher, which could not see multi-line and conditional
   `testID={...}` assignments. Any future version of this audit must handle those
