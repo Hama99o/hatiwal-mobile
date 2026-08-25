@@ -19,9 +19,25 @@ appId: com.hatiwal.app
     id: "avatar-picker"
 - waitForAnimationToEnd
 # Photo picker sheet opens with Gallery/Camera options
-- assertVisible: "Gallery"
-- assertVisible: "Camera"
-# Dismiss without picking
-- tapOn: "Cancel"
+# There is no in-app "Gallery / Camera" chooser. `pickAvatar` (Profile.tsx) calls
+# ImagePicker.launchImageLibraryAsync() DIRECTLY, so it hands straight off to the
+# Android system photo picker — these assertions were describing a sheet the app
+# has never rendered, and the "Cancel" tap below had nothing to tap.
+#
+# What is worth testing is the app's half: the affordance opens the picker, and
+# dismissing it returns you to Profile with nothing broken. The picker itself is
+# the platform's, not ours.
+- extendedWaitUntil:
+    visible: ".*(Recent|Photos).*"
+    timeout: 20000
+
+# BACK, not a label: the picker is a system surface and its controls are not the
+# app's to select by text.
+- pressKey: Back
 - waitForAnimationToEnd
-- assertVisible: "Edit Profile"
+
+# Back on Profile. By testID rather than "Edit Profile" — that exact string is BOTH
+# the avatar's accessibilityLabel AND the settings row that navigates away, as
+# Profile.tsx notes, so the text is ambiguous here.
+- assertVisible:
+    id: "avatar-picker"
