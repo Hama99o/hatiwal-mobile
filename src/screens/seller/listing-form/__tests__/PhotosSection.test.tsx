@@ -30,7 +30,7 @@
  */
 
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { Platform } from "react-native";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -74,8 +74,21 @@ jest.mock("@/lib/animation/haptics", () => ({
   triggerHaptic: jest.fn(),
 }));
 
+jest.mock("@/lib/toast", () => ({
+  toast: { error: jest.fn(), success: jest.fn() },
+}));
+
 // Import AFTER mocks
 import { PhotosSection, PhotoItem } from "../PhotosSection";
+import * as ImagePicker from "expo-image-picker";
+import { AccessibilityInfo } from "react-native";
+import { toast } from "@/lib/toast";
+
+const mockPicker = ImagePicker as unknown as {
+  requestMediaLibraryPermissionsAsync: jest.Mock;
+  launchImageLibraryAsync: jest.Mock;
+};
+const mockToast = toast as unknown as { error: jest.Mock };
 
 const ORIGINAL_PLATFORM_OS = Platform.OS;
 
@@ -256,5 +269,73 @@ describe("PhotosSection — RTL", () => {
   it("renders without throwing in RTL (with photos)", () => {
     mockUseLocalization.mockReturnValue({ isRtl: true, formatNumber: (n: number) => String(n) });
     expect(() => render(<PhotosSection {...baseProps({ photos: makePhotos(3) })} />)).not.toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// "Nothing silent" — a seller must always be told why a photo did not arrive.
+// A listing cannot be published without a photo, so a silent failure here is a
+// dead end with no explanation.
+describe("PhotosSection — failures are always reported", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Android: the source picker is a plain <Modal>. On iOS it is ActionSheetIOS,
+    // whose native manager does not exist under Jest — the same reason the
+    // existing suite pins the platform before pressing this button.
+    Platform.OS = "android";
+    mockPicker.requestMediaLibraryPermissionsAsync.mockResolvedValue({
+      status: "granted",
+      accessPrivileges: "all",
+    });
+  });
+
+  afterEach(() => {
+    Platform.OS = ORIGINAL_PLATFORM_OS;
+  });
+
+  it("reports it when the photo picker throws instead of failing silently", async () => {
+    // Real causes: an unreadable file, a provider crash, memory pressure on a
+    // full-res photo. Before this, the rejection went nowhere at all.
+    mockPicker.launchImageLibraryAsync.mockRejectedValue(new Error("provider died"));
+    const onChange = jest.fn();
+    render(<PhotosSection photos={[]} onChange={onChange} />);
+
+    fireEvent.press(screen.getByTestId("photos-add-button"));
+    await waitFor(() =>
+      expect(screen.getByTestId("photos-add-button-gallery")).toBeTruthy()
+    );
+    fireEvent.press(screen.getByTestId("photos-add-button-gallery"));
+
+    await waitFor(() =>
+      expect(mockToast.error).toHaveBeenCalledWith("listing.form.photoPickFailed")
+    );
+    // ...and announced, because a toast alone is silence for a screen reader.
+    expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
+      "listing.form.photoPickFailed"
+    );
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("caps an over-limit selection AND says how many were dropped", async () => {
+    // `selectionLimit` is a request, not a guarantee — some OEM pickers ignore it.
+    const already: PhotoItem[] = [{ uri: "a" }, { uri: "b" }];
+    mockPicker.launchImageLibraryAsync.mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: "c" }, { uri: "d" }, { uri: "e" }],
+    });
+    const onChange = jest.fn();
+    render(<PhotosSection photos={already} onChange={onChange} maxPhotos={3} />);
+
+    fireEvent.press(screen.getByTestId("photos-add-button"));
+    await waitFor(() =>
+      expect(screen.getByTestId("photos-add-button-gallery")).toBeTruthy()
+    );
+    fireEvent.press(screen.getByTestId("photos-add-button-gallery"));
+
+    // Only the one remaining slot is filled...
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+    expect(onChange).toHaveBeenCalledWith([...already, { uri: "c" }]);
+    // ...and the seller is told the other two did not make it.
+    expect(mockToast.error).toHaveBeenCalledWith("listing.form.photoLimitReached");
   });
 });

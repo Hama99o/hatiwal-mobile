@@ -223,7 +223,10 @@
     },
     "multipleUnitsLabel": "I have more than one",
     "howManyUnits": "How many do you have?",
-    "howManySold": "How many did you sell?"
+    "howManySold": "How many did you sell?",
+    "photoPickFailed": "Couldn't open your photos. Please try again.",
+    "cameraFailed": "Couldn't open the camera. Please try again.",
+    "photoLimitReached": "You can add up to {{max}} photos — {{dropped}} weren't added."
   },
   "shopCount_one": "{{count}} listing",
   "firmPrice": "Firm price",

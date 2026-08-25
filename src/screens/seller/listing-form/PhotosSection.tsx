@@ -20,6 +20,7 @@ import {
   Modal,
   ActionSheetIOS,
   Platform,
+  AccessibilityInfo,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,6 +33,7 @@ import { useLocalization } from "@/hooks/useLocalization";
 import { Text } from "@/components/reusables/text";
 import { Camera, ImageIcon, Plus, Star, X, ArrowLeftRight } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { toast } from "@/lib/toast";
 import { triggerHaptic } from "@/lib/animation/haptics";
 import { useReduceMotion } from "@/lib/animation/useReduceMotion";
 
@@ -75,6 +77,14 @@ export function PhotosSection({
 
   const canAddMore = photos.length < maxPhotos;
 
+  // Toast AND screen-reader announcement. A sonner-native toast is not announced
+  // by TalkBack on its own, so a toast alone is silence for a blind seller — the
+  // same rule ListingForm's blocked-submit path already follows.
+  function announce(message: string) {
+    toast.error(message);
+    AccessibilityInfo.announceForAccessibility(message);
+  }
+
   // ── Source picker ─────────────────────────────────────────────────────────
 
   async function launchLibrary() {
@@ -100,14 +110,43 @@ export function PhotosSection({
       // still select photos from their allowed subset. Returning here would block them
       // entirely, which is worse than proceeding with partial access.
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"] as any,
-      allowsMultipleSelection: true,
-      quality: 0.85,
-      selectionLimit: maxPhotos - photos.length,
-    });
-    if (!result.canceled) {
-      onChange([...photos, ...result.assets.map((a) => ({ uri: a.uri }))]);
+    // NOTHING SILENT PAST THIS POINT.
+    //
+    // launchImageLibraryAsync REJECTS on a bad file, a provider crash, or memory
+    // pressure on a large photo — full-res phone photos are ~8MB each here. Without
+    // this catch the rejection went nowhere: the picker closed, no photo appeared,
+    // and the seller was told nothing at all. "I pressed add photos and nothing
+    // happened" is the single worst outcome on this screen, because a listing
+    // cannot be published without a photo and nothing explains why.
+    const remaining = maxPhotos - photos.length;
+    let result: ImagePicker.ImagePickerResult;
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"] as any,
+        allowsMultipleSelection: true,
+        quality: 0.85,
+        selectionLimit: remaining,
+      });
+    } catch {
+      announce(t("listing.form.photoPickFailed"));
+      return;
+    }
+    if (result.canceled) return;
+
+    const picked = result.assets.map((a) => ({ uri: a.uri }));
+    // `selectionLimit` is a REQUEST, not a guarantee — older Android providers and
+    // some OEM pickers ignore it. Cap it ourselves, and say so rather than dropping
+    // the extras on the floor: the seller picked them and would otherwise be left
+    // counting thumbnails to work out that some never arrived.
+    const accepted = picked.slice(0, remaining);
+    if (accepted.length > 0) onChange([...photos, ...accepted]);
+    if (picked.length > accepted.length) {
+      announce(
+        t("listing.form.photoLimitReached", {
+          max: maxPhotos,
+          dropped: picked.length - accepted.length,
+        })
+      );
     }
   }
 
@@ -122,7 +161,13 @@ export function PhotosSection({
       showPermissionDeniedAlert("camera", t);
       return;
     }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.85 });
+    let result: ImagePicker.ImagePickerResult;
+    try {
+      result = await ImagePicker.launchCameraAsync({ quality: 0.85 });
+    } catch {
+      announce(t("listing.form.cameraFailed"));
+      return;
+    }
     if (!result.canceled && result.assets[0]) {
       onChange([...photos, { uri: result.assets[0].uri }]);
     }

@@ -223,7 +223,10 @@
     },
     "multipleUnitsLabel": "بیشتر از یک عدد دارم",
     "howManyUnits": "چند عدد دارید؟",
-    "howManySold": "چند عدد فروختید؟"
+    "howManySold": "چند عدد فروختید؟",
+    "photoPickFailed": "Couldn't open your photos. Please try again.",
+    "cameraFailed": "Couldn't open the camera. Please try again.",
+    "photoLimitReached": "You can add up to {{max}} photos — {{dropped}} weren't added."
   },
   "shopCount_one": "{{count}} آگهی",
   "firmPrice": "قیمت ثابت",

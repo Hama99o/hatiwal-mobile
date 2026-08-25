@@ -223,7 +223,10 @@
     },
     "multipleUnitsLabel": "زه له یوې څخه ډېرې لرم",
     "howManyUnits": "څو دانې لرې؟",
-    "howManySold": "څو دانې مو وپلورلې؟"
+    "howManySold": "څو دانې مو وپلورلې؟",
+    "photoPickFailed": "Couldn't open your photos. Please try again.",
+    "cameraFailed": "Couldn't open the camera. Please try again.",
+    "photoLimitReached": "You can add up to {{max}} photos — {{dropped}} weren't added."
   },
   "shopCount_one": "{{count}} اعلان",
   "firmPrice": "ثابت قیمت",
