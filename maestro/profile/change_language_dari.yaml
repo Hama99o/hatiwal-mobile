@@ -17,12 +17,16 @@ appId: com.hatiwal.app
     id: "language-option-fa"
 - waitForAnimationToEnd
 # App now in Dari/RTL
-# Switching to an RTL language flips I18nManager, and RN can only apply that with
-# a JS RELOAD — applyLanguageFromUser calls reloadApp() when the direction changes.
-# `waitForAnimationToEnd` does not wait for an app restart, so a bare assertVisible
-# here raced the reload and failed on a screen that was about to be correct.
-# Poll instead: same assertion, no timing dependency.
+# The switch RESTARTS the app (forceRTL + reloadApp) and it comes back on its
+# INITIAL route — the Bazaar feed, not Profile where the switch was made. So the
+# language NAME, which only exists on the Profile language row, is not on screen
+# at all: polling for it just burned the flow's whole budget (8m9s) before failing.
+#
+# Assert the locale-specific TAB label instead. It is in the tab bar wherever the
+# app lands, and it changes with the locale — which is the thing being proved.
+# `sidebar.profile` is "Me" / "زه" (ps) / "من" (fa), so it also distinguishes
+# Pashto from Dari, which "بازار" (identical in both) would not.
 - extendedWaitUntil:
-    visible: "دری"
+    visible: "من"
     timeout: 40000
 - waitForAnimationToEnd
