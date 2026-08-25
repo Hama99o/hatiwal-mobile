@@ -21,17 +21,23 @@ appId: com.hatiwal.app
 
 # LOGIN — deliberately explicit rather than either shared helper.
 #
-# `login_seller.yaml` is still on the pre-rig shape (`clearState: true` with no
-# open_bundle.yaml), so it lands in the expo-dev-client launcher and dies before
-# its first assertion (verified, run-014).
+# BOTH REASONS BELOW ARE NOW OUT OF DATE (2026-08-25). Left in place because the
+# mechanism still works and this flow was not re-verified when they stopped being
+# true — but do not act on them:
 #
-# `login.yaml` is fixed, but it WARM-launches and signs in only "if the login
-# form is actually on screen" — so passing it EMAIL/PASSWORD is a no-op whenever
-# a session already exists, and the flow silently runs as whoever was signed in
-# last. That is exactly what happened in run-015: still the BUYER, who owns no
-# listings, so My Shop read "0 listings" on every tab and the failure looked like
-# a missing fixture. Worth knowing before 61 seller flows are pointed at a
-# warm-launch helper.
+#   * "login_seller.yaml is still on the pre-rig shape (clearState: true with no
+#     open_bundle)" — it is not. It warm-launches (`launchApp` + open_bundle.yaml).
+#   * "login.yaml ... signs in only if the login form is on screen, so the flow
+#     silently runs as whoever was signed in last" — that hole is closed. BOTH
+#     helpers now sign out anything that is not the expected account, rather than
+#     recognising one known-wrong identity, so an inherited session is no longer a
+#     way to run as the wrong user.
+#
+# So the original justification for duplicating the login inline no longer holds,
+# and this flow could use login_seller.yaml — dropping ~60s of clearState and
+# inheriting future helper fixes instead of drifting from them. Not done here
+# because it is a behavioural change to a flow that has never had a clean phone
+# verdict; do it with a run to compare against.
 #
 # This flow asserts a specific seller's stock, so identity cannot be inherited:
 # clear state and sign in as the seller outright. Costs ~60s, buys certainty.
