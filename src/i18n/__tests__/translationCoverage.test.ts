@@ -68,6 +68,53 @@ function usedKeys(): Set<string> {
   return used;
 }
 
+
+/** Every key -> its VALUE, so a key that exists but was never translated is visible. */
+function valuesOf(lang: string): Map<string, string> {
+  const out = new Map<string, string>();
+  const dir = path.join(LOCALES, lang);
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith(".json"))) {
+    const ns = file.replace(/\.json$/, "");
+    const add = (obj: unknown, prefix: string) => {
+      if (obj && typeof obj === "object") {
+        for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+          add(v, prefix ? `${prefix}.${k}` : k);
+        }
+      } else if (typeof obj === "string") {
+        out.set(`${ns}.${prefix.replace(PLURAL, "")}`, obj);
+      }
+    };
+    add(JSON.parse(fs.readFileSync(path.join(dir, file), "utf8")), "");
+  }
+  return out;
+}
+
+/**
+ * Values that are SUPPOSED to be identical in every language.
+ *   appName  — a brand name; translating it would be a bug.
+ *   share.body — "{{title}} — {{price}}\n{{url}}", pure interpolation, no words.
+ */
+const IDENTICAL_BY_DESIGN = new Set(["common.appName", "listing.share.body"]);
+
+/**
+ * Known untranslated strings — DEBT, not permission.
+ *
+ * The app is otherwise fully translated: 872 keys, none missing, and nothing else
+ * left in English. These four were added while fixing silent failures on the create
+ * form, and machine-translating error copy into Pashto or Dari is worse than the
+ * configured `fallbackLng: "en"` — a confidently wrong message misleads, where
+ * English at least reads as untranslated. They need a human.
+ *
+ * DELETE each entry as it is translated. Do not add to this list to make a build
+ * pass; that is the whole point of it being here.
+ */
+const AWAITING_TRANSLATION = new Set([
+  "listing.form.photoPickFailed",
+  "listing.form.cameraFailed",
+  "listing.form.photoLimitReached",
+  "listing.form.quantityOutOfRange",
+]);
+
 describe("translation coverage", () => {
   const used = usedKeys();
   const catalogs = Object.fromEntries(LANGS.map((l) => [l, keysOf(l)]));
@@ -87,5 +134,21 @@ describe("translation coverage", () => {
   it.each(["ps", "fa"] as const)("%s carries every en key", (lang) => {
     const missing = [...catalogs.en].filter((k) => !catalogs[lang].has(k)).sort();
     expect(missing).toEqual([]);
+  });
+  // Key PRESENCE is not translation. A key can sit in ps/fa holding the English
+  // string and every check above still passes, while a Pashto-speaking seller reads
+  // English at the exact moment something has gone wrong.
+  it.each(["ps", "fa"] as const)("%s has no untranslated English left in it", (lang) => {
+    const en = valuesOf("en");
+    const other = valuesOf(lang);
+    const untranslated = [...en.entries()]
+      .filter(([k, v]) => other.get(k) === v)
+      // Latin letters are the tell: a shared number, symbol or pure interpolation
+      // string is not evidence of anything.
+      .filter(([, v]) => /[A-Za-z]/.test(v))
+      .map(([k]) => k)
+      .filter((k) => !IDENTICAL_BY_DESIGN.has(k) && !AWAITING_TRANSLATION.has(k))
+      .sort();
+    expect(untranslated).toEqual([]);
   });
 });
