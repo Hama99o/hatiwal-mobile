@@ -44,6 +44,27 @@ a search that answers only one of them will pass while being wrong.
 Corollary for audits: state which question the audit asked. A passing audit proves
 that question was satisfied and nothing more.
 
+## A feature timeout orphans its maestro, which keeps the device lock
+
+`timeout N ./qa/qa.sh feature X` signals `qa.sh`, NOT the java process it spawned.
+So a truncated feature leaves a live maestro holding the device lock, and the next
+feature sits on "another QA run is driving the emulator right now" until the
+orphan's own 600s cap expires.
+
+It happened after BOTH truncated features in cycle 8 — profile and listings —
+costing about ten minutes each on top of the truncation. The symptom is misleading:
+the message says another QA RUN is driving the emulator, which reads like two
+sessions colliding, when it is one session colliding with its own dead feature.
+
+Kill the orphan when, and only when, the feature exited 124:
+
+    timeout "$budget" ./qa/qa.sh feature "$f"; rc=$?
+    [ "$rc" = 124 ] && { pkill -f 'maestro.cli.AppKt'; sleep 5; }
+
+Unconditionally safe at that point because `qa.sh` has already exited, so whatever
+the orphan was measuring is unrecoverable either way. Gate it on 124 so a clean
+finish never kills a legitimate flow.
+
 ## A flat per-feature timeout silently truncates the big features
 
 Cycles 7 and 8 wrapped each feature in `timeout 5400` — 90 minutes. At a measured
