@@ -26,7 +26,15 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Pashto profile SCREEN HEADER visible (profile.title key — unchanged)
-- assertVisible: "پروفایل"
+# `profile.title` is defined in every locale and RENDERED NOWHERE — grep for
+# t("profile.title") returns nothing, so this "screen header" does not exist and the
+# assertion could never pass in any language. `profile.info` (the PERSONAL INFO card
+# heading) IS rendered and IS translated, so it proves the same thing.
+- scrollUntilVisible:
+    element:
+      text: "شخصي معلومات"
+    direction: DOWN
+    timeout: 20000
 
 # --- Buyer-mode RTL quick actions ---
 # Buyer mode is the default; verify the three single-column action rows are visible

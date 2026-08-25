@@ -20,14 +20,31 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-# Profile SCREEN HEADER in Dari (profile.title key — unchanged)
-- assertVisible: "پروفایل"
+# `profile.title` is defined in every locale and RENDERED NOWHERE — grep for
+# t("profile.title") returns nothing, so this "screen header" does not exist and the
+# assertion could never pass in any language. `profile.info` (the PERSONAL INFO card
+# heading) IS rendered and IS translated, so it proves the same thing.
+- scrollUntilVisible:
+    element:
+      text: "اطلاعات شخصی"
+    direction: DOWN
+    timeout: 20000
 # Edit profile
 - assertVisible: "ویرایش پروفایل"
 # Appearance
-- assertVisible: "ظاهر"
+# Appearance sits well down the profile screen and `assertVisible` does not scroll.
+- scrollUntilVisible:
+    element:
+      text: "ظاهر"
+    direction: DOWN
+    timeout: 20000
 # Sign out
-- assertVisible: "خروج"
+# Sign out sits well down the profile screen and `assertVisible` does not scroll.
+- scrollUntilVisible:
+    element:
+      text: "خروج"
+    direction: DOWN
+    timeout: 20000
 # Reset to English
 # The option list is COLLAPSED on mount and its row is below the fold, so
 # tapping an option straight away could never work — the helper scrolls to the

@@ -45,7 +45,19 @@ appId: com.hatiwal.app
 # feed, so the header could not have been on screen above.
 - tapOn: "زه"
 - waitForAnimationToEnd
-- assertVisible: "پروفایل"
+# `profile.title` ("Profile" / "پروفایل" / "پروفایل") is defined in all three
+# locales and RENDERED NOWHERE — grep for t("profile.title") returns nothing. The
+# flow's comment called it the "profile SCREEN HEADER", but the screen has no such
+# header, so this assertion could never pass in any language.
+#
+# `profile.info` IS rendered (the PERSONAL INFO card heading), and it is translated,
+# so it proves the same thing this was trying to prove. Scrolled to, because the
+# card sits below the header block.
+- scrollUntilVisible:
+    element:
+      text: "شخصي معلومات"
+    direction: DOWN
+    timeout: 20000
 - waitForAnimationToEnd
 # Bazaar tab label in Pashto is "بازار" — use testID to navigate
 - tapOn:
@@ -68,7 +80,19 @@ appId: com.hatiwal.app
     id: "language-option-fa"
 - waitForAnimationToEnd
 # Profile SCREEN HEADER in Dari (profile.title key — unchanged)
-- assertVisible: "پروفایل"
+# `profile.title` ("Profile" / "پروفایل" / "پروفایل") is defined in all three
+# locales and RENDERED NOWHERE — grep for t("profile.title") returns nothing. The
+# flow's comment called it the "profile SCREEN HEADER", but the screen has no such
+# header, so this assertion could never pass in any language.
+#
+# `profile.info` IS rendered (the PERSONAL INFO card heading), and it is translated,
+# so it proves the same thing this was trying to prove. Scrolled to, because the
+# card sits below the header block.
+- scrollUntilVisible:
+    element:
+      text: "اطلاعات شخصی"
+    direction: DOWN
+    timeout: 20000
 
 # Navigate profile tab using new Dari tab label "من"
 - tapOn: "من"
