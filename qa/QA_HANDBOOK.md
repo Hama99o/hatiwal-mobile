@@ -17,6 +17,31 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## The full Jest suite is a build — do not run it while flows are running
+
+The rig's first rule is "never build the APK while the emulator runs: Gradle takes
+every core, the emulator freezes, and every flow fails for no app reason." A full
+`npx jest` run is the same thing wearing different clothes: 137 suites across parallel
+workers, ~12 minutes.
+
+Measured, not guessed: starting one during cycle 8 took the 1-minute load average to
+**58** and the 5-minute to **181**, the emulator died mid-flow, and `mark_read_end_to_end`
+was recorded as `rig_fail` after 745s. Killing the jest run brought load back to 15
+within a couple of minutes.
+
+Two silver linings worth keeping:
+
+- The rig RECOVERED on its own — "emulator recovered — continuing with
+  'mark_read_end_to_end'". That path only became reachable once every adb call was
+  time-bounded; before that a dead device made `rig_healthy` block forever.
+- `rig_fail` is the right classification, and it kept the verdict out of the app's
+  column.
+
+So: run targeted suites (`npx jest path/to/one.test.tsx`) while a cycle is live, and
+save the full run for between cycles. And when a `rig_fail` appears, check `uptime`
+before anything else — the machine also hosts another project's rig, so load is not
+always self-inflicted, but it usually is.
+
 ## Never kill by process name on this machine
 
 Another project (edu-safi) runs its own QA rig here, with its own emulator, its own
