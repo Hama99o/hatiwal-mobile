@@ -24,6 +24,7 @@ import { useColors } from "@/hooks/useColors";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher";
 import { registerPushToken } from "@/utils/push-token";
 import { confirmAlert } from "@/utils/alert";
+import { apiErrorMessage } from "@/utils/apiError";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import Constants from "expo-constants";
@@ -175,8 +176,9 @@ export default function LoginScreen() {
               try {
                 const restored = await authAPI.restoreAccount();
                 enterApp(restored);
-              } catch {
-                setError(t("common.error"));
+              } catch (restoreErr) {
+                // Same reason as the sign-in path: say what went wrong.
+                setError(apiErrorMessage(restoreErr, t));
               }
             },
           },
@@ -207,7 +209,17 @@ export default function LoginScreen() {
       if (!isBlocked) {
         // devise_token_auth returns { errors: ["Invalid login credentials..."] }
         const apiErrors: string[] = data?.errors ?? [];
-        setError(apiErrors.length > 0 ? apiErrors.join(" ") : t("common.error"));
+        // apiErrorMessage for everything else. This used to fall back to
+        // `t("common.error")` — the single word "Error" — which is precisely what
+        // apiError.ts was written to stamp out ("in 10 of its 17 mutations", per its
+        // own header); the sign-in path never got converted. It matters most for a
+        // NETWORK failure: there is no `err.response` at all, so `data?.errors` is
+        // undefined, the array is empty, and the user was told "Error" when the real
+        // answer is "No connection. Check your internet and try again." QA caught it
+        // on the device: a red box containing one word and no cause.
+        setError(
+          apiErrors.length > 0 ? apiErrors.join(" ") : apiErrorMessage(err, t)
+        );
       }
     } finally {
       setLoading(false);
