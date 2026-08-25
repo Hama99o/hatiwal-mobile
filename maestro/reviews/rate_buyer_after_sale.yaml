@@ -26,11 +26,19 @@ appId: com.hatiwal.app
 - tapOn: "Active"
 - waitForAnimationToEnd
 
-- scrollUntilVisible:
-    element:
-      text: "Lenovo ThinkPad Laptop Core i5 8GB"
-    direction: DOWN
-    timeout: 8000
+# SEARCH, do not scroll. This is a SEEDED listing among many the seller owns, so 8s
+# of scrolling cannot reach it — "No visible element found" for a listing that is
+# present and active. Same fix as multi_quantity_partial_sale.
+- tapOn: "Search my listings..."
+- inputText: "Lenovo ThinkPad Laptop Core i5 8GB"
+# hideKeyboard IMMEDIATELY after inputText, nothing in between: it is the BACK button
+# on Android and only safe while an IME is up to consume it. Gboard floats over the
+# middle of the list on this emulator, right where the first result lands.
+- hideKeyboard
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Lenovo ThinkPad Laptop Core i5 8GB"
+    timeout: 20000
 
 - tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
 - waitForAnimationToEnd

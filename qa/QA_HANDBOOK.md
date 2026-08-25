@@ -17,6 +17,38 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## Known-pending: 9 sites scroll to a buried seeded listing
+
+Two flows have now failed this way — `multi_quantity_partial_sale` and
+`rate_buyer_after_sale` — both with `scrollUntilVisible` at 8000ms for a listing the
+SEED creates, which sits well down My Shop among many others. Both were fixed by
+searching instead.
+
+Raising the timeout is NOT the fix. `listing_conversations` records spending 463s
+driving infinite scroll and still not finding a listing that was present, so the feed
+does not necessarily bring a buried item into view at all.
+
+An audit (seed titles minus "QA Disposable *", cross-referenced against
+scrollUntilVisible targets with a timeout <= 10s, excluding sites where a search is
+issued first) leaves 9 sites in 5 flows:
+
+    chat/offer_send_and_accept.yaml:46
+    chat/reserve_after_accept.yaml:78
+    chat/reserve_after_buyer_accepts_counter.yaml:52
+    chat/reserved_sold_dead_end_notice.yaml:42, 74, 107, 157, 190
+    seller/listing_conversations.yaml:69
+
+**Deliberately not fixed yet.** None has failed on a phone, and the fix is not
+uniform: the right search box differs by screen ("Search listings..." on the buyer
+feed, "Search my listings..." on My Shop), so a sweep would need per-site screen
+detection — the exact shape of change that broke five flows earlier in this session.
+`seller/listing_conversations.yaml:34` is in the same file and is FINE, because a
+search precedes it and the scroll is only a backstop.
+
+When `chat` next runs, expect these; the fix pattern is in
+`rate_buyer_after_sale.yaml` (search, then hideKeyboard immediately, then
+extendedWaitUntil).
+
 ## Every cycle must re-seed, or the disposable fixtures are single-use
 
 `reserved_buyer` failed on `assertVisible: "Who's buying this item?"` — the buyer
