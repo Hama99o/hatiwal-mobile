@@ -687,7 +687,12 @@ export default function ListingFormScreen() {
       // Show the server's own reason ("Price must be less than or equal to
       // 9999999999.99") instead of a generic "couldn't save" — the seller
       // cannot fix what they are not told.
-      toast.error(apiErrorMessage(err, t, "listing.form.saveError"));
+      // Announced as well as toasted. The blocked-submit path below already does
+      // this; a FAILED save or publish is the same category of "why did nothing
+      // happen" and was reaching screen-reader users as silence.
+      const message = apiErrorMessage(err, t, "listing.form.saveError");
+      toast.error(message);
+      AccessibilityInfo.announceForAccessibility(message);
     },
   });
 
@@ -744,7 +749,12 @@ export default function ListingFormScreen() {
       router.dismissTo(`/(main)/my-listings/${listing.id}?published=1` as never);
     },
     onError: (err) => {
-      toast.error(apiErrorMessage(err, t, "listing.form.publishError"));
+      // Announced as well as toasted. The blocked-submit path below already does
+      // this; a FAILED save or publish is the same category of "why did nothing
+      // happen" and was reaching screen-reader users as silence.
+      const message = apiErrorMessage(err, t, "listing.form.publishError");
+      toast.error(message);
+      AccessibilityInfo.announceForAccessibility(message);
     },
   });
 
