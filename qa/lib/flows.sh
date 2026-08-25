@@ -190,6 +190,22 @@ EOF_IDS
            # give up honestly.
            warn "emulator gone — attempting to boot it"
            if emulator_boot "$QA_AVD" && app_install && rig_healthy; then
+             # POINT THE DEV CLIENT AT METRO, by intent.
+             #
+             # A recovered emulator boots from snapshot with no remembered Metro
+             # server, so the app lands in expo's DevLauncherActivity — and
+             # open_bundle.yaml then has to TYPE the URL through the launcher UI,
+             # which does not reliably work. Observed: after one recovery the app sat
+             # in the launcher and every remaining flow failed on
+             # `"Development Build" is not visible`, which reads as a flow bug and is
+             # not one. mark_read_end_to_end burned 254s that way.
+             #
+             # The deep link is deterministic and the launcher remembers the URL for
+             # subsequent launches, so one intent fixes the rest of the cycle.
+             adb_qa_t 25 shell am start -a android.intent.action.VIEW \
+               -d "hatiwal://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A${METRO_PORT}" \
+               >/dev/null 2>&1
+             sleep 25
              ok "emulator recovered — continuing with '$name'"
            else
              err "could not recover the emulator — aborting feature '$feature'"
