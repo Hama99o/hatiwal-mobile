@@ -57,8 +57,11 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-- tapOn: "ژبه"
-- waitForAnimationToEnd
+# No tap on the Language row here. It sits in the Preferences card near the bottom
+# of Profile and `tapOn` never scrolls — this flow says so in its own comment
+# further up, then did it anyway in Pashto ("ژبه"), and failed with
+# `Element not found: Text matching regex: ژبه`. The helper below scrolls to that
+# row AND expands it, so the tap was both wrong and unnecessary.
 # The option list is COLLAPSED on mount and its row is below the fold, so
 # tapping an option straight away could never work — the helper scrolls to the
 # row and expands it first.

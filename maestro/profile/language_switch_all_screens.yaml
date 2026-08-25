@@ -56,8 +56,10 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-- tapOn: "ژبه"
-- waitForAnimationToEnd
+# No tap on the Language row: it sits near the bottom of Profile and `tapOn` never
+# scrolls — this flow says exactly that further up and then did it anyway. The
+# helper below scrolls to the row AND expands it, so the tap is unnecessary as well
+# as wrong.
 # The option list is COLLAPSED on mount and its row is below the fold, so
 # tapping an option straight away could never work — the helper scrolls to the
 # row and expands it first.
@@ -71,8 +73,10 @@ appId: com.hatiwal.app
 # Navigate profile tab using new Dari tab label "من"
 - tapOn: "من"
 - waitForAnimationToEnd
-- tapOn: "زبان"
-- waitForAnimationToEnd
+# No tap on the Language row: it sits near the bottom of Profile and `tapOn` never
+# scrolls — this flow says exactly that further up and then did it anyway. The
+# helper below scrolls to the row AND expands it, so the tap is unnecessary as well
+# as wrong.
 # The option list is COLLAPSED on mount and its row is below the fold, so
 # tapping an option straight away could never work — the helper scrolls to the
 # row and expands it first.
