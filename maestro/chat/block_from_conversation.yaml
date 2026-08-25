@@ -32,7 +32,14 @@ appId: com.hatiwal.app
 # Maestro matches the FULL string as a regex, and the real copy continues
 # "…and their listings will be hidden." (profile.blockConfirmMessage), so the
 # bare prefix never matched. `.*` makes it a prefix match on purpose.
-- assertVisible: "Blocked users cannot contact you.*"
+# THREE dialogs in this app are titled "Block this user?", with three different
+# bodies, so the title matching proves nothing about which one opened:
+#   Conversation.tsx   chat.block.blockConfirmDescription
+#   UserProfile.tsx    profile.userProfile.blockConfirmMessage
+#   ReportSheet.tsx    report.block.body
+# This flow blocks from the CONVERSATION, so it is the first of those. It was
+# asserting UserProfile's wording — right words, wrong screen.
+- assertVisible: "They won.t be able to message you and you won.t see their listings."
 # Confirm
 - tapOn: "Block User"
 - waitForAnimationToEnd
