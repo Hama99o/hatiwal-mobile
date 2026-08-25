@@ -58,26 +58,28 @@ appId: com.hatiwal.app
 - eraseText
 - inputText: "Tomorrow 3pm"
 - waitForAnimationToEnd
-
-# The meetup sheet's confirm button is `chat.meetup.propose` = "Propose Meetup".
-# Dismiss the IME before submitting. The keyboard covers the lower half of a
-# form, and Maestro still reports the tap COMPLETED — it finds the element in
-# the hierarchy and taps its bounds, while the touch lands on the keyboard. On
-# the login screen that swallowed EVERY sign-in in the suite: no request ever
-# reached the API and the flow blamed a missing tab bar 60s later.
-- hideKeyboard
-- waitForAnimationToEnd
-- tapOn: "Propose Meetup"
+# NO IME dismissal before submitting. BOTH cures failed in run-232:
+#   * `hideKeyboard` is BACK on Android — it dismissed the sheet's <Modal>, and
+#     the submit button came back "not found" because the sheet was gone.
+#   * tapping the "Propose a Meetup" heading to blur ALSO failed "not found":
+#     MeetupSheet has no ScrollView and uses KeyboardAvoidingView
+#     behavior="height" on Android, so the IME compresses the sheet and clips
+#     the heading out of the layout exactly when the keyboard is up.
+# MeetupSheet's own platform audit says the submit button stays reachable with
+# the keyboard up, so tap it directly. By ID, never by label: the label swaps to
+# "Sending…" while submitting. The assert makes a clipped button fail HERE.
+- assertVisible:
+    id: "meetup-propose-submit"
+- tapOn:
+    id: "meetup-propose-submit"
 - waitForAnimationToEnd
 # The bubble header is `chat.meetup.proposed` = "Meetup Proposal".
 - assertVisible: "Meetup Proposal"
 
-# Switch to seller to respond
+# The proposal must survive a cold restart — the "full cycle" coverage that
+# meetup_respond does not have. clearState:false keeps the session.
 - launchApp:
     clearState: false
-# Wait for the tab bar, not just for animations. A warm relaunch remounts the tree
-# and re-bootstraps auth; `waitForAnimationToEnd` returns well before that, so a
-# tab tap fires into a screen still coming up and silently does nothing.
 - extendedWaitUntil:
     visible:
       id: "chat-tab"
@@ -86,18 +88,37 @@ appId: com.hatiwal.app
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
-# A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
-# and index 0 is whatever comes first in the hierarchy — the heading or the
-# search bar, never a conversation. The flow stayed on the list and then failed
-# on the composer it never reached ("Type a message..." is visible).
+# Row 0 = most recent message, and the proposal we just sent is the newest one
+# in the account, so this is the thread we proposed in.
 - tapOn:
     id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
-# The bubble header is `chat.meetup.proposed` = "Meetup Proposal".
 - assertVisible: "Meetup Proposal"
-# `chat.meetup.accept` = "Accept".
-- tapOn: "Accept"
+
+# Accept as the SELLER. Accept/Decline render only when `!isMine`
+# (MessageBubble.tsx), so the buyer who proposed can NEVER accept their own
+# bubble — this flow used to relaunch as the same user and tap "Accept", which
+# is why run-232 reported "Element not found: Accept" here.
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
-# `chat.meetup.accepted` = "Meetup accepted".
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Meetup Proposal"
+    direction: DOWN
+    timeout: 20000
+# Wildcards: Maestro text matching is an ANCHORED full-string regex, so a bare
+# "Accept" misses a label rendered with any surrounding text.
+- tapOn: ".*Accept.*"
+- waitForAnimationToEnd
+# Toast first — it lives ~3s.
+- extendedWaitUntil:
+    visible: "You accepted the meetup"
+    timeout: 10000
 - assertVisible: "Meetup accepted"

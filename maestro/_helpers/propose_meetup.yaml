@@ -1,0 +1,48 @@
+appId: com.hatiwal.app
+---
+# Propose a meetup from INSIDE an open conversation thread.
+#
+# Preconditions: signed in, a conversation thread is open (composer visible).
+# Postcondition: a PENDING meetup proposal authored by the signed-in user.
+#
+# Why this helper exists: nothing in db/seeds/e2e.rb creates a meetup proposal
+# (grep "meetup" there returns 0 hits), so meetup_decline / meetup_respond used
+# to tap "Decline"/"Accept" on a proposal that only existed if some earlier flow
+# happened to leave one behind. Both failed in run-232 for exactly that reason.
+# Accept/Decline are gated on `!isMine` (MessageBubble.tsx), so the responder
+# must be the OTHER party — the caller signs in as the counterpart afterwards.
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+- tapOn:
+    id: "composer-action-meetup"
+- waitForAnimationToEnd
+- assertVisible: "Propose a Meetup"
+
+- tapOn:
+    id: "meetup-place-input"
+- eraseText
+- inputText: "Kabul City Center"
+- tapOn:
+    id: "meetup-time-input"
+- eraseText
+# The app REFUSES to propose without BOTH fields: handlePropose sets
+# placeError/timeError and returns without calling onPropose.
+- inputText: "Tomorrow 3pm"
+- waitForAnimationToEnd
+# NO IME dismissal before submitting. BOTH cures failed in run-232:
+#   * `hideKeyboard` is BACK on Android — it dismissed the sheet's <Modal>, and
+#     the submit button came back "not found" because the sheet was gone.
+#   * tapping the "Propose a Meetup" heading to blur ALSO failed "not found":
+#     MeetupSheet has no ScrollView and uses KeyboardAvoidingView
+#     behavior="height" on Android, so the IME compresses the sheet and clips
+#     the heading out of the layout exactly when the keyboard is up.
+# MeetupSheet's own platform audit says the submit button stays reachable with
+# the keyboard up, so tap it directly. By ID, never by label: the label swaps to
+# "Sending…" while submitting. The assert makes a clipped button fail HERE.
+- assertVisible:
+    id: "meetup-propose-submit"
+- tapOn:
+    id: "meetup-propose-submit"
+- waitForAnimationToEnd
+- assertVisible: "Meetup Proposal"

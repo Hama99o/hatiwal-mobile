@@ -1,20 +1,49 @@
 appId: com.hatiwal.app
 ---
-# Respond to a meetup proposal — accept or decline
-
+# Accept a meetup proposal.
+#
+# TWO-PARTY BY NECESSITY. Accept/Decline render only when `!isMine`
+# (MessageBubble.tsx), so the proposal must come from the OTHER participant.
+# This flow used to sign in as the buyer, `scroll` once, and tap "Accept" on a
+# proposal it assumed was already there — but db/seeds/e2e.rb creates no meetup
+# proposal at all, so it only ever passed if some earlier flow happened to leave
+# a pending one behind. It failed in run-232 with "Element not found: Accept".
+#
+# Leg 1: buyer proposes.   Leg 2: seller responds.
+# Both legs use the login + chat-tab pattern proven by offer_send_and_accept.
 - runFlow: ../_helpers/login.yaml
-# Opens the thread on a listing that is still ACTIVE, so the composer and its
-# "+" actions sheet exist. Opening "the first conversation" landed on a sold or
-# reserved listing depending on run order, and there the composer is replaced by
-# ListingUnavailableNotice — no "+" button at all. See the helper for the
-# database evidence.
 - runFlow: ../_helpers/open_active_conversation.yaml
-# Scroll to find a meetup proposal bubble
-- scroll
+- runFlow: ../_helpers/propose_meetup.yaml
+
+# Switch to the seller. login_seller.yaml signs the buyer out itself (its
+# identity guard fires when "Omar Noori" is not on the profile screen).
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "chat-tab"
 - waitForAnimationToEnd
-# Accept the meetup proposal
-- tapOn: "Accept"
+- scrollUntilVisible:
+    element:
+      text: "Phone Case.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    text: "Phone Case.*"
 - waitForAnimationToEnd
+
+# Fail here, not on the button, if the proposal never arrived for the seller.
+- scrollUntilVisible:
+    element:
+      text: "Meetup Proposal"
+    direction: DOWN
+    timeout: 20000
+# Wildcards mirror offer_send_and_accept: Maestro text matching is an ANCHORED
+# full-string regex, so a bare "Accept" misses a label with any surrounding text.
+- tapOn: ".*Accept.*"
+- waitForAnimationToEnd
+# The toast FIRST: it lives ~3s, so assertVisible can lose the race while the
+# thread re-renders. extendedWaitUntil polls instead of sampling once.
+- extendedWaitUntil:
+    visible: "You accepted the meetup"
+    timeout: 10000
+# Bubble outcome label (MessageBubble renders chat.meetup.accepted).
 - assertVisible: "Meetup accepted"
-# Verify the accepted state is shown in the thread
-- assertVisible: "You accepted the meetup"

@@ -39,12 +39,6 @@ appId: com.hatiwal.app
 - tapOn:
     id: "meetup-time-input"
 - inputText: "Tomorrow at 3pm"
-# Dismiss the keyboard before submitting: typing the place and time leaves it
-# up, and it COVERS the submit button — the tap then failed with "Element not
-# found: Propose Meetup" while the button sat behind the keyboard. Tapping the
-# sheet heading blurs the input; `hideKeyboard` is not usable here because on
-# Android Maestro implements it as BACK, which would close the sheet.
-- tapOn: "Propose a Meetup"
 - waitForAnimationToEnd
 # Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
 # stops as soon as the target is in the hierarchy, which can still be behind the
@@ -52,6 +46,18 @@ appId: com.hatiwal.app
 # keyboard — register_duplicate_email submitted nothing at all, and the Rails log
 # showed no register POST for the whole run.
 - waitForAnimationToEnd
+# NO IME dismissal before submitting. BOTH cures failed in run-232:
+#   * `hideKeyboard` is BACK on Android — it dismissed the sheet's <Modal>, and
+#     the submit button came back "not found" because the sheet was gone.
+#   * tapping the "Propose a Meetup" heading to blur ALSO failed "not found":
+#     MeetupSheet has no ScrollView and uses KeyboardAvoidingView
+#     behavior="height" on Android, so the IME compresses the sheet and clips
+#     the heading out of the layout exactly when the keyboard is up.
+# MeetupSheet's own platform audit says the submit button stays reachable with
+# the keyboard up, so tap it directly. By ID, never by label: the label swaps to
+# "Sending…" while submitting. The assert makes a clipped button fail HERE.
+- assertVisible:
+    id: "meetup-propose-submit"
 - tapOn:
     id: "meetup-propose-submit"
 - waitForAnimationToEnd
