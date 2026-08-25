@@ -6,6 +6,21 @@ appId: com.hatiwal.app
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
 
+# ...but nothing here actually OPENED one. The flow had no tapOn at all, so it
+# asserted "Contact Seller" — a DETAIL-screen button — while still on the Bazaar
+# feed, and the failure screenshot is exactly that: the feed, with the button
+# nowhere on it. Removing the `tapOn: "Contact Seller"` was right (it opened the
+# FirstMessageSheet over the button being asserted); removing the card tap with it
+# was not.
+#
+# index 0 by testID: the first cards in the seeded feed carry photos — the seed
+# attaches three to each of the seller's active listings — which is what a gallery
+# swipe needs.
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
+
 # Open a listing that has multiple photos (seller@hatiwal.test has listings with photos)
 # The assertion IS the check — "we are on the listing detail". The tap that used
 # to precede it opened the FirstMessageSheet, whose own title is "Message Seller"
