@@ -118,4 +118,11 @@ appId: com.hatiwal.app
 # Conversation thread screen, not a generic list — the composer + the
 # seeded first message from this buyer are both visible.
 - assertVisible: "Type a message..."
-- assertVisible: "Hi, is this laptop still available?"
+# The picker shows `conv.lastMessageBody` — the LAST message, not the first. For the
+# disposable listing these flows use, db/seeds/e2e.rb seeds:
+#     buyer:  "Is this still available? I can collect today."
+#     seller: "Yes — when suits you?"        <- so this is what renders
+# The old assertion, "Hi, is this laptop still available?", belongs to a different
+# fixture entirely (RESPONSE_BADGE_CONVOS) and was never this conversation's text —
+# not before the seller reply was added to the fixture, and not after.
+- assertVisible: "Yes — when suits you?"
