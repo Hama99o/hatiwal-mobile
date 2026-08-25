@@ -62,8 +62,14 @@ env:
 
 # ── Sign in, only if the form is actually on screen ─────────────────────────
 - runFlow:
+    # The GUARD has to be locale-independent too. Giving the inputs testIDs was
+    # only half the job: this condition still read the translated PLACEHOLDER
+    # "Email", so in Pashto or Dari it was false, the whole sign-in block was
+    # skipped, and the gate below then waited 60s for a tab bar that could never
+    # appear. Nine flows burned ~7m30s each on that.
     when:
-      visible: "Email"
+      visible:
+        id: "login-email-input"
     commands:
       # testIDs, not the translated labels. Every handle on the login screen used
       # to be English copy, so a locale left behind by an rtl flow made signing in

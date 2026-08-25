@@ -8,7 +8,11 @@ appId: com.hatiwal.app
 # flows want — so the extra hop to Login lives here rather than in
 # skip_onboarding.yaml.
 - runFlow: skip_onboarding.yaml
+# The guest tab, by testID. Its label is `auth.login` — translated — so in Pashto
+# or Dari this optional tap silently did nothing, the app never reached the login
+# screen, and every caller then failed at its auth gate. `profile-tab` is the same
+# control in all three locales (it reads "Login" for a guest, "Me" once signed in).
 - tapOn:
-    text: "Login"
+    id: "profile-tab"
     optional: true
 - waitForAnimationToEnd
