@@ -1,0 +1,78 @@
+appId: com.hatiwal.app
+---
+# The "confirm your email" prompt and its resend button.
+#
+# Fixture: unconfirmed@hatiwal.test — a DEDICATED account seeded with
+# confirmed_at: nil (db/seeds/e2e.rb). Every other seeded user is confirmed, and
+# making one of them unconfirmed would put this banner on the profile screen that
+# dozens of other flows assert against.
+#
+# Signs in EXPLICITLY rather than through the shared helper: the helper only signs
+# in when a login form is on screen, so on a warm app it would keep whoever was
+# already authenticated and this flow would silently test the wrong account.
+
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- extendedWaitUntil:
+    visible:
+      id: "login-email-input"
+    timeout: 60000
+
+- tapOn:
+    id: "login-email-input"
+- eraseText
+- inputText: "unconfirmed@hatiwal.test"
+- tapOn:
+    id: "login-password-input"
+- eraseText
+- inputText: "Password123!"
+# hideKeyboard directly after typing — the one position where it is safe, because
+# an IME is up to consume the Back press it actually is.
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: "login-submit"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "Allow Hatiwal to send you notifications?"
+    timeout: 20000
+    optional: true
+- tapOn:
+    text: "Don.t allow"
+    optional: true
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-tab"
+    timeout: 60000
+
+# ── The prompt ───────────────────────────────────────────────────────────────
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "confirm-email-banner"
+    timeout: 20000
+- assertVisible: "Confirm your email"
+# The address is interpolated into the body, so this proves the banner is about
+# THIS account and not a hardcoded string.
+- assertVisible: ".*unconfirmed@hatiwal.test.*"
+
+# ── Resend ───────────────────────────────────────────────────────────────────
+# The toast is the only feedback, so it is waited for rather than asserted once —
+# a toast lives about three seconds.
+- tapOn:
+    id: "confirm-email-resend"
+- extendedWaitUntil:
+    visible: "Confirmation email sent.*"
+    timeout: 20000
+
+# The banner STAYS after a resend: sending mail does not confirm the address, and
+# hiding it here would tell the user they were done when they are not.
+- assertVisible:
+    id: "confirm-email-banner"

@@ -20,8 +20,10 @@ features:
     title: "Sign up, login, logout, session persistence, guest gating"
     flows: auth
     smoke: [login, session_persist]
-    jest: ["src/api/__tests__/auth*", "src/screens/shared/__tests__/*ogin*"]
-    api: ["/auth/sign_in", "/auth", "/auth/sign_out", "/users/me"]
+    jest: ["src/api/__tests__/auth*", "src/screens/shared/__tests__/*ogin*",
+           "src/components/common/__tests__/ConfirmEmailBanner*"]
+    api: ["/auth/sign_in", "/auth", "/auth/sign_out", "/users/me",
+          "/auth/confirmation"]
     # auth flows own their login — they must NOT reuse _helpers/login.yaml
     self_login: true
 
