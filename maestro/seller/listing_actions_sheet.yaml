@@ -25,6 +25,19 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Create Listing"
 
+# A PHOTO FIRST. This flow is about the actions sheet, but it publishes to get
+# there — and publishing needs at least one photo (Listing#photo_required_to_publish,
+# and now the app's own pre-check). Without it the flow was really testing the photo
+# rule: Publish 422'd and the flow failed on a toast that could never appear.
+#
+# Photos before the text fields, per create_listing_full_publish: filling the form
+# first raises the keyboard over `photos-add-button`, and Maestro then reports
+# "no visible element" for a button that is merely covered.
+- tapOn:
+    id: "photos-add-button"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
+
 # eraseText between the tap and the typing. Maestro drops the FIRST CHARACTER
 # otherwise: "Abroad Location Item" arrived as "Broad Location Item", and the
 # character counter under the field proved it — 19/150 instead of 20/150. A bare

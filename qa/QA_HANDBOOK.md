@@ -17,6 +17,34 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## The whole suite was being judged on a tablet
+
+`qa.config.sh` gave session 1 `qa_tablet` — 2560x1600, landscape, 800dp. Session 1
+is the **default** session, the one that runs when you run one session, so the
+fleet's "one form factor per session" design quietly meant the entire suite was
+measured on a tablet and the **phone was never tested at all**. Hatiwal is a
+mobile-first marketplace; the phone is the only form factor that matters.
+
+It stayed invisible for cycles because nothing ever printed which device was under
+test. `doctor` now names the AVD, its resolution and its dp width, and warns when
+it is a tablet.
+
+Consequences worth knowing when reading old verdicts:
+
+- Bottom sheets, the tab bar, and every RTL layout differ at that size. `seller
+  0/8`, `rtl 0/8`, `reviews 0/3` and `safety 0/2` were measured there and are not
+  trustworthy. `listing_conversations` failed on `sign-out-button` on the tablet
+  and got four steps further on the phone before failing on something else.
+- Some flows were WRITTEN against the tablet and say so in their comments
+  ("on a landscape tablet it covers the lower half of the form"). Their scroll
+  workarounds are harmless on a phone, but do not read those comments as evidence
+  about phone layout.
+- Any verdict recorded before the switch should be re-measured before it is
+  trusted, whichever way it went — a tablet PASS is not a phone PASS either.
+
+The general lesson: **the rig must state what it is testing on.** A silent
+environment variable decided months of results.
+
 ## A hung `adb` is how the rig dies silently
 
 The emulator dying is survivable — `run_flows` has a per-flow health gate that
