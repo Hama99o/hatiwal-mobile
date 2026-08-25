@@ -156,7 +156,17 @@ if [ -n "${QA_SERIAL:-}" ]; then
   API_HOSTPORT="$(printf '%s' "$BUNDLE_API" | sed -E 's#^[a-z]+://([^/]+).*#\1#')"
   API_H="${API_HOSTPORT%%:*}"; API_P="${API_HOSTPORT##*:}"
   if [ -n "$API_H" ] && [ -n "$API_P" ]; then
-    DEV_RC=$(adb_qa shell "toybox netcat -w 4 $API_H $API_P </dev/null >/dev/null 2>&1; echo \$?" 2>/dev/null | tr -d '\r')
+    # RETRIED, because a single probe lies right after a boot. The emulator's
+    # network stack is not up the instant adb reports `device`: the same address
+    # answered rc=1 fifteen seconds after attach and rc=0 a minute later. A
+    # one-shot probe there would BLOCK a perfectly good rig — and this check exists
+    # to stop false failures, not to create them.
+    DEV_RC=1
+    for _try in 1 2 3; do
+      DEV_RC=$(adb_qa shell "toybox netcat -w 4 $API_H $API_P </dev/null >/dev/null 2>&1; echo \$?" 2>/dev/null | tr -d '\r')
+      [ "$DEV_RC" = "0" ] && break
+      sleep 5
+    done
     case "$DEV_RC" in
       0) ok "emulator can open $API_H:$API_P";;
       "") warn "could not run the on-device API probe (no toybox netcat?)";;
