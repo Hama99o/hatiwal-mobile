@@ -13,6 +13,9 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-ps"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml
 # Tabs by testID, not by index. A bare `index:` has NO selector — it matches
 # every element on screen and index N is whatever lands there in hierarchy
 # order, not the Nth tab. These flows used it as a "fallback" because the tab
@@ -50,3 +53,6 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-en"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml

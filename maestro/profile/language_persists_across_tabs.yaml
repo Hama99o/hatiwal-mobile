@@ -15,6 +15,9 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-ps"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml
 
 # Bazaar tab — English label "Bazaar" must NOT appear (Pashto shows "بازار")
 - tapOn:
@@ -69,3 +72,6 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-en"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml

@@ -26,6 +26,9 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-ps"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml
 
 # Profile SCREEN HEADER in Pashto (profile.title key — unchanged)
 # The switch RESTARTS the app (forceRTL + reloadApp) and it comes back on its
@@ -79,6 +82,9 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-fa"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml
 # Profile SCREEN HEADER in Dari (profile.title key — unchanged)
 # `profile.title` ("Profile" / "پروفایل" / "پروفایل") is defined in all three
 # locales and RENDERED NOWHERE — grep for t("profile.title") returns nothing. The
@@ -108,6 +114,9 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-en"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml
 # NOT "Profile": `profile.title` is a dead key, rendered nowhere — the screen
 # shows the user's NAME. Anchor on the mode toggle's label instead: it is
 # high on the screen (just under the avatar), needs no scroll, and the regex

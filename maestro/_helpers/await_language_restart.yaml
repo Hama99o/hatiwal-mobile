@@ -1,0 +1,18 @@
+appId: com.hatiwal.app
+---
+# Wait out the app restart that a language switch causes.
+#
+# applyLanguageFromUser() calls I18nManager.forceRTL and then reloadApp() whenever the
+# text DIRECTION changes, because React Native cannot flip direction without a reload.
+# `waitForAnimationToEnd` does not wait for a process to come back, so a tap placed
+# straight after the switch races the reload: it lands on a screen that is being torn
+# down, and the flow then fails three steps later on something that looks unrelated.
+#
+# This is a WAIT, not an action — where the app did not restart (a same-direction
+# switch, ps -> fa) it passes immediately and costs nothing. That is why it is safe to
+# call after every language switch rather than only the ones known to flip.
+- extendedWaitUntil:
+    visible:
+      id: "browse-tab"
+    timeout: 60000
+- waitForAnimationToEnd

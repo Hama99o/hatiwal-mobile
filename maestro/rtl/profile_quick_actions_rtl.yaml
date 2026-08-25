@@ -16,6 +16,9 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-ps"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml
 
 # Navigate back to profile tab (Pashto tab label "زه", use index as fallback)
 # The profile tab by testID. The Pashto label is "زه" and the Dari one differs
@@ -75,3 +78,6 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-en"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml

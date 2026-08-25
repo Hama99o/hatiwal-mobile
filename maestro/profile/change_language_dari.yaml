@@ -16,6 +16,9 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-fa"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml
 # App now in Dari/RTL
 # The switch RESTARTS the app (forceRTL + reloadApp) and it comes back on its
 # INITIAL route — the Bazaar feed, not Profile where the switch was made. So the

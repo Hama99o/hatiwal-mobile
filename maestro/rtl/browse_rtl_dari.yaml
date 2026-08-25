@@ -15,6 +15,9 @@ appId: com.hatiwal.app
 - tapOn:
     id: "language-option-fa"
 - waitForAnimationToEnd
+# The switch restarts the app when the direction flips; wait for it to come back
+# before touching anything. A no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml
 # Navigate to Bazaar tab (Dari label is "بازار")
 - tapOn:
     text: "بازار"
