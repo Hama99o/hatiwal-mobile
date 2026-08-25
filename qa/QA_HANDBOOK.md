@@ -17,6 +17,27 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## A flat per-feature timeout silently truncates the big features
+
+Cycles 7 and 8 wrapped each feature in `timeout 5400` — 90 minutes. At a measured
+median of ~230s per flow that buys about 23 flows, so:
+
+- `profile` (29 flows) was killed at `rc=124` with ~9 flows unrun.
+- `listings` (40 flows) the same, with ~20 unrun.
+- `chat` (42 flows) would never have been more than half measured.
+
+The truncation IS logged (`rc=124`), so it is not invisible — but the missing flows
+are, and an unrun flow looks exactly like one that was never written. Coverage then
+reads as "39% passing" when the denominator quietly excludes the largest features.
+
+Budget per feature from its flow count instead: `flows x 420s`, floor 30 minutes.
+420 rather than the 230 median because the slowest passing flows measured 551s and
+a flow that hits its own `FLOW_TIMEOUT` burns ~500s on the way there — sizing to the
+median guarantees the tail is cut off.
+
+The same reasoning applies to reading old coverage numbers: check whether the
+feature finished (`=== <feature> done rc=0`) before trusting its pass rate.
+
 ## Before inserting a step into N flows, check whether they already do it
 
 I added a shared location step to nine publish flows because they "never set a
