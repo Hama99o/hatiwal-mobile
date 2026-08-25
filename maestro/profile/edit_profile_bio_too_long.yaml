@@ -9,7 +9,18 @@ appId: com.hatiwal.app
 - tapOn: "Edit Profile"
 - waitForAnimationToEnd
 
-- tapOn: "Bio"
+# By testID, and scrolled to. "Bio" (`profile.edit.fields.bio`) is a
+# NON-INTERACTIVE label above the field — tapping it focuses nothing — and the
+# input's own placeholder is "Tell buyers a little about yourself…", not "Bio". The
+# field also sits below the fold, and `tapOn` never scrolls, so the label was not
+# even in the hierarchy: "Element not found: Text matching regex: Bio".
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-bio-input"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "edit-profile-bio-input"
 - eraseText
 # 501 characters — over the 500 char limit
 - inputText: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
