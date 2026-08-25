@@ -17,6 +17,36 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## A hung `adb` is how the rig dies silently
+
+The emulator dying is survivable — `run_flows` has a per-flow health gate that
+boots it back. On 25 Aug that gate never ran: the rig stopped producing verdicts
+at 15:15 and sat there for 13 minutes with a live `qa.sh` and no maestro process,
+because **`rig_healthy` asks the device whether it is healthy, and a dead device
+makes `adb` block forever.** The recovery code existed and was unreachable.
+
+Every `adb` call in the rig is now bounded (`adb_qa_t <secs>`), so a device death
+surfaces within a minute and the gate can do its job. **Never add a bare
+`adb_qa` device call** — `grep 'adb_qa [a-z]' qa/lib/*.sh qa/qa.sh | grep -v adb_qa_t`
+must stay empty.
+
+Two traps this exposed:
+
+- `timeout` execs a binary and **cannot run a shell function**. `timeout 30 adb_qa …`
+  exits 127, which reads exactly like "the device is wedged". That is why
+  `adb_qa_t` takes the timeout as its first argument instead.
+- Writing a script with `os.replace` (the atomic-write rule below) **does not
+  preserve the execute bit**. It silently turned five rig scripts into
+  `100644`, and the next launch failed with `Permission denied`. Always
+  `chmod --reference` or copy `st_mode` across, and check
+  `git diff --summary` for `mode change` before committing.
+
+Also worth stating plainly: the emulator has now died several times with **no OOM
+kill in the kernel log and GB of memory free**. Protecting qemu from the OOM
+killer was still correct — it fixed the deaths that *were* OOM — but it is not the
+whole story, so the rig must always be able to recover rather than assume a
+healthy device.
+
 ## 1. What this is
 
 A real-data end-to-end test rig. The APK behaves like **staging**: it runs against

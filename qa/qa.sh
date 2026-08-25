@@ -194,15 +194,15 @@ import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
            # later run on that device.
            resolve_device || die "no emulator for session $QA_SESSION — run: QA_SESSION=$QA_SESSION $0 up"
            case "${1:-}" in
-             small)  adb_qa shell wm size 720x1280  >/dev/null; adb_qa shell wm density 320 >/dev/null
+             small)  adb_qa_t 25 shell wm size 720x1280  >/dev/null; adb_qa_t 25 shell wm density 320 >/dev/null
                      ok "session $QA_SESSION ($QA_SERIAL) → small phone 720x1280 @320dpi (360dp wide)" ;;
-             phone)  adb_qa shell wm size 1080x2400 >/dev/null; adb_qa shell wm density 420 >/dev/null
+             phone)  adb_qa_t 25 shell wm size 1080x2400 >/dev/null; adb_qa_t 25 shell wm density 420 >/dev/null
                      ok "session $QA_SESSION ($QA_SERIAL) → phone 1080x2400 @420dpi (411dp wide)" ;;
-             large)  adb_qa shell wm size 1284x2778 >/dev/null; adb_qa shell wm density 458 >/dev/null
+             large)  adb_qa_t 25 shell wm size 1284x2778 >/dev/null; adb_qa_t 25 shell wm density 458 >/dev/null
                      ok "session $QA_SESSION ($QA_SERIAL) → large phone 1284x2778 @458dpi (448dp wide)" ;;
-             tablet) adb_qa shell wm size 2560x1600 >/dev/null; adb_qa shell wm density 320 >/dev/null
+             tablet) adb_qa_t 25 shell wm size 2560x1600 >/dev/null; adb_qa_t 25 shell wm density 320 >/dev/null
                      ok "session $QA_SESSION ($QA_SERIAL) → tablet 2560x1600 @320dpi (1280dp wide)" ;;
-             reset)  adb_qa shell wm size reset >/dev/null; adb_qa shell wm density reset >/dev/null
+             reset)  adb_qa_t 25 shell wm size reset >/dev/null; adb_qa_t 25 shell wm density reset >/dev/null
                      ok "session $QA_SESSION ($QA_SERIAL) → restored to the AVD's own size/density" ;;
              *)      die "usage: [QA_SESSION=n] $0 profile small|phone|large|tablet|reset" ;;
            esac
@@ -261,7 +261,7 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   #   ./qa/qa.sh geo                   # back to Kabul
   geo)     resolve_device || die "no emulator for session $QA_SESSION"
            lat="${1:-$QA_GEO_LAT}"; lon="${2:-$QA_GEO_LON}"
-           adb_qa emu geo fix "$lon" "$lat" >/dev/null 2>&1 \
+           adb_qa_t 25 emu geo fix "$lon" "$lat" >/dev/null 2>&1 \
              && ok "session $QA_SESSION device is now at $lat, $lon" \
              || die "could not set the device location" ;;
 
@@ -287,7 +287,7 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   perm)    resolve_device || die "no emulator for session $QA_SESSION"
            action="${1:?usage: perm <grant|revoke|reset> [location|camera|storage]}"
            if [ "$action" = "reset" ]; then
-             adb_qa shell pm reset-permissions >/dev/null 2>&1 \
+             adb_qa_t 25 shell pm reset-permissions >/dev/null 2>&1 \
                && ok "runtime permissions reset to never-asked on session $QA_SESSION" \
                || die "could not reset permissions"
              exit 0
@@ -301,7 +301,7 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
            esac
            case "$action" in grant|revoke) ;; *) die "action must be grant or revoke" ;; esac
            for p in "${perms[@]}"; do
-             adb_qa shell pm "$action" "$APP_ID" "$p" >/dev/null 2>&1
+             adb_qa_t 25 shell pm "$action" "$APP_ID" "$p" >/dev/null 2>&1
            done
            ok "$action ${group} for $APP_ID on session $QA_SESSION" ;;
 

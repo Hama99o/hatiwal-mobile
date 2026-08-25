@@ -178,9 +178,9 @@ run_feature() {
     # reads as a broken login, or a broken app, rather than a radio that is still
     # off. It cost a whole confirmation batch before the screenshot showed the
     # little aeroplane in the status bar.
-    if [ "$(adb_qa shell settings get global airplane_mode_on 2>/dev/null | tr -d "\r")" = "1" ]; then
+    if [ "$(adb_qa_t 25 shell settings get global airplane_mode_on 2>/dev/null | tr -d "\r")" = "1" ]; then
       warn "airplane mode was left ON by an earlier flow — clearing it"
-      adb_qa shell cmd connectivity airplane-mode disable >/dev/null 2>&1
+      adb_qa_t 25 shell cmd connectivity airplane-mode disable >/dev/null 2>&1
       sleep 4   # the radios need a moment before Metro is reachable again
     fi
 
@@ -194,7 +194,7 @@ run_feature() {
     #
     # Cheap enough to do before every flow, and it makes nearest-sort, distance
     # filters and the map pickers deterministic instead of order-dependent.
-    adb_qa emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1
+    adb_qa_t 25 emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1
 
     # ── And KEEP sending it for the duration of the flow ──────────────────
     # One fix before the flow is not enough, and the reason is sharper than
@@ -212,12 +212,12 @@ run_feature() {
     # A pump every 2s means a fresh fix is always available whenever the app
     # starts listening. Killed after the flow, so it never leaks into the next.
     ( while :; do
-        adb_qa emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1
+        adb_qa_t 25 emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1
         sleep 2
       done ) &
     local geo_pump=$!
 
-    adb_qa logcat -c >/dev/null 2>&1
+    adb_qa_t 25 logcat -c >/dev/null 2>&1
     printf '  %-46s ' "$name"
     local start; start=$(cut -d' ' -f1 /proc/uptime)
 
@@ -249,11 +249,11 @@ run_feature() {
     fi
     stop_geo_pump   # the flow is over; never let the pump leak into the next one
     local secs; secs=$(awk -v a="$start" -v b="$(cut -d' ' -f1 /proc/uptime)" 'BEGIN{printf "%.0f", b-a}')
-    adb_qa logcat -d > "$lc" 2>/dev/null
+    adb_qa_t 60 logcat -d > "$lc" 2>/dev/null
 
     # Every flow gets a screenshot, pass or fail — the UI/UX review reads these.
     mkdir -p "$out/screens"
-    adb_qa exec-out screencap -p > "$out/screens/$name.png" 2>/dev/null
+    adb_qa_t 45 exec-out screencap -p > "$out/screens/$name.png" 2>/dev/null
 
     local api_n api_sample kind why
     api_n="$(scan_api_errors "$lc" | wc -l)"

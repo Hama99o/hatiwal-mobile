@@ -102,10 +102,10 @@ emulator_boot() {
 
   local waited=0
   while [ "$waited" -lt 300 ]; do
-    if resolve_device && [ "$(adb_qa shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
+    if resolve_device && [ "$(adb_qa_t 25 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
       ok "booted in ${waited}s ($QA_SERIAL)"
-      adb_qa shell settings put global window_animation_scale 0 >/dev/null 2>&1
-      adb_qa shell settings put global transition_animation_scale 0 >/dev/null 2>&1
+      adb_qa_t 25 shell settings put global window_animation_scale 0 >/dev/null 2>&1
+      adb_qa_t 25 shell settings put global transition_animation_scale 0 >/dev/null 2>&1
 
       # ── Give the device a LOCATION ──────────────────────────────────────
       # A fresh emulator has no GPS fix at all, so anything that calls
@@ -117,7 +117,7 @@ emulator_boot() {
       #
       # Kabul, because the fixtures are Afghan cities and a distance sort against
       # Mountain View would order them meaninglessly.
-      adb_qa emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1 \
+      adb_qa_t 25 emu geo fix "$QA_GEO_LON" "$QA_GEO_LAT" >/dev/null 2>&1 \
         && ok "location seeded ($QA_GEO_LAT, $QA_GEO_LON)" \
         || warn "could not seed a device location — distance/nearest flows will fail"
 
@@ -133,17 +133,17 @@ emulator_boot() {
       # merely present on disk (verified: the media store lists them afterwards).
       if [ -f "$QA_GALLERY_IMAGE" ]; then
         local n
-        adb_qa shell mkdir -p /sdcard/Pictures/QA >/dev/null 2>&1
+        adb_qa_t 25 shell mkdir -p /sdcard/Pictures/QA >/dev/null 2>&1
         for n in 1 2 3 4; do
-          adb_qa push "$QA_GALLERY_IMAGE" "/sdcard/Pictures/QA/qa_photo_$n.png" >/dev/null 2>&1
-          adb_qa shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+          adb_qa_t 90 push "$QA_GALLERY_IMAGE" "/sdcard/Pictures/QA/qa_photo_$n.png" >/dev/null 2>&1
+          adb_qa_t 25 shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
             -d "file:///sdcard/Pictures/QA/qa_photo_$n.png" >/dev/null 2>&1
         done
         ok "gallery seeded (4 photos)"
       else
         warn "no seed image at $QA_GALLERY_IMAGE — photo-picker flows will fail"
       fi
-      adb_qa shell settings put global animator_duration_scale 0 >/dev/null 2>&1
+      adb_qa_t 25 shell settings put global animator_duration_scale 0 >/dev/null 2>&1
       ok "animations disabled (flows run faster and flake less)"
       return 0
     fi
@@ -156,6 +156,6 @@ emulator_boot() {
 emulator_stop() {
   # `emu kill` shuts down cleanly and saves the boot snapshot; kill -9 does not,
   # which is why a wedged emulator always costs a full cold boot afterwards.
-  resolve_device && { adb_qa emu kill >/dev/null 2>&1; ok "emulator stopped (snapshot saved)"; } \
+  resolve_device && { adb_qa_t 25 emu kill >/dev/null 2>&1; ok "emulator stopped (snapshot saved)"; } \
     || warn "no emulator running"
 }

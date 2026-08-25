@@ -55,7 +55,7 @@ fi
 step "3/8 emulator"
 if resolve_device; then
   ok "device $QA_SERIAL"
-  [ "$(adb_qa shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] \
+  [ "$(adb_qa_t 25 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] \
     && ok "boot completed" || BLOCK "device present but not finished booting"
   # Responsiveness: a starved emulator answers adb but not the UI. Probe the
   # system server with a CHEAP call — a full `dumpsys window` is a large dump
@@ -81,7 +81,7 @@ if [ "$METRO_STATUS" = "packager-status:running" ]; then
   ok "metro on :$METRO_PORT"
   # A debug build loads its JS from Metro on localhost:8081 inside the device.
   if [ -n "${QA_SERIAL:-}" ]; then
-    adb_qa reverse tcp:8081 "tcp:$METRO_PORT" >/dev/null 2>&1 \
+    adb_qa_t 25 reverse tcp:8081 "tcp:$METRO_PORT" >/dev/null 2>&1 \
       && ok "adb reverse 8081 → host :$METRO_PORT" || warn "adb reverse failed"
   fi
 else
@@ -163,7 +163,7 @@ if [ -n "${QA_SERIAL:-}" ]; then
     # to stop false failures, not to create them.
     DEV_RC=1
     for _try in 1 2 3; do
-      DEV_RC=$(adb_qa shell "toybox netcat -w 4 $API_H $API_P </dev/null >/dev/null 2>&1; echo \$?" 2>/dev/null | tr -d '\r')
+      DEV_RC=$(adb_qa_t 25 shell "toybox netcat -w 4 $API_H $API_P </dev/null >/dev/null 2>&1; echo \$?" 2>/dev/null | tr -d '\r')
       [ "$DEV_RC" = "0" ] && break
       sleep 5
     done
@@ -190,8 +190,8 @@ fi
 
 step "7/8 app installed"
 if [ -n "${QA_SERIAL:-}" ]; then
-  if adb_qa shell pm list packages 2>/dev/null | grep -q "$APP_ID"; then
-    VER=$(adb_qa shell dumpsys package "$APP_ID" 2>/dev/null | grep -m1 versionName | tr -d ' \r')
+  if adb_qa_t 25 shell pm list packages 2>/dev/null | grep -q "$APP_ID"; then
+    VER=$(adb_qa_t 25 shell dumpsys package "$APP_ID" 2>/dev/null | grep -m1 versionName | tr -d ' \r')
     ok "$APP_ID installed ($VER)"
   else
     BLOCK "$APP_ID not installed — run: qa.sh build"
@@ -199,17 +199,17 @@ if [ -n "${QA_SERIAL:-}" ]; then
 fi
 
 step "8/8 clean launch"
-if [ -n "${QA_SERIAL:-}" ] && adb_qa shell pm list packages 2>/dev/null | grep -q "$APP_ID"; then
-  adb_qa logcat -c >/dev/null 2>&1
-  adb_qa shell am force-stop "$APP_ID" >/dev/null 2>&1
-  adb_qa shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+if [ -n "${QA_SERIAL:-}" ] && adb_qa_t 25 shell pm list packages 2>/dev/null | grep -q "$APP_ID"; then
+  adb_qa_t 25 logcat -c >/dev/null 2>&1
+  adb_qa_t 25 shell am force-stop "$APP_ID" >/dev/null 2>&1
+  adb_qa_t 25 shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
   sleep 12
-  CRASH=$(adb_qa logcat -d 2>/dev/null | grep -iE "FATAL EXCEPTION|AndroidRuntime.*$APP_ID|Could not connect to development server|Unable to load script" | head -3)
+  CRASH=$(adb_qa_t 60 logcat -d 2>/dev/null | grep -iE "FATAL EXCEPTION|AndroidRuntime.*$APP_ID|Could not connect to development server|Unable to load script" | head -3)
   if [ -n "$CRASH" ]; then
     BLOCK "app crashed or could not load its bundle on launch:"
     echo "$CRASH" | sed 's/^/      /' | cut -c1-120
   else
-    adb_qa shell pidof "$APP_ID" >/dev/null 2>&1 && ok "app launched and stayed up" \
+    adb_qa_t 25 shell pidof "$APP_ID" >/dev/null 2>&1 && ok "app launched and stayed up" \
       || BLOCK "app is not running after launch"
   fi
 fi

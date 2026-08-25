@@ -47,8 +47,8 @@ app_install() {
   resolve_device || { err "no emulator — run: qa.sh up"; return 1; }
   [ -f "$APK_PATH" ] || { err "no debug APK — run: qa.sh build"; return 1; }
   say "installing $APP_ID…"
-  adb_qa install -r -d "$APK_PATH" 2>&1 | tail -2
-  adb_qa shell pm list packages | grep -q "$APP_ID" && ok "installed" || { err "install failed"; return 1; }
+  adb_qa_t 300 install -r -d "$APK_PATH" 2>&1 | tail -2
+  adb_qa_t 25 shell pm list packages | grep -q "$APP_ID" && ok "installed" || { err "install failed"; return 1; }
   # A debug build fetches its JS bundle from localhost:8081 inside the device.
-  adb_qa reverse tcp:8081 "tcp:$METRO_PORT" >/dev/null 2>&1 && ok "adb reverse 8081 → :$METRO_PORT"
+  adb_qa_t 25 reverse tcp:8081 "tcp:$METRO_PORT" >/dev/null 2>&1 && ok "adb reverse 8081 → :$METRO_PORT"
 }
