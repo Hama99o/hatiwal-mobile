@@ -23,4 +23,8 @@ appId: com.hatiwal.app
     timeout: 20000
 - tapOn: "Save Changes"
 - waitForAnimationToEnd
-- assertVisible: "Bio is too long"
+# The real copy is `profile.edit.validation.bioTooLong` = "Bio must be 500
+# characters or less". Maestro matches the WHOLE string, so "Bio is too long"
+# could never match — the app renders the message correctly (EditProfile's
+# errorMsg() translates the zod key), the assertion was just wrong.
+- assertVisible: "Bio must be 500 characters or less"

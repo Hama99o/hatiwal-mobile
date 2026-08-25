@@ -58,4 +58,6 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Decline"
 - waitForAnimationToEnd
-- assertVisible: "Declined"
+# `chat.offer.declined` = "Offer declined" — the bare word "Declined" never
+# matched, because Maestro anchors the whole string.
+- assertVisible: "Offer declined"
