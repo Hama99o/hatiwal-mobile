@@ -124,6 +124,17 @@ appId: com.hatiwal.app
 
 # Edit lives in the "More" overflow sheet (TASK-L863) — a draft owner detail
 # renders only the primary "Publish" button plus "More".
+# SCROLL to the actions block first. Save Draft lands on the OWNER DETAIL, where
+# "Manage Listing" (Publish + More) is section 7 — and this flow now attaches a
+# photo and drops a pin, because publishing requires both, so the gallery and the
+# Location map above it fill the whole first screen. `tapOn` does not scroll, hence
+# "Element not found: More" for a control one screen down. Same root cause as
+# listing_actions_sheet; recorded as UI-042.
+- scrollUntilVisible:
+    element:
+      text: "More"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "More"
 - waitForAnimationToEnd
 # "Edit" is an item INSIDE the More sheet (useListingLifecycle `moreActions`,
