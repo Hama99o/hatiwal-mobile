@@ -9,6 +9,19 @@ appId: com.hatiwal.app
 - tapOn: "Post a listing"
 - waitForAnimationToEnd
 
+# A PHOTO AND A PIN — this flow publishes the draft it creates, and publishing needs
+# both (getPublishBlockers, mode "publish"). Without them the publish is refused and
+# the flow failed on `assertVisible: "Your listing is live!"` having done nothing
+# wrong except omit two required fields.
+#
+# Photos before the text fields: filling the form raises the keyboard over
+# `photos-add-button`, and Maestro then reports "no visible element" for a button
+# that is merely covered.
+- tapOn:
+    id: "photos-add-button"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
+
 # The INPUT by testID, not the label. "Title" / "Description" / "Price" are
 # non-interactive Text labels above their fields, so tapping one focuses
 # nothing and the inputText that follows goes nowhere. A testID also works when
@@ -43,6 +56,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # 1) Save as draft
+- runFlow: ../_helpers/set_listing_location.yaml
+
 # The button is "Save Draft" (listing.form.saveDraft).
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
