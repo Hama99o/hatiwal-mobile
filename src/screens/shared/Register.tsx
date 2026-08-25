@@ -32,7 +32,7 @@ export default function RegisterScreen() {
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
 
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
   const router = useRouter();
@@ -76,7 +76,15 @@ export default function RegisterScreen() {
     setLoading(true);
     setErrors([]);
     try {
-      const user = await authAPI.register(form);
+      // Sign up in the language you are actually using. Without this the
+      // server's "ps" column default won, so the app flipped to Pashto — and to
+      // RTL, forcing a reload — the moment the account existed. Someone who
+      // filled the whole form in English landed on an RTL Pashto Bazaar with no
+      // explanation for it.
+      const user = await authAPI.register({
+        ...form,
+        preferredLanguage: i18n.language as LanguageCode,
+      });
       setUser(user);
       hydrateFromUser(user.sellerMode);
       applyThemeFromUser(user.preferredTheme);

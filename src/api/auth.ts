@@ -69,6 +69,16 @@ export interface RegisterParams {
   passwordConfirmation: string;
   firstname: string;
   lastname: string;
+  /**
+   * The language the person is signing up IN.
+   *
+   * The column defaults to "ps" server-side, so leaving this out meant every new
+   * account came back as Pashto and the app flipped language — and direction —
+   * the instant the account was created. Someone who filled the whole form in
+   * English landed on an RTL Pashto Bazaar with no explanation. The API has always
+   * permitted `preferred_language` on sign-up; the client simply never sent it.
+   */
+  preferredLanguage?: "en" | "ps" | "fa";
 }
 
 export const authAPI = {
