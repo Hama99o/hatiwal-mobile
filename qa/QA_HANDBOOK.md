@@ -17,6 +17,33 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## Search for the OUTCOME, not the mechanism
+
+Three separate mistakes in one session, all the same shape:
+
+1. **Adding a location step to publish flows.** Grepped for `tapOn: "Publish"`.
+   Missed `draft_lifecycle`, which publishes another way — found only when it failed
+   four minutes in. The right search was the SUCCESS ASSERTION,
+   `assertVisible: "Your listing is live!"`, which is what every such flow has in
+   common regardless of how it gets there.
+2. **The same batch, in the other direction.** Never checked whether the targets
+   already set a location by a different mechanism (`location-search-input` +
+   "Confirm location" rather than the map-pin row). Five did. The insertion broke
+   them. The right search was the CAPABILITY — any location handling at all — not
+   the helper name being added.
+3. **"Asserted copy the app never renders".** Built a value->key map and kept the
+   first key per value. `"Contact Seller"` has two, one dead and one live, so a
+   working flow was reported as broken. The right lookup was value -> ALL keys,
+   clear the hit if ANY is referenced.
+
+The rule: **a bulk change needs to be scoped by what the target DOES, not by how it
+happens to do it.** Mechanisms vary between files; outcomes are why the files exist.
+Both directions matter — "which flows need this?" and "which already have it?" — and
+a search that answers only one of them will pass while being wrong.
+
+Corollary for audits: state which question the audit asked. A passing audit proves
+that question was satisfied and nothing more.
+
 ## A flat per-feature timeout silently truncates the big features
 
 Cycles 7 and 8 wrapped each feature in `timeout 5400` — 90 minutes. At a measured
