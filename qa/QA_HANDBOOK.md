@@ -1360,6 +1360,48 @@ What the episode does justify, on its own merits: tap a submit control **by
 testID** rather than by label whenever the label changes while submitting —
 `meetup-propose-submit` swaps to "Sending…", and its own source comment says so.
 
+## Never type the word "tomorrow" into a field
+
+It costs the screen. Typing `tomorrow` (either case) into a text field on this
+AVD takes the app out of the foreground; the flow lands back on the Bazaar feed
+and every selector after it misses. It blocked all six meetup flows.
+
+Measured, one string per run, asserting the submit button after each input:
+
+| typed in one `inputText` | result |
+|---|---|
+| `"Tomorrow"` | FAILED 5/5 |
+| `"tomorrow"` | FAILED |
+| `"Saturday"` | passed |
+| `"abcdefgh"` / `"abcdefg"` / `"abcdef"` | passed |
+| `"Tomorrow"` typed one character at a time | passed 8/8 |
+| chunks `"To"` `"mor"` `"rowa"` `"bcdef"` | passed |
+
+So it is not length, not capitalisation, and not dictionary words — it is that
+one token, and only when it arrives in a single `inputText`.
+
+Cause is on the device, not in Hatiwal. `grep -ri tomorrow src/` finds it only in
+a placeholder (`chat.meetup.timePlaceholder`) and an unrelated expiry string —
+nothing parses it. The logcat at the failing moment carries
+`AiAiTextClassifier … VisualCortexAdapter provideRegistration`: Android's
+on-device text classifier recognises "tomorrow" as a date entity and fires
+smart-action machinery. Typed character by character the classifier never sees a
+complete token, which is why that path passes.
+
+Ruled out along the way, each with evidence:
+
+* **App restart.** `reloadApp()` was instrumented with a stack trace; it never
+  logged. `RNRestart` is not involved.
+* **Crash.** No `FATAL`, no `Destroying ReactContext`, and the pid is unchanged
+  across the failure.
+* **Clipping / keyboard.** The submit button asserts visible with the keyboard
+  up, both before and after typing into the *place* field.
+* **My own edits.** Reproduced with a clean tree and nothing saved mid-run.
+
+THE RULE: keep "tomorrow" out of flow fixtures. `"Saturday 3pm"` is the
+substitute in use. If a flow genuinely needs the word, type it character by
+character.
+
 ## Editing app source while a run is in flight reloads the app
 
 This cost me a false app bug, a false UI finding, and an unnecessary patch to a

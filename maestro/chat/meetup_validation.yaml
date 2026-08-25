@@ -68,7 +68,14 @@ appId: com.hatiwal.app
 # Fill time too
 - tapOn:
     id: "meetup-time-input"
-- inputText: "Tomorrow at 3pm"
+# NOT "Tomorrow": typing that word into a field on this AVD loses the screen.
+# Android's on-device text classifier (AiAiTextClassifier in logcat) treats it as
+# a date entity and fires smart-action machinery that takes the app out of the
+# foreground — the flow then lands back on the Bazaar feed and every later
+# selector misses. Measured 5/5 failures with "Tomorrow"/"tomorrow" against 4/4
+# passes for "Saturday", "abcdefgh" and the same word typed character by
+# character. Nothing in the app parses it. See QA_HANDBOOK.md.
+- inputText: "Saturday at 3pm"
 - waitForAnimationToEnd
 # Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
 # stops as soon as the target is in the hierarchy, which can still be behind the
