@@ -17,6 +17,36 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## Never kill by process name on this machine
+
+Another project (edu-safi) runs its own QA rig here, with its own emulator, its own
+Metro and its own maestro. So `pkill -f 'maestro.cli.AppKt'` is not "clean up my
+orphan" — it is "stop whatever anyone else is testing".
+
+I proved the risk the hard way today: asking for port 5584 collided with their
+already-running emulator, and every `adb -s emulator-5584` command went to THEIR
+device. I installed our APK on it and, worse, overwrote their
+`adb reverse tcp:8081 tcp:3018` with ours to 3008 — so their app was being served our
+JS bundle mid-run. Repaired by restoring their reverse and uninstalling our APK.
+
+Two rules, both cheap:
+
+1. **Verify identity before touching a device.** `adb -s <serial> emu avd name` must
+   equal this session's AVD, checked immediately before each mutating command. The rig
+   already does this in `_device_is_ours`; calling adb directly bypasses it, which is
+   exactly how this happened.
+2. **Scope cleanup by something that is definitionally ours.** The device lock
+   (`qa/reports/.device.lock`) is this project's file, so whoever holds it is ours:
+
+       for p in $(fuser qa/reports/.device.lock 2>/dev/null); do
+         case "$(ps -o args= -p "$p")" in *maestro*|*java*) kill "$p";; esac
+       done
+
+   A path pattern is better than a bare process name but still matches an unrelated
+   shell that merely mentions the path.
+
+And pick ports well clear of both rigs — 5580 is ours, 5584 is theirs.
+
 ## Known-pending: 9 sites scroll to a buried seeded listing
 
 Two flows have now failed this way — `multi_quantity_partial_sale` and
