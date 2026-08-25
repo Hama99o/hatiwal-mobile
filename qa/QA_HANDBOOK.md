@@ -17,6 +17,31 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## Never touch the device by hand while a flow is running
+
+The photo picker had leaked and was poisoning flow after flow, and the per-flow
+`force-stop` that prevents it could not take effect until the next FEATURE
+(`flows.sh` is sourced per `qa.sh feature` invocation). So the choice was to let
+~17 remaining flows run under a picker, or clear it by hand mid-feature.
+
+Clearing it by hand was the right trade — but the cost landed exactly where
+predicted: `am force-stop com.hatiwal.app` hit while `edit_profile_validation` was
+mid-run, the app vanished, and the flow spent 60s waiting for a tab bar that could
+not appear. Its screenshot is the Android app drawer. That verdict is an artefact
+of the intervention, not a result.
+
+Two things follow:
+
+- **A verdict produced during a manual intervention is not evidence.** Mark it and
+  re-run it. It is worse than no result, because it looks exactly like a real
+  failure — and here it looked specifically like a regression in the login helper
+  that had just been changed, which cost time to rule out. The API log did that:
+  no `sign_in` POST during the flow's window, so the helper never got the chance
+  to be wrong.
+- **If you must intervene, do it between features**, where `qa.sh feature` has
+  exited and no flow holds the device — not between flows, which is a window of a
+  couple of seconds you cannot reliably hit.
+
 ## The whole suite was being judged on a tablet
 
 `qa.config.sh` gave session 1 `qa_tablet` — 2560x1600, landscape, 800dp. Session 1
