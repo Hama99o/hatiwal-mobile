@@ -354,6 +354,17 @@ EOF_IDS
       why="$(grep -m1 -iE "Assertion is false|Element not found|not visible|FAILED" "$log" | tr -d '\r' | cut -c1-160)"
       [ -n "$api_sample" ] && why="$why  ||  api: $api_sample"
       _c red; printf 'FAIL'; _r; printf ' %ss  [%s]\n' "$secs" "$kind"; fail=$((fail+1))
+      # A JS reload mid-flow blanks the screen, so the failing selector is
+      # arbitrary and the verdict is worthless. It happens when someone saves a
+      # file under src/ while the run is in flight — that cost a whole evening of
+      # false diagnosis once (UI-043, withdrawn). NOT auto-downgraded to rig_fail:
+      # `applyLanguageFromUser` calls reloadApp() on purpose whenever the text
+      # direction changes, so RTL and language flows carry this marker legitimately.
+      # Flag it and let the human decide.
+      if grep -aq 'Destroying ReactContext' "$lc" 2>/dev/null; then
+        warn "  ^ JS reloaded during this flow — verdict suspect unless it is an"
+        warn "    RTL/language flow, where reloadApp() is expected. Re-run clean."
+      fi
     fi
 
     # Single emit path for both outcomes — one record shape, no duplication.

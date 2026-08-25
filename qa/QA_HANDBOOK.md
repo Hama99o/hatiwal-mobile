@@ -1388,6 +1388,32 @@ Corollary for triage: any failure whose screenshot shows the feed, or whose
 selector has no plausible relationship to the step before it, is suspect if you
 were editing at the time. Re-run it clean before believing it.
 
+### How to prove it, per flow
+
+A JS reload leaves a marker in the flow's own logcat. The process does not
+restart, so there is no `Start proc` line — look for the React context being
+torn down instead:
+
+```bash
+grep -al 'Destroying ReactContext' qa/reports/run-NNN/*/*.logcat
+```
+
+Cross that against the failures and you get the corrupted set directly:
+
+```bash
+for lc in qa/reports/run-NNN/*/*.logcat; do
+  log="${lc%.logcat}.log"
+  grep -aq Failed "$log" || continue
+  grep -aq 'Destroying ReactContext' "$lc" && echo "SUSPECT $(basename $lc .logcat)"
+done
+```
+
+Run against run-232 this named 4 of 13 failures, and they were exactly the four
+whose mechanism I had been unable to substantiate. The other two failures in the
+same family had no marker — and both turned out to be real, source-provable flow
+defects. The marker is worth trusting: check it *before* writing a diagnosis, not
+after.
+
 ## The emulator was not flaky — the kernel was killing it
 
 It died five times in one day, each death taking the running feature with it, and
