@@ -17,6 +17,30 @@ macOS + Xcode). The web app has its own path — use the `qa-sweep` skill for th
 
 ---
 
+## Audits that correctly produce no change
+
+Keeping these written down so they are not re-derived, and so the sweep is not
+attempted again — two audits have already been deleted from this rig for crying
+wolf, and both did so by flagging a pattern rather than a failure.
+
+- **Bare `index:` selectors (10 sites).** `tapOn: {index: 0}` with no `id`/`text`
+  sibling targets "the first element in the hierarchy", which sounds arbitrary
+  enough to sweep. Do not: `chat/archive_conversation` **passes** with five of
+  them. In a list screen the first element genuinely is the first row. The four
+  flows that carry the rest are failing for reasons already identified elsewhere,
+  measured on the tablet, or never run. Revisit only with a phone verdict pointing
+  at the index step itself.
+- **Toast copy asserted without polling (4 sites).** All false positives:
+  `itemsSaved` = "Saved Items" is a stat-card LABEL, not a toast. Toast handling in
+  the suite already uses `extendedWaitUntil` where it matters.
+- **testIDs referenced by flows but "missing" from source (36 sites).** All 118
+  resolve. The gap was the matcher, which could not see multi-line and conditional
+  `testID={...}` assignments. Any future version of this audit must handle those
+  two shapes before reporting anything.
+
+The rule these share: **a pattern is not a defect.** Flag the ones with a failing
+verdict whose failing STEP is the pattern; leave the rest alone.
+
 ## Never touch the device by hand while a flow is running
 
 The photo picker had leaked and was poisoning flow after flow, and the per-flow
