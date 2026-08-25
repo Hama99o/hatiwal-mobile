@@ -15,11 +15,17 @@ appId: com.hatiwal.app
     id: "profile-tab"
 - waitForAnimationToEnd
 
-# Scroll down to the Activity section
-- scroll
-
-# Tap "Hidden Listings" row
-- tapOn: "Hidden Listings"
+# scrollUntilVisible, not a bare `- scroll`: one gesture is a guess, and the
+# Activity section sits well down a long profile screen — the row was never brought
+# into view, so the tap failed with "Element not found: Hidden Listings" against a
+# row that exists. By testID too, since the label is translated.
+- scrollUntilVisible:
+    element:
+      id: "profile-row-hidden-listings"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "profile-row-hidden-listings"
 - waitForAnimationToEnd
 
 # ── Screen renders ───────────────────────────────────────────────────────────
@@ -76,8 +82,14 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-- scroll
-- tapOn: "Hidden Listings"
+# Same as above — the row needs scrolling to, not one blind gesture.
+- scrollUntilVisible:
+    element:
+      id: "profile-row-hidden-listings"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "profile-row-hidden-listings"
 - waitForAnimationToEnd
 - assertVisible: "Hidden Listings"
 

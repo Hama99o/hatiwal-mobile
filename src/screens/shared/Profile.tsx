@@ -1015,6 +1015,7 @@ function SettingsSection({
         <Button
           variant="ghost"
           onPress={() => router.push("/(main)/hidden-listings" as never)}
+          testID="profile-row-hidden-listings"
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
             alignItems: "center",
