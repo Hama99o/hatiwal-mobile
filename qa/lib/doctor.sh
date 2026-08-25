@@ -122,8 +122,18 @@ case "$BUNDLE_API" in
   "")         warn "could not read EXPO_PUBLIC_API_URL from the metro container";;
   *localhost*|*127.0.0.1*)
     BLOCK "bundle API is '$BUNDLE_API' — localhost inside the emulator is the EMULATOR, not your machine";;
-  *) BLOCK "bundle API is '$BUNDLE_API' — a LAN IP breaks the moment the network changes"
-     say "fix: HOST_IP=10.0.2.2 docker compose up -d mobile";;
+  *) # WARN, not BLOCK. A LAN IP is what a PHYSICAL device needs — testing on Expo
+     # Go requires it — and the emulator can reach it too (verified: `toybox netcat
+     # 192.168.1.24 3007` from inside the device returns 0). Blocking it on sight
+     # refused a configuration that works and that the developer needs for on-device
+     # testing.
+     #
+     # The real gate is the on-device probe below: it asks whether THIS emulator can
+     # open THIS address, which is the only question that matters. The remaining risk
+     # of a LAN IP is that it changes with the network, so it is worth saying out
+     # loud — but the probe catches that the moment it happens.
+     warn "bundle API is a LAN IP ('$BUNDLE_API') — needed for a physical device, but it changes with the network"
+     say "for emulator-only runs: HOST_IP=10.0.2.2 docker compose up -d mobile";;
 esac
 
 # ── And can the EMULATOR actually open that port? ───────────────────────────
