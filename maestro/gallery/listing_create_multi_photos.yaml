@@ -11,7 +11,11 @@ appId: com.hatiwal.app
 - assertVisible: "Create Listing"
 
 # Photos section visible
-- assertVisible: "Photos"
+# By testID. FieldLabel renders the label plus a nested `<Text> *</Text>` for a
+# required field, so the node reads "Photos *" and Maestro's anchored regex cannot
+# match the bare word.
+- assertVisible:
+    id: "listing-form-field-photos"
 - assertVisible: "Add Photos"
 - assertVisible: "Add at least one photo to attract buyers."
 

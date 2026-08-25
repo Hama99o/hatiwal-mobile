@@ -20,7 +20,11 @@ appId: com.hatiwal.app
 - tapOn: "Edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Listing"
-- assertVisible: "Photos"
+# By testID. FieldLabel renders a required field's label plus a nested
+# `<Text> *</Text>`, so the node reads "Photos *" and an anchored regex on the bare
+# word cannot match it.
+- assertVisible:
+    id: "listing-form-field-photos"
 
 # Tap the delete/X button on first photo
 - tapOn:
