@@ -217,20 +217,22 @@ run_feature() {
       done ) &
     local geo_pump=$!
 
-    # HOME first, so a flow never inherits the previous flow's foreground.
+    # Clear the app's TASK, so a flow never inherits the previous flow's screens.
     #
-    # `launchApp` brings Hatiwal forward but does NOT dismiss a SYSTEM surface
-    # sitting on top of it. away_mode failed with "No visible element found:
-    # I'm away (temporarily unavailable)" while the screenshot showed the Android
-    # photo picker — left open by an earlier flow, with the app perfectly fine
-    # underneath. That is a 3-minute false failure caused entirely by the flow
-    # before it.
+    # HOME was not enough, and the reason matters: the Android photo picker opens as
+    # an activity inside HATIWAL'S OWN TASK. HOME only backgrounds the task, leaving
+    # the picker on top of it — so the next `launchApp` resumes the task and brings
+    # the PICKER forward again. That is exactly what happened: edit_profile_avatar
+    # left the picker up, and away_mode, edit_profile_all_fields and
+    # edit_profile_province each then ran underneath it and failed on screens that
+    # were perfectly correct, one flow after another for most of an hour.
     #
-    # HOME and not force-stop: force-stop makes the next launch a COLD start,
-    # which brings back the dev-client's Metro reconnect dance that the warm-launch
-    # design (login.yaml) exists to avoid. HOME just moves the leftover surface out
-    # of the way and leaves the app warm.
-    adb_qa_t 25 shell input keyevent KEYCODE_HOME >/dev/null 2>&1
+    # force-stop pops the whole task, so the next launch starts on the app's own
+    # first screen. It is NOT clearState: it kills the process, not the data, so the
+    # remembered Metro URL, the dev-menu dismissal and the signed-in session all
+    # survive — none of the fragile first-run dance that login.yaml's warm-launch
+    # design exists to avoid. The cost is a cold JS load, a few seconds per flow.
+    adb_qa_t 25 shell am force-stop "$APP_ID" >/dev/null 2>&1
 
     adb_qa_t 25 logcat -c >/dev/null 2>&1
     printf '  %-46s ' "$name"
