@@ -1,0 +1,39 @@
+appId: com.hatiwal.app
+---
+# Baseline for the dead-end notice: on an ACTIVE listing there is none, and the
+# composer still offers "Make an offer".
+#
+# Split out of reserved_sold_dead_end_notice.yaml, which covered this plus the
+# reserved and sold cases in one 205-line flow with FIVE logins. Comparable
+# two-login flows take 405-504s, so five could not fit FLOW_TIMEOUT=600 and it
+# failed at 601s having captured nothing at all — not one of its assertions ever
+# reported.
+#
+# One login, no mutation. Uses the Phone Case thread, which is active and never
+# has its status changed by any flow.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/pin_phone_case_conversation.yaml
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "View Listing"
+
+# No recovery notice while the listing is available.
+- assertNotVisible:
+    id: "listing-unavailable-notice"
+
+# And the offer action is live rather than the disabled variant.
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "composer-action-offer"
+- assertNotVisible:
+    id: "composer-action-offer-disabled"
+- tapOn:
+    id: "composer-actions-backdrop"
+- waitForAnimationToEnd

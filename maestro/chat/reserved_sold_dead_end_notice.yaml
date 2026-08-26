@@ -1,133 +1,92 @@
 appId: com.hatiwal.app
 ---
-# TASK-K729 — Chat thread dead end: explicit "item reserved/sold" notice
-# with a reason + a real next step, replacing the silently vanished
-# composer offer control.
+# Reserved listing seen by a NON-BUYER: the thread shows the recovery notice, offers
+# are closed, and "See similar" gets them out of the dead end.
 #
-# Reuses the same live seller-lifecycle-from-chat transition as
-# lifecycle_from_chat.yaml (Reserve / Mark Sold from the pinned
-# ListingHeader) so this flow doesn't depend on special seed data, then
-# switches to the buyer session on the SAME conversation to assert:
+# This flow used to cover the active, reserved AND sold cases in 205 lines with FIVE
+# logins — buyer, seller, buyer, seller, buyer, because each status change needs the
+# other party. Comparable two-login flows take 405-504s, so five could never fit
+# FLOW_TIMEOUT=600: it failed at 601s having recorded nothing, its log 34 bytes long.
+# Not one of its assertions had ever reported a result.
 #
-#   1. Active listing (baseline, before any transition): the "+" composer
-#      sheet still shows "Make an offer" and NO unavailable notice renders.
-#   2. Seller reserves the listing → buyer sees the reserved notice (title +
-#      body + Browse similar + More from seller actions) and the "+" sheet
-#      no longer offers "Make an offer".
-#   3. Seller marks it sold → buyer sees the sold notice instead, and the
-#      offer entry stays gone.
-#   4. Tapping "Browse similar" lands back on Bazaar (never a dead end).
+# Now three flows, and only this one has to mutate anything:
+#   dead_end_notice_absent_when_active.yaml — active listing, no notice   (1 login)
+#   dead_end_notice_sold.yaml               — sold listing, notice        (1 login)
+#   this one                                — reserved listing, notice    (2 logins)
 #
-# TASK-K729 (review fix, LOW): picks the thread by the seeded listing's
-# TITLE — "Lenovo ThinkPad Laptop Core i5 8GB" (the same conversation both
-# accounts share, see hatiwal-api/db/seeds/e2e.rb's response-badge seed) —
-# instead of `tapOn: index: 0`, which only resolves to the same conversation
-# for both accounts by coincidence of inbox ordering. Mirrors
-# ../seller/mark_sold_with_buyer.yaml's own listing-title selection. Also
-# asserts the status-neutral title only (`chat.thread.unavailable.*Title`,
-# never the retired "reserved for another buyer" wording — the copy no
-# longer asserts facts about WHO the seller committed to; see
-# ListingUnavailableNotice.tsx).
-
-# ─── Baseline: buyer's view of the still-ACTIVE listing ──────────────────────
-
-- runFlow: ../_helpers/login.yaml
-# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
-# a label on the seller's owner-detail screen, so a text tap can land on that
-# instead — Maestro takes the first match, and the flow then carries on
-# believing it navigated. The tab id is unambiguous and locale-independent.
-- tapOn:
-    id: "chat-tab"
-- waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Lenovo ThinkPad Laptop Core i5 8GB"
-    direction: DOWN
-    timeout: 8000
-- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
-- waitForAnimationToEnd
-- assertVisible: "View Listing"
-# No reserved/sold recovery notice yet — the listing is still active
-- assertNotVisible:
-    id: "listing-unavailable-notice"
-# The composer's "+" sheet still offers "Make an offer" on an active listing
-- tapOn:
-    id: "composer-plus-button"
-- waitForAnimationToEnd
-- assertVisible:
-    id: "composer-action-offer"
-# Close the sheet without sending anything
-- tapOn:
-    id: "composer-actions-backdrop"
-- waitForAnimationToEnd
-
-# ─── Seller reserves the listing from the same chat thread ───────────────────
-
+# It reserves the Lenovo, which db/seeds/e2e.rb now returns to :active every seed —
+# before that fix a status change here was permanent, and the eight flows sharing
+# that listing silently lost their active fixture.
 - runFlow: ../_helpers/login_seller.yaml
-# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
-# a label on the seller's owner-detail screen, so a text tap can land on that
-# instead — Maestro takes the first match, and the flow then carries on
-# believing it navigated. The tab id is unambiguous and locale-independent.
+
+# ── The seller reserves it ────────────────────────
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Lenovo ThinkPad Laptop Core i5 8GB"
-    direction: DOWN
-    timeout: 8000
-- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
+- tapOn:
+    id: "conversations-search-bar"
+- inputText: "Lenovo"
 - waitForAnimationToEnd
-- assertVisible: "Reserve"
-- tapOn: "Reserve"
-- waitForAnimationToEnd
-- assertVisible: "Who's buying this item?"
-- tapOn: "Sold to someone not on Hatiwal"
-- tapOn: "Confirm reserve"
-- waitForAnimationToEnd
-# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
-# single check right after an action is a race — and any wait in front of it
-# loses that race, turning a successful action red. Polling keeps the check at
-# full strength while removing the timing dependency.
 - extendedWaitUntil:
-    visible: "Listing marked as reserved"
+    visible:
+      id: "conversation-row-\\d+"
     timeout: 15000
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
+- waitForAnimationToEnd
+
+# Conditional, because chat/reserve_after_accept also reserves this listing and may
+# have run first in this cycle. Either way the listing ends up reserved, which is all
+# the buyer half below depends on. A bare `tapOn: "Reserve"` would fail on an
+# already-reserved listing, where the lifecycle button reads "Mark Sold" instead.
+- runFlow:
+    when:
+      visible: "Reserve"
+    commands:
+      - tapOn: "Reserve"
+      - waitForAnimationToEnd
+      - assertVisible: "Who's buying this item?"
+      # No named buyer: the notice this flow checks is the NEUTRAL one, and naming the
+      # e2e buyer would make them the sale buyer and switch the copy to the
+      # viewer-scoped variant (covered by dead_end_notice_sold.yaml).
+      - tapOn: "Sold to someone not on Hatiwal"
+      - tapOn: "Confirm reserve"
+      - waitForAnimationToEnd
+      - extendedWaitUntil:
+          visible: "Listing marked as reserved"
+          timeout: 15000
 - assertVisible: "Reserved"
 
-# ─── Buyer reopens the SAME conversation — reserved notice + no offer entry ──
-
+# ── The buyer sees the dead end ───────────────────────
 - runFlow: ../_helpers/login.yaml
-# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
-# a label on the seller's owner-detail screen, so a text tap can land on that
-# instead — Maestro takes the first match, and the flow then carries on
-# believing it navigated. The tab id is unambiguous and locale-independent.
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Lenovo ThinkPad Laptop Core i5 8GB"
-    direction: DOWN
-    timeout: 8000
-- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
+- tapOn:
+    id: "conversations-search-bar"
+- inputText: "Lenovo"
 - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 15000
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
+- waitForAnimationToEnd
+
 - assertVisible:
     id: "listing-unavailable-notice"
-# Status-neutral title only — the copy never asserts WHO the seller
-# committed to (that's the viewer-scoped `viewerIsSaleBuyer` job, covered by
-# the Jest suite, not this shared-fixture flow).
+# Status-neutral title only: the copy never says WHO the seller committed to — that
+# is viewerIsSaleBuyer's job, and this viewer is not the buyer.
 - assertVisible: "Item reserved"
 - assertVisible:
     id: "unavailable-browse-similar"
 - assertVisible:
     id: "unavailable-more-from-seller"
-# The composer's "+" sheet no longer offers "Make an offer" — assert the
-# POSITIVE (the disabled row WITH its reason IS visible) rather than only
-# the negative. TASK-K729 (review fix, INFO): an assertNotVisible on
-# "composer-action-offer" alone only holds if Maestro's id matcher is a
-# full-string match; asserting the disabled sibling row is unambiguous and
-# additionally proves acceptance #1 (the explanation sits where the offer
-# control vanished), not just that something is absent.
+
+# Offers are closed while it is reserved.
 - tapOn:
     id: "composer-plus-button"
 - waitForAnimationToEnd
@@ -137,69 +96,8 @@ appId: com.hatiwal.app
     id: "composer-actions-backdrop"
 - waitForAnimationToEnd
 
-# ─── "Browse similar" always leads somewhere — never a dead end ──────────────
-
+# And the recovery CTA actually gets them out of the dead end.
 - tapOn:
     id: "unavailable-browse-similar"
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"
-
-# ─── Seller marks the same listing sold ──────────────────────────────────────
-
-- runFlow: ../_helpers/login_seller.yaml
-# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
-# a label on the seller's owner-detail screen, so a text tap can land on that
-# instead — Maestro takes the first match, and the flow then carries on
-# believing it navigated. The tab id is unambiguous and locale-independent.
-- tapOn:
-    id: "chat-tab"
-- waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Lenovo ThinkPad Laptop Core i5 8GB"
-    direction: DOWN
-    timeout: 8000
-- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
-- waitForAnimationToEnd
-- assertVisible: "Mark Sold"
-- tapOn: "Mark Sold"
-- waitForAnimationToEnd
-- assertVisible: "Who bought this item?"
-- tapOn: "Sold to someone not on Hatiwal"
-- tapOn: "Confirm sold"
-- waitForAnimationToEnd
-# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
-# single check right after an action is a race — and any wait in front of it
-# loses that race, turning a successful action red. Polling keeps the check at
-# full strength while removing the timing dependency.
-- extendedWaitUntil:
-    visible: "Listing marked as sold"
-    timeout: 15000
-- assertVisible: "Sold"
-
-# ─── Buyer reopens the conversation — sold notice replaces reserved ──────────
-
-- runFlow: ../_helpers/login.yaml
-# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
-# a label on the seller's owner-detail screen, so a text tap can land on that
-# instead — Maestro takes the first match, and the flow then carries on
-# believing it navigated. The tab id is unambiguous and locale-independent.
-- tapOn:
-    id: "chat-tab"
-- waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Lenovo ThinkPad Laptop Core i5 8GB"
-    direction: DOWN
-    timeout: 8000
-- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
-- waitForAnimationToEnd
-- assertVisible:
-    id: "listing-unavailable-notice"
-- assertVisible: "Item sold"
-- assertNotVisible: "Item reserved"
-- tapOn:
-    id: "composer-plus-button"
-- waitForAnimationToEnd
-- assertVisible:
-    id: "composer-action-offer-disabled"

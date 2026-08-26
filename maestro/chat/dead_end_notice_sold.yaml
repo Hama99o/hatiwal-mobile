@@ -1,0 +1,52 @@
+appId: com.hatiwal.app
+---
+# Sold listing seen by the BUYER WHO BOUGHT IT: the thread shows the completed-deal
+# notice and offers are closed.
+#
+# Split out of reserved_sold_dead_end_notice.yaml (see the note in
+# dead_end_notice_absent_when_active.yaml for why that flow could never finish).
+#
+# ONE login and NO mutation: the Xiaomi Redmi Note 11 is seeded `:sold` with the e2e
+# buyer as its sale buyer, and conversation 396 about it already exists. The old flow
+# reached the sold state by reserving and then selling the Lenovo across four
+# sessions — which also meant it competed with reviews/rate_buyer_after_sale, the
+# other flow that sells that same listing.
+#
+# Because the viewer IS the sale buyer, ListingUnavailableNotice renders the
+# viewer-scoped copy (`viewerIsSaleBuyer` -> soldToYouTitle), not the neutral
+# "Item sold" the old flow asserted. That is the more specific behaviour of the two.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- tapOn:
+    id: "conversations-search-bar"
+- inputText: "Xiaomi"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 15000
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "View Listing"
+
+- assertVisible:
+    id: "listing-unavailable-notice"
+- assertVisible: "You bought this item!"
+# Not the neutral title — this viewer bought it.
+- assertNotVisible: "Item sold"
+
+# Offers are closed on a sold listing: the "+" sheet shows the DISABLED offer row.
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "composer-action-offer-disabled"
+- assertNotVisible:
+    id: "composer-action-offer"
+- tapOn:
+    id: "composer-actions-backdrop"
+- waitForAnimationToEnd
