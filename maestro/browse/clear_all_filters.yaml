@@ -20,7 +20,13 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # ── Step 2: Apply a price min filter ────────────────────────────────────────
-- tapOn: "Min Price"
+# "Min Price" is the LABEL above the field, not the field. Tapping it focused
+# nothing, so "5000" went nowhere and only the category registered — the screen
+# read "1 filter active" where the flow expected 2. The app was right.
+#
+# The inputs carry no testID, so target the min field by its placeholder ("0";
+# the max field's is "∞"). Fragile, and the real fix is testIDs on both — queued.
+- tapOn: "0"
 - inputText: "5000"
 # NOT hideKeyboard. FilterSheet is a native <Modal> wiring onRequestClose={onClose}
 # (FilterSheet.tsx:125), and hideKeyboard is BACK on Android — the Modal consumed
