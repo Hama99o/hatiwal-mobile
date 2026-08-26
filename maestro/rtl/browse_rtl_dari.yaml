@@ -35,3 +35,16 @@ appId: com.hatiwal.app
     visible: "من"
     timeout: 40000
 - waitForAnimationToEnd
+
+# ── Category chip row must open on its FIRST chip ────────────────────────────
+# This is the bug the user reported from a screenshot, and nothing here caught it:
+# a horizontal scroller is already laid out right-to-left under RTL, so a
+# `row-reverse` on its contentContainerStyle flipped it BACK — the first chip
+# ("همه") landed at the far edge and the row opened mid-list, visibly clipped.
+# Fixed in nine scrollers (see the rtl commit), and now guarded: if the first
+# chip is off-screen when the feed opens, this fails.
+- tapOn:
+    text: "بازار"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible: "همه"
