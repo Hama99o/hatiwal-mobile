@@ -98,6 +98,22 @@ while :; do
   done
   say "load ok: $(awk '{printf "%.0f", $1}' /proc/loadavg)"
 
+  # Make sure each session HAS a device before handing out work. Without this the
+  # fleet cheerfully claims feature after feature while every preflight fails with
+  # "no booted emulator — run: qa.sh up", burning a whole cycle and writing rows
+  # that say nothing about the app. An emulator also dies mid-cycle for real
+  # reasons — a full disk killed one, CPU starvation another — so this runs every
+  # cycle, not once at startup. `up` is a no-op when the device is already there.
+  for sess in "${SESSIONS[@]}"; do
+    if QA_SESSION="$sess" ./qa/qa.sh up >>"$LOG" 2>&1; then
+      say "session $sess device ready"
+    else
+      say "session $sess could not get a device — retrying next cycle"
+      sleep 120
+      continue 2
+    fi
+  done
+
   # Claims are per-cycle: forget last cycle's before handing work out again.
   ./qa/qa.sh claim-reset >>"$LOG" 2>&1
 
