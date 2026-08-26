@@ -78,10 +78,17 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Fullscreen viewer is open — close button (X) must be visible
+# "Close", not "common.close". The literal here was a translation KEY, copied from
+# MessageBubble.test.tsx — under Jest i18next is not initialised, so `t()` returns the
+# key and the unit test legitimately expects "common.close". On a device it resolves,
+# and the close button's accessibilityLabel reads "Close" (common.json, translated in
+# all three locales), so the key matched nothing.
+# The control carries no testID, only the label — same trade-off this flow's send-button
+# comment already makes: adding one is app code, and this flow is about photo sending.
 - assertVisible:
-    text: "common.close"
+    text: "Close"
 - tapOn:
-    text: "common.close"
+    text: "Close"
 - waitForAnimationToEnd
 
 # We are back in the thread — image bubble is still present

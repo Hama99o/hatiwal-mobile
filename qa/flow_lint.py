@@ -16,6 +16,9 @@ failure classes already paid for:
   JSFUNC     ${visible(...)} / ${selectorExists(...)} — not in Maestro 2.7.0's JS
              sandbox; raises TypeError and asserts nothing. The .log does not show
              it; only the .xml does.
+  KEYPATH    A literal that is a t() key path ("common.close") rather than the
+             string it renders. Cost: send_photo, copied from a Jest expectation
+             where i18next is not initialised and the key IS what comes back.
   ROLE       A tap on an owner/recipient-only action from a buyer session. Cost:
              three offer flows, each failing as if the button were missing.
   SELFTYPED  A literal that is only PART of text the flow itself typed. Cost:
@@ -84,6 +87,33 @@ def locale_strings():
 
 STR = locale_strings()
 
+
+def locale_key_paths():
+    """Valid t() key paths, e.g. "common.close".
+
+    A flow asserting one of these is matching the KEY, not the rendered value. That
+    is what Jest sees — i18next is not initialised there, so `t()` returns the key
+    and a unit test legitimately expects "common.close" — and it does not survive
+    being copied into a Maestro flow, where the app renders "Close".
+    """
+    out = set()
+    for p in glob.glob(os.path.join(ROOT, "src/i18n/locales/en/*.json")):
+        ns = os.path.basename(p)[:-5]
+
+        def walk(o, pre):
+            if isinstance(o, dict):
+                for k, v in o.items():
+                    walk(v, pre + [k])
+            else:
+                out.add(".".join(pre))
+
+        walk(json.load(io.open(p, encoding="utf-8")), [ns])
+    return out
+
+
+KEY_PATHS = locale_key_paths()
+KEYISH = re.compile(r'^[a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)+$')
+
 def is_plain(lit):
     """No regex metacharacters — so an anchored match means literal equality."""
     return not re.search(r'[.*+?\[\]()|\\^$]', lit)
@@ -149,7 +179,10 @@ def check(path):
             re.search(r'^\s*text:\s*"([^"]+)"', l)
         if m:
             lit = m.group(1)
-            if re.fullmatch(r'"?(19|20)\d\d"?', lit):
+            if KEYISH.match(lit) and lit in KEY_PATHS:
+                hits.append((i, "KEYPATH",
+                             f'{lit!r} is a translation KEY, not the rendered value'))
+            elif re.fullmatch(r'"?(19|20)\d\d"?', lit):
                 hits.append((i, "DATE", f'hardcoded year {lit!r}'))
             elif is_plain(lit) and len(lit) > 2:
                 # An exact UI string is fine however else it appears: "Edit" is a
@@ -205,7 +238,7 @@ if "--selftest" in sys.argv:
     fixture = os.path.join(ROOT, "qa/testdata/lint_synthetic.yaml")
     hits = check(fixture)
     got = {k for _, k, _ in hits}
-    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED", "ROLE"}
+    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED", "ROLE", "KEYPATH"}
     for line, kind, why in hits:
         print(f"  L{line:<3} {kind:<10} {why[:56]}")
     missing = need - got

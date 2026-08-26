@@ -10,6 +10,8 @@ appId: com.hatiwal.app
 - assertVisible:
     id: "something"
     optional: true                         # TOOTHLESS
+# KEYPATH — the t() key, not the string it renders.
+- assertVisible: "common.close"
 - inputText: "Zzq quite a distinctive sentence typed by this flow"
 - assertVisible: "Zzq quite a distinctive" # SELFTYPED — a prefix of the above
 # The marker below must suppress ITS OWN command and nothing else. A fixed +/-N
