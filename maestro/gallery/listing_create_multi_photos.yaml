@@ -46,6 +46,17 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/attach_photo_from_gallery.yaml
 
 # Reorder hint visible when 2+ photos
+# The reorder hint only exists IN reorder mode, and the flow never entered it. It is
+# gated on `selectedIdx !== -1` (PhotosSection.tsx:338), and the only thing that sets
+# that is `onLongPress` on a thumbnail (line 372) — the file's own header says
+# "long-press any thumb to" start reordering. Asserting the hint straight after
+# attaching a photo could never pass.
+# The tap on thumb index 1 further down is the SWAP, which the hint is telling you to
+# make, so the long-press was simply missing between them.
+- longPressOn:
+    id: "listing-form-photo-thumb"
+    index: 0
+- waitForAnimationToEnd
 - assertVisible: "Tap another photo to swap positions"
 
 # Tap second photo to set as cover (reorder)

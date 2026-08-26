@@ -29,11 +29,27 @@ appId: com.hatiwal.app
 # Tap second photo thumbnail to make it Cover
 # A bare `tapOn: index:` has NO selector: it matches every element on screen and
 # index N is whatever lands there in hierarchy order, not the thing meant.
+# Reordering takes TWO taps, and this flow only ever made one.
+# handleThumbPress (PhotosSection.tsx:224): with nothing selected, a tap SELECTS that
+# thumb; a second tap on a DIFFERENT thumb swaps the two and clears the selection.
+# So one tap changes no order at all — and "Cover" sits on the first photo either way,
+# so asserting it proved nothing. The comment here claimed the tap "makes it Cover".
 - tapOn:
     id: "listing-form-photo-thumb"
     index: 1
 - waitForAnimationToEnd
-# Cover label moves to tapped photo
+# In select mode the hint appears (gated on selectedIdx !== -1, line 338).
+- assertVisible: "Tap another photo to swap positions"
+
+# Second tap on the FIRST thumb performs the swap, making the selected photo the cover.
+- tapOn:
+    id: "listing-form-photo-thumb"
+    index: 0
+- waitForAnimationToEnd
+# The hint going away is the observable proof the swap ran: handleThumbPress sets
+# selectedIdx back to -1 only on the swap branch. "Cover" alone cannot show this,
+# because the badge is on whichever photo is first before and after.
+- assertNotVisible: "Tap another photo to swap positions"
 - assertVisible: "Cover"
 
 # Save
