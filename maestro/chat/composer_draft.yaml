@@ -33,8 +33,24 @@ appId: com.hatiwal.app
 # could open a different thread and then assert the draft in it. The row
 # truncates the title, so this matches the prefix (see
 # _helpers/open_active_conversation.yaml).
+# NOT `tapOn: text: "Phone Case.*"`. open_active_conversation.yaml typed
+# "Phone Case" into the conversations search bar; that text is STILL in the box
+# after `back`, and the input sits higher in the hierarchy than the row, so the
+# match landed on the SEARCH FIELD. The tap did nothing, the flow never left
+# Messages, and it failed later on the draft assert — pointing at the composer
+# when the navigation was what broke.
+# Evidence: qa/reports/run-249/chat/screens/composer_draft.png.
+#
+# Index 0 is safe here precisely BECAUSE that filter is still applied: the list
+# is narrowed to the one matching thread, so "most recently active" cannot pick a
+# different conversation. Guarding that assumption first — the anchored match on
+# the bare title only fits the search box's own value, since the row title reads
+# "Phone Case Sili…" — so if the filter ever stops surviving `back`, this fails
+# here with an obvious cause instead of opening another thread.
+- assertVisible: "Phone Case"
 - tapOn:
-    text: "Phone Case.*"
+    id: "conversation-row-\\d+"
+    index: 0
 - waitForAnimationToEnd
 
 # ── Step 5: Assert the draft text is restored in the composer ────────────────
@@ -53,8 +69,24 @@ appId: com.hatiwal.app
 - assertVisible: "Messages"
 
 # Same thread again, by name rather than position.
+# NOT `tapOn: text: "Phone Case.*"`. open_active_conversation.yaml typed
+# "Phone Case" into the conversations search bar; that text is STILL in the box
+# after `back`, and the input sits higher in the hierarchy than the row, so the
+# match landed on the SEARCH FIELD. The tap did nothing, the flow never left
+# Messages, and it failed later on the draft assert — pointing at the composer
+# when the navigation was what broke.
+# Evidence: qa/reports/run-249/chat/screens/composer_draft.png.
+#
+# Index 0 is safe here precisely BECAUSE that filter is still applied: the list
+# is narrowed to the one matching thread, so "most recently active" cannot pick a
+# different conversation. Guarding that assumption first — the anchored match on
+# the bare title only fits the search box's own value, since the row title reads
+# "Phone Case Sili…" — so if the filter ever stops surviving `back`, this fails
+# here with an obvious cause instead of opening another thread.
+- assertVisible: "Phone Case"
 - tapOn:
-    text: "Phone Case.*"
+    id: "conversation-row-\\d+"
+    index: 0
 - waitForAnimationToEnd
 
 # After a successful send the draft must be gone — composer is empty.

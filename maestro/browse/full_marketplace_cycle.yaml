@@ -137,7 +137,17 @@ appId: com.hatiwal.app
     id: "browse-search-input"
 - inputText: "Marketplace Cycle Phone"
 - waitForAnimationToEnd
-- tapOn: "Marketplace Cycle Phone"
+# NOT `tapOn: "Marketplace Cycle Phone"`. That text is sitting in the SEARCH BOX,
+# which is higher in the hierarchy than the results, so Maestro's first match was
+# the input itself: the tap re-focused the search field, the flow carried on
+# believing it had navigated, and it died later on a screen it never left. The
+# comment at "Step 4" below already spotted this class once — it was fixed in one
+# place and left standing in four.
+# Card/row testIDs cannot collide with the query text, and they also survive the
+# list truncating a long title.
+- tapOn:
+    id: "listing-card"
+    index: 0
 - waitForAnimationToEnd
 - assertVisible: "Marketplace Cycle Phone"
 # Amounts are rendered by Intl with style:"currency", so the element text is
@@ -179,7 +189,27 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- tapOn: "Marketplace Cycle Phone"
+# NOT `tapOn: "Marketplace Cycle Phone"`. That text is sitting in the SEARCH BOX,
+# which is higher in the hierarchy than the results, so Maestro's first match was
+# the input itself: the tap re-focused the search field, the flow carried on
+# believing it had navigated, and it died later on a screen it never left. The
+# comment at "Step 4" below already spotted this class once — it was fixed in one
+# place and left standing in four.
+# Card/row testIDs cannot collide with the query text, and they also survive the
+# list truncating a long title.
+#
+# The query from Step 2 may or may not still be in the box after this tab switch,
+# and typing into a box that already has text APPENDS rather than replaces. So
+# erase first and re-search: this then reaches the same listing whatever state
+# the Bazaar was left in.
+- tapOn:
+    id: "browse-search-input"
+- eraseText
+- inputText: "Marketplace Cycle Phone"
+- waitForAnimationToEnd
+- tapOn:
+    id: "listing-card"
+    index: 0
 - waitForAnimationToEnd
 # Open a listing detail. THE STEP THAT OPENS ONE WAS MISSING: this flow tapped
 # "Contact Seller" — a DETAIL-screen button — while still on the Bazaar feed,
@@ -228,7 +258,17 @@ appId: com.hatiwal.app
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
-- tapOn: "Marketplace Cycle Phone"
+# Same reason as on the Bazaar, with the conversations search bar and a row id.
+# The row shows the LISTING title, which the list truncates — another reason not
+# to match it as text.
+- tapOn:
+    id: "conversations-search-bar"
+- eraseText
+- inputText: "Marketplace Cycle Phone"
+- waitForAnimationToEnd
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
 - waitForAnimationToEnd
 - assertVisible: ".*3,000"
 - tapOn: "Accept"
@@ -239,7 +279,27 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- tapOn: "Marketplace Cycle Phone"
+# NOT `tapOn: "Marketplace Cycle Phone"`. That text is sitting in the SEARCH BOX,
+# which is higher in the hierarchy than the results, so Maestro's first match was
+# the input itself: the tap re-focused the search field, the flow carried on
+# believing it had navigated, and it died later on a screen it never left. The
+# comment at "Step 4" below already spotted this class once — it was fixed in one
+# place and left standing in four.
+# Card/row testIDs cannot collide with the query text, and they also survive the
+# list truncating a long title.
+#
+# The query from Step 2 may or may not still be in the box after this tab switch,
+# and typing into a box that already has text APPENDS rather than replaces. So
+# erase first and re-search: this then reaches the same listing whatever state
+# the Bazaar was left in.
+- tapOn:
+    id: "browse-search-input"
+- eraseText
+- inputText: "Marketplace Cycle Phone"
+- waitForAnimationToEnd
+- tapOn:
+    id: "listing-card"
+    index: 0
 - waitForAnimationToEnd
 - tapOn: "Mark as Reserved"
 - waitForAnimationToEnd
