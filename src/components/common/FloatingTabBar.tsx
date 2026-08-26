@@ -209,7 +209,13 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingVertical: 6,
     paddingHorizontal: 10,
-    borderRadius: 18,
+    // Fully rounded, not 18. The comment at the call site calls this a "pill" and
+    // that was the intent, but the box is about 54x51 (22px icon + 3 gap + 10.5pt
+    // label + 12 padding), so an 18px radius reads as a rounded SQUARE with four
+    // visible corners — which is exactly how it looked on device. Half the height
+    // or more gives the capsule; 999 keeps it a capsule if the icon or label size
+    // ever changes.
+    borderRadius: 999,
     minWidth: 54,
   },
   label: {
