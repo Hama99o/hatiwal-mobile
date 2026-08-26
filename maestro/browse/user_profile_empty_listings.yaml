@@ -1,41 +1,48 @@
 appId: com.hatiwal.app
 ---
-# Seller profile with no listings: shows "No listings yet" empty state
+# A public profile that has NO active listings: shows the empty state.
+#
+# The old version of this flow could never pass, and not because of a selector.
+# Its premise was self-contradictory: it opened a listing from the feed and
+# tapped through to THAT LISTING'S SELLER, then asserted the seller has no
+# active listings. The listing it arrived from is one. seller@hatiwal.test has
+# 14. There is no seed state in which a listing's owner has zero listings.
+#
+# Reaching a genuinely empty profile needs a user who sells nothing. login.yaml
+# defaults to buyer@hatiwal.test, and every profile a BUYER can reach in the UI
+# is a seller's — so this flow logs in as the seller instead. Every one of the
+# seller's conversation partners (Ahmad x5, Bilal x1) has 0 active listings, so
+# any conversation row lands on an empty profile; no fixture id needed.
+- runFlow:
+    file: ../_helpers/login.yaml
+    env:
+      EMAIL: seller@hatiwal.test
+      # PASSWORD is left at login.yaml's default (Password123!).
 
-- runFlow: ../_helpers/login.yaml
 - tapOn:
-    id: "browse-tab"
+    id: "chat-tab"
 - waitForAnimationToEnd
-# A bare `tapOn: index:` has NO selector: it matches every element on screen,
-# so index 0 is whatever lands first in hierarchy order — never the feed card.
-# The flow stayed on the feed and failed further down on the detail screen it
-# never opened.
+
 - tapOn:
-    id: "listing-card"
+    id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
+- assertVisible: "Type a message..."
 
-# Navigate to a seller whose profile has 0 listings
-# The seller row sits below the photo, the price, the description and the views
-# chart, so it is off-screen on arrival — and `tapOn` does not scroll to reach
-# its target. None of the ten flows that tap this had a scroll; on a tablet the
-# hero alone takes 60% of the viewport, which makes it certain.
-- scrollUntilVisible:
-    element:
-      id: "seller-profile-link"
-    direction: DOWN
-    timeout: 20000
+# The header name goes to /(main)/seller/[userId], which renders the same
+# UserProfileScreen as /(main)/user/[id] — so the copy below is that screen's.
 - tapOn:
-    # `seller-name` / `seller-identity` do not exist. The seller row on the listing
-    # detail screen carries testID="seller-profile-link" (ListingDetail.tsx), which
-    # is what the other seven flows already use.
-    id: "seller-profile-link"
+    id: "other-participant-name"
 - waitForAnimationToEnd
+
 # NOT "Seller Profile" — that is only the LOADING/ERROR header. Once the profile
-# loads, HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting
-# the static title is a race the loaded screen always wins. "Active Listings" is a
-# literal stat label in ProfileHeader and is there for every profile.
+# loads, HeaderBar shows the person's NAME instead (UserProfile.tsx), so
+# asserting the static title is a race the loaded screen always wins.
+# "Active Listings" is the literal stat label in ProfileHeader, present on every
+# profile whatever its count.
 - assertVisible: "Active Listings"
-# `profile.userProfile.noListings` = "No active listings" is what UserProfile
-# renders. "No listings yet" (listing.empty.title / listing.noListings) is dead.
+
+# profile.userProfile.noListings. "No listings yet" (listing.empty.title) is a
+# different, unused string — do not swap it back in.
 - assertVisible: "No active listings"
+- assertVisible: "This seller has no active listings at the moment."

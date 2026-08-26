@@ -38,19 +38,22 @@ appId: com.hatiwal.app
 # literal stat label in ProfileHeader and is there for every profile.
 - assertVisible: "Active Listings"
 
-# Listings grid visible
-# The stat label is "Active Listings", not a bare "Listings".
-- assertVisible: "Active Listings"
-- assertVisible:
-# The app gives EVERY feed card the same id ("listing-card"); there is no
-# "listing-card-N". Maestro selects the Nth match with `index`.
-    id: "listing-card"
-    index: 0
+# The listings grid sits BELOW the profile header — avatar, bio, the stats row
+# and the Active/Sold tabs — so the first card is off-screen on arrival, and
+# `assertVisible` never scrolls to find its target. That is what failed here:
+# "Assertion is false: id: listing-card, Index: 0", with the card present in the
+# tree the whole time. ListingFeed renders ListingCard, whose testID is
+# "listing-card" (ListingCard.tsx) — the same id the feed uses.
+- scrollUntilVisible:
+    element:
+      id: "listing-card"
+    direction: DOWN
+    timeout: 20000
 
-# Tap a listing in the grid → goes to listing detail
+# Tap a listing in the grid → goes to listing detail.
+# The app gives EVERY card the same id; there is no "listing-card-N", so Maestro
+# selects the Nth match with `index`.
 - tapOn:
-# The app gives EVERY feed card the same id ("listing-card"); there is no
-# "listing-card-N". Maestro selects the Nth match with `index`.
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
@@ -58,8 +61,11 @@ appId: com.hatiwal.app
 
 - back
 - waitForAnimationToEnd
-# NOT "Seller Profile" — that is only the LOADING/ERROR header. Once the profile
-# loads, HeaderBar shows the person's NAME instead (UserProfile.tsx), so asserting
-# the static title is a race the loaded screen always wins. "Active Listings" is a
-# literal stat label in ProfileHeader and is there for every profile.
-- assertVisible: "Active Listings"
+# Back on the profile — but scrolled to wherever the grid was, so the header stat
+# is NOT necessarily on screen. Asserting it blind here would fail for a reason
+# that has nothing to do with the grid. Scroll UP to it instead.
+- scrollUntilVisible:
+    element:
+      text: "Active Listings"
+    direction: UP
+    timeout: 20000

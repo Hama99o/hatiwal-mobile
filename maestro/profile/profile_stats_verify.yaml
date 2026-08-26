@@ -13,7 +13,14 @@ appId: com.hatiwal.app
 - assertVisible: "Joined"
 
 # Member since includes year
-- assertVisible: "2024"
+# NOT "2024". Two independent reasons that literal could never match:
+#   1. member_since is created_at.strftime("%B %Y") (user_serializer.rb) — one
+#      node reading "August 2026", so an anchored full-string match on the bare
+#      year fails even in the right year.
+#   2. It is a hardcoded year in a flow meant to run for years. The seed creates
+#      users at seed time, so the year is always "now", never a fixed value.
+# Matching the SHAPE instead. Character class, not \d, so it stays valid YAML.
+- assertVisible: ".*20[0-9][0-9].*"
 
 # Listings count is a non-negative number (assert section label is there)
 # The stat label is "Active Listings", not a bare "Listings".
