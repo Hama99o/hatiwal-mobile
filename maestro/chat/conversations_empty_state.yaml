@@ -36,7 +36,13 @@ appId: com.hatiwal.app
     id: "register-email-input"
 # Maestro's built-in — a constant address would collide with the account this
 # flow created on its previous run.
-- inputText: ${maestroRandomEmail}
+# `maestroRandomEmail` is defined NOWHERE in the suite, and Maestro evaluates
+# ${...} as JavaScript — so it resolved to the literal string "undefined". The
+# screenshot showed "undefined" sitting in the email field with the app correctly
+# refusing it: "• Email is not an email". The app was right; the flow fed it
+# rubbish. Use the idiom that already works in account_delete_and_restore.
+- evalScript: ${output.email = 'qaempty_' + Date.now() + '@hatiwal.test'}
+- inputText: ${output.email}
 - tapOn:
     id: "register-password-input"
 - inputText: "Password123!"
