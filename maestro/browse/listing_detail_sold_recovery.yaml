@@ -113,10 +113,25 @@ appId: com.hatiwal.app
     label: "Secondary CTA — omitted only if this seller has no other active listings"
 
 # Tapping "More from {seller}" lands on that seller's public profile.
-- tapOn:
-    id: "unavailable-more-from-seller"
-    optional: true
-- assertVisible:
-    text: "Active Listings"
-    optional: true
-    label: "Secondary CTA navigates to the seller's public profile"
+#
+# Conditional rather than a pair of optionals. The CTA really is omitted when the
+# seller has no other active listings, so the TAP has to tolerate its absence — but
+# the previous version paired an optional tap with an optional assert, and an
+# optional assert cannot fail. Between them they claimed to check the navigation
+# while checking nothing: with the CTA absent the tap no-opped and the assert
+# passed on the listing screen it had never left.
+# Inside the `when`, both are real: the CTA is there, so it must navigate, and
+# "Active Listings" is the literal stat label ProfileHeader renders on EVERY
+# profile whatever the count (verified against the seeded seller with 14 and a
+# partner with 0).
+- runFlow:
+    when:
+      visible:
+        id: "unavailable-more-from-seller"
+    commands:
+      - tapOn:
+          id: "unavailable-more-from-seller"
+      - waitForAnimationToEnd
+      - assertVisible:
+          text: "Active Listings"
+          label: "Secondary CTA navigates to the seller's public profile"

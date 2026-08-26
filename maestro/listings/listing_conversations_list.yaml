@@ -9,8 +9,11 @@ appId: com.hatiwal.app
 # Tap the "chats" count link on a listing card that has conversations
 # The seller home tab is labelled "My Shop" (sidebar.myListings).
 - assertVisible: "My Shop"
+# NOT "chats". The seller card renders listing.conversationsCount =
+# "{{count}} chats", so the node reads "3 chats" and an anchored full-string match
+# on the bare word matches nothing. Leading wildcard covers whatever the count is.
 - tapOn:
-    text: "chats"
+    text: ".*chats"
     index: 0
 - waitForAnimationToEnd
 # Listing conversations screen opens
