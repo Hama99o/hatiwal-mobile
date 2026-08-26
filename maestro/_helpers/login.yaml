@@ -78,7 +78,14 @@ env:
       # no-op instead of a failure.
       - runFlow:
           when:
-            notVisible: "Ahmad Karimi"
+            # Scoped to the profile header's own name node. Guarding on the name appearing
+            # ANYWHERE on this screen silently skipped the sign-out whenever the OTHER
+            # party's name also rendered here (reviews, recent chats): meetup_decline ran
+            # its whole second leg still signed in as the buyer, so Accept/Decline — gated
+            # on `!isMine` — never rendered and the flow blamed a missing button.
+            notVisible:
+              id: "profile-display-name"
+              text: ".*Ahmad Karimi.*"
           commands:
             - scrollUntilVisible:
                 element:

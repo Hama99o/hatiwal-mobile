@@ -676,6 +676,12 @@ export default function ProfileScreen() {
           {/* Name row: verified badge + member-since subtitle via UserIdentity (stacked).
               showAvatar={false} cleanly suppresses the avatar without a size={0} hack. */}
           <UserIdentity
+            // testID scopes the account-owner's name for E2E identity checks. The
+            // login helpers used to guard on the name appearing ANYWHERE on this
+            // screen, which silently skipped a sign-out whenever the counterparty's
+            // name happened to render here too (reviews, recent chats) — the flow
+            // then ran as the wrong user. Scoped to this node, that cannot happen.
+            nameTestID="profile-display-name"
             name={displayName}
             avatarUrl={null}
             verified={user?.verified}

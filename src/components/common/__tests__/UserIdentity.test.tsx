@@ -65,6 +65,16 @@ describe("UserIdentity", () => {
     ).not.toThrow();
   });
 
+  it("puts nameTestID on the name node itself, carrying the name as its text", () => {
+    // The E2E identity guards pair id + text on ONE node to prove which account is
+    // signed in. `testID` lands on a wrapper the name is not a descendant of, so
+    // that pairing only works via nameTestID. A guard that cannot pair them matches
+    // the other party's name anywhere on the screen and skips a needed sign-out.
+    render(<UserIdentity name="Omar Noori" nameTestID="profile-display-name" />);
+    expect(screen.getByTestId("profile-display-name")).toBeTruthy();
+    expect(screen.getByTestId("profile-display-name").props.children).toBe("Omar Noori");
+  });
+
   it("does not render avatar initial when showAvatar is false", () => {
     // With showAvatar=false, UserAvatar is not mounted so the initial letter should not appear
     render(<UserIdentity name="Omar Noori" showAvatar={false} />);

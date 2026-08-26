@@ -16,6 +16,12 @@ interface UserIdentityProps {
   size?: number;
   /** Name font size (defaults scale with avatar size). */
   nameSize?: number;
+  /**
+   * testID for the name <Text> itself. `testID` lands on a wrapper, and the name
+   * is not one of its descendants, so an E2E check cannot pair the two. Identity
+   * guards need "this exact node reads this exact name" — see the login helpers.
+   */
+  nameTestID?: string;
   /** "row" (avatar beside name — cards/lists) or "stacked" (centered — headers). */
   layout?: "row" | "stacked";
   /** Hide the name (avatar-only). */
@@ -41,6 +47,7 @@ export function UserIdentity({
   subtitle,
   size = 44,
   nameSize,
+  nameTestID,
   layout = "row",
   showName = true,
   showAvatar = true,
@@ -62,6 +69,7 @@ export function UserIdentity({
       }}
     >
       <Text
+        testID={nameTestID}
         style={{
           fontSize: resolvedNameSize,
           fontWeight: "700",
