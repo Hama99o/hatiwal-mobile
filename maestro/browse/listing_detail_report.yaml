@@ -25,12 +25,16 @@ appId: com.hatiwal.app
 # (listing.detail.messageSeller), so the sheet covered the very button being
 # asserted and every step after it acted on a covered screen.
 - assertVisible: "Contact Seller"
-# Open more options / report menu
-- tapOn: "More options"
-- waitForAnimationToEnd
-# "Report" lives inside the MORE sheet (ListingDetail:1037), not on the detail
-# screen — so tapping it directly could never work. `more-options-button` is the
-# icon-only overlay control that opens the sheet.
+# Open the more-options sheet. ONE tap, by testID.
+#
+# There were two: `tapOn: "More options"` (the accessibility label) followed by
+# `tapOn: id: "more-options-button"` — the same control twice. The first opened
+# the sheet and the second then failed "Element not found", because Maestro reads
+# only the top window and the button now sits behind the sheet. A half-finished
+# migration to the testID left both taps in place.
+#
+# "Report" itself lives inside this sheet (ListingDetail:1037), not on the detail
+# screen, which is what the note below the old duplicate was getting at.
 - tapOn:
     id: "more-options-button"
 - waitForAnimationToEnd
