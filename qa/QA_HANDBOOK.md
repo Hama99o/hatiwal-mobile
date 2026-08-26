@@ -1441,8 +1441,18 @@ The feed-at-failure screenshot is the signature. I saw it three times and read i
 three different ways before checking a per-step screenshot from inside the run,
 which said `Loading from 192.168.1.24:3008…` in plain text.
 
-THE RULE: while a suite or a flow is running, do not save files under `src/`.
-Edit flow YAML, docs and rig scripts freely — none of those are bundled. If an
+THE RULE: while a suite or a flow is running, do not save files ANYWHERE in
+the project. The earlier version of this rule said flow YAML and docs were safe
+"because none of those are bundled". They are not bundled, and it did not matter:
+Metro watches the project root, and touching `maestro/*.yaml` or a markdown
+file still reloaded the dev client. `register_duplicate_email` "failed" to show
+its duplicate-email error while the screenshot showed that error rendered
+perfectly with `Refreshing…` across the top — the only edits in flight were flow
+YAML and one markdown file, and I came close to "fixing" a healthy flow.
+
+metro.config.js now blockLists `maestro/` and `qa/`, which SHOULD stop rig
+edits from reaching the watcher. That is unverified — it needs a sweep where rig
+files are edited and no flow shows `Refreshing…`. Until then, assume the rule. If an
 app fix cannot wait, stop the run first, then edit, then re-run the affected
 flows. Same family of constraint as "never build the APK while the emulator
 runs", and easier to violate by accident, because saving a file feels harmless.

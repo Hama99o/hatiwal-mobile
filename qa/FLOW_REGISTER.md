@@ -10,14 +10,15 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**49 of 232 flows passing** · 182 still need attention
+**50 of 233 flows passing** · 181 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 49 | green, and no backend error underneath |
-| FAIL-assert | 94 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-? | 29 | failed, cause unclear — read the log |
-| (rig) | 1 | rig broke mid-run — result meaningless, re-run |
+| PASS | 50 | green, and no backend error underneath |
+| FAIL-assert | 95 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
+| FAIL-? | 26 | failed, cause unclear — read the log |
+| (rig) | 2 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 59 | never executed |
 
 ### Definition of done
@@ -30,14 +31,14 @@ bug class a user reports as "nothing happened".
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile
 
-1/37 passing · 36 open
+3/38 passing · 34 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `browse_all_categories` | FAIL-assert | s3/run-108 | 272 |  | AxiosError |
-| `browse_listings` | FAIL-assert | s3/run-108 | 249 |  | [Failed] browse_listings (3m 42s) (Assertion is false: "Development Build" is not visible) |
-| `browse_sort_most_viewed` | FAIL-assert | s3/run-108 | 257 |  | AxiosError AxiosError |
-| `browse_sort_nearest` | FAIL-assert | s3/run-108 | 251 |  | [Failed] browse_sort_nearest (3m 46s) (Assertion is false: "Development Build" is not visible) |
+| `browse_all_categories` | PASS | run-235 | 252 |  | AxiosError |
+| `browse_listings` | PASS | run-235 | 187 |  |  |
+| `browse_sort_most_viewed` | FAIL-? | run-235 | 339 |  | AxiosError AxiosError |
+| `browse_sort_nearest` | (rig) | run-235 |  |  |  |
 | `categories_hub` | FAIL-assert | s3/run-108 | 262 |  | [Failed] categories_hub (3m 49s) (Assertion is false: "Development Build" is not visible) |
 | `clear_all_filters` | UNTESTED | — |  |  |  |
 | `filter_active_sellers` | UNTESTED | — |  |  |  |
@@ -60,6 +61,7 @@ bug class a user reports as "nothing happened".
 | `listing_detail_views_count` | UNTESTED | — |  |  |  |
 | `not_interested` | UNTESTED | — |  |  |  |
 | `saved_search_apply` | UNTESTED | — |  |  |  |
+| `scroll_to_top` | UNTESTED | — |  |  |  |
 | `search_empty_state` | UNTESTED | — |  |  |  |
 | `search_listings` | UNTESTED | — |  |  |  |
 | `search_with_filter` | UNTESTED | — |  |  |  |
@@ -71,6 +73,42 @@ bug class a user reports as "nothing happened".
 | `user_profile_listing_grid` | UNTESTED | — |  |  |  |
 | `user_profile_stats` | UNTESTED | — |  |  |  |
 | `view_mode_toggle` | UNTESTED | — |  |  |  |
+
+## `profile` — Profile view/edit, language + theme switch, stats, blocked users
+
+3/29 passing · 26 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `account_delete_and_restore` | FAIL-assert | s2/run-156 | 207 |  | [Failed] account_delete_and_restore (3m 8s) (Assertion is false: "Bazaar" is visible) |
+| `account_delete_cancel` | FAIL-assert | s2/run-156 | 460 |  | [Failed] account_delete_cancel (7m 19s) (Assertion is false: "Me" is visible) |
+| `away_mode` | FAIL-assert | s2/run-156 | 466 |  | [Failed] away_mode (7m 27s) (Assertion is false: "Me" is visible) |
+| `blocked_users` | FAIL-assert | s2/run-156 | 457 |  | [Failed] blocked_users (7m 18s) (Assertion is false: "Me" is visible) |
+| `change_language_dari` | FAIL-assert | s2/run-156 | 458 |  | [Failed] change_language_dari (7m 18s) (Assertion is false: "Me" is visible) |
+| `change_language_english` | FAIL-assert | s2/run-156 | 455 |  | [Failed] change_language_english (7m 17s) (Assertion is false: "Me" is visible) |
+| `change_language_pashto` | FAIL-assert | s2/run-156 | 453 |  | [Failed] change_language_pashto (7m 15s) (Assertion is false: "Me" is visible) |
+| `edit_profile` | FAIL-assert | s2/run-156 | 460 |  | [Failed] edit_profile (7m 21s) (Assertion is false: "Me" is visible) |
+| `edit_profile_all_fields` | FAIL-assert | s2/run-156 | 463 |  | [Failed] edit_profile_all_fields (7m 23s) (Assertion is false: "Me" is visible) |
+| `edit_profile_avatar` | FAIL-assert | s2/run-156 | 467 |  | [Failed] edit_profile_avatar (7m 20s) (Assertion is false: "Me" is visible) |
+| `edit_profile_bio_too_long` | FAIL-assert | s2/run-156 | 464 |  | [Failed] edit_profile_bio_too_long (7m 20s) (Assertion is false: "Me" is visible) |
+| `edit_profile_province` | FAIL-assert | s2/run-156 | 468 |  | [Failed] edit_profile_province (7m 23s) (Assertion is false: "Me" is visible) |
+| `edit_profile_validation` | FAIL-assert | s2/run-156 | 468 |  | [Failed] edit_profile_validation (7m 25s) (Assertion is false: "Me" is visible) |
+| `hidden_listings` | FAIL-assert | s2/run-156 | 463 |  | [Failed] hidden_listings (7m 19s) (Assertion is false: "Me" is visible) |
+| `language_persists_across_tabs` | FAIL-assert | s2/run-156 | 463 |  | [Failed] language_persists_across_tabs (7m 20s) (Assertion is false: "Me" is visible) |
+| `language_switch_all_screens` | FAIL-assert | s2/run-156 | 454 |  | [Failed] language_switch_all_screens (7m 16s) (Assertion is false: "Me" is visible) |
+| `profile_stats_verify` | FAIL-assert | s2/run-156 | 463 |  | [Failed] profile_stats_verify (7m 18s) (Assertion is false: "Me" is visible) |
+| `recently_viewed` | FAIL-assert | s2/run-156 | 157 |  | [Failed] recently_viewed (2m 18s) (Assertion is false: "Buy and sell locally in Afghanistan" is visible) |
+| `recently_viewed_empty_state` | FAIL-assert | s2/run-156 | 160 |  | [Failed] recently_viewed_empty_state (2m 20s) (Assertion is false: "Buy and sell locally in Afghanistan" is vi |
+| `seller_mode_toggle` | PASS | s2/run-156 | 187 |  |  |
+| `theme_switch` | FAIL-assert | s2/run-156 | 168 |  | [Failed] theme_switch (2m 28s) (Element not found: Id matching regex: theme-option-light) |
+| `transaction_stats_hidden_when_zero` | FAIL-assert | s2/run-156 | 157 |  | [Failed] transaction_stats_hidden_when_zero (2m 16s) (Assertion is false: "Buy and sell locally in Afghanistan |
+| `transaction_stats_own_profile` | FAIL-assert | s2/run-156 | 183 |  | [Failed] transaction_stats_own_profile (2m 41s) (Assertion is false: "Items Bought" is visible) |
+| `transaction_stats_public_profile` | FAIL-assert | s2/run-156 | 170 |  | [Failed] transaction_stats_public_profile (2m 30s) (Assertion is false: id: transaction-stats-badge is visible |
+| `transaction_stats_seller_own_profile` | PASS | s2/run-156 | 205 |  |  |
+| `user_profile_sold_tab` | FAIL-? | s2/run-156 | 168 |  | [Failed] user_profile_sold_tab (2m 29s) |
+| `view_profile` | FAIL-assert | s2/run-156 | 178 |  | [Failed] view_profile (2m 38s) (Assertion is false: "Edit Profile" is visible) |
+| `view_profile_error` | PASS | s2/run-156 | 188 |  | AxiosError |
+| `view_seller_profile_from_profile` | FAIL-assert | s2/run-156 | 177 |  | [Failed] view_seller_profile_from_profile (2m 37s) (Assertion is false: "Switch to .*" is visible) |
 
 ## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
 
@@ -121,7 +159,7 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state
 
-15/42 passing · 19 open
+15/42 passing · 18 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -146,7 +184,7 @@ bug class a user reports as "nothing happened".
 | `meetup_proposal` | FAIL-assert ⟳stale | run-232 | 222 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
 | `meetup_proposed_bubble_ui` | FAIL-assert ⟳stale | run-232 | 210 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
 | `meetup_respond` | FAIL-assert ⟳stale | run-232 | 176 | flow | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
-| `meetup_validation` | FAIL-assert | run-234 | 202 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
+| `meetup_validation` | FAIL-assert ⟳stale | run-234 | 202 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
 | `message_long_text` | FAIL-assert | s2/run-142 | 471 |  | [Failed] message_long_text (7m 31s) (Element not found: Text matching regex: Type a message...) |
 | `offer_counter_flow` | FAIL-assert | s2/run-142 | 182 |  | [Failed] offer_counter_flow (2m 44s) (Element not found: Text matching regex: Make an Offer) |
 | `offer_in_existing_thread` | PASS | s2/run-142 | 181 |  |  |
@@ -170,12 +208,12 @@ bug class a user reports as "nothing happened".
 
 ## `auth` — Sign up, login, logout, session persistence, guest gating
 
-0/16 passing · 16 open
+2/16 passing · 14 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `confirm_email_prompt` | UNTESTED | — |  |  |  |
-| `guest_browse` | FAIL-? | s5/run-124 | 57 |  | [Failed] guest_browse (14s) |
+| `confirm_email_prompt` | PASS | s2/run-235 | 200 |  |  |
+| `guest_browse` | PASS | s2/run-235 | 186 |  |  |
 | `guest_offer_redirect` | FAIL-? | s5/run-124 | 48 |  | [Failed] guest_offer_redirect (9s) |
 | `guest_save_redirect` | FAIL-? | s5/run-124 | 46 |  | [Failed] guest_save_redirect (5s) |
 | `login` | FAIL-? | s5/run-124 | 82 |  | [Failed] login (44s) |
@@ -185,47 +223,11 @@ bug class a user reports as "nothing happened".
 | `login_wrong_password` | UNTESTED | — |  |  | Request failed with status code |
 | `logout` | UNTESTED | — |  |  |  |
 | `logout_cancel` | UNTESTED | — |  |  |  |
-| `register_duplicate_email` | UNTESTED | — |  |  |  |
+| `register_duplicate_email` | UNTESTED | — |  | rig | APP IS CORRECT — do not touch this flow. run-237's failure was my own edit reloading the bundle mid-run: the screenshot shows "Email has already been taken" rendered in the red error box with `Refreshing…` across the top. The API returned 422 (User Exists? -> ROLLBACK in the Rails log) and Register.tsx surfaced errors.full_messages exactly as it should. |
 | `register_navigate_to_login` | UNTESTED | — |  |  |  |
 | `session_persist` | UNTESTED | — |  |  |  |
 | `sign_up` | FAIL-assert | s3/run-111 | 174 |  | [Failed] sign_up (2m 35s) (Assertion is false: "Bazaar" is visible) |
 | `sign_up_validation` | UNTESTED | — |  |  |  |
-
-## `profile` — Profile view/edit, language + theme switch, stats, blocked users
-
-5/29 passing · 10 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `account_delete_and_restore` | FAIL-assert | run-224 | 232 |  | [Failed] account_delete_and_restore (3m 32s) (Assertion is false: "Bazaar" is visible) |
-| `account_delete_cancel` | PASS | run-224 | 460 |  |  |
-| `away_mode` | FAIL-? ⟳stale | run-224 | 172 |  | [Failed] away_mode (2m 36s) (No visible element found: "I'm away (temporarily unavailable)") |
-| `blocked_users` | PASS | run-224 | 164 |  |  |
-| `change_language_dari` | FAIL-assert ⟳stale | run-224 | 188 |  | [Failed] change_language_dari (2m 53s) (Assertion is false: "دری" is visible) |
-| `change_language_english` | FAIL-? ⟳stale | run-224 | 514 |  | [Failed] change_language_english (8m 19s) (No visible element found: id: language-row) |
-| `change_language_pashto` | FAIL-assert ⟳stale | run-224 | 505 |  | [Failed] change_language_pashto (8m 9s) (Assertion is false: "پښتو" is visible) |
-| `edit_profile` | FAIL-assert ⟳stale | run-224 | 492 |  | [Failed] edit_profile (7m 55s) (Assertion is false: "Ahmad Updated" is visible) |
-| `edit_profile_all_fields` | FAIL-assert ⟳stale | run-224 | 173 |  | [Failed] edit_profile_all_fields (2m 37s) (Assertion is false: "Edit Profile" is visible) |
-| `edit_profile_avatar` | FAIL-assert ⟳stale | run-224 | 237 |  | [Failed] edit_profile_avatar (3m 40s) (Assertion is false: "Gallery" is visible) |
-| `edit_profile_bio_too_long` | FAIL-assert ⟳stale | run-224 | 174 |  | [Failed] edit_profile_bio_too_long (2m 38s) (Element not found: Text matching regex: Bio) |
-| `edit_profile_province` | FAIL-? ⟳stale | run-224 | 181 |  | [Failed] edit_profile_province (2m 46s) (No visible element found: id: edit-profile-province-input) |
-| `edit_profile_validation` | FAIL-assert ⟳stale | run-224 | 189 |  | [Failed] edit_profile_validation (2m 52s) (Assertion is false: id: profile-tab is visible) |
-| `hidden_listings` | FAIL-assert ⟳stale | run-224 | 170 |  | [Failed] hidden_listings (2m 34s) (Element not found: Text matching regex: Hidden Listings) |
-| `language_persists_across_tabs` | FAIL-assert ⟳stale | run-224 | 258 |  | [Failed] language_persists_across_tabs (4m 2s) (Element not found: Text matching regex: ژبه) |
-| `language_switch_all_screens` | FAIL-assert ⟳stale | run-224 | 542 |  | [Failed] language_switch_all_screens (8m 44s) (Assertion is false: "پروفایل" is visible) |
-| `profile_stats_verify` | FAIL-assert | run-224 | 494 |  | [Failed] profile_stats_verify (7m 57s) (Assertion is false: "Active Listings" is visible) |
-| `recently_viewed` | FAIL-assert ⟳stale | run-224 | 171 |  | [Failed] recently_viewed (2m 30s) (Assertion is false: "Buy and sell locally in Afghanistan" is visible) |
-| `recently_viewed_empty_state` | FAIL-assert | s2/run-156 | 160 |  | [Failed] recently_viewed_empty_state (2m 20s) (Assertion is false: "Buy and sell locally in Afghanistan" is vi |
-| `seller_mode_toggle` | PASS | s2/run-156 | 187 |  |  |
-| `theme_switch` | FAIL-assert | s2/run-156 | 168 |  | [Failed] theme_switch (2m 28s) (Element not found: Id matching regex: theme-option-light) |
-| `transaction_stats_hidden_when_zero` | FAIL-assert | s2/run-156 | 157 |  | [Failed] transaction_stats_hidden_when_zero (2m 16s) (Assertion is false: "Buy and sell locally in Afghanistan |
-| `transaction_stats_own_profile` | FAIL-assert | s2/run-156 | 183 |  | [Failed] transaction_stats_own_profile (2m 41s) (Assertion is false: "Items Bought" is visible) |
-| `transaction_stats_public_profile` | FAIL-assert | s2/run-156 | 170 |  | [Failed] transaction_stats_public_profile (2m 30s) (Assertion is false: id: transaction-stats-badge is visible |
-| `transaction_stats_seller_own_profile` | PASS | s2/run-156 | 205 |  |  |
-| `user_profile_sold_tab` | FAIL-? | s2/run-156 | 168 |  | [Failed] user_profile_sold_tab (2m 29s) |
-| `view_profile` | FAIL-assert | s2/run-156 | 178 |  | [Failed] view_profile (2m 38s) (Assertion is false: "Edit Profile" is visible) |
-| `view_profile_error` | PASS | s2/run-156 | 188 |  | AxiosError |
-| `view_seller_profile_from_profile` | FAIL-assert | s2/run-156 | 177 |  | [Failed] view_seller_profile_from_profile (2m 37s) (Assertion is false: "Switch to .*" is visible) |
 
 ## `saved` — Save / unsave a listing, saved tab, sold-while-saved
 
@@ -282,6 +284,14 @@ bug class a user reports as "nothing happened".
 | `seller_mode_persists` | UNTESTED | — |  |  |  |
 | `seller_mode_tab_bar_changes` | FAIL-assert | s2/run-156 | 172 |  | [Failed] seller_mode_tab_bar_changes (2m 34s) (Element not found: Id matching regex: mode-switcher-banner) |
 | `seller_views_own_listing_buyer_mode` | FAIL-assert | s2/run-156 | 208 |  | [Failed] seller_views_own_listing_buyer_mode (3m 11s) (Assertion is false: "Buyer Mode" is visible) |
+
+## `onboarding` — First-run experience
+
+0/1 passing · 1 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `first_run` | FAIL-redbox | s2/run-156 | 127 |  | [Failed] first_run (1m 47s) (Assertion is false: "Buy or sell — your choice" is visible) |
 
 ## `seller` — Seller action sheet, publish, mark reserved/sold with buyer
 
@@ -353,14 +363,6 @@ bug class a user reports as "nothing happened".
 | `my_listings_rtl` | FAIL-assert ⟳stale | run-227 | 511 |  | [Failed] my_listings_rtl (8m 11s) (Element not found: Text matching regex: د پلورونکي حالت ته لاړ شئ) |
 | `profile_quick_actions_rtl` | FAIL-? ⟳stale | run-227 | 499 |  | [Failed] profile_quick_actions_rtl (8m 1s) (No visible element found: "شخصي معلومات") |
 | `profile_rtl` | FAIL-assert | run-227 | 490 |  | [Failed] profile_rtl (7m 55s) (Assertion is false: "ویرایش پروفایل" is visible) |
-
-## `onboarding` — First-run experience
-
-1/1 passing · 0 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `first_run` | PASS | run-215 | 244 |  |  |
 
 ## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
 
