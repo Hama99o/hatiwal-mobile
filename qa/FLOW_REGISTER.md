@@ -10,16 +10,16 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**56 of 233 flows passing** · 174 still need attention
+**53 of 233 flows passing** · 176 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 56 | green, and no backend error underneath |
+| PASS | 53 | green, and no backend error underneath |
 | FAIL-assert | 84 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-? | 21 | failed, cause unclear — read the log |
-| (rig) | 3 | rig broke mid-run — result meaningless, re-run |
-| UNTESTED | 68 | never executed |
+| (rig) | 4 | rig broke mid-run — result meaningless, re-run |
+| UNTESTED | 70 | never executed |
 
 ### Definition of done
 
@@ -92,7 +92,7 @@ bug class a user reports as "nothing happened".
 | `filter_by_category` | PASS | run-240 | 163 |  |  |
 | `filter_condition` | PASS | run-240 | 172 |  |  |
 | `filter_price_range` | PASS | run-240 | 176 |  |  |
-| `full_marketplace_cycle` | FAIL-assert ⟳stale | run-240 | 317 |  | [Failed] full_marketplace_cycle (5m 2s) (Element not found: Id matching regex: province-option) |
+| `full_marketplace_cycle` | FAIL-assert ⟳stale | run-240 | 317 | rig? | NOT DIAGNOSED — run-243's log holds two lines (a blank and "Waiting for flows to complete…"), so maestro never executed a step. Flow YAML is valid and the device was up; filter_price_range passed 285s immediately before. Host swap was 100% full at the time, which kills the emulator under spikes. Re-run on a calm machine before reading anything into this. |
 | `listing_detail` | FAIL-? | run-240 | 204 |  | [Failed] listing_detail (3m 9s) (No visible element found: "Location") |
 | `listing_detail_multi_quantity` | UNTESTED | — |  |  |  |
 | `listing_detail_offer` | UNTESTED | — |  |  |  |
@@ -313,25 +313,16 @@ bug class a user reports as "nothing happened".
 | `profile_reviews_empty_state` | UNTESTED | — |  |  |  |
 | `rate_buyer_after_sale` | UNTESTED | — |  |  |  |
 
-## `safety` — Safety tips on listing detail and in the meetup sheet
-
-0/2 passing · 2 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `safety_tips_listing_detail` | UNTESTED | — |  |  |  |
-| `safety_tips_meetup_sheet` | UNTESTED | — |  |  |  |
-
 ## `auth` — Sign up, login, logout, session persistence, guest gating
 
-9/16 passing · 1 open
+7/16 passing · 2 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `confirm_email_prompt` | PASS | run-241 | 153 |  |  |
-| `guest_browse` | PASS | run-241 | 131 |  |  |
-| `guest_offer_redirect` | PASS | run-241 | 192 |  |  |
-| `guest_save_redirect` | PASS | run-241 | 189 |  |  |
+| `confirm_email_prompt` | PASS | run-242 | 215 |  |  |
+| `guest_browse` | PASS | run-242 | 219 |  |  |
+| `guest_offer_redirect` | FAIL-? | run-242 | 222 |  |  |
+| `guest_save_redirect` | (rig) | run-242 |  |  |  |
 | `login` | PASS | run-241 | 154 |  |  |
 | `login_deep` | PASS | run-241 | 216 |  |  |
 | `login_empty_fields` | PASS | run-241 | 125 |  | Request failed with status code Request failed with status code |
@@ -345,6 +336,24 @@ bug class a user reports as "nothing happened".
 | `sign_up` | FAIL-assert ⟳stale | run-239 | 242 |  | [Failed] sign_up (3m 44s) (Assertion is false: "Bazaar" is visible) |
 | `sign_up_validation` | FAIL-? ⟳stale | run-239 | 168 |  | [Failed] sign_up_validation (2m 30s) (No visible element found: id: register-submit) |
 
+## `safety` — Safety tips on listing detail and in the meetup sheet
+
+0/2 passing · 2 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `safety_tips_listing_detail` | UNTESTED | — |  |  |  |
+| `safety_tips_meetup_sheet` | UNTESTED | — |  |  |  |
+
+## `share` — Deep links into a listing and a seller profile
+
+0/2 passing · 2 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `open_listing_deep_link` | UNTESTED | — |  |  |  |
+| `open_seller_deep_link` | UNTESTED | — |  |  |  |
+
 ## `onboarding` — First-run experience
 
 0/1 passing · 1 open
@@ -352,15 +361,6 @@ bug class a user reports as "nothing happened".
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `first_run` | FAIL-redbox | s2/run-156 | 127 |  | [Failed] first_run (1m 47s) (Assertion is false: "Buy or sell — your choice" is visible) |
-
-## `share` — Deep links into a listing and a seller profile
-
-0/2 passing · 1 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `open_listing_deep_link` | FAIL-? | run-231 | 100 |  | [Failed] open_listing_deep_link (1m 25s) (No visible element found: id: seller-profile-link) |
-| `open_seller_deep_link` | PASS ⟳stale | run-231 | 97 |  |  |
 
 ## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
 

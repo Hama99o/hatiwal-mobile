@@ -34,7 +34,16 @@ appId: com.hatiwal.app
 # never matched it — the app was showing more than the flow asked for.
 - assertVisible: "No payment required.*"
 # Enter an offer amount
-- tapOn: "Your offer"
+# By testID. "Your offer" is the LABEL above the field (listing.detail.yourOffer,
+# OfferSheet.tsx:220), not the field — tapping it focuses nothing, so the amount
+# went nowhere and "Send Offer" submitted an empty offer. The field is
+# `offer-amount-input`.
+#
+# My earlier sweep for this exact bug missed both of these flows: I grepped for
+# "Your Offer" with a capital O (the CHAT BUBBLE string) and these use the sheet's
+# lowercase "Your offer". Two strings one character apart, different components.
+- tapOn:
+    id: "offer-amount-input"
 - inputText: "20000"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
