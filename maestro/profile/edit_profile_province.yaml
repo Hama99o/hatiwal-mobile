@@ -39,15 +39,25 @@ appId: com.hatiwal.app
 # ── A typed province persists ────────────────────────────────────────────────
 # By testID, not the placeholder. "Province" is `profile.edit.fields.province`,
 # so the text selector only worked while the app happened to be in English.
+# Province is a PICKER now, not a free-text field (UI-041): typed provinces
+# arrived as "Kabul"/"kabul"/typos and nothing could filter by them. Tap the row,
+# search, take the first match.
 - scrollUntilVisible:
     element:
-      id: "edit-profile-province-input"
+      id: "edit-profile-province-picker"
     direction: DOWN
     timeout: 20000
 - tapOn:
-    id: "edit-profile-province-input"
-- eraseText
+    id: "edit-profile-province-picker"
+- waitForAnimationToEnd
+- tapOn:
+    id: "province-search-input"
 - inputText: "Kandahar"
+- waitForAnimationToEnd
+- tapOn:
+    id: "province-option"
+    index: 0
+- waitForAnimationToEnd
 - scrollUntilVisible:
     element:
       text: "Save Changes"

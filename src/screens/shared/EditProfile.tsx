@@ -38,6 +38,8 @@ import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import { authAPI } from "@/api/auth";
 import { setLanguage, SUPPORTED_LANGUAGES, type LanguageCode } from "@/i18n";
 import { useColors } from "@/hooks/useColors";
+import { ProvincePickerSheet } from "@/components/common/ProvincePickerSheet";
+import { AFGHAN_PROVINCES, getProvinceName } from "@/data/afghan_provinces";
 import { useLocalization } from "@/hooks/useLocalization";
 
 // ── Zod schema ────────────────────────────────────────────────────────────────
@@ -151,6 +153,7 @@ export default function EditProfileScreen() {
   const qc = useQueryClient();
 
   const [locationPickerVisible, setLocationPickerVisible] = React.useState(false);
+  const [provincePickerVisible, setProvincePickerVisible] = React.useState(false);
 
   // Fetch current user data
   const { data: user, isLoading } = useQuery({
@@ -460,17 +463,56 @@ export default function EditProfileScreen() {
             <Controller
               control={control}
               name="province"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <Input
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  testID="edit-profile-province-input"
-                  placeholder={t("profile.edit.fields.province")}
-                  style={{ textAlign: isRtl ? "right" : "left" }}
-                  returnKeyType="done"
-                />
-              )}
+              render={({ field: { value, onChange } }) => {
+                // Picker, not free text (UI-041). Typed provinces arrive as "Kabul",
+                // "kabul", "Kabol" and typos, and nothing can group or filter by province
+                // afterwards - which matters in an app whose premise is meeting nearby.
+                // ProvincePickerSheet already held all 34 provinces with ps/fa names and
+                // capital coordinates; it was simply never wired to a screen.
+                //
+                // Legacy free-text values are NOT discarded: an unmatched value is still
+                // shown as-is, so nobody's saved province disappears. Choosing from the
+                // picker normalises it to Province.value.
+                const match = AFGHAN_PROVINCES.find((p) => p.value === value);
+                const shown = match ? getProvinceName(match, i18n.language) : value;
+                return (
+                  <>
+                    <Pressable
+                      testID="edit-profile-province-picker"
+                      accessibilityRole="button"
+                      accessibilityLabel={t("profile.edit.fields.province")}
+                      onPress={() => setProvincePickerVisible(true)}
+                      style={{
+                        minHeight: 44,
+                        justifyContent: "center",
+                        paddingHorizontal: 12,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: 8,
+                        backgroundColor: colors.card,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: shown ? colors.foreground : colors.mutedForeground,
+                          textAlign: isRtl ? "right" : "left",
+                        }}
+                      >
+                        {shown || t("profile.edit.fields.province")}
+                      </Text>
+                    </Pressable>
+                    <ProvincePickerSheet
+                      visible={provincePickerVisible}
+                      selectedValue={value || null}
+                      onSelect={(province) => {
+                        onChange(province.value);
+                        setProvincePickerVisible(false);
+                      }}
+                      onClose={() => setProvincePickerVisible(false)}
+                    />
+                  </>
+                );
+              }}
             />
           </FieldRow>
 

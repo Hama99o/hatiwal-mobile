@@ -108,6 +108,7 @@ export function ProvincePickerSheet({
           <Input
             value={search}
             onChangeText={setSearch}
+            testID="province-search-input"
             placeholder={t("listing.form.searchProvinces")}
             className="flex-1"
             style={{ textAlign: isRtl ? "right" : "left" }}
