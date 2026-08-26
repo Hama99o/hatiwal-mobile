@@ -70,9 +70,19 @@ appId: com.hatiwal.app
     id: "seller-profile-link"
 - waitForAnimationToEnd
 
-# The response-time string must appear under the seller avatar
-- assertVisible:
-    text: "Usually responds within.*"
+# Scroll on the SELLER PROFILE too. The flow already scrolls the listing to reach
+# `seller-profile-link`, then navigates — and the badge sits under the avatar and
+# stats on that new screen, so it was in the hierarchy but off-screen. The error
+# said "No VISIBLE element found", which is the tell: present, just not on screen.
+#
+# The data is there — seller@hatiwal.test computes rate=82,
+# label=:within_one_hour — and ResponseRateBadge renders only when the rate is
+# non-null and > 0, so a missing badge would otherwise have meant missing stats.
+- scrollUntilVisible:
+    element:
+      text: "Usually responds within.*"
+    direction: DOWN
+    timeout: 20000
 
 # The response-rate percent must appear on the seller profile too
 - assertVisible:
