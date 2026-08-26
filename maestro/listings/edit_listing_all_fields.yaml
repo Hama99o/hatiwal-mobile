@@ -59,7 +59,12 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Save
-- tapOn: "Save Changes"
+# "Save", not "Save Changes". No such string exists in the locale files: editing a
+# PUBLISHED listing submits through `common.save` = "Save" (ListingForm.tsx, the
+# onSavePublished button). The only near neighbours are listing.form.saveDraft
+# ("Save Draft") and the toast listing.form.saved ("Changes saved") — which this flow
+# asserts afterwards, and which is probably where "Save Changes" came from.
+- tapOn: "Save"
 - waitForAnimationToEnd
 - assertVisible: "Changes saved"
 
