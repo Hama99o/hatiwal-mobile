@@ -13,9 +13,20 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Bare `tapOn: index:` has no selector — see the note in the chat flows.
 # The feed card carries testID="listing-card".
-- tapOn:
-    id: "listing-card"
-    index: 0
+# A KNOWN listing, not index 0 of the feed. Step 2 signs in as
+# seller@hatiwal.test to counter, so this must be a listing THAT seller owns —
+# index 0 is whatever the feed ranks first, and on someone else's listing the
+# seller would never see the conversation.
+# "Men Winter Jacket XL Black" is seeded to the test seller and left active by the
+# other offer flows (accept answers "Not now", which does not reserve it). The
+# Lenovo is not reusable: reserved_sold_dead_end_notice marks it reserved then sold,
+# which closes offers on it.
+- scrollUntilVisible:
+    element:
+      text: "Men Winter Jacket XL Black"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
 # NO "Contact Seller" tap first. "Make an Offer" is a SIBLING of "Contact
 # Seller" directly on ListingDetail.tsx — tapping Contact Seller navigates
@@ -47,7 +58,25 @@ appId: com.hatiwal.app
 - assertVisible: "Price Offer"
 
 # ── Step 2: seller counters with a new price ─────────────────────────────────
-# Seller is already the other participant; the offer card shows Counter button
+# The old comment here claimed "Seller is already the other participant" — the flow
+# was still signed in as the BUYER, who had just sent the offer. Only the recipient
+# can counter, so `chat.actions.counter` ("Counter") was never on screen and this
+# failed with "Element not found: Text matching regex: Counter". The literal was
+# right; the session was wrong.
+#
+# offer_send_and_accept carried exactly this bug for the seller-only "Accept" button
+# and was fixed the same way, so this mirrors it.
+- runFlow: ../_helpers/login_seller.yaml
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`, a
+# label on the seller's owner-detail screen, so a text tap can land on that instead.
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- tapOn: "Men Winter Jacket XL Black"
+- waitForAnimationToEnd
+# Prove we are in the right thread before acting on it, so a wrong thread fails here
+# rather than three steps later on a button that looks missing.
+- assertVisible: ".*8,000"
 - tapOn: "Counter"
 - waitForAnimationToEnd
 

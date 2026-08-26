@@ -16,6 +16,8 @@ failure classes already paid for:
   JSFUNC     ${visible(...)} / ${selectorExists(...)} — not in Maestro 2.7.0's JS
              sandbox; raises TypeError and asserts nothing. The .log does not show
              it; only the .xml does.
+  ROLE       A tap on an owner/recipient-only action from a buyer session. Cost:
+             three offer flows, each failing as if the button were missing.
   SELFTYPED  A literal that is only PART of text the flow itself typed. Cost:
              message_long_text asserted 27 characters of the 366-character message
              it had just sent, so it could never pass.
@@ -55,6 +57,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Kept to a curated list — harvesting every string in src/ would make almost any
 # literal look legitimate and turn false positives into false negatives.
 CODE_LABEL_SOURCES = ["src/i18n/index.ts", "src/data/*.ts"]
+
+# Actions only the listing owner, or an offer/meetup's RECIPIENT, can take. Tapping
+# one of these from the buyer's session is the "missing button" that is really a
+# wrong session.
+OWNER_ONLY_ACTIONS = {
+    "Mark Sold", "Mark as Sold", "Mark as Reserved", "Reserve", "Unpublish",
+    "Accept", "Accept offer", "Decline", "Counter", "Counter back",
+}
 
 def locale_strings():
     """Every en string, plus labels defined in code rather than the locale files."""
@@ -159,6 +169,33 @@ def check(path):
                 elif sub:
                     hits.append((i, "ANCHORED",
                                  f'{lit!r} is a substring of {sub[0][:44]!r}'))
+    # ROLE — performing an owner/recipient-only action while signed in as the buyer.
+    # Three flows did this: offer_send_and_accept (fixed earlier), offer_counter_flow
+    # and offer_send_and_decline. The literal was right every time; the session was
+    # wrong, and the failure reads as a missing button.
+    #
+    # Only TAPS count. `assertNotVisible: "Accept"` in a buyer session is correct and
+    # deliberate — meetup_proposed_bubble_ui checks that the PROPOSER is not offered
+    # the response buttons on their own proposal.
+    body = "\n".join(l for l in lines if l.strip() and not l.strip().startswith("#"))
+    if "login_seller" not in body and "seller@hatiwal.test" not in body:
+        for i, raw in enumerate(lines, 1):
+            l = raw.strip()
+            if l.startswith("#"):
+                continue
+            m = re.match(r'-?\s*tapOn:\s*"([^"]+)"\s*$', l) or \
+                (re.match(r'^\s*text:\s*"([^"]+)"\s*$', l) and
+                 re.match(r'\s*-\s+tapOn:', lines[block_range(lines, i)[0]]) and
+                 re.match(r'^\s*text:\s*"([^"]+)"\s*$', l))
+            if not m:
+                continue
+            label = m.group(1).strip(".*")
+            if label in OWNER_ONLY_ACTIONS:
+                bs, be = block_range(lines, i)
+                if "lint: role-ok" in " ".join(lines[bs:be]):
+                    continue
+                hits.append((i, "ROLE",
+                             f'taps owner-only {label!r} with no seller session'))
     return hits
 
 if "--selftest" in sys.argv:
@@ -168,11 +205,13 @@ if "--selftest" in sys.argv:
     fixture = os.path.join(ROOT, "qa/testdata/lint_synthetic.yaml")
     hits = check(fixture)
     got = {k for _, k, _ in hits}
-    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED"}
+    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED", "ROLE"}
     for line, kind, why in hits:
         print(f"  L{line:<3} {kind:<10} {why[:56]}")
     missing = need - got
-    over = [l for l, _, _ in hits if l >= 18]
+    # The fixture's marked command asserts "phone". Identify it by content, not by
+    # line number — a hardcoded threshold broke the moment the fixture grew.
+    over = [f"L{l}: {w}" for l, _, w in hits if "'phone'" in w]
     ok = not missing and not over
     print()
     if missing: print(f"  FAIL — these checks did not fire: {sorted(missing)}")

@@ -17,3 +17,5 @@ appId: com.hatiwal.app
 # bug this line exists to keep out.
 - assertVisible: "phone"
   # lint: anchored-ok — deliberate, proving the marker is scoped to one command
+# ROLE — a tap on a seller-only action with no seller session anywhere in the file.
+- tapOn: "Mark Sold"

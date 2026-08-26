@@ -8,9 +8,15 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Bare `tapOn: index:` has no selector — see the note in the chat flows.
 # The feed card carries testID="listing-card".
-- tapOn:
-    id: "listing-card"
-    index: 0
+# A KNOWN listing owned by seller@hatiwal.test, because Step 2 declines the offer
+# and only the RECIPIENT can decline. Index 0 is whatever the feed ranks first; on
+# another seller's listing the test seller never sees the conversation.
+- scrollUntilVisible:
+    element:
+      text: "Men Winter Jacket XL Black"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
 # NO "Contact Seller" tap first. "Make an Offer" is a SIBLING of "Contact
 # Seller" directly on ListingDetail.tsx — tapping Contact Seller navigates
@@ -41,27 +47,21 @@ appId: com.hatiwal.app
 - assertVisible: "Pending"
 
 # Switch to seller to decline
-- launchApp:
-    clearState: false
-# Wait for the tab bar, not just for animations. A warm relaunch remounts the tree
-# and re-bootstraps auth; `waitForAnimationToEnd` returns well before that, so a
-# tab tap fires into a screen still coming up and silently does nothing.
-- extendedWaitUntil:
-    visible:
-      id: "chat-tab"
-    timeout: 60000
-- waitForAnimationToEnd
+# THE SELLER declines, so sign out and back in as them. This flow relaunched with
+# `clearState: false` — still the buyer, who had just sent the offer — so the
+# seller-only "Decline" (chat.offer.decline) could never have been on screen.
+# offer_send_and_accept carried the identical bug and was fixed this way; its header
+# says so in as many words. offer_counter_flow had it too.
+- runFlow: ../_helpers/login_seller.yaml
+# The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`, a
+# label on the seller's owner-detail screen, so a text tap can land on that instead.
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
-# A bare `tapOn: index:` has NO selector, so it matches EVERY element on screen
-# and index 0 is whatever comes first in the hierarchy — the heading or the
-# search bar, never a conversation. The flow stayed on the list and then failed
-# on the composer it never reached ("Type a message..." is visible).
-- tapOn:
-    id: "conversation-row-\\d+"
-    index: 0
+- tapOn: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
+# Prove we are in the right thread before acting on it.
+- assertVisible: ".*8,000"
 - tapOn: "Decline"
 - waitForAnimationToEnd
 # `chat.offer.declined` = "Offer declined" — the bare word "Declined" never
