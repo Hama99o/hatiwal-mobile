@@ -9,6 +9,26 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Open the first listing in the feed
+# A DISTINCT report target, deliberately. Report uniqueness is scoped
+# `%i[reporter_id reportable_type]` on reportable_id (report.rb) — the REASON is not
+# part of the key — so one reporter can hold only ONE live report per user. Four
+# flows used to report seller@hatiwal.test: chat/report_participant (feature 6) got
+# there first and the three report/* flows (feature 10) were all answered with
+# report.errors.duplicate in the same cycle. Clearing reports between cycles does not
+# help with that; each flow needs its own target.
+# Honda CG 125 Motorbike 2021 is owned by user 37 (omar@hatiwal.com), reported by nothing else.
+# Searching rather than scrolling: it does not depend on where the listing lands in
+# a recency-sorted, paginating feed. Tapped by CARD testID, because the title is by
+# then sitting in the search box — higher in the hierarchy than the results — so a
+# text match would land on the input instead.
+- tapOn:
+    id: "browse-search-input"
+- inputText: "Honda CG 125 Motorbike 2021"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
 - tapOn:
     id: "listing-card"
     index: 0

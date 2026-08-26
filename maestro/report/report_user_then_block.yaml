@@ -14,12 +14,29 @@ appId: com.hatiwal.app
 # A NAMED seeded listing, not "the first card": it does not depend on feed
 # ordering, it is active, and it belongs to seller@hatiwal.test — so the buyer
 # running this flow sees the contact affordance rather than their own listing.
-- scrollUntilVisible:
-    element:
-      text: "Wool Blanket Handmade King Size"
-    direction: DOWN
-    timeout: 15000
-- tapOn: "Wool Blanket Handmade King Size"
+# A DISTINCT report target, deliberately. Report uniqueness is scoped
+# `%i[reporter_id reportable_type]` on reportable_id (report.rb) — the REASON is not
+# part of the key — so one reporter can hold only ONE live report per user. Four
+# flows used to report seller@hatiwal.test: chat/report_participant (feature 6) got
+# there first and the three report/* flows (feature 10) were all answered with
+# report.errors.duplicate in the same cycle. Clearing reports between cycles does not
+# help with that; each flow needs its own target.
+# Sony 55 inch 4K Smart TV is owned by user 40 (maryam@hatiwal.com), reported by nothing else.
+# Searching rather than scrolling: it does not depend on where the listing lands in
+# a recency-sorted, paginating feed. Tapped by CARD testID, because the title is by
+# then sitting in the search box — higher in the hierarchy than the results — so a
+# text match would land on the input instead.
+- tapOn:
+    id: "browse-search-input"
+- inputText: "Sony 55 inch 4K Smart TV"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- tapOn:
+    id: "listing-card"
+    index: 0
 - waitForAnimationToEnd
 # NOT tapping "Contact Seller" here: that opens the first-message sheet, which
 # then covers the detail screen the rest of this flow acts on. Opening the
@@ -82,3 +99,21 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible: "User blocked successfully."
     timeout: 15000
+
+# ── Undo the block ──────────────────────────
+# A block is persisted on the USER, so leaving it set hides this seller's listings
+# from the buyer for the rest of the cycle and every later flow that needs one of
+# them fails with a missing-fixture message for a fixture that is merely hidden.
+# db/seeds/e2e.rb clears e2e blocks between cycles and its comment names this exact
+# problem; report/block_user.yaml always unblocked, and this flow never did.
+- tapOn:
+    id: "more-menu"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Unblock User"
+    timeout: 15000
+- tapOn: "Unblock User"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "User unblocked"
+    timeout: 20000

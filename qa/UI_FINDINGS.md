@@ -2092,11 +2092,40 @@ Bolting on a `when:` conditional would leave the duplicate branch asserting noth
 and Maestro has no `else`, so the two branches cannot be made mutually exclusive
 without leaning on a transient toast.
 
-**Recommended fix: clear reports for the e2e users at seed time.** Both flows then
-pass every cycle with strict assertions, and the tolerance added to the three fixed
-flows above could be tightened back up.
+**CORRECTION — the seed cleanup alone does NOT fix this.** I first wrote that
+clearing reports at seed time would let both flows pass. It would not, and the
+uniqueness scope says why:
 
-**Not done here, deliberately.** It is a backend change that DELETES rows, which
-wants its own commit, the backend test/rubocop gate, and a decision that seeds may
-destroy report data. Two flows that have never yet run is a much smaller problem
-than a destructive seed slipped into a QA sweep.
+```ruby
+validates :reportable_id, uniqueness: { scope: %i[reporter_id reportable_type] }
+```
+
+The **reason is not part of the key**, so one reporter holds at most ONE live report
+per user. All four user-report flows targeted seller@hatiwal.test:
+`chat/report_participant` (feature 6) got there first, and the three `report/*` flows
+(feature 10) were then answered with `report.errors.duplicate` **in the same cycle**.
+Clearing rows between cycles does nothing about a collision inside one.
+
+**The fix takes both halves:**
+
+1. **Seed** (`e49c8a6`, hatiwal-api) — clears reports filed by the e2e accounts, so
+   a row does not survive from one cycle into the next.
+2. **Distinct targets** — each flow now reports a different seller, so they cannot
+   collide within a cycle:
+
+   | Flow | Target | Via |
+   |---|---|---|
+   | `chat/report_participant` | seller (172) | its conversation partner — not free to choose |
+   | `report/report_user` | ahmad (36) | Samsung Galaxy S24 Ultra |
+   | `report/report_user_then_block` | maryam (40) | Sony 55 inch 4K Smart TV |
+   | `report/report_user_from_profile` | omar (37) | Honda CG 125 Motorbike 2021 |
+
+`report_user_from_profile` also stopped using `listing-card index 0`, which made its
+target whatever the feed ranked first — the collision it caused was invisible for
+that reason alone.
+
+**Two side-effects worth having.** `report_user_then_block` blocked seller 172 and
+never unblocked; it now unblocks, and its target is a seller with 4 listings rather
+than 12, so a mid-flow death hides much less. And the tolerance on the three fixed
+flows above is **kept, not tightened**: the rig re-runs a flow after a driver death,
+and the retry would otherwise hit the duplicate its own first attempt created.
