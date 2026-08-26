@@ -21,12 +21,32 @@ appId: com.hatiwal.app
 # sideways scrolling can reveal it, which is what made this look like a missing
 # chip. On a 1280dp tablet the whole row fits, so this settles it there; a
 # hierarchy dump puts "Nearest first" at [1405,971][1569,1014] of 2560px.
+# Bring the Sort SECTION into view (vertical), then move the row itself.
 - scrollUntilVisible:
     element:
-      text: "Nearest first"
+      text: "Sort"
     direction: DOWN
     timeout: 20000
-- assertVisible: "Nearest first"
+- waitForAnimationToEnd
+# The sort options are a HORIZONTAL row: "Newest first, Oldest first, Price: low
+# to high, …, Nearest first". Scrolling the sheet down reveals the row but does
+# not scroll along it, so this failed with "No visible element found: Nearest
+# first" on a chip that was simply off the right edge.
+#
+# Swipe by percentage along the row's own y rather than `from: <a chip>`: the
+# anchor chip scrolls out of view after the first swipe, and "Nearest first" is
+# the last option, so it takes several. 68% is where the Sort chips sit once the
+# sheet is scrolled down (measured off the failure screenshot).
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: "85%, 68%"
+          end: "15%, 68%"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Nearest first"
+    timeout: 10000
 
 # Tap "Nearest first" — this triggers the OS location permission prompt on a
 # fresh install/emulator. Dismiss it by allowing access so the fix succeeds.
