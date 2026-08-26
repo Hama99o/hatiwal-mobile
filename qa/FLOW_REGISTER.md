@@ -223,7 +223,7 @@ bug class a user reports as "nothing happened".
 | `login_wrong_password` | UNTESTED | — |  |  | Request failed with status code |
 | `logout` | UNTESTED | — |  |  |  |
 | `logout_cancel` | UNTESTED | — |  |  |  |
-| `register_duplicate_email` | UNTESTED | — |  | rig | APP IS CORRECT — do not touch this flow. run-237's failure was my own edit reloading the bundle mid-run: the screenshot shows "Email has already been taken" rendered in the red error box with `Refreshing…` across the top. The API returned 422 (User Exists? -> ROLLBACK in the Rails log) and Register.tsx surfaced errors.full_messages exactly as it should. |
+| `register_duplicate_email` | UNTESTED | — |  | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
 | `register_navigate_to_login` | UNTESTED | — |  |  |  |
 | `session_persist` | UNTESTED | — |  |  |  |
 | `sign_up` | FAIL-assert | s3/run-111 | 174 |  | [Failed] sign_up (2m 35s) (Assertion is false: "Bazaar" is visible) |

@@ -75,4 +75,9 @@ appId: com.hatiwal.app
     id: "register-submit"
 - waitForAnimationToEnd
 # Server returns 422 — error shown
-- assertVisible: "Email has already been taken"
+# Wildcards for the BULLET. Register.tsx renders each API error as
+# `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken"
+# — and Maestro text matching is an ANCHORED full-string regex, which the leading
+# bullet breaks. The app is right: the API returns 422 and Register surfaces
+# errors.full_messages. Only the selector was wrong.
+- assertVisible: ".*Email has already been taken.*"
