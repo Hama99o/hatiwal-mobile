@@ -35,7 +35,10 @@ LOG="qa/reports/forever.log"
 MIN_FREE_GB=25
 # Cores minus a little: the emulator needs real CPU, and the rig's own boot guard
 # refuses outright when the box is busy. 16-core host -> wait above 12.
-MAX_LOAD=$(( $(nproc 2>/dev/null || echo 8) * 3 / 4 ))
+# Override with QA_MAX_LOAD when the box is shared and you want QA to press on
+# anyway — the rig's own preflight still refuses to boot an emulator it thinks
+# would hang, so this raises the runner's patience, not the safety floor.
+MAX_LOAD="${QA_MAX_LOAD:-$(( $(nproc 2>/dev/null || echo 8) * 3 / 4 ))}"
 MAX_WAIT_MIN=120     # do not wait forever; after this, sweep and accept the noise
 KEEP_ARTIFACT_RUNS=3
 

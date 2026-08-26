@@ -10,16 +10,16 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**53 of 233 flows passing** · 176 still need attention
+**65 of 233 flows passing** · 167 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 53 | green, and no backend error underneath |
+| PASS | 65 | green, and no backend error underneath |
 | FAIL-assert | 84 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 21 | failed, cause unclear — read the log |
-| (rig) | 4 | rig broke mid-run — result meaningless, re-run |
-| UNTESTED | 70 | never executed |
+| FAIL-? | 16 | failed, cause unclear — read the log |
+| (rig) | 1 | rig broke mid-run — result meaningless, re-run |
+| UNTESTED | 66 | never executed |
 
 ### Definition of done
 
@@ -76,51 +76,6 @@ bug class a user reports as "nothing happened".
 | `my_listings_search` | FAIL-assert | s2/run-151 | 220 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/login_seller.yaml:53:31 |
 | `price_drop_after_edit` | FAIL-? | s2/run-151 | 212 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/login_seller.yaml:53:31 |
 
-## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile
-
-8/38 passing · 26 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_all_categories` | PASS | run-240 | 214 |  | AxiosError |
-| `browse_listings` | PASS | run-240 | 168 |  |  |
-| `browse_sort_most_viewed` | FAIL-? ⟳stale | run-240 | 176 |  | AxiosError AxiosError |
-| `browse_sort_nearest` | FAIL-? ⟳stale | run-240 | 169 |  | [Failed] browse_sort_nearest (2m 34s) (No visible element found: "Nearest first") |
-| `categories_hub` | PASS | run-240 | 181 |  |  |
-| `clear_all_filters` | FAIL-assert ⟳stale | run-240 | 167 |  | [Failed] clear_all_filters (2m 32s) (Element not found: Text matching regex: Show results) |
-| `filter_active_sellers` | PASS | run-240 | 181 |  |  |
-| `filter_by_category` | PASS | run-240 | 163 |  |  |
-| `filter_condition` | PASS | run-240 | 172 |  |  |
-| `filter_price_range` | PASS | run-240 | 176 |  |  |
-| `full_marketplace_cycle` | FAIL-assert ⟳stale | run-240 | 317 | rig? | NOT DIAGNOSED — run-243's log holds two lines (a blank and "Waiting for flows to complete…"), so maestro never executed a step. Flow YAML is valid and the device was up; filter_price_range passed 285s immediately before. Host swap was 100% full at the time, which kills the emulator under spikes. Re-run on a calm machine before reading anything into this. |
-| `listing_detail` | FAIL-? | run-240 | 204 |  | [Failed] listing_detail (3m 9s) (No visible element found: "Location") |
-| `listing_detail_multi_quantity` | UNTESTED | — |  |  |  |
-| `listing_detail_offer` | UNTESTED | — |  |  |  |
-| `listing_detail_offer_invalid` | UNTESTED | — |  |  |  |
-| `listing_detail_price_drop_badge` | UNTESTED | — |  |  |  |
-| `listing_detail_report` | UNTESTED | — |  |  |  |
-| `listing_detail_save_unsave` | UNTESTED | — |  |  |  |
-| `listing_detail_saves_count` | UNTESTED | — |  |  |  |
-| `listing_detail_share` | UNTESTED | — |  |  |  |
-| `listing_detail_similar` | UNTESTED | — |  |  |  |
-| `listing_detail_sold_recovery` | UNTESTED | — |  |  |  |
-| `listing_detail_sold_state` | UNTESTED | — |  |  |  |
-| `listing_detail_views_count` | UNTESTED | — |  |  |  |
-| `not_interested` | UNTESTED | — |  |  |  |
-| `saved_search_apply` | UNTESTED | — |  |  |  |
-| `scroll_to_top` | UNTESTED | — |  |  |  |
-| `search_empty_state` | UNTESTED | — |  |  |  |
-| `search_listings` | UNTESTED | — |  |  |  |
-| `search_with_filter` | UNTESTED | — |  |  |  |
-| `seller_profile` | UNTESTED | — |  |  |  |
-| `seller_profile_from_listing` | PASS | s2/run-141 | 237 |  |  |
-| `seller_response_rate_badge` | UNTESTED | — |  |  |  |
-| `subcategory_drilldown` | UNTESTED | — |  |  |  |
-| `user_profile_empty_listings` | UNTESTED | — |  |  |  |
-| `user_profile_listing_grid` | UNTESTED | — |  |  |  |
-| `user_profile_stats` | UNTESTED | — |  |  |  |
-| `view_mode_toggle` | UNTESTED | — |  |  |  |
-
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
 3/29 passing · 26 open
@@ -159,32 +114,32 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state
 
-15/42 passing · 17 open
+16/42 passing · 25 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `archive_conversation` | PASS | run-232 | 189 |  |  |
-| `block_from_conversation` | FAIL-assert ⟳stale | run-232 | 175 |  | [Failed] block_from_conversation (2m 41s) (Assertion is false: "Blocked users cannot contact you.*" is visible |
-| `chat_older_messages_pagination` | PASS | run-232 | 156 |  |  |
-| `composer_draft` | PASS | run-232 | 185 |  |  |
-| `conversation_archive` | PASS | run-232 | 185 |  |  |
-| `conversation_delete` | PASS | run-232 | 173 |  |  |
-| `conversation_read_status` | FAIL-assert | run-232 | 207 |  | [Failed] conversation_read_status (3m 12s) (Assertion is false: id: unread-badge-\d+ is not visible) |
-| `conversations-search` | PASS | run-232 | 246 |  |  |
-| `conversations_empty_state` | FAIL-? ⟳stale | run-232 | 203 |  | [Failed] conversations_empty_state (3m 6s) |
-| `conversations_filter` | FAIL-? | run-232 | 225 |  | [Failed] conversations_filter (3m 27s) |
-| `conversations_list` | PASS | run-232 | 175 |  |  |
-| `conversations_role_filter` | FAIL-assert | run-232 | 175 |  | [Failed] conversations_role_filter (2m 36s) (Assertion is false: "Mountain Bike 26-inch Steel Frame" is visibl |
-| `delete_message` | PASS | run-232 | 195 |  |  |
-| `lifecycle_from_chat` | FAIL-assert | run-232 | 184 |  | [Failed] lifecycle_from_chat (2m 46s) (Assertion is false: "Reserve" is visible) |
-| `mark_read` | (rig) ⚠slow | run-232 | 745 |  | Exception in thread "Thread-5" java.io.IOException: Command failed (host:transport:emulator-5580): device offl |
-| `mark_read_end_to_end` | FAIL-assert | run-232 | 254 |  | [Failed] mark_read_end_to_end (3m 36s) (Assertion is false: "Development Build" is not visible) |
-| `meetup_decline` | FAIL-assert ⟳stale | run-232 | 238 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
-| `meetup_full_cycle` | FAIL-assert ⟳stale | run-232 | 204 | flow | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
-| `meetup_proposal` | FAIL-assert ⟳stale | run-232 | 222 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
-| `meetup_proposed_bubble_ui` | FAIL-assert ⟳stale | run-232 | 210 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
-| `meetup_respond` | FAIL-assert ⟳stale | run-232 | 176 | flow | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
-| `meetup_validation` | FAIL-assert ⟳stale | run-234 | 202 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
+| `archive_conversation` | PASS | s2/run-142 | 227 |  |  |
+| `block_from_conversation` | FAIL-assert | s2/run-142 | 210 |  | [Failed] block_from_conversation (3m 6s) (Assertion is false: "Blocked users cannot contact you" is visible) |
+| `chat_older_messages_pagination` | FAIL-? | s2/run-142 | 193 |  | [Failed] chat_older_messages_pagination (2m 46s) (No visible element found: id: messages-list-top) |
+| `composer_draft` | PASS | s2/run-142 | 228 |  |  |
+| `conversation_archive` | PASS | s2/run-142 | 224 |  |  |
+| `conversation_delete` | PASS | s2/run-142 | 215 |  |  |
+| `conversation_read_status` | FAIL-assert | s2/run-142 | 226 |  | [Failed] conversation_read_status (3m 20s) (Assertion is false: id: unread-badge-\d+ is visible) |
+| `conversations-search` | PASS | s2/run-142 | 305 |  |  |
+| `conversations_empty_state` | FAIL-assert | s2/run-142 | 290 |  | [Failed] conversations_empty_state (4m 27s) (Assertion is false: "Bazaar" is visible) |
+| `conversations_filter` | FAIL-? | s2/run-142 | 208 |  | [Failed] conversations_filter (3m 3s) |
+| `conversations_list` | PASS | s2/run-142 | 198 |  |  |
+| `conversations_role_filter` | PASS | s2/run-142 | 307 |  |  |
+| `delete_message` | PASS | s2/run-142 | 195 |  |  |
+| `lifecycle_from_chat` | FAIL-assert | s2/run-142 | 315 |  | [Failed] lifecycle_from_chat (4m 54s) (Assertion is false: "Reserve" is visible) |
+| `mark_read` | FAIL-assert | s2/run-142 | 242 |  | Exception in thread "Thread-5" java.io.IOException: Command failed (host:transport:emulator-5580): device offl |
+| `mark_read_end_to_end` | FAIL-assert | s2/run-142 | 181 |  | [Failed] mark_read_end_to_end (2m 40s) (Assertion is false: id: unread-badge-\d+ is visible) |
+| `meetup_decline` | FAIL-assert | s2/run-142 | 196 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
+| `meetup_full_cycle` | FAIL-assert | s2/run-142 | 192 | flow | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
+| `meetup_proposal` | PASS | s2/run-142 | 213 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
+| `meetup_proposed_bubble_ui` | FAIL-assert | s2/run-142 | 208 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
+| `meetup_respond` | FAIL-assert | s2/run-142 | 192 | flow | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
+| `meetup_validation` | FAIL-assert | s2/run-142 | 156 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
 | `message_long_text` | FAIL-assert | s2/run-142 | 471 |  | [Failed] message_long_text (7m 31s) (Element not found: Text matching regex: Type a message...) |
 | `offer_counter_flow` | FAIL-assert | s2/run-142 | 182 |  | [Failed] offer_counter_flow (2m 44s) (Element not found: Text matching regex: Make an Offer) |
 | `offer_in_existing_thread` | PASS | s2/run-142 | 181 |  |  |
@@ -205,6 +160,51 @@ bug class a user reports as "nothing happened".
 | `start_conversation` | FAIL-? | s2/run-142 | 6 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
 | `start_conversation_and_reply` | FAIL-? | s2/run-142 | 5 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
 | `view_other_profile_from_conversation` | FAIL-? | s2/run-142 | 7 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
+
+## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile
+
+11/38 passing · 23 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_all_categories` | PASS | run-243 | 210 |  | AxiosError |
+| `browse_listings` | PASS | run-243 | 158 |  |  |
+| `browse_sort_most_viewed` | FAIL-assert ⟳stale | run-243 | 181 |  | AxiosError AxiosError |
+| `browse_sort_nearest` | PASS | run-243 | 271 |  |  |
+| `categories_hub` | PASS | run-243 | 274 |  |  |
+| `clear_all_filters` | FAIL-assert ⟳stale | run-243 | 264 |  | [Failed] clear_all_filters (3m 55s) (Assertion is false: "2 filters active" is visible) |
+| `filter_active_sellers` | PASS | run-243 | 240 |  |  |
+| `filter_by_category` | PASS | run-243 | 194 |  |  |
+| `filter_condition` | PASS | run-243 | 222 |  |  |
+| `filter_price_range` | PASS | run-243 | 285 |  |  |
+| `full_marketplace_cycle` | FAIL-? | run-243 | 150 | rig? | NOT DIAGNOSED — run-243's log holds two lines (a blank and "Waiting for flows to complete…"), so maestro never executed a step. Flow YAML is valid and the device was up; filter_price_range passed 285s immediately before. Host swap was 100% full at the time, which kills the emulator under spikes. Re-run on a calm machine before reading anything into this. |
+| `listing_detail` | PASS | run-243 | 215 |  |  |
+| `listing_detail_multi_quantity` | PASS | run-243 | 190 |  |  |
+| `listing_detail_offer` | FAIL-assert ⟳stale | run-243 | 234 |  | [Failed] listing_detail_offer (3m 26s) (Assertion is false: "Offer:.*" is visible) |
+| `listing_detail_offer_invalid` | FAIL-assert ⟳stale | run-243 | 233 |  | [Failed] listing_detail_offer_invalid (3m 31s) (Assertion is false: "Enter a valid amount" is visible) |
+| `listing_detail_price_drop_badge` | FAIL-assert | run-243 | 190 |  | [Failed] listing_detail_price_drop_badge (2m 48s) (Assertion is false: "-\d+%" is visible) |
+| `listing_detail_report` | UNTESTED | — |  |  |  |
+| `listing_detail_save_unsave` | UNTESTED | — |  |  |  |
+| `listing_detail_saves_count` | UNTESTED | — |  |  |  |
+| `listing_detail_share` | UNTESTED | — |  |  |  |
+| `listing_detail_similar` | UNTESTED | — |  |  |  |
+| `listing_detail_sold_recovery` | UNTESTED | — |  |  |  |
+| `listing_detail_sold_state` | UNTESTED | — |  |  |  |
+| `listing_detail_views_count` | UNTESTED | — |  |  |  |
+| `not_interested` | UNTESTED | — |  |  |  |
+| `saved_search_apply` | UNTESTED | — |  |  |  |
+| `scroll_to_top` | UNTESTED | — |  |  |  |
+| `search_empty_state` | UNTESTED | — |  |  |  |
+| `search_listings` | UNTESTED | — |  |  |  |
+| `search_with_filter` | UNTESTED | — |  |  |  |
+| `seller_profile` | UNTESTED | — |  |  |  |
+| `seller_profile_from_listing` | PASS | s2/run-141 | 237 |  |  |
+| `seller_response_rate_badge` | UNTESTED | — |  |  |  |
+| `subcategory_drilldown` | UNTESTED | — |  |  |  |
+| `user_profile_empty_listings` | UNTESTED | — |  |  |  |
+| `user_profile_listing_grid` | UNTESTED | — |  |  |  |
+| `user_profile_stats` | UNTESTED | — |  |  |  |
+| `view_mode_toggle` | UNTESTED | — |  |  |  |
 
 ## `saved` — Save / unsave a listing, saved tab, sold-while-saved
 
@@ -313,29 +313,6 @@ bug class a user reports as "nothing happened".
 | `profile_reviews_empty_state` | UNTESTED | — |  |  |  |
 | `rate_buyer_after_sale` | UNTESTED | — |  |  |  |
 
-## `auth` — Sign up, login, logout, session persistence, guest gating
-
-7/16 passing · 2 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `confirm_email_prompt` | PASS | run-242 | 215 |  |  |
-| `guest_browse` | PASS | run-242 | 219 |  |  |
-| `guest_offer_redirect` | FAIL-? | run-242 | 222 |  |  |
-| `guest_save_redirect` | (rig) | run-242 |  |  |  |
-| `login` | PASS | run-241 | 154 |  |  |
-| `login_deep` | PASS | run-241 | 216 |  |  |
-| `login_empty_fields` | PASS | run-241 | 125 |  | Request failed with status code Request failed with status code |
-| `login_navigate_to_register` | PASS | run-241 | 132 |  |  |
-| `login_wrong_password` | PASS | run-241 | 172 |  | Request failed with status code |
-| `logout` | FAIL-? | run-241 | 323 | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
-| `logout_cancel` | (rig) | run-241 |  |  |  |
-| `register_duplicate_email` | FAIL-assert ⟳stale | run-239 | 159 | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
-| `register_navigate_to_login` | FAIL-assert ⟳stale | run-239 | 137 |  | [Failed] register_navigate_to_login (2m) (Assertion is false: "Create Account" is visible) |
-| `session_persist` | FAIL-assert ⟳stale | run-239 | 173 |  | [Failed] session_persist (2m 34s) (Assertion is false: "Bazaar" is visible) |
-| `sign_up` | FAIL-assert ⟳stale | run-239 | 242 |  | [Failed] sign_up (3m 44s) (Assertion is false: "Bazaar" is visible) |
-| `sign_up_validation` | FAIL-? ⟳stale | run-239 | 168 |  | [Failed] sign_up_validation (2m 30s) (No visible element found: id: register-submit) |
-
 ## `safety` — Safety tips on listing detail and in the meetup sheet
 
 0/2 passing · 2 open
@@ -353,6 +330,29 @@ bug class a user reports as "nothing happened".
 |---|---|---|---:|---|---|
 | `open_listing_deep_link` | UNTESTED | — |  |  |  |
 | `open_seller_deep_link` | UNTESTED | — |  |  |  |
+
+## `auth` — Sign up, login, logout, session persistence, guest gating
+
+15/16 passing · 1 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `confirm_email_prompt` | PASS | run-245 | 158 |  |  |
+| `guest_browse` | PASS | run-245 | 147 |  |  |
+| `guest_offer_redirect` | PASS | run-245 | 212 |  |  |
+| `guest_save_redirect` | PASS | run-245 | 195 |  |  |
+| `login` | PASS | run-245 | 136 |  |  |
+| `login_deep` | PASS | run-245 | 214 |  |  |
+| `login_empty_fields` | PASS | run-245 | 125 |  | Request failed with status code Request failed with status code |
+| `login_navigate_to_register` | PASS | run-245 | 110 |  |  |
+| `login_wrong_password` | PASS | run-245 | 124 |  | Request failed with status code |
+| `logout` | PASS | run-245 | 220 | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
+| `logout_cancel` | PASS | run-245 | 225 |  |  |
+| `register_duplicate_email` | PASS | run-245 | 153 | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
+| `register_navigate_to_login` | PASS | run-245 | 107 |  |  |
+| `session_persist` | PASS | run-245 | 149 |  |  |
+| `sign_up` | PASS | run-245 | 172 |  |  |
+| `sign_up_validation` | FAIL-assert | run-245 | 178 |  | [Failed] sign_up_validation (2m 42s) (Assertion is false: "Passwords do not match" is visible) |
 
 ## `onboarding` — First-run experience
 
