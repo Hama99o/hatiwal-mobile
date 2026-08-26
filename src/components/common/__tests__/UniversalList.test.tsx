@@ -106,16 +106,19 @@ describe("UniversalList — loading state", () => {
     await act(async () => { resolveHold(makeResult([])); });
   });
 
-  it("renders ActivityIndicator (spinner) when no SkeletonComponent is provided", async () => {
+  it("renders a placeholder skeleton, not a spinner, when no SkeletonComponent is provided", async () => {
     let resolveHold!: (value: ListFetchResult<SimpleItem>) => void;
     const holdingFetcher = jest.fn(
       () => new Promise<ListFetchResult<SimpleItem>>((res) => { resolveHold = res; })
     );
 
-    const { UNSAFE_getByType } = render(<UniversalList config={buildConfig({ fetcher: holdingFetcher })} />);
+    const { UNSAFE_queryAllByType } = render(<UniversalList config={buildConfig({ fetcher: holdingFetcher })} />);
 
+    // A bare spinner tells the user nothing about what is coming and reads as
+    // "stuck"; lists without their own Skeleton now get neutral placeholder rows.
+    expect(screen.getByTestId("universal-list-fallback-skeleton")).toBeTruthy();
     const { ActivityIndicator } = require("react-native");
-    expect(UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
+    expect(UNSAFE_queryAllByType(ActivityIndicator).length).toBe(0);
 
     await act(async () => { resolveHold(makeResult([])); });
   });

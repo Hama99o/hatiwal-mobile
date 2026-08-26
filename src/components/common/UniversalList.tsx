@@ -567,12 +567,34 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
         );
       }
 
-      // Fallback: spinner
-      return (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      );
+        // Fallback: a generic ROW skeleton, not a spinner.
+        //
+        // A bare spinner on a blank screen tells the user nothing about what is
+        // coming, and it reads as "stuck" rather than "loading" — the user called
+        // this out on the feed. Every list that passes a Skeleton renders shaped
+        // placeholders (Browse, Saved, Conversations, Categories, Recently viewed,
+        // Hidden, Reviews); the ones that do not (My reports, All reviews, Blocked
+        // users, listing conversations, a user's profile) landed here and got the
+        // spinner. Give them a neutral row skeleton so the shape of the page is
+        // visible while it loads.
+        return (
+          <View
+            testID="universal-list-fallback-skeleton"
+            style={{ flex: 1, paddingHorizontal: 4, paddingTop: 8 }}
+          >
+            {Array.from({ length: Math.max(4, skeletonCount) }, (_, i) => (
+              <View
+                key={i}
+                style={{
+                  height: 64,
+                  borderRadius: 12,
+                  marginBottom: 10,
+                  backgroundColor: colors.muted,
+                }}
+              />
+            ))}
+          </View>
+        );
     }
 
     if (error) {
