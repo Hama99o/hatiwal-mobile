@@ -1835,3 +1835,53 @@ no change; a change I had made on this false premise was reverted.
 
 The real finding is a rig rule, not a UI defect — see "Editing app source while a
 run is in flight reloads the app" in QA_HANDBOOK.md.
+
+---
+
+## UI-044 — a guest's tap is silently dropped after they sign in
+
+**Evidence:** `auth/guest_save_redirect` failed on `assertVisible: "Saved"` after a
+guest tapped save, was sent to login, and signed in. The flow was wrong to expect
+it — but what the app does instead is worth a product decision.
+
+**From the source, not inference.** `useRequireAuth`:
+
+```ts
+function requireAuth(action: () => void, returnTo?: string): boolean {
+  if (isAuthenticated) { action(); return true; }
+  router.push({ pathname: "/(auth)/login", params: returnTo ? { returnTo } : {} });
+  return false;
+}
+```
+
+`returnTo` is consumed in exactly one way — `router.replace(returnTo ?? …)` in
+`Login.tsx` and `Register.tsx`. It returns the user to the **route**. The pending
+`action` is never replayed and is not stored anywhere.
+
+**What a person experiences:** they tap the heart on a listing, get a login screen,
+sign in, land back on the same listing — and it is not saved. Nothing says so. The
+heart is simply unfilled again. Same path for "Make an Offer" and "Contact
+seller", which is worse: those carry more intent than a save.
+
+Whether to replay the action is a product call. What is not defensible is the
+silence — this is the class the user named directly: *"there should be no silent
+error where user don't know what's going on."*
+
+**Options, cheapest first:**
+
+1. **Tell them.** After a `returnTo` login, toast what to do next: "You're signed
+   in — tap save again". One string, no state to carry. Honest, if unpolished.
+2. **Replay it.** Carry the intent (`{action: "save", listingId}`) alongside
+   `returnTo` and run it once on arrival. What the user expected. Needs care that
+   it fires exactly once and never on a stale param after a reload.
+3. **Gate earlier.** Show the login sheet *before* the optimistic UI moves, so no
+   tap ever looks like it landed.
+
+Recommend 2 for save (idempotent, low risk), and 1 for offer/contact, where
+silently opening a sheet after an unrelated login would be more startling than
+helpful.
+
+**Status:** open — needs a product decision. `guest_save_redirect` now asserts the
+CURRENT behaviour (back on the listing, not saved, and saving works when tapped
+again), so if this is changed the flow fails loudly and gets updated deliberately
+rather than drifting.

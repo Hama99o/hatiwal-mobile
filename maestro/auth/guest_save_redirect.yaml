@@ -84,4 +84,22 @@ appId: com.hatiwal.app
 - tapOn: "Sign In"
 - waitForAnimationToEnd
 # Back on listing — listing is now saved
-- assertVisible: "Saved"
+# What the app ACTUALLY does, verified in source: `useRequireAuth` sends the guest
+# to login with a `returnTo`, and `returnTo` is only used for router.replace back
+# to the ROUTE — the pending action is never replayed. So after signing in we are
+# back on the listing and it is NOT saved. Asserting "Saved" here asserted
+# behaviour that does not exist, and "Saved" is also the tab-bar label, so it
+# could pass for the wrong reason on any screen showing the tabs.
+#
+# Assert the real contract instead: returnTo landed us back on the listing, the
+# save did NOT happen, and saving now works. If the app is ever changed to replay
+# the pending action, this fails loudly and gets updated deliberately — see UI-044.
+- assertVisible: "Wool Blanket Handmade King Size"
+- assertVisible: "Save listing"
+- tapOn:
+    id: "save-toggle-button"
+- waitForAnimationToEnd
+# The label flips on isSaved: "Save listing" -> "Remove from saved".
+- extendedWaitUntil:
+    visible: "Remove from saved"
+    timeout: 10000
