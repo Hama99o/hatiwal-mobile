@@ -32,6 +32,12 @@ appId: com.hatiwal.app
 - tapOn: "Already have an account\\?.*"
 - waitForAnimationToEnd
 - assertVisible: "Sign In"
-# Case matters: Maestro's regex is case-SENSITIVE and the app renders
-# "Create Account" (auth.registerButton / auth.createAccount).
-- assertVisible: "Create Account"
+# By testID. On the LOGIN screen the link back to register renders as ONE Text —
+# `{t("auth.noAccount")} {t("auth.registerButton")}` = "Don't have an account?
+# Create Account" — and Login.tsx says so in a comment right above it: "an
+# exact-match selector on 'Create Account' can never find it". Maestro matching is
+# an anchored full-string regex, so this asserted a string that does not exist as
+# a whole node. The heading assert earlier in this flow is fine: on the REGISTER
+# screen "Create Account" IS its own Text.
+- assertVisible:
+    id: "go-to-register"
