@@ -2129,3 +2129,46 @@ never unblocked; it now unblocks, and its target is a seller with 4 listings rat
 than 12, so a mid-flow death hides much less. And the tolerance on the three fixed
 flows above is **kept, not tightened**: the rig re-runs a flow after a driver death,
 and the retry would otherwise hit the duplicate its own first attempt created.
+
+---
+
+### RIG-005 · Fixture drift blocked 17 flows, and read as 17 separate defects
+
+**Found by:** `chat/start_conversation` failing with
+`No visible element found: "Wool Blanket Handmade King Size"`.
+
+The listing existed. It was `sold`, so `Listing.browsable` excluded it and it was
+genuinely not in the feed the flow was scrolling. `e2e_listing` was
+create-if-missing (`return if Listing.exists?`), so a fixture a flow had reserved or
+sold stayed that way for good.
+
+**Blast radius, measured rather than guessed:** three listings had drifted, and **17
+flows scroll the browse feed to one of them** — across auth, browse, chat, dark_mode,
+report and saved. Every one of them fails with a *missing-fixture* message for a
+fixture that is present, which is the most misleading shape a fixture bug can take.
+Some had been triaged individually before the pattern was visible.
+
+| Listing | Seeded | Found | Referenced by |
+|---|---|---|---|
+| Wool Blanket Handmade King Size | active | **sold** | 18 flows |
+| Lenovo ThinkPad Laptop Core i5 8GB | active | **reserved** | 5 flows |
+| Traditional Kandahari Carpet 3x4 | active | **reserved** | 3 flows |
+
+Xiaomi Redmi Note 11 is also sold and belongs that way — it is seeded `:sold`. An
+audit that ignores the seeded intent reports it as a fourth drift; I did that first.
+
+**Fixed** in `hatiwal-api` (`6eac4ad`): `e2e_listing` now resets an existing
+fixture's status to the seeded one, with the same semantics as the
+`DISPOSABLE_LISTINGS` reset that already solved this for the "QA Disposable"
+listings.
+
+**Applied mid-cycle rather than waiting.** Re-seeding while flows run can disturb the
+one in flight; leaving it would have meant 17 flows failing for the rest of the cycle
+for a reason already fixed. One possibly-spurious failure against seventeen certain
+ones. Verified after: all three listings `active`/`browsable`, Xiaomi still sold, and
+the e2e accounts' reports and blocks cleared (RIG-004) as a side benefit.
+
+**Watch for the reverse.** Two flows sell a shared listing as their own setup
+(`reviews/rate_buyer_after_sale`, and the reserved half of the dead-end family). They
+are now repeatable, but a THIRD flow selling a shared fixture would still collide
+with them inside a single cycle — the seed only resets between cycles.
