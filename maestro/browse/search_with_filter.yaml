@@ -24,13 +24,24 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Both search term and condition filter are active
 - assertVisible: "phone"
-- assertVisible: "Good"
+# The CONDITION does not appear on the feed. Only the category renders as a
+# removable chip there; condition lives inside the filter sheet. What the feed
+# shows is the count pill, `browse.filtersActive` — and search + condition is two,
+# so assert that instead of "Good", which is behind the closed sheet.
+- assertVisible: ".*2 filters active.*"
 # Results reflect both — no "New" condition items visible
 - assertNotVisible: "Brand New"
-# Clear condition filter — search results remain
+# Clear the condition filter — reopen the sheet, since "Good" is only in there.
+- tapOn:
+    id: "browse-filters-toggle"
+- waitForAnimationToEnd
 - tapOn: "Good"
 - waitForAnimationToEnd
+- tapOn: "Show results"
+- waitForAnimationToEnd
+# Search survives on its own: one filter left, and the term still in the box.
 - assertVisible: "phone"
+- assertVisible: ".*1 filter active.*"
 # Clear search — back to full browse
 - eraseText
 - waitForAnimationToEnd
