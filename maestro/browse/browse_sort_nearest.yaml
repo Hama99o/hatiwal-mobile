@@ -28,22 +28,26 @@ appId: com.hatiwal.app
     direction: DOWN
     timeout: 20000
 - waitForAnimationToEnd
-# The sort options are a HORIZONTAL row: "Newest first, Oldest first, Price: low
-# to high, …, Nearest first". Scrolling the sheet down reveals the row but does
-# not scroll along it, so this failed with "No visible element found: Nearest
-# first" on a chip that was simply off the right edge.
+# Swipe along the Sort row until the chip shows, rather than a fixed count. The
+# row is longer than it looks: Newest first, Oldest first, Price: low to high,
+# Price: high to low, Most viewed, Nearest first. Two swipes only reached
+# "Price: high to low" (see run-243's screenshot), and an anchor chip cannot be
+# used because it scrolls off after the first swipe — hence a percentage swipe
+# along the row's own y (68% once the sheet is at rest).
 #
-# Swipe by percentage along the row's own y rather than `from: <a chip>`: the
-# anchor chip scrolls out of view after the first swipe, and "Nearest first" is
-# the last option, so it takes several. 68% is where the Sort chips sit once the
-# sheet is scrolled down (measured off the failure screenshot).
+# The inner runFlow makes each iteration a no-op once the chip is visible, so
+# this stops early instead of over-scrolling past it.
 - repeat:
-    times: 4
+    times: 6
     commands:
-      - swipe:
-          start: "85%, 68%"
-          end: "15%, 68%"
-      - waitForAnimationToEnd
+      - runFlow:
+          when:
+            notVisible: "Nearest first"
+          commands:
+            - swipe:
+                start: "85%, 68%"
+                end: "20%, 68%"
+            - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Nearest first"
     timeout: 10000
