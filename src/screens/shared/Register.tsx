@@ -134,6 +134,10 @@ export default function RegisterScreen() {
     >
       {/* Escape hatch — let guests leave the form and just browse. */}
       <Pressable
+        // testID because the label is localized AND was renamed (it used to read
+        // "Continue browsing"). Four flows tapped that text; a copy change should
+        // never break navigation in a test.
+        testID="go-to-bazaar"
         onPress={() => router.replace("/(main)/(tabs)/browse")}
         accessibilityRole="button"
         accessibilityLabel={t("auth.continueBrowsing")}

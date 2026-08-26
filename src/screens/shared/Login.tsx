@@ -67,6 +67,18 @@ export default function LoginScreen() {
   const googleIosClientId =
     process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? googleClientId;
 
+  // ── Google Sign-In hidden for now, on every platform ────────────────────────
+  // Flip to true to bring it back on Android. Nothing else changes: the button,
+  // the handler, the client IDs and authAPI.googleSignIn all stay wired, so this
+  // is a visibility switch, not a removal.
+  //
+  // Why: the Android button does not complete sign-in for testers, and a control
+  // that looks available but fails is worse than one that is absent —
+  // email/password works. iOS was already hidden for a different reason (see the
+  // render site: App Store Guideline 4.8 wants a private-email option alongside
+  // any third-party login).
+  const GOOGLE_SIGN_IN_ENABLED = false;
+
   const placeholderOrId = googleClientId ?? "not_configured";
   const placeholderOrIosId = googleIosClientId ?? placeholderOrId;
 
@@ -259,6 +271,10 @@ export default function LoginScreen() {
       {/* Escape hatch — login is never a dead-end now that guests can browse.
           Pinned to the top, outside the scroll, so it never moves. */}
       <Pressable
+        // testID because the label is localized AND was renamed (it used to read
+        // "Continue browsing"). Four flows tapped that text; a copy change should
+        // never break navigation in a test.
+        testID="go-to-bazaar"
         onPress={() => router.replace("/(main)/(tabs)/browse")}
         accessibilityRole="button"
         accessibilityLabel={t("auth.continueBrowsing")}
@@ -375,7 +391,7 @@ export default function LoginScreen() {
             Hidden on iOS: App Store Guideline 4.8 requires a private-email
             login (e.g. Sign in with Apple) alongside any third-party login.
             Keeping Google Android-only avoids triggering that requirement. */}
-        {!!googleClientId && Platform.OS !== "ios" && (
+        {GOOGLE_SIGN_IN_ENABLED && !!googleClientId && Platform.OS !== "ios" && (
           <>
             <View
               style={{

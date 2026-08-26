@@ -19,7 +19,7 @@ export default function LanguageSwitcher({ size = "sm" }: LanguageSwitcherProps)
   const isLg = size === "lg";
 
   return (
-    <View style={{ flexDirection: "row", justifyContent: "center", gap: isLg ? 10 : 8 }}>
+    <View style={{ flexDirection: "row", justifyContent: "center", gap: 8 }}>
       {SUPPORTED_LANGUAGES.map((lang) => {
         const active = current === lang.code;
         return (
@@ -36,9 +36,16 @@ export default function LanguageSwitcher({ size = "sm" }: LanguageSwitcherProps)
             accessibilityState={{ selected: active }}
             testID={`language-switcher-${lang.code}`}
             style={{
-              paddingVertical: isLg ? 12 : 8,
-              paddingHorizontal: isLg ? 20 : 16,
-              borderRadius: isLg ? 10 : 8,
+              // Tightened: the lg variant was 12/20 with a 16pt label, which on the
+              // login screen read as three oversized blocks with more padding than
+              // the inputs above them. Height is pinned with minHeight instead of
+              // grown with padding, so the 44px touch target the design system
+              // requires is kept while the chips look like chips.
+              minHeight: 44,
+              justifyContent: "center",
+              paddingVertical: 8,
+              paddingHorizontal: isLg ? 14 : 12,
+              borderRadius: 8,
               borderWidth: 1,
               borderColor: active ? colors.primary : colors.border,
               backgroundColor: active ? colors.primary : "transparent",
@@ -48,7 +55,7 @@ export default function LanguageSwitcher({ size = "sm" }: LanguageSwitcherProps)
               style={{
                 color: active ? colors.primaryForeground : colors.foreground,
                 fontWeight: active ? "700" : "400",
-                fontSize: isLg ? 16 : 14,
+                fontSize: isLg ? 15 : 14,
                 // EACH LABEL IN ITS OWN SCRIPT'S FONT — not the app's.
                 //
                 // Everything else is drawn with fontFamilyForLang(ACTIVE language),

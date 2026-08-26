@@ -1,6 +1,9 @@
 appId: com.hatiwal.app
 ---
 # Does the SAME axios instance succeed on a GET from this screen?
-- tapOn: "Continue browsing"
+# By testID: this chip's label is localized and was renamed to "Go to Bazaar",
+# so tapping the old text would miss.
+- tapOn:
+    id: "go-to-bazaar"
 - waitForAnimationToEnd
 - waitForAnimationToEnd

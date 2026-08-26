@@ -41,7 +41,10 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible: "Buy and sell locally in Afghanistan"
     timeout: 60000
-- tapOn: "Continue browsing"
+# By testID: this chip's label is localized and was renamed to "Go to Bazaar",
+# so tapping the old text would miss.
+- tapOn:
+    id: "go-to-bazaar"
 - assertVisible: "Bazaar"
 # Can tap a listing
 - tapOn:
