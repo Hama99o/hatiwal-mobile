@@ -45,6 +45,16 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Should land on Bazaar, not Welcome/Login
-- assertVisible: "Bazaar"
+# extendedWaitUntil, not a bare assert. On relaunch the dev client refetches the
+# bundle and bootstrapAuth hydrates the session asynchronously, so the tab bar
+# does not exist for a few seconds. The screenshot at failure showed the Bazaar
+# feed with skeleton cards and the Bazaar tab active — the session HAD persisted,
+# the assert was simply early.
+- extendedWaitUntil:
+    visible: "Bazaar"
+    timeout: 60000
+# The negatives come AFTER that wait on purpose. Run against a still-blank screen
+# they pass because nothing is rendered yet, which proves nothing — the whole
+# point of this flow is that the app came back signed IN.
 - assertNotVisible: "Welcome to Hatiwal"
 - assertNotVisible: "Sign In"

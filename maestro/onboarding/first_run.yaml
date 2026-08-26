@@ -72,7 +72,14 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: false
 - waitForAnimationToEnd
-- assertVisible: "Bazaar"
+# extendedWaitUntil, not a bare assert: on relaunch the dev client refetches the
+# bundle, so the tab bar is not there for a few seconds. Just as important, the
+# assertNotVisible lines below are meaningless until the app IS up — on a blank
+# screen "Skip" and "Get started" are absent for the wrong reason, and this flow
+# exists precisely to prove onboarding does not come back.
+- extendedWaitUntil:
+    visible: "Bazaar"
+    timeout: 60000
 - assertNotVisible: "Skip"
 - assertNotVisible: "Get started"
 
@@ -98,5 +105,12 @@ appId: com.hatiwal.app
 - launchApp:
     clearState: false
 - waitForAnimationToEnd
-- assertVisible: "Bazaar"
+# extendedWaitUntil, not a bare assert: on relaunch the dev client refetches the
+# bundle, so the tab bar is not there for a few seconds. Just as important, the
+# assertNotVisible lines below are meaningless until the app IS up — on a blank
+# screen "Skip" and "Get started" are absent for the wrong reason, and this flow
+# exists precisely to prove onboarding does not come back.
+- extendedWaitUntil:
+    visible: "Bazaar"
+    timeout: 60000
 - assertNotVisible: "Skip"
