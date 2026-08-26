@@ -1,6 +1,14 @@
 appId: com.hatiwal.app
-env:
-  SOLD_LISTING_ID: 1
+# NO env defaults here on purpose. The rig resolves real ids at feature start and
+# passes them as `--env LISTING_ID=… --env SOLD_LISTING_ID=…` (qa/lib/flows.sh),
+# but a flow-level `env:` block WINS over --env in this Maestro version — so the
+# hardcoded `SOLD_LISTING_ID: 1` silently shadowed the injected 82 and this flow
+# deep-linked to listing 1, which does not exist. The screenshot said "Listing not
+# found" and the debug commands.json confirmed `hatiwal://listing/1`.
+#
+# With no default, an unresolved id produces an obviously broken link instead of a
+# quietly wrong one. Run by hand with:
+#   SOLD_LISTING_ID=82 maestro test <flow>   (or let the rig inject it)
 ---
 # Sold listing detail — non-owner view.
 #
