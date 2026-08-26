@@ -14,7 +14,10 @@ appId: com.hatiwal.app
 - scroll
 - waitForAnimationToEnd
 # Views count label is visible (e.g. "12 views" or "1 view")
-- assertVisible: "view"
+# Wildcards: the app renders `listing.viewsCount` = "{{count}} views", e.g.
+# "17 views", and Maestro text matching is an anchored full-string regex — a bare
+# "view" matched nothing. `views?` covers the singular form too.
+- assertVisible: ".*views?.*"
 # Go back and re-open the same listing — count should increment
 - back
 - waitForAnimationToEnd
@@ -28,4 +31,7 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - scroll
 - waitForAnimationToEnd
-- assertVisible: "view"
+# Wildcards: the app renders `listing.viewsCount` = "{{count}} views", e.g.
+# "17 views", and Maestro text matching is an anchored full-string regex — a bare
+# "view" matched nothing. `views?` covers the singular form too.
+- assertVisible: ".*views?.*"
