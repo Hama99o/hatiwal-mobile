@@ -20,6 +20,14 @@ appId: com.hatiwal.app
 # field just typed. `tapOn` never scrolls, so it failed with "Element not found:
 # Id matching regex: register-submit" on a button that exists and is in the
 # bundle — just below the fold.
+# Blur to drop the IME before scrolling to the button. NOT hideKeyboard (that is
+# BACK on Android) and NOT a scroll on its own: scrollUntilVisible's swipe starts
+# in the lower half of the screen, lands ON the keyboard, and scrolls nothing —
+# which is why this failed with "No visible element found: id: register-submit"
+# on a button that plainly exists. The subtitle is a plain Text at the top of the
+# form and unique on the screen, so tapping it only blurs.
+- tapOn: "Buy and sell locally in Afghanistan"
+- waitForAnimationToEnd
 - scrollUntilVisible:
     element:
       id: "register-submit"
@@ -46,6 +54,14 @@ appId: com.hatiwal.app
 # field just typed. `tapOn` never scrolls, so it failed with "Element not found:
 # Id matching regex: register-submit" on a button that exists and is in the
 # bundle — just below the fold.
+# Blur to drop the IME before scrolling to the button. NOT hideKeyboard (that is
+# BACK on Android) and NOT a scroll on its own: scrollUntilVisible's swipe starts
+# in the lower half of the screen, lands ON the keyboard, and scrolls nothing —
+# which is why this failed with "No visible element found: id: register-submit"
+# on a button that plainly exists. The subtitle is a plain Text at the top of the
+# form and unique on the screen, so tapping it only blurs.
+- tapOn: "Buy and sell locally in Afghanistan"
+- waitForAnimationToEnd
 - scrollUntilVisible:
     element:
       id: "register-submit"
@@ -88,6 +104,14 @@ appId: com.hatiwal.app
 # field just typed. `tapOn` never scrolls, so it failed with "Element not found:
 # Id matching regex: register-submit" on a button that exists and is in the
 # bundle — just below the fold.
+# Blur to drop the IME before scrolling to the button. NOT hideKeyboard (that is
+# BACK on Android) and NOT a scroll on its own: scrollUntilVisible's swipe starts
+# in the lower half of the screen, lands ON the keyboard, and scrolls nothing —
+# which is why this failed with "No visible element found: id: register-submit"
+# on a button that plainly exists. The subtitle is a plain Text at the top of the
+# form and unique on the screen, so tapping it only blurs.
+- tapOn: "Buy and sell locally in Afghanistan"
+- waitForAnimationToEnd
 - scrollUntilVisible:
     element:
       id: "register-submit"

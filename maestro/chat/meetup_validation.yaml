@@ -52,11 +52,9 @@ appId: com.hatiwal.app
     id: "meetup-place-input"
 - inputText: "Shahr-e-Naw"
 - waitForAnimationToEnd
-# Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
-# stops as soon as the target is in the hierarchy, which can still be behind the
-# keyboard. Maestro then reports the tap COMPLETED while the touch lands on the
-# keyboard — register_duplicate_email submitted nothing at all, and the Rails log
-# showed no register POST for the whole run.
+# No IME dismissal here on purpose — MeetupSheet keeps the submit button
+# reachable with the keyboard up, and both cures made things worse (see
+# QA_HANDBOOK). This flow passes as written.
 - waitForAnimationToEnd
 # Submit by ID with the keyboard up — see the note on the first submit above.
 - assertVisible:
@@ -77,11 +75,9 @@ appId: com.hatiwal.app
 # character. Nothing in the app parses it. See QA_HANDBOOK.md.
 - inputText: "Saturday at 3pm"
 - waitForAnimationToEnd
-# Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
-# stops as soon as the target is in the hierarchy, which can still be behind the
-# keyboard. Maestro then reports the tap COMPLETED while the touch lands on the
-# keyboard — register_duplicate_email submitted nothing at all, and the Rails log
-# showed no register POST for the whole run.
+# No IME dismissal here on purpose — MeetupSheet keeps the submit button
+# reachable with the keyboard up, and both cures made things worse (see
+# QA_HANDBOOK). This flow passes as written.
 - waitForAnimationToEnd
 # Submit by ID with the keyboard up — see the note on the first submit above.
 - assertVisible:
