@@ -48,7 +48,9 @@
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { View, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
-import { FlashList, type ListRenderItemInfo } from "@shopify/flash-list";
+import { FlashList, type FlashListRef, type ListRenderItemInfo } from "@shopify/flash-list";
+import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { EmptyState } from "./EmptyState";
@@ -167,6 +169,13 @@ export interface UniversalListConfig<T> {
 
   /** Content padding bottom. Default: 80. */
   contentPaddingBottom?: number;
+  /**
+   * Distance from the bottom for the back-to-top button. Defaults to
+   * clearing the floating tab bar; pass a smaller value on a pushed route
+   * that has no tab bar. Set `showScrollToTop: false` to opt out entirely.
+   */
+  scrollToTopBottomOffset?: number;
+  showScrollToTop?: boolean;
 
   /**
    * Optional pure client-side filter applied to whatever `items` are
@@ -215,12 +224,21 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     perPage = 20,
     ListHeaderComponent,
     contentPaddingBottom = 80,
+    scrollToTopBottomOffset,
+    showScrollToTop = true,
     filterItems,
     onPageInfoChange,
   } = config;
 
   const colors = useColors();
   const { t } = useTranslation();
+  // Back-to-top lives here, once, rather than in each list screen.
+  const {
+    ref: listRef,
+    visible: showTopButton,
+    onScroll: handleScrollForTopButton,
+    scrollToTop,
+  } = useScrollToTop<FlashListRef<T>>();
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [items, setItems] = useState<T[]>([]);
@@ -654,6 +672,11 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     // full device width while list items still get the 12px outer padding.
     return (
       <FlashList
+        ref={listRef}
+        onScroll={handleScrollForTopButton}
+        // 16ms would fire every frame; 100ms is still well inside the time it
+        // takes to scroll past the threshold, and keeps long lists smooth.
+        scrollEventThrottle={100}
         data={visibleItems}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
@@ -728,6 +751,13 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   return (
     <View style={{ flex: 1 }}>
       {renderBody()}
+      {showScrollToTop && (
+        <ScrollToTopButton
+          visible={showTopButton}
+          onPress={scrollToTop}
+          bottomOffset={scrollToTopBottomOffset}
+        />
+      )}
     </View>
   );
 }

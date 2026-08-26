@@ -52,5 +52,6 @@
   "undo": "Undo",
   "splash": {
     "validating": "Checking your session…"
-  }
+  },
+  "scrollToTop": "Back to top"
 }

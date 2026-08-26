@@ -1,0 +1,51 @@
+appId: com.hatiwal.app
+---
+# Back-to-top button on a long list.
+#
+# Wired once inside UniversalList, so proving it on the Bazaar feed also covers
+# Messages, Saved, Hidden listings, Recently viewed, My reports, All reviews,
+# Blocked users and My listings (via ListingFeed) — they all render through it.
+#
+# The button is UNMOUNTED below the threshold rather than rendered transparent,
+# so an invisible view can never swallow a tap meant for the last row. That makes
+# assertNotVisible a real check here, not a formality.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+
+# Near the top: no button.
+- assertNotVisible:
+    id: "scroll-to-top-button"
+
+# Scroll well past the 700px threshold. Several swipes, because one swipe on a
+# grid of tall photo cards does not reliably clear it.
+- swipe:
+    direction: UP
+    duration: 300
+- swipe:
+    direction: UP
+    duration: 300
+- swipe:
+    direction: UP
+    duration: 300
+- waitForAnimationToEnd
+
+# extendedWaitUntil, not assertVisible: the button appears on a scroll event that
+# is throttled to 100ms, so a single sample can land just before it mounts.
+- extendedWaitUntil:
+    visible:
+      id: "scroll-to-top-button"
+    timeout: 5000
+
+- tapOn:
+    id: "scroll-to-top-button"
+- waitForAnimationToEnd
+
+# Back at the top: the search bar is in the list header, so it is only reachable
+# when the list is actually scrolled home.
+- assertVisible:
+    id: "browse-search-input"
+# And the button takes itself away again.
+- assertNotVisible:
+    id: "scroll-to-top-button"
