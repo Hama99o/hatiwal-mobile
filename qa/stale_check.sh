@@ -41,9 +41,25 @@ PY
   # usually failing in well under a minute, and the fix is a re-run — not a flow
   # edit. Without this they sit in the list looking like unaddressed defects: this
   # is why meetup_proposal read as "worth triaging" after it had been diagnosed.
+  # Environmental failures are not triage work. Maestro's on-device driver dies
+  # fairly often and the fix is a re-run, not a flow edit.
+  #
+  # Detect it by ABSENCE OF EVIDENCE rather than by the exception string: when the
+  # driver dies the rig can be left with an empty log and no <failure> at all, and
+  # the exception may be recorded in a SIBLING flow's xml instead — which is how I
+  # first mis-attributed meetup_proposal's failure to a driver death I had read out
+  # of meetup_proposed_bubble_ui.xml (that one was a first attempt the rig retried
+  # into a pass). A short run that captured nothing is the signature.
   xml="qa/reports/$run/$feat/$flow.xml"
-  if [ -f "$xml" ] && grep -qa 'DeviceServerDiedException\|Command failed (tcp:' "$xml"; then
-    printf '%-38s %-8s %s\n' "$flow" "ENV" "device driver died — re-run, nothing to fix"
+  secs=$(grep -ah "\"flow\": \"$flow\"" "$res" 2>/dev/null | sed -n 's/.*"seconds": \([0-9]*\).*/\1/p' | tail -1)
+  has_failure=no
+  [ -s "$xml" ] && grep -qa '<failure>' "$xml" && has_failure=yes
+  if [ "$has_failure" = no ] && [ -n "${secs:-}" ] && [ "$secs" -lt 60 ]; then
+    printf '%-38s %-8s %s\n' "$flow" "ENV" "died in ${secs}s with no failure recorded — re-run, nothing to fix"
+    continue
+  fi
+  if [ "$has_failure" = no ]; then
+    printf '%-38s %-8s %s\n' "$flow" "NO-EVID" "failed in ${secs:-?}s but captured no <failure> — read the log"
     continue
   fi
   fixed=$(git log -1 --format=%ct -- "$f" 2>/dev/null || echo 0)
