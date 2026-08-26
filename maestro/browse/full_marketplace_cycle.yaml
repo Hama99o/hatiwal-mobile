@@ -88,13 +88,21 @@ appId: com.hatiwal.app
 - tapOn: "Tap to set exact location on map"
 - waitForAnimationToEnd
 - assertVisible: "Pick location on map"
-- tapOn: "Search a province…"
-- inputText: "Kabul"
-- waitForAnimationToEnd
-# The province suggestion rows now carry testID="province-option"; a bare
-# index tap here selected no particular element.
+# testIDs from LocationRangePicker, which is what actually renders this search:
+# input `location-search-input`, rows `location-search-result`. The old
+# `province-option` lives ONLY in ProvincePickerSheet, a component that is
+# imported nowhere in the app (UI-041) — so this could never match. Six other
+# flows already use the pair below; this now matches them.
 - tapOn:
-    id: "province-option"
+    id: "location-search-input"
+- eraseText
+- inputText: "Kabul"
+- extendedWaitUntil:
+    visible:
+      id: "location-search-result"
+    timeout: 15000
+- tapOn:
+    id: "location-search-result"
     index: 0
 - waitForAnimationToEnd
 - tapOn: "Confirm location"
