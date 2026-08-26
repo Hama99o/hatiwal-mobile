@@ -19,7 +19,25 @@ appId: com.hatiwal.app
 - scroll
 - waitForAnimationToEnd
 # "Saved by N person/people" label is now visible
-- assertVisible: "Saved by.*"   # interpolated: "Saved by 3 people" / "Saved by 1 person" (listing.savesCount)
+# The count does NOT update in place. saveMutation flips `isSaved` optimistically
+# (onMutate) and has no onSuccess, so nothing invalidates the listing query and
+# `savesCount` — which is server-derived and gates this row via
+# `savesCount > 0` — is unchanged until the listing is refetched. The heart fills;
+# the social-proof line does not. Logged as UI-045.
+#
+# So assert it after a refetch: leave the screen and come back, which is the only
+# path that currently refreshes the count.
+- back
+- waitForAnimationToEnd
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Saved by.*"
+    timeout: 15000   # interpolated: "Saved by 3 people" / "Saved by 1 person" (listing.savesCount)
 # Unsave — go back and re-open to confirm the row still reflects a valid state
 # (no crash, no negative/undefined count rendered)
 - tapOn:

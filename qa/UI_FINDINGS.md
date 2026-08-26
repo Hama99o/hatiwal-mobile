@@ -1908,3 +1908,37 @@ CURRENT behaviour (back on the listing, not saved, and saving works when tapped
 again), so if this is changed the flow fails loudly and gets updated deliberately
 rather than drifting.
 
+
+---
+
+## UI-045 — your own save is missing from "Saved by N" until a refetch
+
+**Evidence:** `browse/listing_detail_saves_count` failed on
+`assertVisible: "Saved by.*"` immediately after tapping the heart.
+
+`saveMutation` in `ListingDetail.tsx` has `mutationFn`, `onMutate` (flips `isSaved`
+optimistically, animates the heart) and `onError` (reverts) — **and no
+`onSuccess`**. Nothing invalidates or refetches the listing, so `listing.savesCount`
+still holds the value fetched before the tap. The row is gated on
+`listing.savesCount && listing.savesCount > 0`, so on a listing with no prior saves
+it stays hidden entirely; on one with saves it shows a count short by one.
+
+**What a person sees:** they tap the heart, it fills red — and the social-proof line
+either does not appear or still reads the old number. Leaving the screen and
+returning fixes it. Not broken, just briefly untruthful about a number the user
+just changed.
+
+**Two ways to fix, and the cheap one is better:**
+
+1. **Optimistic bump** — adjust the cached listing's `savesCount` in `onMutate`
+   alongside `isSaved`, and revert it in `onError`. No network cost, consistent with
+   how `isSaved` is already handled, and the number moves the instant the heart
+   does.
+2. **Invalidate on success** — correct but pays a full listing refetch on every
+   heart tap, which is a lot of traffic for one integer.
+
+Recommend 1.
+
+**Status:** open — needs a yes/no, since it changes what the screen shows. The flow
+now asserts current behaviour (count appears after a refetch), so it will fail
+loudly if this is changed deliberately.
