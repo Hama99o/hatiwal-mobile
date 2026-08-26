@@ -1939,9 +1939,25 @@ just changed.
 
 Recommend 1.
 
-**Status:** open — needs a yes/no, since it changes what the screen shows. The flow
-now asserts current behaviour (count appears after a refetch), so it will fail
-loudly if this is changed deliberately.
+**Status: WITHDRAWN — the premise was wrong.** `saveMutation` DOES have an
+`onSuccess`, and it invalidates `["listing", id]` (ListingDetail.tsx:271) along with
+`saved-listings` and `listings-by-seller`. The detail query is keyed
+`["listing", id]` with the same string `id` from `useLocalSearchParams`, so the
+keys match and the refetch does happen. `savesCount` is therefore correct after
+one round-trip, not stale.
+
+What is left is not a defect: for the duration of that refetch the heart is filled
+while the count has not moved yet. That is ordinary optimistic-UI behaviour, and an
+optimistic bump in `onMutate` would be a small polish, not a fix. Not doing it —
+there is no wrong number on screen to correct.
+
+I wrote the original entry after reading the mutation's `onMutate`/`onError` and
+asserting the absence of an `onSuccess` without reading the next five lines, and I
+twice asked for a product decision on it. There was nothing to decide.
+
+**Lesson worth keeping:** two of the findings I have withdrawn today (this and
+UI-043) came from reasoning about behaviour I had not read to the end. Cheaper to
+read the whole handler than to write up a finding about the part I skipped.
 
 ---
 
