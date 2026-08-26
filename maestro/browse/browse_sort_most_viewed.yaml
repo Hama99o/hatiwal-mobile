@@ -25,12 +25,24 @@ appId: com.hatiwal.app
 # off-screen to the right, and `tapOn` does not scroll to reach them. Scroll
 # the row sideways first. (This is why the chip "was not visible" while being
 # rendered unconditionally.)
-- scrollUntilVisible:
-    element:
-      text: "Most viewed"
-    direction: RIGHT
-    timeout: 15000
-- assertVisible: "Most viewed"
+# scrollUntilVisible swipes at the SCREEN CENTRE. On this sheet the centre is the
+# Min/Max price inputs, not the Sort row, so the sort chips never moved and "Most
+# viewed" stayed off-screen to the right — "No visible element found" on a chip
+# that exists. Swipe FROM a chip inside the row so the gesture lands on the right
+# scroller. LEFT drags content leftwards, revealing what is off the right edge.
+- swipe:
+    from:
+      text: "Oldest first"
+    direction: LEFT
+- waitForAnimationToEnd
+- swipe:
+    from:
+      text: "Oldest first"
+    direction: LEFT
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Most viewed"
+    timeout: 10000
 
 # Tap "Most viewed" to activate it
 - tapOn:
