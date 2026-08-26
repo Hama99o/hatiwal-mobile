@@ -31,9 +31,17 @@ appId: com.hatiwal.app
 # Should be on public profile / seller profile screen
 # The stat label is "Active Listings", not a bare "Listings".
 - assertVisible: "Active Listings"
-# Maestro matches the FULL string as a regex, so this PREFIX of the real copy
-# never matched it — the app was showing more than the flow asked for.
-- assertVisible: "Member since.*"
+# NOT "Member since". That string (profile.memberSince, "Member since {{date}}") is
+# rendered only on the user's OWN profile — Profile.tsx:601. This is somebody else's
+# public profile, where ProfileHeader shows the same fact as a stat tile: the label
+# "Joined" above a value from user_serializer's member_since, e.g. "August 2026".
+# A previous fix added `.*` here on the theory that the app was "showing more than the
+# flow asked for"; the string was on another screen entirely, so no amount of
+# wildcarding could match it.
+- assertVisible: "Joined"
+# The value, matched by SHAPE — the month name is whatever the seed's created_at
+# gives, and a fixed year would expire (two flows already had a hardcoded "2024").
+- assertVisible: ".*20[0-9][0-9].*"
 # Back returns to conversation
 - back
 - waitForAnimationToEnd
