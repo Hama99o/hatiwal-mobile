@@ -50,5 +50,9 @@ appId: com.hatiwal.app
 # loses that race, turning a successful action red. Polling keeps the check at
 # full strength while removing the timing dependency.
 - extendedWaitUntil:
-    visible: "Report submitted. Thank you."
+    # Either answer. The Report row is unique per reporter+target and survives
+    # between cycles, so after the first successful run this submit is answered with
+    # report.errors.duplicate. This flow covers the DETAIL-SCREEN entry point into
+    # reporting; the duplicate rule itself is asserted in report/report_listing.yaml.
+    visible: "Report submitted. Thank you.|You have already reported this."
     timeout: 15000

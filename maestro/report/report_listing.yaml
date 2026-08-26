@@ -58,6 +58,31 @@ appId: com.hatiwal.app
 # single check right after an action is a race — and any wait in front of it
 # loses that race, turning a successful action red. Polling keeps the check at
 # full strength while removing the timing dependency.
+# Either answer is correct, and that is deliberate. A Report row is UNIQUE per
+# reporter+target (report.rb, message: :already_reported) and nothing clears it
+# between cycles, so this flow's FIRST run creates
+# reporter=buyer -> Listing(Wool Blanket) and every run after it gets
+# report.errors.duplicate instead of report.success. Asserting only success made the
+# flow pass exactly once per seeded database. report_participant had the same bug and
+# failed the moment its row existed.
 - extendedWaitUntil:
-    visible: "Report submitted. Thank you."
+    visible: "Report submitted. Thank you.|You have already reported this."
+    timeout: 15000
+
+# ── Reporting the same listing twice is refused ─────────
+# Coverage moved here rather than lost: the duplicate rule was only checked for USER
+# reports (report_participant) and never for listings. Strict, because by this point
+# a report definitely exists — either this run made it or an earlier one did.
+- tapOn:
+    id: "more-options-button"
+- waitForAnimationToEnd
+- tapOn: "Report"
+- waitForAnimationToEnd
+- assertVisible: "Why are you reporting this?"
+- tapOn: "Spam"
+- waitForAnimationToEnd
+- tapOn: "Submit Report"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: ".*already reported.*"
     timeout: 15000

@@ -2059,3 +2059,44 @@ sweep.
 **Flow corrected** to assert what the app actually does — the composer *stays* after
 a sale — so that removing it later fails loudly instead of silently changing what a
 seller can do.
+
+---
+
+### RIG-004 · Report flows can only pass once per seeded database
+
+**Found by:** `chat/report_participant` failing on `assertVisible: "Report submitted.*"`.
+
+A `Report` is unique per reporter+target — `report.rb` validates it with
+`message: :already_reported` — and **nothing clears reports between cycles**. The
+seeded DB currently holds `R32: reporter=171 (e2e buyer) → User 172 (e2e seller),
+fraud, pending`, created by the first run of that flow. Every run since has been
+answered with `report.errors.duplicate` instead of `report.success`.
+
+**Seven flows submit a report.** Their exposure differs:
+
+| Flow | State |
+|---|---|
+| `chat/report_participant` | fixed — first submit accepts either answer, and its **duplicate** assertion (the contract worth having) stays strict |
+| `report/report_listing` | fixed — same, and it now asserts the duplicate rule for a LISTING, which nothing covered before |
+| `browse/listing_detail_report` | fixed — tolerant; it covers the detail-screen entry point, not the rule |
+| `report/report_listing_no_reason` | immune — it asserts a validation error and never submits successfully |
+| `report/report_user_from_profile` | immune by accident — it submits and asserts nothing afterwards |
+| `report/report_user` | **blocked** — see below |
+| `report/report_user_then_block` | **blocked** — see below |
+
+**Why those two cannot simply be made tolerant.** `ReportSheet.tsx:118` offers the
+"Block this user?" prompt from inside the mutation's `onSuccess`, and only for User
+reports. On the duplicate path the prompt never appears, so everything after it is
+unreachable — for `report_user_then_block` that is the entire point of the flow.
+Bolting on a `when:` conditional would leave the duplicate branch asserting nothing,
+and Maestro has no `else`, so the two branches cannot be made mutually exclusive
+without leaning on a transient toast.
+
+**Recommended fix: clear reports for the e2e users at seed time.** Both flows then
+pass every cycle with strict assertions, and the tolerance added to the three fixed
+flows above could be tightened back up.
+
+**Not done here, deliberately.** It is a backend change that DELETES rows, which
+wants its own commit, the backend test/rubocop gate, and a decision that seeds may
+destroy report data. Two flows that have never yet run is a much smaller problem
+than a destructive seed slipped into a QA sweep.
