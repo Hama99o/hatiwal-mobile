@@ -184,7 +184,8 @@
     "blockSuccess": "کارونکی بند شو.",
     "unblockSuccess": "بندیز لرې شو.",
     "blockFailed": "کارونکی بند کول ونه شو. بیا هڅه وکړئ.",
-    "unblockFailed": "بندیز لرې کول ونه شو. بیا هڅه وکړئ."
+    "unblockFailed": "بندیز لرې کول ونه شو. بیا هڅه وکړئ.",
+    "messagingUnavailable": "تاسو دې کارونکي ته پیغام نه لیږلی شئ."
   },
   "search": {
     "placeholder": "پیغامونه ولټوئ...",

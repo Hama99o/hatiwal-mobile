@@ -1942,3 +1942,55 @@ Recommend 1.
 **Status:** open — needs a yes/no, since it changes what the screen shows. The flow
 now asserts current behaviour (count appears after a refetch), so it will fail
 loudly if this is changed deliberately.
+
+---
+
+## UI-046 — blocking someone leaves the composer live, and the send can only 403
+
+**Found by:** `chat/block_from_conversation` — `assertNotVisible: "Type a message..."`
+after blocking. The block itself worked (the header button had already flipped to
+"Unblock User"); the composer was simply still there.
+
+**Where:** `src/screens/chat/Conversation.tsx` — `canSend`.
+
+**The gap.** hatiwal-api gates sending in exactly one place:
+
+```ruby
+def send_message? = participant? && record.open? && !blocked_pair?
+```
+
+`blocked_pair?` is true if *either* side blocked the other. The client mirrored
+two of those three conditions:
+
+```ts
+const canSend = !isClosed && !!currentConversationId;   // isBlocked missing
+```
+
+So after blocking, the input stayed fully editable. A person could type a whole
+message and only learn at send time that it was never possible — a 403. The same
+failure shape as the message-length bug the contract test next door was written
+for, and the confirm dialog makes it worse by promising "They won't be able to
+message you", which reads as *something changed*.
+
+**Evidence it was designed and then dropped:** `chat.block.blocked` ("You have
+blocked this user.") exists in en, ps and fa — and is referenced nowhere in `src/`.
+The notice was written, translated three times, and never wired up.
+
+**Fix.** `isBlocked` joins `isClosed` in `canSend`, and the blocked state gets the
+same banner treatment the closed state already has (`styles.closedBanner`, above
+the message list).
+
+**On the wording.** The new string is deliberately direction-neutral — "You can't
+message this user." — for two reasons. `blockedWithParticipant` is a single boolean
+for "either of us blocked the other" (`conversation_serializer.rb`), so the app
+cannot tell which way round it is; and naming the direction would disclose to
+someone that they have been blocked, which this app should not do. The pre-existing
+`chat.block.blocked` string would have been a lie in half the cases, so it stays
+unused.
+
+**Guard against drift:** `src/screens/chat/__tests__/sendGate.contract.test.ts`
+reads the policy and the `canSend` line and fails if they diverge — including when
+a *new* condition is added server-side. Positive-controlled: the pre-fix `canSend`
+line fails it.
+
+**Status:** fixed. ps/fa copy is mine and wants a native-speaker check.

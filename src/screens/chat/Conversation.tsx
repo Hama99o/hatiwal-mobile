@@ -1162,7 +1162,10 @@ export function ConversationScreen() {
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const isClosed = conversation?.status === "closed";
-  const canSend = !isClosed && !!currentConversationId;
+  // isBlocked belongs here with isClosed: the API refuses both
+  // (ConversationPolicy#send_message?), so a live composer in either state can
+  // only lead the user into a 403 after they have typed the whole message.
+  const canSend = !isClosed && !isBlocked && !!currentConversationId;
   const isStartMode = !currentConversationId && !!listingId;
 
   // TASK-C381 / TASK-K729: show the composer's offer button only on an open
@@ -1437,6 +1440,17 @@ export function ConversationScreen() {
         <View style={[styles.closedBanner, { backgroundColor: colors.muted }]}>
           <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center" }}>
             {t("chat.thread.closedNotice")}
+          </Text>
+        </View>
+      )}
+
+      {/* Blocked notice — same banner as the closed one. Neutral wording: the
+          blocked flag is bidirectional and the app cannot tell who blocked whom,
+          and saying so would disclose that someone blocked you. */}
+      {isBlocked && !isClosed && (
+        <View style={[styles.closedBanner, { backgroundColor: colors.muted }]}>
+          <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center" }}>
+            {t("chat.block.messagingUnavailable")}
           </Text>
         </View>
       )}
