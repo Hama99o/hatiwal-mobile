@@ -84,9 +84,28 @@ env:
 # No lifecycle button remains (sold is terminal)
 - assertNotVisible: "Reserve"
 - assertNotVisible: "Mark Sold"
-# Conversation is now closed — input is disabled
-- assertNotVisible: "Type a message..."
-- assertVisible: "This conversation is closed."
+# The thread STAYS USABLE after the sale, and that is deliberate.
+#
+# These two lines used to assert the opposite — no composer, plus "This
+# conversation is closed." — and described a mechanism that was never built.
+# `Conversation#status` does have a `closed` value, but NOTHING writes it: no code
+# path in the API, no route (only mark_read/unread/archive/unarchive/destroy), and
+# 0 of 36 conversations in the seeded DB are closed. So `isClosed` is unreachable
+# and `chat.thread.closedNotice` is dead copy in all three locales.
+#
+# The implemented dead-end keys off the LISTING, not the conversation, and it
+# closes OFFERS rather than the chat: chat.thread.unavailable.soldBody reads "a new
+# offer can no longer be sent here", and reservedForYouBody says "Keep chatting
+# here to arrange…". That is the right call for a meetup marketplace — the handover
+# still has to be coordinated after the sale. See UI-047.
+#
+# Asserted positively so that removing the composer later fails HERE, loudly,
+# instead of quietly changing what a seller can do after a sale.
+- assertVisible: "Type a message..."
+#
+# The buyer-facing "Item sold" recovery notice is NOT asserted here: Conversation.tsx
+# renders ListingUnavailableNotice behind `!isOwner`, and this half of the flow is
+# the seller. maestro/chat/reserved_sold_dead_end_notice.yaml covers the buyer view.
 
 # ─── Scenario 3: Buyer sees no Reserve / Mark Sold button ─────────────────────
 

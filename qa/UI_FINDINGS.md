@@ -2010,3 +2010,52 @@ a *new* condition is added server-side. Positive-controlled: the pre-fix `canSen
 line fails it.
 
 **Status:** fixed. ps/fa copy is mine and wants a native-speaker check.
+
+---
+
+## UI-047 — the "closed conversation" state is modelled everywhere and reachable nowhere
+
+**Found by:** `chat/lifecycle_from_chat`, asserting that a sale closes the thread.
+
+**The state exists in four places:**
+
+| Layer | What it says |
+|---|---|
+| `hatiwal-api` | `enum :status, { open: 0, closed: 1 }` on `Conversation` |
+| `ConversationPolicy` | `send_message?` requires `record.open?` |
+| Mobile | `isClosed`, a `canSend` gate, and a `closedBanner` render branch |
+| Locales | `chat.thread.closedNotice` in **en, ps and fa** |
+
+**Nothing reaches it.** No code path writes `status: closed` — I grepped `app/` and
+`lib/` for every spelling. No route exposes it (`conversations` offers only
+`mark_read`, `mark_unread`, `archive`, `unarchive`, `destroy`). And the seeded DB
+has **0 closed conversations out of 36**. So `isClosed` is permanently false, the
+banner never renders, and the policy's `record.open?` is always true.
+
+**This is the second instance of the pattern today.** UI-046 was the same shape: a
+string translated into three locales for a UI branch nobody wired up. Worth
+watching for — translated-but-unreferenced copy is a cheap signal that a designed
+state was dropped, and `grep -rn 'key' src/ | grep -v locales` finds it in seconds.
+
+**The design did not want this state anyway.** The implemented dead-end keys off the
+**listing**, not the conversation, and closes *offers* rather than the chat:
+`chat.thread.unavailable.soldBody` is "This item has been sold, so a new offer can
+no longer be sent here", and `reservedForYouBody` says "Keep chatting here to
+arrange…". That is right for a meetup marketplace — the handover still needs
+coordinating after the sale. `ListingUnavailableNotice` implements it, buyer-side
+only (`!isOwner`).
+
+**Recommendation: delete the dead branch rather than implement it.** The enum value,
+the policy condition, the `isClosed` gate, the banner and the three locale strings
+are all cost with no behaviour. If a manual "close this conversation" feature is
+actually wanted, that is a product decision and a backlog item — not something to
+infer from leftover scaffolding.
+
+**Not doing it here:** removing an enum value touches a migration and the policy,
+and `send_message?` has a contract test pinned to its current shape
+(`sendGate.contract.test.ts`). It wants its own change, not a drive-by during a QA
+sweep.
+
+**Flow corrected** to assert what the app actually does — the composer *stays* after
+a sale — so that removing it later fails loudly instead of silently changing what a
+seller can do.
