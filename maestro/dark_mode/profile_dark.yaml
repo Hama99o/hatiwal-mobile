@@ -39,12 +39,26 @@ appId: com.hatiwal.app
 # "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
 # stats, quick actions and settings rows — so it needs a scroll. `tapOn` and
 # `assertVisible` do not scroll to their target.
+# CHECKPOINT before the scroll. In run-250 this step failed with "No visible element
+# found: Sign Out" while the screenshot showed the BAZAAR FEED in dark mode — the tab
+# navigator keeps the profile mounted, so the row was in the hierarchy and simply not
+# on screen. The app had left the profile screen with no crash and no relaunch (two
+# launches in the logcat, both from this flow's own start; the only kill is Maestro's
+# own driver at the end). What navigated it is not established: the root layout's
+# `ready` gate is one-way so a theme change cannot remount the Stack, and the
+# mode-switch button sits far above the scroll's path.
+# So: assert a profile-only element first. If the app has been bounced elsewhere, the
+# failure says so here instead of blaming a row that was never missing.
+- assertVisible: "Appearance"
+# By testID, which the row carries specifically so the login helpers can reach it in
+# any language (Profile.tsx:1174) — the text form depends on the display locale.
 - scrollUntilVisible:
     element:
-      text: "Sign Out"
+      id: "sign-out-button"
     direction: DOWN
     timeout: 20000
-- assertVisible: "Sign Out"
+- assertVisible:
+    id: "sign-out-button"
 # Restore
 - tapOn:
     id: "theme-option-light"
