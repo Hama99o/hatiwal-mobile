@@ -1402,6 +1402,27 @@ THE RULE: keep "tomorrow" out of flow fixtures. `"Saturday 3pm"` is the
 substitute in use. If a flow genuinely needs the word, type it character by
 character.
 
+## Never edit a rig script while it is running
+
+Bash reads a script incrementally as it executes, so editing one mid-run shifts
+the bytes under the interpreter. I edited `qa/lib/doctor.sh` while a doctor run
+was in flight and got:
+
+    qa/lib/doctor.sh: line 96: robe: command not found
+    qa/lib/doctor.sh: line 110: syntax error near unexpected token `else'
+
+`bash -n` on the same file passed immediately afterwards — the file was fine, the
+*running* interpreter was not. Worse, the same run reported "device present but
+not finished booting" and "system server did not answer — emulator wedged", which
+sent me off to restart a healthy emulator. Those verdicts came from the mangled
+probe, not the device.
+
+THE RULE: the src/ rule above has a sibling. Do not edit `qa/**.sh` while a
+doctor run, a feature sweep or the fleet is in flight. Wait for it, or copy the
+script and edit the copy. If you see a "command not found" for a fragment of a
+word (`robe:`), or a syntax error in a file that `bash -n` accepts, that is this
+— discard the whole run's verdicts rather than acting on any of them.
+
 ## Editing app source while a run is in flight reloads the app
 
 This cost me a false app bug, a false UI finding, and an unnecessary patch to a
