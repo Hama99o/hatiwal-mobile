@@ -78,7 +78,9 @@ appId: com.hatiwal.app
 - back
 - waitForAnimationToEnd
 
-# The card overlay badge "-N%" should appear (e.g. "-15%")
-# after the focus-refetch fires with the updated price_drop_percent.
+# The card overlay badge is `listing.priceDrop.badgeCardShort` = "↓{{percent}}%" —
+# a DOWN ARROW, not a minus. Same wrong assumption as
+# listing_detail_price_drop_badge carried, in the same words ("-N%"), so both were
+# written from the same misreading.
 - assertVisible:
-    text: "-\\d+%"
+    text: "↓\\d+%"

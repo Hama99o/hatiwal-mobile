@@ -19,10 +19,13 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Happy path: a listing with a recent price drop shows the card badge (overlay)
-# The badge renders "-N%" text as a pill on the thumbnail corner.
-# Regex matches "-15%", "-5%", etc.
+# The CARD badge is `listing.priceDrop.badgeCardShort` = "↓{{percent}}%" — a DOWN
+# ARROW, not a minus sign. This asserted "-\d+%" (and said so in a comment), which
+# never matched. The DETAIL page uses a different key,
+# `listing.priceDrop.badge` = "{{percent}}% price drop", which this flow already
+# asserts correctly further down — so the two screens were half right.
 - assertVisible:
-    text: "-\\d+%"
+    text: "↓\\d+%"
 
 # Open a listing detail. THE STEP THAT OPENS ONE WAS MISSING: this flow tapped
 # "Contact Seller" — a DETAIL-screen button — while still on the Bazaar feed,
