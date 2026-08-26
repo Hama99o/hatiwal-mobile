@@ -26,15 +26,16 @@ appId: com.hatiwal.app
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
 # Try sending with empty offer
-- tapOn: "Send Offer"
-- waitForAnimationToEnd
+# Case 1 — EMPTY amount. parseOfferAmount rejects "" so Send Offer is disabled;
+# tapping it does nothing and no toast fires. Assert the guard itself.
+- assertVisible:
+    text: "Send Offer"
+    enabled: false
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
 # single check right after an action is a race — and any wait in front of it
 # loses that race, turning a successful action red. Polling keeps the check at
 # full strength while removing the timing dependency.
-- extendedWaitUntil:
-    visible: "Enter a valid amount"
-    timeout: 15000
+- assertNotVisible: "Offer:.*"
 # Try with 0
 # By testID. "Your offer" is the LABEL above the field (listing.detail.yourOffer,
 # OfferSheet.tsx:220), not the field — tapping it focuses nothing, so the amount
@@ -48,12 +49,46 @@ appId: com.hatiwal.app
     id: "offer-amount-input"
 - eraseText
 - inputText: "0"
-- tapOn: "Send Offer"
+- waitForAnimationToEnd
+# The app PREVENTS an invalid offer rather than erroring after the fact, and that
+# is better than what this flow used to assert. parseOfferAmount requires
+# `amount > 0`, so "0" yields null, isAmountValid is false, and OfferSheet renders
+# `disabled={isBusy || !isAmountValid}` on Send Offer. Tapping a disabled button
+# does nothing, no toast is raised, and the old expectation
+# ("Enter a valid amount") could never pass through this path.
+#
+# That toast is not dead copy — ListingDetail.tsx:326 and Conversation.tsx:671/896
+# raise it as a second line of defence if an invalid amount ever reaches them.
+# It is simply unreachable from the sheet, which is the point.
+#
+# So assert the real guard: the button is present and NOT enabled.
+- assertVisible:
+    text: "Send Offer"
+    enabled: false
+# And nothing was sent: no offer bubble in the thread.
+- assertNotVisible: "Offer:.*"
+# Try with 0
+# By testID. "Your offer" is the LABEL above the field (listing.detail.yourOffer,
+# OfferSheet.tsx:220), not the field — tapping it focuses nothing, so the amount
+# went nowhere and "Send Offer" submitted an empty offer. The field is
+# `offer-amount-input`.
+#
+# My earlier sweep for this exact bug missed both of these flows: I grepped for
+# "Your Offer" with a capital O (the CHAT BUBBLE string) and these use the sheet's
+# lowercase "Your offer". Two strings one character apart, different components.
+- tapOn:
+    id: "offer-amount-input"
+- eraseText
+# Case 3 — NON-NUMERIC. This case used to type "0" again, duplicating case 2 and
+# expecting the same unreachable toast. parseOfferAmount rejects anything Number()
+# cannot turn into a finite value > 0, so cover that arm instead.
+- inputText: "abc"
 - waitForAnimationToEnd
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
 # single check right after an action is a race — and any wait in front of it
 # loses that race, turning a successful action red. Polling keeps the check at
 # full strength while removing the timing dependency.
-- extendedWaitUntil:
-    visible: "Enter a valid amount"
-    timeout: 15000
+- assertVisible:
+    text: "Send Offer"
+    enabled: false
+- assertNotVisible: "Offer:.*"
