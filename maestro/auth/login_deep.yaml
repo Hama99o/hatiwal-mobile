@@ -90,6 +90,11 @@ appId: com.hatiwal.app
 # re-fetches the JS bundle, and a bare assert can fire before the first screen
 # has rendered at all. guest_browse failed exactly that way after passing minutes
 # earlier — neither screen was up yet.
+# Signing out lands on the BAZAAR, not the login screen — guest browsing is a
+# supported state, which is exactly what logout.yaml asserts ("Bazaar") right
+# after its own sign-out. Waiting for the login subtitle here waited 60s for a
+# screen the app had no reason to show. Navigate there explicitly.
+- runFlow: ../_helpers/goto_login.yaml
 - extendedWaitUntil:
     visible: "Buy and sell locally in Afghanistan"
     timeout: 60000
