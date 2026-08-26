@@ -26,14 +26,17 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Opens a new listing detail — verify we're on a detail screen
 - assertVisible: "Contact Seller"
-# "Description" is a section heading further down the page — on arrival the hero
-# occupies the top of the screen (60% of it on a tablet), so it needs a scroll.
+# Scroll to the SELLER section, not Description. Description is conditional —
+# `{listing.description ? ...}` — and 3 of 54 active listings have none, one of
+# them "Marketplace Cycle Phone", which full_marketplace_cycle creates without a
+# description. So this flow, which taps an ARBITRARY similar listing, failed
+# whenever it happened to land on one. The seller block is unconditional: every
+# listing has an owner.
 - scrollUntilVisible:
     element:
-      text: "Description"
+      text: "Seller"
     direction: DOWN
-    timeout: 20000
-# Back returns to original listing detail
+    timeout: 15000
 - back
 - waitForAnimationToEnd
 - assertVisible: "Similar Listings"
@@ -42,6 +45,11 @@ appId: com.hatiwal.app
 # (only present when the seller has other active listings; hidden otherwise)
 - scroll
 - waitForAnimationToEnd
-- assertVisible:
-    text: "More from this Seller"
-    optional: true
+# NOT `optional: true` on an assertVisible — that can never fail, so it asserted
+# nothing. "More from this Seller" only renders when the seller has other active
+# listings, so express that as a conditional check instead of a toothless one.
+- runFlow:
+    when:
+      visible: "More from this Seller"
+    commands:
+      - assertVisible: "More from this Seller"
