@@ -22,8 +22,14 @@ appId: com.hatiwal.app
 # Send offer
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
-# `chat.offer.yourOffer` = "Your Offer"; there is no "Offer Amount" label.
-- tapOn: "Your Offer"
+# By testID, like offer_send_and_accept — the only offer flow that passed.
+# The sheet's label is `listing.detail.yourOffer` = "Your offer", lowercase o.
+# "Your Offer" with a capital O is `chat.offer.yourOffer`, which MessageBubble
+# renders on the bubble IN THE THREAD after sending. Maestro text matching is a
+# case-sensitive anchored regex, so tapping "Your Offer" here missed by exactly
+# one character and reported "Element not found: Your Offer" with the sheet open.
+- tapOn:
+    id: "offer-amount-input"
 - inputText: "8000"
 - tapOn: "Send Offer"
 - waitForAnimationToEnd
