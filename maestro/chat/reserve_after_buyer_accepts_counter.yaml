@@ -49,12 +49,25 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Toyota Corolla 2016 Automatic"
-    direction: DOWN
-    timeout: 8000
-- tapOn: "Toyota Corolla 2016 Automatic"
+# Search rather than scroll. The listing is active and seller-owned (id 729), but it
+# is OLDER than the other fixtures, so on a recency-sorted feed it sits well down a
+# list that paginates as you go — and an 8s scroll budget ran out before reaching it
+# ("No visible element found", i.e. present in the tree, never brought on screen).
+# Searching does not depend on feed position, page size or how loaded the host is.
+- tapOn:
+    id: "browse-search-input"
+- inputText: "Toyota Corolla"
+- waitForAnimationToEnd
+# By CARD testID, not by title: the title is now sitting in the search box, which is
+# higher in the hierarchy than the results, so an anchored text match lands on the
+# input and the tap never opens anything.
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- tapOn:
+    id: "listing-card"
+    index: 0
 - waitForAnimationToEnd
 
 - tapOn: "Make an Offer"
