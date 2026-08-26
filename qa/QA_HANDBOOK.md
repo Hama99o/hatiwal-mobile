@@ -1365,6 +1365,46 @@ dismissal, which is what the meetup flows do.
 An audit for the same shape — `hideKeyboard` within a dozen lines of a sheet
 input or a sheet button — found exactly one instance, this one. Fixed.
 
+### Second amendment: it pops a PUSHED SCREEN too, not just a Modal
+
+`send_message_offline` types into the composer, calls `hideKeyboard`, taps "Send",
+and fails with `Element not found: Text matching regex: Send`. The conversation is
+not a Modal — it is a pushed route — so the Modal rule above does not cover it.
+
+The differential is what makes this conclusive rather than plausible. **Nine flows
+tap "Send"; exactly one dismisses the keyboard first, and exactly one fails that
+way.** `send_message`, `delete_message` and `send_message_double_tap` all tap the
+same control with the keyboard up and pass. Nothing is hidden by the keyboard
+anyway: `Conversation.tsx` anchors the bottom bar to the keyboard's top edge instead
+of letting it overlap.
+
+**Why it is safe in the many places that do use it.** Almost every remaining
+`hideKeyboard` sits on the LOGIN screen before "Sign In", and hundreds of passing
+logins prove it fine there. The consistent reading: Android's Back closes the IME
+*when the IME is up*, and only reaches the screen when it is not. So the danger is
+not `hideKeyboard` itself — it is calling it when the IME may already be gone. After
+`inputText` on a screen you cannot afford to leave, that is a coin toss.
+
+**Rule:** do not call `hideKeyboard` on a screen or sheet whose dismissal would
+break the rest of the flow. Prefer tapping the submit control directly — with the
+keyboard up, by testID.
+
+**Five latent sites**, all on pushed screens or sheets, none of which has ever
+executed, so none is yet evidence:
+
+| Flow | Next step after `hideKeyboard` |
+|---|---|
+| `listings/price_drop_after_edit` | `tapOn: "Save"` (edit form) |
+| `report/report_listing` | `tapOn: "Submit Report"` (sheet) |
+| `seller/publish_success` | `tapOn: "Save"` |
+| `seller/multi_quantity_partial_sale` | asserts `buyer-picker-quantity` (sheet) |
+| `listings/create_listing_with_condition` | `tapOn: "Condition Test Laptop"` |
+
+Deliberately NOT pre-emptively edited. Removing `hideKeyboard` where the IME really
+does cover the target would break a flow that currently works, and none of these has
+run. When one fails on a missing control right after a `hideKeyboard`, this is the
+first thing to check — and the fix is a one-line deletion.
+
 ### Superseded: the earlier "could not reproduce" note
 
 I first read the meetup family's failures as proof that `hideKeyboard` is unsafe
