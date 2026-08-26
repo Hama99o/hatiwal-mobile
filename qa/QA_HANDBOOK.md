@@ -1451,7 +1451,29 @@ perfectly with `Refreshing…` across the top — the only edits in flight were 
 YAML and one markdown file, and I came close to "fixing" a healthy flow.
 
 metro.config.js now blockLists `maestro/` and `qa/`, which SHOULD stop rig
-edits from reaching the watcher. That is unverified — it needs a sweep where rig
+edits from reaching the watcher.
+
+### Three ways NOT to detect a mid-run reload
+
+I tried to verify the blockList and failed three times. Each probe returned a
+clean "no reload" for rig edits — and the same clean answer for a `src/` edit,
+which MUST reload. A probe that cannot see the positive control is not evidence,
+so none of these results count. Do not repeat them:
+
+| probe | why it is blind |
+|---|---|
+| grep the UI hierarchy for `Refreshing…` / `Loading from` | the banner is transient; sampling 18s later always misses it |
+| logcat for the i18next startup line | Fast Refresh keeps the JS context, so it only logs on a COLD start |
+| Metro's container log for `Bundling`/`update` | this Metro runs `--clear --offline --go` and prints nothing after boot |
+
+The one signal that DID work, by accident: after a `src/` edit mid-flow the
+screencap showed the app on the ONBOARDING first slide — its initial route. A
+reload resets navigation, and landing somewhere the flow never navigated to is
+the tell. It is noisy (flows navigate constantly) but onboarding specifically is
+strong, because no logged-in flow goes there.
+
+Until someone verifies the exclusion with a probe that passes its own control,
+assume the rule: stop the sweep before editing anything in the project. That is unverified — it needs a sweep where rig
 files are edited and no flow shows `Refreshing…`. Until then, assume the rule. If an
 app fix cannot wait, stop the run first, then edit, then re-run the affected
 flows. Same family of constraint as "never build the APK while the emulator
