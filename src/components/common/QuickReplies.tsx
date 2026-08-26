@@ -90,7 +90,11 @@ export function QuickReplies({ role, onSelect }: QuickRepliesProps) {
           paddingHorizontal: 10,
           paddingVertical: 8,
           gap: 8,
-          flexDirection: isRtl ? "row-reverse" : "row",
+          // A horizontal scroller is ALREADY laid out right-to-left when
+          // I18nManager.isRTL, so reversing its content container on top of that
+          // flips it back: the first item lands at the far edge while the scroller
+          // opens scrolled the other way. Same defect as CategoryChipRow (the
+          // category chips the user reported as clipped at the border).
           alignItems: "center",
         }}
       >

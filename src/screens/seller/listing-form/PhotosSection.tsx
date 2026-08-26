@@ -355,7 +355,11 @@ export function PhotosSection({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[
           styles.strip,
-          { flexDirection: isRtl ? "row-reverse" : "row" },
+          // A horizontal scroller is ALREADY laid out right-to-left when
+          // I18nManager.isRTL, so reversing its content container on top of that
+          // flips it back: the first item lands at the far edge while the scroller
+          // opens scrolled the other way. Same defect as CategoryChipRow (the
+          // category chips the user reported as clipped at the border).
         ]}
       >
         {photos.map((photo, index) => {
