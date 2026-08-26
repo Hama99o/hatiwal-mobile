@@ -6,6 +6,13 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
+# CHECKPOINT: the tab BAR is visible on every tab, so waiting for `profile-tab` proves
+# nothing about which screen is showing. "Edit Profile" is profile-only. Without this,
+# a tap that did not register left the flow scrolling the Bazaar feed for a theme pill
+# and blaming the pill 20s later — see UI-048.
+- extendedWaitUntil:
+    visible: "Edit Profile"
+    timeout: 20000
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
 # description, views chart, action row) are taller than a phone.
@@ -56,6 +63,13 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
+# CHECKPOINT: the tab BAR is visible on every tab, so waiting for `profile-tab` proves
+# nothing about which screen is showing. "Edit Profile" is profile-only. Without this,
+# a tap that did not register left the flow scrolling the Bazaar feed for a theme pill
+# and blaming the pill 20s later — see UI-048.
+- extendedWaitUntil:
+    visible: "Edit Profile"
+    timeout: 20000
 
 # Restart and verify still dark
 - launchApp:
@@ -73,6 +87,13 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
+# CHECKPOINT: the tab BAR is visible on every tab, so waiting for `profile-tab` proves
+# nothing about which screen is showing. "Edit Profile" is profile-only. Without this,
+# a tap that did not register left the flow scrolling the Bazaar feed for a theme pill
+# and blaming the pill 20s later — see UI-048.
+- extendedWaitUntil:
+    visible: "Edit Profile"
+    timeout: 20000
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
 # description, views chart, action row) are taller than a phone.

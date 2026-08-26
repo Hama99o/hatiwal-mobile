@@ -2197,3 +2197,39 @@ every later flow that needs it browsable. Two do it as their own setup
 (`reviews/rate_buyer_after_sale`, and the reserved half of the dead-end family). The
 durable fix is for such flows to use a listing whose status no one else depends on —
 the `DISPOSABLE_LISTINGS` pattern — rather than a shared seeded fixture.
+
+---
+
+### UI-048 · OPEN — two dark_mode flows ended on the Bazaar feed mid-flow
+
+**Occurrences (both run-250):** `profile_dark` failed on `"Sign Out"`;
+`theme_persists_after_navigate` failed on `id: theme-option-dark`. In both, the
+failure-time screenshot shows the **Bazaar feed in dark mode**, and in the second the
+per-step screenshot at the failing `scrollUntilVisible` shows the same. The tab
+navigator keeps the profile mounted, so the target was in the hierarchy and merely
+off-screen — which is why both read as missing rows rather than a lost screen.
+
+**Ruled out, with evidence:**
+
+| Hypothesis | Why not |
+|---|---|
+| App crashed / restarted | Two launches in the logcat, both from the flow's own opening; the only kill is Maestro's driver after the flow ended. No FATAL EXCEPTION. |
+| Theme change remounts the navigator | `app/_layout.tsx` gates the Stack on `ready` — three one-way flags set in mount effects. A theme change cannot flip it back. |
+| Dark mode is broken generally | `browse_dark`, `chat_dark`, `listing_detail_dark`, `my_listings_dark`, `saved_tab_dark` all pass, and they switch theme the same way. |
+| The mode-switch button was hit | It renders at `Profile.tsx:736`, far above the path the scroll was travelling. |
+| A `profile-tab` tap that never registered | Fits `theme_persists`, but NOT `profile_dark`, which asserted "Edit Profile" and "Switch to …" on the profile screen first. |
+
+**What both share:** a `scrollUntilVisible` on the profile screen that never found its
+target, with ~20s of centre-screen swipes before giving up, and the app on Bazaar by
+the end. Whether the swiping causes the navigation or merely coincides with it is not
+established, and I am not guessing further without a device to watch.
+
+**Both flows now checkpoint instead.** `profile_dark` asserts "Appearance" before its
+scroll; `theme_persists_after_navigate` waits for "Edit Profile" after each
+`profile-tab` tap — the tab BAR is visible on every tab, so waiting for `profile-tab`
+itself proved nothing about which screen was showing. A repeat now fails naming the
+lost screen, at the step that lost it.
+
+**Next step when a device is free:** re-run both with the recording on. If the
+checkpoint fails, the screen is lost before the scroll; if the scroll still fails with
+the checkpoint green, the swiping is implicated and it belongs in the app, not the flow.
