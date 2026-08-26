@@ -15,7 +15,9 @@ appId: com.hatiwal.app
 # a later step opens the picker again.
 - runFlow: ../_helpers/open_language_picker.yaml
 - assertVisible: "English"
+# lint: anchored-ok — SUPPORTED_LANGUAGES label from src/i18n/index.ts, rendered bare by LanguageSwitcher
 - assertVisible: "پښتو"
+# lint: anchored-ok — SUPPORTED_LANGUAGES label from src/i18n/index.ts, rendered bare by LanguageSwitcher
 - assertVisible: "دری"
 
 # Switch to Pashto

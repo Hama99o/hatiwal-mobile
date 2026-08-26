@@ -53,6 +53,7 @@ appId: com.hatiwal.app
     text: "Done"
     optional: true
 - tapOn:
+    # lint: anchored-ok — Android's own gallery button, matched exactly; the collision with our "Select Category" is coincidence
     text: "Select"
     optional: true
 - waitForAnimationToEnd

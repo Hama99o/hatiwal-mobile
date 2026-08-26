@@ -63,10 +63,12 @@ appId: com.hatiwal.app
 - assertVisible:
     id: "unavailable-see-similar"
     label: "Primary 'See similar in {category}' CTA visible"
-- assertVisible:
-    id: "unavailable-more-from-seller"
-    optional: true
-    label: "Secondary 'More from {seller}' CTA — omitted only if this seller has no other active listings"
+# Deliberately NOT asserted here. The "More from {seller}" CTA is genuinely
+# omitted when this seller has no other active listings, so it cannot be a hard
+# assert — but `optional: true` on an assert means it can never fail either, so
+# what stood here recorded an intention rather than checking anything.
+# The real check is the `when:` block at the end of this flow: if the CTA is
+# present it must navigate to the seller's profile.
 
 # Sold is final — the reserved-only "may free up" line must NOT appear here.
 - assertNotVisible:
@@ -107,10 +109,12 @@ appId: com.hatiwal.app
 - assertVisible:
     id: "unavailable-see-similar"
     label: "Primary 'See similar in {category}' CTA visible for the reserved fixture too"
-- assertVisible:
-    id: "unavailable-more-from-seller"
-    optional: true
-    label: "Secondary CTA — omitted only if this seller has no other active listings"
+# Deliberately NOT asserted here. The "More from {seller}" CTA is genuinely
+# omitted when this seller has no other active listings, so it cannot be a hard
+# assert — but `optional: true` on an assert means it can never fail either, so
+# what stood here recorded an intention rather than checking anything.
+# The real check is the `when:` block at the end of this flow: if the CTA is
+# present it must navigate to the seller's profile.
 
 # Tapping "More from {seller}" lands on that seller's public profile.
 #

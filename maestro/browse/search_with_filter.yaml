@@ -10,6 +10,7 @@ appId: com.hatiwal.app
 - tapOn: "Search listings..."
 - inputText: "phone"
 - waitForAnimationToEnd
+# lint: anchored-ok — the query typed into the search box, whose node text IS exactly this
 - assertVisible: "phone"
 # Now apply a condition filter on top of the search
 # NOT "Filter" (`common.filter`, a dead key). The control renders "Filters", and
@@ -23,6 +24,7 @@ appId: com.hatiwal.app
 - tapOn: "Show results"
 - waitForAnimationToEnd
 # Both search term and condition filter are active
+# lint: anchored-ok — the query typed into the search box, whose node text IS exactly this
 - assertVisible: "phone"
 # The CONDITION does not appear on the feed. Only the category renders as a
 # removable chip there; condition lives inside the filter sheet. What the feed
@@ -40,6 +42,7 @@ appId: com.hatiwal.app
 - tapOn: "Show results"
 - waitForAnimationToEnd
 # Search survives on its own: one filter left, and the term still in the box.
+# lint: anchored-ok — the query typed into the search box, whose node text IS exactly this
 - assertVisible: "phone"
 - assertVisible: ".*1 filter active.*"
 # Clear search — back to full browse

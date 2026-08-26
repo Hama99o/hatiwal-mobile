@@ -46,6 +46,9 @@ appId: com.hatiwal.app
 # The toast is transient AND its copy is `chat.block.blockSuccess` = "User
 # blocked." WITH A PERIOD — Maestro anchors the whole string, so the bare
 # "User blocked" never matched it. Optional, with the period covered.
+  # lint: optional-ok — a toast, and it may have faded before this step
+  # runs. The durable check follows: the flow waits on the state the
+  # block actually produced, which cannot race.
 - assertVisible:
     text: "User blocked.*"
     optional: true
@@ -64,6 +67,9 @@ appId: com.hatiwal.app
     id: "block-user-button"
 - waitForAnimationToEnd
 # Same again: `chat.block.unblockSuccess` is "User unblocked." with a period.
+  # lint: optional-ok — a toast, and it may have faded before this step
+  # runs. The durable check follows: the flow waits on the state the
+  # unblock actually produced, which cannot race.
 - assertVisible:
     text: "User unblocked.*"
     optional: true

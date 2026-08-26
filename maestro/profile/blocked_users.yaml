@@ -122,6 +122,9 @@ appId: com.hatiwal.app
 # Transient toast, kept optional. There is no "Block User" action on the Blocked
 # Users management screen, so the durable proof here is the row leaving the
 # list — which the steps below already assert.
+  # lint: optional-ok — a toast, and it may have faded before this step
+  # runs. The durable check follows: the flow waits on the state the
+  # unblock actually produced, which cannot race.
 - assertVisible:
     text: "User unblocked"
     optional: true

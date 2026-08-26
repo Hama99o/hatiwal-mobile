@@ -59,6 +59,7 @@ appId: com.hatiwal.app
     text: "While using the app"
     optional: true
 - tapOn:
+    # lint: anchored-ok — Android's permission-dialog button, matched exactly
     text: "Allow"
     optional: true
 - tapOn:

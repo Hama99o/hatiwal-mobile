@@ -1,69 +1,90 @@
 appId: com.hatiwal.app
 ---
-# View mode toggle: grid/list switch persists across sessions
-
+# Grid ↔ list toggle on the Bazaar feed, plus search on top of each mode.
+#
+# THIS FLOW USED TO BE UNABLE TO FAIL. Every tap carried `optional: true`, and the
+# only assertion between them was "Bazaar" — the tab label, which is on screen
+# throughout. So it reported a pass whether or not the toggle did anything: a
+# silent no-op and a working toggle were indistinguishable.
+#
+# The two toggle buttons are unconditional in BrowseHeader.tsx (no `&&`, no
+# ternary), so asserting them is safe as a hard requirement. Taps go by testID
+# rather than "Grid view" / "List view": those strings are accessibilityLabels, not
+# rendered text, and while Maestro does match content-desc on Android, a testID
+# does not depend on that behaviour or on the display language.
 - runFlow: ../_helpers/login.yaml
 
-# ── 1. Start in grid mode (default) ─────────────────────────────────────────
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
 
-# Grid mode button should be visible (accessibility label "Grid view")
+# ── Both toggle controls are present ─────────────────────
 - assertVisible:
     id: "browse-view-grid"
-    optional: true
+- assertVisible:
+    id: "browse-view-list"
 
-# ── 2. Switch to list mode ────────────────────────────────────────────────────
+# ── Switch to list, and require the feed to survive it ───
 - tapOn:
-    text: "List view"
-    optional: true
-
+    id: "browse-view-list"
 - waitForAnimationToEnd
+# The card testID is shared by both variants (ListingCard.tsx renders it in each),
+# so this cannot prove WHICH layout is showing — but it does prove the switch
+# re-rendered a feed instead of a blank screen, which is what the old version could
+# not tell you either way.
+- assertVisible:
+    id: "listing-card"
+- assertVisible:
+    id: "browse-view-grid"
 
-# After switching to list mode, listings should still be visible
-- assertVisible: "Bazaar"
-
-# ── 3. Switch back to grid mode ───────────────────────────────────────────────
+# ── Back to grid ────────────────────────────
 - tapOn:
-    text: "Grid view"
-    optional: true
-
+    id: "browse-view-grid"
 - waitForAnimationToEnd
+- assertVisible:
+    id: "listing-card"
 
-# Grid layout should be restored
-- assertVisible: "Bazaar"
-
-# ── 4. Search still works in list mode ───────────────────────────────────────
+# ── Search while in grid mode ───────────────────────
 - tapOn:
-    text: "List view"
-    optional: true
-
-- waitForAnimationToEnd
-
-- tapOn:
-    text: "Search listings..."
-    optional: true
-
+    id: "browse-search-input"
 - inputText: "laptop"
 - waitForAnimationToEnd
+# The query itself, asserted from the input — anchored match, and the box holds
+# exactly this.
+- assertVisible: "laptop"
+- assertVisible:
+    id: "browse-view-grid"
 
-# Results should appear in list mode
-- assertVisible: "Bazaar"
-
-# Clear search
+# ── Clear it ─────────────────────────────
 - tapOn:
-# The clear (X) inside the Browse search bar. It had no handle at all until
-    # BrowseHeader passed SearchBar's clearTestID.
     id: "browse-search-clear"
-    optional: true
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
 
-# ── 5. Empty state still works in list mode ───────────────────────────────────
+# ── A query with no matches shows the empty state ──────────
 - tapOn:
-    text: "Search listings..."
-    optional: true
-
+    id: "browse-search-input"
 - inputText: "xyznonexistentitem12345"
 - waitForAnimationToEnd
+# browse.noResults. The old flow searched for this and then asserted "Bazaar",
+# which is true on every screen — so it never checked the empty state at all.
+- extendedWaitUntil:
+    visible: "No listings found"
+    timeout: 20000
+- assertNotVisible:
+    id: "listing-card"
 
-# Empty state should show — not a crash
-- assertVisible: "Bazaar"
+# ── And recovers ────────────────────────────
+- tapOn:
+    id: "browse-search-clear"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000

@@ -32,7 +32,9 @@ Reports only. Every hit needs a human read. From the first full pass, 21 hits �
     ("پښتو"), defined in src/i18n/index.ts, not in the locale JSON. Flagged against
     an unrelated "Pashto (پښتو)" string.
 
-So ANCHORED is a prompt to check, not a verdict. TOOTHLESS and JSFUNC have no false
+So ANCHORED is a prompt to check, not a verdict. A site checked and found benign
+gets `# lint: anchored-ok — <reason>`, the same way TOOTHLESS has optional-ok, so
+this report converges to zero and a genuine new hit is not buried under known ones. TOOTHLESS and JSFUNC have no false
 positives by construction: an optional assert cannot fail, and a function that does
 not exist cannot evaluate. But a TOOTHLESS hit still needs a judgment call about the
 remedy — some optionals are legitimate (a system permission dialog that may not
@@ -70,9 +72,23 @@ def check(path):
         if l.startswith("#"): continue
 
         if re.match(r'-?\s*optional:\s*true', l):
-            ctx = " ".join(x.strip() for x in lines[max(0, i-4):i])
-            if "assert" in ctx:
-                hits.append((i, "TOOTHLESS", "optional assert cannot fail"))
+            # Walk back to the ENCLOSING command, not a fixed window. A 4-line
+            # lookback reported optional TAPS as toothless asserts whenever an
+            # assert happened to sit above them (send_photo, filter_map_location_
+            # denied) — an optional tap on a system dialog that may not appear is
+            # legitimate, an optional assert is not.
+            owner = None
+            for k in range(i - 2, -1, -1):
+                if re.match(r'\s*-\s+\w', lines[k]):
+                    owner = lines[k].strip().lstrip("- ").rstrip(":")
+                    break
+            # An optional assert can be the right call — a toast that may have
+            # faded, where the flow checks the durable state right after. Mark
+            # those `# lint: optional-ok — <reason>` so this report converges to
+            # zero and a NEW toothless assert actually stands out.
+            near = " ".join(lines[max(0, i - 6):min(len(lines), i + 2)])
+            if owner and owner.startswith("assert") and "lint: optional-ok" not in near:
+                hits.append((i, "TOOTHLESS", f"optional {owner} cannot fail"))
 
         if re.search(r'\$\{[^}]*\b(visible|selectorExists|exists)\s*\(', l):
             hits.append((i, "JSFUNC", "no such function in Maestro's JS sandbox"))
@@ -86,7 +102,8 @@ def check(path):
             elif is_plain(lit) and len(lit) > 2:
                 exact = any(s == lit for s in STR)
                 sub = [s for s in STR if lit in s and s != lit]
-                if not exact and sub:
+                near = " ".join(lines[max(0, i - 5):min(len(lines), i + 2)])
+                if not exact and sub and "lint: anchored-ok" not in near:
                     hits.append((i, "ANCHORED",
                                  f'{lit!r} is a substring of {sub[0][:44]!r}'))
     return hits

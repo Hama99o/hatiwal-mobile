@@ -148,6 +148,7 @@ appId: com.hatiwal.app
     timeout: 10000
     optional: true
 - tapOn:
+    # lint: anchored-ok — the Expo dev-client button, matched exactly, not our "Continue with Google"
     text: "Continue"
     optional: true
 - waitForAnimationToEnd
@@ -230,6 +231,7 @@ appId: com.hatiwal.app
       # qa/UI_FINDINGS.md (UI-007), not swept away. The classifier still flags
       # red boxes that appear during the flow body itself.
       - tapOn:
+          # lint: anchored-ok — the dev-client error overlay's button, not our "Dismissed" status
           text: "Dismiss"
           optional: true
       - waitForAnimationToEnd

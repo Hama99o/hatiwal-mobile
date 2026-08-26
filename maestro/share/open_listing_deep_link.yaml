@@ -50,9 +50,11 @@ appId: com.hatiwal.app
     label: "Listing detail seller card visible after deep link"
 
 # Verify the more-options button (share button) is visible (overlay row)
+# Hard, not optional. more-options-button is unconditional in ListingDetail.tsx
+# and ten other flows tap it as a hard requirement — only this one assert treated it
+# as maybe-there, and an optional assert cannot fail, so it added nothing.
 - assertVisible:
     id: "more-options-button"
-    optional: true
 
 # Warm-start scenario: app is already running, open a different listing
 - openLink: "hatiwal://listing/${LISTING_ID}"

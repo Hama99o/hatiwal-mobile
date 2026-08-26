@@ -51,4 +51,5 @@ appId: com.hatiwal.app
 - tapOn: "Close"
 - waitForAnimationToEnd
 - assertVisible: "Propose a Meetup"
+# lint: anchored-ok — the value typed at line 40; this asserts the field survived the sheet, and would rightly fail if it were empty
 - assertVisible: "Shahr-e-Naw market"
