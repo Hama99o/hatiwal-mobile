@@ -125,4 +125,12 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn:
     id: "register-submit"
-- assertVisible: "Passwords do not match"
+# Wildcards for the BULLET. Register is the ONLY screen that bullets its errors
+# — `<Text>{"• "}{msg}</Text>` — so the node reads "• Passwords do not match" and
+# Maestro's anchored regex cannot match the bare literal. Same cause as
+# register_duplicate_email; my fix there was scoped to that one assertion.
+#
+# Checked the other validation assertions in the suite (Title/Location/First name
+# is required): those screens render plain inline errors with no bullet, so their
+# bare literals are correct and were left alone.
+- assertVisible: ".*Passwords do not match.*"
