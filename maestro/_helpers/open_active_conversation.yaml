@@ -47,13 +47,29 @@ appId: com.hatiwal.app
 
 # The row TRUNCATES the title ("Phone Case Si…"), and Maestro's text matching is
 # an anchored regex — so the full title never matches a row. Match the prefix.
-- scrollUntilVisible:
-    element:
-      text: "Phone Case.*"
-    direction: DOWN
-    timeout: 20000
+# SEARCH, don't scroll. Scrolling this list cost three runs:
+#   * a scroll gesture registered as a TAP, opened the wrong thread, and the
+#     scroll then hunted "Phone Case" INSIDE that thread until it timed out;
+#   * and the row is not reliably near the top — the seller's own listing
+#     conversations sorted above it, so a bounded scroll never reached it.
+# Filtering is deterministic: one row, no gestures, no ordering assumptions.
 - tapOn:
-    text: "Phone Case.*"
+    id: "conversations-search-bar"
+- inputText: "Phone Case"
+- waitForAnimationToEnd
+# No `hideKeyboard` — on Android that is BACK, and here it would leave the
+# screen. The filtered row sits above the keyboard, so it is tappable as is.
+- extendedWaitUntil:
+    visible: "Phone Case.*"
+    timeout: 10000
+# Tap the ROW, not the title text. The text I type into the search box is itself
+# "Phone Case", which matches `text: "Phone Case.*"` — so the tap landed on the
+# search field and the flow never left the list. That regressed three flows,
+# meetup_validation among them, which had been passing. Filtered to one result,
+# row 0 is the conversation.
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
 - waitForAnimationToEnd
 
 # The composer proves the listing is still active. If this fails, the fixture was

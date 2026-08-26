@@ -21,13 +21,24 @@ appId: com.hatiwal.app
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Phone Case.*"
-    direction: DOWN
-    timeout: 20000
+# Search rather than scroll: the seller has several conversations on their own
+# listings sorted above this one, so a bounded scroll does not reach it, and a
+# scroll gesture here has already registered as a tap and opened a wrong thread.
 - tapOn:
-    text: "Phone Case.*"
+    id: "conversations-search-bar"
+- inputText: "Phone Case"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Phone Case.*"
+    timeout: 10000
+# Tap the ROW, not the title text. The text I type into the search box is itself
+# "Phone Case", which matches `text: "Phone Case.*"` — so the tap landed on the
+# search field and the flow never left the list. That regressed three flows,
+# meetup_validation among them, which had been passing. Filtered to one result,
+# row 0 is the conversation.
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
 - waitForAnimationToEnd
 
 # Fail here, not on the button, if the proposal never arrived for the seller.
@@ -46,4 +57,13 @@ appId: com.hatiwal.app
     visible: "You accepted the meetup"
     timeout: 10000
 # Bubble outcome label (MessageBubble renders chat.meetup.accepted).
-- assertVisible: "Meetup accepted"
+# The outcome badge renders on the ORIGINAL proposal bubble, not on a new one
+# (MessageBubble shows it whenever `meetupOutcome` is set). Replying appends a
+# message and the thread sticks to the bottom, so the proposal — and its badge —
+# can sit above the fold: meetup_respond failed here on a badge that existed.
+# scrollUntilVisible returns straight away when it is already on screen.
+- scrollUntilVisible:
+    element:
+      text: "Meetup accepted"
+    direction: UP
+    timeout: 10000

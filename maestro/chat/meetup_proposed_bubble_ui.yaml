@@ -105,6 +105,12 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 - assertVisible: "Share Now Market"
-# `chat.meetup.accept` = "Accept".
-- assertVisible: "Accept"
-- assertVisible: "Decline"
+- assertVisible: "Saturday 4pm"
+# The PROPOSER must not be able to answer their own proposal. MessageBubble
+# renders the action row only when `!isMine && onMeetupRespond`, so from this
+# side there is no outcome badge and no buttons — just the details above. This
+# flow never switches identity, so asserting Accept/Decline VISIBLE (as it used
+# to) could never pass; asserting they are absent is the real invariant.
+# The responder's side is covered by meetup_respond / meetup_decline.
+- assertNotVisible: "Accept"
+- assertNotVisible: "Decline"

@@ -44,12 +44,22 @@ MEM_AVAIL=$(free -g | awk '/Mem:/{print $7}')
 # looks like an app failure. `qa.sh prune` clears old runs.
 DISK_FREE=$(df -BG --output=avail / 2>/dev/null | tail -1 | tr -dc '0-9')
 REPORTS_GB=$(du -sBG "$QA_DIR/reports" 2>/dev/null | cut -f1 | tr -dc '0-9')
+# `reports` is NOT the whole story, and reporting only it sent me looking in the
+# wrong place when the disk filled: Maestro keeps its own artifact tree per run
+# under ~/.maestro/tests (screenshots + a hierarchy dump per STEP), and Docker
+# holds unused images and volumes. When this last filled up, reports were ~2GB
+# while those two held ~14GB and ~38GB. Name them so the cleanup goes where the
+# space actually went.
+MAESTRO_GB=$(du -sBG "$HOME/.maestro/tests" 2>/dev/null | cut -f1 | tr -dc '0-9')
+DOCKER_GB=$(docker system df --format '{{.Reclaimable}}' 2>/dev/null \
+  | grep -oE '^[0-9]+' | paste -sd+ | bc 2>/dev/null)
 if [ "${DISK_FREE:-99}" -lt 8 ]; then
   BLOCK "only ${DISK_FREE}GB disk free — the emulator will die mid-flow. Run: ./qa/qa.sh prune"
 elif [ "${DISK_FREE:-99}" -lt 20 ]; then
-  warn "${DISK_FREE}GB disk free (reports hold ${REPORTS_GB:-?}GB) — consider ./qa/qa.sh prune"
+  warn "${DISK_FREE}GB disk free — reports ${REPORTS_GB:-?}GB, maestro artifacts ${MAESTRO_GB:-?}GB, docker reclaimable ${DOCKER_GB:-?}GB"
+  warn "  ./qa/qa.sh prune  |  rm -rf ~/.maestro/tests  |  docker builder prune -af"
 else
-  ok "${DISK_FREE}GB disk free (reports ${REPORTS_GB:-?}GB)"
+  ok "${DISK_FREE}GB disk free (reports ${REPORTS_GB:-?}GB, maestro ${MAESTRO_GB:-?}GB)"
 fi
 
 step "3/8 emulator"
