@@ -2168,7 +2168,32 @@ for a reason already fixed. One possibly-spurious failure against seventeen cert
 ones. Verified after: all three listings `active`/`browsable`, Xiaomi still sold, and
 the e2e accounts' reports and blocks cleared (RIG-004) as a side benefit.
 
-**Watch for the reverse.** Two flows sell a shared listing as their own setup
-(`reviews/rate_buyer_after_sale`, and the reserved half of the dead-end family). They
-are now repeatable, but a THIRD flow selling a shared fixture would still collide
-with them inside a single cycle — the seed only resets between cycles.
+**CORRECTION — the drift is per-CYCLE, not permanent.** I first wrote that these
+fixtures had drifted "for good" and that `rate_buyer_after_sale` could "only work
+once per database". Both overstate it. `qa/lib/common.sh:29` defaults `QA_SEED_CMD`
+to `rake db:seed:reset_e2e`, which **wipes the e2e accounts** and reseeds — and
+`forever.sh` runs it once per cycle. Destroying the users takes their listings with
+them, so every cycle starts from fresh fixtures. The proof was in front of me and I
+misread it: after seeding, buyer@hatiwal.test moved from id 171 to 176. The rows were
+not updated, they were **recreated**.
+
+What is actually true, and still worth fixing:
+
+* Drift persists for **the remainder of a cycle** — hours. A listing that an early
+  flow sells is missing from the feed for the 17 flows that scroll to it later, which
+  is exactly what was measured above.
+* Re-seeding mid-cycle was therefore the right call, and it is the whole fix for the
+  cycle in progress.
+* The `e2e_listing` status reset (`6eac4ad`) is **defensive, not load-bearing**: after
+  a wipe the fixture is missing, so the create branch runs and the reset never fires.
+  It earns its keep only when a wipe half-fails — a state the rake task's own comments
+  say it has hit — or if `QA_SEED_CMD` is ever emptied, which `qa/lib/seed.sh`
+  explicitly supports for a project with no local backend. Worth keeping for that,
+  not worth believing it fixed the 17 flows.
+
+**The real intra-cycle exposure remains.** Nothing resets a shared fixture between
+flows *within* a cycle, so a flow that sells or reserves a shared listing degrades
+every later flow that needs it browsable. Two do it as their own setup
+(`reviews/rate_buyer_after_sale`, and the reserved half of the dead-end family). The
+durable fix is for such flows to use a listing whose status no one else depends on —
+the `DISPOSABLE_LISTINGS` pattern — rather than a shared seeded fixture.
