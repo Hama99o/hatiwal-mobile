@@ -16,6 +16,9 @@ failure classes already paid for:
   JSFUNC     ${visible(...)} / ${selectorExists(...)} — not in Maestro 2.7.0's JS
              sandbox; raises TypeError and asserts nothing. The .log does not show
              it; only the .xml does.
+  SELFTYPED  A literal that is only PART of text the flow itself typed. Cost:
+             message_long_text asserted 27 characters of the 366-character message
+             it had just sent, so it could never pass.
   DATE       A hardcoded year. Fixtures are created at seed time, so any fixed
              year expires (found: "2024" in two flows, in 2026).
 
@@ -46,8 +49,15 @@ import json, re, sys, glob, io, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Not every user-visible label lives in the locale JSON. These files define labels
+# in code, and the linter reported each of them as an anchored-match trap until it
+# learned to read them: SUPPORTED_LANGUAGES ("پښتو") and AFGHAN_PROVINCES ("Kabul").
+# Kept to a curated list — harvesting every string in src/ would make almost any
+# literal look legitimate and turn false positives into false negatives.
+CODE_LABEL_SOURCES = ["src/i18n/index.ts", "src/data/*.ts"]
+
 def locale_strings():
-    """Every en string, plus a regex for its interpolated form."""
+    """Every en string, plus labels defined in code rather than the locale files."""
     out = []
     for p in glob.glob(os.path.join(ROOT, "src/i18n/locales/en/*.json")):
         def walk(o):
@@ -56,6 +66,10 @@ def locale_strings():
             elif isinstance(o, str):
                 out.append(o)
         walk(json.load(io.open(p, encoding="utf-8")))
+    for pat in CODE_LABEL_SOURCES:
+        for p in glob.glob(os.path.join(ROOT, pat)):
+            src = io.open(p, encoding="utf-8").read()
+            out += re.findall(r'"([^"\n]{2,60})"', src)
     return out
 
 STR = locale_strings()
@@ -64,9 +78,36 @@ def is_plain(lit):
     """No regex metacharacters — so an anchored match means literal equality."""
     return not re.search(r'[.*+?\[\]()|\\^$]', lit)
 
+def block_range(lines, i):
+    """Line span of the command enclosing line i (1-indexed, inclusive).
+
+    Markers must bind to their OWN command. A fixed +/-N window does not: a marker
+    two lines below one assert silently suppressed the assert above it, which is
+    how a synthetic test case went quietly unreported. The block runs from the
+    enclosing `- command:` up to the line before the next one, and a marker comment
+    directly above that command counts as part of it.
+    """
+    start = i - 1
+    while start > 0 and not re.match(r'\s*-\s+\w', lines[start]):
+        start -= 1
+    while start > 0 and lines[start - 1].strip().startswith("#"):
+        start -= 1
+    end = i
+    while end < len(lines) and not re.match(r'\s*-\s+\w', lines[end]):
+        end += 1
+    return start, end
+
+
 def check(path):
     hits = []
     lines = io.open(path, encoding="utf-8").read().split("\n")
+    # Text this flow types. An assert on a PREFIX of something the flow itself sent
+    # can never match the node holding the whole of it — message_long_text asserted
+    # 27 characters of a 366-character message. The locale-file comparison below
+    # cannot see this class, because the string never came from the locale files.
+    typed = [m for m in (re.match(r'-?\s*inputText:\s*"([^"]+)"', x.strip())
+                         for x in lines if not x.strip().startswith("#")) if m]
+    typed = [m.group(1) for m in typed]
     for i, raw in enumerate(lines, 1):
         l = raw.strip()
         if l.startswith("#"): continue
@@ -86,7 +127,8 @@ def check(path):
             # faded, where the flow checks the durable state right after. Mark
             # those `# lint: optional-ok — <reason>` so this report converges to
             # zero and a NEW toothless assert actually stands out.
-            near = " ".join(lines[max(0, i - 6):min(len(lines), i + 2)])
+            bs, be = block_range(lines, i)
+            near = " ".join(lines[bs:be])
             if owner and owner.startswith("assert") and "lint: optional-ok" not in near:
                 hits.append((i, "TOOTHLESS", f"optional {owner} cannot fail"))
 
@@ -100,13 +142,43 @@ def check(path):
             if re.fullmatch(r'"?(19|20)\d\d"?', lit):
                 hits.append((i, "DATE", f'hardcoded year {lit!r}'))
             elif is_plain(lit) and len(lit) > 2:
+                # An exact UI string is fine however else it appears: "Edit" is a
+                # real button label even when it also sits inside a listing title
+                # the flow typed. Only a literal that matches NOTHING exactly can
+                # be the anchored-match trap.
                 exact = any(s == lit for s in STR)
+                bs, be = block_range(lines, i)
+                ok = "lint: anchored-ok" in " ".join(lines[bs:be])
+                self_typed = [t for t in typed if lit in t and lit != t]
                 sub = [s for s in STR if lit in s and s != lit]
-                near = " ".join(lines[max(0, i - 5):min(len(lines), i + 2)])
-                if not exact and sub and "lint: anchored-ok" not in near:
+                if exact or ok:
+                    pass
+                elif self_typed:
+                    hits.append((i, "SELFTYPED",
+                                 f'{lit!r} is only part of {self_typed[0][:38]!r}'))
+                elif sub:
                     hits.append((i, "ANCHORED",
                                  f'{lit!r} is a substring of {sub[0][:44]!r}'))
     return hits
+
+if "--selftest" in sys.argv:
+    # A linter reporting zero is only good news if its checks still fire. Every
+    # class must trip on the fixture, and the marker must suppress only its own
+    # command.
+    fixture = os.path.join(ROOT, "qa/testdata/lint_synthetic.yaml")
+    hits = check(fixture)
+    got = {k for _, k, _ in hits}
+    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED"}
+    for line, kind, why in hits:
+        print(f"  L{line:<3} {kind:<10} {why[:56]}")
+    missing = need - got
+    over = [l for l, _, _ in hits if l >= 18]
+    ok = not missing and not over
+    print()
+    if missing: print(f"  FAIL — these checks did not fire: {sorted(missing)}")
+    if over:    print(f"  FAIL — marker did not suppress its own command (line {over})")
+    if ok:      print(f"  PASS — all {len(need)} checks fire; marker scoped to one command")
+    sys.exit(0 if ok else 1)
 
 total = 0
 for p in sorted(glob.glob(os.path.join(ROOT, "maestro/*/*.yaml"))):

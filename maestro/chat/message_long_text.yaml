@@ -25,4 +25,10 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Long message visible, not clipped or overflowing
-- assertVisible: "Hello, I am very interested"
+# Matching is an anchored FULL-STRING regex, so this prefix could never match the
+# 366-character bubble it was aimed at. Wildcards — and deliberately spanning both
+# ENDS of the message, because the whole point of a long-text flow is that nothing
+# was truncated on the way through. A prefix-only assert would pass on a message
+# cut off in the middle, which is the one thing this flow exists to catch.
+# (366 chars is well under MESSAGE_MAX_LENGTH = 1000, so the full text is expected.)
+- assertVisible: ".*Hello, I am very interested.*Thank you so much!"

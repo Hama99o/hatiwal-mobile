@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# Fixture for `flow_lint.py --selftest`. NOT a runnable flow, and deliberately
+# outside maestro/ so the linter's own glob never picks it up as real coverage.
+# One defect per class, so a check that silently stops working is caught.
+- assertVisible: "view"                    # ANCHORED  — "{{count}} views"
+- assertVisible: "2024"                    # DATE      — fixtures are seeded now
+- assertTrue:
+    condition: ${visible("a") || visible("b")}   # JSFUNC
+- assertVisible:
+    id: "something"
+    optional: true                         # TOOTHLESS
+- inputText: "Zzq quite a distinctive sentence typed by this flow"
+- assertVisible: "Zzq quite a distinctive" # SELFTYPED — a prefix of the above
+# The marker below must suppress ITS OWN command and nothing else. A fixed +/-N
+# window suppressed the SELFTYPED hit two lines above instead, which is exactly the
+# bug this line exists to keep out.
+- assertVisible: "phone"
+  # lint: anchored-ok — deliberate, proving the marker is scoped to one command
