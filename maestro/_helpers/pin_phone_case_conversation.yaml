@@ -1,0 +1,29 @@
+appId: com.hatiwal.app
+---
+# Narrow the conversations list to the seeded Phone Case thread and leave index 0
+# pointing at it. Assumes the Chats tab is already open.
+#
+# Why any flow needs this: index 0 of the UNFILTERED list is whatever was most
+# recently active, and the top of that list is QA debris — threads created by flows
+# that start a conversation and never receive a reply. Two consequences bit real
+# flows today:
+#   * mark_unread clears read_at on the most recent INBOUND message
+#     (conversations_controller.rb), so on an unreplied thread it updates 0 rows and
+#     the API refuses. The badge never appears and the flow blames the badge.
+#   * any assertion about the other participant is meaningless on a thread they
+#     never posted in.
+# The seeded Phone Case thread has the seller's reply ("Yes, I have 15 in stock…"),
+# so it is the one row guaranteed to behave whatever ran before.
+#
+# The filter SURVIVES `back` from a thread, which is what makes index 0 stay
+# unambiguous for the rest of the caller — and is also why a caller must never tap
+# a row by its title text: that title is sitting in the search box, higher in the
+# hierarchy than the row, so Maestro matches the input instead.
+- tapOn:
+    id: "conversations-search-bar"
+- inputText: "Phone Case"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 15000

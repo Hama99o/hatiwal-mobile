@@ -34,6 +34,13 @@ appId: com.hatiwal.app
     id: "chat-tab"
 - waitForAnimationToEnd
 
+# This flow used to ASSUME the seed had left an unread conversation. It does at
+# first, and does not by the time a suite has opened a hundred threads — every one
+# of those fires markRead. So the badge assertion failed for a reason unrelated to
+# read receipts, which is what it exists to test.
+- runFlow: ../_helpers/make_phone_case_unread.yaml
+# The helper waits for it, so this is now a statement about state we established
+# rather than a hope about the fixture.
 - assertVisible:
     id: "unread-badge-\\d+"
 

@@ -1,0 +1,48 @@
+appId: com.hatiwal.app
+---
+# Leave the seeded Phone Case thread UNREAD, with its row badge showing. Assumes
+# the Chats tab is already open.
+#
+# Flows that assert an unread badge cannot rely on the seed providing one: every
+# flow that opens a thread marks it read, so by the time a suite reaches the
+# hundredth flow nothing is unread and the assertion fails for a reason that has
+# nothing to do with the code under test. Establishing the precondition is cheap.
+#
+# Opening the thread first is deliberate: markRead fires on focus, so coming back
+# the row is unambiguously READ and the row menu MUST offer "mark unread" (it shows
+# "mark read" instead whenever unread > 0 — ConversationRow.tsx). That is what lets
+# the tap below be a hard requirement rather than `optional: true`, which silently
+# no-ops and moves the blame downstream.
+- runFlow: pin_phone_case_conversation.yaml
+
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+- back
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+- tapOn:
+    id: "conversation-options-\\d+"
+    index: 0
+- waitForAnimationToEnd
+- tapOn:
+    id: "menu-mark-unread"
+- waitForAnimationToEnd
+# Close the menu if it stayed open.
+- runFlow:
+    when:
+      visible:
+        id: "conversation-action-menu"
+    commands:
+      - back
+      - waitForAnimationToEnd
+
+# Marking unread is a mutation plus a refetch, not an animation, so
+# waitForAnimationToEnd returns long before the badge is back.
+- extendedWaitUntil:
+    visible:
+      id: "unread-badge-\\d+"
+    timeout: 30000

@@ -25,65 +25,18 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 
-# ── Pick a conversation that CAN be made unread ──────────
-# NOT index 0 of the unfiltered list. mark_unread clears read_at on the most
-# recent INBOUND message (conversations_controller.rb) — so on a thread where the
-# other party never replied it updates 0 rows and the API refuses, which the
-# client rolls back. The two most recent conversations for the test buyer are
-# exactly that: QA debris from flows that start a conversation and never get a
-# reply. So index 0 drifted onto an unreplied thread, the mutation was refused,
-# and the flow failed 30s later on the badge with nothing wrong with the badge.
-#
-# Searching pins it to the seeded Phone Case thread, where the seller answered
-# ("Yes, I have 15 in stock…") — the one row guaranteed to have an inbound message
-# whatever ran before this.
-- tapOn:
-    id: "conversations-search-bar"
-- inputText: "Phone Case"
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible:
-      id: "conversation-row-\\d+"
-    timeout: 15000
-
-# ── Establish the precondition: this row is READ ─────────
-# Opening the thread fires markRead on focus, so coming back the row is
-# unambiguously read and the menu MUST offer "mark unread". That is what lets the
-# tap below be a hard requirement instead of `optional: true` — an optional tap
-# silently no-ops when the id is absent, which is how this flow used to hide the
-# refused mutation and point at the wrong step.
-- tapOn:
-    id: "conversation-row-\\d+"
-    index: 0
-- waitForAnimationToEnd
-- assertVisible: "Type a message..."
-- back
-- waitForAnimationToEnd
-- assertVisible: "Messages"
-
-# ── Now make it unread ────────────────────
-- tapOn:
-    id: "conversation-options-\\d+"
-    index: 0
-- waitForAnimationToEnd
-- tapOn:
-    id: "menu-mark-unread"
-- waitForAnimationToEnd
-# If the menu stayed open, close it.
-- runFlow:
-    when:
-      visible:
-        id: "conversation-action-menu"
-    commands:
-      - back
-      - waitForAnimationToEnd
+# Precondition — the Phone Case thread, unread, badge showing. Extracted to
+# _helpers/make_phone_case_unread.yaml because three flows need exactly this and
+# the reasoning behind it (unrepliable threads at index 0, the read→unread
+# ordering, why the tap must not be optional) belongs in one place.
+- runFlow: ../_helpers/make_phone_case_unread.yaml
 
 # WAIT for the badge: marking unread is a mutation plus a refetch, not an
 # animation, so `waitForAnimationToEnd` returns long before the badge is back.
-- extendedWaitUntil:
-    visible:
-      id: "unread-badge-\\d+"
-    timeout: 30000
+# The helper already waited for this, so a plain assert — not a second 30s wait.
+# Kept as a statement in this flow's own terms: the badge is its precondition.
+- assertVisible:
+    id: "unread-badge-\\d+"
 
 # ── Open the thread — markRead fires on focus ───────────────────────────────
 - tapOn:

@@ -22,27 +22,11 @@ tags:
 - assertVisible:
     text: "Messages"
 
-# ── Pin to a thread that CAN be marked unread ────────────
-# Same trap as conversation_read_status: mark_unread clears read_at on the most
-# recent INBOUND message (conversations_controller.rb), so on a thread where the
-# other party never replied it updates 0 rows and the API refuses — the client
-# rolls back and the badge never appears. The two newest conversations for the test
-# buyer are exactly that, QA debris from flows that open a thread and get no reply,
-# so index 0 of the unfiltered list drifts onto one of them.
-# Searching pins index 0 to the seeded Phone Case thread, where the seller replied.
-- tapOn:
-    id: "conversations-search-bar"
-- inputText: "Phone Case"
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible:
-      id: "conversation-row-\\d+"
-    timeout: 15000
+# Pin index 0 to the seeded Phone Case thread, which HAS an inbound message —
+# mark_unread updates 0 rows on a thread the other party never replied in, and the
+# top of the unfiltered list is exactly those. See the helper for the full reason.
+- runFlow: ../_helpers/pin_phone_case_conversation.yaml
 
-# Long-press the first conversation row to open the action menu.
-# The row Pressable's testID is `conversation-row-{item.id}` — keyed off the
-# conversation's stable database id, not its transient render position, so we
-# match any id (regex) and take the first (topmost) row.
 - longPressOn:
     id: "conversation-row-\\d+"
     index: 0
