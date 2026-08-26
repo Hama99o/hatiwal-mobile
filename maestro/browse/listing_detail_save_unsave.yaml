@@ -30,7 +30,29 @@ appId: com.hatiwal.app
 - tapOn:
     id: "save-toggle-button"
 - waitForAnimationToEnd
-# Navigate to Saved tab to confirm it's there
+# Pop back to the tab layout FIRST. Listing detail lives outside
+# app/(main)/(tabs), so the tab bar is not in the view tree there and a tab tap
+# reports "Element not found: saved-tab" — which reads like a missing testID.
+#
+# Two conditional blocks rather than a bare `back` or a `while`: this is the
+# pattern saved_listing_goes_sold already uses, it is a no-op when the bar is
+# already showing, and these screens are at most two pushes deep so an unbounded
+# loop could only spin to the flow timeout.
+- runFlow:
+    when:
+      notVisible:
+        id: "saved-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      notVisible:
+        id: "saved-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
+# Navigate to Saved tab to confirm the listing is there
 - tapOn:
     id: "saved-tab"
 - waitForAnimationToEnd
@@ -55,6 +77,28 @@ appId: com.hatiwal.app
 - tapOn:
     id: "save-toggle-button"
 - waitForAnimationToEnd
+# Pop back to the tab layout FIRST. Listing detail lives outside
+# app/(main)/(tabs), so the tab bar is not in the view tree there and a tab tap
+# reports "Element not found: saved-tab" — which reads like a missing testID.
+#
+# Two conditional blocks rather than a bare `back` or a `while`: this is the
+# pattern saved_listing_goes_sold already uses, it is a no-op when the bar is
+# already showing, and these screens are at most two pushes deep so an unbounded
+# loop could only spin to the flow timeout.
+- runFlow:
+    when:
+      notVisible:
+        id: "saved-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      notVisible:
+        id: "saved-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
 # Navigate to Saved — should be empty now
 - tapOn:
     id: "saved-tab"

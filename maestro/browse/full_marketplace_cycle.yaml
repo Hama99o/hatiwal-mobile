@@ -152,6 +152,23 @@ appId: com.hatiwal.app
     # so a testID is the only stable handle). `save-button` never existed.
     id: "save-toggle-button"
 - waitForAnimationToEnd
+# Pop back to the tabs FIRST — listing detail lives outside app/(main)/(tabs), so
+# the tab bar is not in the view tree and a tab tap reports "Element not found".
+# Same pattern as saved_listing_goes_sold and listing_detail_save_unsave.
+- runFlow:
+    when:
+      notVisible:
+        id: "saved-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      notVisible:
+        id: "saved-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
 # Verify in Saved tab
 - tapOn:
     id: "saved-tab"
