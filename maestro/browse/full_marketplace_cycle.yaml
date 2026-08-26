@@ -130,7 +130,11 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- tapOn: "Search"
+# By testID. The search bar shows the PLACEHOLDER "Search listings..." — Maestro
+# text matching is an anchored full-string regex, so a bare "Search" never matched
+# it. Six other flows already use browse-search-input.
+- tapOn:
+    id: "browse-search-input"
 - inputText: "Marketplace Cycle Phone"
 - waitForAnimationToEnd
 - tapOn: "Marketplace Cycle Phone"
