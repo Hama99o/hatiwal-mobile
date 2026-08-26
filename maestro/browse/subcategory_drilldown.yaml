@@ -30,15 +30,22 @@ appId: com.hatiwal.app
 # The subcategory panel must appear with the "All in Electronics" chip
 - assertVisible:
     text: "All in Electronics"
-- assertVisible: "Phones"
+# The seeded subcategory is "Phones & Tablets", not "Phones" — and Maestro text
+# matching is an anchored full-string regex, so the short form matched nothing.
+# Wildcards rather than the literal, so a seed rename of the tail does not break it.
+- assertVisible: ".*Phones.*"
 
 # The parent card must show the collapse indicator (ChevronUp) — tested via
 # the expanded accessibilityState on the Pressable; Maestro checks visible text.
 # Verify the panel rendered by confirming a subcategory is now on screen.
-- assertVisible: "Phones"
+# The seeded subcategory is "Phones & Tablets", not "Phones" — and Maestro text
+# matching is an anchored full-string regex, so the short form matched nothing.
+# Wildcards rather than the literal, so a seed rename of the tail does not break it.
+- assertVisible: ".*Phones.*"
 
 # ── Tap a subcategory chip ────────────────────────────────────────────────────
-- tapOn: "Phones"
+# See the note above: the subcategory is "Phones & Tablets".
+- tapOn: ".*Phones.*"
 - waitForAnimationToEnd
 
 # Browse should be active
@@ -70,9 +77,15 @@ appId: com.hatiwal.app
 # ── Collapse test: tapping an expanded parent collapses the panel ─────────────
 - tapOn: "Electronics"
 - waitForAnimationToEnd
-- assertVisible: "Phones"
+# The seeded subcategory is "Phones & Tablets", not "Phones" — and Maestro text
+# matching is an anchored full-string regex, so the short form matched nothing.
+# Wildcards rather than the literal, so a seed rename of the tail does not break it.
+- assertVisible: ".*Phones.*"
 
 # Tap Electronics again to collapse
 - tapOn: "Electronics"
 - waitForAnimationToEnd
-- assertNotVisible: "Phones"
+# Wildcards here are load-bearing: the app renders "Phones & Tablets", so
+# `assertNotVisible: "Phones"` was trivially TRUE on every screen and asserted
+# nothing at all — a false pass hiding inside a negative check.
+- assertNotVisible: ".*Phones.*"
