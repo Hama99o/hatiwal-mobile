@@ -49,4 +49,14 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Redirected to conversation thread with the offer message
 # `chat.preview.offer` = "Offer: {{price}}" — interpolated.
-- assertVisible: "Offer:.*"
+# Sending pushes us into the THREAD (offerMutation -> router.push
+# /conversation/:id), and the thread bubble reads `chat.offer.yourOffer` =
+# "Your Offer" (MessageBubble.tsx:874). "Offer: {price}" is `chat.preview.offer` —
+# the conversation ROW in the LIST — so it is not on this screen at all. The
+# comment above named the right key and the wrong screen.
+- extendedWaitUntil:
+    visible: ".*Your Offer.*"
+    timeout: 15000
+# The amount with wildcards: Intl formats currency with a NON-BREAKING space, as
+# this flow's own note about "AFN 3,000" records.
+- assertVisible: ".*20,000.*"
