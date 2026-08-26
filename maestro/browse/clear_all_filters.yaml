@@ -22,7 +22,13 @@ appId: com.hatiwal.app
 # ── Step 2: Apply a price min filter ────────────────────────────────────────
 - tapOn: "Min Price"
 - inputText: "5000"
-- hideKeyboard
+# NOT hideKeyboard. FilterSheet is a native <Modal> wiring onRequestClose={onClose}
+# (FilterSheet.tsx:125), and hideKeyboard is BACK on Android — the Modal consumed
+# it and dismissed the sheet, so "Show results" was gone. The failure screenshot
+# proves it: back on the feed, sheet closed, with the Electronics chip applied.
+# Tapping the sheet's own title blurs the input without touching a control.
+- tapOn: "Filters"
+- waitForAnimationToEnd
 
 # ── Step 3: Close the filter sheet (the category chip row lives outside it) ─
 - tapOn: "Show results"

@@ -1344,7 +1344,28 @@ you are pressing Back on the screen under test.
 
 Checked mechanically: 31 remaining uses all follow typing directly, 0 do not.
 
-### Amendment (run-234): I could not reproduce the Modal case
+### Amendment: `hideKeyboard` inside a `<Modal>` IS unsafe — proven
+
+I first read the meetup failures as proof of this and could not demonstrate it,
+so it was left as an open question. `clear_all_filters` demonstrated it.
+
+The flow types into Min Price, calls `hideKeyboard`, then taps "Show results" and
+fails with `Element not found: Show results`. The screenshot shows the app back on
+the FEED with the sheet dismissed and the Electronics chip still applied.
+`FilterSheet` is a native `<Modal>` wiring `onRequestClose={onClose}`
+(FilterSheet.tsx:125), and the only Back press in that sequence is the
+`hideKeyboard`. Back went to the Modal, not to the IME.
+
+So: inside a native `<Modal>` that wires `onRequestClose`, do not use
+`hideKeyboard` — not even directly after typing, which the general rule above
+otherwise permits. Blur by tapping a static label in the sheet instead (the
+sheet's own title works), or tap the submit control by testID and skip the
+dismissal, which is what the meetup flows do.
+
+An audit for the same shape — `hideKeyboard` within a dozen lines of a sheet
+input or a sheet button — found exactly one instance, this one. Fixed.
+
+### Superseded: the earlier "could not reproduce" note
 
 I first read the meetup family's failures as proof that `hideKeyboard` is unsafe
 even directly after typing, because `MeetupSheet` is a native `<Modal>` wiring
