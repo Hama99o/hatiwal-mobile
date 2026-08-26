@@ -36,6 +36,16 @@ PY
   log="qa/reports/$run/$feat/$flow.log"
   [ -f "$f" ] || { printf '%-38s %-8s %s\n' "$flow" "?" "flow file missing"; continue; }
   [ -f "$log" ] || { printf '%-38s %-8s %s\n' "$flow" "?" "no log"; continue; }
+  # Environmental failures are not triage work. Maestro's on-device driver dies
+  # fairly often (DeviceServerDiedException, "Command failed (tcp:NNNNN): closed"),
+  # usually failing in well under a minute, and the fix is a re-run — not a flow
+  # edit. Without this they sit in the list looking like unaddressed defects: this
+  # is why meetup_proposal read as "worth triaging" after it had been diagnosed.
+  xml="qa/reports/$run/$feat/$flow.xml"
+  if [ -f "$xml" ] && grep -qa 'DeviceServerDiedException\|Command failed (tcp:' "$xml"; then
+    printf '%-38s %-8s %s\n' "$flow" "ENV" "device driver died — re-run, nothing to fix"
+    continue
+  fi
   fixed=$(git log -1 --format=%ct -- "$f" 2>/dev/null || echo 0)
   ran=$(stat -c %Y "$log")
   if [ "${fixed:-0}" -gt "$ran" ]; then
