@@ -1881,7 +1881,30 @@ Recommend 2 for save (idempotent, low risk), and 1 for offer/contact, where
 silently opening a sheet after an unrelated login would be more startling than
 helpful.
 
-**Status:** open — needs a product decision. `guest_save_redirect` now asserts the
+**Status: RESOLVED.** The intent is carried and replayed.
+
+`useRequireAuth` takes an optional intent key and, when it redirects a guest,
+remembers `{returnTo, key}` in `authIntent.store`. The destination screen consumes
+it on arrival and runs the matching handler. Wired for save, offer, message and
+report on listing detail — every one either toggles a save or opens a sheet, so
+none of them spends money or sends anything unprompted.
+
+Details that matter:
+
+* A KEY is stored, never a callback. The screen unmounts during the login trip, so
+  a captured closure would reference dead state.
+* `consume` clears as it reads. `save` is a TOGGLE — a second replay would silently
+  undo it.
+* Memory only, no persistence: a pending intent must not survive an app restart
+  and fire at a moment the user has forgotten about.
+* Replay waits for `listing` to load, because `save` toggles against `isSaved` and
+  would otherwise send the wrong value.
+* The intent is route-scoped: tapping save on listing 42 cannot save listing 7.
+
+`guest_save_redirect` and `guest_offer_redirect` asserted the OLD behaviour and
+warned they would fail loudly if it changed deliberately. It changed; they now
+assert the replay, including that it fires only once. `guest_save_redirect` now asserts the
 CURRENT behaviour (back on the listing, not saved, and saving works when tapped
 again), so if this is changed the flow fails loudly and gets updated deliberately
 rather than drifting.
+

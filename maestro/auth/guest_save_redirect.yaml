@@ -41,7 +41,10 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible: "Buy and sell locally in Afghanistan"
     timeout: 60000
-- tapOn: "Continue browsing"
+# By testID: this chip's label is localized and was renamed to "Go to Bazaar",
+# so tapping the old text would miss.
+- tapOn:
+    id: "go-to-bazaar"
 - waitForAnimationToEnd
 - assertVisible: "Bazaar"
 # Tap a listing to open detail
@@ -95,11 +98,15 @@ appId: com.hatiwal.app
 # save did NOT happen, and saving now works. If the app is ever changed to replay
 # the pending action, this fails loudly and gets updated deliberately — see UI-044.
 - assertVisible: "Wool Blanket Handmade King Size"
-- assertVisible: "Save listing"
-- tapOn:
-    id: "save-toggle-button"
-- waitForAnimationToEnd
-# The label flips on isSaved: "Save listing" -> "Remove from saved".
+# The pending intent is REPLAYED now (UI-044 implemented). The guest tapped save,
+# was sent to login, and coming back the save actually happens — so the toggle
+# already reads "Remove from saved" without tapping anything.
+#
+# This flow previously asserted the opposite ("Save listing", i.e. the tap was
+# dropped) and said it would fail loudly if the behaviour was ever changed
+# deliberately. It was, so this is that update.
 - extendedWaitUntil:
     visible: "Remove from saved"
-    timeout: 10000
+    timeout: 15000
+# And it fired exactly once: a double replay would toggle the save back off.
+- assertNotVisible: "Save listing"

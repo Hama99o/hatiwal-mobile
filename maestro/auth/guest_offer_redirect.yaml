@@ -41,7 +41,10 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible: "Buy and sell locally in Afghanistan"
     timeout: 60000
-- tapOn: "Continue browsing"
+# By testID: this chip's label is localized and was renamed to "Go to Bazaar",
+# so tapping the old text would miss.
+- tapOn:
+    id: "go-to-bazaar"
 - waitForAnimationToEnd
 - tapOn:
     index: 0
@@ -83,11 +86,15 @@ appId: com.hatiwal.app
 # Seller" at the bottom and no sheet. The old comment here claimed the opposite,
 # and the assert below passed on the listing's BUTTON, which is why the next step
 # then failed looking for the sheet's field.
-- assertVisible: "Make an Offer"
-# So open it again, the way a real user would have to.
-- tapOn: "Make an Offer"
-- waitForAnimationToEnd
-- assertVisible: "Send Offer"
+# The sheet REOPENS itself now (UI-044 implemented): the pending intent is
+# replayed on arrival, so the guest lands back with the offer sheet already open
+# instead of having to tap "Make an Offer" a second time.
+#
+# This flow previously tapped it again and documented that the app dropped the
+# intent. That was true then and is deliberately no longer true.
+- extendedWaitUntil:
+    visible: "Send Offer"
+    timeout: 15000
 # By testID, like offer_send_and_accept — the only offer flow that passed.
 # The sheet's label is `listing.detail.yourOffer` = "Your offer", lowercase o.
 # "Your Offer" with a capital O is `chat.offer.yourOffer`, which MessageBubble

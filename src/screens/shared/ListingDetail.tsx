@@ -67,6 +67,7 @@ import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useCategoryName } from "@/hooks/useCategoryName";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useAuthIntentStore, AUTH_INTENT } from "@/stores/authIntent.store";
 import { listingsAPI, type Listing } from "@/api/listings";
 import { conversationsAPI } from "@/api/conversations";
 import { PriceTag } from "@/components/common/PriceTag";
@@ -308,16 +309,16 @@ export default function ListingDetailScreen() {
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleMessageSeller = useCallback(() => {
-    requireAuth(() => setShowMessageSheet(true), authReturnTo);
+    requireAuth(() => setShowMessageSheet(true), authReturnTo, AUTH_INTENT.message);
   }, [requireAuth, authReturnTo]);
 
   const handleSaveToggle = useCallback(() => {
     // Capture the current saved state at tap time and pass it to the mutation.
-    requireAuth(() => saveMutation.mutate(isSaved), authReturnTo);
+    requireAuth(() => saveMutation.mutate(isSaved), authReturnTo, AUTH_INTENT.save);
   }, [requireAuth, authReturnTo, saveMutation, isSaved]);
 
   const handleOpenOffer = useCallback(() => {
-    requireAuth(() => setShowOfferSheet(true), authReturnTo);
+    requireAuth(() => setShowOfferSheet(true), authReturnTo, AUTH_INTENT.offer);
   }, [requireAuth, authReturnTo]);
 
   const handleSendOffer = useCallback((inputAmount: string) => {
@@ -368,8 +369,37 @@ export default function ListingDetailScreen() {
 
   const handleReport = useCallback(() => {
     setShowMoreSheet(false);
-    requireAuth(() => setShowReportSheet(true), authReturnTo);
+    requireAuth(() => setShowReportSheet(true), authReturnTo, AUTH_INTENT.report);
   }, [requireAuth, authReturnTo]);
+
+  // ── Replay what the guest was trying to do (UI-044) ────────────────────────
+  // `returnTo` only restores the ROUTE, so a guest who tapped save came back to
+  // an unfilled heart with nothing to explain it. useRequireAuth now remembers an
+  // intent key; take it here and run the matching handler.
+  //
+  // Gated on `listing` being loaded, not just on being authenticated: save is a
+  // TOGGLE over `isSaved`, and replaying it against a not-yet-loaded listing would
+  // send the wrong value. `consume` clears as it reads, so a remount or a second
+  // render cannot fire it twice — which for a toggle would silently undo it.
+  const consumeAuthIntent = useAuthIntentStore((s) => s.consume);
+  React.useEffect(() => {
+    if (!listing) return;
+    const intent = consumeAuthIntent(authReturnTo);
+    if (!intent) return;
+    if (intent === AUTH_INTENT.save) handleSaveToggle();
+    else if (intent === AUTH_INTENT.offer) handleOpenOffer();
+    else if (intent === AUTH_INTENT.message) handleMessageSeller();
+    else if (intent === AUTH_INTENT.report) handleReport();
+  }, [
+    listing,
+    authReturnTo,
+    consumeAuthIntent,
+    handleSaveToggle,
+    handleOpenOffer,
+    handleMessageSeller,
+    handleReport,
+  ]);
+
 
   // ── Loading / error states ─────────────────────────────────────────────────
   if (isLoading) return <DetailSkeleton />;
