@@ -44,7 +44,14 @@ appId: com.hatiwal.app
 # dump as "AFN\xa028,000". Maestro matches an anchored regex, so a bare number
 # never matches; the leading `.*` covers both the currency code and that space.
 - assertVisible: ".*8,000"
-- assertVisible: "Pending"
+# NOT "Pending". No such label exists on an offer bubble — a not-yet-answered offer
+# deliberately renders NO status text (offer_send_and_accept's header says the same).
+# "Pending" does exist as report.json's report status, on an unrelated screen, which
+# is why the flow lint's locale check did not flag it: the string is real, just not
+# here.
+# MessageBubble.tsx:874 renders chat.offer.yourOffer = "Your Offer" above the amount
+# on the sender's own bubble, which is what offer_send_and_accept asserts and passes.
+- assertVisible: "Your Offer"
 
 # Switch to seller to decline
 # THE SELLER declines, so sign out and back in as them. This flow relaunched with

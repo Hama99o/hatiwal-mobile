@@ -1,0 +1,41 @@
+appId: com.hatiwal.app
+---
+# DIAGNOSTIC, not coverage. Settles one question: is Maestro's text matching
+# case-sensitive?
+#
+# Triage has been assuming it IS, and one observation contradicts that.
+# offer_counter_flow asserts "Price Offer" and that step passes — but
+# MessageBubble.tsx:859 renders `t("chat.offer.label").toUpperCase()`, so the node
+# reads "PRICE OFFER", and nothing else in src/ renders the title-case form. Either
+# matching is case-insensitive, or that assertion is passing against something no
+# one has identified.
+#
+# It matters for triage: if matching is case-insensitive, a failure blamed on case
+# has a different real cause, and time gets spent on the wrong fix.
+#
+# Run by hand when the device is free:
+#   ./qa/qa.sh flow _diag/probe_case_sensitivity
+# Both assertions below target the SAME node. If the second passes, matching is
+# case-insensitive. If it fails, it is case-sensitive and the offer_counter_flow
+# observation needs explaining another way.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Men Winter Jacket XL Black"
+    direction: DOWN
+    timeout: 8000
+- tapOn: "Men Winter Jacket XL Black"
+- waitForAnimationToEnd
+# Control: the exact rendered casing of a known label. listing.detail.description
+# is rendered as-is, so this must pass whatever the answer is.
+- scrollUntilVisible:
+    element:
+      text: "Description"
+    direction: DOWN
+    timeout: 12000
+- assertVisible: "Description"
+# The actual question: same node, wrong case.
+- assertVisible: "DESCRIPTION"
