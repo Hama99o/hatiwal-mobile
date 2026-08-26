@@ -33,6 +33,10 @@ SESSIONS=("$@")
 STOP_FILE="qa/reports/.stop"
 LOG="qa/reports/forever.log"
 MIN_FREE_GB=25
+# Cores minus a little: the emulator needs real CPU, and the rig's own boot guard
+# refuses outright when the box is busy. 16-core host -> wait above 12.
+MAX_LOAD=$(( $(nproc 2>/dev/null || echo 8) * 3 / 4 ))
+MAX_WAIT_MIN=120     # do not wait forever; after this, sweep and accept the noise
 KEEP_ARTIFACT_RUNS=3
 
 mkdir -p qa/reports
@@ -68,6 +72,31 @@ while :; do
     continue
   fi
   say "disk ok: ${avail}GB free"
+
+  # CPU headroom. This host is shared with other work — an openaleph vite build
+  # plus Playwright plus Chrome took the load average to 91 on 16 cores, and the
+  # rig's own boot guard then refused with "CPU only 11%% idle — refusing to boot;
+  # the emulator would hang". Without this the loop spins, aborting one feature
+  # per pass and filling the board with failures that describe the host, not the
+  # app. Wait for the box instead.
+  #
+  # Reads /proc/loadavg rather than top's idle column: that column is
+  # locale-formatted and this host prints "91,08", which awk would misparse.
+  # /proc/loadavg is always dot-decimal.
+  waited=0
+  while :; do
+    load1=$(awk '{printf "%.0f", $1}' /proc/loadavg 2>/dev/null)
+    [ -n "$load1" ] || load1=0
+    [ "$load1" -le "$MAX_LOAD" ] && break
+    if [ "$waited" -ge "$MAX_WAIT_MIN" ]; then
+      say "load still $load1 after ${waited}min — sweeping anyway, expect noise"
+      break
+    fi
+    say "load $load1 over limit $MAX_LOAD — waiting 5min for headroom"
+    sleep 300
+    waited=$((waited + 5))
+  done
+  say "load ok: $(awk '{printf "%.0f", $1}' /proc/loadavg)"
 
   # Claims are per-cycle: forget last cycle's before handing work out again.
   ./qa/qa.sh claim-reset >>"$LOG" 2>&1
