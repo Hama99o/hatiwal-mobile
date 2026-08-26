@@ -38,8 +38,18 @@ appId: com.hatiwal.app
 # ── Happy path: sparkline or empty state is visible ─────────────────────────
 # Either the sparkline chart OR the "no views yet" empty state should be
 # present — both are valid depending on how many views the listing has.
-- assertTrue:
-    condition: ${selectorExists('views-sparkline') || selectorExists('listing.ownerDetail.noViewsYet')}
+# Maestro has no `selectorExists()` in its JS sandbox (nor `visible()`), so this
+# raised "TypeError: undefined is not a function" rather than asserting anything.
+# The second argument made it doubly wrong: 'listing.ownerDetail.noViewsYet' is a
+# TRANSLATION KEY, and the screen renders the resolved string.
+# Expressed with a native conditional instead: the chart is absent only when there
+# is nothing to plot, and then the empty state has to be there.
+- runFlow:
+    when:
+      notVisible:
+        id: "views-sparkline"
+    commands:
+      - assertVisible: "No views yet in the last 7 days"
 
 # ── Verify analytics stats row is still present ──────────────────────────────
 - assertVisible:

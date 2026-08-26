@@ -25,19 +25,51 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Messages"
 
-# ── Establish the precondition: this row IS unread ──────────────────────────
+# ── Pick a conversation that CAN be made unread ──────────
+# NOT index 0 of the unfiltered list. mark_unread clears read_at on the most
+# recent INBOUND message (conversations_controller.rb) — so on a thread where the
+# other party never replied it updates 0 rows and the API refuses, which the
+# client rolls back. The two most recent conversations for the test buyer are
+# exactly that: QA debris from flows that start a conversation and never get a
+# reply. So index 0 drifted onto an unreplied thread, the mutation was refused,
+# and the flow failed 30s later on the badge with nothing wrong with the badge.
+#
+# Searching pins it to the seeded Phone Case thread, where the seller answered
+# ("Yes, I have 15 in stock…") — the one row guaranteed to have an inbound message
+# whatever ran before this.
+- tapOn:
+    id: "conversations-search-bar"
+- inputText: "Phone Case"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 15000
+
+# ── Establish the precondition: this row is READ ─────────
+# Opening the thread fires markRead on focus, so coming back the row is
+# unambiguously read and the menu MUST offer "mark unread". That is what lets the
+# tap below be a hard requirement instead of `optional: true` — an optional tap
+# silently no-ops when the id is absent, which is how this flow used to hide the
+# refused mutation and point at the wrong step.
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
+- waitForAnimationToEnd
+- assertVisible: "Type a message..."
+- back
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+# ── Now make it unread ────────────────────
 - tapOn:
     id: "conversation-options-\\d+"
     index: 0
 - waitForAnimationToEnd
-# Whichever of the two the row currently offers: if it is already unread the menu
-# shows "mark read" instead, so this is optional and the assertion below is the
-# real gate.
 - tapOn:
     id: "menu-mark-unread"
-    optional: true
 - waitForAnimationToEnd
-# If the menu is still open (the row was already unread), close it.
+# If the menu stayed open, close it.
 - runFlow:
     when:
       visible:

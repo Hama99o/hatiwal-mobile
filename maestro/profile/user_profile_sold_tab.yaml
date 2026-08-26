@@ -47,8 +47,14 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Should show either a sold listing card or the empty state
-- assertTrue:
-    condition: ${visible("No sold items yet") || visible("Old Phone")}
+# Maestro has no `visible()` in its JS sandbox. This was
+# `assertTrue: condition: ${visible(a) || visible(b)}` and died with
+# "JsEvaluationException: TypeError: undefined is not a function" — which the .log
+# never shows; only the .xml carries it, so the flow read as an unexplained fail.
+# The comment above claiming this was the documented way to branch was wrong for
+# 2.7.0. Text matching is an anchored regex, so plain alternation does the same
+# job natively: either alternative has to match the whole node text.
+- assertVisible: "No sold items yet|Old Phone"
 
 # ── Switch back to Active tab ─────────────────────────────────────────────────
 - tapOn: "Active"

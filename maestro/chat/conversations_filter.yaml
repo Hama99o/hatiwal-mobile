@@ -20,8 +20,14 @@ appId: com.hatiwal.app
 # `anyOf` property doesn't exist on assertVisible in this Maestro version
 # (2.7.0 exits 1 with "Unknown Property: anyOf"); `assertTrue`+`condition`
 # with the JS-like `visible()` helper is the documented way to branch.
-- assertTrue:
-    condition: ${visible("All caught up!") || visible("No unread messages right now.")}
+# Maestro has no `visible()` in its JS sandbox. This was
+# `assertTrue: condition: ${visible(a) || visible(b)}` and died with
+# "JsEvaluationException: TypeError: undefined is not a function" — which the .log
+# never shows; only the .xml carries it, so the flow read as an unexplained fail.
+# The comment above claiming this was the documented way to branch was wrong for
+# 2.7.0. Text matching is an anchored regex, so plain alternation does the same
+# job natively: either alternative has to match the whole node text.
+- assertVisible: "All caught up!|No unread messages right now\\."
 # Switch to Read
 - tapOn: "Read"
 - waitForAnimationToEnd
