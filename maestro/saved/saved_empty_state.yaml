@@ -21,8 +21,14 @@ appId: com.hatiwal.app
 # re-fetches the JS bundle, and a bare assert can fire before the first screen
 # has rendered at all. guest_browse failed exactly that way after passing minutes
 # earlier — neither screen was up yet.
+# Wait for the INPUT this flow is about to tap, not the marketing subtitle. Both
+# failures on record (run-162, run-185) are this step timing out at 60s on
+# auth.subtitle — copy that does render on Login (Login.tsx:319), but sits under the
+# logo and proves nothing the flow needs. login-email-input is the actual
+# precondition, and it is what the next step taps.
 - extendedWaitUntil:
-    visible: "Buy and sell locally in Afghanistan"
+    visible:
+      id: "login-email-input"
     timeout: 60000
 - tapOn:
     id: "login-email-input"
@@ -38,6 +44,13 @@ appId: com.hatiwal.app
 - hideKeyboard
 - waitForAnimationToEnd
 - tapOn: "Sign In"
+# Wait for the app to actually be signed IN before reaching for a tab. Signing in
+# navigates, and the tab bar does not exist on the login screen — tapping saved-tab
+# in the same breath is a race this flow had no reason to take.
+- extendedWaitUntil:
+    visible:
+      id: "saved-tab"
+    timeout: 30000
 - tapOn:
     id: "saved-tab"
 - waitForAnimationToEnd
