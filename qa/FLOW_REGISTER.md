@@ -45,7 +45,7 @@ bug class a user reports as "nothing happened".
 | `conversations_filter` | FAIL-? | s2/run-142 | 208 | flow | ${visible()} does not exist in Maestro's JS sandbox; raised TypeError. Regex alternation instead. |
 | `conversations_list` | PASS | s2/run-142 | 198 |  |  |
 | `conversations_role_filter` | PASS | s2/run-142 | 307 |  |  |
-| `dead_end_notice_absent_when_active` | UNTESTED | — |  |  |  |
+| `dead_end_notice_absent_when_active` | UNTESTED | — |  | flow — helper ran before the inbox appeared; the helper now waits (fixes 3 callers) |  |
 | `dead_end_notice_sold` | UNTESTED | — |  | new flow (added 27-Aug) — conversation-row not visible; awaiting first triage pass |  |
 | `delete_message` | PASS | s2/run-142 | 195 |  |  |
 | `lifecycle_from_chat` | FAIL-assert | s2/run-142 | 315 | flow — toast race ("Listing marked as sold"); load-bearing wait, see audit_toasts note | [Failed] lifecycle_from_chat (4m 54s) (Assertion is false: "Reserve" is visible) |

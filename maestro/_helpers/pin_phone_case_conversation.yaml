@@ -1,7 +1,8 @@
 appId: com.hatiwal.app
 ---
 # Narrow the conversations list to the seeded Phone Case thread and leave index 0
-# pointing at it. Assumes the Chats tab is already open.
+# pointing at it. WAITS for the Chats tab to be on screen — see the note above the
+# first step.
 #
 # Why any flow needs this: index 0 of the UNFILTERED list is whatever was most
 # recently active, and the top of that list is QA debris — threads created by flows
@@ -19,6 +20,17 @@ appId: com.hatiwal.app
 # unambiguous for the rest of the caller — and is also why a caller must never tap
 # a row by its title text: that title is sitting in the search box, higher in the
 # hierarchy than the row, so Maestro matches the input instead.
+# The inbox has to be ON SCREEN before anything below runs. Every caller taps chat-tab
+# and calls this immediately, with no wait between, so on a loaded device the first tap
+# here lands on the screen being left: dead_end_notice_absent_when_active failed exactly
+# that way, its hierarchy showing the Bazaar feed and six listing cards while it hunted
+# conversations-search-bar. Enforcing the assumption here fixes all three callers at
+# once, instead of repeating a wait in each of them.
+- extendedWaitUntil:
+    visible:
+      id: "conversations-search-bar"
+    timeout: 20000
+
 - tapOn:
     id: "conversations-search-bar"
 - inputText: "Phone Case"
