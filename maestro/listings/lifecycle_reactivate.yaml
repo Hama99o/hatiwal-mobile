@@ -31,9 +31,11 @@ appId: com.hatiwal.app
 # Confirm dialog
 - assertVisible: "Make active again?"
 - assertVisible: "This cancels the reservation and reopens the listing to buyers."
-# confirmAlert takes its button label per call — reactivate passes
-# t("listing.activate") = "Make active". `common.confirm` ("Confirm") is a dead key.
-- tapOn: "Make active"
+# Via the helper, not the label. confirmAlert's confirm button says "Make active" — the
+# SAME words as the sheet item that opened it — so a text tap matches both, lands on the
+# scrim and dismisses the dialog without reactivating. confirm_dialog.yaml taps
+# `android:id/button1`, which exists only inside the dialog.
+- runFlow: ../_helpers/confirm_dialog.yaml
 - waitForAnimationToEnd
 # Status back to Active
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a

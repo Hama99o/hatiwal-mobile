@@ -13,6 +13,21 @@ appId: com.hatiwal.app
 # draft card carries its own primary-action button reading "Publish", so a text tap
 # lands on whichever card happens to be first in the hierarchy. The filter is set
 # to Draft, so index 0 is a draft either way, but the testID says what is meant.
+# SEARCH for the ready-to-publish draft. Index 0 of the Draft tab is whatever a
+# create/edit flow made most recently — the screenshot shows it was "QA Batch Edit
+# Target 15", a draft with "No photo". Publishing is refused without a photo and a pin
+# (getPublishBlockers), so the confirm dialog never opened and the failure read as a
+# broken Publish button.
+#
+# db/seeds/e2e.rb now seeds "Ready To Publish Draft" with both, precisely so a flow can
+# ask for it by name instead of hoping about ordering.
+- tapOn: "Search my listings..."
+- inputText: "Ready To Publish Draft"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "seller-card-primary-action"
+    timeout: 20000
 - tapOn:
     id: "seller-card-primary-action"
     index: 0
