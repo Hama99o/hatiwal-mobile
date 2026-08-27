@@ -79,18 +79,17 @@ appId: com.hatiwal.app
 - tapOn: "Good"
 - waitForAnimationToEnd
 
-# Location
-# "Location" is a non-interactive label. The row that opens the map is
-# `listing.form.tapToSetLocation` = "Tap to set exact location on map".
-- scrollUntilVisible:
-    element:
-      text: "Tap to set exact location on map"
-    direction: DOWN
-    timeout: 20000
-- tapOn: "Tap to set exact location on map"
-- waitForAnimationToEnd
-- tapOn: "Kabul"
-- waitForAnimationToEnd
+# Location — handled by _helpers/set_listing_location.yaml further down, not here.
+#
+# What stood here was a leftover from before that helper existed: it opened the map
+# and then tapped "Kabul", which is not a label anywhere in the location picker (the
+# only "Kabul" strings in src/ are Storybook fixtures). Failed with "Element not
+# found: Text matching regex: Kabul".
+#
+# Worse than a dead selector: it left the app ON the map screen, so the helper's own
+# first step — scrolling the FORM for "Tap to set exact location on map" — had nothing
+# to find. Two ways of doing the same job, and the leftover broke the working one.
+# The helper taps `location-confirm` by testID and waits for the row to disappear.
 
 # Post listing
 # The publish button reads "Publish" (listing.publish). "Post a listing" is the
