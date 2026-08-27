@@ -18,10 +18,26 @@ appId: com.hatiwal.app
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
-# Save the listing via the heart button so saves_count becomes >= 1
-- tapOn:
-    id: "save-toggle-button"
-- waitForAnimationToEnd
+# Save the listing via the heart button so saves_count becomes >= 1 — but ONLY if it is
+# not already saved. save-toggle-button is a TOGGLE, and saves are per-account state
+# that no flow owns (several saved/ and report/ flows leave things saved on this buyer),
+# so tapping it blind UNSAVES what somebody else saved: the count drops to 0 and
+# "Saved by ..." never renders, because ListingDetail gates it on savesCount > 0
+# (ListingDetail.tsx:610). That is this flow's failure, with api_errors: 0.
+#
+# The accessibilityLabel flips with the state (ListingDetail.tsx:891) — "Save listing"
+# unsaved, "Remove from saved" saved — so the state is readable, and the wait after
+# makes the end state explicit either way.
+- runFlow:
+    when:
+      visible: "Save listing"
+    commands:
+      - tapOn:
+          id: "save-toggle-button"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Remove from saved"
+    timeout: 15000
 # Scroll down to the meta row where the saved-by count is shown
 - scroll
 - waitForAnimationToEnd

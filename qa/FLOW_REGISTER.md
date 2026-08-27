@@ -50,8 +50,8 @@ bug class a user reports as "nothing happened".
 | `listing_detail_offer_invalid` | UNTESTED | — |  |  |  |
 | `listing_detail_price_drop_badge` | UNTESTED | — |  | flow — asserted the drop badge on a listing with no drop; retargeted to the seeded Lenovo |  |
 | `listing_detail_report` | UNTESTED | — |  | fixture | RIG-004 tolerance; covers the detail-screen entry point. |
-| `listing_detail_save_unsave` | UNTESTED | — |  |  |  |
-| `listing_detail_saves_count` | UNTESTED | — |  |  |  |
+| `listing_detail_save_unsave` | UNTESTED | — |  | flow — asserted a global 'No saved items yet' it does not own; now asserts this listing is gone |  |
+| `listing_detail_saves_count` | UNTESTED | — |  | flow — tapped the save TOGGLE blind and unsaved it, so savesCount hit 0; now state-aware |  |
 | `listing_detail_share` | UNTESTED | — |  |  |  |
 | `listing_detail_similar` | UNTESTED | — |  |  |  |
 | `listing_detail_sold_recovery` | UNTESTED | — |  | flow | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
