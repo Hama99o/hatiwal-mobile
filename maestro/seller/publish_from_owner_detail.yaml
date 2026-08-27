@@ -112,6 +112,15 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Confirm location"
 - waitForAnimationToEnd
+# WAIT for the sheet to actually close before touching the form again.
+# The map has to load tiles and reverse-geocode before it will confirm, which on a
+# loaded host is genuinely slow — _helpers/set_listing_location.yaml allows 45s for
+# exactly this. While it is still open the form's tree is not reachable, so the next
+# step failed with "Element not found: Publish" on a button that had not gone anywhere.
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 45000
 - assertNotVisible: "Tap to set exact location on map"
 
 - tapOn: "Save Draft"
