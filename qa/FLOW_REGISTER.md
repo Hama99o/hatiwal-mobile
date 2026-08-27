@@ -10,14 +10,16 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**101 of 235 flows passing** · 134 still need attention
+**109 of 236 flows passing** · 125 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 101 | green, and no backend error underneath |
-| FAIL-assert | 70 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 109 | green, and no backend error underneath |
+| SILENT | 1 | **assertions passed while the API errored** — the app told the user nothing |
+| FAIL-assert | 61 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-? | 18 | failed, cause unclear — read the log |
-| UNTESTED | 46 | never executed |
+| (rig) | 2 | rig broke mid-run — result meaningless, re-run |
+| UNTESTED | 45 | never executed |
 
 ### Definition of done
 
@@ -29,41 +31,41 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state
 
-16/44 passing · 27 open
+22/45 passing · 11 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `archive_conversation` | PASS | s2/run-142 | 227 |  |  |
-| `block_from_conversation` | FAIL-assert | s2/run-142 | 210 | app bug | UI-046 FIXED: composer stayed live after blocking; API refuses the send (403). |
-| `chat_older_messages_pagination` | FAIL-? | s2/run-142 | 193 |  | [Failed] chat_older_messages_pagination (2m 46s) (No visible element found: id: messages-list-top) |
-| `composer_draft` | PASS | s2/run-142 | 228 | flow | Tapped a title that was sitting in the search box, so the tap hit the input. |
-| `conversation_archive` | PASS | s2/run-142 | 224 |  |  |
-| `conversation_delete` | PASS | s2/run-142 | 215 |  |  |
-| `conversation_read_status` | FAIL-assert | s2/run-142 | 226 | fixture | mark_unread needs an INBOUND message; index 0 was QA debris with none. Pinned via helper. |
-| `conversations-search` | PASS | s2/run-142 | 305 |  |  |
-| `conversations_empty_state` | FAIL-assert | s2/run-142 | 290 |  | [Failed] conversations_empty_state (4m 27s) (Assertion is false: "Bazaar" is visible) |
-| `conversations_filter` | FAIL-? | s2/run-142 | 208 | flow | ${visible()} does not exist in Maestro's JS sandbox; raised TypeError. Regex alternation instead. |
-| `conversations_list` | PASS | s2/run-142 | 198 |  |  |
-| `conversations_role_filter` | PASS | s2/run-142 | 307 |  |  |
-| `dead_end_notice_absent_when_active` | UNTESTED | — |  | flow — helper ran before the inbox appeared; the helper now waits (fixes 3 callers) |  |
-| `dead_end_notice_sold` | UNTESTED | — |  | new flow (added 27-Aug) — conversation-row not visible; awaiting first triage pass |  |
-| `delete_message` | PASS | s2/run-142 | 195 |  |  |
-| `lifecycle_from_chat` | FAIL-assert | s2/run-142 | 315 | flow — toast race ("Listing marked as sold"); load-bearing wait, see audit_toasts note | [Failed] lifecycle_from_chat (4m 54s) (Assertion is false: "Reserve" is visible) |
-| `mark_read` | FAIL-assert | s2/run-142 | 242 | fixture | Same unrepliable-thread trap. |
-| `mark_read_end_to_end` | FAIL-assert | s2/run-142 | 181 | flow — divider sits above the only INBOUND msg (mid-thread); virtualised list never rendered it. Now scrolls UP | Assumed the seed left something unread; every flow that opens a thread marks it read. |
-| `meetup_decline` | FAIL-assert | s2/run-142 | 196 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
-| `meetup_full_cycle` | FAIL-assert | s2/run-142 | 192 | flow — both legs used index 0 (arbitrary listing, arbitrary thread); pinned to the seeded phone-case thread | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
-| `meetup_proposal` | PASS | s2/run-142 | 213 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
-| `meetup_proposed_bubble_ui` | FAIL-assert | s2/run-142 | 208 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
-| `meetup_respond` | FAIL-assert | s2/run-142 | 192 | flow | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
-| `meetup_validation` | FAIL-assert | s2/run-142 | 156 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
-| `message_long_text` | FAIL-assert | s2/run-142 | 471 | flow | Asserted 27 chars of the 366-char message it sent. Now spans both ends. |
-| `offer_counter_flow` | FAIL-assert | s2/run-142 | 182 | flow | Tapped seller-only "Counter" as the buyer who sent the offer. Now switches to the seller. |
-| `offer_in_existing_thread` | PASS | s2/run-142 | 181 |  |  |
-| `offer_send_and_accept` | PASS | s2/run-142 | 400 |  |  |
-| `offer_send_and_decline` | FAIL-assert | s2/run-142 | 196 | flow | Same wrong-session bug for "Decline"; also asserted "Pending", which no offer bubble renders. |
-| `quick_replies` | FAIL-assert | s2/run-142 | 197 |  | [Failed] quick_replies (2m 56s) (Element not found: Text matching regex: Is this still available?) |
-| `report_participant` | FAIL-assert | s2/run-142 | 223 | fixture | RIG-004: Report is unique per reporter+target and nothing cleared them. First submit now tolerant. |
+| `archive_conversation` | PASS | run-264 | 204 |  |  |
+| `block_from_conversation` | PASS | run-264 | 252 | app bug | UI-046 FIXED: composer stayed live after blocking; API refuses the send (403). |
+| `chat_older_messages_pagination` | PASS | run-264 | 177 |  |  |
+| `composer_draft` | PASS | run-264 | 212 | flow | Tapped a title that was sitting in the search box, so the tap hit the input. |
+| `conversation_archive` | PASS | run-264 | 184 |  |  |
+| `conversation_delete` | PASS | run-264 | 172 |  |  |
+| `conversation_read_status` | PASS | run-264 | 208 | fixture | mark_unread needs an INBOUND message; index 0 was QA debris with none. Pinned via helper. |
+| `conversations-search` | PASS | run-264 | 244 |  |  |
+| `conversations_empty_state` | PASS | run-264 | 192 |  |  |
+| `conversations_filter` | PASS | run-264 | 232 | flow | ${visible()} does not exist in Maestro's JS sandbox; raised TypeError. Regex alternation instead. |
+| `conversations_list` | PASS | run-264 | 185 |  |  |
+| `conversations_role_filter` | PASS | run-264 | 288 |  |  |
+| `dead_end_notice_absent_when_active` | FAIL-assert | run-264 | 214 | flow — helper ran before the inbox appeared; the helper now waits (fixes 3 callers) | [Failed] dead_end_notice_absent_when_active (3m 16s) (Element not found: Id matching regex: conversations-sear |
+| `dead_end_notice_sold` | FAIL-assert | run-264 | 189 | new flow (added 27-Aug) — conversation-row not visible; awaiting first triage pass | [Failed] dead_end_notice_sold (2m 51s) (Assertion is false: id: conversation-row-\d+ is visible) |
+| `delete_message` | PASS | run-264 | 220 |  |  |
+| `lifecycle_from_chat` | FAIL-assert | run-264 | 284 | flow — toast race ("Listing marked as sold"); load-bearing wait, see audit_toasts note | [Failed] lifecycle_from_chat (4m 21s) (Assertion is false: "Listing marked as sold" is visible) |
+| `mark_read` | PASS | run-264 | 232 | fixture | Same unrepliable-thread trap. |
+| `mark_read_end_to_end` | FAIL-assert ⟳stale | run-264 | 222 | flow — divider sits above the only INBOUND msg (mid-thread); virtualised list never rendered it. Now scrolls UP | Assumed the seed left something unread; every flow that opens a thread marks it read. |
+| `meetup_decline` | PASS | run-264 | 450 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
+| `meetup_full_cycle` | FAIL-assert ⟳stale | run-264 | 547 | flow — both legs used index 0 (arbitrary listing, arbitrary thread); pinned to the seeded phone-case thread | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
+| `meetup_proposal` | SILENT ⟳stale ⚠2 | run-264 | 468 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
+| `meetup_proposed_bubble_ui` | PASS ⟳stale | run-264 | 289 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
+| `meetup_respond` | PASS | run-264 | 465 | flow | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
+| `meetup_validation` | PASS ⟳stale | run-264 | 291 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
+| `message_long_text` | PASS | run-264 | 249 | flow | Asserted 27 chars of the 366-char message it sent. Now spans both ends. |
+| `offer_counter_flow` | FAIL-assert ⟳stale | run-264 | 171 | flow — inherited a pushed Create Listing form from the previous flow; login helpers now cold-restart | Tapped seller-only "Counter" as the buyer who sent the offer. Now switches to the seller. |
+| `offer_in_existing_thread` | FAIL-assert ⟳stale | run-264 | 213 | flow — tap raced the composer Modal; 7 sites now wait for the sheet's contents | [Failed] offer_in_existing_thread (3m 11s) (Element not found: Id matching regex: composer-action-offer) |
+| `offer_send_and_accept` | FAIL-? ⟳stale | run-264 | 188 | flow — scroll not centred and 8s timeout; centred + 20s | [Failed] offer_send_and_accept (2m 48s) (No visible element found: "Men Winter Jacket XL Black") |
+| `offer_send_and_decline` | FAIL-? ⟳stale | run-264 | 198 | flow | Same wrong-session bug for "Decline"; also asserted "Pending", which no offer bubble renders. |
+| `quick_replies` | (rig) ⚠slow | run-264 | 770 | rig — emulator died at 0% CPU idle (external load), not a flow verdict | Exception in thread "Thread-5" java.io.IOException: Command failed (shell,v2,raw:pm list packages --user 0 dev |
+| `report_participant` | (rig) | run-264 |  | fixture | RIG-004: Report is unique per reporter+target and nothing cleared them. First submit now tolerant. |
 | `reserve_after_accept` | FAIL-assert | s2/run-142 | 188 |  | [Failed] reserve_after_accept (2m 43s) (Element not found: Text matching regex: Make an Offer) |
 | `reserve_after_buyer_accepts_counter` | FAIL-assert | s2/run-142 | 202 | flow | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
 | `reserved_sold_dead_end_notice` | FAIL-assert ⚠slow | s2/run-142 | 568 | flow | Five logins could not fit FLOW_TIMEOUT=600; split into three flows, only this one mutates. |
@@ -76,18 +78,19 @@ bug class a user reports as "nothing happened".
 | `send_photo` | FAIL-assert | s2/run-142 | 221 | flow | Asserted "common.close" — a t() KEY copied from a Jest test. |
 | `start_conversation` | FAIL-? | s2/run-142 | 6 | fixture | RIG-005: Wool Blanket had drifted to sold, so it left the browsable feed. Re-seeded. |
 | `start_conversation_and_reply` | FAIL-? | s2/run-142 | 5 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
+| `unread_badge_survives_navigation` | UNTESTED | — |  |  |  |
 | `view_other_profile_from_conversation` | FAIL-? | s2/run-142 | 7 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
-9/29 passing · 9 open
+7/29 passing · 9 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `account_delete_and_restore` | FAIL-assert ⟳stale | run-257 | 178 |  | [Failed] account_delete_and_restore (2m 43s) (Element not found: Text matching regex: Delete account) |
-| `account_delete_cancel` | PASS | run-257 | 202 |  |  |
+| `account_delete_cancel` | PASS ⟳stale | run-257 | 202 |  |  |
 | `away_mode` | FAIL-assert ⟳stale | run-257 | 180 | app+flow — away row was untappable (no Pressable/testID); fixed cb68fa4 (live via Metro, no rebuild) | [Failed] away_mode (2m 46s) (Assertion is false: "Away until (YYYY-MM-DD)" is visible) |
-| `blocked_users` | PASS | run-257 | 170 |  |  |
+| `blocked_users` | PASS ⟳stale | run-257 | 170 |  |  |
 | `change_language_dari` | PASS | run-257 | 175 |  |  |
 | `change_language_english` | FAIL-? ⟳stale | run-257 | 543 | flow — toothless restart wait; helper+nav fixed cb68fa4 | [Failed] change_language_english (8m 47s) (No visible element found: "Sign Out") |
 | `change_language_pashto` | PASS | run-257 | 181 |  |  |
@@ -230,28 +233,28 @@ bug class a user reports as "nothing happened".
 
 ## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
 
-12/40 passing · 1 open
+6/40 passing · 1 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `create_listing` | PASS | run-252 | 268 |  |  |
+| `create_listing` | PASS ⟳stale | run-252 | 268 |  |  |
 | `create_listing_all_fields` | FAIL-assert ⟳stale | run-252 | 260 | STALE — already retargeted off tapOn "Kabul" (comment at :85 records it); awaiting re-run | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
-| `create_listing_category_search` | PASS | run-252 | 176 |  |  |
+| `create_listing_category_search` | PASS ⟳stale | run-252 | 176 |  |  |
 | `create_listing_currency_eur` | FAIL-assert ⟳stale | run-252 | 224 | flow | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
 | `create_listing_currency_usd` | PASS ⟳stale | run-252 | 238 | flow | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
 | `create_listing_draft_discard` | PASS | run-252 | 161 |  |  |
 | `create_listing_draft_restore` | FAIL-assert ⟳stale | run-252 | 252 | flow | "Draft saved" is a toast from toast.success; a bare assert races it. Now polls. |
 | `create_listing_full_publish` | PASS ⟳stale | run-252 | 247 |  | AxiosError |
-| `create_listing_multi_quantity` | PASS | run-252 | 199 | fixed | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
-| `create_listing_price_edges` | PASS | run-252 | 207 |  |  |
+| `create_listing_multi_quantity` | PASS ⟳stale | run-252 | 199 | fixed | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
+| `create_listing_price_edges` | PASS ⟳stale | run-252 | 207 |  |  |
 | `create_listing_publish_blocked` | FAIL-assert ⟳stale | run-252 | 229 | flow | Touched the form before the location sheet closed; the helper allows 45s for it. |
 | `create_listing_publish_direct` | PASS ⟳stale | run-252 | 285 |  |  |
-| `create_listing_publish_requirements` | PASS | run-252 | 206 |  |  |
+| `create_listing_publish_requirements` | PASS ⟳stale | run-252 | 206 |  |  |
 | `create_listing_quantity_edges` | FAIL-assert ⟳stale | run-252 | 210 | flow | Field maps empty to 1, so eraseText appends. Blur-then-focus lets selectTextOnFocus replace. |
 | `create_listing_title_edges` | FAIL-assert ⟳stale | run-252 | 446 | env | Login gate timed out at 60s under host load; flow never ran its own steps. |
 | `create_listing_validation` | PASS ⟳stale | run-252 | 187 |  |  |
 | `create_listing_with_condition` | FAIL-assert ⟳stale | run-252 | 469 | flow | Tapped a title sitting in the search box, so the tap hit the input. Card testID now. |
-| `create_listing_with_photos` | PASS | run-252 | 276 |  |  |
+| `create_listing_with_photos` | PASS ⟳stale | run-252 | 276 |  |  |
 | `delete_listing` | FAIL-assert ⟳stale | run-252 | 233 | flow | Toast unwaitable: onDeleted does router.replace, so it fires on a dying screen. Asserts the outcome. |
 | `draft_lifecycle` | FAIL-assert ⟳stale | run-252 | 261 | flow | Never confirmed the native publish dialog; now via confirm_dialog (android:id/button1). |
 | `edit_listing` | PASS ⟳stale | run-252 | 227 |  |  |
@@ -288,21 +291,21 @@ bug class a user reports as "nothing happened".
 
 ## `auth` — Sign up, login, logout, session persistence, guest gating
 
-16/16 passing · 0 open
+11/16 passing · 0 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `confirm_email_prompt` | PASS | run-262 | 154 |  |  |
 | `guest_browse` | PASS | run-262 | 134 |  |  |
-| `guest_offer_redirect` | PASS | run-262 | 184 |  |  |
-| `guest_save_redirect` | PASS | run-262 | 178 |  |  |
+| `guest_offer_redirect` | PASS ⟳stale | run-262 | 184 |  |  |
+| `guest_save_redirect` | PASS ⟳stale | run-262 | 178 |  |  |
 | `login` | PASS | run-262 | 143 |  |  |
-| `login_deep` | PASS | run-262 | 196 |  |  |
+| `login_deep` | PASS ⟳stale | run-262 | 196 |  |  |
 | `login_empty_fields` | PASS | run-262 | 106 |  | Request failed with status code Request failed with status code |
 | `login_navigate_to_register` | PASS | run-262 | 103 |  |  |
 | `login_wrong_password` | PASS | run-262 | 118 |  | Request failed with status code |
-| `logout` | PASS | run-262 | 215 | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
-| `logout_cancel` | PASS | run-262 | 205 |  |  |
+| `logout` | PASS ⟳stale | run-262 | 215 | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
+| `logout_cancel` | PASS ⟳stale | run-262 | 205 |  |  |
 | `register_duplicate_email` | PASS | run-262 | 136 | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
 | `register_navigate_to_login` | PASS | run-262 | 107 |  |  |
 | `session_persist` | PASS | run-262 | 146 |  |  |
@@ -319,7 +322,7 @@ bug class a user reports as "nothing happened".
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile
 
-26/38 passing · 0 open
+21/38 passing · 0 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -334,12 +337,12 @@ bug class a user reports as "nothing happened".
 | `filter_condition` | PASS | run-263 | 173 |  |  |
 | `filter_price_range` | PASS | run-263 | 182 |  |  |
 | `full_marketplace_cycle` | FAIL-assert ⟳stale ⚠slow | run-263 | 585 | flow — doubled search (missing eraseText) + inherited price filter emptied the feed; fixed | Four taps with the same search-box collision; three now erase and re-search first. |
-| `listing_detail` | PASS | run-263 | 167 |  |  |
+| `listing_detail` | PASS ⟳stale | run-263 | 167 |  |  |
 | `listing_detail_multi_quantity` | FAIL-assert ⟳stale | run-263 | 158 | flow — scroll stopped at the clipped bottom row so the price row never showed; centred. API data verified correct | [Failed] listing_detail_multi_quantity (2m 23s) (Assertion is false: "each" is visible) |
-| `listing_detail_offer` | PASS | run-263 | 189 |  |  |
-| `listing_detail_offer_invalid` | PASS | run-263 | 180 |  |  |
+| `listing_detail_offer` | PASS ⟳stale | run-263 | 189 |  |  |
+| `listing_detail_offer_invalid` | PASS ⟳stale | run-263 | 180 |  |  |
 | `listing_detail_price_drop_badge` | FAIL-assert ⟳stale | run-263 | 163 | flow — asserted the drop badge on a listing with no drop; retargeted to the seeded Lenovo | [Failed] listing_detail_price_drop_badge (2m 28s) (Assertion is false: "↓\d+%" is visible) |
-| `listing_detail_report` | PASS | run-263 | 171 | fixture | RIG-004 tolerance; covers the detail-screen entry point. |
+| `listing_detail_report` | PASS ⟳stale | run-263 | 171 | fixture | RIG-004 tolerance; covers the detail-screen entry point. |
 | `listing_detail_save_unsave` | FAIL-assert ⟳stale | run-263 | 234 | flow — asserted a global 'No saved items yet' it does not own; now asserts this listing is gone | [Failed] listing_detail_save_unsave (3m 38s) (Assertion is false: "No saved items yet" is visible) |
 | `listing_detail_saves_count` | FAIL-assert ⟳stale | run-263 | 198 | flow — tapped the save TOGGLE blind and unsaved it, so savesCount hit 0; now state-aware | [Failed] listing_detail_saves_count (3m 1s) (Assertion is false: "Saved by.*" is visible) |
 | `listing_detail_share` | PASS | run-263 | 170 |  |  |
@@ -353,7 +356,7 @@ bug class a user reports as "nothing happened".
 | `search_empty_state` | PASS | run-263 | 176 |  |  |
 | `search_listings` | PASS | run-263 | 196 |  |  |
 | `search_with_filter` | PASS | run-263 | 216 |  |  |
-| `seller_profile` | PASS | run-263 | 178 |  |  |
+| `seller_profile` | PASS ⟳stale | run-263 | 178 |  |  |
 | `seller_profile_from_listing` | PASS | run-263 | 174 |  |  |
 | `seller_response_rate_badge` | FAIL-? ⟳stale | run-263 | 210 | flow — anchored pattern started mid-label; badge renders "82% reply rate · Usually responds…" as one Text | [Failed] seller_response_rate_badge (3m 12s) (No visible element found: "Usually responds.*") |
 | `subcategory_drilldown` | FAIL-assert ⟳stale | run-263 | 245 | flow — chip reads "Subcategory: Phones & Tablets"; the two chip asserts still said "Phones" | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
@@ -364,16 +367,16 @@ bug class a user reports as "nothing happened".
 
 ## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
 
-5/6 passing · 0 open
+3/6 passing · 0 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `create_listing_map_pin` | PASS | run-253 | 230 |  |  |
+| `create_listing_map_pin` | PASS ⟳stale | run-253 | 230 |  |  |
 | `filter_map_default_kabul` | PASS ⟳stale | run-253 | 167 |  |  |
 | `filter_map_location_denied` | PASS | run-253 | 189 |  |  |
 | `filter_map_use_my_location` | PASS | run-253 | 174 |  |  |
 | `filter_map_use_my_location_granted` | PASS | run-253 | 163 |  |  |
-| `map_location_outside_afghanistan` | PASS | run-253 | 190 |  |  |
+| `map_location_outside_afghanistan` | PASS ⟳stale | run-253 | 190 |  |  |
 
 ## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
 

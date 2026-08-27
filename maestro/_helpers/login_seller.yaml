@@ -30,6 +30,26 @@ env:
 
 # Both no-op when the app is already past that stage.
 - runFlow: open_bundle.yaml
+
+# A warm launch keeps the PREVIOUS flow's navigation. If that flow ended on a pushed
+# screen — a listing form, a conversation, a gallery — there is no tab bar, and every
+# step below that reaches for one fails on a screen this helper never expected. It cost
+# chat/offer_counter_flow a run: the hierarchy at its failure was the Create Listing form
+# ("Save Draft", "Publish", "Title *"), and the mode label ensure_buyer_mode waits for
+# only exists on Profile.
+#
+# A cold restart rather than pressing Back: backing out of a half-filled listing form
+# raises a discard confirm, and guessing how many backs and which dialog is in the way is
+# exactly the brittleness the warm launch exists to avoid. stopApp keeps clearState off,
+# so the session survives and the app simply comes back on its initial route.
+- runFlow:
+    when:
+      notVisible:
+        id: "browse-tab"
+    commands:
+      - launchApp:
+          stopApp: true
+      - runFlow: open_bundle.yaml
 - runFlow: goto_login.yaml
 
 # ── Wrong account? Sign out first. ──────────────────────────────────────────
