@@ -36,6 +36,7 @@ appId: com.hatiwal.app
     element:
       id: "theme-option-dark"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "theme-option-dark"
@@ -64,6 +65,7 @@ appId: com.hatiwal.app
     element:
       id: "theme-option-system"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "theme-option-system"

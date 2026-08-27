@@ -92,6 +92,7 @@ appId: com.hatiwal.app
     element:
       id: "listing-form-quantity-row"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "listing-form-quantity-row"
@@ -121,6 +122,7 @@ appId: com.hatiwal.app
     element:
       id: "lifecycle-more-action"
     direction: DOWN
+    centerElement: true
     timeout: 10000
 - tapOn:
     id: "lifecycle-more-action"

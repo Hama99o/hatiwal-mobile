@@ -15,6 +15,7 @@ appId: com.hatiwal.app
     element:
       id: "profile-edit-button"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "profile-edit-button"
@@ -29,6 +30,7 @@ appId: com.hatiwal.app
     element:
       id: "edit-profile-bio-input"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "edit-profile-bio-input"

@@ -12,6 +12,7 @@ appId: com.hatiwal.app
     element:
       id: "profile-edit-button"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 # By testID: "Edit" is `common.edit`, translated, and the profile screen also
 # carries "Edit Profile" on the AVATAR — which opens the photo picker rather than

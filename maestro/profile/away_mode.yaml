@@ -22,6 +22,7 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
     element:
       id: "profile-edit-button"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "profile-edit-button"
@@ -40,6 +41,7 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
     element:
       id: "edit-profile-away-row"
     direction: DOWN
+    centerElement: true
     timeout: 15000
 - tapOn:
     id: "edit-profile-away-row"
@@ -58,6 +60,7 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
     element:
       id: "edit-profile-away-until-input"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "edit-profile-away-until-input"
@@ -106,6 +109,7 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
     element:
       id: "profile-edit-button"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "profile-edit-button"
@@ -122,6 +126,7 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
     element:
       id: "edit-profile-away-row"
     direction: DOWN
+    centerElement: true
     timeout: 15000
 - tapOn:
     id: "edit-profile-away-row"

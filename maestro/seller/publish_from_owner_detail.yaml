@@ -153,6 +153,7 @@ appId: com.hatiwal.app
     element:
       id: "lifecycle-more-action"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "lifecycle-more-action"

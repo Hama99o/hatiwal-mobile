@@ -18,7 +18,7 @@ appId: com.hatiwal.app
 #
 # Three questions, in order. The probe stops at the first failure, and WHICH step
 # fails is the answer:
-#   Q1 typing lands?      -> "Bamyan" must disappear once "Kandahar" is typed
+#   Q1 typing lands?      -> "Kabul" must disappear once "Kandahar" is typed
 #   Q2 row tap closes?    -> "Select Province" must go away  (if THIS is the
 #                            failure, the sheet does not close on select = APP BUG)
 #   Q3 form reachable?    -> "Save Changes" back in the tree, province now Kandahar
@@ -33,15 +33,23 @@ appId: com.hatiwal.app
     element:
       id: "profile-edit-button"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "profile-edit-button"
 - waitForAnimationToEnd
 
+# centerElement, because "visible" is not the same as "tappable". Without it the
+# scroll stops the instant the row is technically on screen, which left the trigger
+# at bounds [87,2251][993,2366] on a 1080x2400 device — its centre at y~2308, under
+# the gesture/navigation bar. Maestro taps the centre, the nav bar swallows it, and
+# the sheet never opens. That is the whole failure, and it is why a second tap
+# "helped": nothing to do with the picker itself.
 - scrollUntilVisible:
     element:
       id: "edit-profile-province-picker"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "edit-profile-province-picker"
@@ -50,8 +58,10 @@ appId: com.hatiwal.app
     visible:
       id: "province-search-input"
     timeout: 20000
-# Baseline: the sheet is open and unfiltered.
-- assertVisible: "Bamyan"
+# Baseline: the sheet is open and unfiltered. "Kabul" is AFGHAN_PROVINCES[0], so it
+# is on screen without scrolling the sheet's list. "Bamyan" is not — it sits below
+# the fold, which is what failed the previous run (a probe defect, not the app).
+- assertVisible: "Kabul"
 
 # --- Q1: does typing reach the search box? ---
 - tapOn:
@@ -59,8 +69,11 @@ appId: com.hatiwal.app
 - eraseText
 - inputText: "Kandahar"
 - waitForAnimationToEnd
-# Bamyan cannot survive the "Kandahar" filter. If this fails, the text never landed.
-- assertNotVisible: "Bamyan"
+# Kabul cannot survive the "Kandahar" filter. If this fails, the text never landed.
+# Safe as a negative: while this native Modal is up the form behind it is not in the
+# hierarchy at all (run-257 proved it — "Save Changes" had 0 nodes), so a "Kabul" in
+# the city field cannot satisfy this.
+- assertNotVisible: "Kabul"
 
 # --- Q2: does tapping a row close the sheet? ---
 - tapOn:

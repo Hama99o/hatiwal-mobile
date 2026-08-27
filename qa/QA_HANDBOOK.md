@@ -466,6 +466,38 @@ the map picker still does not dismiss on result-select — UI-023). When a botto
 and consumes the Back that Maestro sends. With no keyboard up, that Back reaches the
 app and can exit it.
 
+**`scrollUntilVisible` stops at "visible", which is not the same as "tappable".** It
+returns the moment the element enters the screen — which can leave it pinned at the
+very bottom edge, underneath the gesture/navigation bar. Maestro then taps the
+element's CENTRE, the nav bar swallows the touch, and nothing happens: the flow fails
+later, somewhere else, on a consequence that never came.
+
+Proven on the province picker. `edit-profile-province-picker` came to rest at bounds
+`[87,2251][993,2366]` on a 1080x2400 device — centre y~2308, inside the nav bar's
+bottom ~130px. A probe that scrolled to it and tapped it ONCE, with no guard of any
+kind, sat for 20s waiting for a sheet that never opened, while the hierarchy showed
+the trigger present, clickable and enabled. Three flows (edit_profile_province,
+edit_profile_all_fields, full_marketplace_cycle) had never once got through the
+picker, and the picker was never at fault.
+
+Add `centerElement: true` to the scroll, which scrolls the element to the middle:
+
+```yaml
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-province-picker"
+    direction: DOWN
+    centerElement: true          # NOT optional for anything low in a long form
+    timeout: 20000
+```
+
+Beware the false lead this creates: a second tap sometimes "fixes" it, because the
+extra scrolling that happens in between moves the target. That invites a retap guard
+which is pure superstition — it re-taps the same dead coordinates. 64 sites across 43
+flows still scroll-then-tap the same element without centring; treat a "the tap did
+nothing" failure on any of them as this bug until the bounds say otherwise, and read
+the bounds out of the failing step's `screen-hierarchy/*.json`.
+
 ### A fresh emulator is missing things the app needs, and the failures blame the app
 
 Three capabilities the app legitimately depends on are simply absent on a clean

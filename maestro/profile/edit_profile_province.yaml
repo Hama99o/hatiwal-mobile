@@ -31,6 +31,7 @@ appId: com.hatiwal.app
     element:
       id: "profile-edit-button"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "profile-edit-button"
@@ -42,10 +43,18 @@ appId: com.hatiwal.app
 # Province is a PICKER now, not a free-text field (UI-041): typed provinces
 # arrived as "Kabul"/"kabul"/typos and nothing could filter by them. Tap the row,
 # search, take the first match.
+# centerElement, because "visible" is not the same as "tappable". Without it the
+# scroll stops the instant the row enters the screen, which left this trigger at
+# bounds [87,2251][993,2366] on a 1080x2400 device — centre y~2308, inside the
+# gesture/nav bar's bottom ~130px. Maestro taps the centre, the nav bar eats the
+# touch, and the sheet never opens. A probe with a single clean tap and no guard at
+# all sat 20s waiting for a sheet that never came, while the hierarchy showed the
+# trigger present, clickable and enabled. The picker was never at fault.
 - scrollUntilVisible:
     element:
       id: "edit-profile-province-picker"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "edit-profile-province-picker"
@@ -55,14 +64,11 @@ appId: com.hatiwal.app
 # left up from the fields above, since scrollUntilVisible stops as soon as its target is in
 # the hierarchy. Retry once and gate on the sheet, rather than reaching for hideKeyboard —
 # that is Back on this pushed screen and would leave EditProfile.
-- runFlow:
-    when:
-      notVisible:
-        id: "province-search-input"
-    commands:
-      - tapOn:
-          id: "edit-profile-province-picker"
-      - waitForAnimationToEnd
+# NO retap guard here. I added one and it was superstition: the first tap was
+# missing the trigger entirely (see the nav-bar note above), so the retap aimed at
+# the same dead coordinates and achieved nothing — while making the failure look
+# like a flaky sheet. With the trigger centred, one tap is enough; if it ever is
+# not, the wait below fails honestly instead of being papered over.
 - extendedWaitUntil:
     visible:
       id: "province-search-input"
@@ -82,8 +88,15 @@ appId: com.hatiwal.app
     timeout: 20000
 - tapOn: "Save Changes"
 - waitForAnimationToEnd
+# NOT the toast. EditProfile's onSuccess raises toast.success(...) and then calls
+# router.replace("/(main)/(tabs)/profile") in the next statement (EditProfile.tsx
+# 267-269), so the message renders on a screen being torn down and no amount of
+# polling can catch it. That replace happens ONLY in onSuccess, so landing back on
+# Profile is itself proof the save went through — and unlike the toast it is still
+# true a second later.
 - extendedWaitUntil:
-    visible: "Profile saved"
+    visible:
+      id: "profile-edit-button"
     timeout: 20000
 
 # Reopen and confirm it was stored, not just echoed in the form.
@@ -104,6 +117,7 @@ appId: com.hatiwal.app
     element:
       id: "profile-edit-button"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn:
     id: "profile-edit-button"
@@ -130,6 +144,13 @@ appId: com.hatiwal.app
     timeout: 20000
 - tapOn: "Save Changes"
 - waitForAnimationToEnd
+# NOT the toast. EditProfile's onSuccess raises toast.success(...) and then calls
+# router.replace("/(main)/(tabs)/profile") in the next statement (EditProfile.tsx
+# 267-269), so the message renders on a screen being torn down and no amount of
+# polling can catch it. That replace happens ONLY in onSuccess, so landing back on
+# Profile is itself proof the save went through — and unlike the toast it is still
+# true a second later.
 - extendedWaitUntil:
-    visible: "Profile saved"
+    visible:
+      id: "profile-edit-button"
     timeout: 20000
