@@ -43,7 +43,11 @@ appId: com.hatiwal.app
     element:
       text: "QA Disposable reserved_buyer"
     direction: DOWN
-    timeout: 8000
+    # 20s, not 8s: this is a scroll down the whole feed to one seeded title, and 8s ran
+    # out on a loaded device — offer_send_and_accept and offer_send_and_decline both
+    # reported "No visible element found" with the title present in the hierarchy,
+    # which is what a scroll running out of TIME rather than out of list looks like.
+    timeout: 20000
 
 # By CARD testID, not the title. The title is sitting in the search box from the step
 # above, and that input is higher in the hierarchy than the results — so an anchored
