@@ -58,3 +58,6 @@ qa/reports/
 # reading on this machine, not worth committing. qa/history.jsonl IS tracked —
 # it is the verdict history those copies illustrate.
 qa/evidence/
+
+# Python bytecode from the qa/ tooling — flow_lint.py --selftest imports itself
+__pycache__/
