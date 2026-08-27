@@ -9,15 +9,23 @@ appId: com.hatiwal.app
 # "Edit" is an item INSIDE the More sheet (useListingLifecycle `moreActions`,
 # key "edit", label common.edit) — it is not on the detail screen, so scrolling
 # the page cannot reach it. Open the sheet first.
+# The LIST-side route. `lifecycle-more-action` exists only on MyListingDetail
+# (MyListingDetail.tsx:553) and this flow never opens a listing — it goes from My Shop's
+# list straight to scrolling for a detail-screen control, so the scroll burned its full
+# 20s and reported "No visible element found" for something never on this screen.
+# gallery/listing_edit_add_photos.yaml already had the working route from here: the
+# card's own ⋮ opens the same actions, by testID rather than the word "Edit".
 - scrollUntilVisible:
     element:
-      id: "lifecycle-more-action"
+      id: "seller-listing-card"
     direction: DOWN
     timeout: 20000
 - tapOn:
-    id: "lifecycle-more-action"
+    id: "seller-card-more-action"
+    index: 0
 - waitForAnimationToEnd
-- tapOn: "Edit"
+- tapOn:
+    id: "listing-action-edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Listing"
 # Make a change
