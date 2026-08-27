@@ -34,7 +34,8 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 # tapping it toggled nothing and the "Away until" field below — rendered only while
 # the toggle is on — never appeared. EditProfile now wraps the row in a Pressable
 # (edit-profile-away-row), the way ListingForm does for negotiable, so a flow and a
-# thumb land on the same target. NOTE: needs an APK newer than 2026-08-26 19:21.
+# thumb land on the same target. No rebuild needed: the debug APK pulls its JS
+# from Metro (adb reverse 8081 -> 3008), so a .tsx change is live on next launch.
 - scrollUntilVisible:
     element:
       id: "edit-profile-away-row"
@@ -115,7 +116,8 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 # tapping it toggled nothing and the "Away until" field below — rendered only while
 # the toggle is on — never appeared. EditProfile now wraps the row in a Pressable
 # (edit-profile-away-row), the way ListingForm does for negotiable, so a flow and a
-# thumb land on the same target. NOTE: needs an APK newer than 2026-08-26 19:21.
+# thumb land on the same target. No rebuild needed: the debug APK pulls its JS
+# from Metro (adb reverse 8081 -> 3008), so a .tsx change is live on next launch.
 - scrollUntilVisible:
     element:
       id: "edit-profile-away-row"

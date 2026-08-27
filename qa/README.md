@@ -40,6 +40,25 @@ local or plain-http API. Consequences:
 - The preview/production APKs point at the **live** API. Running write-flows
   with one of those creates real listings in production. Don't.
 
+### A fix in `src/` does NOT need a rebuild
+
+Because it is a debug build, the APK is a shell: it fetches its JS bundle from
+Metro at launch (`qa.sh up` sets up `adb reverse tcp:8081 tcp:3008`, and the
+Dockerised Metro bind-mounts this repo at `/app`). So a `.tsx`/`.ts` change is
+live on the **next `launchApp`**, which every flow does — no gradle, no install.
+
+Do not plan a rebuild to validate app-code fixes; it costs 10-20 minutes and
+changes nothing. `qa.sh build` is for native/dependency changes only. To prove a
+change reached the device, grep the served bundle instead:
+
+```bash
+curl -s 'http://localhost:3008/node_modules/expo-router/entry.bundle?platform=android&dev=true' \
+  | grep -c my-new-testid          # ~22MB; do this while NO flow is running
+```
+
+That last caveat is real: fetching the full dev bundle is CPU-heavy and starved a
+running probe into its 600s timeout.
+
 ## Order of operations (this matters)
 
 The emulator and a gradle build must **never** run at the same time. A gradle
