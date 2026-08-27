@@ -42,6 +42,34 @@ save the full run for between cycles. And when a `rig_fail` appears, check `upti
 before anything else — the machine also hosts another project's rig, so load is not
 always self-inflicted, but it usually is.
 
+## `flow_sha` does not mean "as executed" — check `commands.json`
+
+`emit_result.py` hashes the .yaml when it WRITES the record, which is after the flow
+ran. Its own docstring says "the SHA-1 of the .yaml AS EXECUTED"; the code does not do
+that. Several agents edit this suite while runs are in flight, so a flow fixed mid-run
+gets a record whose sha describes the NEW file and whose verdict describes the OLD one
+— i.e. a stale verdict that every staleness check calls current.
+
+It cost a triage. listings/edit_listing_discard was recorded FAIL on "No visible
+element found: lifecycle-more-action" with a sha matching a file whose only mention of
+that selector is the comment explaining why it was removed. The run's own
+`commands.json` settled it: `"idRegex": "lifecycle-more-action"` twice, and the
+replacement `seller-card-more-action` not once. Run-252 ran the old file.
+
+`commands.json` (in the flow's debug dir) is maestro's parsed command list with helpers
+inlined, written at launch — it is the authoritative record of what ran. Use it:
+
+```bash
+./qa/executed_check.py edit_listing_discard some_other_flow
+#   EXECUTED-OLD (run-252)  dropped since: lifecycle-more-action   <- do not triage
+#   selectors still live (run-257) — triage it
+```
+
+Two traps if you write this check yourself: maestro names selectors `idRegex` /
+`textRegex`, not `id` / `text` (reading the wrong keys makes it cheerfully report
+"matches" for a flow it is wrong about), and the failure MESSAGE also contains the
+selector text, so match on the key/value pair rather than grepping the raw file.
+
 ## Never kill by process name on this machine
 
 Another project (edu-safi) runs its own QA rig here, with its own emulator, its own

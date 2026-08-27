@@ -10,15 +10,14 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**97 of 235 flows passing** · 137 still need attention
+**76 of 235 flows passing** · 159 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 97 | green, and no backend error underneath |
-| FAIL-assert | 62 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-? | 25 | failed, cause unclear — read the log |
-| (rig) | 1 | rig broke mid-run — result meaningless, re-run |
-| UNTESTED | 50 | never executed |
+| PASS | 76 | green, and no backend error underneath |
+| FAIL-assert | 65 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-? | 16 | failed, cause unclear — read the log |
+| UNTESTED | 78 | never executed |
 
 ### Definition of done
 
@@ -28,28 +27,101 @@ bug class a user reports as "nothing happened".
 
 ## Flows
 
-## `auth` — Sign up, login, logout, session persistence, guest gating
+## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile
 
-1/16 passing · 14 open
+1/38 passing · 37 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `confirm_email_prompt` | PASS | s2/run-235 | 200 |  |  |
-| `guest_browse` | PASS ⟳stale | s2/run-235 | 186 |  |  |
-| `guest_offer_redirect` | FAIL-? | s5/run-124 | 48 |  | [Failed] guest_offer_redirect (9s) |
-| `guest_save_redirect` | FAIL-? | s5/run-124 | 46 |  | [Failed] guest_save_redirect (5s) |
-| `login` | FAIL-? | s5/run-124 | 82 |  | [Failed] login (44s) |
-| `login_deep` | FAIL-? | s5/run-124 | 31 |  | [Failed] login_deep (5s) |
-| `login_empty_fields` | UNTESTED | — |  |  | Request failed with status code Request failed with status code |
-| `login_navigate_to_register` | UNTESTED | — |  |  |  |
-| `login_wrong_password` | UNTESTED | — |  |  | Request failed with status code |
-| `logout` | UNTESTED | — |  | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
-| `logout_cancel` | UNTESTED | — |  |  |  |
-| `register_duplicate_email` | UNTESTED | — |  | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
-| `register_navigate_to_login` | UNTESTED | — |  |  |  |
-| `session_persist` | UNTESTED | — |  |  |  |
-| `sign_up` | FAIL-assert | s3/run-111 | 174 |  | [Failed] sign_up (2m 35s) (Assertion is false: "Bazaar" is visible) |
-| `sign_up_validation` | UNTESTED | — |  |  |  |
+| `browse_all_categories` | FAIL-assert | s3/run-108 | 272 |  | AxiosError |
+| `browse_listings` | FAIL-assert | s3/run-108 | 249 |  | [Failed] browse_listings (3m 42s) (Assertion is false: "Development Build" is not visible) |
+| `browse_sort_most_viewed` | FAIL-assert | s3/run-108 | 257 |  | AxiosError AxiosError |
+| `browse_sort_nearest` | FAIL-assert | s3/run-108 | 251 |  | [Failed] browse_sort_nearest (3m 46s) (Assertion is false: "Development Build" is not visible) |
+| `categories_hub` | FAIL-assert | s3/run-108 | 262 |  | [Failed] categories_hub (3m 49s) (Assertion is false: "Development Build" is not visible) |
+| `clear_all_filters` | UNTESTED | — |  |  |  |
+| `filter_active_sellers` | UNTESTED | — |  |  |  |
+| `filter_by_category` | UNTESTED | — |  |  |  |
+| `filter_condition` | UNTESTED | — |  |  |  |
+| `filter_price_range` | UNTESTED | — |  |  |  |
+| `full_marketplace_cycle` | UNTESTED | — |  | flow | Four taps with the same search-box collision; three now erase and re-search first. |
+| `listing_detail` | UNTESTED | — |  |  |  |
+| `listing_detail_multi_quantity` | UNTESTED | — |  |  |  |
+| `listing_detail_offer` | UNTESTED | — |  |  |  |
+| `listing_detail_offer_invalid` | UNTESTED | — |  |  |  |
+| `listing_detail_price_drop_badge` | UNTESTED | — |  |  |  |
+| `listing_detail_report` | UNTESTED | — |  | fixture | RIG-004 tolerance; covers the detail-screen entry point. |
+| `listing_detail_save_unsave` | UNTESTED | — |  |  |  |
+| `listing_detail_saves_count` | UNTESTED | — |  |  |  |
+| `listing_detail_share` | UNTESTED | — |  |  |  |
+| `listing_detail_similar` | UNTESTED | — |  |  |  |
+| `listing_detail_sold_recovery` | UNTESTED | — |  | flow | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
+| `listing_detail_sold_state` | UNTESTED | — |  |  |  |
+| `listing_detail_views_count` | UNTESTED | — |  |  |  |
+| `not_interested` | UNTESTED | — |  |  |  |
+| `saved_search_apply` | UNTESTED | — |  |  |  |
+| `scroll_to_top` | UNTESTED | — |  |  |  |
+| `search_empty_state` | UNTESTED | — |  |  |  |
+| `search_listings` | UNTESTED | — |  |  |  |
+| `search_with_filter` | UNTESTED | — |  |  |  |
+| `seller_profile` | UNTESTED | — |  |  |  |
+| `seller_profile_from_listing` | PASS | s2/run-141 | 237 |  |  |
+| `seller_response_rate_badge` | UNTESTED | — |  |  |  |
+| `subcategory_drilldown` | UNTESTED | — |  | flow | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
+| `user_profile_empty_listings` | UNTESTED | — |  | flow | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
+| `user_profile_listing_grid` | UNTESTED | — |  | flow | Grid sits below the profile header; assertVisible does not scroll. Added both ways. |
+| `user_profile_stats` | UNTESTED | — |  | flow | Hardcoded "2024"; member_since renders "August 2026" as one node. Year-shaped pattern. |
+| `view_mode_toggle` | UNTESTED | — |  | flow | HOLLOW: every tap optional, only assertion was the always-present tab label. Rewritten. |
+
+## `chat` — Conversations, messages, offers, meetup arrangement, read state
+
+16/44 passing · 27 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `archive_conversation` | PASS | s2/run-142 | 227 |  |  |
+| `block_from_conversation` | FAIL-assert | s2/run-142 | 210 | app bug | UI-046 FIXED: composer stayed live after blocking; API refuses the send (403). |
+| `chat_older_messages_pagination` | FAIL-? | s2/run-142 | 193 |  | [Failed] chat_older_messages_pagination (2m 46s) (No visible element found: id: messages-list-top) |
+| `composer_draft` | PASS | s2/run-142 | 228 | flow | Tapped a title that was sitting in the search box, so the tap hit the input. |
+| `conversation_archive` | PASS | s2/run-142 | 224 |  |  |
+| `conversation_delete` | PASS | s2/run-142 | 215 |  |  |
+| `conversation_read_status` | FAIL-assert | s2/run-142 | 226 | fixture | mark_unread needs an INBOUND message; index 0 was QA debris with none. Pinned via helper. |
+| `conversations-search` | PASS | s2/run-142 | 305 |  |  |
+| `conversations_empty_state` | FAIL-assert | s2/run-142 | 290 |  | [Failed] conversations_empty_state (4m 27s) (Assertion is false: "Bazaar" is visible) |
+| `conversations_filter` | FAIL-? | s2/run-142 | 208 | flow | ${visible()} does not exist in Maestro's JS sandbox; raised TypeError. Regex alternation instead. |
+| `conversations_list` | PASS | s2/run-142 | 198 |  |  |
+| `conversations_role_filter` | PASS | s2/run-142 | 307 |  |  |
+| `dead_end_notice_absent_when_active` | UNTESTED | — |  |  |  |
+| `dead_end_notice_sold` | UNTESTED | — |  |  |  |
+| `delete_message` | PASS | s2/run-142 | 195 |  |  |
+| `lifecycle_from_chat` | FAIL-assert | s2/run-142 | 315 |  | [Failed] lifecycle_from_chat (4m 54s) (Assertion is false: "Reserve" is visible) |
+| `mark_read` | FAIL-assert | s2/run-142 | 242 | fixture | Same unrepliable-thread trap. |
+| `mark_read_end_to_end` | FAIL-assert | s2/run-142 | 181 | fixture | Assumed the seed left something unread; every flow that opens a thread marks it read. |
+| `meetup_decline` | FAIL-assert | s2/run-142 | 196 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
+| `meetup_full_cycle` | FAIL-assert | s2/run-142 | 192 | flow | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
+| `meetup_proposal` | PASS | s2/run-142 | 213 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
+| `meetup_proposed_bubble_ui` | FAIL-assert | s2/run-142 | 208 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
+| `meetup_respond` | FAIL-assert | s2/run-142 | 192 | flow | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
+| `meetup_validation` | FAIL-assert | s2/run-142 | 156 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
+| `message_long_text` | FAIL-assert | s2/run-142 | 471 | flow | Asserted 27 chars of the 366-char message it sent. Now spans both ends. |
+| `offer_counter_flow` | FAIL-assert | s2/run-142 | 182 | flow | Tapped seller-only "Counter" as the buyer who sent the offer. Now switches to the seller. |
+| `offer_in_existing_thread` | PASS | s2/run-142 | 181 |  |  |
+| `offer_send_and_accept` | PASS | s2/run-142 | 400 |  |  |
+| `offer_send_and_decline` | FAIL-assert | s2/run-142 | 196 | flow | Same wrong-session bug for "Decline"; also asserted "Pending", which no offer bubble renders. |
+| `quick_replies` | FAIL-assert | s2/run-142 | 197 |  | [Failed] quick_replies (2m 56s) (Element not found: Text matching regex: Is this still available?) |
+| `report_participant` | FAIL-assert | s2/run-142 | 223 | fixture | RIG-004: Report is unique per reporter+target and nothing cleared them. First submit now tolerant. |
+| `reserve_after_accept` | FAIL-assert | s2/run-142 | 188 |  | [Failed] reserve_after_accept (2m 43s) (Element not found: Text matching regex: Make an Offer) |
+| `reserve_after_buyer_accepts_counter` | FAIL-assert | s2/run-142 | 202 | flow | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
+| `reserved_sold_dead_end_notice` | FAIL-assert ⚠slow | s2/run-142 | 568 | flow | Five logins could not fit FLOW_TIMEOUT=600; split into three flows, only this one mutates. |
+| `send_message` | PASS | s2/run-142 | 189 |  |  |
+| `send_message_double_tap` | PASS | s2/run-142 | 209 |  |  |
+| `send_message_empty` | PASS | s2/run-142 | 202 |  |  |
+| `send_message_offline` | FAIL-assert ⚠1 | s2/run-142 | 245 | flow | hideKeyboard is Back on Android and popped the conversation; "Send" was on another screen. |
+| `send_message_whitespace` | PASS | s2/run-142 | 203 |  |  |
+| `send_multiple_messages` | PASS | s2/run-142 | 237 |  |  |
+| `send_photo` | FAIL-assert | s2/run-142 | 221 | flow | Asserted "common.close" — a t() KEY copied from a Jest test. |
+| `start_conversation` | FAIL-? | s2/run-142 | 6 | fixture | RIG-005: Wool Blanket had drifted to sold, so it left the browsable feed. Re-seeded. |
+| `start_conversation_and_reply` | FAIL-? | s2/run-142 | 5 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
+| `view_other_profile_from_conversation` | FAIL-? | s2/run-142 | 7 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
@@ -74,7 +146,7 @@ bug class a user reports as "nothing happened".
 | `language_persists_across_tabs` | PASS | run-257 | 286 |  |  |
 | `language_switch_all_screens` | FAIL-? ⟳stale | run-257 | 286 | flow — asserted Profile content while restart left app on feed; reordered cb68fa4 | [Failed] language_switch_all_screens (4m 31s) (No visible element found: "اطلاعات شخصی") |
 | `profile_stats_verify` | FAIL-? | run-257 | 480 | flow | Same hardcoded year. |
-| `recently_viewed` | FAIL-? | run-257 | 148 |  | [Failed] recently_viewed (2m 12s) (No visible element found: "Recently Viewed") |
+| `recently_viewed` | FAIL-? | run-257 | 148 | flow+app — row had no testID; added profile-row-recently-viewed. Fixed 34e713a | [Failed] recently_viewed (2m 12s) (No visible element found: "Recently Viewed") |
 | `recently_viewed_empty_state` | FAIL-assert | s2/run-156 | 160 |  | [Failed] recently_viewed_empty_state (2m 20s) (Assertion is false: "Buy and sell locally in Afghanistan" is vi |
 | `seller_mode_toggle` | PASS | s2/run-156 | 187 |  |  |
 | `theme_switch` | FAIL-assert | s2/run-156 | 168 |  | [Failed] theme_switch (2m 28s) (Element not found: Id matching regex: theme-option-light) |
@@ -132,6 +204,21 @@ bug class a user reports as "nothing happened".
 | `report_user_from_profile` | UNTESTED | — |  | fixture | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
 | `report_user_then_block` | UNTESTED | — |  | fixture | Retargeted to maryam (40); now unblocks, which it never did. |
 
+## `dark_mode` — Every main screen in dark theme + theme persistence
+
+0/8 passing · 8 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_dark` | FAIL-assert | s4/run-108 | 219 |  | [Failed] browse_dark (2m 57s) (Assertion is false: "APPEARANCE" is visible) |
+| `chat_dark` | FAIL-assert | s4/run-108 | 167 |  | [Failed] chat_dark (2m 21s) (Element not found: Text matching regex: Dark) |
+| `listing_detail_dark` | FAIL-assert | s4/run-108 | 192 |  | [Failed] listing_detail_dark (2m 19s) (Element not found: Text matching regex: Dark) |
+| `my_listings_dark` | FAIL-assert | s4/run-108 | 247 |  | [Failed] my_listings_dark (3m 40s) (Element not found: Text matching regex: Dark) |
+| `profile_dark` | FAIL-assert | s4/run-108 | 166 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
+| `saved_tab_dark` | FAIL-assert | s4/run-108 | 164 |  | [Failed] saved_tab_dark (2m 19s) (Element not found: Text matching regex: Appearance) |
+| `theme_light_all_screens` | FAIL-assert | s4/run-108 | 158 |  | [Failed] theme_light_all_screens (2m 14s) (Element not found: Text matching regex: Appearance) |
+| `theme_persists_after_navigate` | UNTESTED | — |  | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
+
 ## `rtl` — Pashto + Dari right-to-left layout across main screens
 
 0/8 passing · 8 open
@@ -146,57 +233,6 @@ bug class a user reports as "nothing happened".
 | `my_listings_rtl` | UNTESTED | — |  |  |  |
 | `profile_quick_actions_rtl` | UNTESTED | — |  |  |  |
 | `profile_rtl` | UNTESTED | — |  |  |  |
-
-## `chat` — Conversations, messages, offers, meetup arrangement, read state
-
-22/44 passing · 5 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `archive_conversation` | PASS | run-249 | 195 |  |  |
-| `block_from_conversation` | FAIL-assert ⟳stale | run-249 | 182 | app bug | UI-046 FIXED: composer stayed live after blocking; API refuses the send (403). |
-| `chat_older_messages_pagination` | PASS | run-249 | 166 |  |  |
-| `composer_draft` | FAIL-assert ⟳stale | run-249 | 211 | flow | Tapped a title that was sitting in the search box, so the tap hit the input. |
-| `conversation_archive` | PASS | run-249 | 186 |  |  |
-| `conversation_delete` | PASS | run-249 | 167 |  |  |
-| `conversation_read_status` | FAIL-assert ⟳stale | run-249 | 193 | fixture | mark_unread needs an INBOUND message; index 0 was QA debris with none. Pinned via helper. |
-| `conversations-search` | PASS | run-249 | 220 |  |  |
-| `conversations_empty_state` | PASS ⟳stale | run-249 | 159 |  |  |
-| `conversations_filter` | FAIL-? ⟳stale | run-249 | 194 | flow | ${visible()} does not exist in Maestro's JS sandbox; raised TypeError. Regex alternation instead. |
-| `conversations_list` | PASS | run-249 | 178 |  |  |
-| `conversations_role_filter` | PASS | run-249 | 260 |  |  |
-| `dead_end_notice_absent_when_active` | UNTESTED | — |  |  |  |
-| `dead_end_notice_sold` | UNTESTED | — |  |  |  |
-| `delete_message` | PASS | run-249 | 216 |  |  |
-| `lifecycle_from_chat` | FAIL-assert ⟳stale | run-249 | 255 |  | [Failed] lifecycle_from_chat (4m) (Assertion is false: "Type a message..." is not visible) |
-| `mark_read` | FAIL-assert ⟳stale | run-249 | 183 | fixture | Same unrepliable-thread trap. |
-| `mark_read_end_to_end` | FAIL-assert ⟳stale | run-249 | 168 | fixture | Assumed the seed left something unread; every flow that opens a thread marks it read. |
-| `meetup_decline` | PASS | run-249 | 421 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
-| `meetup_full_cycle` | PASS | run-249 | 504 | flow | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
-| `meetup_proposal` | FAIL-? | run-249 | 31 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
-| `meetup_proposed_bubble_ui` | PASS | run-249 | 327 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
-| `meetup_respond` | PASS | run-249 | 430 | flow | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
-| `meetup_validation` | PASS | run-249 | 262 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
-| `message_long_text` | FAIL-assert ⟳stale | run-249 | 258 | flow | Asserted 27 chars of the 366-char message it sent. Now spans both ends. |
-| `offer_counter_flow` | FAIL-assert ⟳stale | run-249 | 216 | flow | Tapped seller-only "Counter" as the buyer who sent the offer. Now switches to the seller. |
-| `offer_in_existing_thread` | PASS | run-249 | 198 |  |  |
-| `offer_send_and_accept` | PASS | run-249 | 405 |  |  |
-| `offer_send_and_decline` | FAIL-assert ⟳stale | run-249 | 244 | flow | Same wrong-session bug for "Decline"; also asserted "Pending", which no offer bubble renders. |
-| `quick_replies` | PASS | run-249 | 208 |  |  |
-| `report_participant` | FAIL-assert ⟳stale | run-249 | 200 | fixture | RIG-004: Report is unique per reporter+target and nothing cleared them. First submit now tolerant. |
-| `reserve_after_accept` | PASS | run-249 | 405 |  |  |
-| `reserve_after_buyer_accepts_counter` | FAIL-? ⟳stale | run-249 | 215 | flow | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
-| `reserved_sold_dead_end_notice` | (rig) ⟳stale ⚠slow | run-249 | 601 | flow | Five logins could not fit FLOW_TIMEOUT=600; split into three flows, only this one mutates. |
-| `send_message` | PASS | run-249 | 171 |  |  |
-| `send_message_double_tap` | PASS | run-249 | 178 |  |  |
-| `send_message_empty` | PASS | run-249 | 183 |  |  |
-| `send_message_offline` | FAIL-assert ⟳stale | run-249 | 189 | flow | hideKeyboard is Back on Android and popped the conversation; "Send" was on another screen. |
-| `send_message_whitespace` | PASS | run-249 | 171 |  |  |
-| `send_multiple_messages` | PASS | run-249 | 206 |  |  |
-| `send_photo` | FAIL-assert ⟳stale | run-249 | 218 | flow | Asserted "common.close" — a t() KEY copied from a Jest test. |
-| `start_conversation` | FAIL-? | run-249 | 162 | fixture | RIG-005: Wool Blanket had drifted to sold, so it left the browsable feed. Re-seeded. |
-| `start_conversation_and_reply` | FAIL-assert | run-249 | 193 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
-| `view_other_profile_from_conversation` | FAIL-assert ⟳stale | run-249 | 220 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
 
 ## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
 
@@ -226,11 +262,11 @@ bug class a user reports as "nothing happened".
 | `draft_lifecycle` | FAIL-assert ⟳stale | run-252 | 261 | flow | Never confirmed the native publish dialog; now via confirm_dialog (android:id/button1). |
 | `edit_listing` | PASS ⟳stale | run-252 | 227 |  |  |
 | `edit_listing_all_fields` | FAIL-? ⟳stale | run-252 | 166 | flow | Reached for lifecycle-more-action (detail-only) from the list. Card ⋮ route now. |
-| `edit_listing_discard` | FAIL-? | run-252 | 169 | flow | Same detail-control-from-the-list mistake; identical opening in four flows. |
+| `edit_listing_discard` | FAIL-? | run-252 | 169 | STALE — run-252 executed the old route (commands.json proves it); already fixed | Same detail-control-from-the-list mistake; identical opening in four flows. |
 | `edit_listing_quantity` | PASS ⟳stale | run-252 | 211 |  |  |
 | `edit_listing_remove_photo` | FAIL-assert ⟳stale | run-252 | 169 | flow | Phantom "Remove" confirm (removePhoto has no dialog); also needed a photo to exist. |
-| `edit_listing_reorder_photos` | FAIL-assert | run-252 | 171 | flow | HOLLOW: one tap only selects. Now two taps, asserts the hint clears, attaches 2 photos. |
-| `expired_listing_badge` | FAIL-assert | run-252 | 168 | fixture | No expired listing existed at all; expires_at was never seeded. Fixture added. |
+| `edit_listing_reorder_photos` | FAIL-assert | run-252 | 171 | flow — optional gallery tap no-opped silently; now by testID. Fixed 34e713a | HOLLOW: one tap only selects. Now two taps, asserts the hint clears, attaches 2 photos. |
+| `expired_listing_badge` | FAIL-assert | run-252 | 168 | flow — tab switch refires the request; nothing waited for the list. Fixed 34e713a | No expired listing existed at all; expires_at was never seeded. Fixture added. |
 | `lifecycle_publish` | FAIL-assert ⟳stale | run-252 | 176 | fixture | Draft tab index 0 was a photoless QA draft, so publish was blocked. Seeded "Ready To Publish Draft". |
 | `lifecycle_reactivate` | FAIL-? ⟳stale | run-252 | 184 | flow | Detail control with the card sheet already open; sheet offers listing-action-activate. |
 | `lifecycle_reserve` | PASS | run-252 | 175 |  |  |
@@ -238,12 +274,23 @@ bug class a user reports as "nothing happened".
 | `lifecycle_unpublish` | PASS | run-252 | 175 |  |  |
 | `listing_analytics_sparkline` | FAIL-assert ⟳stale | run-252 | 168 | flow | Analytics does not render for a draft ({!isDraft}); needed the Active tab, not just a scroll. |
 | `listing_conversations_list` | PASS | run-252 | 161 | flow | Tapped "chats"; the card renders "{{count}} chats". |
-| `listing_renew_flow` | FAIL-assert | run-252 | 167 | fixture | Needed the expired fixture; nothing to renew before it existed. |
+| `listing_renew_flow` | FAIL-assert | run-252 | 167 | flow — same missing wait as expired_listing_badge. Fixed 34e713a | Needed the expired fixture; nothing to renew before it existed. |
 | `listing_status_counts` | FAIL-assert ⟳stale | run-252 | 182 | flow | "Sold" is the last tab in a horizontal scroller; scrollUntilVisible swipes at screen centre. |
 | `my_listing_detail_view` | FAIL-? ⟳stale | run-252 | 168 | flow | Same draft-gated analytics; Active tab first. |
 | `my_listings_filter_tabs` | FAIL-? ⟳stale | run-252 | 176 | flow | Same clipped last tab; coordinate swipe across the row. |
 | `my_listings_search` | PASS | run-252 | 168 | flow | Asserted a bare "No"; now asserts the absence of cards instead of empty-state copy. |
 | `price_drop_after_edit` | FAIL-assert ⟳stale | run-252 | 195 | flow | hideKeyboard is Back and popped the edit form — first of the five sites the handbook predicted. |
+
+## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
+
+0/4 passing · 4 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `listing_create_multi_photos` | UNTESTED | — |  | flow | Asserted the reorder hint with nothing selected; hint needs selectedIdx !== -1. |
+| `listing_edit_add_photos` | UNTESTED | — |  | flow | Published listing saves via common.save = "Save"; "Save Changes" is Edit Profile's. |
+| `listing_gallery_no_photo` | UNTESTED | — |  |  |  |
+| `listing_gallery_swipe` | UNTESTED | — |  |  |  |
 
 ## `reviews` — Double-blind reviews after a sold transaction
 
@@ -284,6 +331,29 @@ bug class a user reports as "nothing happened".
 | `seller_mode_tab_bar_changes` | PASS | run-254 | 164 |  |  |
 | `seller_views_own_listing_buyer_mode` | FAIL-assert ⟳stale | run-254 | 228 | flow | Searched the feed for "seller"; search matches titles, so it found nothing. |
 
+## `auth` — Sign up, login, logout, session persistence, guest gating
+
+16/16 passing · 0 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `confirm_email_prompt` | PASS | run-262 | 154 |  |  |
+| `guest_browse` | PASS | run-262 | 134 |  |  |
+| `guest_offer_redirect` | PASS | run-262 | 184 |  |  |
+| `guest_save_redirect` | PASS | run-262 | 178 |  |  |
+| `login` | PASS | run-262 | 143 |  |  |
+| `login_deep` | PASS | run-262 | 196 |  |  |
+| `login_empty_fields` | PASS | run-262 | 106 |  | Request failed with status code Request failed with status code |
+| `login_navigate_to_register` | PASS | run-262 | 103 |  |  |
+| `login_wrong_password` | PASS | run-262 | 118 |  | Request failed with status code |
+| `logout` | PASS | run-262 | 215 | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
+| `logout_cancel` | PASS | run-262 | 205 |  |  |
+| `register_duplicate_email` | PASS | run-262 | 136 | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
+| `register_navigate_to_login` | PASS | run-262 | 107 |  |  |
+| `session_persist` | PASS | run-262 | 146 |  |  |
+| `sign_up` | PASS | run-262 | 172 |  |  |
+| `sign_up_validation` | PASS | run-262 | 153 |  |  |
+
 ## `onboarding` — First-run experience
 
 1/1 passing · 0 open
@@ -291,51 +361,6 @@ bug class a user reports as "nothing happened".
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `first_run` | PASS | run-255 | 220 |  |  |
-
-## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile
-
-17/38 passing · 0 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_all_categories` | PASS | run-248 | 217 |  | AxiosError |
-| `browse_listings` | PASS | run-248 | 170 |  |  |
-| `browse_sort_most_viewed` | PASS | run-248 | 179 |  | AxiosError AxiosError |
-| `browse_sort_nearest` | PASS ⟳stale | run-248 | 211 |  |  |
-| `categories_hub` | PASS | run-248 | 198 |  |  |
-| `clear_all_filters` | PASS | run-248 | 201 |  |  |
-| `filter_active_sellers` | PASS | run-248 | 191 |  |  |
-| `filter_by_category` | PASS | run-248 | 182 |  |  |
-| `filter_condition` | PASS | run-248 | 186 |  |  |
-| `filter_price_range` | PASS | run-248 | 205 |  |  |
-| `full_marketplace_cycle` | FAIL-assert ⟳stale | run-248 | 544 | flow | Four taps with the same search-box collision; three now erase and re-search first. |
-| `listing_detail` | PASS | run-248 | 173 |  |  |
-| `listing_detail_multi_quantity` | PASS | run-248 | 185 |  |  |
-| `listing_detail_offer` | FAIL-assert ⟳stale | run-248 | 205 |  | [Failed] listing_detail_offer (3m 8s) (Assertion is false: "Offer:.*" is visible) |
-| `listing_detail_offer_invalid` | PASS | run-248 | 197 |  |  |
-| `listing_detail_price_drop_badge` | FAIL-assert ⟳stale | run-248 | 180 |  | [Failed] listing_detail_price_drop_badge (2m 41s) (Assertion is false: "-\d+%" is visible) |
-| `listing_detail_report` | FAIL-assert ⟳stale | run-248 | 195 | fixture | RIG-004 tolerance; covers the detail-screen entry point. |
-| `listing_detail_save_unsave` | FAIL-assert ⟳stale | run-248 | 193 |  | [Failed] listing_detail_save_unsave (2m 56s) (Element not found: Id matching regex: saved-tab) |
-| `listing_detail_saves_count` | FAIL-assert ⟳stale | run-248 | 199 |  | [Failed] listing_detail_saves_count (3m) (Assertion is false: "Saved by.*" is visible) |
-| `listing_detail_share` | PASS | run-248 | 176 |  |  |
-| `listing_detail_similar` | FAIL-? ⟳stale | run-248 | 182 |  | [Failed] listing_detail_similar (2m 48s) (No visible element found: "Description") |
-| `listing_detail_sold_recovery` | FAIL-? ⟳stale | run-248 | 111 | flow | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
-| `listing_detail_sold_state` | FAIL-? ⟳stale | run-248 | 110 |  | [Failed] listing_detail_sold_state (1m 35s) (No visible element found: id: seller-profile-link) |
-| `listing_detail_views_count` | FAIL-assert ⟳stale | run-248 | 230 |  | [Failed] listing_detail_views_count (3m 34s) (Assertion is false: "view" is visible) |
-| `not_interested` | PASS | run-248 | 163 |  |  |
-| `saved_search_apply` | FAIL-assert ⟳stale | run-248 | 171 |  | [Failed] saved_search_apply (2m 36s) (Element not found: Text matching regex: Electronics) |
-| `scroll_to_top` | PASS | run-248 | 166 |  |  |
-| `search_empty_state` | PASS | run-248 | 165 |  |  |
-| `search_listings` | PASS | run-248 | 194 |  |  |
-| `search_with_filter` | FAIL-assert ⟳stale | run-248 | 190 |  | [Failed] search_with_filter (2m 54s) (Assertion is false: "Good" is visible) |
-| `seller_profile` | PASS ⟳stale | run-248 | 191 |  |  |
-| `seller_profile_from_listing` | PASS ⟳stale | run-248 | 195 |  |  |
-| `seller_response_rate_badge` | FAIL-? ⟳stale | run-248 | 197 |  | [Failed] seller_response_rate_badge (2m 59s) (No visible element found: "Usually responds.*") |
-| `subcategory_drilldown` | FAIL-assert ⟳stale | run-248 | 187 | flow | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
-| `user_profile_empty_listings` | FAIL-assert ⟳stale | run-248 | 193 | flow | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
-| `user_profile_listing_grid` | FAIL-assert ⟳stale | run-248 | 186 | flow | Grid sits below the profile header; assertVisible does not scroll. Added both ways. |
-| `user_profile_stats` | FAIL-assert ⟳stale | run-248 | 189 | flow | Hardcoded "2024"; member_since renders "August 2026" as one node. Year-shaped pattern. |
-| `view_mode_toggle` | PASS ⟳stale | run-248 | 199 | flow | HOLLOW: every tap optional, only assertion was the always-present tab label. Rewritten. |
 
 ## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
 
@@ -350,17 +375,6 @@ bug class a user reports as "nothing happened".
 | `filter_map_use_my_location_granted` | PASS | run-253 | 163 |  |  |
 | `map_location_outside_afghanistan` | PASS | run-253 | 190 |  |  |
 
-## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
-
-2/4 passing · 0 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `listing_create_multi_photos` | FAIL-assert ⟳stale | run-251 | 318 | flow | Asserted the reorder hint with nothing selected; hint needs selectedIdx !== -1. |
-| `listing_edit_add_photos` | FAIL-assert ⟳stale | run-251 | 203 | flow | Published listing saves via common.save = "Save"; "Save Changes" is Edit Profile's. |
-| `listing_gallery_no_photo` | PASS | run-251 | 192 |  |  |
-| `listing_gallery_swipe` | PASS | run-251 | 153 |  |  |
-
 ## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
 
 5/6 passing · 0 open
@@ -373,18 +387,3 @@ bug class a user reports as "nothing happened".
 | `my_listings_pagination` | PASS | run-256 | 218 |  |  |
 | `saved_pagination_deep` | PASS | run-256 | 187 |  |  |
 | `search_pagination` | PASS | run-256 | 163 |  |  |
-
-## `dark_mode` — Every main screen in dark theme + theme persistence
-
-0/8 passing · 0 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_dark` | PASS ⟳stale | run-250 | 174 |  |  |
-| `chat_dark` | PASS ⟳stale | run-250 | 189 |  |  |
-| `listing_detail_dark` | PASS ⟳stale | run-250 | 180 |  |  |
-| `my_listings_dark` | PASS ⟳stale | run-250 | 229 |  |  |
-| `profile_dark` | FAIL-? ⟳stale | run-250 | 206 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
-| `saved_tab_dark` | PASS ⟳stale | run-250 | 186 |  |  |
-| `theme_light_all_screens` | PASS ⟳stale | run-250 | 204 |  |  |
-| `theme_persists_after_navigate` | FAIL-? ⟳stale | run-250 | 182 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
