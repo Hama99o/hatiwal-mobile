@@ -213,7 +213,9 @@
     "markSoldFailed": "د خرڅ شوي نښه کول ونه شو. بیا هڅه وکړئ.",
     "markSoldConfirmTitle": "د خرڅ شوي په توګه نښه کړئ؟",
     "markSoldConfirmBody": "دا به توکی د خرڅ شوي په توګه نښه کړي او اعلان به بند شي.",
-    "markSoldConfirmCta": "هو، خرڅ شوی نښه کړئ"
+    "markSoldConfirmCta": "هو، خرڅ شوی نښه کړئ",
+    "placeHold": "د {{name}} لپاره ریزرو کول",
+    "releaseHold": "ریزرو لغوه کول"
   },
   "message": {
     "deleted": "پیغام ړنګ شو",

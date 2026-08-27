@@ -24,6 +24,15 @@
  * conversation, deleted listing, firm price — each already has its own,
  * separate notice elsewhere in the thread.
  *
+ * SF-M2 (Sell Flow Redesign, `docs/SELL_FLOW_REDESIGN.md` §4.4.2): two new
+ * seller-only, conditional rows — "Place a hold for {{name}}" and "Release
+ * hold" — moved here from the listing's own action list (reserve no longer
+ * exists there at all, SF-M1). Both are plain builder objects the caller
+ * passes in (`placeHoldRow`/`releaseHoldRow`); this component stays a dumb
+ * row renderer and never computes the visibility conditions itself — those
+ * live in `Conversation.tsx`, right next to the conversation/listing state
+ * they read (`isOwner`, listing status, `listing.sale`).
+ *
  * iOS BLACK-SCREEN GUARD (do not skip): every row calls `onClose()` FIRST and
  * THEN invokes its handler — launching expo-image-picker / expo-document-picker
  * while this JS Modal is still mounted is the documented modal-conflict black
@@ -35,11 +44,12 @@ import React from "react";
 import { Modal, View, Pressable, StyleSheet } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Calendar, ImageIcon, Paperclip, Tag } from "lucide-react-native";
+import { Calendar, ImageIcon, Lock, LockOpen, Paperclip, Tag } from "lucide-react-native";
 
 import { Text } from "@/components/reusables/text";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
+import { wrapBidiIsolate } from "./reserveAfterAccept";
 
 export interface ComposerActionsSheetProps {
   visible: boolean;
@@ -66,6 +76,21 @@ export interface ComposerActionsSheetProps {
    * behaviour of hiding the row entirely for every other reason.
    */
   offerUnavailableReason?: string;
+  /**
+   * SF-M2 — "Place a hold for {{name}}". Pass a builder object to show the
+   * row (seller-only, Live listing, no open hold yet — see
+   * `docs/SELL_FLOW_REDESIGN.md` §4.4.2 for the exact condition); omit/null
+   * to hide it entirely. `buyerName` is interpolated into the row label
+   * (bidi-isolated internally — the caller passes a plain name).
+   */
+  placeHoldRow?: { buyerName: string; onPress: () => void } | null;
+  /**
+   * SF-M2 — "Release hold". Pass a builder object to show the row (shown
+   * only when the open hold belongs to THIS conversation's buyer
+   * specifically — never both this and `placeHoldRow` at once, and never
+   * shown at all for a hold that belongs to a different buyer).
+   */
+  releaseHoldRow?: { onPress: () => void } | null;
   /** True while a photo or file upload is in flight — disables every row. */
   disabled?: boolean;
 }
@@ -92,6 +117,8 @@ export function ComposerActionsSheet({
   onMakeOffer,
   canMakeOffer,
   offerUnavailableReason,
+  placeHoldRow,
+  releaseHoldRow,
   disabled = false,
 }: ComposerActionsSheetProps) {
   const { t } = useTranslation();
@@ -152,6 +179,29 @@ export function ComposerActionsSheet({
       subLabel: offerUnavailableReason,
       testID: "composer-action-offer-disabled",
       disabledRow: true,
+    });
+  }
+
+  // SF-M2: seller-only, mutually exclusive with each other by construction —
+  // the caller (Conversation.tsx) only ever builds ONE of these two objects
+  // at a time per §4.4.2's exact conditions, never both.
+  if (placeHoldRow) {
+    rows.push({
+      key: "place-hold",
+      icon: <Lock size={20} color={colors.warning} />,
+      label: t("chat.listingActions.placeHold", { name: wrapBidiIsolate(placeHoldRow.buyerName) }),
+      onPress: () => runAndClose(placeHoldRow.onPress),
+      testID: "composer-action-place-hold",
+    });
+  }
+
+  if (releaseHoldRow) {
+    rows.push({
+      key: "release-hold",
+      icon: <LockOpen size={20} color={colors.warning} />,
+      label: t("chat.listingActions.releaseHold"),
+      onPress: () => runAndClose(releaseHoldRow.onPress),
+      testID: "composer-action-release-hold",
     });
   }
 

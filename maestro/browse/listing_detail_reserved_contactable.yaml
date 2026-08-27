@@ -1,0 +1,105 @@
+appId: com.hatiwal.app
+# NO env defaults here on purpose. The rig resolves real ids at feature start and
+# passes them as `--env RESERVED_LISTING_ID=…` (qa/lib/flows.sh) — the same
+# convention listing_detail_sold_recovery.yaml already uses for SOLD_LISTING_ID.
+# Run by hand with:
+#   RESERVED_LISTING_ID=8 maestro test maestro/browse/listing_detail_reserved_contactable.yaml
+---
+# SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.2.1) — a reserved listing is no longer a
+# dead end. This flow is the regression test for the exact defect this ticket
+# fixes: before it, `canContact` was `status === "active"` only, so a buyer who
+# found a reserved listing through search (which the backend now keeps live,
+# SF-B1) hit a wall with no way to message the seller. This proves:
+#   1. The "Reserved" ribbon stays (it's still a badge, not a disappearance).
+#   2. "Contact Seller" is visible and actually opens the message sheet — even
+#      through the guest login-redirect/intent-replay path.
+#   3. "Make an Offer" stays hidden (§3.2's deliberate, unchanged exclusion —
+#      messaging reopens, a NEW price negotiation from a different buyer does
+#      not, while a specific buyer's hold is already in progress).
+#
+# Plus, SF-M4 (docs/SELL_FLOW_REDESIGN.md §4.2.2) — the hard rule the whole
+# redesign lives or dies on: a SINGLE-ITEM listing renders byte-identical to
+# today, so no held-units text may ever appear on one, reserved or not.
+#
+# Prerequisites: a RESERVED listing exists, viewable by a guest (not the test
+# buyer's own listing) — set RESERVED_LISTING_ID before running, or let the
+# rig inject it (qa/lib/flows.sh resolves the first `status: reserved` row).
+
+# ── Guest opens a reserved listing straight from a deep link ────────────────
+- launchApp:
+    clearState: true
+    stopApp: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/skip_onboarding.yaml
+# Let the app finish STARTING before firing the link — see
+# listing_detail_sold_recovery.yaml's identical note: these flows launch with
+# clearState: true, so the splash and the auth bootstrap are still deciding
+# where to go; their router.replace lands after the link and silently
+# discards it, leaving the app on the feed.
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 60000
+- openLink: "hatiwal://listing/${RESERVED_LISTING_ID}"
+- waitForAnimationToEnd
+# Prove the link actually landed before asserting anything, re-firing once if
+# the app is still on the feed.
+- runFlow:
+    when:
+      visible:
+        id: "listing-card"
+    commands:
+      - openLink: "hatiwal://listing/${RESERVED_LISTING_ID}"
+      - waitForAnimationToEnd
+
+# The ribbon stays — SF-M3 does not remove it, only the dead end below it.
+- extendedWaitUntil:
+    visible:
+      id: "listing-detail-status-banner"
+    timeout: 20000
+- assertVisible: "Reserved"
+- assertVisible: "The seller may still reply if the reservation falls through."
+
+# THE regression this flow exists to catch: Message is live, Offer stays paused.
+- assertVisible: "Contact Seller"
+- assertNotVisible: "Make an Offer"
+# And the old dead end must be gone.
+- assertNotVisible:
+    id: "listing-unavailable-actions"
+
+# SF-M4's hard rule, on this SAME fixture: `RESERVED_LISTING_ID` resolves to a
+# single-item listing in the current seed data (no multi-unit + reserved
+# fixture exists yet — flagged in the ticket report), so this reserved
+# listing must render byte-identical to a plain reserved listing from before
+# SF-M4 shipped: no stock pill, no "N held" text, reserved or not.
+- assertNotVisible:
+    id: "stock-badge-detail"
+- assertNotVisible: "\\d+ held.*"
+
+# ── Guest taps Contact Seller → redirected to login → intent replays ────────
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- assertVisible: "Sign In"
+- tapOn:
+    id: "login-email-input"
+- inputText: "buyer@hatiwal.test"
+- tapOn:
+    id: "login-password-input"
+- inputText: "Password123!"
+# Dismiss the IME before submitting — see guest_offer_redirect.yaml's identical
+# note: Maestro reports the tap COMPLETED even though it lands on the keyboard.
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+
+# The pending "message seller" intent replays on arrival — the buyer lands back
+# on this reserved listing with the message sheet ALREADY open, proving the
+# reserved listing is genuinely contactable end to end, not just showing a
+# button that leads nowhere.
+- extendedWaitUntil:
+    visible: "Message Seller"
+    timeout: 15000
+
+- back
+- waitForAnimationToEnd

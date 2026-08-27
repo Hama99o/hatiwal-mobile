@@ -56,7 +56,7 @@ import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
 import { Badge } from "@/components/reusables/badge";
-import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow, hasSoldSome } from "@/utils/stock";
+import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow, hasSoldSome, heldUnitsOf } from "@/utils/stock";
 import { SaleBuyerCard } from "@/components/common/SaleBuyerCard";
 import { ListingMapSection } from "@/components/common/ListingMapSection";
 import { BuyerPickerSheet } from "@/components/common/BuyerPickerSheet";
@@ -357,12 +357,29 @@ export default function MyListingDetailScreen() {
                     // progress to show, and the second number just repeats the
                     // first. Switch to the progress phrasing only once it says
                     // something (QA run-017).
-                    hasSoldSome(listing)
+                    (hasSoldSome(listing)
                       ? t("listing.stock.leftOfTotal", {
                           available: formatNumber(availableUnitsOf(listing)),
                           total: formatNumber(totalUnitsOf(listing)),
                         })
-                      : t("listing.stock.inStock", { count: availableUnitsOf(listing) })
+                      : t("listing.stock.inStock", { count: availableUnitsOf(listing) })) +
+                    // SF-M4 (docs/SELL_FLOW_REDESIGN.md §4.2.2/§4.5) — the
+                    // OWNER's held clause names the buyer (`sale.buyer.name`
+                    // is owner-only and only ever populated on this
+                    // `owner_detailed` view, never on the public
+                    // ListingDetail.tsx). Falls back to the nameless phrasing
+                    // for a legacy buyer-less hold, same defensive pattern as
+                    // SaleBuyerCard's `noBuyerRecorded`.
+                    (heldUnitsOf(listing) > 0
+                      ? ` · ${
+                          listing.sale?.buyer?.name
+                            ? t("listing.stock.heldForBuyer", {
+                                count: heldUnitsOf(listing),
+                                name: listing.sale.buyer.name,
+                              })
+                            : t("listing.stock.held", { count: heldUnitsOf(listing) })
+                        }`
+                      : "")
                   }
                   variant={isLowStock(availableUnitsOf(listing), totalUnitsOf(listing)) ? "warning" : "muted"}
                 />

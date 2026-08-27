@@ -10,16 +10,16 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**109 of 236 flows passing** · 125 still need attention
+**113 of 236 flows passing** · 121 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 109 | green, and no backend error underneath |
+| PASS | 113 | green, and no backend error underneath |
 | SILENT | 1 | **assertions passed while the API errored** — the app told the user nothing |
-| FAIL-assert | 61 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-assert | 58 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-? | 18 | failed, cause unclear — read the log |
 | (rig) | 2 | rig broke mid-run — result meaningless, re-run |
-| UNTESTED | 45 | never executed |
+| UNTESTED | 44 | never executed |
 
 ### Definition of done
 
@@ -162,21 +162,6 @@ bug class a user reports as "nothing happened".
 | `report_user_from_profile` | UNTESTED | — |  | fixture | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
 | `report_user_then_block` | UNTESTED | — |  | fixture | Retargeted to maryam (40); now unblocks, which it never did. |
 
-## `dark_mode` — Every main screen in dark theme + theme persistence
-
-0/8 passing · 8 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_dark` | FAIL-assert | s4/run-108 | 219 |  | [Failed] browse_dark (2m 57s) (Assertion is false: "APPEARANCE" is visible) |
-| `chat_dark` | FAIL-assert | s4/run-108 | 167 |  | [Failed] chat_dark (2m 21s) (Element not found: Text matching regex: Dark) |
-| `listing_detail_dark` | FAIL-assert | s4/run-108 | 192 |  | [Failed] listing_detail_dark (2m 19s) (Element not found: Text matching regex: Dark) |
-| `my_listings_dark` | FAIL-assert | s4/run-108 | 247 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed | [Failed] my_listings_dark (3m 40s) (Element not found: Text matching regex: Dark) |
-| `profile_dark` | FAIL-assert | s4/run-108 | 166 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
-| `saved_tab_dark` | FAIL-assert | s4/run-108 | 164 |  | [Failed] saved_tab_dark (2m 19s) (Element not found: Text matching regex: Appearance) |
-| `theme_light_all_screens` | FAIL-assert | s4/run-108 | 158 |  | [Failed] theme_light_all_screens (2m 14s) (Element not found: Text matching regex: Appearance) |
-| `theme_persists_after_navigate` | UNTESTED | — |  | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
-
 ## `rtl` — Pashto + Dari right-to-left layout across main screens
 
 0/8 passing · 8 open
@@ -202,6 +187,21 @@ bug class a user reports as "nothing happened".
 | `listing_edit_add_photos` | UNTESTED | — |  | flow | Published listing saves via common.save = "Save"; "Save Changes" is Edit Profile's. |
 | `listing_gallery_no_photo` | UNTESTED | — |  |  |  |
 | `listing_gallery_swipe` | UNTESTED | — |  |  |  |
+
+## `dark_mode` — Every main screen in dark theme + theme persistence
+
+4/8 passing · 4 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_dark` | PASS | run-265 | 277 |  |  |
+| `chat_dark` | PASS | run-265 | 253 |  |  |
+| `listing_detail_dark` | PASS | run-265 | 239 |  |  |
+| `my_listings_dark` | FAIL-assert | run-265 | 306 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed | [Failed] my_listings_dark (4m 45s) (Assertion is false: id: listing-card is visible) |
+| `profile_dark` | FAIL-assert | run-265 | 270 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
+| `saved_tab_dark` | FAIL-assert | run-265 | 237 |  | [Failed] saved_tab_dark (3m 35s) (Assertion is false: id: (seller-)?listing-card is visible) |
+| `theme_light_all_screens` | PASS | run-265 | 281 |  |  |
+| `theme_persists_after_navigate` | FAIL-assert | run-265 | 242 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
 
 ## `reviews` — Double-blind reviews after a sold transaction
 

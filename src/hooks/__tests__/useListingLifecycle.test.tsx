@@ -1,29 +1,42 @@
 /**
  * useListingLifecycle — Jest unit tests (TASK-L863)
  *
- * This hook is the single source of truth SellerListingCard.tsx and
- * MyListingDetail.tsx both consume — its own exhaustive matrix test lives
- * here so the per-screen suites don't have to duplicate it. Covers:
+ * SF-M1 (Sell Flow Redesign, `docs/SELL_FLOW_REDESIGN.md` §4.5/§10.1) remapped
+ * this hook's primary action: "Mark sold" is now the one-tap primary from
+ * ANY live listing (`active` — including an open hold — OR `reserved`), not
+ * just a reserved one. Reserve is gone entirely from this hook (it only
+ * exists in chat now, SF-M2); "Activate" is renamed "Release hold" and its
+ * condition widens from `status === "reserved"` to `listing.sale?.status ===
+ * "reserved"` (covers a multi-unit hold that never flips `status`); and a
+ * new "View sales" row appears once `hasSoldSome(listing)`.
  *
- *  1. Canonical primary action per status, including the expired-active
- *     override (draft→Publish, active→Mark reserved, active+expired→Renew,
- *     reserved→Mark sold, sold→none).
- *  2. `moreActions` never drops a variant: expired-active still offers Mark
- *     sold AND Mark reserved, reserved still offers Activate, Duplicate is
- *     available for every status including sold, Delete is always last.
+ * This suite covers the NEW contract:
+ *  1. Canonical primary action per status: draft→Publish, active (not
+ *     expired) OR reserved→Mark sold, active+expired→Renew (overrides both),
+ *     sold→none.
+ *  2. `moreActions` never drops a variant under the new mapping: an
+ *     expired-active listing still offers Mark sold from the sheet (Renew is
+ *     primary), Duplicate is available for every status including sold, and
+ *     Delete is always last.
  *  3. `confirmAlert` fires before every confirmAlert-gated mutation
- *     (publish/unpublish/activate/renew/delete) — the mutation only runs
+ *     (publish/unpublish/release-hold/renew/delete) — the mutation only runs
  *     once the confirm button's onPress is invoked, never on cancel.
- *  4. Reserve/Mark sold skip confirmAlert entirely and drive `buyerPicker`
- *     instead (TASK-TX01); a sold response with `transaction.buyer` opens
- *     `reviewPrompt` (REV2).
- *  5. Delete renders with `danger: true` (destructive styling) and is the
+ *  4. Mark sold skips confirmAlert entirely and drives `buyerPicker` instead
+ *     (TASK-TX01/SF-M1 — `buyerPicker.action` is now always "sold", there is
+ *     no more "reserve" action on this hook at all); a sold response with
+ *     `transaction.buyer` opens `reviewPrompt` (REV2).
+ *  5. Release hold: only reachable when `listing.sale?.status === "reserved"`
+ *     — true for a single-item hold (`status: "reserved"`) AND (per the
+ *     hook's own doc) a multi-unit hold that keeps `status: "active"`.
+ *  6. "View sales" only reachable when `hasSoldSome(listing)` is true, and
+ *     pushes the new Sales route.
+ *  7. Delete renders with `danger: true` (destructive styling) and is the
  *     only `danger` row.
- *  6. The exact invalidation key set fires after every successful mutation.
- *  7. `onDeleted` fires (in addition to `onDone`) only after a successful
+ *  8. The exact invalidation key set fires after every successful mutation.
+ *  9. `onDeleted` fires (in addition to `onDone`) only after a successful
  *     delete — MyListingDetail's navigate-away hook.
- *  8. Tolerates `listing` being `undefined` (MyListingDetail calls this hook
- *     before its own loading guard, per the Rules of Hooks).
+ * 10. Tolerates `listing` being `undefined`/`null` (MyListingDetail calls
+ *     this hook before its own loading guard, per the Rules of Hooks).
  */
 
 import React from "react";
@@ -37,9 +50,9 @@ import type { Listing } from "@/api/listings";
 
 jest.mock("lucide-react-native", () => ({
   CheckCircle2: "CheckCircle2",
-  Clock: "Clock",
   EyeOff: "EyeOff",
-  RotateCcw: "RotateCcw",
+  LockOpen: "LockOpen",
+  Receipt: "Receipt",
   Pencil: "Pencil",
   Copy: "Copy",
   Trash2: "Trash2",
@@ -48,12 +61,18 @@ jest.mock("lucide-react-native", () => ({
 jest.mock("@/api/listings", () => ({
   listingsAPI: {
     publishListing: jest.fn(),
-    reserveListing: jest.fn(),
     markSold: jest.fn(),
     unpublishListing: jest.fn(),
     activateListing: jest.fn(),
     renewListing: jest.fn(),
     deleteListing: jest.fn(),
+  },
+}));
+
+// SF-M5 — the "Marked sold · Undo" toast's side effect.
+jest.mock("@/api/transactions", () => ({
+  transactionsAPI: {
+    deleteTransaction: jest.fn(),
   },
 }));
 
@@ -69,9 +88,9 @@ jest.mock("sonner-native", () => ({
 }));
 
 // Stable across renders (unlike the global setup.ts mock, which returns a
-// fresh jest.fn() per render) — needed because handleEdit/handleDuplicate
-// close over `router` and we assert on the SAME push mock after a mutation
-// has caused a re-render.
+// fresh jest.fn() per render) — needed because handleEdit/handleDuplicate/
+// the "View sales" row close over `router` and we assert on the SAME push
+// mock after a mutation has caused a re-render.
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
@@ -80,9 +99,11 @@ jest.mock("expo-router", () => ({
 // Import AFTER mocks
 import { useListingLifecycle, MY_LISTINGS_QK, MY_LISTING_STATUS_COUNTS_QK, MY_LISTING_QK, CONVERSATIONS_QK } from "../useListingLifecycle";
 import { listingsAPI } from "@/api/listings";
+import { transactionsAPI } from "@/api/transactions";
 import { confirmAlert } from "@/utils/alert";
 
 const mockListingsAPI = listingsAPI as jest.Mocked<typeof listingsAPI>;
+const mockTransactionsAPI = transactionsAPI as jest.Mocked<typeof transactionsAPI>;
 const mockConfirmAlert = confirmAlert as jest.MockedFunction<typeof confirmAlert>;
 const mockToast = toast as { success: jest.Mock; error: jest.Mock };
 
@@ -100,6 +121,9 @@ type MinimalListing = Pick<Listing, "status" | "expired"> &
       | "images"
       | "imageUrls"
       | "imageAttachments"
+      | "quantity"
+      | "availableUnits"
+      | "heldUnits"
     >
   >;
 
@@ -178,17 +202,26 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-// ── 1. Primary action mapping ───────────────────────────────────────────────
+// ── 1. Primary action mapping (SF-M1) ───────────────────────────────────────
 
-describe("useListingLifecycle — primary action per status", () => {
+describe("useListingLifecycle — primary action per status (SF-M1 remap)", () => {
   it("draft → Publish", () => {
     const { result } = renderLifecycle(publishableDraft());
     expect(result.current.primaryAction?.label).toBe("listing.publish");
   });
 
-  it("active (not expired) → Mark reserved", () => {
+  it("active (not expired) → Mark sold (SF-M1: reserve is gone from this surface)", () => {
     const { result } = renderLifecycle({ status: "active", expired: false });
-    expect(result.current.primaryAction?.label).toBe("listing.markReserved");
+    expect(result.current.primaryAction?.label).toBe("listing.markSold");
+  });
+
+  it("active + an open hold (multi-unit, status stays active) → still Mark sold", () => {
+    const { result } = renderLifecycle({
+      status: "active",
+      expired: false,
+      heldUnits: 3,
+    });
+    expect(result.current.primaryAction?.label).toBe("listing.markSold");
   });
 
   it("active + expired → Renew (overrides the status-based primary)", () => {
@@ -196,7 +229,7 @@ describe("useListingLifecycle — primary action per status", () => {
     expect(result.current.primaryAction?.label).toBe("listing.renew");
   });
 
-  it("reserved → Mark sold", () => {
+  it("reserved → Mark sold (same primary as active — both are 'Live')", () => {
     const { result } = renderLifecycle({ status: "reserved", expired: false });
     expect(result.current.primaryAction?.label).toBe("listing.markSold");
   });
@@ -218,18 +251,17 @@ describe("useListingLifecycle — primary action per status", () => {
   });
 });
 
-// ── 2. moreActions — no variant dropped ─────────────────────────────────────
+// ── 2. moreActions — no variant dropped, reserve is GONE ────────────────────
 
-describe("useListingLifecycle — moreActions per status (no variant dropped)", () => {
+describe("useListingLifecycle — moreActions per status (SF-M1: no reserve, no variant dropped)", () => {
   it("draft → only Edit, Duplicate, Delete", () => {
     const { result } = renderLifecycle(publishableDraft());
     expect(result.current.moreActions.map((a) => a.key)).toEqual(["edit", "duplicate", "delete"]);
   });
 
-  it("active (not expired) → Mark sold, Unpublish, Edit, Duplicate, Delete", () => {
+  it("active (not expired, no hold) → Unpublish, Edit, Duplicate, Delete — no 'sold' row (it's primary) and no 'reserve' row (deleted entirely)", () => {
     const { result } = renderLifecycle({ status: "active", expired: false });
     expect(result.current.moreActions.map((a) => a.key)).toEqual([
-      "sold",
       "unpublish",
       "edit",
       "duplicate",
@@ -237,11 +269,10 @@ describe("useListingLifecycle — moreActions per status (no variant dropped)", 
     ]);
   });
 
-  it("active + expired → Mark sold AND Mark reserved are BOTH still reachable, plus Unpublish", () => {
+  it("active + expired → Mark sold is STILL reachable from the sheet (Renew took the primary slot) — no 'reserve' row", () => {
     const { result } = renderLifecycle({ status: "active", expired: true });
     expect(result.current.moreActions.map((a) => a.key)).toEqual([
       "sold",
-      "reserve",
       "unpublish",
       "edit",
       "duplicate",
@@ -249,14 +280,48 @@ describe("useListingLifecycle — moreActions per status (no variant dropped)", 
     ]);
   });
 
-  it("reserved → Activate is still reachable, plus Edit/Duplicate/Delete", () => {
+  it("reserved (single-item hold) → Release hold reachable, plus Edit/Duplicate/Delete", () => {
+    // `hasOpenHold` is `status === "reserved" || heldUnits > 0` — a
+    // single-item hold flips `status` to `reserved` and never sets
+    // `heldUnits` (a single unit held is carried by StatusBadge's own
+    // "Reserved" treatment, per `heldUnitsOf`'s own doc, stock.ts).
     const { result } = renderLifecycle({ status: "reserved", expired: false });
     expect(result.current.moreActions.map((a) => a.key)).toEqual([
-      "activate",
+      "releaseHold",
       "edit",
       "duplicate",
       "delete",
     ]);
+  });
+
+  it("active + a multi-unit open hold (status stays active, heldUnits > 0) → Release hold STILL reachable, reading heldUnits, not status", () => {
+    // SF-B2: a batch of 50 must not vanish from the market because one buyer
+    // reserved 10 — `status` stays `active`, and `heldUnits` is the only
+    // signal an open hold exists. Matches the backend's own
+    // `ListingPolicy#activate?` (`owner? && (reserved? || (active? &&
+    // held_units.positive?))`) exactly.
+    const { result } = renderLifecycle({
+      status: "active",
+      expired: false,
+      heldUnits: 10,
+    });
+    expect(result.current.moreActions.map((a) => a.key)).toEqual([
+      "unpublish",
+      "releaseHold",
+      "edit",
+      "duplicate",
+      "delete",
+    ]);
+  });
+
+  it("active with NO open hold (heldUnits 0/absent) → no Release hold row — an ordinary active listing", () => {
+    const { result } = renderLifecycle({ status: "active", expired: false, heldUnits: 0 });
+    expect(result.current.moreActions.map((a) => a.key)).not.toContain("releaseHold");
+  });
+
+  it("active with heldUnits absent entirely (older payload) → no Release hold row either", () => {
+    const { result } = renderLifecycle({ status: "active", expired: false });
+    expect(result.current.moreActions.map((a) => a.key)).not.toContain("releaseHold");
   });
 
   it("sold → Duplicate is still reachable even on a terminal listing", () => {
@@ -281,9 +346,62 @@ describe("useListingLifecycle — moreActions per status (no variant dropped)", 
     const { result } = renderLifecycle({ status: "active", expired: true });
     result.current.moreActions.forEach((a) => expect(a.icon).toBeTruthy());
   });
+
+  it("never renders a 'reserve' row for ANY status — reserve is deleted from this hook entirely (SF-M1)", () => {
+    (["draft", "active", "reserved", "sold"] as const).forEach((status) => {
+      const { result } = renderLifecycle({ status, expired: true, heldUnits: 5 });
+      expect(result.current.moreActions.map((a) => a.key)).not.toContain("reserve");
+    });
+  });
 });
 
-// ── 3. confirmAlert-gated mutations (publish/unpublish/activate/renew) ─────
+// ── 3. View sales (SF-M1 — new moreActions row) ─────────────────────────────
+
+describe("useListingLifecycle — 'View sales' row (SF-M1, hasSoldSome)", () => {
+  it("appears once some units have sold (availableUnits < quantity)", () => {
+    const { result } = renderLifecycle({
+      status: "active",
+      expired: false,
+      quantity: 10,
+      availableUnits: 7,
+    });
+    const row = result.current.moreActions.find((a) => a.key === "sales");
+    expect(row).toBeTruthy();
+    expect(row?.label).toBe("listing.viewSales");
+  });
+
+  it("does not appear when nothing has sold yet", () => {
+    const { result } = renderLifecycle({
+      status: "active",
+      expired: false,
+      quantity: 10,
+      availableUnits: 10,
+    });
+    expect(result.current.moreActions.map((a) => a.key)).not.toContain("sales");
+  });
+
+  it("appears on a fully sold-out (terminal) listing too", () => {
+    const { result } = renderLifecycle({
+      status: "sold",
+      expired: false,
+      quantity: 3,
+      availableUnits: 0,
+    });
+    expect(result.current.moreActions.map((a) => a.key)).toContain("sales");
+  });
+
+  it("pushes the per-listing Sales route with this listing's id", () => {
+    const { result } = renderLifecycle(
+      { status: "active", expired: false, quantity: 5, availableUnits: 2 },
+      { listingId: 77 }
+    );
+    const row = result.current.moreActions.find((a) => a.key === "sales")!;
+    act(() => row.onPress());
+    expect(mockPush).toHaveBeenCalledWith("/(main)/listing/77/sales");
+  });
+});
+
+// ── 4. confirmAlert-gated mutations (publish/unpublish/release-hold/renew) ──
 
 describe("useListingLifecycle — confirmAlert fires before every gated mutation", () => {
   it("Publish: confirmAlert first, mutation only on confirm", async () => {
@@ -361,19 +479,40 @@ describe("useListingLifecycle — confirmAlert fires before every gated mutation
     await waitFor(() => expect(mockListingsAPI.unpublishListing).toHaveBeenCalledWith(10));
   });
 
-  it("Activate (from moreActions, reserved status): confirmAlert first, then mutate", async () => {
+  it("Release hold (SF-M1 rename of Activate, from moreActions on a reserved listing): confirmAlert first, then mutate the SAME activate endpoint", async () => {
     mockListingsAPI.activateListing.mockResolvedValueOnce({ status: "active" } as Listing);
-    const { result } = renderLifecycle({ status: "reserved", expired: false }, { listingId: 10 });
+    const { result } = renderLifecycle(
+      { status: "reserved", expired: false },
+      { listingId: 10 }
+    );
 
-    const row = result.current.moreActions.find((a) => a.key === "activate")!;
+    const row = result.current.moreActions.find((a) => a.key === "releaseHold")!;
+    expect(row.label).toBe("listing.releaseHold");
     act(() => row.onPress());
     expect(mockConfirmAlert).toHaveBeenCalledWith(
-      "listing.confirmActivate",
-      "listing.confirmActivateDescription",
+      "listing.confirmReleaseHold",
+      "listing.confirmReleaseHoldDescription",
       expect.anything()
     );
 
     simulateConfirm();
+    // Route/method deliberately unchanged (docs/SELL_FLOW_REDESIGN.md §3.1) —
+    // only the seller-facing copy and trigger condition changed.
+    await waitFor(() => expect(mockListingsAPI.activateListing).toHaveBeenCalledWith(10));
+    expect(mockToast.success).toHaveBeenCalledWith("listing.releaseHoldSuccess");
+  });
+
+  it("Release hold is ALSO reachable for a multi-unit open hold that never flips status away from active", async () => {
+    mockListingsAPI.activateListing.mockResolvedValueOnce({ status: "active" } as Listing);
+    const { result } = renderLifecycle(
+      { status: "active", expired: false, heldUnits: 4 },
+      { listingId: 10 }
+    );
+
+    const row = result.current.moreActions.find((a) => a.key === "releaseHold")!;
+    act(() => row.onPress());
+    simulateConfirm();
+
     await waitFor(() => expect(mockListingsAPI.activateListing).toHaveBeenCalledWith(10));
   });
 
@@ -413,25 +552,28 @@ describe("useListingLifecycle — confirmAlert fires before every gated mutation
   });
 
   it("no raw Alert.alert is ever used — every gated action goes through the confirmAlert mock", () => {
-    const { result } = renderLifecycle({ status: "reserved", expired: false });
-    act(() => result.current.moreActions.find((a) => a.key === "activate")!.onPress());
+    const { result } = renderLifecycle({
+      status: "reserved",
+      expired: false,
+    });
+    act(() => result.current.moreActions.find((a) => a.key === "releaseHold")!.onPress());
     act(() => result.current.moreActions.find((a) => a.key === "delete")!.onPress());
     expect(mockConfirmAlert).toHaveBeenCalledTimes(2);
   });
 });
 
-// ── 4. Reserve / Mark sold — BuyerPickerSheet, never confirmAlert ──────────
+// ── 5. Mark sold — BuyerPickerSheet, never confirmAlert (SF-M1: action is ALWAYS "sold") ──
 
-describe("useListingLifecycle — reserve/sold drive buyerPicker, not confirmAlert", () => {
-  it("primary Mark reserved (active) opens buyerPicker with action='reserve'", () => {
+describe("useListingLifecycle — Mark sold drives buyerPicker, never confirmAlert (SF-M1: no more 'reserve' action)", () => {
+  it("primary Mark sold (active) opens buyerPicker with action='sold'", () => {
     const { result } = renderLifecycle({ status: "active", expired: false });
     act(() => result.current.primaryAction!.onPress());
     expect(mockConfirmAlert).not.toHaveBeenCalled();
     expect(result.current.buyerPicker.visible).toBe(true);
-    expect(result.current.buyerPicker.action).toBe("reserve");
+    expect(result.current.buyerPicker.action).toBe("sold");
   });
 
-  it("primary Mark sold (reserved) opens buyerPicker with action='sold'", () => {
+  it("primary Mark sold (reserved) also opens buyerPicker with action='sold'", () => {
     const { result } = renderLifecycle({ status: "reserved", expired: false });
     act(() => result.current.primaryAction!.onPress());
     expect(mockConfirmAlert).not.toHaveBeenCalled();
@@ -439,23 +581,23 @@ describe("useListingLifecycle — reserve/sold drive buyerPicker, not confirmAle
     expect(result.current.buyerPicker.action).toBe("sold");
   });
 
-  it("Mark sold reachable from moreActions for an active (non-primary) listing opens buyerPicker too", () => {
-    const { result } = renderLifecycle({ status: "active", expired: false });
+  it("Mark sold reachable from moreActions for an expired-active (non-primary) listing opens buyerPicker too", () => {
+    const { result } = renderLifecycle({ status: "active", expired: true });
     const row = result.current.moreActions.find((a) => a.key === "sold")!;
     act(() => row.onPress());
     expect(result.current.buyerPicker.visible).toBe(true);
     expect(result.current.buyerPicker.action).toBe("sold");
   });
 
-  it("buyerPicker.onConfirm({}) calls reserveListing with an empty opts object (legacy skip path)", async () => {
-    mockListingsAPI.reserveListing.mockResolvedValueOnce({ listing: { status: "reserved" } as Listing });
+  it("buyerPicker.onConfirm({}) calls markSold with an empty opts object (legacy skip path)", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({ listing: { status: "sold" } as Listing });
     const { result } = renderLifecycle({ status: "active", expired: false }, { listingId: 10 });
 
     act(() => result.current.primaryAction!.onPress());
     act(() => result.current.buyerPicker.onConfirm({}));
 
-    await waitFor(() => expect(mockListingsAPI.reserveListing).toHaveBeenCalledWith(10, {}));
-    expect(mockToast.success).toHaveBeenCalledWith("listing.reserveSuccess");
+    await waitFor(() => expect(mockListingsAPI.markSold).toHaveBeenCalledWith(10, {}));
+    expect(mockToast.success).toHaveBeenCalledWith("listing.markSoldSuccess");
   });
 
   it("buyerPicker.onConfirm({ buyerId }) calls markSold with the buyer id", async () => {
@@ -468,8 +610,8 @@ describe("useListingLifecycle — reserve/sold drive buyerPicker, not confirmAle
     await waitFor(() => expect(mockListingsAPI.markSold).toHaveBeenCalledWith(10, { buyerId: 42 }));
   });
 
-  it("closes buyerPicker after a successful reserve/sold confirm", async () => {
-    mockListingsAPI.reserveListing.mockResolvedValueOnce({ listing: { status: "reserved" } as Listing });
+  it("closes buyerPicker after a successful mark-sold confirm", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({ listing: { status: "sold" } as Listing });
     const { result } = renderLifecycle({ status: "active", expired: false }, { listingId: 10 });
 
     act(() => result.current.primaryAction!.onPress());
@@ -483,7 +625,7 @@ describe("useListingLifecycle — reserve/sold drive buyerPicker, not confirmAle
     act(() => result.current.primaryAction!.onPress());
     act(() => result.current.buyerPicker.onClose());
     expect(result.current.buyerPicker.visible).toBe(false);
-    expect(mockListingsAPI.reserveListing).not.toHaveBeenCalled();
+    expect(mockListingsAPI.markSold).not.toHaveBeenCalled();
   });
 
   it("REV2: a sold response carrying transaction.buyer opens reviewPrompt", async () => {
@@ -515,9 +657,125 @@ describe("useListingLifecycle — reserve/sold drive buyerPicker, not confirmAle
     await waitFor(() => expect(mockListingsAPI.markSold).toHaveBeenCalled());
     expect(result.current.reviewPrompt.visible).toBe(false);
   });
+
+  it("the exported buyerPicker.action type is narrowed to 'sold' — never 'reserve' — regardless of status", () => {
+    (["draft", "active", "reserved", "sold"] as const).forEach((status) => {
+      const { result } = renderLifecycle({ status, expired: false });
+      expect(result.current.buyerPicker.action).toBe("sold");
+    });
+  });
 });
 
-// ── 5. Exact invalidation key set ───────────────────────────────────────────
+// ── SF-M5: "Marked sold · Undo" toast ───────────────────────────────────────
+//
+// The big-tech answer to a mistake is a snackbar undo, not a correction form
+// — and it must never BLOCK: the sale already completed by the time the
+// toast fires. SF-B3 means every markSold call now leaves exactly one sold
+// Transaction (even the legacy buyer-less/skip paths), so the action is
+// unconditional whenever the response carries a transaction id.
+
+describe("useListingLifecycle — Undo toast on Mark Sold (SF-M5)", () => {
+  it("the success toast carries an Undo action when the response has a transaction id", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({
+      listing: { status: "sold" } as Listing,
+      transaction: { id: 55 } as never,
+    });
+    const { result } = renderLifecycle({ status: "active", expired: false }, { listingId: 10 });
+
+    act(() => result.current.primaryAction!.onPress());
+    act(() => result.current.buyerPicker.onConfirm({}));
+
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalled());
+    const [message, options] = mockToast.success.mock.calls[0];
+    expect(message).toBe("listing.markSoldSuccess");
+    expect(options.action.label).toBe("common.undo");
+  });
+
+  it("tapping Undo calls transactionsAPI.deleteTransaction with the sold transaction's id", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({
+      listing: { status: "sold" } as Listing,
+      transaction: { id: 55 } as never,
+    });
+    mockTransactionsAPI.deleteTransaction.mockResolvedValueOnce({
+      listing: { status: "active" } as Listing,
+    });
+    const { result } = renderLifecycle({ status: "active", expired: false }, { listingId: 10 });
+
+    act(() => result.current.primaryAction!.onPress());
+    act(() => result.current.buyerPicker.onConfirm({}));
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalled());
+
+    const [, options] = mockToast.success.mock.calls[0];
+    act(() => options.action.onClick());
+
+    await waitFor(() => expect(mockTransactionsAPI.deleteTransaction).toHaveBeenCalledWith(55));
+  });
+
+  it("a successful Undo re-invalidates the SAME query set and shows the void-success toast", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({
+      listing: { status: "sold" } as Listing,
+      transaction: { id: 55 } as never,
+    });
+    mockTransactionsAPI.deleteTransaction.mockResolvedValueOnce({
+      listing: { status: "active" } as Listing,
+    });
+    const qc = makeQueryClient();
+    const invalidateSpy = jest.spyOn(qc, "invalidateQueries");
+    const { result } = renderLifecycle(
+      { status: "active", expired: false },
+      { listingId: 10, qc }
+    );
+
+    act(() => result.current.primaryAction!.onPress());
+    act(() => result.current.buyerPicker.onConfirm({}));
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalled());
+    invalidateSpy.mockClear();
+
+    const [, options] = mockToast.success.mock.calls[0];
+    act(() => options.action.onClick());
+
+    await waitFor(() => expect(mockTransactionsAPI.deleteTransaction).toHaveBeenCalled());
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [MY_LISTINGS_QK] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [MY_LISTING_STATUS_COUNTS_QK] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [MY_LISTING_QK, "10"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [CONVERSATIONS_QK, 10] });
+    expect(mockToast.success).toHaveBeenCalledWith("listing.sale.voidedSuccess");
+  });
+
+  it("a failed Undo shows an error toast (does not throw, does not silently succeed)", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({
+      listing: { status: "sold" } as Listing,
+      transaction: { id: 55 } as never,
+    });
+    mockTransactionsAPI.deleteTransaction.mockRejectedValueOnce(new Error("Network error"));
+    const { result } = renderLifecycle({ status: "active", expired: false }, { listingId: 10 });
+
+    act(() => result.current.primaryAction!.onPress());
+    act(() => result.current.buyerPicker.onConfirm({}));
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalled());
+
+    const [, options] = mockToast.success.mock.calls[0];
+    act(() => options.action.onClick());
+
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalled());
+  });
+
+  it("no Undo action when the response carries no transaction (defensive — SF-B3 says this should not happen)", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({ listing: { status: "sold" } as Listing });
+    const { result } = renderLifecycle({ status: "active", expired: false }, { listingId: 10 });
+
+    act(() => result.current.primaryAction!.onPress());
+    act(() => result.current.buyerPicker.onConfirm({}));
+
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalled());
+    const call = mockToast.success.mock.calls[0];
+    // Single-argument call (no options) — matches every other plain success
+    // toast in this hook, and the exact arity `@/lib/toast`'s own tests assert.
+    expect(call.length).toBe(1);
+  });
+});
+
+// ── 6. Exact invalidation key set ───────────────────────────────────────────
 
 describe("useListingLifecycle — invalidation keys (mandatory: list + status pills + owner detail refresh)", () => {
   it("invalidates my-listings, myListingStatusCounts, my-listing/:id and conversations/:id after Publish", async () => {
@@ -568,7 +826,7 @@ describe("useListingLifecycle — invalidation keys (mandatory: list + status pi
   });
 });
 
-// ── 6. onDeleted — MyListingDetail's navigate-away hook ─────────────────────
+// ── 7. onDeleted — MyListingDetail's navigate-away hook ─────────────────────
 
 describe("useListingLifecycle — onDeleted fires only after a successful Delete", () => {
   it("calls onDeleted (in addition to onDone) after delete succeeds", async () => {
@@ -613,7 +871,7 @@ describe("useListingLifecycle — onDeleted fires only after a successful Delete
   });
 });
 
-// ── 7. Edit / Duplicate navigation ──────────────────────────────────────────
+// ── 8. Edit / Duplicate navigation ──────────────────────────────────────────
 
 describe("useListingLifecycle — Edit / Duplicate navigation", () => {
   it("Edit pushes the edit route with the listing id and a status hint (TASK-P736)", () => {
@@ -629,7 +887,7 @@ describe("useListingLifecycle — Edit / Duplicate navigation", () => {
   });
 });
 
-// ── 8. isBusy ────────────────────────────────────────────────────────────────
+// ── 9. isBusy ────────────────────────────────────────────────────────────────
 
 describe("useListingLifecycle — isBusy reflects any in-flight mutation", () => {
   it("is false when no mutation is pending", () => {

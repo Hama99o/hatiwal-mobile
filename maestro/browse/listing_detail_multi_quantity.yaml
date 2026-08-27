@@ -109,3 +109,8 @@ appId: com.hatiwal.app
 - assertNotVisible:
     id: "stock-badge-detail"
 - assertNotVisible: "each"
+# SF-M4 (docs/SELL_FLOW_REDESIGN.md §4.2.2) — the redesign's hard rule,
+# reasserted here: a single-item listing gets no "N held" text either. The
+# absent stock-badge-detail above already implies it, but this makes the
+# contract explicit rather than an accident of the badge being gone.
+- assertNotVisible: "\\d+ held.*"

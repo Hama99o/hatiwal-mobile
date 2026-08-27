@@ -25,6 +25,7 @@
 import { listingsAPI } from "@/api/listings";
 import { toast } from "sonner-native";
 import {
+  buildPlaceHoldPrompt,
   buildReserveAfterAcceptPrompt,
   reserveAfterAccept,
   resolveReserveCurrency,
@@ -334,5 +335,87 @@ describe("reserveAfterAccept — reserve failure", () => {
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledWith("chat.listingActions.reserveFailed");
     expect(onError).toHaveBeenCalledWith((toast.error as jest.Mock).mock.calls[0][0]);
+  });
+});
+
+// ─── SF-B2/SF-M2: reserveAfterAccept threads an optional quantity ────────────
+
+describe("reserveAfterAccept — quantity (SF-B2/SF-M2)", () => {
+  it("forwards options.quantity straight through to reserveListing", async () => {
+    const prompt = buildReserveAfterAcceptPrompt(baseParams())!;
+
+    await reserveAfterAccept(prompt, { t, quantity: 3 });
+
+    expect(listingsAPI.reserveListing).toHaveBeenCalledWith(42, {
+      buyerId: 7,
+      finalPrice: 12000,
+      quantity: 3,
+    });
+  });
+
+  it("omits quantity entirely (never 0/null) when not given — single-item listing behaviour is untouched", async () => {
+    const prompt = buildReserveAfterAcceptPrompt(baseParams())!;
+
+    await reserveAfterAccept(prompt, { t });
+
+    expect(listingsAPI.reserveListing).toHaveBeenCalledWith(42, { buyerId: 7, finalPrice: 12000 });
+  });
+});
+
+// ─── SF-M2: buildPlaceHoldPrompt — the manual "Place a hold" trigger ─────────
+//
+// `ComposerActionsSheet`'s "+" menu row, generalizing the SAME prompt shape
+// `buildReserveAfterAcceptPrompt` builds for the auto-after-accept trigger —
+// see reserveAfterAccept.ts's own file header for why this is one mechanism,
+// not two.
+
+describe("buildPlaceHoldPrompt (SF-M2 — manual 'Place a hold for {{name}}')", () => {
+  const LISTING = { id: 42, price: 14000, currency: "AFN" };
+  const BUYER_WITH_TRUST = { id: 7, name: "Ahmad", verified: true, city: "Kabul" };
+
+  it("builds the SAME prompt shape as the auto-after-accept path, priced at the listing's own asking price", () => {
+    const prompt = buildPlaceHoldPrompt({ listing: LISTING, buyer: BUYER_WITH_TRUST, t });
+
+    expect(prompt).not.toBeNull();
+    expect(prompt?.listingId).toBe(42);
+    expect(prompt?.finalPrice).toBe(14000); // the listing's asking price — no accepted offer to inherit from
+    expect(prompt?.currency).toBe("AFN");
+    expect(prompt?.buyer).toEqual({ id: 7, name: "Ahmad", avatarUrl: null, verified: true, city: "Kabul" });
+    // Same copy as the auto-prompt path (see file header: "generalize, don't duplicate").
+    expect(prompt?.title).toContain("chat.offer.reserveAfterAcceptTitle");
+    expect(prompt?.title).toContain(wrapBidiIsolate("Ahmad"));
+    expect(prompt?.body).toBe("chat.offer.reserveAfterAcceptBody");
+
+    // Pure — nothing reserved yet.
+    expect(listingsAPI.reserveListing).not.toHaveBeenCalled();
+  });
+
+  it("defaults currency to AFN and price to 0 when the listing carries neither", () => {
+    const prompt = buildPlaceHoldPrompt({ listing: { id: 42 }, buyer: BUYER_WITH_TRUST, t });
+    expect(prompt?.finalPrice).toBe(0);
+    expect(prompt?.currency).toBe("AFN");
+  });
+
+  it("returns null when there is no listing", () => {
+    expect(buildPlaceHoldPrompt({ listing: null, buyer: BUYER_WITH_TRUST, t })).toBeNull();
+  });
+
+  it("returns null when there is no buyer (or the buyer has no id)", () => {
+    expect(buildPlaceHoldPrompt({ listing: LISTING, buyer: null, t })).toBeNull();
+    expect(buildPlaceHoldPrompt({ listing: LISTING, buyer: undefined, t })).toBeNull();
+  });
+
+  it("feeds straight into reserveAfterAccept exactly like the auto-prompt path does", async () => {
+    const prompt = buildPlaceHoldPrompt({ listing: LISTING, buyer: BUYER_WITH_TRUST, t })!;
+    const onReserved = jest.fn();
+
+    await reserveAfterAccept(prompt, { t, quantity: 2, onReserved });
+
+    expect(listingsAPI.reserveListing).toHaveBeenCalledWith(42, {
+      buyerId: 7,
+      finalPrice: 14000,
+      quantity: 2,
+    });
+    expect(onReserved).toHaveBeenCalledTimes(1);
   });
 });

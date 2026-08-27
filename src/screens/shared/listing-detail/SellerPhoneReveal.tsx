@@ -7,7 +7,14 @@
  * Hidden when:
  *  - seller.phone is null / empty
  *  - the viewer owns the listing
- *  - listing.status !== "active"
+ *  - the listing isn't contactable (see `isContactable`)
+ *
+ * SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.2.1): renamed from `isActive` to
+ * `isContactable` and widened at the call site to `active || reserved` — a
+ * reserved listing is "still for sale, someone is first in line", not
+ * unavailable, so the buyer can still call the seller the same way they can
+ * still message them (`canContact` in ListingDetail.tsx). Only a genuinely
+ * dead listing (sold, draft, removed) hides this control now.
  */
 
 import React, { useState } from "react";
@@ -24,14 +31,14 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 interface SellerPhoneRevealProps {
   phone: string;
   isOwnListing: boolean;
-  isActive: boolean;
+  isContactable: boolean;
   authReturnTo: string;
 }
 
 export function SellerPhoneReveal({
   phone,
   isOwnListing,
-  isActive,
+  isContactable,
   authReturnTo,
 }: SellerPhoneRevealProps) {
   const { t } = useTranslation();
@@ -42,7 +49,7 @@ export function SellerPhoneReveal({
   const [revealed, setRevealed] = useState(false);
 
   // Do not render at all when gating conditions aren't met
-  if (!phone || isOwnListing || !isActive) return null;
+  if (!phone || isOwnListing || !isContactable) return null;
 
   const handleReveal = () => {
     requireAuth(() => setRevealed(true), authReturnTo);

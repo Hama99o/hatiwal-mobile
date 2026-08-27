@@ -21,6 +21,7 @@ export function BuyerPickerSheet({
   onClose,
   action,
   remainingQuantity,
+  preselectedBuyer,
 }: {
   visible: boolean;
   onConfirm: (r: { buyerId?: number; finalPrice?: number; quantity?: number }) => void;
@@ -29,12 +30,21 @@ export function BuyerPickerSheet({
   /** Surfaced so a consumer suite can assert what the real sheet would be told
    *  about the stock — the number that decides whether it asks "how many?". */
   remainingQuantity?: number;
+  /**
+   * SF-M2 — surfaced (additively; existing consumers never query for it) so a
+   * suite can assert a caller scoped this sheet to a SPECIFIC, already-known
+   * buyer (confirm mode) instead of leaving it in full pick-a-buyer mode.
+   */
+  preselectedBuyer?: { id: number; name: string } | null;
 }) {
   if (!visible) return null;
   return (
     <>
       <Text testID={`buyer-picker-visible-${action}`}>buyer-picker-open</Text>
       <Text testID="buyer-picker-remaining">{String(remainingQuantity ?? "")}</Text>
+      {preselectedBuyer ? (
+        <Text testID="buyer-picker-preselected-buyer-id">{String(preselectedBuyer.id)}</Text>
+      ) : null}
       <Pressable onPress={() => onConfirm({})} testID="confirm-skip">
         <Text>confirm-skip</Text>
       </Pressable>

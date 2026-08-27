@@ -14,6 +14,7 @@
  *  7. (TASK-K729 review fix) `offerUnavailableReason` — the offer row still
  *     renders when hidden specifically for reserved/sold, disabled, with the
  *     reason as a subline, instead of a silent gap.
+ *  8. (SF-M2) "Place a hold for {{name}}" / "Release hold" rows.
  */
 
 import React from "react";
@@ -26,6 +27,9 @@ jest.mock("lucide-react-native", () => ({
   ImageIcon: "ImageIcon",
   Paperclip: "Paperclip",
   Tag: "Tag",
+  // SF-M2 — "Place a hold" / "Release hold" row icons.
+  Lock: "Lock",
+  LockOpen: "LockOpen",
 }));
 
 // useLocalization is mocked as a jest.fn() so individual tests can override
@@ -33,6 +37,28 @@ jest.mock("lucide-react-native", () => ({
 const mockUseLocalization = jest.fn(() => ({ isRtl: false }));
 jest.mock("@/hooks/useLocalization", () => ({
   useLocalization: (...args: unknown[]) => mockUseLocalization(...args),
+}));
+
+// The GLOBAL react-i18next mock (src/__tests__/setup.ts) is `t: (key) => key`
+// — it drops the `options` argument entirely, so it can never surface WHETHER
+// `wrapBidiIsolate(placeHoldRow.buyerName)` actually reached the label the
+// seller sees ("Place a hold for Ahmad" needs an isolated name so a mixed-
+// script buyer name never reorders inside a Pashto/Dari sentence, see
+// `reserveAfterAccept.ts`'s own header for why). Overridden HERE (this file
+// only, not globally) to interpolate options into the returned string —
+// every OTHER call in this component passes no options at all, so this is a
+// no-op for them (falls through to the bare key, exactly like the global
+// mock) and only changes behaviour for the one row that actually needs it.
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) =>
+      options ? `${key}|${JSON.stringify(options)}` : key,
+    // `Text` (src/components/reusables/text.tsx) reads `i18n.language` on
+    // every render to pick a font — matches the shape the global mock
+    // (src/__tests__/setup.ts) provides, just not dropped here too.
+    i18n: { language: "en", changeLanguage: jest.fn() },
+  }),
+  initReactI18next: { type: "3rdParty", init: jest.fn() },
 }));
 
 // Import AFTER mocks
@@ -386,5 +412,56 @@ describe("ComposerActionsSheet — offerUnavailableReason (TASK-K729 review fix)
       ? Object.assign({}, ...row.props.style.flat(Infinity).filter(Boolean))
       : row.props.style;
     expect(flattenedStyle.opacity).toBe(0.5);
+  });
+});
+
+// ── SF-M2: "Place a hold" / "Release hold" (Sell Flow Redesign) ────────────────
+
+describe("ComposerActionsSheet — Place a hold / Release hold (SF-M2)", () => {
+  it("renders no hold row at all by default (buyer/non-owner threads, sold/draft listings)", () => {
+    render(<ComposerActionsSheet {...baseProps()} />);
+    expect(screen.queryByTestId("composer-action-place-hold")).toBeNull();
+    expect(screen.queryByTestId("composer-action-release-hold")).toBeNull();
+  });
+
+  it("renders 'Place a hold for {{name}}' when placeHoldRow is given", () => {
+    render(<ComposerActionsSheet {...baseProps({ placeHoldRow: { buyerName: "Ahmad", onPress: jest.fn() } })} />);
+    expect(screen.getByTestId("composer-action-place-hold")).toBeTruthy();
+    expect(screen.getByText('chat.listingActions.placeHold|{"name":"⁦Ahmad⁩"}')).toBeTruthy();
+    expect(screen.queryByTestId("composer-action-release-hold")).toBeNull();
+  });
+
+  it("renders 'Release hold' when releaseHoldRow is given", () => {
+    render(<ComposerActionsSheet {...baseProps({ releaseHoldRow: { onPress: jest.fn() } })} />);
+    expect(screen.getByTestId("composer-action-release-hold")).toBeTruthy();
+    expect(screen.getByText("chat.listingActions.releaseHold")).toBeTruthy();
+    expect(screen.queryByTestId("composer-action-place-hold")).toBeNull();
+  });
+
+  it("closes the sheet BEFORE invoking the place-hold handler (iOS black-screen guard)", () => {
+    const callOrder: string[] = [];
+    const onClose = jest.fn(() => callOrder.push("close"));
+    const onPress = jest.fn(() => callOrder.push("place-hold"));
+    render(<ComposerActionsSheet {...baseProps({ onClose, placeHoldRow: { buyerName: "Ahmad", onPress } })} />);
+
+    fireEvent.press(screen.getByTestId("composer-action-place-hold"));
+    expect(callOrder).toEqual(["close", "place-hold"]);
+  });
+
+  it("closes the sheet BEFORE invoking the release-hold handler (iOS black-screen guard)", () => {
+    const callOrder: string[] = [];
+    const onClose = jest.fn(() => callOrder.push("close"));
+    const onPress = jest.fn(() => callOrder.push("release-hold"));
+    render(<ComposerActionsSheet {...baseProps({ onClose, releaseHoldRow: { onPress } })} />);
+
+    fireEvent.press(screen.getByTestId("composer-action-release-hold"));
+    expect(callOrder).toEqual(["close", "release-hold"]);
+  });
+
+  it("does not call the place-hold handler when the row is pressed while disabled", () => {
+    const onPress = jest.fn();
+    render(<ComposerActionsSheet {...baseProps({ disabled: true, placeHoldRow: { buyerName: "Ahmad", onPress } })} />);
+    fireEvent.press(screen.getByTestId("composer-action-place-hold"));
+    expect(onPress).not.toHaveBeenCalled();
   });
 });

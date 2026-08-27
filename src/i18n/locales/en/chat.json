@@ -213,7 +213,9 @@
     "markSoldFailed": "Could not mark as sold. Please try again.",
     "markSoldConfirmTitle": "Mark as sold?",
     "markSoldConfirmBody": "This will mark the item as sold and close the listing.",
-    "markSoldConfirmCta": "Yes, mark sold"
+    "markSoldConfirmCta": "Yes, mark sold",
+    "placeHold": "Place a hold for {{name}}",
+    "releaseHold": "Release hold"
   },
   "message": {
     "deleted": "Message deleted",

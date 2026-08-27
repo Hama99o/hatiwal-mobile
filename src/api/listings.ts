@@ -125,6 +125,15 @@ export interface Listing {
    * see docs/SPIKE_LISTING_QUANTITY.md §0c.
    */
   multiUnit?: boolean;
+  /**
+   * SF-B2 (docs/SELL_FLOW_REDESIGN.md §6) — units currently held on an OPEN
+   * reservation, public-safe (never carries buyer identity — that stays on
+   * the owner-only `sale` field below). Present on every view (base
+   * serializer field), 0 when there is no open hold. Advisory only, never
+   * subtracted from `availableUnits` — see `src/utils/stock.ts`'s
+   * `heldUnitsOf`, the single source of truth for reading this field.
+   */
+  heldUnits?: number;
   expiresAt?: string | null;
   expired?: boolean;
   // Price-drop badge — present on :list, :seller_list, and :detailed views; both null if no recent drop.
@@ -146,6 +155,15 @@ export interface Listing {
   // present on :seller_list / :owner_detailed (My Listings + reserve/sold
   // lifecycle response); undefined/null everywhere else (public detail/list).
   sale?: ListingSale | null;
+  /**
+   * SF-B5 (docs/SELL_FLOW_REDESIGN.md §9) — how many SOLD entries this
+   * listing's ledger holds (not units: a buyer taking 3 of 15 is ONE sale).
+   * On the BASE serializer fields (every view), so `hasSoldSome`'s "View
+   * sales" entry point and `SaleBuyerCard`'s "+N more" link agree everywhere.
+   * `sale` above shows only the LATEST sale; this is the count that says
+   * whether there is more than one.
+   */
+  salesCount?: number;
   createdAt: string;
   updatedAt: string;
   seller: {
@@ -502,14 +520,25 @@ export const listingsAPI = {
   // buyer from one of the listing's conversations — when given, the backend
   // creates/advances a Transaction and the response includes it. Omitting
   // `opts` preserves the legacy bare-call behavior (no Transaction).
+  //
+  // SF-B2/SF-M2: `opts.quantity` — how many units this hold covers, on a
+  // multi-unit listing only ("2 held for Ahmad"). Optional and defaults to 1
+  // server-side; a single-item listing's call ignores it entirely. Held units
+  // stay advisory (`docs/SELL_FLOW_REDESIGN.md` §3.6) — they never subtract
+  // from `available_units`.
   reserveListing: async (
     id: number,
-    opts?: { buyerId?: number; finalPrice?: number; clearBuyer?: boolean }
+    opts?: { buyerId?: number; finalPrice?: number; clearBuyer?: boolean; quantity?: number }
   ): Promise<{ listing: Listing; transaction?: Transaction }> => {
     const response = await http.put(
       `/my/listings/${id}/reserve`,
       opts?.buyerId || opts?.clearBuyer
-        ? convertKeysToSnake({ buyerId: opts.buyerId, finalPrice: opts.finalPrice, clearBuyer: opts.clearBuyer })
+        ? convertKeysToSnake({
+            buyerId: opts.buyerId,
+            finalPrice: opts.finalPrice,
+            clearBuyer: opts.clearBuyer,
+            quantity: opts.quantity,
+          })
         : undefined
     );
     return {

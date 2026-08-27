@@ -10,26 +10,29 @@ appId: com.hatiwal.app
 # quietly wrong one. Run by hand with:
 #   SOLD_LISTING_ID=82 maestro test <flow>   (or let the rig inject it)
 ---
-# TASK-N317 — Listing detail: sold/reserved recovery actions
+# TASK-N317 — Listing detail: sold recovery actions
 #
-# The old sold/reserved dead end was a flat grey box with a status sentence
-# and NO next step. It's now `ListingUnavailableActions`: the same status
-# sentence PLUS a primary "See similar in {category}" button (with a ±30%
-# price band when the already-fetched `similar` rail proves it holds live
-# stock) and a secondary "More from {seller}" link — never an empty button
-# row, and reserved additionally shows the "may free up" line that sold does
-# NOT (a sold item is final; the same line there would be a false promise).
+# SOLD-ONLY as of SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.2.1). This flow used to
+# cover BOTH sold and reserved — a reserved listing showed this exact same
+# recovery card ("See similar" / "More from seller") in place of the contact
+# bar. That is no longer true: a reserved listing stays live and message-able
+# (SF-B1), so it now falls into the normal Message/Offer branch instead of
+# this dead-end block — covered by
+# maestro/browse/listing_detail_reserved_contactable.yaml, which is also the
+# regression test proving this card does NOT appear for a reserved listing.
+# This file keeps only the half that is still true: `sold` is terminal and
+# still gets `ListingUnavailableActions` — the same status sentence PLUS a
+# primary "See similar in {category}" button (with a ±30% price band when the
+# already-fetched `similar` rail proves it holds live stock) and a secondary
+# "More from {seller}" link — never an empty button row.
 #
 # Prerequisites:
-#   - A SOLD listing and a RESERVED listing exist, each viewable by a guest
-#     (NOT the logged-in test buyer's own listing), each with a category that
-#     has other active listings (so the recovery CTA isn't itself a dead end)
-#     and a seller. The seed data's "Wedding Dress" (sold, clothes) and
-#     "Canon EOS 200D DSLR Camera" / "Suzuki Mehran" (reserved, electronics /
-#     vehicles) fixtures satisfy this.
-#   - Set SOLD_LISTING_ID / RESERVED_LISTING_ID env vars before running:
-#       SOLD_LISTING_ID=7 RESERVED_LISTING_ID=8 \
-#         maestro test maestro/browse/listing_detail_sold_recovery.yaml
+#   - A SOLD listing exists, viewable by a guest (NOT the logged-in test
+#     buyer's own listing), with a category that has other active listings
+#     (so the recovery CTA isn't itself a dead end) and a seller. The seed
+#     data's "Wedding Dress" (sold, clothes) fixture satisfies this.
+#   - Set SOLD_LISTING_ID before running:
+#       SOLD_LISTING_ID=7 maestro test maestro/browse/listing_detail_sold_recovery.yaml
 
 # ── Sold listing — deep link straight to the detail screen (guest browsing
 #    is supported, no login wall — see maestro/share/open_listing_deep_link.yaml) ──
@@ -80,7 +83,7 @@ appId: com.hatiwal.app
     label: "Sold listing detail renders without a login wall"
 
 # No flat dead-end box remains — the recovery card is always on screen for a
-# non-owner viewing a sold/reserved listing.
+# non-owner viewing a sold listing.
 - assertVisible:
     id: "listing-unavailable-actions"
     label: "Recovery card visible in place of the old flat notice box"
@@ -98,6 +101,8 @@ appId: com.hatiwal.app
 # present it must navigate to the seller's profile.
 
 # Sold is final — the reserved-only "may free up" line must NOT appear here.
+# (The reserved case itself no longer reaches this component at all — see
+# listing_detail_reserved_contactable.yaml.)
 - assertNotVisible:
     id: "unavailable-reserved-may-free-up"
     label: "'May free up' line never shown for a sold listing"
@@ -111,50 +116,26 @@ appId: com.hatiwal.app
     id: "browse-search-bar"
     label: "Primary CTA navigates to Browse"
 
-# ── Reserved listing — same recovery card, plus the "may free up" line ──────
+# Tapping "More from {seller}" (back on the sold listing) lands on that
+# seller's public profile.
+#
+# Conditional rather than a pair of optionals. The CTA really is omitted when the
+# seller has no other active listings, so the TAP has to tolerate its absence — but
+# an optional tap paired with an optional assert checked nothing: with the CTA
+# absent the tap no-opped and the assert passed on the listing screen it had never
+# left. Inside the `when`, both are real: the CTA is there, so it must navigate, and
+# "Active Listings" is the literal stat label ProfileHeader renders on EVERY
+# profile whatever the count.
 - launchApp:
     clearState: false
     stopApp: true
-- openLink: "hatiwal://listing/${RESERVED_LISTING_ID}"
-# The seller row sits below the photo, price and description on the listing
-# detail, so it needs a scroll — neither assertVisible nor tapOn scrolls to its
-# target, and this failed as `id: seller-profile-link is visible` being false on
-# a row that is simply further down.
+- openLink: "hatiwal://listing/${SOLD_LISTING_ID}"
+- waitForAnimationToEnd
 - scrollUntilVisible:
     element:
       id: "seller-profile-link"
     direction: DOWN
     timeout: 20000
-- assertVisible:
-    id: "seller-profile-link"
-    label: "Reserved listing detail renders without a login wall"
-- assertVisible:
-    id: "listing-unavailable-actions"
-- assertVisible:
-    id: "unavailable-reserved-may-free-up"
-    label: "Reserved shows the may-free-up line — sold does not (asserted above)"
-- assertVisible:
-    id: "unavailable-see-similar"
-    label: "Primary 'See similar in {category}' CTA visible for the reserved fixture too"
-# Deliberately NOT asserted here. The "More from {seller}" CTA is genuinely
-# omitted when this seller has no other active listings, so it cannot be a hard
-# assert — but `optional: true` on an assert means it can never fail either, so
-# what stood here recorded an intention rather than checking anything.
-# The real check is the `when:` block at the end of this flow: if the CTA is
-# present it must navigate to the seller's profile.
-
-# Tapping "More from {seller}" lands on that seller's public profile.
-#
-# Conditional rather than a pair of optionals. The CTA really is omitted when the
-# seller has no other active listings, so the TAP has to tolerate its absence — but
-# the previous version paired an optional tap with an optional assert, and an
-# optional assert cannot fail. Between them they claimed to check the navigation
-# while checking nothing: with the CTA absent the tap no-opped and the assert
-# passed on the listing screen it had never left.
-# Inside the `when`, both are real: the CTA is there, so it must navigate, and
-# "Active Listings" is the literal stat label ProfileHeader renders on EVERY
-# profile whatever the count (verified against the seeded seller with 14 and a
-# partner with 0).
 - runFlow:
     when:
       visible:

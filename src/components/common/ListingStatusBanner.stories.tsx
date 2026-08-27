@@ -79,6 +79,20 @@ export const StripSold: Story = {
   },
 };
 
+// SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.2.1/§5.3) — ListingDetail.tsx's new
+// call site: the reserved strip banner is KEPT (the ribbon), but now carries
+// a second line explaining WHY the buyer can still message a listing that
+// visibly says "Reserved". `layout="strip"` had no `subtitle` consumer
+// before this ticket — this is the first story covering that combination.
+export const StripReservedWithNote: Story = {
+  args: {
+    status: "reserved",
+    title: "This item is reserved",
+    subtitle: "The seller may still reply if the reservation falls through.",
+    layout: "strip",
+  },
+};
+
 // ── layout="row" — ListingUnavailableNotice's chat-thread card ─────────────
 
 export const RowReserved: Story = {

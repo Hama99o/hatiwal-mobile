@@ -25,6 +25,11 @@
   "confirmUnpublishDescription": "It will be hidden from buyers and moved back to draft.",
   "confirmActivate": "Make active again?",
   "confirmActivateDescription": "This cancels the reservation and reopens the listing to buyers.",
+  "releaseHold": "Release hold",
+  "confirmReleaseHold": "Release this hold?",
+  "confirmReleaseHoldDescription": "This cancels the reservation and lets any buyer take it.",
+  "releaseHoldSuccess": "Hold released — listing is fully back on the market.",
+  "viewSales": "View sales",
   "title": "Title",
   "titlePlaceholder": "What are you selling?",
   "descriptionPlaceholder": "Describe your item...",
@@ -126,12 +131,15 @@
     "offerInvalid": "Enter a valid amount",
     "offerMessage": "💬 Offer: {{amount}} for '{{title}}'",
     "defaultMessage": "Hi, is this still available?",
+    "quantityAskingLabel": "How many are you asking about?",
+    "firstMessageQuantityTemplate": "Hi! I'd like to buy {{qty}} × {{unitPrice}} = {{total}}. Is this still available?",
     "reportSent": "Report submitted — thank you",
     "notFound": "Listing not found",
     "moreOptions": "More options",
     "soldNotice": "This item has been sold",
     "reservedNotice": "This item is reserved",
     "reservedMayFreeUp": "If the reservation falls through, this listing may become available again.",
+    "reservedStillAvailableNote": "The seller may still reply if the reservation falls through.",
     "unavailableNotice": "This item is no longer available",
     "location": "Location",
     "getDirections": "Get Directions",
@@ -227,7 +235,9 @@
     "photoPickFailed": "Couldn't open your photos. Please try again.",
     "cameraFailed": "Couldn't open the camera. Please try again.",
     "photoLimitReached": "You can add up to {{max}} photos — {{dropped}} weren't added.",
-    "quantityOutOfRange": "Enter a number between 1 and {{max}}."
+    "quantityOutOfRange": "Enter a number between 1 and {{max}}.",
+    "quantityBelowSoldUnits": "You've already sold {{count}} of these. Set the quantity to {{count}} or more, or undo a sale first.",
+    "quantityReopensListing": "Saving will put this listing back on sale — with {{count}} available."
   },
   "shopCount_one": "{{count}} listing",
   "firmPrice": "Firm price",
@@ -245,13 +255,29 @@
     "finalPrice": "Agreed price",
     "noBuyerRecorded": "Buyer info unavailable",
     "soldOn": "Sold on {{date}}",
-    "unitsSold": "Units sold"
+    "unitsSold": "Units sold",
+    "tally": "{{sold}} of {{total}} sold",
+    "outsideBuyer": "Sold outside Hatiwal",
+    "editSale": "Edit this sale",
+    "changeBuyer": "Change buyer",
+    "voidConfirm": "Remove this sale?",
+    "voidConfirmDescription": "This puts the units back in stock and removes it from your sales history.",
+    "voidedSuccess": "Sale removed — stock restored.",
+    "voidBlockedReviewed": "This sale already has a review and can't be removed or reassigned. You can still fix the quantity.",
+    "moreBuyers": "+{{count}} more · View all sales"
+  },
+  "salesScreen": {
+    "title": "Sales",
+    "empty": "No sales yet",
+    "emptyHint": "Sales you record will show up here."
   },
   "stock": {
     "each": "each",
     "inStock": "{{count}} in stock",
     "leftOfTotal": "{{available}} of {{total}} left",
     "unitsAvailable": "{{count}} available",
-    "unitsCount": "{{count}} units"
+    "unitsCount": "{{count}} units",
+    "held": "{{count}} held",
+    "heldForBuyer": "{{count}} held for {{name}}"
   }
 }

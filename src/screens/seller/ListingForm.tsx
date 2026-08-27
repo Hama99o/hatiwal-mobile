@@ -92,8 +92,14 @@ import { ConditionChips } from "@/components/common/ConditionChips";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import { BackButton } from "@/components/common/BackButton";
 import { FieldError } from "@/components/common/FieldError";
+import { FieldNote } from "@/components/common/FieldNote";
 import { FieldLabel } from "@/components/common/FieldLabel";
 import { EmptyState } from "@/components/common/EmptyState";
+import {
+  quantityBelowSoldUnitsMessage,
+  soldUnitsOf,
+  willReopenOnSave,
+} from "./listing-form/quantityReconciliation";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // TASK-P736 — maps each publish blocker to the translation key for its
@@ -246,6 +252,14 @@ export default function ListingFormScreen() {
   // destructive border/icon/message for a blocked Publish, and is cleared
   // the instant a pin is confirmed via LocationRangePicker.
   const [locationError, setLocationError] = useState<string | null>(null);
+  // SF-M7 (docs/SELL_FLOW_REDESIGN.md) — the owner's own report: lowering
+  // quantity below what has already sold used to raise an uncaught 500 the
+  // app rendered as the generic "server error" string, right next to a
+  // quantity field that never said anything was wrong with IT specifically.
+  // SF-B6 turns that into a real 422 (`code: "quantity_below_sold_units"`);
+  // this state pins the localized, actionable version of it right here,
+  // under the field that caused it — not just a toast that scrolls away.
+  const [quantityServerError, setQuantityServerError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const sectionYRef = useRef<Partial<Record<PublishBlocker, number>>>({});
 
@@ -400,6 +414,9 @@ export default function ListingFormScreen() {
       // Off collapses back to exactly the single-item listing this was before the
       // toggle was ever touched.
       setValue("quantity", on ? 2 : 1, { shouldDirty: true });
+      // SF-M7 — a stale "you've already sold N" message must not survive the
+      // seller changing the very field it was about.
+      setQuantityServerError(null);
     },
     [setValue]
   );
@@ -431,6 +448,23 @@ export default function ListingFormScreen() {
   // fallback for defensiveness — it mirrors the exact pattern PhotosSection
   // already uses (`photosError ?? undefined`).
   const locationErrorMessage = locationError ?? (errors.latitude ? t("listing.form.locationRequired") : null);
+
+  // SF-M7 (docs/SELL_FLOW_REDESIGN.md) — how many units of the listing BEING
+  // EDITED have already sold, and what the seller is currently typing into
+  // the quantity field. Both feed the reopen note below AND the inline 422
+  // message in `saveMutation.onError`, so the two can never disagree on the
+  // count.
+  const soldUnits = soldUnitsOf(existingListing);
+  const typedQuantityRaw = watch("quantity");
+  const typedQuantity = typeof typedQuantityRaw === "number" ? typedQuantityRaw : Number(typedQuantityRaw);
+  // Reassurance, not a warning (§4.1's instruction) — shown BEFORE Save, only
+  // while the quantity field the seller can see is actually showing a number
+  // that would reopen a currently-SOLD listing. Gated on `hasMultipleUnits`
+  // too so it can never appear while the field itself is collapsed/hidden.
+  const showQuantityReopenNote =
+    hasMultipleUnits &&
+    willReopenOnSave({ status: existingListing?.status, soldUnits, typedQuantity });
+  const quantityReopenAvailableUnits = Math.max(typedQuantity - soldUnits, 0);
 
   // TASK-P736 (review fix, CR round 2) — guards the prefill effect below so
   // it runs ONCE per listing id, not on every `existingListing` object
@@ -686,6 +720,25 @@ export default function ListingFormScreen() {
       }
     },
     onError: (err) => {
+      // SF-M7 — the owner's own report: lowering quantity below what has
+      // already sold used to raise an uncaught 500 shown as the generic
+      // "server error" string, nowhere near the quantity field that caused
+      // it. SF-B6 turns that into a real 422 with a machine-readable `code`;
+      // react to THAT one known failure with a localized, actionable inline
+      // message instead of the server's raw English sentence — this app
+      // ships Pashto and Dari, and the server only ever answers in English.
+      const inlineQuantityMessage = quantityBelowSoldUnitsMessage(err, soldUnits, t, formatNumber);
+      if (inlineQuantityMessage) {
+        // Reveal the field if the seller had collapsed it back to a single
+        // item — otherwise this message would land under a HIDDEN input,
+        // the exact "failed but nothing on screen explains why" bug this
+        // ticket exists to fix.
+        setHasMultipleUnits(true);
+        setQuantityServerError(inlineQuantityMessage);
+        toast.error(inlineQuantityMessage);
+        AccessibilityInfo.announceForAccessibility(inlineQuantityMessage);
+        return;
+      }
       // Show the server's own reason ("Price must be less than or equal to
       // 9999999999.99") instead of a generic "couldn't save" — the seller
       // cannot fix what they are not told.
@@ -1500,6 +1553,9 @@ export default function ListingFormScreen() {
                   onChangeText={(text) => {
                     const digits = normalizeDigits(text).replace(/[^0-9]/g, "");
                     field.onChange(digits === "" ? 1 : Number(digits));
+                    // SF-M7 — a stale server error about the PREVIOUS number
+                    // must not linger under a number the seller has since changed.
+                    setQuantityServerError(null);
                   }}
                   keyboardType="numeric"
                   placeholder="2"
@@ -1533,6 +1589,36 @@ export default function ListingFormScreen() {
             <FieldError
               message={t("listing.form.quantityOutOfRange", {
                 max: MAX_LISTING_QUANTITY,
+              })}
+            />
+          )}
+
+          {/* SF-M7 (docs/SELL_FLOW_REDESIGN.md) — the owner's own report: a
+              seller lowering quantity below what has already sold used to get
+              an uncaught 500 shown as the bare "server error" string, with
+              nothing here pointing at the field that caused it. Pinned
+              inline, not just the toast `saveMutation.onError` already fires,
+              and worded with the actual way out (raise it, or undo a sale —
+              DELETE /my/transactions/:id) rather than a dead end. Mutually
+              exclusive with the reopen note below: this only ever fires from
+              a REFUSED save (typed quantity <= soldUnits), the note below
+              only ever shows for a quantity ABOVE it. */}
+          {!errors.quantity && quantityServerError && (
+            <FieldError message={quantityServerError} testID="listing-form-quantity-server-error" />
+          )}
+
+          {/* SF-M7 — state the reopen consequence BEFORE saving, not after
+              nothing visibly happens (the owner's exact complaint: "the
+              status stay sold ... and we change item and it did not become
+              where we can sell"). Reassuring, not a warning — raising
+              quantity on a sold listing is a GOOD outcome, so it gets the
+              success tone, not the destructive one. */}
+          {!errors.quantity && !quantityServerError && showQuantityReopenNote && (
+            <FieldNote
+              tone="success"
+              testID="listing-form-quantity-reopen-note"
+              message={t("listing.form.quantityReopensListing", {
+                count: formatNumber(quantityReopenAvailableUnits),
               })}
             />
           )}

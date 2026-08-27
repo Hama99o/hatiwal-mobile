@@ -9,6 +9,7 @@
  */
 
 import {
+  apiErrorCode,
   apiErrorMessage,
   isNetworkError,
   serverMessage,
@@ -135,5 +136,36 @@ describe("apiErrorMessage", () => {
 
   it("defaults to common.error when no fallback key is given", () => {
     expect(apiErrorMessage(httpError(400, {}), t)).toBe("common.error");
+  });
+});
+
+// SF-M7 (docs/SELL_FLOW_REDESIGN.md) — SF-B6's refusal on a quantity edit
+// answers 422 with a machine-readable `code` alongside its English `errors`
+// sentence, specifically so a caller can react to THAT ONE known failure
+// (an inline, localized field message) without ever showing the raw English
+// server string to a Pashto/Dari seller. Additive: every case above (no
+// `code` in the body at all) must keep behaving exactly as it already does.
+describe("apiErrorCode", () => {
+  it("reads the server's machine-readable code", () => {
+    const err = httpError(422, {
+      errors: ["Quantity must be greater than or equal to the number already sold"],
+      code: "quantity_below_sold_units",
+    });
+
+    expect(apiErrorCode(err)).toBe("quantity_below_sold_units");
+  });
+
+  it("is null when the response carries no code — the common case", () => {
+    expect(apiErrorCode(httpError(422, { errors: ["Title can't be blank"] }))).toBeNull();
+    expect(apiErrorCode(httpError(500, {}))).toBeNull();
+    expect(apiErrorCode({})).toBeNull();
+  });
+
+  it("is null for a bare-string body — there is no JSON to read a code from", () => {
+    expect(apiErrorCode(httpError(500, "<!DOCTYPE html><title>500</title>"))).toBeNull();
+  });
+
+  it("ignores a non-string code rather than crashing on a malformed body", () => {
+    expect(apiErrorCode(httpError(422, { code: 42 }))).toBeNull();
   });
 });

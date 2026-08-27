@@ -29,6 +29,7 @@ import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { PriceTag } from "@/components/common/PriceTag";
 import { apiErrorMessage } from "@/utils/apiError";
+import { buildFirstMessageText } from "./firstMessageQuantity";
 
 interface FirstMessageSheetProps {
   visible: boolean;
@@ -38,12 +39,20 @@ interface FirstMessageSheetProps {
   listingPrice: number;
   listingCurrency: string;
   /**
-   * Multi-quantity — renders the price as "14,000 each". This sheet is the last
-   * thing a buyer sees before their first message, so it is the last chance to
-   * correct a per-unit price they may have read as the batch price
-   * (docs/SPIKE_LISTING_QUANTITY.md §0c).
+   * Multi-quantity — renders the price as "14,000 each" AND (SF-M6) doubles as
+   * the `multiUnit` gate for the quantity-aware message template below. This
+   * sheet is the last thing a buyer sees before their first message, so it is
+   * the last chance to correct a per-unit price they may have read as the
+   * batch price (docs/SPIKE_LISTING_QUANTITY.md §0c).
    */
   perUnit?: boolean;
+  /**
+   * SF-M6 — the buyer's quantity from ListingDetail's `QuantityStepper`.
+   * Defaults to 1 so every call site that predates this ticket (a single-item
+   * listing, or a multi-unit one left at the default) renders the exact same
+   * plain `defaultMessage` as before — see `buildFirstMessageText`.
+   */
+  quantity?: number;
 }
 
 export function FirstMessageSheet({
@@ -54,14 +63,34 @@ export function FirstMessageSheet({
   listingPrice,
   listingCurrency,
   perUnit = false,
+  quantity = 1,
 }: FirstMessageSheetProps) {
   const { t } = useTranslation();
-  const { isRtl } = useLocalization();
+  const { isRtl, formatCurrency, formatNumber } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [message, setMessage] = useState(t("listing.detail.defaultMessage"));
+  // SF-M6: qty>1 on a multi-unit listing states unit×qty=total IN WRITING —
+  // docs/SELL_FLOW_REDESIGN.md §4.3. `buildFirstMessageText` returns the
+  // plain `defaultMessage` untouched for a single-item listing or qty<=1, so
+  // this is byte-identical to the pre-SF-M6 sheet in both of those cases.
+  const buildMessage = useCallback(
+    () =>
+      buildFirstMessageText({
+        quantity,
+        multiUnit: perUnit,
+        unitPrice: listingPrice,
+        currency: listingCurrency,
+        defaultMessage: t("listing.detail.defaultMessage"),
+        formatCurrency,
+        formatNumber,
+        t,
+      }),
+    [quantity, perUnit, listingPrice, listingCurrency, formatCurrency, formatNumber, t]
+  );
+
+  const [message, setMessage] = useState(buildMessage);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -100,7 +129,7 @@ export function FirstMessageSheet({
       animationType="slide"
       transparent
       onRequestClose={handleClose}
-      onShow={() => setMessage(t("listing.detail.defaultMessage"))}
+      onShow={() => setMessage(buildMessage())}
     >
       {/* Backdrop */}
       <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={handleClose} />

@@ -25,6 +25,11 @@
   "confirmUnpublishDescription": "دا به د پیرودونکو څخه پټ شي او بیرته مسودې ته راستون شي.",
   "confirmActivate": "بیا فعال شي؟",
   "confirmActivateDescription": "دا به ریزرو لغوه کړي او اعلان به بیا پیرودونکو ته خلاص شي.",
+  "releaseHold": "ریزرو لغوه کول",
+  "confirmReleaseHold": "دا ریزرو لغوه شي؟",
+  "confirmReleaseHoldDescription": "دا به ریزرو لغوه کړي؛ اوس به هر پیرودونکی وکولی شي دا واخلي.",
+  "releaseHoldSuccess": "ریزرو لغوه شو — اعلان بشپړ بازار ته بیرته راغی.",
+  "viewSales": "پلورنې کتل",
   "title": "سرلیک",
   "titlePlaceholder": "تاسو څه خرڅوئ؟",
   "descriptionPlaceholder": "خپل توکي وضاحت کړئ...",
@@ -126,12 +131,15 @@
     "offerInvalid": "سمه اندازه دننه کړئ",
     "offerMessage": "💬 وړاندیز: {{amount}} د '{{title}}' لپاره",
     "defaultMessage": "سلام، ایا دا لاهم شتون لري؟",
+    "quantityAskingLabel": "تاسو د څو دانو په اړه پوښتنه کوئ؟",
+    "firstMessageQuantityTemplate": "سلام! زه غواړم {{qty}} × {{unitPrice}} = {{total}} واخلم. ایا دا لاهم شتون لري؟",
     "reportSent": "راپور وسپارل شو — مننه",
     "notFound": "اعلان ونه موندل شو",
     "moreOptions": "نور اختیارونه",
     "soldNotice": "دا توکی خرڅ شوی دی",
     "reservedNotice": "دا توکی ریزرو شوی دی",
     "reservedMayFreeUp": "که ریزرویشن ناکامه شي، دا اعلان به بیا شتون ومومي.",
+    "reservedStillAvailableNote": "که دا ریزرویشن ونه ترسره شي، پلورونکی ممکن بیا هم ستاسو پیغام ته ځواب درکړي.",
     "unavailableNotice": "دا توکی نور شتون نلري",
     "location": "موقعیت",
     "getDirections": "لارښود ترلاسه کړئ",
@@ -227,7 +235,9 @@
     "photoPickFailed": "انځورونه نه پرانستل شول — بیا هڅه وکړئ.",
     "cameraFailed": "کیمره نه پرانستل شوه — بیا هڅه وکړئ.",
     "photoLimitReached": "تاسو تر {{max}} انځورونو پورې اضافه کولی شئ — {{dropped}} انځورونه اضافه نشول.",
-    "quantityOutOfRange": "Enter a number between 1 and {{max}}."
+    "quantityOutOfRange": "له ۱ څخه تر {{max}} پورې یوه شمېره ولیکئ.",
+    "quantityBelowSoldUnits": "تاسو دمخه د دې {{count}} دانې پلورلي دي. اندازه {{count}} یا تر هغه ډېره وټاکئ، یا لومړی یوه پلورنه لغوه کړئ.",
+    "quantityReopensListing": "خوندي کول به دا اعلان بیا خرڅلاو ته راولي — د {{count}} شتون سره."
   },
   "shopCount_one": "{{count}} اعلان",
   "firmPrice": "ثابت قیمت",
@@ -245,13 +255,29 @@
     "finalPrice": "موافقه شویه بیه",
     "noBuyerRecorded": "د پیرودونکي معلومات نشته",
     "soldOn": "په {{date}} خرڅ شو",
-    "unitsSold": "پلورل شوې دانې"
+    "unitsSold": "پلورل شوې دانې",
+    "tally": "{{sold}} د {{total}} څخه پلورل شوي",
+    "outsideBuyer": "له Hatiwal نه بهر خرڅ شوی",
+    "editSale": "دا پلورنه سمول",
+    "changeBuyer": "پیرودونکی بدلول",
+    "voidConfirm": "دا پلورنه لرې شي؟",
+    "voidConfirmDescription": "دا به دانې بیرته زیرمې ته راولي او ستاسو د پلورنو له تاریخچې څخه به یې لرې کړي.",
+    "voidedSuccess": "پلورنه لرې شوه — زیرمه بیرته وګرځېده.",
+    "voidBlockedReviewed": "دا پلورنې ته دمخه یو ارزونه شتون لري او نشي لرې کېدای یا بدلېدای. تاسو لا هم اندازه سمولی شئ.",
+    "moreBuyers": "+{{count}} نور · ټولې پلورنې وګورئ"
+  },
+  "salesScreen": {
+    "title": "پلورنې",
+    "empty": "تر اوسه پلورنه نشته",
+    "emptyHint": "هغه پلورنې چې ثبتوئ به دلته ښکاره شي."
   },
   "stock": {
     "each": "هره دانه",
     "inStock": "{{count}} دانې موجودې دي",
     "leftOfTotal": "{{available}} د {{total}} څخه پاتې",
     "unitsAvailable": "{{count}} موجودې",
-    "unitsCount": "{{count}} دانې"
+    "unitsCount": "{{count}} دانې",
+    "held": "{{count}} ریزرو شوي",
+    "heldForBuyer": "{{count}} د {{name}} لپاره ریزرو شوي"
   }
 }

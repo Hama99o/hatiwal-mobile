@@ -1,0 +1,115 @@
+appId: com.hatiwal.app
+---
+# SF-M5 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md §10.3) — "Marked
+# sold · Undo". The big-tech answer to a mistaken tap is a snackbar undo, not
+# a correction form, and it must never BLOCK: the sale completes immediately,
+# and undo is only ever offered afterward (never a confirmation gate before
+# marking sold in the first place — that one-tap primary is SF-M1's own
+# acceptance bar, proven in sell_without_reserving.yaml).
+#
+# This flow proves the round trip on a REAL listing: mark sold -> the success
+# toast carries an "Undo" action -> tapping it calls DELETE
+# /my/transactions/:id -> the listing is genuinely back on the market, not
+# just visually reverted client-side.
+#
+# SELF-CONTAINED, same rationale as sell_without_reserving.yaml: creates and
+# sells its own listing rather than reusing a shared disposable fixture.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+
+- tapOn: "New"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- assertVisible:
+    id: "photos-add-button"
+- tapOn:
+    id: "photos-add-button"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
+
+- tapOn: "What are you selling?"
+- eraseText
+- inputText: "QA Undo Mark Sold"
+- scrollUntilVisible:
+    element:
+      text: "Enter price"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Enter price"
+- eraseText
+- inputText: "7000"
+
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Accessories"
+- waitForAnimationToEnd
+
+- runFlow: ../_helpers/set_listing_location.yaml
+
+- scrollUntilVisible:
+    element:
+      text: "Publish"
+    direction: DOWN
+    timeout: 20000
+- waitForAnimationToEnd
+- tapOn: "Publish"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "QA Undo Mark Sold"
+    timeout: 60000
+- assertVisible: "Active"
+
+# ── Mark it sold ──────────────────────────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-primary-action"
+- waitForAnimationToEnd
+- assertVisible: "Who bought this item?"
+- tapOn:
+    id: "buyer-row-skip"
+- waitForAnimationToEnd
+- tapOn: "Confirm sold"
+- waitForAnimationToEnd
+
+# The sale completed BEFORE the undo is offered — never a blocking dialog.
+- extendedWaitUntil:
+    visible: "Listing marked as sold"
+    timeout: 15000
+- assertVisible: "Sold"
+
+# ── The Undo toast ────────────────────────────────────────────────────────────
+- assertVisible: "Undo"
+- tapOn: "Undo"
+- waitForAnimationToEnd
+
+# The undo is a REAL DELETE round trip, not a client-side revert: back on the
+# owner detail screen, this listing must show Active again with its stock
+# restored, not merely "not literally Sold" on a stale cache.
+- extendedWaitUntil:
+    visible: "QA Undo Mark Sold"
+    timeout: 20000
+- assertVisible: "Active"
+- assertNotVisible: "Sold"
+
+# The void-success toast confirms the server-side round trip completed, not
+# just an optimistic local flip.
+- assertVisible: "Sale removed"

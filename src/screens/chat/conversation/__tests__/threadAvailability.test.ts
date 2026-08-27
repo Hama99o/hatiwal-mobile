@@ -57,10 +57,14 @@ describe("canOfferInThread", () => {
 });
 
 describe("showUnavailableNotice", () => {
-  it("shows for a non-owner viewer on a reserved listing once the viewer is known", () => {
+  // SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.4.3) — the redesign's whole point:
+  // a reserved listing stays live and message-able, so the buyer-facing
+  // recovery notice must NEVER show for it anymore. This is the regression
+  // test for that exact behaviour change.
+  it("does NOT show for a non-owner viewer on a reserved listing — reserved is a normal, usable thread now", () => {
     expect(
       showUnavailableNotice({ isOwner: false, viewerKnown: true, listing: RESERVED })
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("shows for a non-owner viewer on a sold listing", () => {
@@ -69,14 +73,8 @@ describe("showUnavailableNotice", () => {
     ).toBe(true);
   });
 
-  // The original K729 bug: the seller's own view of their reserved/sold
-  // thread must NEVER see the buyer-facing recovery copy.
-  it("is hidden for the listing's own seller (isOwner=true) on a reserved listing", () => {
-    expect(
-      showUnavailableNotice({ isOwner: true, viewerKnown: true, listing: RESERVED })
-    ).toBe(false);
-  });
-
+  // The original K729 bug: the seller's own view of their sold thread must
+  // NEVER see the buyer-facing recovery copy.
   it("is hidden for the listing's own seller (isOwner=true) on a sold listing", () => {
     expect(
       showUnavailableNotice({ isOwner: true, viewerKnown: true, listing: SOLD })
@@ -91,10 +89,10 @@ describe("showUnavailableNotice", () => {
 
   // Review fix, LOW: never flash the buyer-facing copy before the viewer is
   // known (currentUser still hydrating on a cold start) — a seller opening a
-  // reserved/sold thread must not see it even for one frame.
-  it("is hidden while the viewer is not yet known (viewerKnown=false), even on a reserved listing", () => {
+  // sold thread must not see it even for one frame.
+  it("is hidden while the viewer is not yet known (viewerKnown=false), even on a sold listing", () => {
     expect(
-      showUnavailableNotice({ isOwner: false, viewerKnown: false, listing: RESERVED })
+      showUnavailableNotice({ isOwner: false, viewerKnown: false, listing: SOLD })
     ).toBe(false);
   });
 
@@ -104,7 +102,7 @@ describe("showUnavailableNotice", () => {
 
   it("is hidden when the listing has been deleted", () => {
     expect(
-      showUnavailableNotice({ isOwner: false, viewerKnown: true, listing: RESERVED, listingDeleted: true })
+      showUnavailableNotice({ isOwner: false, viewerKnown: true, listing: SOLD, listingDeleted: true })
     ).toBe(false);
   });
 });

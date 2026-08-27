@@ -213,7 +213,9 @@
     "markSoldFailed": "علامت‌گذاری به عنوان فروخته شده ناموفق بود. دوباره امتحان کنید.",
     "markSoldConfirmTitle": "به عنوان فروخته شده علامت بزنید؟",
     "markSoldConfirmBody": "این کالا را به عنوان فروخته شده علامت می‌زند و آگهی بسته می‌شود.",
-    "markSoldConfirmCta": "بله، فروخته شد"
+    "markSoldConfirmCta": "بله، فروخته شد",
+    "placeHold": "رزرو برای {{name}}",
+    "releaseHold": "لغو رزرو"
   },
   "message": {
     "deleted": "پیام حذف شد",

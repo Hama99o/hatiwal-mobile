@@ -1,0 +1,187 @@
+appId: com.hatiwal.app
+---
+# SF-M5 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md §10.3/§10.3.1) — the
+# Sales screen the owner asked for by name ("view sale page should add
+# also"). Before this screen existed, "who bought how many, at what price"
+# was unanswerable for a batch listing once the seller had moved past the
+# mark-sold moment — a seller who fat-fingered "3" instead of "2" on a
+# 10-unit batch had no way back in to fix it.
+#
+# This flow proves the full correction round trip on a REAL multi-unit sale:
+# sell 3 of 10 off-platform -> open "View sales" from the listing's own More
+# sheet -> the tally reads "3 of 10 sold" -> open the recorded row -> lower
+# the quantity via the QuantityStepper (a typo correction, 3 -> 2) -> Save ->
+# the listing's OWN stock badge reflects the correction (8 of 10 left, not
+# 7), proving this is a real PATCH round trip and not a client-side-only
+# edit.
+#
+# SELF-CONTAINED, same rationale as sold_quantity_reconciliation.yaml: creates
+# and partially sells its own batch rather than reusing a shared disposable
+# fixture another flow's own assumptions depend on.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+
+# ── Create + publish a fresh 10-unit listing ─────────────────────────────────
+- tapOn: "New"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- assertVisible:
+    id: "photos-add-button"
+- tapOn:
+    id: "photos-add-button"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
+
+- tapOn: "What are you selling?"
+- eraseText
+- inputText: "QA Sales Screen Correct Quantity"
+- scrollUntilVisible:
+    element:
+      text: "Enter price"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Enter price"
+- eraseText
+- inputText: "1000"
+
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Accessories"
+- waitForAnimationToEnd
+
+# ── Declare 10 units ──────────────────────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      text: "I have more than one"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "listing-form-quantity-switch"
+- waitForAnimationToEnd
+- tapOn:
+    id: "listing-form-quantity-input"
+- inputText: "10"
+
+- runFlow: ../_helpers/set_listing_location.yaml
+
+- scrollUntilVisible:
+    element:
+      text: "Publish"
+    direction: DOWN
+    timeout: 20000
+- waitForAnimationToEnd
+- tapOn: "Publish"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "QA Sales Screen Correct Quantity"
+    timeout: 60000
+- assertVisible: "Active"
+- assertVisible:
+    id: "stock-badge-owner"
+- assertVisible: "10 in stock"
+
+# ── Sell 3 of 10, off-platform — a partial sale, so the listing stays Active ─
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-primary-action"
+- waitForAnimationToEnd
+- assertVisible: "Who bought this item?"
+- tapOn:
+    id: "buyer-row-skip"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "buyer-picker-quantity"
+    timeout: 15000
+- tapOn:
+    id: "buyer-picker-quantity"
+- eraseText
+- inputText: "3"
+- waitForAnimationToEnd
+- tapOn: "Confirm sold"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "Listing marked as sold"
+    timeout: 15000
+- assertVisible: "Active"
+- assertNotVisible: "Sold"
+- assertVisible:
+    id: "stock-badge-owner"
+- assertVisible: ".*7 of 10 left.*"
+
+# ── Open the Sales screen from the listing's own More sheet ─────────────────
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-more-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-more-action"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "listing-action-sales"
+- tapOn:
+    id: "listing-action-sales"
+- waitForAnimationToEnd
+
+- assertVisible: "Sales"
+- extendedWaitUntil:
+    visible:
+      id: "sales-tally"
+    timeout: 20000
+- assertVisible: ".*3 of 10 sold.*"
+
+# ── Open the recorded row and correct 3 -> 2 ─────────────────────────────────
+- tapOn: "Sold outside Hatiwal"
+- waitForAnimationToEnd
+- assertVisible: "Edit this sale"
+- assertVisible:
+    id: "sale-edit-quantity-value"
+    text: "3"
+- tapOn:
+    id: "sale-edit-quantity-decrement"
+- assertVisible:
+    id: "sale-edit-quantity-value"
+    text: "2"
+- tapOn:
+    id: "sale-edit-save"
+- waitForAnimationToEnd
+
+# The sheet closes on a successful save, and the tally updates to reflect the
+# correction — proving this landed on the server, not just in this row's view.
+- extendedWaitUntil:
+    visible:
+      id: "sales-tally"
+    timeout: 20000
+- assertVisible: ".*2 of 10 sold.*"
+
+# ── Back on the listing's own detail screen, the stock badge agrees ─────────
+- tapOn:
+    id: "back_button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "stock-badge-owner"
+    timeout: 20000
+- assertVisible: ".*8 of 10 left.*"

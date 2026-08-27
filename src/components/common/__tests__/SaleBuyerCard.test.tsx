@@ -259,3 +259,73 @@ describe("SaleBuyerCard — units sold", () => {
     expect(screen.queryByText("listing.sale.unitsSold")).toBeNull();
   });
 });
+
+// ── SF-M5 (docs/SELL_FLOW_REDESIGN.md §9) — "+N more · View all sales" link ──
+//
+// This card only ever shows the LATEST sale (`sale`) — once a listing has
+// more than one, `salesCount` is the cheap signal that a seller who only
+// glances at this card would otherwise never learn a second buyer exists.
+
+describe("SaleBuyerCard — '+N more · View all sales' link (SF-M5)", () => {
+  it("shows the link when salesCount > 1 on a sold listing", () => {
+    const listing = buildListing({
+      status: "sold",
+      salesCount: 3,
+      sale: buildSale({ status: "sold" }),
+    });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.getByTestId("sale-buyer-more-sales-link")).toBeTruthy();
+    expect(screen.getByText("listing.sale.moreBuyers")).toBeTruthy();
+  });
+
+  it("hides the link when salesCount is 1 (the common case — one buyer)", () => {
+    const listing = buildListing({
+      status: "sold",
+      salesCount: 1,
+      sale: buildSale({ status: "sold" }),
+    });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.queryByTestId("sale-buyer-more-sales-link")).toBeNull();
+  });
+
+  it("hides the link when salesCount is absent (payload predates the field)", () => {
+    const listing = buildListing({ status: "sold", sale: buildSale({ status: "sold" }) });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.queryByTestId("sale-buyer-more-sales-link")).toBeNull();
+  });
+
+  it("hides the link for a still-open hold, even if salesCount > 1 from an earlier sold-out cycle", () => {
+    const listing = buildListing({
+      status: "reserved",
+      salesCount: 2,
+      sale: buildSale({ status: "reserved" }),
+    });
+    render(<SaleBuyerCard listing={listing} />);
+
+    expect(screen.queryByTestId("sale-buyer-more-sales-link")).toBeNull();
+  });
+
+  it("navigates to the per-listing Sales screen when tapped", () => {
+    const mockPush = jest.fn();
+    jest.spyOn(require("expo-router"), "useRouter").mockReturnValue({
+      push: mockPush,
+      replace: jest.fn(),
+      back: jest.fn(),
+    });
+
+    const listing = buildListing({
+      id: 501,
+      status: "sold",
+      salesCount: 3,
+      sale: buildSale({ status: "sold" }),
+    });
+    render(<SaleBuyerCard listing={listing} />);
+
+    fireEvent.press(screen.getByTestId("sale-buyer-more-sales-link"));
+
+    expect(mockPush).toHaveBeenCalledWith("/(main)/listing/501/sales");
+  });
+});

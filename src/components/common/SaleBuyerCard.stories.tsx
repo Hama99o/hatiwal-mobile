@@ -110,3 +110,25 @@ export const NoSaleRendersNothing: Story = {
     listing: buildListing({ status: "active", sale: null }),
   },
 };
+
+// SF-M5 (docs/SELL_FLOW_REDESIGN.md §9) — a multi-unit batch sold to more
+// than one buyer. This card still shows only the LATEST sale; the
+// "+2 more · View all sales" link is the seller's way to the full ledger.
+export const SoldWithMoreSales: Story = {
+  args: {
+    listing: buildListing({
+      status: "sold",
+      price: 14000,
+      multiUnit: true,
+      quantity: 15,
+      availableUnits: 0,
+      salesCount: 3,
+      sale: buildSale({
+        status: "sold",
+        finalPrice: 14000,
+        quantity: 5,
+        completedAt: "2026-07-10T12:00:00Z",
+      }),
+    }),
+  },
+};

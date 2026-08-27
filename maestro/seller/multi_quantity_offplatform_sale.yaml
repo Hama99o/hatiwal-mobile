@@ -24,8 +24,13 @@ appId: com.hatiwal.app
     file: ../_helpers/login_seller.yaml
 
 - runFlow: ../_helpers/pop_to_tab_bar.yaml
+# browse-tab, NOT my-listings-tab. In SELLER mode the first tab IS the seller's
+# listings — it is labelled "My Shop" and keeps the browse-tab testID, while the
+# my-listings route is declared with `href: null` and never renders a button. Tapping
+# my-listings-tab here failed with "Element not found" on a tab that exists in the
+# layout but not in the bar.
 - tapOn:
-    id: "my-listings-tab"
+    id: "browse-tab"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible:
@@ -50,8 +55,23 @@ appId: com.hatiwal.app
     visible:
       id: "stock-badge-owner"
     timeout: 20000
-- assertVisible: ".*8 of 8 left.*"
+# "8 in stock", NOT "8 of 8 left". The owner badge deliberately switches phrasing only
+# once a sale has happened — MyListingDetail.tsx: "'15 of 15 left' is noise before the
+# first sale ... switch to the progress phrasing only once it says something (QA
+# run-017)". So the pre-sale badge is the bare count, and the "N of M left" form below is
+# what proves the sale landed.
+- assertVisible: ".*8 in stock.*"
 
+# Scroll to it: the owner detail screen runs photos -> badges -> stats -> views chart ->
+# location, and the lifecycle action row is below the fold. `tapOn` never scrolls, so
+# this failed with "Element not found" on a control that was simply further down. Centred,
+# as multi_quantity_partial_sale does for the same control.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-more-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - tapOn:
     id: "lifecycle-more-action"
 - waitForAnimationToEnd
@@ -81,7 +101,10 @@ appId: com.hatiwal.app
     id: "buyer-picker-quantity"
 - eraseText
 - inputText: "3"
-- hideKeyboard
+# NO hideKeyboard. It is Back on Android, and here it closed the SHEET rather than the
+# IME: the hierarchy at the next step had no "Who bought this item?", no buyer-picker-*
+# and not even the detail screen's stock badge. Confirming with the keyboard up is fine —
+# the sheet's button sits above it.
 - waitForAnimationToEnd
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd

@@ -38,6 +38,15 @@
  *    sheet BODY, and always wrapped in a bidi isolate (see
  *    `wrapBidiIsolate`) so a Pashto/Dari sentence with an LTR name + an
  *    LTR-formatted amount spliced in never visually reorders.
+ *
+ * SF-M2 (Sell Flow Redesign): `buildPlaceHoldPrompt` (bottom of this file)
+ * generalizes `buildReserveAfterAcceptPrompt` for a SECOND trigger — the
+ * seller manually tapping "Place a hold for {{name}}" in
+ * `ComposerActionsSheet`'s "+" menu, with no accepted offer to inherit a
+ * price from. Both builders produce the exact same `ReserveAfterAcceptPrompt`
+ * shape and both feed the SAME `reserveAfterAccept` side effect below — the
+ * manual trigger does not fork the toast copy, the bidi isolation, or the
+ * stay-open-on-error contract this file already got right.
  */
 import { listingsAPI } from "@/api/listings";
 import { toast } from "@/lib/toast";
@@ -200,6 +209,13 @@ export async function reserveAfterAccept(
   prompt: Pick<ReserveAfterAcceptPrompt, "listingId" | "buyer" | "finalPrice">,
   options: {
     t: (key: string, options?: Record<string, unknown>) => string;
+    /**
+     * SF-B2/SF-M2 — how many units this hold covers, on a multi-unit listing
+     * only. Threaded straight through to `reserveListing`; `undefined` on a
+     * single-item listing (or when `BuyerPickerSheet`'s own quantity field
+     * never rendered) behaves exactly as before this param existed.
+     */
+    quantity?: number;
     /** Called after a successful reserve so the caller can invalidate queries + reload. */
     onReserved?: () => void;
     /**
@@ -216,11 +232,12 @@ export async function reserveAfterAccept(
     onError?: (message: string) => void;
   }
 ): Promise<boolean> {
-  const { t, onReserved, onError } = options;
+  const { t, quantity, onReserved, onError } = options;
   try {
     await listingsAPI.reserveListing(prompt.listingId, {
       buyerId: prompt.buyer.id,
       finalPrice: prompt.finalPrice,
+      quantity,
     });
     // MUST-FIX (RTL) — the confirm body already isolates the buyer name
     // (see `buildReserveAfterAcceptPrompt` above); this toast must too, or a
@@ -236,4 +253,51 @@ export async function reserveAfterAccept(
     onError?.(message);
     return false;
   }
+}
+
+/**
+ * SF-M2 — the MANUAL counterpart to `buildReserveAfterAcceptPrompt`: builds
+ * the same `ReserveAfterAcceptPrompt` shape for a seller-initiated "Place a
+ * hold for {{name}}" (`ComposerActionsSheet`'s "+" menu), rather than the
+ * automatic one-shot prompt after an offer accept. Generalizes the pure-
+ * builder/side-effect split this file already proved for that trigger,
+ * instead of forking a second copy of the toast copy / bidi isolation / the
+ * confirm sheet's shape — the manual path then reuses `reserveAfterAccept`
+ * above unchanged for the actual PUT.
+ *
+ * Two differences from the auto-prompt path, both because there is no
+ * accepted offer to inherit from here:
+ *  - `finalPrice` defaults to the LISTING's own asking price (there is no
+ *    `offerAmount` precondition — `docs/SELL_FLOW_REDESIGN.md` §4.4.2).
+ *  - No `isOwner`/status/offer-amount gate — the composer row itself is only
+ *    ever rendered for the owner on a Live listing (`Conversation.tsx`'s
+ *    `placeHoldRow` builder), so this stays a plain "is there a listing and a
+ *    buyer to hold it for" null-guard, not a second copy of that gate.
+ */
+export function buildPlaceHoldPrompt(params: {
+  listing: { id: number; price?: number | null; currency?: string | null } | null | undefined;
+  buyer: ReserveAfterAcceptBuyer | null | undefined;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}): ReserveAfterAcceptPrompt | null {
+  const { listing, buyer, t } = params;
+  if (!listing || !buyer?.id) return null;
+
+  const isolatedBuyerName = wrapBidiIsolate(buyer.name);
+
+  return {
+    listingId: listing.id,
+    buyer: {
+      id: buyer.id,
+      name: buyer.name,
+      avatarUrl: buyer.avatarUrl ?? null,
+      verified: buyer.verified,
+      city: buyer.city ?? null,
+    },
+    finalPrice: listing.price ?? 0,
+    currency: listing.currency ?? "AFN",
+    // Same copy as the auto-prompt path — the consequence is identical
+    // whichever way the seller got here.
+    title: t("chat.offer.reserveAfterAcceptTitle", { buyerName: isolatedBuyerName }),
+    body: t("chat.offer.reserveAfterAcceptBody"),
+  };
 }

@@ -1,0 +1,139 @@
+appId: com.hatiwal.app
+---
+# SF-M6 — buyer-side quantity INTENT + the structured first message.
+#
+# docs/SELL_FLOW_REDESIGN.md §4.2.3/§4.3/§10.4: on a multi-unit listing, the
+# buyer sees a `QuantityStepper` near the sticky action bar, captioned "How
+# many are you asking about?" (never "Buy"/checkout framing — Hatiwal has no
+# cart or payment). Picking qty > 1 changes `FirstMessageSheet`'s prefilled
+# text to a sentence stating unit price × qty = total IN WRITING — the trust
+# fix this whole ticket exists for: with no payment and no delivery, the buyer
+# and seller must agree the total in text before the meetup, not discover a
+# mismatch face to face.
+#
+# The hard rule this flow spends its second half proving: a single-item
+# listing renders NONE of this — no stepper, no label, no template text.
+#
+# Fixtures (hatiwal-api/db/seeds/e2e.rb):
+#   - "Phone Case Silicone Clear - Wholesale" — active, multi-unit, 15 in
+#     stock, price 400 AFN, owned by seller@hatiwal.test. Already used by
+#     browse/listing_detail_multi_quantity.yaml for the stock-pill assertions
+#     this flow doesn't repeat.
+#   - "Wool Blanket Handmade King Size" — active, single-unit — the governing
+#     rule's fixture, reused from the same flow for consistency.
+#
+# Deliberately does NOT tap "Send Message" on the multi-unit listing: this
+# exact buyer+listing pair already has a seeded conversation (e2e.rb's
+# multi_unit_listing fixture), so sending here would 422 on "conversation
+# already exists" — a real, pre-existing case unrelated to this ticket. The
+# whole point of THIS ticket is the prefilled TEXT, which is fully provable
+# by opening the sheet and reading it back, without needing the send to
+# succeed. Closing via "Cancel" also proves the sheet's own state (not the
+# listing) resets cleanly for the next flow to reuse the same fixture.
+
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- tapOn:
+    id: "login-email-input"
+- inputText: "buyer@hatiwal.test"
+- tapOn:
+    id: "login-password-input"
+- inputText: "Password123!"
+# Dismiss the IME before submitting — see every other flow's identical note:
+# a bare `waitForAnimationToEnd` does not, on its own, move focus off the
+# field, and the touch can land on the keyboard instead of "Sign In".
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn: "Sign In"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "profile-tab"
+    timeout: 60000
+- assertNotVisible: "Login"
+
+# ── Multi-unit: the stepper appears, and the message states the total ──────
+
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      text: "AFN.*"
+    timeout: 40000
+- scrollUntilVisible:
+    element:
+      text: "Phone Case Silicone Clear - Wholesale"
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+- tapOn: "Phone Case Silicone Clear - Wholesale"
+- waitForAnimationToEnd
+- assertVisible: "Phone Case Silicone Clear - Wholesale"
+
+# The enquiry framing — never "Buy"/checkout copy (docs/SELL_FLOW_REDESIGN.md
+# §3.3's explicit flag on this exact control).
+- assertVisible: ".*How many are you asking about.*"
+- assertVisible:
+    id: "listing-detail-quantity-stepper"
+# "Contact Seller" stays the button label throughout — the stepper never
+# relabels the CTA to anything Buy-flavoured.
+- assertVisible: "Contact Seller"
+
+# 1 -> 3. Two taps on "+", the common-case path (docs/SELL_FLOW_REDESIGN.md
+# §10.4 — a tap-to-edit jump for a big number is a DIFFERENT, separately
+# unit-tested path; this flow exercises the one-tap-at-a-time case a real
+# buyer takes for a small quantity).
+- tapOn:
+    id: "listing-detail-quantity-stepper-increment"
+- tapOn:
+    id: "listing-detail-quantity-stepper-increment"
+
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+
+# The structured sentence: unit price × qty = total, stated in writing before
+# any meetup — this is the entire point of SF-M6. Each fragment wrapped in
+# `.*` per this repo's own established convention for Intl-formatted amounts
+# embedded mid-sentence (see maestro/chat/reserve_after_accept.yaml's
+# identical ".*24,000.*" / ".*Reserve for.*Ahmad Karimi.*" style — currency
+# amounts render with a non-breaking space via Intl, so a bare adjacent-text
+# match can miss it).
+- assertVisible: ".*I'd like to buy.*"
+- assertVisible: ".*400.*"
+- assertVisible: ".*1,200.*"
+
+# Close WITHOUT sending (see file header) — leaves the listing/conversation
+# state untouched for a re-run.
+- tapOn: "Cancel"
+- waitForAnimationToEnd
+
+# ── The governing rule, from the buyer's side: a single-item listing shows ──
+# ── NONE of the above — no stepper, no label, no template text ─────────────
+
+- tapOn: "Back"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Wool Blanket Handmade King Size"
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+- tapOn: "Wool Blanket Handmade King Size"
+- waitForAnimationToEnd
+- assertVisible: "Wool Blanket Handmade King Size"
+- assertNotVisible:
+    id: "listing-detail-quantity-stepper"
+- assertNotVisible: ".*How many are you asking about.*"
+
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- assertVisible: "Message Seller"
+# The PLAIN default message, byte-identical to before this ticket — no
+# stepper, no unit×qty=total template, on a single-item listing.
+- assertVisible: "Hi, is this still available?"
+- assertNotVisible: ".*I'd like to buy.*"
+- tapOn: "Cancel"

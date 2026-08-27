@@ -210,12 +210,15 @@ export const OpenConfirmModeSubmitting: Story = {
 };
 
 // ── Multi-quantity: "how many did you sell?" ─────────────────────────────────
-// Only ever rendered when action="sold" AND more than one unit is left. On a
-// single-unit listing the sheet is byte-for-byte what it is today — the spike's
-// governing rule is that the seller of one carpet answers no new questions.
+// Only ever rendered when action="sold"/"reserve" AND more than one unit is
+// left. On a single-unit listing the sheet is byte-for-byte what it is today
+// — the spike's governing rule is that the seller of one carpet answers no
+// new questions.
 //
-// Pre-filled with the whole remainder so "I sold the lot" stays one tap; edit it
-// down and the API keeps the listing active with the rest still browsable.
+// Pre-filled with ONE unit, not the whole remainder — see the field's own
+// `quantityText` doc in BuyerPickerSheet.tsx for why (a seller reported
+// selling one item from a batch of 50 and watching the listing retire itself
+// with "0 of 50 left"). Selling out is now a deliberate typed choice.
 export const OpenSoldMultiUnit: Story = {
   render: () => (
     <QueryClientProvider client={queryClient}>
@@ -233,7 +236,8 @@ export const OpenSoldMultiUnit: Story = {
   ),
 };
 
-// The last two of a batch — the sale that will retire the listing.
+// The last two of a batch — the sale that will retire the listing (only if
+// the seller explicitly types "2").
 export const OpenSoldLastUnits: Story = {
   render: () => (
     <QueryClientProvider client={queryClient}>
@@ -251,8 +255,9 @@ export const OpenSoldLastUnits: Story = {
   ),
 };
 
-// Reserving never asks for a count, whatever the stock — a reservation is a hold
-// on the listing, not a per-unit deduction the backend models.
+// SF-B2/SF-M2 (Sell Flow Redesign): reserving a multi-unit listing now asks
+// "how many are you holding?" too — mirroring the sold path field-for-field.
+// Held units stay advisory (never subtracted from `available_units`).
 export const OpenReserveMultiUnit: Story = {
   render: () => (
     <QueryClientProvider client={queryClient}>
@@ -264,6 +269,52 @@ export const OpenReserveMultiUnit: Story = {
         currency="AFN"
         action="reserve"
         remainingQuantity={15}
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};
+
+// SF-M2 — the chat-initiated confirm-mode flow: "Mark sold" from
+// ListingHeader, or "Place a hold" from ComposerActionsSheet's "+" menu, on a
+// multi-unit listing. The buyer is already known (no picker), but the
+// quantity field still appears — "how many are you holding/selling for
+// Ahmad?" — feeding the reserve/sold call's optional `quantity`.
+export const OpenConfirmModeMultiUnitSold: Story = {
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={14000}
+        currency="AFN"
+        action="sold"
+        remainingQuantity={15}
+        preselectedBuyer={{ id: 42, name: "Ahmad Karimi", avatarUrl: null, verified: true, city: "Kandahar" }}
+        listingThumbnailUrl={SAMPLE_THUMBNAIL}
+        listingTitle="Box of 15 hand-woven coasters"
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};
+
+export const OpenConfirmModeMultiUnitHold: Story = {
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={14000}
+        currency="AFN"
+        action="reserve"
+        remainingQuantity={15}
+        preselectedBuyer={{ id: 42, name: "Ahmad Karimi", avatarUrl: null, verified: true, city: "Kandahar" }}
+        listingThumbnailUrl={SAMPLE_THUMBNAIL}
+        listingTitle="Box of 15 hand-woven coasters"
+        confirmTitle="Place a hold for Ahmad Karimi?"
         onConfirm={() => {}}
       />
     </QueryClientProvider>

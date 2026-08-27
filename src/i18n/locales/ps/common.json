@@ -50,6 +50,9 @@
   "comingSoon": "ژر راځي",
   "goBack": "شاته ځه",
   "undo": "بیرته اخیستل",
+  "quantity": "شمېر",
+  "decreaseQuantity": "شمېر کمول",
+  "increaseQuantity": "شمېر زیاتول",
   "splash": {
     "validating": "ستاسو ناستې ازمایل کیږي…"
   },

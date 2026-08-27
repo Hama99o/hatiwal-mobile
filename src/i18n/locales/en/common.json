@@ -50,6 +50,9 @@
   "comingSoon": "Coming soon",
   "goBack": "Go back",
   "undo": "Undo",
+  "quantity": "Quantity",
+  "decreaseQuantity": "Decrease quantity",
+  "increaseQuantity": "Increase quantity",
   "splash": {
     "validating": "Checking your session…"
   },

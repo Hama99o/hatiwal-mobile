@@ -107,9 +107,15 @@ export function PendingReviewsNudge() {
                   pushing the chevron out past the card's `overflow: "hidden"`
                   edge, where it was being clipped in half. */}
               <View style={{ flex: 1, minWidth: 0 }}>
+                {/* `counterparty` is never actually null here — the backend's
+                    `with_counterparty` scope (reviews_controller.rb) excludes
+                    outside-buyer sales from this endpoint specifically because
+                    there is nobody to rate. The fallback exists only because
+                    `Transaction.buyer` (SF-B3) is nullable app-wide now — this
+                    keeps the type honest without asserting past it. */}
                 <UserIdentity
-                  name={counterparty.name}
-                  avatarUrl={counterparty.avatarUrl}
+                  name={counterparty?.name ?? t("listing.sale.outsideBuyer")}
+                  avatarUrl={counterparty?.avatarUrl ?? null}
                   size={36}
                   nameSize={14}
                   subtitle={transaction.listing?.title ?? undefined}

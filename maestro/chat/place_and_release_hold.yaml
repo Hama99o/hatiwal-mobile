@@ -1,0 +1,109 @@
+appId: com.hatiwal.app
+---
+# SF-M2 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md §4.4.2) — seller places
+# a hold for the conversation's own buyer, then releases it, entirely from
+# ComposerActionsSheet's "+" menu.
+#
+# WHY THIS EXISTS
+#
+# ComposerActionsSheet accepted and rendered `placeHoldRow`/`releaseHoldRow`
+# (unit-tested, ComposerActionsSheet.test.tsx) and `buildPlaceHoldPrompt`
+# built the correct confirm-sheet prompt (unit-tested,
+# reserveAfterOffer.test.tsx) — but Conversation.tsx never actually PASSED
+# either prop, so neither row was ever reachable in the running app. Every
+# unit test still passed because each piece was tested in isolation; nothing
+# ever exercised the real wiring. Fixed alongside
+# src/screens/chat/__tests__/holdInChat.test.tsx (the Jest-level version of
+# this same "would it actually render" question) — this flow is the
+# on-device confirmation of the same fix.
+#
+# WHY THIS LISTING
+#
+# "Phone Case Silicone Clear - Wholesale" — the SAME multi-unit fixture (15
+# units) `open_active_conversation.yaml` already uses, chosen there because
+# holding/selling PART of it leaves it ACTIVE by design (that is the whole
+# point of the quantity feature) rather than flipping to a terminal status
+# some other flow could then find changed. It is also the exact case a
+# STATUS-ONLY release-hold gate would get wrong (SF-B2): placing a hold on a
+# multi-unit listing leaves `status: "active"` — only `heldUnits` says a hold
+# exists — see Listing#reserve_with_buyer! / My::ListingsController#reserve's
+# own "a batch does not leave the market because one unit is held" comment.
+#
+# This flow is a ROUND TRIP: place a hold, then release it, ending in the
+# EXACT state the fixture started in (active, 0 held) — so it leaves no
+# residue for the other flows that already share this listing (see
+# open_active_conversation.yaml's own header for the list).
+
+- runFlow: ../_helpers/login_seller.yaml
+- runFlow: ../_helpers/open_active_conversation.yaml
+
+# ── Before: no open hold — Place-a-hold offered, Release-hold absent ────────
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+# Wait for the SHEET's contents, not just the animation — see
+# propose_meetup.yaml's own note: ComposerActionsSheet is a native Modal and
+# waitForAnimationToEnd returns before its children reach the a11y tree.
+- extendedWaitUntil:
+    visible:
+      id: "composer-action-place-hold"
+    timeout: 15000
+- assertNotVisible:
+    id: "composer-action-release-hold"
+- tapOn:
+    id: "composer-action-place-hold"
+- waitForAnimationToEnd
+
+# ── Confirm sheet — LOCKED to this conversation's buyer, never a pick-a-buyer
+#    list (the whole premise of SF-M2: the seller is already talking to them) ─
+# The buyer's name is wrapped in Unicode bidi-isolate marks when interpolated
+# (wrapBidiIsolate, reserveAfterAccept.ts) — an exact string can never match
+# that, hence the `.*`-wrapped regex (same convention as reserve_after_accept.yaml).
+- assertVisible: ".*Reserve for.*"
+- assertNotVisible: "Who's buying this item?"
+- tapOn: "Confirm reserve"
+- waitForAnimationToEnd
+# extendedWaitUntil, not assertVisible: this is a TOAST (~3s) — a bare check
+# right after the action is a timing race.
+- extendedWaitUntil:
+    visible: ".*reserved.*"
+    timeout: 15000
+
+# ── After: the batch stays ACTIVE (SF-B2) — composer now offers Release-hold,
+#    never a second Place-a-hold ───────────────────────────────────────────
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "composer-action-release-hold"
+    timeout: 15000
+- assertNotVisible:
+    id: "composer-action-place-hold"
+- tapOn:
+    id: "composer-action-release-hold"
+- waitForAnimationToEnd
+
+# Native confirmAlert — "Release this hold?" (listing.confirmReleaseHold).
+- assertVisible: "Release this hold?"
+- assertVisible: "This cancels the reservation and lets any buyer take it."
+# Via the helper, not the label: confirmAlert's confirm button says "Release
+# hold" — the SAME words as the row that opened it — so a text tap matches
+# both and can land on the row behind the dialog. confirm_dialog.yaml taps
+# `android:id/button1`, which only exists inside the dialog itself.
+- runFlow: ../_helpers/confirm_dialog.yaml
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Hold released — listing is fully back on the market."
+    timeout: 15000
+
+# ── Round trip complete — back to where this flow started ──────────────────
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "composer-action-place-hold"
+    timeout: 15000
+- assertNotVisible:
+    id: "composer-action-release-hold"

@@ -3,13 +3,17 @@
  * Shows listing thumbnail, title, PriceTag, and StatusBadge so both
  * participants always remember what they're negotiating about.
  *
- * When `isOwner` is true and the listing status allows a lifecycle
- * transition (active → reserve, reserved → mark sold), a compact
- * secondary action button is shown inline. Touching it opens the
- * BuyerPickerSheet (TASK-TX01) so the seller can identify the real buyer
- * from this listing's conversations (its own Confirm button is the
- * confirmation step) — then calls `onLifecycleDone` on success so the
- * parent can invalidate queries and refresh the StatusBadge in place.
+ * SF-M2 (Sell Flow Redesign, `docs/SELL_FLOW_REDESIGN.md` §4.4.1): the
+ * inline lifecycle button drops its old `showReserve`/`showMarkSold` toggle —
+ * it is now ALWAYS "Mark sold" whenever `isOwner` and the listing is Live
+ * (`active` or `reserved`), matching the same one-tap-primary model
+ * `useListingLifecycle.ts` uses on the listing surfaces (SF-M1). Tapping it
+ * opens `BuyerPickerSheet` in CONFIRM mode, scoped to `buyer` — this
+ * conversation's own other participant — so it goes straight to a locked
+ * confirmation, never the full pick-a-buyer list (the seller is already
+ * talking to the person they'd be selling to). Reserve is no longer
+ * triggered from here at all — "Place a hold" / "Release hold" moved into
+ * `ComposerActionsSheet`'s "+" menu, see that file.
  *
  * TASK-N071: when `listing.negotiable === false` and the current user
  * is NOT the owner, a quiet "Firm price" pill is shown and the offer
@@ -67,11 +71,26 @@ interface ListingHeaderProps {
   listing: ListingInfo;
   onPress?: () => void;
   /**
-   * When true the current user is the listing's seller — show the next
-   * lifecycle action inline (Reserve for active, Mark Sold for reserved).
-   * Has no effect for sold/draft listings.
+   * When true the current user is the listing's seller — show the inline
+   * "Mark sold" action for a Live listing (`active` or `reserved`). Has no
+   * effect for sold/draft listings.
    */
   isOwner?: boolean;
+  /**
+   * SF-M2 — this conversation's OTHER participant (the buyer), used to scope
+   * the "Mark sold" action to a single, already-known buyer via
+   * `BuyerPickerSheet`'s confirm mode — never the full pick-a-buyer list,
+   * since the seller is already talking to them. The inline action renders
+   * nothing at all while this is `null`/`undefined` (e.g. the conversation's
+   * own query hasn't resolved yet) — there is no one to confirm sold-to.
+   */
+  buyer?: {
+    id: number;
+    name: string;
+    avatarUrl?: string | null;
+    verified?: boolean;
+    city?: string | null;
+  } | null;
   /**
    * Called after a successful lifecycle mutation so the parent can
    * invalidate conversation/listing queries and update the StatusBadge.
@@ -79,13 +98,18 @@ interface ListingHeaderProps {
   onLifecycleDone?: () => void;
 }
 
-export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDone }: ListingHeaderProps) {
+export function ListingHeader({ listing, onPress, isOwner = false, buyer = null, onLifecycleDone }: ListingHeaderProps) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
   const [isLifecycleLoading, setIsLifecycleLoading] = useState(false);
-  // TASK-TX01: which lifecycle action opened the buyer picker, if any.
-  const [buyerPickerAction, setBuyerPickerAction] = useState<"reserve" | "sold" | null>(null);
+  // SF-M2: whether the (always "Mark sold" now) confirm sheet is open.
+  const [markSoldVisible, setMarkSoldVisible] = useState(false);
+  // Review fix (MEDIUM, ERROR FEEDBACK) — same reasoning as
+  // reserveAfterAccept.ts / Conversation.tsx's `reserveConfirmError`: the
+  // sheet's own raw RN <Modal> occludes the sonner-native toast on Android,
+  // so a failure needs a signal INSIDE the sheet too.
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // REV2: after a sold sale records a real buyer, prompt the seller to rate them.
   const [reviewPrompt, setReviewPrompt] = useState<{
     transactionId: number;
@@ -100,10 +124,11 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
 
   const Chevron = isRtl ? ChevronLeft : ChevronRight;
 
-  // Determine which lifecycle action to show for the owner
-  const showReserve  = isOwner && status === "active";
-  const showMarkSold = isOwner && status === "reserved";
-  const showAction   = showReserve || showMarkSold;
+  // SF-M1/SF-M2: ALWAYS "Mark sold" for the owner on a Live listing — no more
+  // showReserve/showMarkSold toggle. Requires a known `buyer` too: there is
+  // nothing to confirm sold-to before the conversation's own data has loaded.
+  const isLive = status === "active" || status === "reserved";
+  const showAction = isOwner && isLive && !!buyer;
 
   // TASK-N071: firm price notice — shown to the buyer (non-owner) only.
   // TASK-K729 review fix: suppressed once the listing is reserved/sold — the
@@ -116,34 +141,28 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
     status !== "reserved" &&
     status !== "sold";
 
-  const handleBuyerPickerConfirm = async (result: BuyerPickerResult) => {
+  const handleMarkSoldConfirm = async (result: BuyerPickerResult) => {
     setIsLifecycleLoading(true);
+    setErrorMessage(null);
     try {
-      if (buyerPickerAction === "reserve") {
-        await listingsAPI.reserveListing(listing.id, result);
-        toast.success(t("chat.listingActions.reserveSuccess"));
-      } else if (buyerPickerAction === "sold") {
-        const soldData = await listingsAPI.markSold(listing.id, result);
-        toast.success(t("chat.listingActions.markSoldSuccess"));
-        // REV2: a recorded buyer means a real sold Transaction exists —
-        // invite the seller to rate them right away (double-blind, hidden
-        // until the buyer reviews back too).
-        if (soldData.transaction?.buyer) {
-          setReviewPrompt({
-            transactionId: soldData.transaction.id,
-            buyerName: soldData.transaction.buyer.name,
-            buyerAvatarUrl: soldData.transaction.buyer.avatarUrl,
-          });
-        }
+      const soldData = await listingsAPI.markSold(listing.id, result);
+      toast.success(t("chat.listingActions.markSoldSuccess"));
+      // REV2: a recorded buyer means a real sold Transaction exists —
+      // invite the seller to rate them right away (double-blind, hidden
+      // until the buyer reviews back too).
+      if (soldData.transaction?.buyer) {
+        setReviewPrompt({
+          transactionId: soldData.transaction.id,
+          buyerName: soldData.transaction.buyer.name,
+          buyerAvatarUrl: soldData.transaction.buyer.avatarUrl,
+        });
       }
-      setBuyerPickerAction(null);
+      setMarkSoldVisible(false);
       onLifecycleDone?.();
     } catch {
-      toast.error(
-        buyerPickerAction === "sold"
-          ? t("chat.listingActions.markSoldFailed")
-          : t("chat.listingActions.reserveFailed")
-      );
+      const message = t("chat.listingActions.markSoldFailed");
+      toast.error(message);
+      setErrorMessage(message);
     } finally {
       setIsLifecycleLoading(false);
     }
@@ -223,7 +242,8 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
           </View>
         </View>
 
-        {/* Lifecycle action button — seller-owner only, active or reserved */}
+        {/* SF-M1/SF-M2: Mark sold — the one-tap primary, always, for the
+            owner of any Live listing, once the thread's buyer is known. */}
         {showAction ? (
           <Pressable
             onPress={(e) => {
@@ -231,7 +251,8 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
               if (e && typeof e.stopPropagation === "function") {
                 e.stopPropagation();
               }
-              setBuyerPickerAction(showReserve ? "reserve" : "sold");
+              setErrorMessage(null);
+              setMarkSoldVisible(true);
             }}
             disabled={isLifecycleLoading}
             hitSlop={4}
@@ -243,24 +264,24 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
               borderRadius: 8,
               paddingHorizontal: 10,
               paddingVertical: 6,
-              backgroundColor: showMarkSold ? colors.destructiveAlpha : colors.primaryAlpha,
+              backgroundColor: colors.primaryAlpha,
             }}
             accessibilityRole="button"
-            accessibilityLabel={showReserve ? t("chat.listingActions.reserve") : t("chat.listingActions.markSold")}
+            accessibilityLabel={t("chat.listingActions.markSold")}
           >
             {isLifecycleLoading ? (
-              <ActivityIndicator size="small" color={showMarkSold ? colors.destructive : colors.primary} />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
               <Text
                 style={{
                   fontSize: 12,
                   fontWeight: "600",
-                  color: showMarkSold ? colors.destructive : colors.primary,
+                  color: colors.primary,
                   textAlign: "center",
                 }}
                 numberOfLines={1}
               >
-                {showReserve ? t("chat.listingActions.reserve") : t("chat.listingActions.markSold")}
+                {t("chat.listingActions.markSold")}
               </Text>
             )}
           </Pressable>
@@ -301,17 +322,21 @@ export function ListingHeader({ listing, onPress, isOwner = false, onLifecycleDo
         </View>
       )}
 
-      {/* TASK-TX01 / TASK-F084: buyer picker for Reserve / Mark-sold from chat */}
+      {/* TASK-TX01 / TASK-F084 / SF-M2: Mark sold from chat, confirm mode —
+          scoped to `buyer`, this thread's own participant. No conversation
+          picker: the buyer is who the seller is already talking to. */}
       <BuyerPickerSheet
-        visible={buyerPickerAction !== null}
-        onClose={() => setBuyerPickerAction(null)}
+        visible={markSoldVisible}
+        onClose={() => { setMarkSoldVisible(false); setErrorMessage(null); }}
         listingId={listing.id}
         price={listing.price ?? 0}
         currency={listing.currency ?? "AFN"}
-        action={buyerPickerAction ?? "reserve"}
+        action="sold"
         remainingQuantity={listing.availableUnits ?? 1}
-        onConfirm={handleBuyerPickerConfirm}
+        preselectedBuyer={buyer}
+        onConfirm={handleMarkSoldConfirm}
         isSubmitting={isLifecycleLoading}
+        errorMessage={errorMessage}
       />
 
       {/* REV2: rate the buyer right after a sold sale records them */}

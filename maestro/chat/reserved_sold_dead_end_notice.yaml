@@ -1,18 +1,27 @@
 appId: com.hatiwal.app
 ---
-# Reserved listing seen by a NON-BUYER: the thread shows the recovery notice, offers
-# are closed, and "See similar" gets them out of the dead end.
+# SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.4.3) — a reserved listing's thread is
+# NO LONGER a dead end for a non-buyer viewer. Before this ticket this flow
+# proved the OPPOSITE: that the thread showed a recovery notice and steered
+# the viewer away via "See similar". That behaviour is gone — reserved now
+# means "still for sale, someone is first in line", so the thread stays a
+# normal, fully-usable conversation. Only OFFERS stay paused on a reserved
+# listing (§3.2's deliberate judgment call: a NEW price negotiation from a
+# different buyer doesn't make sense once a specific buyer's hold is already
+# in progress) — that one exclusion is unchanged and still asserted below.
+# The filename is kept (rather than renamed) so this flow's history in
+# qa/FLOW_REGISTER.md stays continuous; the CONTENT below is the new contract.
 #
-# This flow used to cover the active, reserved AND sold cases in 205 lines with FIVE
-# logins — buyer, seller, buyer, seller, buyer, because each status change needs the
-# other party. Comparable two-login flows take 405-504s, so five could never fit
-# FLOW_TIMEOUT=600: it failed at 601s having recorded nothing, its log 34 bytes long.
-# Not one of its assertions had ever reported a result.
+# This flow used to cover the active, reserved AND sold cases in 205 lines with
+# FIVE logins — buyer, seller, buyer, seller, buyer, because each status change
+# needs the other party. Comparable two-login flows take 405-504s, so five
+# could never fit FLOW_TIMEOUT=600: it failed at 601s having recorded nothing,
+# its log 34 bytes long.
 #
 # Now three flows, and only this one has to mutate anything:
 #   dead_end_notice_absent_when_active.yaml — active listing, no notice   (1 login)
 #   dead_end_notice_sold.yaml               — sold listing, notice        (1 login)
-#   this one                                — reserved listing, notice    (2 logins)
+#   this one                                — reserved listing, NO notice (2 logins)
 #
 # It reserves the Lenovo, which db/seeds/e2e.rb now returns to :active every seed —
 # before that fix a status change here was permanent, and the eight flows sharing
@@ -54,9 +63,8 @@ appId: com.hatiwal.app
       - tapOn: "Reserve"
       - waitForAnimationToEnd
       - assertVisible: "Who's buying this item?"
-      # No named buyer: the notice this flow checks is the NEUTRAL one, and naming the
-      # e2e buyer would make them the sale buyer and switch the copy to the
-      # viewer-scoped variant (covered by dead_end_notice_sold.yaml).
+      # No named buyer: the viewer below is not the sale buyer either way, so
+      # the neutral (non-viewer-scoped) path is what's exercised regardless.
       - tapOn: "Sold to someone not on Hatiwal"
       - tapOn: "Confirm reserve"
       - waitForAnimationToEnd
@@ -65,7 +73,7 @@ appId: com.hatiwal.app
           timeout: 15000
 - assertVisible: "Reserved"
 
-# ── The buyer sees the dead end ───────────────────────
+# ── The buyer sees a NORMAL, usable thread — not a dead end ─────────────────
 - runFlow: ../_helpers/login.yaml
 # No tab bar on a pushed screen, so this tap used to fail with "Element not
 # found" on a testID that exists — audit_structure flags it. The helper pops
@@ -94,28 +102,34 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 
-- assertVisible:
+# SF-M3 — the whole regression this flow now guards against: no recovery
+# notice, no "Item reserved" dead-end headline, no steer-away CTAs.
+- assertNotVisible:
     id: "listing-unavailable-notice"
-# Status-neutral title only: the copy never says WHO the seller committed to — that
-# is viewerIsSaleBuyer's job, and this viewer is not the buyer.
-- assertVisible: "Item reserved"
-- assertVisible:
+- assertNotVisible:
     id: "unavailable-browse-similar"
-- assertVisible:
+- assertNotVisible:
     id: "unavailable-more-from-seller"
 
-# Offers are closed while it is reserved.
+# Offers stay paused on a reserved listing (§3.2, unchanged by this ticket) —
+# the "+" sheet still shows the DISABLED offer row, never the live one.
 - tapOn:
     id: "composer-plus-button"
 - waitForAnimationToEnd
 - assertVisible:
     id: "composer-action-offer-disabled"
+- assertNotVisible:
+    id: "composer-action-offer"
 - tapOn:
     id: "composer-actions-backdrop"
 - waitForAnimationToEnd
 
-# And the recovery CTA actually gets them out of the dead end.
-- tapOn:
-    id: "unavailable-browse-similar"
+# And the thread itself is fully usable — the actual point of SF-M3: a buyer
+# can still message the seller about a reserved listing, in case the
+# reservation falls through.
+- assertVisible: "Type a message..."
+- tapOn: "Type a message..."
+- inputText: "Is this still available if the reservation falls through?"
+- tapOn: "Send"
 - waitForAnimationToEnd
-- assertVisible: "Bazaar"
+- assertVisible: "Is this still available if the reservation falls through?"

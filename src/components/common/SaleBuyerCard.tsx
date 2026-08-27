@@ -28,7 +28,7 @@
  * this component exists to satisfy.
  */
 import React from "react";
-import { View } from "react-native";
+import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { MessageCircle, UserCheck } from "lucide-react-native";
@@ -74,6 +74,12 @@ export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
     : t("listing.sale.reservedFor", { name: buyerName });
 
   const showFinalPrice = sale.finalPrice != null && Number(sale.finalPrice) !== Number(listing.price);
+  // SF-M5 — this card shows only the LATEST sale; once a second exists, the
+  // seller needs a way to learn that from here rather than stumbling onto
+  // the full ledger by accident. `salesCount` counts SOLD entries only, so a
+  // still-open hold (isSold === false) never shows this link — there is
+  // nothing to view yet.
+  const hasMoreSales = isSold && (listing.salesCount ?? 0) > 1;
   // Multi-unit sales only. A batch listing's sale of 1 unit still counts —
   // "1 of 15" is exactly what the seller needs to see — so this gates on the
   // LISTING being multi-unit, not on the quantity being > 1.
@@ -194,6 +200,25 @@ export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
               as a 13,000 total. */}
           <PriceTag price={sale.finalPrice} currency={sale.currency} size="sm" perUnit={listing.multiUnit === true} />
         </View>
+      )}
+
+      {/* SF-M5 (docs/SELL_FLOW_REDESIGN.md §9) — this card only ever shows the
+          LATEST sale (`sale` above); once there is more than one, a seller
+          who only glances at this card would never learn a second buyer
+          exists at all. `sales_count` is a cheap base serializer field for
+          exactly this — the seller reaches the full ledger without it being
+          the default path for every sale (most listings have exactly one). */}
+      {hasMoreSales && (
+        <Pressable
+          onPress={() => router.push(`/(main)/listing/${listing.id}/sales` as never)}
+          hitSlop={8}
+          testID="sale-buyer-more-sales-link"
+          accessibilityRole="button"
+        >
+          <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary, textAlign: isRtl ? "right" : "left" }}>
+            {t("listing.sale.moreBuyers", { count: (listing.salesCount ?? 0) - 1 })}
+          </Text>
+        </Pressable>
       )}
     </View>
   );

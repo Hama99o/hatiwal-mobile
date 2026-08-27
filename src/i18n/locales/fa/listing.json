@@ -25,6 +25,11 @@
   "confirmUnpublishDescription": "از دید خریداران پنهان شده و به پیش‌نویس بازمی‌گردد.",
   "confirmActivate": "دوباره فعال شود؟",
   "confirmActivateDescription": "این کار رزرو را لغو کرده و آگهی را دوباره برای خریداران باز می‌کند.",
+  "releaseHold": "لغو رزرو",
+  "confirmReleaseHold": "این رزرو لغو شود؟",
+  "confirmReleaseHoldDescription": "این کار رزرو را لغو می‌کند و هر خریداری می‌تواند آن را بردارد.",
+  "releaseHoldSuccess": "رزرو لغو شد — آگهی به طور کامل به بازار بازگشت.",
+  "viewSales": "مشاهده فروش‌ها",
   "title": "عنوان",
   "titlePlaceholder": "چه چیزی می‌فروشید؟",
   "descriptionPlaceholder": "کالای خود را توضیح دهید...",
@@ -126,12 +131,15 @@
     "offerInvalid": "مقدار معتبر وارد کنید",
     "offerMessage": "💬 پیشنهاد: {{amount}} برای '{{title}}'",
     "defaultMessage": "سلام، آیا این هنوز موجود است؟",
+    "quantityAskingLabel": "درباره چند عدد سوال دارید؟",
+    "firstMessageQuantityTemplate": "سلام! می‌خواهم {{qty}} × {{unitPrice}} = {{total}} بخرم. آیا این هنوز موجود است؟",
     "reportSent": "گزارش ارسال شد — ممنون",
     "notFound": "آگهی یافت نشد",
     "moreOptions": "گزینه‌های بیشتر",
     "soldNotice": "این کالا فروخته شده است",
     "reservedNotice": "این کالا رزرو شده است",
     "reservedMayFreeUp": "اگر این رزرو انجام نشود، این آگهی ممکن است دوباره در دسترس قرار گیرد.",
+    "reservedStillAvailableNote": "اگر این رزرو انجام نشود، فروشنده ممکن است باز هم به پیام شما پاسخ دهد.",
     "unavailableNotice": "این کالا دیگر موجود نیست",
     "location": "موقعیت",
     "getDirections": "دریافت مسیر",
@@ -227,7 +235,9 @@
     "photoPickFailed": "عکس‌ها باز نشدند — دوباره تلاش کنید.",
     "cameraFailed": "دوربین باز نشد — دوباره تلاش کنید.",
     "photoLimitReached": "شما می‌توانید تا {{max}} عکس اضافه کنید — {{dropped}} عکس اضافه نشد.",
-    "quantityOutOfRange": "Enter a number between 1 and {{max}}."
+    "quantityOutOfRange": "عددی بین ۱ تا {{max}} وارد کنید.",
+    "quantityBelowSoldUnits": "شما قبلاً {{count}} عدد از این را فروخته‌اید. تعداد را به {{count}} یا بیشتر تنظیم کنید، یا ابتدا یک فروش را لغو کنید.",
+    "quantityReopensListing": "ذخیره کردن، این آگهی را دوباره به فروش می‌گذارد — با {{count}} عدد موجود."
   },
   "shopCount_one": "{{count}} آگهی",
   "firmPrice": "قیمت ثابت",
@@ -245,13 +255,29 @@
     "finalPrice": "قیمت توافق‌شده",
     "noBuyerRecorded": "معلومات خریدار موجود نیست",
     "soldOn": "در {{date}} فروخته شد",
-    "unitsSold": "تعداد فروخته‌شده"
+    "unitsSold": "تعداد فروخته‌شده",
+    "tally": "{{sold}} از {{total}} فروخته شد",
+    "outsideBuyer": "خارج از Hatiwal فروخته شده",
+    "editSale": "ویرایش این فروش",
+    "changeBuyer": "تغییر خریدار",
+    "voidConfirm": "این فروش حذف شود؟",
+    "voidConfirmDescription": "این کار واحدها را به موجودی بازمی‌گرداند و آن را از تاریخچه فروش شما حذف می‌کند.",
+    "voidedSuccess": "فروش حذف شد — موجودی بازگردانده شد.",
+    "voidBlockedReviewed": "این فروش قبلاً یک نظر دارد و نمی‌توان آن را حذف یا بازتخصیص داد. هنوز می‌توانید تعداد را اصلاح کنید.",
+    "moreBuyers": "+{{count}} بیشتر · مشاهده همه فروش‌ها"
+  },
+  "salesScreen": {
+    "title": "فروش‌ها",
+    "empty": "هنوز فروشی نیست",
+    "emptyHint": "فروش‌هایی که ثبت می‌کنید اینجا نمایش داده می‌شوند."
   },
   "stock": {
     "each": "هرکدام",
     "inStock": "{{count}} عدد موجود است",
     "leftOfTotal": "{{available}} از {{total}} باقی مانده",
     "unitsAvailable": "{{count}} موجود",
-    "unitsCount": "{{count}} عدد"
+    "unitsCount": "{{count}} عدد",
+    "held": "{{count}} رزرو شده",
+    "heldForBuyer": "{{count}} برای {{name}} رزرو شده"
   }
 }

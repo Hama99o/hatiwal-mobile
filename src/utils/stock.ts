@@ -13,6 +13,16 @@ export interface StockFields {
   quantity?: number | null;
   availableUnits?: number | null;
   multiUnit?: boolean | null;
+  /**
+   * SF-B2 (docs/SELL_FLOW_REDESIGN.md §6) — units currently held for a buyer
+   * on an OPEN reservation, public-safe (no buyer identity — that stays on
+   * the owner-only `sale`/`current_sale` field). Present on every serializer
+   * view (`:list`/`:detailed`/`:seller_list`/`:owner_detailed` alike), 0 when
+   * there is no open hold. Advisory only — never subtracted from
+   * `availableUnits` (§3.6): a held unit is still counted as available to
+   * every OTHER buyer until the seller actually marks it sold.
+   */
+  heldUnits?: number | null;
 }
 
 /**
@@ -60,6 +70,23 @@ export function hasStockToShow(listing: StockFields | null | undefined): boolean
 export function hasSoldSome(listing: StockFields | null | undefined): boolean {
   if (!listing) return false;
   return availableUnitsOf(listing) < totalUnitsOf(listing);
+}
+
+/**
+ * How many units are currently held for a specific buyer (SF-M4,
+ * docs/SELL_FLOW_REDESIGN.md §4.2.2/§4.5). Never leaks who they are held
+ * for — that identity, when the caller is allowed to see it, comes from the
+ * separate owner-only `sale`/`current_sale` field, not from here.
+ *
+ * Callers MUST gate any UI on `hasStockToShow(listing)` first, exactly like
+ * every other stock control in this file — a single-item listing's held
+ * count (0 or 1, never shown as a count) is carried entirely by
+ * `StatusBadge`/`ListingStatusBanner`'s existing "Reserved" treatment, not by
+ * this pill.
+ */
+export function heldUnitsOf(listing: StockFields | null | undefined): number {
+  if (!listing) return 0;
+  return Math.max(0, listing.heldUnits ?? 0);
 }
 
 /**

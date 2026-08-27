@@ -1,0 +1,281 @@
+appId: com.hatiwal.app
+---
+# SF-M7 (docs/SELL_FLOW_REDESIGN.md, mobile half of SF-B6) — the owner's own
+# report, verbatim-ish: a seller sold all units of a listing, then raised its
+# quantity expecting to sell the rest. The listing stayed `sold` — invisible
+# to buyers, unsellable — with nothing on screen explaining why nothing
+# happened. Lowering quantity below what had already sold instead produced an
+# uncaught `ActiveRecord::CheckViolation` the app showed as the bare "server
+# error" string, next to a quantity field that never said anything was wrong
+# with it.
+#
+# This flow proves both halves of the fix against a REAL round trip:
+#   1. raising quantity on a SOLD listing shows a reassuring note BEFORE
+#      Save, and Save genuinely reopens it — Active again, with the right
+#      number available, not a quiet no-op;
+#   2. lowering quantity below what has already sold is refused with a
+#      READABLE inline message under the field, never "server error", and
+#      changes nothing.
+#
+# SELF-CONTAINED, same rationale as ../listings/edit_listing_quantity.yaml:
+# it creates and fully sells its own 5-unit listing rather than reusing
+# "Phone Case Silicone Clear - Wholesale" or "QA Disposable
+# offplatform_units" (both already mutated to specific, non-zero stock levels
+# by multi_quantity_partial_sale.yaml / multi_quantity_offplatform_sale.yaml)
+# — selling this fixture OUT completely would break those flows' own
+# assumptions about what stock they start from.
+#
+# Requires SF-B6 (hatiwal-api) to be live: the reconciliation on a quantity
+# update, and the 422 `quantity_below_sold_units` code this flow's second
+# half asserts against. Without it, the raise silently does nothing (the
+# ORIGINAL bug this ticket exists to fix) and the flow fails at the "Active
+# again" assertion rather than earlier — a useful signal on its own.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+
+# ── Create + PUBLISH a fresh 5-unit listing ─────────────────────────────────
+# "Mark as Sold" only exists on a LIVE listing, so this cannot stop at "Save
+# Draft" the way edit_listing_quantity.yaml does.
+- tapOn: "New"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+# Photo first — it is the form's own first section, and a publish blocker.
+- assertVisible:
+    id: "photos-add-button"
+- tapOn:
+    id: "photos-add-button"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
+
+- tapOn: "What are you selling?"
+- eraseText
+- inputText: "QA SF-M7 Reconcile Batch"
+- scrollUntilVisible:
+    element:
+      text: "Enter price"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Enter price"
+- eraseText
+- inputText: "500"
+
+# A LEAF category, not a parent — every top-level category drills into
+# subcategories rather than selecting.
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Accessories"
+- waitForAnimationToEnd
+
+# ── Declare 5 units — the create-time quantity toggle, unchanged by SF-M7 ───
+- scrollUntilVisible:
+    element:
+      text: "I have more than one"
+    direction: DOWN
+    timeout: 10000
+- assertNotVisible:
+    id: "listing-form-quantity-input"
+- tapOn:
+    id: "listing-form-quantity-switch"
+- waitForAnimationToEnd
+- tapOn:
+    id: "listing-form-quantity-input"
+- inputText: "5"
+- assertVisible:
+    id: "listing-form-quantity-input"
+    text: "5"
+
+# Location: a real publish blocker (see _helpers/set_listing_location.yaml).
+- runFlow: ../_helpers/set_listing_location.yaml
+
+- scrollUntilVisible:
+    element:
+      text: "Publish"
+    direction: DOWN
+    timeout: 20000
+- waitForAnimationToEnd
+- tapOn: "Publish"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "QA SF-M7 Reconcile Batch"
+    timeout: 60000
+- assertNotVisible: "Draft"
+- assertVisible: "Active"
+- assertVisible:
+    id: "stock-badge-owner"
+- assertVisible: "5 in stock"
+
+# ── Sell out all 5, off-platform — the fastest route to `sold` ──────────────
+# "Sold to someone not on Hatiwal": no conversation/buyer needed, and the
+# count still has to be stated explicitly — BuyerPickerSheet defaults every
+# sale to 1, not the whole remainder (a seller reported losing 49 of 50 to
+# the opposite default, so that default is deliberate and this flow states
+# the full count on purpose).
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-primary-action"
+- waitForAnimationToEnd
+- assertVisible: "Who bought this item?"
+- tapOn:
+    id: "buyer-row-skip"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "buyer-picker-quantity"
+    timeout: 15000
+- tapOn:
+    id: "buyer-picker-quantity"
+- eraseText
+- inputText: "5"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "buyer-picker-quantity"
+    text: "5"
+- tapOn: "Confirm sold"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "Listing marked as sold"
+    timeout: 15000
+- assertVisible: "Sold"
+
+# ── THE BUG, part 1: raise quantity on the now-SOLD listing ─────────────────
+# Once sold, `primaryAction` is null (terminal) — only "More" renders, full
+# width. Confirming the same navigation edit_listing_quantity.yaml already
+# proved for a draft.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-more-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-more-action"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Edit"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+
+# THE FIRST HALF OF THIS TICKET'S ACCEPTANCE BAR: the field is not hidden or
+# disabled just because the listing is sold — the switch reopens ON with the
+# sold count showing, exactly like any other multi-unit listing.
+- scrollUntilVisible:
+    element:
+      id: "listing-form-quantity-row"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "listing-form-quantity-input"
+    text: "5"
+
+# THE FIX, part 1: state the consequence BEFORE saving — reassuring, not a
+# warning, and never a silent no-op.
+- tapOn:
+    id: "listing-form-quantity-input"
+- inputText: "8"
+- assertVisible:
+    id: "listing-form-quantity-reopen-note"
+- assertVisible: ".*3 available.*"
+
+- tapOn: "Save"
+- waitForAnimationToEnd
+
+# THE FIX, proven end to end: back on sale, not stranded sold-out.
+- extendedWaitUntil:
+    visible: "QA SF-M7 Reconcile Batch"
+    timeout: 30000
+- assertVisible: "Active"
+- assertNotVisible: "Sold"
+- assertVisible:
+    id: "stock-badge-owner"
+- assertVisible: ".*3 of 8 left.*"
+
+# ── THE BUG, part 2: lower quantity below what has already sold ────────────
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-more-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-more-action"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Edit"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "listing-form-quantity-row"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "listing-form-quantity-input"
+    text: "8"
+
+- tapOn:
+    id: "listing-form-quantity-input"
+- inputText: "3"
+- tapOn: "Save"
+- waitForAnimationToEnd
+
+# THE FIX, part 2: a READABLE message under the field — never the bare
+# "server error" string the owner reported seeing.
+- extendedWaitUntil:
+    visible:
+      id: "listing-form-quantity-server-error"
+    timeout: 15000
+- assertVisible: ".*already sold 5.*"
+- assertNotVisible: "common.error"
+- assertNotVisible: "No connection"
+# The refused save changed nothing — still on the edit form, not bounced
+# back to the detail screen with a silently-accepted (or silently-ignored)
+# value.
+- assertVisible: "Edit Listing"
+
+# Leaving without saving must not leave the listing any different from the
+# last SUCCESSFUL save above (8 total, 3 available, Active).
+- tapOn:
+    id: "back_button"
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Discard changes?"
+    commands:
+      - runFlow: ../_helpers/confirm_dialog.yaml
+- extendedWaitUntil:
+    visible: "QA SF-M7 Reconcile Batch"
+    timeout: 20000
+- assertVisible: "Active"
+- assertNotVisible: "Sold"
+- assertVisible:
+    id: "stock-badge-owner"
+- assertVisible: ".*3 of 8 left.*"

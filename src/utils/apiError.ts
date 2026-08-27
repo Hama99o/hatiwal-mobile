@@ -27,6 +27,13 @@ type ApiErrorBody = {
   error?: string | null;
   full_messages?: string[] | null;
   message?: string | null;
+  /**
+   * Machine-readable failure code, when the server sent one — e.g. SF-B6
+   * (docs/SELL_FLOW_REDESIGN.md) answers a refused quantity edit with
+   * `{ errors: ["Quantity must be..."], code: "quantity_below_sold_units" }`.
+   * Most endpoints send no `code` at all; that is fine, see `apiErrorCode`.
+   */
+  code?: string | null;
 };
 
 type MaybeAxiosError = {
@@ -80,6 +87,23 @@ export function serverMessage(err: unknown): string | null {
   // fixing one field only to be told about the next is its own small cruelty.
   const unique = Array.from(new Set(usable));
   return unique.join(" ").slice(0, MAX_LEN);
+}
+
+/**
+ * The server's machine-readable failure `code`, if it sent one — additive,
+ * SF-M7 (docs/SELL_FLOW_REDESIGN.md). This exists for the rare, KNOWN 422
+ * a caller wants to react to specifically (e.g. pin an inline field message
+ * instead of a toast) — everyone else keeps calling `serverMessage`/
+ * `apiErrorMessage` exactly as before; no existing caller reads `code`, so
+ * adding it here changes no existing behaviour.
+ *
+ * Returns null for a bare-string body (no JSON to read a code from) and for
+ * any response that simply didn't send one — which is most of them.
+ */
+export function apiErrorCode(err: unknown): string | null {
+  const data = (err as MaybeAxiosError)?.response?.data;
+  if (!data || typeof data === "string") return null;
+  return typeof data.code === "string" ? data.code : null;
 }
 
 /** True when the request never reached the API (offline, DNS, timeout). */

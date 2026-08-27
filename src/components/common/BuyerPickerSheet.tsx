@@ -9,18 +9,23 @@
  * project use raw Modal because @gorhom/bottom-sheet has native-only platform
  * splits that crash the web dev runner. All inner UI is RNR components.
  *
- * Entry points (TASK-TX01): SellerListingCard, MyListingDetail,
- * chat ListingHeader (TASK-F084) — all pass listingId/price/currency/action
- * and forward the result to their existing reserve/sold mutation.
+ * Entry points (TASK-TX01): SellerListingCard, MyListingDetail — pass
+ * listingId/price/currency/action and forward the result to their existing
+ * sold mutation.
  *
  * Confirm mode (TASK-O947, cycle-4 design review): pass `preselectedBuyer`
  * when the buyer is already known (e.g. the conversation whose offer the
- * seller just accepted) — the sheet then skips the conversations query, the
- * "someone else / skip" fallback and the editable final-price input, and
+ * seller just accepted, or — SF-M2 — any chat thread's own participant for
+ * that thread's "Mark sold" / "Place a hold" action, since the seller is
+ * already talking to them) — the sheet then skips the conversations query,
+ * the "someone else / skip" fallback and the editable final-price input, and
  * instead renders a locked confirmation: the listing thumbnail, the buyer's
  * identity via the shared `UserIdentity`, and the agreed price via
- * `PriceTag`. `onConfirm` fires immediately with `{ buyerId, finalPrice }`
- * built from the caller-supplied values — there is nothing left to pick.
+ * `PriceTag`, plus the SAME multi-unit quantity field the picker mode has
+ * (`asksQuantity`, SF-M2) when `remainingQuantity > 1`. `onConfirm` fires
+ * immediately with `{ buyerId, finalPrice, quantity? }` built from the
+ * caller-supplied values plus whatever the quantity field holds — there is
+ * no buyer/price left to pick, only (optionally) how many units.
  */
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -58,10 +63,20 @@ export interface BuyerPickerResult {
   /** undefined when left blank — backend defaults to the listing price. */
   finalPrice?: number;
   /**
-   * How many units this sale covered. undefined for a single-unit listing, and
-   * undefined when the seller sold the whole remaining stock — the backend
-   * defaults to "all of it", so the common case sends nothing and costs no taps
-   * (docs/SPIKE_LISTING_QUANTITY.md §0c).
+   * How many units this action covered. `undefined` for a single-unit
+   * listing (the field is never shown, so there is nothing to send).
+   *
+   * For `action: "sold"`: `undefined` also when the field is left blank/
+   * cleared — the backend then defaults to ONE unit, not the whole remaining
+   * stock (`docs/SELL_FLOW_REDESIGN.md` §7.1's `units_for_sale`, reversed
+   * from an earlier "defaults to all of it" design after a seller reported
+   * selling one item from a batch of 50 and watching the listing retire
+   * itself with "0 of 50 left"). The field is pre-filled with "1" for exactly
+   * this reason — see `quantityText`'s init below.
+   *
+   * For `action: "reserve"` (SF-B2/SF-M2, multi-unit only): how many units
+   * are held for this buyer — advisory only, never subtracted from
+   * `available_units` (`docs/SELL_FLOW_REDESIGN.md` §3.6).
    */
   quantity?: number;
   /**
@@ -88,8 +103,13 @@ interface BuyerPickerSheetProps {
   action: "reserve" | "sold";
   /**
    * Units still unsold. Pass it only for a multi-unit listing; when it is
-   * absent or 1 the sheet renders exactly as it always has, so a seller with one
-   * item sees no new field. Reserve never asks — reserve stays advisory in Tier 1.
+   * absent or 1 the sheet renders exactly as it always has, so a seller with
+   * one item sees no new field.
+   *
+   * SF-B2/SF-M2: reserve now asks too, on a multi-unit listing — "how many
+   * are you holding for {{name}}?" — mirroring the sold-quantity field
+   * field-for-field. Held units stay advisory (`docs/SELL_FLOW_REDESIGN.md`
+   * §3.6) — never subtracted from `available_units`.
    */
   remainingQuantity?: number;
   onConfirm: (result: BuyerPickerResult) => void;
@@ -167,11 +187,21 @@ export function BuyerPickerSheet({
 
   const [selected, setSelected] = useState<number | typeof SKIP | null>(null);
   const [finalPriceText, setFinalPriceText] = useState("");
-  // Pre-filled with the FULL remainder, because "I sold the lot" is the common
-  // case and the seller should not have to type a number to say it. A partial
-  // sale is then one edit to one field.
-  const asksQuantity = action === "sold" && (remainingQuantity ?? 1) > 1;
-  const [quantityText, setQuantityText] = useState(String(remainingQuantity ?? 1));
+  // SF-B2/SF-M2 (docs/SELL_FLOW_REDESIGN.md §4.6): widened from `action ===
+  // "sold"` only — reserving a multi-unit listing now asks "how many are you
+  // holding?" too, the same question the sold path already asks, feeding the
+  // new optional `reserve` quantity param. Still gated on `remainingQuantity >
+  // 1` either way, so a single-item listing (or a listing whose stock hasn't
+  // loaded) renders no new field for EITHER action.
+  const asksQuantity =
+    (action === "sold" || action === "reserve") && (remainingQuantity ?? 1) > 1;
+  // Defaults to ONE, not the whole remainder. Pre-filling the entire stock made the
+  // destructive outcome the default: confirm-and-done meant "I sold all fifty", the
+  // listing retired, and there is no undo and no payment trail to appeal to. A seller
+  // reported losing 49 of 50 that way. Selling one is the common case for a batch;
+  // selling out is a deliberate act and can be typed. The API agrees — a sold call with
+  // no quantity now moves one unit (my/listings_controller.rb).
+  const [quantityText, setQuantityText] = useState("1");
   // Typed more than exists. Drives the destructive hint below — the confirm is
   // still allowed (it clamps, and so does the API), because refusing outright
   // would strand a seller whose stock changed under them mid-sheet. Declared
@@ -179,8 +209,11 @@ export function BuyerPickerSheet({
   // crash, not a lint nit.
   const exceedsStock =
     asksQuantity && Number(quantityText) > (remainingQuantity ?? 1);
+  // Resets to ONE when the stock changes under the sheet, not to the new remainder.
+  // This effect is why setting the initial state to "1" alone did nothing — it ran on
+  // mount and put the whole remainder back, which the test suite caught immediately.
   useEffect(() => {
-    setQuantityText(String(remainingQuantity ?? 1));
+    setQuantityText("1");
   }, [remainingQuantity]);
   const [priceError, setPriceError] = useState(false);
 
@@ -212,10 +245,28 @@ export function BuyerPickerSheet({
     onClose();
   }, [isSubmitting, onClose]);
 
+  // Shared by BOTH modes — confirm mode (below) and the picker mode's own
+  // handleConfirm branch. Clamps to what is actually left; the API clamps
+  // too, but a client that sends an impossible number is a client bug worth
+  // not having.
+  const computeQuantity = useCallback((): number | undefined => {
+    const parsedQty = Number(quantityText);
+    return asksQuantity && Number.isFinite(parsedQty) && parsedQty > 0
+      ? Math.min(Math.trunc(parsedQty), remainingQuantity ?? 1)
+      : undefined;
+  }, [asksQuantity, quantityText, remainingQuantity]);
+
   const handleConfirm = useCallback(() => {
     // Confirm mode: buyer + price are already known — nothing left to pick.
+    // SF-M2: the quantity field (when `asksQuantity`, i.e. a multi-unit
+    // listing) is the one thing confirm mode still lets the seller set —
+    // "how many are you holding/selling for {{name}}?".
     if (preselectedBuyer) {
-      onConfirm({ buyerId: preselectedBuyer.id, finalPrice: price });
+      onConfirm({
+        buyerId: preselectedBuyer.id,
+        finalPrice: price,
+        quantity: computeQuantity(),
+      });
       return;
     }
 
@@ -232,14 +283,6 @@ export function BuyerPickerSheet({
     }
     setPriceError(false);
 
-    // Clamp to what is actually left; the API clamps too, but a client that
-    // sends an impossible number is a client bug worth not having.
-    const parsedQty = Number(quantityText);
-    const quantity =
-      asksQuantity && Number.isFinite(parsedQty) && parsedQty > 0
-        ? Math.min(Math.trunc(parsedQty), remainingQuantity ?? 1)
-        : undefined;
-
     onConfirm({
       buyerId: selected === SKIP ? undefined : selected,
       finalPrice: selected === SKIP ? undefined : finalPrice,
@@ -247,12 +290,12 @@ export function BuyerPickerSheet({
       // bought them. A missing quantity means "sold the lot" to the API
       // (my/listings_controller.rb), so tying it to the buyer destroyed the remaining
       // stock on every off-platform sale.
-      quantity,
+      quantity: computeQuantity(),
       // TASK-TX02 (review fix, MAJOR) — explicit skip must be distinguishable
       // on the wire from a legacy client that never sends buyer info at all.
       clearBuyer: selected === SKIP ? true : undefined,
     });
-  }, [selected, finalPriceText, quantityText, asksQuantity, remainingQuantity, onConfirm, preselectedBuyer, price]);
+  }, [selected, finalPriceText, computeQuantity, onConfirm, preselectedBuyer, price]);
 
   const defaultTitle = action === "reserve" ? t("buyerPicker.reserveTitle") : t("buyerPicker.soldTitle");
   const title = isConfirmMode ? confirmTitle ?? defaultTitle : defaultTitle;
@@ -399,6 +442,36 @@ export function BuyerPickerSheet({
                   <PriceTag price={price} currency={currency} size="lg" />
                 </View>
 
+                {/* SF-M2 — quantity, confirm mode. Multi-unit only (same
+                    `asksQuantity` gate as the picker mode below); a
+                    single-item listing renders nothing here, unchanged. */}
+                {asksQuantity && (
+                  <View style={{ gap: 4 }}>
+                    <Label style={{ textAlign: isRtl ? "right" : "left" }}>
+                      {t(action === "reserve" ? "buyerPicker.holdQuantityLabel" : "listing.form.howManySold")}
+                    </Label>
+                    <Input
+                      value={quantityText}
+                      onChangeText={(v) => setQuantityText(v.replace(/[^0-9]/g, ""))}
+                      placeholder={String(remainingQuantity ?? 1)}
+                      keyboardType="numeric"
+                      selectTextOnFocus
+                      style={{ textAlign: isRtl ? "right" : "left" }}
+                      testID="buyer-picker-quantity"
+                    />
+                    <Text
+                      style={{
+                        color: exceedsStock ? colors.destructive : colors.mutedForeground,
+                        fontSize: 12,
+                        textAlign: isRtl ? "right" : "left",
+                      }}
+                      testID="buyer-picker-quantity-hint"
+                    >
+                      {t("listing.stock.unitsAvailable", { count: remainingQuantity ?? 1 })}
+                    </Text>
+                  </View>
+                )}
+
                 {confirmBody ? (
                   <Text
                     style={{
@@ -519,21 +592,22 @@ export function BuyerPickerSheet({
                 {asksQuantity && selected !== null && (
                   <View style={{ marginTop: 16 }}>
                     <Label className="mb-2" style={{ textAlign: isRtl ? "right" : "left" }}>
-                      {t("listing.form.howManySold")}
+                      {t(action === "reserve" ? "buyerPicker.holdQuantityLabel" : "listing.form.howManySold")}
                     </Label>
                     <Input
                       value={quantityText}
                       onChangeText={(v) => setQuantityText(v.replace(/[^0-9]/g, ""))}
                       placeholder={String(remainingQuantity ?? 1)}
                       keyboardType="numeric"
-                      // THE FIELD IS PRE-FILLED with the whole remainder, so a
-                      // plain tap just places a cursor and typing INSERTS: a
-                      // seller who means 3 produces "153", which the clamp below
-                      // then silently turns into "sold all 15" — the listing
-                      // retires and their remaining stock is gone. Found on a
-                      // real device (QA run-018: typed 3, recorded 15).
-                      // Selecting on focus makes typing REPLACE, which is the
-                      // only sane behaviour for a pre-filled numeric field.
+                      // The field is pre-filled with "1" (see `quantityText`'s
+                      // init above) — selecting on focus still matters so a tap
+                      // REPLACES that placeholder digit instead of inserting
+                      // beside it (a plain tap-then-type on a pre-filled numeric
+                      // field appends by default, e.g. "1" + "3" typed = "13"
+                      // instead of "3"). Originally added after QA run-018 found
+                      // the OLDER whole-remainder default doing exactly this with
+                      // a 2-digit number; kept because the same insert-vs-replace
+                      // trap applies to a 1-digit pre-fill too.
                       selectTextOnFocus
                       style={{ textAlign: isRtl ? "right" : "left" }}
                       testID="buyer-picker-quantity"

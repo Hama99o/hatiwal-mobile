@@ -99,21 +99,20 @@ const IDENTICAL_BY_DESIGN = new Set(["common.appName", "listing.share.body"]);
 /**
  * Known untranslated strings — DEBT, not permission.
  *
- * The app is otherwise fully translated: 872 keys, none missing, and nothing else
- * left in English. These four were added while fixing silent failures on the create
- * form, and machine-translating error copy into Pashto or Dari is worse than the
- * configured `fallbackLng: "en"` — a confidently wrong message misleads, where
- * English at least reads as untranslated. They need a human.
- *
- * DELETE each entry as it is translated. Do not add to this list to make a build
- * pass; that is the whole point of it being here.
+ * Was: `listing.form.photoPickFailed`, `listing.form.cameraFailed`,
+ * `listing.form.photoLimitReached`, `listing.form.quantityOutOfRange` — four
+ * error-copy strings added while fixing silent failures on the create form,
+ * left holding the English string in ps/fa until a human could translate
+ * them (machine-translating error copy is worse than the configured
+ * `fallbackLng: "en"` — a confidently wrong message misleads, where English
+ * at least reads as untranslated). All four are now genuinely translated —
+ * this is the same error-copy debt the owner flagged twice ("user did not
+ * see this error it say server error so we should show this to user"), just
+ * upstream of the request itself. Empty on purpose: this is a live allowlist,
+ * not a place to bank future debt. Do not add to it to make a build pass;
+ * that is the whole point of it existing.
  */
-const AWAITING_TRANSLATION = new Set([
-  "listing.form.photoPickFailed",
-  "listing.form.cameraFailed",
-  "listing.form.photoLimitReached",
-  "listing.form.quantityOutOfRange",
-]);
+const AWAITING_TRANSLATION = new Set<string>([]);
 
 describe("translation coverage", () => {
   const used = usedKeys();

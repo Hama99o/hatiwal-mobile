@@ -50,6 +50,9 @@
   "comingSoon": "به زودی",
   "goBack": "بازگشت",
   "undo": "بازگردانی",
+  "quantity": "تعداد",
+  "decreaseQuantity": "کاهش تعداد",
+  "increaseQuantity": "افزایش تعداد",
   "splash": {
     "validating": "در حال بررسی نشست شما…"
   },

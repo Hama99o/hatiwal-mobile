@@ -12,6 +12,7 @@ import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
+import { StockBadge } from "@/components/common/StockBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
 import { BuyerPickerSheet } from "@/components/common/BuyerPickerSheet";
 import { ReviewPromptSheet } from "@/components/common/ReviewPromptSheet";
@@ -259,6 +260,12 @@ export function SellerListingCard({ listing, onMutated, viewMode = "list" }: Sel
               seller sees lifecycle state without opening anything. */}
           <View style={{ flexDirection: rowDirection, alignItems: "center", gap: 8 }}>
             <PriceTag price={listing.price} currency={listing.currency} size="md" perUnit={listing.multiUnit === true} />
+            {/* Remaining stock, right beside the price. This screen showed NO count at
+                all, which is why a seller reported "the count did not change when I sell
+                some in the list page" — there was nothing to change. The owner audience
+                switches to "5 of 8 left" once a sale has happened, which is the progress
+                a batch seller comes here to read. */}
+            <StockBadge listing={listing} audience="owner" testID="seller-card-stock" />
             {isList && (
               <View testID="seller-card-status">{isExpired ? (
               <View style={{ backgroundColor: colors.warning, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>

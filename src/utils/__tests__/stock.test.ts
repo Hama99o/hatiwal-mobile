@@ -6,7 +6,7 @@
  * on a listing where 13 are gone travels across Kabul for a bag that sold on
  * Tuesday, and there is no payment step or delivery to undo it.
  */
-import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow } from "../stock";
+import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow, heldUnitsOf } from "../stock";
 
 describe("availableUnitsOf", () => {
   it("reports what is LEFT, not the seller's original count", () => {
@@ -100,5 +100,41 @@ describe("isLowStock", () => {
   // amber count would. Amber on "0 left" would read as "hurry".
   it("is false when sold out", () => {
     expect(isLowStock(0, 15)).toBe(false);
+  });
+});
+
+// SF-M4 (docs/SELL_FLOW_REDESIGN.md §4.2.2/§6) — held-units transparency.
+// This is a numbers-only helper (never a name — that stays on the
+// owner-only `sale`/`current_sale` field, read directly by the screens).
+describe("heldUnitsOf", () => {
+  it("reports the server's held count on a multi-unit listing with an open hold", () => {
+    expect(heldUnitsOf({ quantity: 15, availableUnits: 13, multiUnit: true, heldUnits: 2 })).toBe(2);
+  });
+
+  it("is 0 when there is no open hold", () => {
+    expect(heldUnitsOf({ quantity: 15, availableUnits: 15, multiUnit: true, heldUnits: 0 })).toBe(0);
+  });
+
+  it("is 0 for a payload that predates the field", () => {
+    expect(heldUnitsOf({ quantity: 15, availableUnits: 15, multiUnit: true })).toBe(0);
+  });
+
+  it("never reports a negative count, whatever the server says", () => {
+    expect(heldUnitsOf({ heldUnits: -1 })).toBe(0);
+  });
+
+  it("is 0 for no listing", () => {
+    expect(heldUnitsOf(null)).toBe(0);
+    expect(heldUnitsOf(undefined)).toBe(0);
+  });
+
+  // heldUnitsOf itself does NOT gate on multiUnit — that is every caller's
+  // job via `hasStockToShow` first (documented on the function and on every
+  // call site in ListingDetail.tsx / MyListingDetail.tsx), exactly like
+  // every other raw number in this file. This test only proves the raw
+  // passthrough is correct; it is not a claim that a single-item listing
+  // should ever reach this value in production.
+  it("passes the raw value through regardless of multiUnit — callers gate on hasStockToShow", () => {
+    expect(heldUnitsOf({ multiUnit: false, heldUnits: 1 })).toBe(1);
   });
 });

@@ -61,12 +61,16 @@ import { QuickReplies } from "@/components/common/QuickReplies";
 import { useComposerDraft } from "@/hooks/useComposerDraft";
 import { encodeMeetupBody, type MeetupCoords } from "./conversation/meetupBody";
 import {
+  buildPlaceHoldPrompt,
   buildReserveAfterAcceptPrompt,
   reserveAfterAccept,
   resolveReserveCurrency,
   type ReserveAfterAcceptPrompt,
 } from "./conversation/reserveAfterAccept";
 import { BuyerPickerSheet } from "@/components/common/BuyerPickerSheet";
+import { listingsAPI } from "@/api/listings";
+import { heldUnitsOf } from "@/utils/stock";
+import { apiErrorMessage } from "@/utils/apiError";
 import {
   canOfferInThread as canOfferInThreadPure,
   showUnavailableNotice as showUnavailableNoticePure,
@@ -877,6 +881,61 @@ export function ConversationScreen() {
     }
   }, [agreedOffer, conversation, isOwner, t, formatCurrency]);
 
+  // ── SF-M2: "Place a hold for {{name}}" — ComposerActionsSheet's "+" menu ──
+  // Builds the SAME confirm-sheet prompt shape (`buildPlaceHoldPrompt`
+  // generalizes `buildReserveAfterAcceptPrompt` for this manual trigger — see
+  // reserveAfterAccept.ts's own doc) and feeds it into the SAME
+  // `reserveConfirm` state as the accept-offer / agreed-deal-banner paths
+  // above — the SAME BuyerPickerSheet confirm mode, the SAME
+  // `reserveAfterAccept()` side effect, the SAME stay-open-on-error contract.
+  // Never a second reserve flow, never a second sheet, and — because the
+  // buyer is always this conversation's own buyer — never the full
+  // pick-a-buyer list.
+  const handlePlaceHold = useCallback(() => {
+    if (!conversation?.listing || !conversation?.buyer) return;
+    const prompt = buildPlaceHoldPrompt({
+      listing: conversation.listing,
+      buyer: conversation.buyer,
+      t,
+    });
+    if (prompt) {
+      setReserveConfirmError(null);
+      setReserveConfirm(prompt);
+    }
+  }, [conversation, t]);
+
+  // ── SF-M2: "Release hold" — ComposerActionsSheet's "+" menu ───────────────
+  // Same endpoint + copy as useListingLifecycle.ts's own `releaseHold`
+  // mutation (`PUT .../activate`, `listing.releaseHoldSuccess`) — reused here
+  // via the SAME exported `..._QK` constants and the SAME
+  // `invalidateListingLifecycleQueries` helper this screen already shares
+  // with the reserve-after-accept path above, rather than pulling in the
+  // WHOLE `useListingLifecycle` hook: that hook also owns
+  // publish/unpublish/delete/edit/duplicate/mark-sold/review-prompt state
+  // that has nothing to do with this composer row, and expects a
+  // differently-shaped `listing` Pick than a conversation payload carries.
+  const releaseHoldMutation = useMutation({
+    mutationFn: (id: number) => listingsAPI.activateListing(id),
+    onSuccess: () => {
+      invalidateListingLifecycleQueries(currentConversationId);
+      toast.success(t("listing.releaseHoldSuccess"));
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
+  });
+
+  const handleReleaseHold = useCallback(() => {
+    const id = conversation?.listing?.id;
+    if (!id) return;
+    confirmAlert(
+      t("listing.confirmReleaseHold"),
+      t("listing.confirmReleaseHoldDescription"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("listing.releaseHold"), onPress: () => releaseHoldMutation.mutate(id) },
+      ]
+    );
+  }, [t, conversation?.listing?.id, releaseHoldMutation]);
+
   // ── Open counter-offer sheet — either participant, TASK-C381 ─────────────
   const handleOpenCounterSheet = useCallback((offer: Message) => {
     if (!offer.body) return;
@@ -1175,6 +1234,45 @@ export function ConversationScreen() {
   const canSend = !isClosed && !isBlocked && !!currentConversationId;
   const isStartMode = !currentConversationId && !!listingId;
 
+  // ── SF-M2: "Place a hold for {{name}}" / "Release hold" (ComposerActionsSheet
+  // "+" menu) ────────────────────────────────────────────────────────────────
+  // `conversation.listing` never carries `heldUnits` — ConversationSerializer
+  // hand-rolls its own `listing` hash for BOTH its `:list` and `:detailed`
+  // views (conversation_serializer.rb) rather than reusing ListingSerializer,
+  // so it never picked up `held_units` even though that field sits on
+  // ListingSerializer's BASE fields (present on every OTHER view — see
+  // stock.ts's own doc). Rather than paper over the gap by gating on status
+  // alone (the exact mistake this ticket exists to prevent), fetch the
+  // owner's own listing detail here — under the SAME [MY_LISTING_QK, id] key
+  // MyListingDetail/useListingLifecycle already use, so a place/release hold
+  // from ANY surface invalidates and refreshes this one too. Owner-only: a
+  // buyer viewing this thread has no reason to hit an endpoint they'd 403 on.
+  const pinnedListingId = conversation?.listing?.id ?? null;
+  const { data: ownerListingDetail } = useQuery({
+    queryKey: [MY_LISTING_QK, String(pinnedListingId)],
+    queryFn: () => listingsAPI.getMyListing(pinnedListingId as number),
+    enabled: isOwner && !!pinnedListingId,
+  });
+
+  // Mirrors useListingLifecycle's own `hasOpenHold` EXACTLY — status alone is
+  // not enough, because a multi-unit batch deliberately keeps `status:
+  // "active"` while holding units for a buyer (SF-B2), and the backend's
+  // `ListingPolicy#activate?` was widened to match. Never re-derive this —
+  // `heldUnitsOf` (stock.ts) is the one place that reads `heldUnits`.
+  const hasOpenHold =
+    conversation?.listing?.status === "reserved" || heldUnitsOf(ownerListingDetail) > 0;
+
+  // The composer's "Place a hold for {{name}}" row: seller, a Live listing
+  // that isn't ALREADY holding units for anyone, and a known buyer (always
+  // true for a real conversation — SF-M2's whole premise, docs/
+  // SELL_FLOW_REDESIGN.md §4.4.2).
+  const canPlaceHold =
+    isOwner &&
+    !!conversation?.listing &&
+    !!conversation?.buyer &&
+    conversation.listing.status === "active" &&
+    !hasOpenHold;
+
   // TASK-C381 / TASK-K729: show the composer's offer button only on an open
   // conversation about a listing that still exists, isn't reserved or sold,
   // and is negotiable. Both roles may tap it — a seller opening one is a
@@ -1387,6 +1485,14 @@ export function ConversationScreen() {
           listing={conversation.listing}
           onPress={() => router.push(`/(main)/listing/${conversation.listing!.id}` as never)}
           isOwner={isOwner}
+          // Fix (found while wiring SF-M2): ListingHeader's own inline "Mark
+          // sold" pill is gated on `isOwner && isLive && !!buyer` (SF-M2
+          // §4.4.1 — there is nothing to confirm sold-to before the buyer is
+          // known), but this prop was never passed here, so `buyer` defaulted
+          // to `null` and the pill was unreachable for every seller — the
+          // exact same "built the sheet, never wired the prop" bug this
+          // ticket exists to close, one control over.
+          buyer={conversation.buyer ?? null}
           // Review fix (MUST-FIX, CACHE/DUPLICATION) — same shared helper the
           // reserve-after-accept confirm uses below, so a manual Reserve/Mark
           // Sold tap from THIS header also refreshes My Listings and the
@@ -1779,7 +1885,12 @@ export function ConversationScreen() {
           Propose meetup / Make an offer (offer row gated by canOfferInThread,
           exactly like the Tag button it replaces). Only reachable via the "+"
           button, which only renders in the canSend branch above, so this
-          never opens in isStartMode or on a closed conversation. */}
+          never opens in isStartMode or on a closed conversation.
+
+          SF-M2: `placeHoldRow`/`releaseHoldRow` are seller-only and mutually
+          exclusive by construction — `canPlaceHold`/`hasOpenHold` above never
+          agree on both at once (see ComposerActionsSheet's own prop docs for
+          why that invariant matters). */}
       <ComposerActionsSheet
         visible={actionsSheetVisible}
         onClose={() => setActionsSheetVisible(false)}
@@ -1789,6 +1900,16 @@ export function ConversationScreen() {
         onMakeOffer={() => setThreadOfferSheetVisible(true)}
         canMakeOffer={canOfferInThread}
         offerUnavailableReason={offerUnavailableReason}
+        placeHoldRow={
+          canPlaceHold && conversation?.buyer
+            ? { buyerName: conversation.buyer.name, onPress: handlePlaceHold }
+            : null
+        }
+        releaseHoldRow={
+          isOwner && hasOpenHold && conversation?.listing
+            ? { onPress: handleReleaseHold }
+            : null
+        }
         disabled={isSendingPhoto || isSendingFile}
       />
 

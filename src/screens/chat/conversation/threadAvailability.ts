@@ -42,14 +42,19 @@ export function canOfferInThread(params: {
 }
 
 /**
- * The buyer-facing reserved/sold recovery notice's visibility guard. Never
- * shown to the listing's own seller (`isOwner`) — they already have the
- * lifecycle controls in ListingHeader and the buyer info in SaleBuyerCard
- * elsewhere — and never before the viewer is actually known (`viewerKnown`,
- * i.e. `!!currentUser`), which prevents a seller opening a reserved/sold
- * thread on a cold start from flashing the buyer-facing copy for one frame
- * while auth is still hydrating (isOwner reads false until `currentUser`
- * resolves).
+ * The buyer-facing sold recovery notice's visibility guard. Never shown to
+ * the listing's own seller (`isOwner`) — they already have the lifecycle
+ * controls in ListingHeader and the buyer info in SaleBuyerCard elsewhere —
+ * and never before the viewer is actually known (`viewerKnown`, i.e.
+ * `!!currentUser`), which prevents a seller opening a sold thread on a cold
+ * start from flashing the buyer-facing copy for one frame while auth is
+ * still hydrating (isOwner reads false until `currentUser` resolves).
+ *
+ * SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.4.3) — SOLD-ONLY as of this ticket.
+ * `reserved` no longer means "unavailable": the backend keeps a reserved
+ * listing live and message-able (SF-B1), so a reserved thread is a normal,
+ * fully-usable conversation — no recovery notice, no dead end. Only a
+ * terminal `sold` listing still shows this notice.
  */
 export function showUnavailableNotice(params: {
   isOwner: boolean;
@@ -64,7 +69,7 @@ export function showUnavailableNotice(params: {
     !isOwner &&
     !!listing &&
     !listingDeleted &&
-    (listing.status === "reserved" || listing.status === "sold")
+    listing.status === "sold"
   );
 }
 

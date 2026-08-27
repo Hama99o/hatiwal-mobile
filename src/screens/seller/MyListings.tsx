@@ -21,7 +21,13 @@ import { useAuthStore } from "@/stores/auth.store";
 // "expired" is a virtual filter (active listings past their 30-day clock),
 // resolved server-side — not a real status enum value.
 type StatusFilter = "all" | Listing["status"] | "expired";
-const STATUS_TABS: StatusFilter[] = ["all", "draft", "active", "expired", "reserved", "sold"];
+// SF-M1 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md §4.5/§10.1): "Reserved"
+// is dropped as its own tab — a held listing now simply appears under Active
+// with a hold badge, matching the "three presented states" model (Draft ·
+// Live · Sold). The backend still returns a `reserved` status value and a
+// `reserved` status-count field (untouched, §5.1's widen folds it into the
+// Active tab's query) — this list just stops drawing a tab for it.
+const STATUS_TABS: StatusFilter[] = ["all", "draft", "active", "expired", "sold"];
 
 // Visual height of the FloatingTabBar above the safe-area inset:
 // wrap paddingTop (8) + bar height (60). The bar's own paddingBottom is the
@@ -45,12 +51,14 @@ const TAB_BAR_HEIGHT = 68;
 // and was consuming ~110px of precious above-the-fold space.
 // ListingFiltersBar.tsx is NOT modified — UserProfile.tsx keeps using it.
 
+// SF-M1: `reserved` deliberately dropped — not rendered as its own tab
+// anymore (see STATUS_TABS above). The API's status-counts response still
+// includes it; this type just isn't asked to index it.
 type StatusCounts = {
   all: number;
   draft: number;
   active: number;
   expired: number;
-  reserved: number;
   sold: number;
 };
 

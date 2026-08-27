@@ -1,33 +1,42 @@
 /**
  * useListingLifecycle — TASK-L863: the single source of truth for a seller's
- * listing lifecycle actions (publish / reserve / mark sold / unpublish /
- * activate / renew / edit / duplicate / delete).
+ * listing lifecycle actions (publish / mark sold / unpublish / release hold /
+ * renew / edit / duplicate / delete).
  *
  * Before this hook, `SellerListingCard.tsx` and `MyListingDetail.tsx` each
- * hand-rolled the same seven `useMutation`s, the same `confirmAlert` copy,
- * the same invalidation sets, and the same BuyerPickerSheet/ReviewPromptSheet
- * wiring — ~200 duplicated lines that had already drifted apart (the two
- * screens disagreed about the primary action for an `active` listing). This
- * hook owns ALL of that; the screens only render what it returns.
+ * hand-rolled the same mutations, the same `confirmAlert` copy, the same
+ * invalidation sets, and the same BuyerPickerSheet/ReviewPromptSheet wiring —
+ * ~200 duplicated lines that had already drifted apart (the two screens
+ * disagreed about the primary action for an `active` listing). This hook
+ * owns ALL of that; the screens only render what it returns.
+ *
+ * SF-M1 (Sell Flow Redesign, `docs/SELL_FLOW_REDESIGN.md` §1.4/§4.5/§10.1):
+ * "Mark sold" is now the one-tap primary from ANY live listing — the owner's
+ * core complaint was that the old mapping below taught reserve-first on every
+ * listing, even a batch of 50, when the API never required it. Reserve is no
+ * longer initiated from this hook or any listing surface at all — a hold is
+ * for a person, and by the time a seller wants one, they're already talking
+ * to that buyer in chat (see `reserveAfterAccept.ts` / `ComposerActionsSheet`
+ * for the chat-initiated "Place a hold" / "Release hold" flow, SF-M2).
  *
  * Canonical primary action per status (the single most obvious next step):
- *   draft            → Publish
- *   active           → Mark reserved
- *   active + expired → Renew (overrides the status-based primary)
- *   reserved         → Mark sold
- *   sold             → none (terminal)
+ *   draft                        → Publish
+ *   active (incl. an open hold)  → Mark sold
+ *   active + expired             → Renew (overrides the status-based primary)
+ *   reserved                     → Mark sold
+ *   sold                         → none (terminal)
  *
- * Everything else — Mark sold/reserved on an expired-active listing,
- * Activate on a reserved listing, Unpublish, Edit, Duplicate (available for
- * EVERY status, including sold), Delete (destructive, always last) — lands
- * in `moreActions`, rendered by `ListingActionsSheet`.
+ * Everything else — Mark sold on an expired-active listing, Release hold on
+ * a held listing (single- OR multi-item, see `handleReleaseHold`'s condition
+ * below), Unpublish, View sales (once any unit has sold), Edit, Duplicate
+ * (available for EVERY status, including sold), Delete (destructive, always
+ * last) — lands in `moreActions`, rendered by `ListingActionsSheet`.
  *
- * Reserve / Mark sold never go through `confirmAlert` — they open
- * `BuyerPickerSheet` so the seller can identify the real buyer from the
- * listing's conversations; the sheet's own Confirm button IS the
- * confirmation step (TASK-TX01). A `sold` response carrying a recorded buyer
- * (`transaction.buyer`) opens `ReviewPromptSheet` right after (REV2,
- * double-blind reviews).
+ * Mark sold never goes through `confirmAlert` — it opens `BuyerPickerSheet`
+ * so the seller can identify the real buyer from the listing's conversations;
+ * the sheet's own Confirm button IS the confirmation step (TASK-TX01). A
+ * `sold` response carrying a recorded buyer (`transaction.buyer`) opens
+ * `ReviewPromptSheet` right after (REV2, double-blind reviews).
  */
 import { useCallback, useMemo, useState } from "react";
 import { AccessibilityInfo } from "react-native";
@@ -37,15 +46,16 @@ import { useTranslation } from "react-i18next";
 import { toast } from "@/lib/toast";
 import {
   CheckCircle2,
-  Clock,
   EyeOff,
-  RotateCcw,
+  LockOpen,
+  Receipt,
   Pencil,
   Copy,
   Trash2,
 } from "lucide-react-native";
 
 import { listingsAPI, type Listing } from "@/api/listings";
+import { transactionsAPI } from "@/api/transactions";
 import { type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 import { type ListingActionRow } from "@/components/common/ListingActionsSheet";
 import { confirmAlert } from "@/utils/alert";
@@ -53,7 +63,7 @@ import {
   getPublishBlockers,
   publishBlockedMessage,
 } from "@/screens/seller/listing-form/publishReadiness";
-import { availableUnitsOf } from "@/utils/stock";
+import { availableUnitsOf, hasSoldSome, heldUnitsOf } from "@/utils/stock";
 import { apiErrorMessage } from "@/utils/apiError";
 
 // Query keys — exported so callers/tests can assert against the exact same
@@ -106,6 +116,22 @@ export interface UseListingLifecycleOptions {
             | "images"
             | "imageUrls"
             | "imageAttachments"
+            // SF-M1 (revised): `status === "reserved" || heldUnits > 0` is the
+            // pair that correctly detects an open hold for BOTH a single-item
+            // listing (status flips to `reserved`, `heldUnits` stays 0 — a
+            // single unit held is carried entirely by `StatusBadge`'s own
+            // "Reserved" treatment, per `heldUnitsOf`'s own doc in stock.ts)
+            // AND a multi-unit listing (status stays `active` while units are
+            // held for a buyer — `heldUnits` is the ONLY signal there; SF-B2).
+            // Originally read `sale?.status === "reserved"` instead — widened
+            // to `heldUnits` because the backend's own
+            // `ListingPolicy#activate?` (the endpoint this drives) matches
+            // this exact pair (`owner? && (reserved? || (active? &&
+            // held_units.positive?))`), and `sale`/`current_sale` is not
+            // guaranteed to agree with it in every edge case. Reuses the
+            // shared `heldUnitsOf()` helper (stock.ts) rather than
+            // re-deriving the rule a second time.
+            | "heldUnits"
           >
         >)
     | null
@@ -128,7 +154,12 @@ export interface ListingLifecyclePrimaryAction {
 
 export interface ListingLifecycleBuyerPicker {
   visible: boolean;
-  action: "reserve" | "sold";
+  /**
+   * SF-M1: narrowed from `"reserve" | "sold"` — reserve is no longer
+   * initiated from any listing surface (My Listings, MyListingDetail,
+   * SellerListingCard). It only exists in chat now (SF-M2).
+   */
+  action: "sold";
   onClose: () => void;
   onConfirm: (result: BuyerPickerResult) => void;
   isSubmitting: boolean;
@@ -169,8 +200,9 @@ export function useListingLifecycle({
   const router = useRouter();
   const qc = useQueryClient();
 
-  // TASK-TX01: which lifecycle action opened the buyer picker, if any.
-  const [buyerPickerAction, setBuyerPickerAction] = useState<"reserve" | "sold" | null>(null);
+  // TASK-TX01 / SF-M1: whether the buyer picker (Mark sold — the only action
+  // it drives now) is open.
+  const [buyerPickerAction, setBuyerPickerAction] = useState<"sold" | null>(null);
   // REV2: after a sold sale records a real buyer, prompt the seller to rate them.
   const [reviewPrompt, setReviewPrompt] = useState<{
     transactionId: number;
@@ -199,22 +231,30 @@ export function useListingLifecycle({
     onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
-  const reserve = useMutation({
-    mutationFn: (opts?: BuyerPickerResult) => listingsAPI.reserveListing(listingId, opts),
-    onSuccess: () => {
-      invalidateAll();
-      setBuyerPickerAction(null);
-      toast.success(t("listing.reserveSuccess"));
-    },
-    onError: (err) => toast.error(apiErrorMessage(err, t)),
-  });
-
   const markSold = useMutation({
     mutationFn: (opts?: BuyerPickerResult) => listingsAPI.markSold(listingId, opts),
     onSuccess: (data) => {
       invalidateAll();
       setBuyerPickerAction(null);
-      toast.success(t("listing.markSoldSuccess"));
+      // SF-M5 (docs/SELL_FLOW_REDESIGN.md §10.3) — "Marked sold · Undo". The
+      // big-tech answer to a mistake is a snackbar undo, not a correction
+      // form, and it must never BLOCK: the sale already completed by the
+      // time this fires, undo is only ever offered afterward. Every markSold
+      // call now leaves exactly one sold Transaction (SF-B3 — the legacy
+      // buyer-less/skip paths both record a real, ledger-visible row), so
+      // this is unconditional whenever the response actually carries an id.
+      const soldTransactionId = data.transaction?.id;
+      toast.success(
+        t("listing.markSoldSuccess"),
+        soldTransactionId
+          ? {
+              action: {
+                label: t("common.undo"),
+                onClick: () => undoMarkSold.mutate(soldTransactionId),
+              },
+            }
+          : undefined
+      );
       // REV2: a recorded buyer means a real sold Transaction exists — invite
       // the seller to rate them right away (double-blind, hidden until the
       // buyer reviews back too).
@@ -229,15 +269,33 @@ export function useListingLifecycle({
     onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
+  // SF-M5 — the "Undo" toast action's side effect. Same DELETE the Sales
+  // screen's own row Delete button calls (`transactionsAPI.deleteTransaction`)
+  // — one void path, not two. Restores stock and, if this sale had sold the
+  // listing out, flips it back to `active` server-side; both are already
+  // covered by `invalidateAll`'s refetch.
+  const undoMarkSold = useMutation({
+    mutationFn: (transactionId: number) => transactionsAPI.deleteTransaction(transactionId),
+    onSuccess: () => {
+      invalidateAll();
+      toast.success(t("listing.sale.voidedSuccess"));
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, t)),
+  });
+
   const unpublish = useMutation({
     mutationFn: () => listingsAPI.unpublishListing(listingId),
     onSuccess: () => { invalidateAll(); toast.success(t("listing.unpublishSuccess")); },
     onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
-  const activate = useMutation({
+  // SF-M1: "Activate" relabelled "Release hold" — the route/method stay
+  // exactly as they were (`docs/SELL_FLOW_REDESIGN.md` §3.1: renaming the
+  // working `/my/listings/:id/activate` endpoint would be pure churn); only
+  // the seller-facing copy and its trigger condition change.
+  const releaseHold = useMutation({
     mutationFn: () => listingsAPI.activateListing(listingId),
-    onSuccess: () => { invalidateAll(); toast.success(t("listing.activateSuccess")); },
+    onSuccess: () => { invalidateAll(); toast.success(t("listing.releaseHoldSuccess")); },
     onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
@@ -259,15 +317,14 @@ export function useListingLifecycle({
 
   const isBusy =
     publish.isPending ||
-    reserve.isPending ||
     markSold.isPending ||
     unpublish.isPending ||
-    activate.isPending ||
+    releaseHold.isPending ||
     renew.isPending ||
     deleteListing.isPending;
 
   // ── Confirm handlers — confirmAlert is the confirmation step for every
-  // action EXCEPT reserve/mark-sold (those open BuyerPickerSheet instead) ──
+  // action EXCEPT mark-sold (that opens BuyerPickerSheet instead) ──
 
   const handlePublish = useCallback(() => {
     // Publish-readiness is decided by ONE function for the whole app
@@ -333,17 +390,16 @@ export function useListingLifecycle({
     );
   }, [t, publish, listing]);
 
-  // TASK-TX01: Reserve/Mark-sold open the BuyerPickerSheet so the seller can
-  // identify the real buyer from this listing's conversations.
-  const handleReserve = useCallback(() => setBuyerPickerAction("reserve"), []);
+  // TASK-TX01 / SF-M1: Mark sold opens the BuyerPickerSheet so the seller can
+  // identify the real buyer from this listing's conversations. Reserve is no
+  // longer triggered from here — it only exists in chat now (SF-M2).
   const handleMarkSold = useCallback(() => setBuyerPickerAction("sold"), []);
 
   const handleBuyerPickerConfirm = useCallback(
     (result: BuyerPickerResult) => {
-      if (buyerPickerAction === "reserve") reserve.mutate(result);
-      else if (buyerPickerAction === "sold") markSold.mutate(result);
+      if (buyerPickerAction === "sold") markSold.mutate(result);
     },
-    [buyerPickerAction, reserve, markSold]
+    [buyerPickerAction, markSold]
   );
 
   const handleUnpublish = useCallback(() => {
@@ -357,16 +413,19 @@ export function useListingLifecycle({
     );
   }, [t, unpublish]);
 
-  const handleActivate = useCallback(() => {
+  // SF-M1: "Release hold" — same endpoint as before (`docs/SELL_FLOW_REDESIGN.md`
+  // §3.1), new seller-facing copy. Its trigger CONDITION (not this handler) is
+  // what changed — see the `moreActions` builder below.
+  const handleReleaseHold = useCallback(() => {
     confirmAlert(
-      t("listing.confirmActivate"),
-      t("listing.confirmActivateDescription"),
+      t("listing.confirmReleaseHold"),
+      t("listing.confirmReleaseHoldDescription"),
       [
         { text: t("common.cancel"), style: "cancel" },
-        { text: t("listing.activate"), onPress: () => activate.mutate() },
+        { text: t("listing.releaseHold"), onPress: () => releaseHold.mutate() },
       ]
     );
-  }, [t, activate]);
+  }, [t, releaseHold]);
 
   const handleRenew = useCallback(() => {
     confirmAlert(
@@ -424,42 +483,74 @@ export function useListingLifecycle({
   // instead of these buttons until `listing` arrives.
 
   const status = listing?.status;
-  const isExpired = status === "active" && !!listing?.expired;
+  // SF-B1 widened `Listing#expired?` to `live?` (active OR reserved), so a
+  // held listing can now expire too — no longer gated on `status === "active"`
+  // the way it was before this redesign (`docs/SELL_FLOW_REDESIGN.md` §10.1's
+  // own diff nests this check for BOTH `active` and `reserved`).
+  const isExpired = !!listing?.expired;
 
+  // SF-M1: `active` and `reserved` are BOTH "Live" and share one mapping —
+  // Mark sold unless the listing has expired, in which case Renew takes over
+  // for either. This is the exact fix for the owner's core complaint: the old
+  // mapping taught reserve-first on every listing, even a batch of 50, when
+  // the API never required it
+  // (`ListingPolicy#sold? = owner? && (active? || reserved?)`).
   const primaryAction: ListingLifecyclePrimaryAction | null = useMemo(() => {
-    if (isExpired) return { label: t("listing.renew"), onPress: handleRenew };
     switch (status) {
       case "draft":
         return { label: t("listing.publish"), onPress: handlePublish };
       case "active":
-        return { label: t("listing.markReserved"), onPress: handleReserve };
       case "reserved":
-        return { label: t("listing.markSold"), onPress: handleMarkSold };
+        return isExpired
+          ? { label: t("listing.renew"), onPress: handleRenew }
+          : { label: t("listing.markSold"), onPress: handleMarkSold };
       default:
         return null; // sold, or not loaded yet — no primary action to show
     }
-  }, [isExpired, status, t, handleRenew, handlePublish, handleReserve, handleMarkSold]);
+  }, [isExpired, status, t, handleRenew, handlePublish, handleMarkSold]);
+
+  // SF-M1 (revised): an open hold, single- OR multi-item — the pair that
+  // covers both (`docs/SELL_FLOW_REDESIGN.md` §4.5/§10.1). A single-item hold
+  // flips `status` to `reserved`; a multi-item hold stays `status: active`
+  // with `heldUnits > 0` (SF-B2 — a batch of 50 must not vanish from the
+  // market because one buyer reserved 10). Matches the backend's own
+  // `ListingPolicy#activate?` (the endpoint `handleReleaseHold` below calls)
+  // exactly, so the control never offers an action the API would 403.
+  // `heldUnitsOf` is the shared helper (stock.ts) — never re-derive this rule.
+  const hasOpenHold = status === "reserved" || heldUnitsOf(listing) > 0;
 
   // ── More actions — everything not chosen as primary. No variant is
   // dropped versus the two screens this hook replaces: an expired-active
-  // listing can still be marked reserved/sold and unpublished, a reserved
-  // listing can still be reactivated, and Duplicate/Edit/Delete are always
-  // reachable regardless of status. ─────────────────────────────────────
+  // listing can still be marked sold and unpublished, a held listing can
+  // still have its hold released, and Duplicate/Edit/Delete are always
+  // reachable regardless of status. Reserve is gone entirely — it only
+  // exists in chat now (SF-M2). ───────────────────────────────────────────
 
   const moreActions: ListingActionRow[] = useMemo(() => {
     const actions: ListingActionRow[] = [];
+    const isLive = status === "active" || status === "reserved";
+
+    if (isLive && isExpired) {
+      // Renew is primary once expired, but Mark sold is still reachable for
+      // EITHER item count — no variant dropped versus before.
+      actions.push({ key: "sold", label: t("listing.markSold"), icon: CheckCircle2, onPress: handleMarkSold });
+    }
 
     if (status === "active") {
-      actions.push({ key: "sold", label: t("listing.markSold"), icon: CheckCircle2, onPress: handleMarkSold });
-      if (isExpired) {
-        // Renew is primary once expired, but Mark reserved is still reachable.
-        actions.push({ key: "reserve", label: t("listing.markReserved"), icon: Clock, onPress: handleReserve });
-      }
       actions.push({ key: "unpublish", label: t("listing.unpublish"), icon: EyeOff, onPress: handleUnpublish });
     }
 
-    if (status === "reserved") {
-      actions.push({ key: "activate", label: t("listing.activate"), icon: RotateCcw, onPress: handleActivate });
+    if (hasOpenHold) {
+      actions.push({ key: "releaseHold", label: t("listing.releaseHold"), icon: LockOpen, onPress: handleReleaseHold });
+    }
+
+    if (hasSoldSome(listing)) {
+      actions.push({
+        key: "sales",
+        label: t("listing.viewSales"),
+        icon: Receipt,
+        onPress: () => router.push(`/(main)/listing/${listingId}/sales` as never),
+      });
     }
 
     actions.push({ key: "edit", label: t("common.edit"), icon: Pencil, onPress: handleEdit });
@@ -470,11 +561,14 @@ export function useListingLifecycle({
   }, [
     status,
     isExpired,
+    hasOpenHold,
+    listing,
     t,
+    router,
+    listingId,
     handleMarkSold,
-    handleReserve,
     handleUnpublish,
-    handleActivate,
+    handleReleaseHold,
     handleEdit,
     handleDuplicate,
     handleDelete,
@@ -486,10 +580,10 @@ export function useListingLifecycle({
     isBusy,
     buyerPicker: {
       visible: buyerPickerAction !== null,
-      action: buyerPickerAction ?? "reserve",
+      action: "sold",
       onClose: () => setBuyerPickerAction(null),
       onConfirm: handleBuyerPickerConfirm,
-      isSubmitting: reserve.isPending || markSold.isPending,
+      isSubmitting: markSold.isPending,
       // The sheet only asks "how many?" when this is > 1, so nothing changes for
       // the single-item case. Falls back to 1 rather than availableUnitsOf's 0
       // for a listing that hasn't loaded — 0 would be read as "sold out".

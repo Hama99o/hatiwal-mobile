@@ -4,19 +4,25 @@
  * SellerListingCard no longer owns any lifecycle mutations/handlers itself —
  * all of that now lives in `useListingLifecycle` (see its own exhaustive
  * matrix test at `src/hooks/__tests__/useListingLifecycle.test.tsx`). This
- * suite instead asserts the CARD's rendering contract:
+ * suite instead asserts the CARD's rendering contract, updated for SF-M1
+ * (`docs/SELL_FLOW_REDESIGN.md` §4.5/§10.1):
  *
  *  1. Exactly two controls render: the primary button (when there is one)
  *     plus a compact "More" trigger — never the old 6-button wall.
- *  2. Status -> primary label mapping (draft/active/reserved/sold/expired).
+ *  2. Status -> primary label mapping: draft→Publish, active OR
+ *     reserved→Mark sold (SF-M1: both are "Live" and share one primary),
+ *     active+expired→Renew, sold→none.
  *  3. The primary button's own action fires directly (Publish/Renew go
- *     through confirmAlert; Mark reserved/Mark sold open BuyerPickerSheet).
+ *     through confirmAlert; Mark sold opens BuyerPickerSheet).
  *  4. Every action that is NOT the primary for a given status is reachable
  *     by opening "More" and tapping the row inside `ListingActionsSheet`
- *     (Mark sold via More for active, Mark reserved via More for an
- *     expired-active listing, Unpublish, Activate, Edit, Duplicate, and
- *     Delete — destructive, confirmAlert-gated).
- *  5. views_count / conversations_count / no-photo fallback still render.
+ *     (Mark sold via More for an expired-active listing, Unpublish, Release
+ *     hold — SF-M1's rename of Activate, gated on `listing.sale?.status ===
+ *     "reserved"` rather than `status === "reserved"` — View sales, Edit,
+ *     Duplicate, and Delete — destructive, confirmAlert-gated).
+ *  5. There is no "reserve" row anywhere, for any status — SF-M1 deletes
+ *     reserve from this surface entirely (it only exists in chat now).
+ *  6. views_count / conversations_count / no-photo fallback still render.
  *
  * No real network calls — listingsAPI is fully mocked.
  */
@@ -67,27 +73,28 @@ jest.mock("react-native-reanimated", () => {
 
 // Lucide icons — mock to strings so they don't crash. Covers icons used
 // directly by the card (Eye/MessageCircle/Camera/MoreHorizontal) AND the
-// icons useListingLifecycle attaches to each ListingActionsSheet row.
+// icons useListingLifecycle attaches to each ListingActionsSheet row
+// (SF-M1: LockOpen for Release hold, Receipt for View sales).
 jest.mock("lucide-react-native", () => ({
   Eye: "Eye",
   MessageCircle: "MessageCircle",
   Camera: "Camera",
   MoreHorizontal: "MoreHorizontal",
   CheckCircle2: "CheckCircle2",
-  Clock: "Clock",
   EyeOff: "EyeOff",
-  RotateCcw: "RotateCcw",
+  LockOpen: "LockOpen",
+  Receipt: "Receipt",
   Pencil: "Pencil",
   Copy: "Copy",
   Trash2: "Trash2",
 }));
 
 // listingsAPI — mock every lifecycle method using jest.fn() inside factory
-// Access individual fns via jest.mocked(listingsAPI) after import
+// Access individual fns via jest.mocked(listingsAPI) after import.
+// SF-M1: reserveListing is gone from this hook's dependency surface entirely.
 jest.mock("@/api/listings", () => ({
   listingsAPI: {
     publishListing: jest.fn(),
-    reserveListing: jest.fn(),
     markSold: jest.fn(),
     unpublishListing: jest.fn(),
     activateListing: jest.fn(),
@@ -295,20 +302,21 @@ describe("SellerListingCard — exactly two controls (no 6-button wall)", () => 
   });
 });
 
-// ── 2. Status -> primary button mapping ────────────────────────────────────────
+// ── 2. Status -> primary button mapping (SF-M1 remap) ──────────────────────────
 
-describe("SellerListingCard — primary action button per status", () => {
+describe("SellerListingCard — primary action button per status (SF-M1: active/reserved both → Mark sold)", () => {
   it("shows 'listing.publish' as primary for draft status", () => {
     renderCard(makeListing({ status: "draft" }));
     expect(screen.getByText("listing.publish")).toBeTruthy();
   });
 
-  it("shows 'listing.markReserved' as primary for active status", () => {
+  it("shows 'listing.markSold' as primary for active status (SF-M1: reserve is gone from this surface)", () => {
     renderCard(makeListing({ status: "active" }));
-    expect(screen.getByText("listing.markReserved")).toBeTruthy();
+    expect(screen.getByText("listing.markSold")).toBeTruthy();
+    expect(screen.queryByText("listing.markReserved")).toBeNull();
   });
 
-  it("shows 'listing.markSold' as primary for reserved status", () => {
+  it("shows 'listing.markSold' as primary for reserved status too — same primary as active", () => {
     renderCard(makeListing({ status: "reserved" }));
     expect(screen.getByText("listing.markSold")).toBeTruthy();
   });
@@ -316,7 +324,6 @@ describe("SellerListingCard — primary action button per status", () => {
   it("shows NO primary action button for sold status (terminal state)", () => {
     renderCard(makeListing({ status: "sold" }));
     expect(screen.queryByText("listing.publish")).toBeNull();
-    expect(screen.queryByText("listing.markReserved")).toBeNull();
     expect(screen.queryByText("listing.markSold")).toBeNull();
     expect(screen.queryByText("listing.renew")).toBeNull();
   });
@@ -389,99 +396,44 @@ describe("SellerListingCard — publish action (primary)", () => {
   });
 });
 
-// ── 4. Mark reserved (primary, active) — opens BuyerPickerSheet directly ──────
+// ── 4. Mark sold (primary, active OR reserved) — opens BuyerPickerSheet directly ──
 
-describe("SellerListingCard — mark reserved action (primary, active status)", () => {
-  it("opens the BuyerPickerSheet (not confirmAlert) when the primary button is tapped", () => {
+describe("SellerListingCard — mark sold action (primary, active OR reserved status)", () => {
+  it("opens the BuyerPickerSheet (not confirmAlert) when the primary button is tapped on an active listing", () => {
     renderCard(makeListing({ status: "active" }));
-    fireEvent.press(screen.getByText("listing.markReserved"));
-    expect(mockConfirmAlert).not.toHaveBeenCalled();
-    expect(screen.getByTestId("buyer-picker-visible-reserve")).toBeTruthy();
-  });
-
-  it("calls listingsAPI.reserveListing with the listing id + result on picker confirm (skip)", async () => {
-    mockListingsAPI.reserveListing.mockResolvedValueOnce({ listing: makeListing({ status: "reserved" }) });
-    renderCard(makeListing({ status: "active", id: 10 }));
-
-    fireEvent.press(screen.getByText("listing.markReserved"));
-    fireEvent.press(screen.getByTestId("confirm-skip"));
-
-    await waitFor(() => {
-      expect(mockListingsAPI.reserveListing).toHaveBeenCalledWith(10, {});
-    });
-  });
-
-  it("calls listingsAPI.reserveListing with a buyerId when a buyer is picked", async () => {
-    mockListingsAPI.reserveListing.mockResolvedValueOnce({ listing: makeListing({ status: "reserved" }) });
-    renderCard(makeListing({ status: "active", id: 10 }));
-
-    fireEvent.press(screen.getByText("listing.markReserved"));
-    fireEvent.press(screen.getByTestId("confirm-buyer-42"));
-
-    await waitFor(() => {
-      expect(mockListingsAPI.reserveListing).toHaveBeenCalledWith(10, { buyerId: 42 });
-    });
-  });
-
-  it("invalidates 'my-listings' and fires toast.success on reserve success", async () => {
-    mockListingsAPI.reserveListing.mockResolvedValueOnce({ listing: makeListing({ status: "reserved" }) });
-    const qc = makeQueryClient();
-    const invalidateSpy = jest.spyOn(qc, "invalidateQueries");
-
-    renderCard(makeListing({ status: "active", id: 10 }), qc);
-
-    fireEvent.press(screen.getByText("listing.markReserved"));
-    fireEvent.press(screen.getByTestId("confirm-skip"));
-
-    await waitFor(() => {
-      expect(invalidateSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ queryKey: ["my-listings"] })
-      );
-      expect(mockToast.success).toHaveBeenCalledWith("listing.reserveSuccess");
-    });
-  });
-});
-
-// ── 5. Mark sold via the More sheet (active status — sold is NOT primary) ─────
-
-describe("SellerListingCard — mark sold via the More sheet (active status)", () => {
-  it("the More sheet exposes a 'Mark as Sold' row for an active listing", () => {
-    renderCard(makeListing({ status: "active" }));
-    openMore();
-    expect(screen.getByTestId("listing-action-sold")).toBeTruthy();
-  });
-
-  it("opens the BuyerPickerSheet (not confirmAlert) when the sheet's Mark sold row is tapped", () => {
-    renderCard(makeListing({ status: "active" }));
-    openMore();
-    fireEvent.press(screen.getByTestId("listing-action-sold"));
+    fireEvent.press(screen.getByText("listing.markSold"));
     expect(mockConfirmAlert).not.toHaveBeenCalled();
     expect(screen.getByTestId("buyer-picker-visible-sold")).toBeTruthy();
   });
 
-  it("calls listingsAPI.markSold with the listing id + result on picker confirm", async () => {
+  it("opens the BuyerPickerSheet when the primary button is tapped on a reserved listing", () => {
+    renderCard(makeListing({ status: "reserved" }));
+    fireEvent.press(screen.getByText("listing.markSold"));
+    expect(mockConfirmAlert).not.toHaveBeenCalled();
+    expect(screen.getByTestId("buyer-picker-visible-sold")).toBeTruthy();
+  });
+
+  it("calls listingsAPI.markSold with the listing id + result on picker confirm (skip)", async () => {
     mockListingsAPI.markSold.mockResolvedValueOnce({ listing: makeListing({ status: "sold" }) });
     renderCard(makeListing({ status: "active", id: 10 }));
 
-    openMore();
-    fireEvent.press(screen.getByTestId("listing-action-sold"));
-    fireEvent.press(screen.getByTestId("confirm-buyer-42"));
-
-    await waitFor(() => {
-      expect(mockListingsAPI.markSold).toHaveBeenCalledWith(10, { buyerId: 42 });
-    });
-  });
-
-  it("also exposes Mark sold via the sheet for a RESERVED listing (sold is primary there — reachable both ways)", async () => {
-    mockListingsAPI.markSold.mockResolvedValueOnce({ listing: makeListing({ status: "sold" }) });
-    renderCard(makeListing({ status: "reserved", id: 10 }));
-
-    // Primary IS Mark sold for reserved — verify it directly, no sheet needed.
     fireEvent.press(screen.getByText("listing.markSold"));
     fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
       expect(mockListingsAPI.markSold).toHaveBeenCalledWith(10, {});
+    });
+  });
+
+  it("calls listingsAPI.markSold with a buyerId when a buyer is picked", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({ listing: makeListing({ status: "sold" }) });
+    renderCard(makeListing({ status: "reserved", id: 10 }));
+
+    fireEvent.press(screen.getByText("listing.markSold"));
+    fireEvent.press(screen.getByTestId("confirm-buyer-42"));
+
+    await waitFor(() => {
+      expect(mockListingsAPI.markSold).toHaveBeenCalledWith(10, { buyerId: 42 });
     });
   });
 
@@ -492,8 +444,7 @@ describe("SellerListingCard — mark sold via the More sheet (active status)", (
 
     renderCard(makeListing({ status: "active", id: 10 }), qc);
 
-    openMore();
-    fireEvent.press(screen.getByTestId("listing-action-sold"));
+    fireEvent.press(screen.getByText("listing.markSold"));
     fireEvent.press(screen.getByTestId("confirm-skip"));
 
     await waitFor(() => {
@@ -505,16 +456,72 @@ describe("SellerListingCard — mark sold via the More sheet (active status)", (
   });
 });
 
-// ── 6. Expired-active: Renew is primary, Mark sold + Mark reserved via sheet ──
+// ── 5. Mark sold reachable from the More sheet on an expired-active listing ──
+// (Renew took the primary slot there, so Mark sold moves to the sheet.)
+
+describe("SellerListingCard — mark sold via the More sheet (expired-active listing)", () => {
+  it("the More sheet exposes a 'Mark sold' row for an expired-active listing", () => {
+    renderCard(makeListing({ status: "active", expired: true }));
+    openMore();
+    expect(screen.getByTestId("listing-action-sold")).toBeTruthy();
+  });
+
+  it("opens the BuyerPickerSheet (not confirmAlert) when the sheet's Mark sold row is tapped", () => {
+    renderCard(makeListing({ status: "active", expired: true }));
+    openMore();
+    fireEvent.press(screen.getByTestId("listing-action-sold"));
+    expect(mockConfirmAlert).not.toHaveBeenCalled();
+    expect(screen.getByTestId("buyer-picker-visible-sold")).toBeTruthy();
+  });
+
+  it("calls listingsAPI.markSold with the listing id + result on picker confirm", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({ listing: makeListing({ status: "sold" }) });
+    renderCard(makeListing({ status: "active", expired: true, id: 10 }));
+
+    openMore();
+    fireEvent.press(screen.getByTestId("listing-action-sold"));
+    fireEvent.press(screen.getByTestId("confirm-buyer-42"));
+
+    await waitFor(() => {
+      expect(mockListingsAPI.markSold).toHaveBeenCalledWith(10, { buyerId: 42 });
+    });
+  });
+
+  it("does NOT expose a 'sold' row via the sheet for a plain (non-expired) active listing — it's already the primary there", () => {
+    renderCard(makeListing({ status: "active", expired: false }));
+    openMore();
+    expect(screen.queryByTestId("listing-action-sold")).toBeNull();
+  });
+});
+
+// ── 6. Never a 'reserve' row anywhere (SF-M1: deleted from this hook) ────────
+
+describe("SellerListingCard — reserve is gone entirely from this surface (SF-M1)", () => {
+  it.each(["draft", "active", "reserved", "sold"] as const)(
+    "the More sheet never exposes a 'reserve' row for status=%s",
+    (status) => {
+      renderCard(makeListing({ status, expired: true }));
+      openMore();
+      expect(screen.queryByTestId("listing-action-reserve")).toBeNull();
+    }
+  );
+
+  it("never renders a 'Mark as Reserved' label anywhere on the card", () => {
+    renderCard(makeListing({ status: "active" }));
+    openMore();
+    expect(screen.queryByText("listing.markReserved")).toBeNull();
+  });
+});
+
+// ── 7. Expired-active: Renew is primary ──────────────────────────────────────
 
 describe("SellerListingCard — expired-active listing", () => {
-  it("primary is Renew; the More sheet still offers Mark sold AND Mark reserved", () => {
+  it("primary is Renew; the More sheet still offers Mark sold", () => {
     renderCard(makeListing({ status: "active", expired: true }));
     expect(screen.getByText("listing.renew")).toBeTruthy();
 
     openMore();
     expect(screen.getByTestId("listing-action-sold")).toBeTruthy();
-    expect(screen.getByTestId("listing-action-reserve")).toBeTruthy();
   });
 
   it("calls confirmAlert when the primary Renew button is tapped", () => {
@@ -544,13 +551,6 @@ describe("SellerListingCard — expired-active listing", () => {
     });
   });
 
-  it("Mark reserved via the sheet opens the BuyerPickerSheet with action=reserve", () => {
-    renderCard(makeListing({ status: "active", expired: true }));
-    openMore();
-    fireEvent.press(screen.getByTestId("listing-action-reserve"));
-    expect(screen.getByTestId("buyer-picker-visible-reserve")).toBeTruthy();
-  });
-
   it("invalidates 'my-listings' and fires toast.success on renew success", async () => {
     mockListingsAPI.renewListing.mockResolvedValueOnce(
       makeListing({ status: "active", expired: false })
@@ -572,7 +572,7 @@ describe("SellerListingCard — expired-active listing", () => {
   });
 });
 
-// ── 7. Unpublish via the sheet (active status) ─────────────────────────────────
+// ── 8. Unpublish via the sheet (active status) ─────────────────────────────────
 
 describe("SellerListingCard — unpublish via the More sheet (active status)", () => {
   it("the More sheet exposes an Unpublish row for an active listing", () => {
@@ -628,35 +628,59 @@ describe("SellerListingCard — unpublish via the More sheet (active status)", (
   });
 });
 
-// ── 8. Activate via the sheet (reserved -> active) ─────────────────────────────
+// ── 9. Release hold via the sheet (SF-M1 rename of Activate) ────────────────
 
-describe("SellerListingCard — activate via the More sheet (reserved -> active)", () => {
-  it("the More sheet exposes an Activate row for a reserved listing", () => {
+describe("SellerListingCard — release hold via the More sheet (SF-M1 rename of Activate)", () => {
+  // `hasOpenHold` is `status === "reserved" || heldUnits > 0` — matches the
+  // backend's own `ListingPolicy#activate?` exactly (`owner? && (reserved? ||
+  // (active? && held_units.positive?))`). A single-item hold flips `status`
+  // to `reserved` and never sets `heldUnits`; a multi-unit hold (SF-B2) keeps
+  // `status: active` with `heldUnits > 0` as the only signal.
+
+  it("the More sheet exposes a 'Release hold' row for a reserved (single-item hold) listing", () => {
     renderCard(makeListing({ status: "reserved" }));
     openMore();
-    expect(screen.getByTestId("listing-action-activate")).toBeTruthy();
+    expect(screen.getByTestId("listing-action-releaseHold")).toBeTruthy();
+    expect(screen.getByText("listing.releaseHold")).toBeTruthy();
   });
 
-  it("calls confirmAlert when the sheet's Activate row is tapped", () => {
+  it("the More sheet exposes 'Release hold' for a multi-unit hold too (status stays active), reading heldUnits rather than status", () => {
+    renderCard(
+      makeListing({
+        status: "active",
+        heldUnits: 10,
+      })
+    );
+    openMore();
+    expect(screen.getByTestId("listing-action-releaseHold")).toBeTruthy();
+  });
+
+  it("does NOT expose 'Release hold' for an ordinary active listing with no open hold", () => {
+    renderCard(makeListing({ status: "active", heldUnits: 0 }));
+    openMore();
+    expect(screen.queryByTestId("listing-action-releaseHold")).toBeNull();
+  });
+
+  it("calls confirmAlert with the release-hold copy when the sheet's row is tapped", () => {
     renderCard(makeListing({ status: "reserved" }));
     openMore();
-    fireEvent.press(screen.getByTestId("listing-action-activate"));
+    fireEvent.press(screen.getByTestId("listing-action-releaseHold"));
     expect(mockConfirmAlert).toHaveBeenCalledWith(
-      "listing.confirmActivate",
-      "listing.confirmActivateDescription",
+      "listing.confirmReleaseHold",
+      "listing.confirmReleaseHoldDescription",
       expect.arrayContaining([
         expect.objectContaining({ style: "cancel" }),
-        expect.objectContaining({ text: "listing.activate" }),
+        expect.objectContaining({ text: "listing.releaseHold" }),
       ])
     );
   });
 
-  it("calls listingsAPI.activateListing with the listing id on confirm", async () => {
+  it("calls listingsAPI.activateListing (same endpoint, new copy) with the listing id on confirm", async () => {
     mockListingsAPI.activateListing.mockResolvedValueOnce(makeListing({ status: "active" }));
     renderCard(makeListing({ status: "reserved", id: 10 }));
 
     openMore();
-    fireEvent.press(screen.getByTestId("listing-action-activate"));
+    fireEvent.press(screen.getByTestId("listing-action-releaseHold"));
     simulateConfirm();
 
     await waitFor(() => {
@@ -664,7 +688,7 @@ describe("SellerListingCard — activate via the More sheet (reserved -> active)
     });
   });
 
-  it("invalidates 'my-listings' and fires toast.success on activate success", async () => {
+  it("invalidates 'my-listings' and fires toast.success ('listing.releaseHoldSuccess') on success", async () => {
     mockListingsAPI.activateListing.mockResolvedValueOnce(makeListing({ status: "active" }));
     const qc = makeQueryClient();
     const invalidateSpy = jest.spyOn(qc, "invalidateQueries");
@@ -672,19 +696,42 @@ describe("SellerListingCard — activate via the More sheet (reserved -> active)
     renderCard(makeListing({ status: "reserved", id: 10 }), qc);
 
     openMore();
-    fireEvent.press(screen.getByTestId("listing-action-activate"));
+    fireEvent.press(screen.getByTestId("listing-action-releaseHold"));
     simulateConfirm();
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith(
         expect.objectContaining({ queryKey: ["my-listings"] })
       );
-      expect(mockToast.success).toHaveBeenCalledWith("listing.activateSuccess");
+      expect(mockToast.success).toHaveBeenCalledWith("listing.releaseHoldSuccess");
     });
   });
 });
 
-// ── 9. Delete via the sheet (destructive, always available) ───────────────────
+// ── 10. View sales via the sheet (SF-M1 new row) ─────────────────────────────
+
+describe("SellerListingCard — 'View sales' via the More sheet (SF-M1)", () => {
+  it("exposes a 'View sales' row once some units have sold", () => {
+    renderCard(makeListing({ status: "active", quantity: 10, availableUnits: 6 }));
+    openMore();
+    expect(screen.getByTestId("listing-action-sales")).toBeTruthy();
+    expect(screen.getByText("listing.viewSales")).toBeTruthy();
+  });
+
+  it("does not expose 'View sales' when nothing has sold yet", () => {
+    renderCard(makeListing({ status: "active", quantity: 10, availableUnits: 10 }));
+    openMore();
+    expect(screen.queryByTestId("listing-action-sales")).toBeNull();
+  });
+
+  it("exposes 'View sales' on a terminal sold-out listing too", () => {
+    renderCard(makeListing({ status: "sold", quantity: 3, availableUnits: 0 }));
+    openMore();
+    expect(screen.getByTestId("listing-action-sales")).toBeTruthy();
+  });
+});
+
+// ── 11. Delete via the sheet (destructive, always available) ───────────────────
 
 describe("SellerListingCard — delete via the More sheet (destructive)", () => {
   it("the More sheet exposes a Delete row for an active listing", () => {
@@ -773,7 +820,7 @@ describe("SellerListingCard — delete via the More sheet (destructive)", () => 
   });
 });
 
-// ── 10. Duplicate reachable via the sheet for EVERY status ─────────────────────
+// ── 12. Duplicate reachable via the sheet for EVERY status ─────────────────────
 
 describe("SellerListingCard — duplicate via the More sheet (every status)", () => {
   it.each(["draft", "active", "reserved", "sold"] as const)(
@@ -786,7 +833,7 @@ describe("SellerListingCard — duplicate via the More sheet (every status)", ()
   );
 });
 
-// ── 11. views_count and conversations_count render ──────────────────────────────
+// ── 13. views_count and conversations_count render ──────────────────────────────
 
 describe("SellerListingCard — stats display", () => {
   it("renders views count via t('listing.viewsCount', { count })", () => {
@@ -811,7 +858,7 @@ describe("SellerListingCard — stats display", () => {
   });
 });
 
-// ── 11b. TASK-R418 compact "Reserved for {name}" / "Sold to {name}" line ───────
+// ── 13b. TASK-R418 compact "Reserved for {name}" / "Sold to {name}" line ───────
 // CR fix (CYCLE-4, LOW): `seller-card-sale-line` previously had zero coverage
 // (a "dead testID" — present in the component, asserted by nothing).
 
@@ -858,7 +905,7 @@ describe("SellerListingCard — compact sale line (TASK-R418)", () => {
   });
 });
 
-// ── 12. No-photo fallback ──────────────────────────────────────────────────────
+// ── 14. No-photo fallback ──────────────────────────────────────────────────────
 
 describe("SellerListingCard — no-photo fallback", () => {
   it("renders the no-photo label when thumbnailUrl is null and imageUrls is empty", () => {
@@ -867,7 +914,7 @@ describe("SellerListingCard — no-photo fallback", () => {
   });
 });
 
-// ── 13. Edit reachable via the sheet for every status ───────────────────────────
+// ── 15. Edit reachable via the sheet for every status ───────────────────────────
 
 describe("SellerListingCard — edit action always reachable via the sheet", () => {
   it.each(["active", "draft", "sold"] as const)(
@@ -880,7 +927,7 @@ describe("SellerListingCard — edit action always reachable via the sheet", () 
   );
 });
 
-// ── 14. Smoke tests ────────────────────────────────────────────────────────────
+// ── 16. Smoke tests ────────────────────────────────────────────────────────────
 
 describe("SellerListingCard — smoke tests", () => {
   it.each(["active", "draft", "reserved", "sold"] as const)(

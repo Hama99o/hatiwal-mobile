@@ -1,11 +1,28 @@
 /**
  * ListingUnavailableNotice — TASK-K729.
  *
- * When the pinned listing in a chat thread turns `reserved` or `sold`,
- * Conversation.tsx's `canOfferInThread` guard goes false and the composer's
- * "Make an offer" row silently disappears from ComposerActionsSheet — with
- * nothing telling the buyer WHY, and no next step. This card replaces that
- * silent gap with an explicit, VIEWER-SCOPED reason:
+ * SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.4.3): this whole notice is now
+ * SOLD-ONLY. A reserved listing stays live and message-able (SF-B1) — it is
+ * a normal, fully-usable thread, not a dead end — so `threadAvailability.ts`'s
+ * `showUnavailableNotice` guard never feeds this component `status:
+ * "reserved"` anymore; only `canOfferInThread` still excludes reserved (the
+ * offer button specifically, per §3.2's deliberate "pause new offers, don't
+ * pause the thread" judgment call). The `status` prop type below is left as
+ * `"reserved" | "sold"` rather than narrowed to `"sold"` only: Conversation.tsx
+ * (owned by a different, concurrently in-flight ticket) still asserts
+ * `status={conversation.listing.status as "reserved" | "sold"}` at its call
+ * site — narrowing here without touching that cast would fail to typecheck.
+ * The `reserved`-flavoured copy branches below are consequently dead code at
+ * runtime (never reachable through the real guard) but kept for type
+ * compatibility; flagged as a fast-follow to fully narrow both together once
+ * that other ticket's file is free.
+ *
+ * Historical (pre-SF-M3) doc, kept for context: when the pinned listing in a
+ * chat thread turned `reserved` or `sold`, Conversation.tsx's
+ * `canOfferInThread` guard went false and the composer's "Make an offer" row
+ * silently disappeared from ComposerActionsSheet — with nothing telling the
+ * buyer WHY, and no next step. This card replaces that silent gap with an
+ * explicit, VIEWER-SCOPED reason:
  *
  *  - `viewerIsSaleBuyer` true (this conversation's buyer IS the buyer the
  *    seller committed to, per ConversationSerializer's

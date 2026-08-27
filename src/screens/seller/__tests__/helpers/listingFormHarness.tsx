@@ -98,6 +98,16 @@ export function lucideIconsMock(extra: Record<string, string> = {}) {
     // unconditionally, so every one of the five suites dies on
     // `Cannot read properties of undefined (reading 'displayName')`.
     Boxes: "Boxes",
+    // SF-M7 (docs/SELL_FLOW_REDESIGN.md) — `FieldNote` (the reopen note /
+    // sold-quantity inline messages under the quantity field) imports these
+    // from `lucide-react-native` itself, one level below ListingForm. Same
+    // failure class as every icon above: conditional on screen, but the
+    // import itself is unconditional, so a suite that ever renders a
+    // `FieldNote` (any suite using this harness could, once a listing is
+    // `sold`) needs both mocked or it dies on the exact same
+    // `reading 'displayName'` crash.
+    Info: "Info",
+    CheckCircle2: "CheckCircle2",
     ...extra,
   };
 }

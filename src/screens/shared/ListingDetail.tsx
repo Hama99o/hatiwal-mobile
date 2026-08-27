@@ -81,6 +81,7 @@ import { ListingCard } from "@/components/common/ListingCard";
 import { ListingMapSection } from "@/components/common/ListingMapSection";
 import { ReportSheet } from "@/components/common/ReportSheet";
 import { SafetyTipsSheet } from "@/components/common/SafetyTipsSheet";
+import { QuantityStepper } from "@/components/common/QuantityStepper";
 import { useAuthStore } from "@/stores/auth.store";
 
 import { ListingGallery } from "./listing-detail/ListingGallery";
@@ -88,6 +89,7 @@ import { FirstMessageSheet } from "./listing-detail/FirstMessageSheet";
 import { OfferSheet } from "./listing-detail/OfferSheet";
 import { DetailSkeleton } from "./listing-detail/DetailSkeleton";
 import { SellerPhoneReveal } from "./listing-detail/SellerPhoneReveal";
+import { canContactListing, canOfferOnListing, isListingDeadEnd } from "./listing-detail/listingAvailability";
 import { PriceDropBadge } from "@/components/common/PriceDropBadge";
 import { Badge } from "@/components/reusables/badge";
 import { ResponseRateBadge } from "@/components/common/ResponseRateBadge";
@@ -95,7 +97,7 @@ import { AwayBanner } from "@/components/common/AwayBanner";
 import { useReduceMotion } from "@/lib/animation";
 import { getActiveLabelText } from "@/utils/activeLabelUtil";
 import { resolveShareUrl } from "@/utils/shareUtils";
-import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow } from "@/utils/stock";
+import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow, heldUnitsOf } from "@/utils/stock";
 import { apiErrorMessage } from "@/utils/apiError";
 import { galleryHeight, GALLERY_ASPECT_RATIO } from "@/utils/gallery";
 
@@ -149,6 +151,12 @@ export default function ListingDetailScreen() {
   const [showReportSheet, setShowReportSheet] = useState(false);
   const [showSafetyTips, setShowSafetyTips] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
+  // SF-M6 — buyer-side quantity INTENT, never a reservation/hold. Feeds only
+  // FirstMessageSheet's prefilled text (docs/SELL_FLOW_REDESIGN.md §4.2.3);
+  // no API call is ever made with it. Reset to 1 whenever the sheet closes
+  // without sending, so re-opening "Message seller" never carries a stale
+  // count from a previous, abandoned attempt.
+  const [messageQuantity, setMessageQuantity] = useState(1);
 
   // ── Animations ─────────────────────────────────────────────────────────────
   const heartScale = useSharedValue(1);
@@ -193,6 +201,11 @@ export default function ListingDetailScreen() {
   const availableUnits = availableUnitsOf(listing);
   const totalUnits = totalUnitsOf(listing);
   const lowStock = isLowStock(availableUnits, totalUnits);
+  // SF-M4 (docs/SELL_FLOW_REDESIGN.md §4.2.2) — public-safe, never a name:
+  // this route (`GET /listings/:id`) never returns the owner-only `sale`
+  // block, so this screen can NEVER show "held for {name}" regardless of
+  // `isOwnListing` — only `MyListingDetail.tsx` (owner_detailed view) can.
+  const heldUnits = heldUnitsOf(listing);
 
   // Pull-to-refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -312,6 +325,15 @@ export default function ListingDetailScreen() {
     requireAuth(() => setShowMessageSheet(true), authReturnTo, AUTH_INTENT.message);
   }, [requireAuth, authReturnTo]);
 
+  // SF-M6 — the quantity intent is scoped to a single attempt at the sheet:
+  // reset to 1 on close (whether sent, cancelled, or dismissed) so a later,
+  // separate "Message seller" tap never silently inherits a stale count from
+  // an earlier, abandoned one (docs/SELL_FLOW_REDESIGN.md §4.2.3).
+  const handleCloseMessageSheet = useCallback(() => {
+    setShowMessageSheet(false);
+    setMessageQuantity(1);
+  }, []);
+
   const handleSaveToggle = useCallback(() => {
     // Capture the current saved state at tap time and pass it to the mutation.
     requireAuth(() => saveMutation.mutate(isSaved), authReturnTo, AUTH_INTENT.save);
@@ -415,8 +437,14 @@ export default function ListingDetailScreen() {
   const photos = listing.images?.length ? listing.images : [];
   const categoryName = getCategoryName(listing.category);
   const isOwnListing = !!currentUser && currentUser.id === listing.seller?.id;
-  // CTA only shown for active listings the current user does NOT own
-  const canContact = listing.status === "active" && !isOwnListing;
+  // SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.2.1) — reserved is no longer a dead
+  // end: the backend keeps a reserved listing live and message-able (SF-B1),
+  // so the buyer still gets the normal Message/Offer row, not the "see
+  // similar" recovery block below. Only `sold` (and any other non-live
+  // status, e.g. draft/removed) is a genuine dead end. Hoisted into
+  // listingAvailability.ts (mirrors threadAvailability.ts's split) so this
+  // guard is unit-tested directly rather than only through a full-screen render.
+  const canContact = canContactListing({ listing, isOwnListing });
   // TASK-G083 / TASK-N071: treat missing/undefined negotiable as true (negotiable by default).
   // When the backend ships the negotiable flag and it is explicitly false, hide the
   // "Make an Offer" button and OfferSheet entirely.
@@ -433,6 +461,16 @@ export default function ListingDetailScreen() {
             listing.status === "sold"
               ? t("listing.detail.soldNotice")
               : t("listing.detail.reservedNotice")
+          }
+          // SF-M3 (docs/SELL_FLOW_REDESIGN.md §5.3) — the ribbon itself is
+          // KEPT for reserved (only the dead-end block below it changes); this
+          // second line is what tells a buyer WHY they can still message a
+          // listing that visibly says "Reserved". Sold needs no such note —
+          // it's terminal, and the same line there would be a false promise.
+          subtitle={
+            listing.status === "reserved"
+              ? t("listing.detail.reservedStillAvailableNote")
+              : undefined
           }
           layout="strip"
           reduceMotion={reduceMotion}
@@ -517,12 +555,20 @@ export default function ListingDetailScreen() {
             >
               <Badge
                 label={
-                  lowStock
+                  (lowStock
                     ? t("listing.stock.leftOfTotal", {
                         available: formatNumber(availableUnits),
                         total: formatNumber(totalUnits),
                       })
-                    : t("listing.stock.inStock", { count: availableUnits })
+                    : t("listing.stock.inStock", { count: availableUnits })) +
+                  // SF-M4 (docs/SELL_FLOW_REDESIGN.md §4.2.2) — held-units
+                  // transparency, PUBLIC/buyer phrasing (never a name: this
+                  // screen's endpoint never returns the owner-only `sale`
+                  // block). Appended, not a separate pill — one shared "here's
+                  // the real position" fact.
+                  (heldUnits > 0
+                    ? ` · ${t("listing.stock.held", { count: heldUnits })}`
+                    : "")
                 }
                 // Amber only when it is genuinely running out — the same token
                 // StatusBadge already uses for "reserved", not a new colour.
@@ -753,7 +799,14 @@ export default function ListingDetailScreen() {
             <SellerPhoneReveal
               phone={listing.seller.phone}
               isOwnListing={isOwnListing}
-              isActive={listing.status === "active"}
+              // SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.2.1, flagged for
+              // feature-builder to resolve): reserved is now contactable via
+              // Message, so the direct-call reveal follows the same rule —
+              // a reserved listing is "still for sale, someone is first in
+              // line", not unavailable. Renamed from `isActive` to
+              // `isContactable` to name what it actually gates now that it's
+              // no longer literally `status === "active"`.
+              isContactable={canContact}
               authReturnTo={authReturnTo}
             />
           ) : null}
@@ -949,14 +1002,56 @@ export default function ListingDetailScreen() {
                 {t("chat.offer.firmNotice")}
               </Text>
             )}
+
+            {/* Buyer-side quantity INTENT (SF-M6) — an enquiry, never a cart.
+                Gated on the server's own `multiUnit` flag via `hasStockToShow`
+                (the same gate every other stock UI on this screen already
+                uses), never a client-side `quantity > 1` guess — so a
+                single-item listing renders NOTHING here, byte-identical to
+                before this ticket. This value never calls an API and never
+                implies a hold/reservation/purchase — it only feeds
+                FirstMessageSheet's prefilled message text below (docs/
+                SELL_FLOW_REDESIGN.md §4.2.3, §3.3's explicit flag on this
+                exact control). */}
+            {hasStockToShow(listing) && (
+              <View style={{ marginBottom: 12 }} testID="listing-detail-quantity-intent">
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontWeight: "600",
+                    color: colors.mutedForeground,
+                    marginBottom: 6,
+                    textAlign: isRtl ? "right" : "left",
+                  }}
+                >
+                  {t("listing.detail.quantityAskingLabel")}
+                </Text>
+                <QuantityStepper
+                  value={messageQuantity}
+                  onChange={setMessageQuantity}
+                  min={1}
+                  max={Math.max(availableUnits, 1)}
+                  testID="listing-detail-quantity-stepper"
+                  accessibilityLabel={t("listing.detail.quantityAskingLabel")}
+                />
+              </View>
+            )}
+
             <View
               style={{
                 flexDirection: isRtl ? "row-reverse" : "row",
                 gap: 10,
               }}
             >
-              {/* Make an Offer — secondary, narrower. Hidden if listing is non-negotiable. */}
-              {isNegotiable && (
+              {/* Make an Offer — secondary, narrower. Hidden if listing is
+                  non-negotiable OR reserved. SF-M3 (docs/SELL_FLOW_REDESIGN.md
+                  §4.2.1/§3.2): now that `canContact` (above) includes
+                  `reserved`, this needs its OWN explicit status check —
+                  previously it only worked because `canContact` hid the whole
+                  block for anything non-active. Offers stay paused on a
+                  reserved listing (a specific buyer's hold is already in
+                  progress) even though messaging itself no longer is. */}
+              {canOfferOnListing({ listing, isNegotiable }) && (
                 <Button
                   variant="outline"
                   onPress={handleOpenOffer}
@@ -1003,12 +1098,17 @@ export default function ListingDetailScreen() {
               {t("listing.detail.ownListingNotice")}
             </Text>
           </View>
-        ) : listing.status === "sold" || listing.status === "reserved" ? (
-          /* TASK-N317: the sold/reserved dead end — was a flat notice box with
-             no next action. Now offers "See similar in {category}" (+ a ±30%
-             price band when the already-fetched `similar` rail proves it holds
-             live stock) and "More from {seller}", degrading to whichever of
-             the two is actually reachable, never an empty button row. */
+        ) : isListingDeadEnd(listing.status) ? (
+          /* TASK-N317, narrowed by SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.2.1):
+             this is now a SOLD-ONLY dead end. A reserved, not-owned listing
+             falls into the `canContact` branch above instead (the normal
+             Message/Offer row, Offer hidden) — it's still for sale, someone
+             is just first in line. Only a terminal `sold` listing has
+             nowhere left to go, hence "See similar in {category}" (+ a ±30%
+             price band when the already-fetched `similar` rail proves it
+             holds live stock) and "More from {seller}", degrading to
+             whichever of the two is actually reachable, never an empty
+             button row. */
           <ListingUnavailableActions
             status={listing.status}
             category={listing.category}
@@ -1093,12 +1193,13 @@ export default function ListingDetailScreen() {
       {listing && (
         <FirstMessageSheet
           visible={showMessageSheet}
-          onClose={() => setShowMessageSheet(false)}
+          onClose={handleCloseMessageSheet}
           listingId={listing.id}
           listingTitle={listing.title}
           listingPrice={listing.price}
           listingCurrency={listing.currency}
           perUnit={hasStockToShow(listing)}
+          quantity={messageQuantity}
         />
       )}
 
