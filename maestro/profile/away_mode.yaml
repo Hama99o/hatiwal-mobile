@@ -29,12 +29,19 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 # ── Toggle Away Mode ON ───────────────────────────────────────────────
 # `scrollTo` is not a Maestro command — the selector form is
 # `scrollUntilVisible` with an `element:` wrapper.
+#
+# Tap the ROW, not the label. The label was a bare Text inside a plain View, so
+# tapping it toggled nothing and the "Away until" field below — rendered only while
+# the toggle is on — never appeared. EditProfile now wraps the row in a Pressable
+# (edit-profile-away-row), the way ListingForm does for negotiable, so a flow and a
+# thumb land on the same target. NOTE: needs an APK newer than 2026-08-26 19:21.
 - scrollUntilVisible:
     element:
-      text: "I'm away \\(temporarily unavailable\\)"
+      id: "edit-profile-away-row"
     direction: DOWN
     timeout: 15000
-- tapOn: "I'm away \\(temporarily unavailable\\)"
+- tapOn:
+    id: "edit-profile-away-row"
 
 # Away until date field appears
 # Parentheses ESCAPED. The app really does render "Away until (YYYY-MM-DD)" — it is
@@ -57,13 +64,16 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 
 # Save
 - tapOn: "Save Changes"
-# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
-# single check right after an action is a race — and any wait in front of it
-# loses that race, turning a successful action red. Polling keeps the check at
-# full strength while removing the timing dependency.
+# NOT the toast. EditProfile raises toast.success(...) and calls
+# router.replace("/(main)/(tabs)/profile") in the very next statement, so the
+# message renders on a screen being torn down and no amount of polling can catch
+# it — edit_profile went red this way while the app was working. Saving lands us
+# back on Profile, where the away banner is gated on user.isAway && user.awayUntil
+# (Profile.tsx:753). That is the stronger check: it proves the write reached the
+# API and came back, which the toast never did.
 - extendedWaitUntil:
-    visible: "Profile saved"
-    timeout: 15000
+    visible: "You're marked away until .*"
+    timeout: 20000
 
 # ── Verify AwayBanner appears on public profile ───────────────────────
 # Navigate to own profile, then to public profile via a listing
@@ -100,21 +110,26 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
     id: "profile-edit-button"
 # `scrollTo` is not a Maestro command — the selector form is
 # `scrollUntilVisible` with an `element:` wrapper.
+#
+# Tap the ROW, not the label. The label was a bare Text inside a plain View, so
+# tapping it toggled nothing and the "Away until" field below — rendered only while
+# the toggle is on — never appeared. EditProfile now wraps the row in a Pressable
+# (edit-profile-away-row), the way ListingForm does for negotiable, so a flow and a
+# thumb land on the same target. NOTE: needs an APK newer than 2026-08-26 19:21.
 - scrollUntilVisible:
     element:
-      text: "I'm away \\(temporarily unavailable\\)"
+      id: "edit-profile-away-row"
     direction: DOWN
     timeout: 15000
-- tapOn: "I'm away \\(temporarily unavailable\\)"
+- tapOn:
+    id: "edit-profile-away-row"
 
 # Confirm the date field disappears
 - assertNotVisible: "Away until \\(YYYY-MM-DD\\)"
 
 - tapOn: "Save Changes"
-# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
-# single check right after an action is a race — and any wait in front of it
-# loses that race, turning a successful action red. Polling keeps the check at
-# full strength while removing the timing dependency.
+# Same reason as the first save: assert the durable consequence, not the toast.
+# Away is OFF now, so the banner must be GONE from the profile we land back on.
 - extendedWaitUntil:
-    visible: "Profile saved"
-    timeout: 15000
+    notVisible: "You're marked away until .*"
+    timeout: 20000

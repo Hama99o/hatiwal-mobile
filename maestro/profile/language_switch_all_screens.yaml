@@ -96,15 +96,21 @@ appId: com.hatiwal.app
 # `profile.info` IS rendered (the PERSONAL INFO card heading), and it is translated,
 # so it proves the same thing this was trying to prove. Scrolled to, because the
 # card sits below the header block.
+#
+# NAVIGATE FIRST. The restart brings the app back on its initial route — the Bazaar
+# feed — not on the screen the switch was made from, so this scroll used to hunt a
+# Profile card heading through the feed and report "No visible element found". The
+# tap below was already here, just AFTER the assertion instead of before it.
+#
+# Tapping the Dari tab label "من" is itself part of the coverage: it proves the tab
+# bar came back re-rendered in Dari.
+- tapOn: "من"
+- waitForAnimationToEnd
 - scrollUntilVisible:
     element:
       text: "اطلاعات شخصی"
     direction: DOWN
     timeout: 20000
-
-# Navigate profile tab using new Dari tab label "من"
-- tapOn: "من"
-- waitForAnimationToEnd
 # No tap on the Language row: it sits near the bottom of Profile and `tapOn` never
 # scrolls — this flow says exactly that further up and then did it anyway. The
 # helper below scrolls to the row AND expands it, so the tap is unnecessary as well
@@ -127,4 +133,8 @@ appId: com.hatiwal.app
 # Not "Edit" either, though that IS a real control here: it lives in
 # PersonalInfoCard, well below the fold, so asserting it without a scroll
 # just trades one guaranteed failure for another.
+# Same as above: the restart landed us on the feed, and "Switch to ..." is the mode
+# toggle on the PROFILE screen. Reach it by testID — the label has just changed
+# language, so it is the one thing that cannot be used to navigate here.
+- runFlow: ../_helpers/goto_profile_tab.yaml
 - assertVisible: "Switch to .*"

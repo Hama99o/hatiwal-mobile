@@ -1,18 +1,30 @@
 appId: com.hatiwal.app
 ---
-# Wait out the app restart that a language switch causes.
+# Waits out the app RESTART that a language switch causes (the language store calls
+# reloadApp() -> RNRestart.restart(), "reload for a clean apply"). The app comes
+# back on its INITIAL route — the Bazaar feed — NOT on the screen the switch was
+# made from, so callers must navigate explicitly afterwards.
 #
-# applyLanguageFromUser() calls I18nManager.forceRTL and then reloadApp() whenever the
-# text DIRECTION changes, because React Native cannot flip direction without a reload.
-# `waitForAnimationToEnd` does not wait for a process to come back, so a tap placed
-# straight after the switch races the reload: it lands on a screen that is being torn
-# down, and the flow then fails three steps later on something that looks unrelated.
+# This used to wait only on `browse-tab`, which was TOOTHLESS: the tab bar is on
+# screen BEFORE the restart as well, so the condition was already true and the wait
+# returned instantly. The flow then tapped into an app that was about to be torn
+# down, the restart discarded the navigation, and the flow carried on against the
+# feed. That is what failed change_language_english ("No visible element found:
+# Sign Out" — hunting the Profile screen's Sign Out through the Bazaar feed),
+# profile_dark and theme_persists_after_navigate. The callers that stay on the feed
+# never noticed, and change_language_pashto/dari only escaped because they go on to
+# wait for Pashto text, which genuinely cannot exist until the restart is done.
 #
-# This is a WAIT, not an action — where the app did not restart (a same-direction
-# switch, ps -> fa) it passes immediately and costs nothing. That is why it is safe to
-# call after every language switch rather than only the ones known to flip.
+# A listing card is the marker because it is FALSE BEFORE and TRUE AFTER: the
+# switch is made from the Profile screen, which renders no ListingCard, and the
+# feed we come back to is built from them. Waiting on it also proves the restarted
+# app has finished booting and fetching, which is the actual precondition.
 - extendedWaitUntil:
     visible:
       id: "browse-tab"
     timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 45000
 - waitForAnimationToEnd

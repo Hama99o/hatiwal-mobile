@@ -1,0 +1,82 @@
+appId: com.hatiwal.app
+---
+# DIAGNOSTIC, not coverage. Settles why every flow that taps a province fails
+# (edit_profile_province, edit_profile_all_fields, full_marketplace_cycle — 3 of 3,
+# the select path has never once been proven to work).
+#
+# Evidence so far, from run-257 step-096's hierarchy at the moment of failure:
+#   - "Select Province" present  -> the sheet was still OPEN
+#   - "Save Changes"  ABSENT     -> a native Modal replaces the window, so the form
+#                                   behind it is not merely off-screen, it is gone
+#                                   from the tree (hence "No visible element found")
+#   - "Search provinces" present -> the search box was showing its PLACEHOLDER
+#   - "Kandahar" absent, 10 province-option rows -> the list was NOT filtered
+#
+# So neither the typing nor the row tap appears to have registered. Both work in
+# the identical LocationRangePicker sheet (create_listing_publish_direct passes),
+# so this is not a generic native-Modal problem.
+#
+# Three questions, in order. The probe stops at the first failure, and WHICH step
+# fails is the answer:
+#   Q1 typing lands?      -> "Bamyan" must disappear once "Kandahar" is typed
+#   Q2 row tap closes?    -> "Select Province" must go away  (if THIS is the
+#                            failure, the sheet does not close on select = APP BUG)
+#   Q3 form reachable?    -> "Save Changes" back in the tree, province now Kandahar
+#
+# Run by hand when the device is free:
+#   ./qa/qa.sh flow _diag/probe_province_select
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "profile-edit-button"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "profile-edit-button"
+- waitForAnimationToEnd
+
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-province-picker"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "edit-profile-province-picker"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "province-search-input"
+    timeout: 20000
+# Baseline: the sheet is open and unfiltered.
+- assertVisible: "Bamyan"
+
+# --- Q1: does typing reach the search box? ---
+- tapOn:
+    id: "province-search-input"
+- eraseText
+- inputText: "Kandahar"
+- waitForAnimationToEnd
+# Bamyan cannot survive the "Kandahar" filter. If this fails, the text never landed.
+- assertNotVisible: "Bamyan"
+
+# --- Q2: does tapping a row close the sheet? ---
+- tapOn:
+    id: "province-option"
+    index: 0
+- waitForAnimationToEnd
+# handleSelect calls onSelect, and EditProfile's onSelect sets the sheet invisible
+# (EditProfile.tsx:507-510). If this fails, that close is not happening = APP BUG.
+- extendedWaitUntil:
+    notVisible: "Select Province"
+    timeout: 10000
+
+# --- Q3: is the form reachable again, with the province applied? ---
+- scrollUntilVisible:
+    element:
+      text: "Save Changes"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Kandahar"

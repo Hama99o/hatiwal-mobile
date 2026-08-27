@@ -54,4 +54,15 @@ appId: com.hatiwal.app
 # characters or less". Maestro matches the WHOLE string, so "Bio is too long"
 # could never match — the app renders the message correctly (EditProfile's
 # errorMsg() translates the zod key), the assertion was just wrong.
+#
+# Scroll back UP to it. The error renders beside the bio field, and the flow has
+# just scrolled DOWN past the whole away section to reach Save, so the message sits
+# above the viewport: in the tree, not visible — which is what the bare assertion
+# reported ("Assertion is false: ... is visible") while the app was behaving
+# correctly. 520 characters really are typed, so the error is owed.
+- scrollUntilVisible:
+    element:
+      text: "Bio must be 500 characters or less"
+    direction: UP
+    timeout: 20000
 - assertVisible: "Bio must be 500 characters or less"

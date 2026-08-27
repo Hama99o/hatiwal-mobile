@@ -36,9 +36,7 @@ appId: com.hatiwal.app
 # Restarts the app (theme.store.ts:26) — it returns on the Bazaar feed, so come back
 # deliberately rather than assuming this screen survived. See UI-048.
 - runFlow: ../_helpers/await_theme_restart.yaml
-- tapOn:
-    id: "profile-tab"
-- waitForAnimationToEnd
+- runFlow: ../_helpers/goto_profile_tab.yaml
 - extendedWaitUntil:
     visible: "Edit Profile"
     timeout: 20000
@@ -144,9 +142,7 @@ appId: com.hatiwal.app
 # Restarts the app (theme.store.ts:26) — it returns on the Bazaar feed, so come back
 # deliberately rather than assuming this screen survived. See UI-048.
 - runFlow: ../_helpers/await_theme_restart.yaml
-- tapOn:
-    id: "profile-tab"
-- waitForAnimationToEnd
+- runFlow: ../_helpers/goto_profile_tab.yaml
 - extendedWaitUntil:
     visible: "Edit Profile"
     timeout: 20000

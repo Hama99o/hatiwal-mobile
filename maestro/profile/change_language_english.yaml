@@ -24,9 +24,7 @@ appId: com.hatiwal.app
 # forceRTL -> reloadApp), so it comes back on the Bazaar feed. The assertions below are
 # profile rows, so return there explicitly — waiting for `browse-tab`, as the helper does,
 # only proves the app is back, not which screen is showing.
-- tapOn:
-    id: "profile-tab"
-- waitForAnimationToEnd
+- runFlow: ../_helpers/goto_profile_tab.yaml
 # Now switch back to English — text may be in Pashto but English option exists
 - scrollUntilVisible:
     element:
@@ -46,9 +44,7 @@ appId: com.hatiwal.app
 # forceRTL -> reloadApp), so it comes back on the Bazaar feed. The assertions below are
 # profile rows, so return there explicitly — waiting for `browse-tab`, as the helper does,
 # only proves the app is back, not which screen is showing.
-- tapOn:
-    id: "profile-tab"
-- waitForAnimationToEnd
+- runFlow: ../_helpers/goto_profile_tab.yaml
 # Layout is LTR again
 # "Sign Out" (profile.logout) is at the BOTTOM of the profile screen, below the
 # stats, quick actions and settings rows — so it needs a scroll. `tapOn` and

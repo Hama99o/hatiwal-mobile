@@ -560,39 +560,54 @@ export default function EditProfileScreen() {
             icon={<PlaneTakeoff size={15} color={colors.mutedForeground} />}
           />
 
-          {/* Toggle row */}
-          <View
-            style={{
-              flexDirection: isRtl ? "row-reverse" : "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingVertical: 4,
-              marginBottom: isAwayToggle ? 14 : 0,
-            }}
-          >
-            <Text style={{ fontSize: 15, color: colors.foreground, flex: 1 }}>
-              {t("profile.away.toggle")}
-            </Text>
-            <Controller
-              control={control}
-              name="isAwayToggle"
-              render={({ field: { value, onChange } }) => (
-                <RNSwitch
-                  value={!!value}
-                  onValueChange={(checked: boolean) => {
-                    onChange(checked);
-                    // When toggling off, clear the date field too
-                    if (!checked) {
-                      setValue("awayUntilDate", "", { shouldDirty: true });
-                    }
+          {/* Toggle row — the WHOLE row toggles, mirroring the negotiable row in
+              ListingForm (listing-form-negotiable-row). It used to be a plain
+              View: the label sat there looking tappable and did nothing, which on
+              a phone is where people actually aim. With no testID on the switch
+              either, nothing could reach the toggle by name — away_mode tapped the
+              label, no toggle happened, and the "Away until" date field it then
+              looked for is rendered only while the toggle is on. */}
+          <Controller
+            control={control}
+            name="isAwayToggle"
+            render={({ field: { value, onChange } }) => {
+              // Toggling off clears the date too, from wherever the row is driven.
+              const setAway = (checked: boolean) => {
+                onChange(checked);
+                if (!checked) {
+                  setValue("awayUntilDate", "", { shouldDirty: true });
+                }
+              };
+              return (
+                <Pressable
+                  onPress={() => setAway(!value)}
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: !!value }}
+                  accessibilityLabel={t("profile.away.toggle")}
+                  testID="edit-profile-away-row"
+                  style={{
+                    flexDirection: isRtl ? "row-reverse" : "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingVertical: 4,
+                    marginBottom: isAwayToggle ? 14 : 0,
                   }}
-                  trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor={colors.primaryForeground}
-                  ios_backgroundColor={colors.border}
-                />
-              )}
-            />
-          </View>
+                >
+                  <Text style={{ fontSize: 15, color: colors.foreground, flex: 1 }}>
+                    {t("profile.away.toggle")}
+                  </Text>
+                  <RNSwitch
+                    testID="edit-profile-away-switch"
+                    value={!!value}
+                    onValueChange={setAway}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor={colors.primaryForeground}
+                    ios_backgroundColor={colors.border}
+                  />
+                </Pressable>
+              );
+            }}
+          />
 
           {/* Date input — only shown when toggle is ON */}
           {!!isAwayToggle && (

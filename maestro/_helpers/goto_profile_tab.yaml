@@ -1,0 +1,28 @@
+appId: com.hatiwal.app
+---
+# Goes to the Profile tab and PROVES it got there.
+#
+# Use this instead of a bare `tapOn: id: profile-tab` after a theme or language
+# switch. Those switches restart the app, and a tap that lands while the restart is
+# still in flight is simply discarded: the app comes back on its initial route (the
+# Bazaar feed) and the flow carries on against the wrong screen. Waiting for the tab
+# bar does not catch it — the tab bar renders on every tab.
+#
+# profile-edit-button is the marker: it exists only on the Profile screen, and it
+# sits at y~2103 of 2400, so it is on screen without scrolling. Re-tapping the tab
+# when already on Profile is a no-op, so the guard is safe if it fires spuriously.
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      notVisible:
+        id: "profile-edit-button"
+    commands:
+      - tapOn:
+          id: "profile-tab"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "profile-edit-button"
+    timeout: 20000

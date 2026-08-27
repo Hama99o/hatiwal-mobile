@@ -30,9 +30,7 @@ appId: com.hatiwal.app
 # comes back on the Bazaar feed, not here. That is UI-048: this flow then looked for
 # "Sign Out" and the next one for a theme pill, both on a screen they had left.
 - runFlow: ../_helpers/await_theme_restart.yaml
-- tapOn:
-    id: "profile-tab"
-- waitForAnimationToEnd
+- runFlow: ../_helpers/goto_profile_tab.yaml
 # Profile-only, so a lost screen fails HERE rather than on a row further down.
 - extendedWaitUntil:
     visible: "Edit Profile"

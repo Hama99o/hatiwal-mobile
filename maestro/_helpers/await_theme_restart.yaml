@@ -1,26 +1,30 @@
 appId: com.hatiwal.app
 ---
-# Wait out the app restart that a THEME switch causes.
+# Waits out the app RESTART that a theme switch causes (theme.store.ts:17-28 calls
+# reloadApp() -> RNRestart.restart(), "reload for a clean apply"). The app comes
+# back on its INITIAL route — the Bazaar feed — NOT on the screen the switch was
+# made from, so callers must navigate explicitly afterwards.
 #
-# theme.store.ts's setTheme persists the choice and then calls reloadApp() whenever the
-# value actually changed (line 26) — reloadApp is RNRestart.restart(), a full native
-# restart, and the store's own comment says why: "Android's live theme swap can be janky",
-# so it reloads for a clean apply.
+# This used to wait only on `browse-tab`, which was TOOTHLESS: the tab bar is on
+# screen BEFORE the restart as well, so the condition was already true and the wait
+# returned instantly. The flow then tapped into an app that was about to be torn
+# down, the restart discarded the navigation, and the flow carried on against the
+# feed. That is what failed change_language_english ("No visible element found:
+# Sign Out" — hunting the Profile screen's Sign Out through the Bazaar feed),
+# profile_dark and theme_persists_after_navigate. The callers that stay on the feed
+# never noticed, and change_language_pashto/dari only escaped because they go on to
+# wait for Pashto text, which genuinely cannot exist until the restart is done.
 #
-# The consequence is the one that cost two flows (UI-048): the app comes back on its
-# INITIAL ROUTE — the Bazaar feed — not on the screen you switched the theme from. Both
-# profile_dark and theme_persists_after_navigate carried on looking for profile rows and
-# failed on "Sign Out" and a theme pill, with the failure-time screenshots showing the
-# Bazaar feed in dark mode. The theme had applied perfectly; the screen had moved.
-#
-# So: call this after every theme switch, and then NAVIGATE EXPLICITLY to wherever you
-# need to be. Waiting for `browse-tab` proves the app is back, NOT which screen is
-# showing — the tab bar renders on every tab.
-#
-# Mirrors _helpers/await_language_restart.yaml, which exists for the same reason on the
-# language path (applyLanguageFromUser -> forceRTL -> reloadApp).
+# A listing card is the marker because it is FALSE BEFORE and TRUE AFTER: the
+# switch is made from the Profile screen, which renders no ListingCard, and the
+# feed we come back to is built from them. Waiting on it also proves the restarted
+# app has finished booting and fetching, which is the actual precondition.
 - extendedWaitUntil:
     visible:
       id: "browse-tab"
     timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 45000
 - waitForAnimationToEnd
