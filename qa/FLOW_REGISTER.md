@@ -10,16 +10,16 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**91 of 235 flows passing** · 142 still need attention
+**102 of 235 flows passing** · 132 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 91 | green, and no backend error underneath |
-| FAIL-assert | 79 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 102 | green, and no backend error underneath |
+| FAIL-assert | 74 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 20 | failed, cause unclear — read the log |
-| (rig) | 2 | rig broke mid-run — result meaningless, re-run |
-| UNTESTED | 42 | never executed |
+| FAIL-? | 16 | failed, cause unclear — read the log |
+| (rig) | 1 | rig broke mid-run — result meaningless, re-run |
+| UNTESTED | 41 | never executed |
 
 ### Definition of done
 
@@ -28,53 +28,6 @@ screen looked correct while the request failed, which is precisely the
 bug class a user reports as "nothing happened".
 
 ## Flows
-
-## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
-
-9/40 passing · 30 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `create_listing` | PASS | s2/run-151 | 310 |  |  |
-| `create_listing_all_fields` | FAIL-assert | s2/run-151 | 260 |  | [Failed] create_listing_all_fields (3m 59s) (Assertion is false: "Cover" is visible) |
-| `create_listing_category_search` | PASS | s2/run-151 | 271 |  |  |
-| `create_listing_currency_eur` | FAIL-assert | s2/run-151 | 314 |  | [Failed] create_listing_currency_eur (4m 50s) (Assertion is false: "Listing saved" is visible) |
-| `create_listing_currency_usd` | (rig) ⚠slow | s2/run-151 | 852 |  |  |
-| `create_listing_draft_discard` | PASS | s2/run-151 | 243 |  |  |
-| `create_listing_draft_restore` | FAIL-assert | s2/run-151 | 259 |  | [Failed] create_listing_draft_restore (3m 56s) (Element not found: Text matching regex: Description) |
-| `create_listing_full_publish` | PASS | s2/run-151 | 363 |  | AxiosError |
-| `create_listing_multi_quantity` | PASS | s2/run-151 | 252 | fixed | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
-| `create_listing_price_edges` | PASS | s2/run-151 | 305 |  |  |
-| `create_listing_publish_blocked` | FAIL-assert | s2/run-151 | 264 |  | [Failed] create_listing_publish_blocked (4m 3s) (Element not found: Text matching regex: Tap to set exact loca |
-| `create_listing_publish_direct` | FAIL-assert | s2/run-151 | 235 |  | [Failed] create_listing_publish_direct (3m 37s) (Assertion is false: "Cover" is visible) |
-| `create_listing_publish_requirements` | FAIL-assert | s2/run-151 | 276 |  | [Failed] create_listing_publish_requirements (4m 16s) (Assertion is false: "A live listing needs at least one  |
-| `create_listing_quantity_edges` | FAIL-assert | s2/run-151 | 255 |  | [Failed] create_listing_quantity_edges (3m 58s) (Assertion is false: "999" is visible) |
-| `create_listing_title_edges` | PASS | s2/run-151 | 271 |  |  |
-| `create_listing_validation` | PASS | s2/run-151 | 233 |  |  |
-| `create_listing_with_condition` | FAIL-assert | s2/run-151 | 231 |  | [Failed] create_listing_with_condition (3m 32s) (Assertion is false: "Cover" is visible) |
-| `create_listing_with_photos` | FAIL-assert | s2/run-151 | 219 |  | [Failed] create_listing_with_photos (3m 21s) (Assertion is false: "Cover" is visible) |
-| `delete_listing` | FAIL-assert | s2/run-151 | 211 |  | [Failed] delete_listing (3m 15s) (Element not found: Text matching regex: Delete Listing) |
-| `draft_lifecycle` | FAIL-assert | s2/run-151 | 260 |  | [Failed] draft_lifecycle (4m 4s) (Element not found: Text matching regex: Publish) |
-| `edit_listing` | FAIL-? | s2/run-151 | 224 |  | [Failed] edit_listing (3m 29s) (No visible element found: "Edit") |
-| `edit_listing_all_fields` | FAIL-? | s2/run-151 | 221 | flow | Same "Save" label fix. |
-| `edit_listing_discard` | FAIL-? | s2/run-151 | 220 |  | [Failed] edit_listing_discard (3m 23s) (No visible element found: "Edit") |
-| `edit_listing_quantity` | FAIL-assert | s2/run-151 | 197 |  | [Failed] edit_listing_quantity (3m) (Assertion is false: "QA Phone Cases Bulk 15" is visible) |
-| `edit_listing_remove_photo` | FAIL-? | s2/run-151 | 220 | flow | Same "Save" label fix. |
-| `edit_listing_reorder_photos` | FAIL-? | s2/run-151 | 211 | flow | HOLLOW: one tap only selects; the swap needs a second. Now asserts the hint clears. |
-| `expired_listing_badge` | FAIL-assert | s2/run-151 | 216 |  | [Failed] expired_listing_badge (3m 20s) (Assertion is false: "Renew" is visible) |
-| `lifecycle_publish` | FAIL-assert | s2/run-151 | 161 |  | [Failed] lifecycle_publish (2m 24s) (Assertion is false: "Switch to .*" is visible) |
-| `lifecycle_reactivate` | FAIL-? | s2/run-151 | 470 |  | [Failed] lifecycle_reactivate (7m 33s) (No visible element found: id: lifecycle-more-action) |
-| `lifecycle_reserve` | FAIL-assert | s2/run-151 | 222 |  | [Failed] lifecycle_reserve (3m 24s) (Element not found: Text matching regex: Mark as Reserved) |
-| `lifecycle_sold` | FAIL-? | s2/run-151 | 498 |  | [Failed] lifecycle_sold (8m) (No visible element found: id: lifecycle-primary-action) |
-| `lifecycle_unpublish` | FAIL-? | s2/run-151 | 232 |  | [Failed] lifecycle_unpublish (3m 34s) (No visible element found: id: lifecycle-more-action) |
-| `listing_analytics_sparkline` | FAIL-assert | s2/run-151 | 213 | flow | ${selectorExists()} does not exist, and its 2nd arg was a translation key. |
-| `listing_conversations_list` | PASS | s2/run-151 | 213 | flow | Tapped "chats"; card renders "{{count}} chats". |
-| `listing_renew_flow` | FAIL-assert | s2/run-151 | 223 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/login_seller.yaml:53:31 |
-| `listing_status_counts` | FAIL-assert | s2/run-151 | 230 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/login_seller.yaml:53:31 |
-| `my_listing_detail_view` | FAIL-assert | s2/run-151 | 209 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/login_seller.yaml:53:31 |
-| `my_listings_filter_tabs` | FAIL-assert | s2/run-151 | 211 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/login_seller.yaml:53:31 |
-| `my_listings_search` | FAIL-assert | s2/run-151 | 220 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/login_seller.yaml:53:31 |
-| `price_drop_after_edit` | FAIL-? | s2/run-151 | 212 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/login_seller.yaml:53:31 |
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
@@ -172,6 +125,53 @@ bug class a user reports as "nothing happened".
 | `profile_quick_actions_rtl` | UNTESTED | — |  |  |  |
 | `profile_rtl` | UNTESTED | — |  |  |  |
 
+## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
+
+18/40 passing · 5 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `create_listing` | PASS | run-252 | 268 |  |  |
+| `create_listing_all_fields` | FAIL-assert ⟳stale | run-252 | 260 | flow | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
+| `create_listing_category_search` | PASS | run-252 | 176 |  |  |
+| `create_listing_currency_eur` | FAIL-assert ⟳stale | run-252 | 224 | flow | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
+| `create_listing_currency_usd` | PASS | run-252 | 238 | flow | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
+| `create_listing_draft_discard` | PASS | run-252 | 161 |  |  |
+| `create_listing_draft_restore` | FAIL-assert ⟳stale | run-252 | 252 | flow | "Draft saved" is a toast from toast.success; a bare assert races it. Now polls. |
+| `create_listing_full_publish` | PASS | run-252 | 247 |  | AxiosError |
+| `create_listing_multi_quantity` | PASS | run-252 | 199 | fixed | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
+| `create_listing_price_edges` | PASS | run-252 | 207 |  |  |
+| `create_listing_publish_blocked` | FAIL-assert ⟳stale | run-252 | 229 | flow | Touched the form before the location sheet closed; the helper allows 45s for it. |
+| `create_listing_publish_direct` | PASS | run-252 | 285 |  |  |
+| `create_listing_publish_requirements` | PASS | run-252 | 206 |  |  |
+| `create_listing_quantity_edges` | FAIL-assert ⟳stale | run-252 | 210 | flow | Field maps empty to 1, so eraseText appends. Blur-then-focus lets selectTextOnFocus replace. |
+| `create_listing_title_edges` | FAIL-assert | run-252 | 446 | env | Login gate timed out at 60s under host load; flow never ran its own steps. |
+| `create_listing_validation` | PASS | run-252 | 187 |  |  |
+| `create_listing_with_condition` | FAIL-assert ⟳stale | run-252 | 469 | flow | Tapped a title sitting in the search box, so the tap hit the input. Card testID now. |
+| `create_listing_with_photos` | PASS | run-252 | 276 |  |  |
+| `delete_listing` | FAIL-assert ⟳stale | run-252 | 233 | flow | Toast unwaitable: onDeleted does router.replace, so it fires on a dying screen. Asserts the outcome. |
+| `draft_lifecycle` | FAIL-assert ⟳stale | run-252 | 261 | flow | Never confirmed the native publish dialog; now via confirm_dialog (android:id/button1). |
+| `edit_listing` | PASS | run-252 | 227 |  |  |
+| `edit_listing_all_fields` | FAIL-? ⟳stale | run-252 | 166 | flow | Reached for lifecycle-more-action (detail-only) from the list. Card ⋮ route now. |
+| `edit_listing_discard` | FAIL-? | run-252 | 169 | flow | Same detail-control-from-the-list mistake; identical opening in four flows. |
+| `edit_listing_quantity` | PASS | run-252 | 211 |  |  |
+| `edit_listing_remove_photo` | FAIL-assert ⟳stale | run-252 | 169 | flow | Phantom "Remove" confirm (removePhoto has no dialog); also needed a photo to exist. |
+| `edit_listing_reorder_photos` | FAIL-assert | run-252 | 171 | flow | HOLLOW: one tap only selects. Now two taps, asserts the hint clears, attaches 2 photos. |
+| `expired_listing_badge` | FAIL-assert | run-252 | 168 | fixture | No expired listing existed at all; expires_at was never seeded. Fixture added. |
+| `lifecycle_publish` | FAIL-assert ⟳stale | run-252 | 176 | fixture | Draft tab index 0 was a photoless QA draft, so publish was blocked. Seeded "Ready To Publish Draft". |
+| `lifecycle_reactivate` | FAIL-? ⟳stale | run-252 | 184 | flow | Detail control with the card sheet already open; sheet offers listing-action-activate. |
+| `lifecycle_reserve` | PASS | run-252 | 175 |  |  |
+| `lifecycle_sold` | PASS | run-252 | 179 |  |  |
+| `lifecycle_unpublish` | PASS | run-252 | 175 |  |  |
+| `listing_analytics_sparkline` | FAIL-assert ⟳stale | run-252 | 168 | flow | Analytics does not render for a draft ({!isDraft}); needed the Active tab, not just a scroll. |
+| `listing_conversations_list` | PASS | run-252 | 161 | flow | Tapped "chats"; the card renders "{{count}} chats". |
+| `listing_renew_flow` | FAIL-assert | run-252 | 167 | fixture | Needed the expired fixture; nothing to renew before it existed. |
+| `listing_status_counts` | FAIL-assert ⟳stale | run-252 | 182 | flow | "Sold" is the last tab in a horizontal scroller; scrollUntilVisible swipes at screen centre. |
+| `my_listing_detail_view` | FAIL-? ⟳stale | run-252 | 168 | flow | Same draft-gated analytics; Active tab first. |
+| `my_listings_filter_tabs` | FAIL-? ⟳stale | run-252 | 176 | flow | Same clipped last tab; coordinate swipe across the row. |
+| `my_listings_search` | PASS | run-252 | 168 | flow | Asserted a bare "No"; now asserts the absence of cards instead of empty-state copy. |
+| `price_drop_after_edit` | FAIL-assert ⟳stale | run-252 | 195 | flow | hideKeyboard is Back and popped the edit form — first of the five sites the handbook predicted. |
+
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state
 
 23/44 passing · 5 open
@@ -218,21 +218,10 @@ bug class a user reports as "nothing happened".
 | `send_message_offline` | FAIL-assert ⟳stale | run-249 | 189 | flow | hideKeyboard is Back on Android and popped the conversation; "Send" was on another screen. |
 | `send_message_whitespace` | PASS | run-249 | 171 |  |  |
 | `send_multiple_messages` | PASS | run-249 | 206 |  |  |
-| `send_photo` | FAIL-assert ⟳stale | run-249 | 218 | flow | Asserted "common.close" — a t() KEY copied from a Jest test where i18next is uninitialised. |
+| `send_photo` | FAIL-assert ⟳stale | run-249 | 218 | flow | Asserted "common.close" — a t() KEY copied from a Jest test. |
 | `start_conversation` | FAIL-? | run-249 | 162 | fixture | RIG-005: Wool Blanket had drifted to sold, so it left the browsable feed. Re-seeded. |
 | `start_conversation_and_reply` | FAIL-assert | run-249 | 193 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
 | `view_other_profile_from_conversation` | FAIL-assert ⟳stale | run-249 | 220 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
-
-## `mode` — Buyer ↔ seller mode switch, tab bar, persistence
-
-0/4 passing · 4 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `seller_mode_my_listings_empty` | FAIL-assert | s2/run-156 | 114 |  | [Failed] seller_mode_my_listings_empty (1m 39s) (Element not found: Text matching regex: Sign In) |
-| `seller_mode_persists` | UNTESTED | — |  |  |  |
-| `seller_mode_tab_bar_changes` | FAIL-assert | s2/run-156 | 172 |  | [Failed] seller_mode_tab_bar_changes (2m 34s) (Element not found: Id matching regex: mode-switcher-banner) |
-| `seller_views_own_listing_buyer_mode` | FAIL-assert | s2/run-156 | 208 |  | [Failed] seller_views_own_listing_buyer_mode (3m 11s) (Assertion is false: "Buyer Mode" is visible) |
 
 ## `reviews` — Double-blind reviews after a sold transaction
 
@@ -243,6 +232,17 @@ bug class a user reports as "nothing happened".
 | `pending_reviews_nudge` | UNTESTED | — |  |  |  |
 | `profile_reviews_empty_state` | UNTESTED | — |  |  |  |
 | `rate_buyer_after_sale` | UNTESTED | — |  |  |  |
+
+## `mode` — Buyer ↔ seller mode switch, tab bar, persistence
+
+2/4 passing · 2 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `seller_mode_my_listings_empty` | FAIL-assert ⚠1 | run-254 | 132 | fixture | new_seller@hatiwal.test was referenced by the flow and seeded nowhere. |
+| `seller_mode_persists` | PASS | run-254 | 272 |  |  |
+| `seller_mode_tab_bar_changes` | PASS | run-254 | 164 |  |  |
+| `seller_views_own_listing_buyer_mode` | FAIL-assert | run-254 | 228 | flow | Searched the feed for "seller"; search matches titles, so it found nothing. |
 
 ## `safety` — Safety tips on listing detail and in the meetup sheet
 
@@ -357,12 +357,12 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `create_listing_map_pin` | PASS | s2/run-156 | 254 |  |  |
-| `filter_map_default_kabul` | PASS | s2/run-156 | 164 |  |  |
-| `filter_map_location_denied` | PASS | s2/run-156 | 183 |  |  |
-| `filter_map_use_my_location` | PASS | s2/run-156 | 169 |  |  |
-| `filter_map_use_my_location_granted` | PASS | s2/run-156 | 153 |  |  |
-| `map_location_outside_afghanistan` | PASS | s2/run-156 | 191 |  |  |
+| `create_listing_map_pin` | PASS | run-253 | 230 |  |  |
+| `filter_map_default_kabul` | PASS | run-253 | 167 |  |  |
+| `filter_map_location_denied` | PASS | run-253 | 189 |  |  |
+| `filter_map_use_my_location` | PASS | run-253 | 174 |  |  |
+| `filter_map_use_my_location_granted` | PASS | run-253 | 163 |  |  |
+| `map_location_outside_afghanistan` | PASS | run-253 | 190 |  |  |
 
 ## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
 
@@ -370,8 +370,8 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `listing_create_multi_photos` | FAIL-assert ⟳stale | run-251 | 318 | flow | Asserted the reorder hint with nothing selected; hint is gated on selectedIdx !== -1. |
-| `listing_edit_add_photos` | FAIL-assert ⟳stale | run-251 | 203 | flow | Published listing saves via common.save = "Save", not "Save Changes" (that is Edit Profile's). |
+| `listing_create_multi_photos` | FAIL-assert ⟳stale | run-251 | 318 | flow | Asserted the reorder hint with nothing selected; hint needs selectedIdx !== -1. |
+| `listing_edit_add_photos` | FAIL-assert ⟳stale | run-251 | 203 | flow | Published listing saves via common.save = "Save"; "Save Changes" is Edit Profile's. |
 | `listing_gallery_no_photo` | PASS | run-251 | 192 |  |  |
 | `listing_gallery_swipe` | PASS | run-251 | 153 |  |  |
 
