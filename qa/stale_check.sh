@@ -58,6 +58,15 @@ PY
     printf '%-38s %-8s %s\n' "$flow" "ENV" "died in ${secs}s with no failure recorded — re-run, nothing to fix"
     continue
   fi
+  # The login helpers gate on `extendedWaitUntil: visible: id: profile-tab` with a 60s
+  # timeout, and Maestro reports that timeout as "Assertion is false: id: profile-tab is
+  # visible". That is the login not completing in a minute, which on a loaded host is a
+  # host problem and not the flow's — the flow's own steps were never reached. Naming it
+  # keeps the next session from triaging a create-listing flow for a login failure.
+  if [ -s "$xml" ] && grep -qa 'profile-tab is visible' "$xml"; then
+    printf '%-38s %-8s %s\n' "$flow" "LOGIN" "login gate timed out in ${secs:-?}s — host load; re-run before triaging"
+    continue
+  fi
   if [ "$has_failure" = no ]; then
     printf '%-38s %-8s %s\n' "$flow" "NO-EVID" "failed in ${secs:-?}s but captured no <failure> — read the log"
     continue
