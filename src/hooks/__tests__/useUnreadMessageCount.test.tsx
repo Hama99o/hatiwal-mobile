@@ -35,7 +35,13 @@ jest.mock("@/stores/auth.store", () => ({
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // gcTime: 0 as well as retry: false — an idle cache entry keeps a garbage-collection
+  // timer alive for 5 minutes by default, and that timer (not the hook's poll, which
+  // the unmounts below stop) is what makes jest report "did not exit one second after
+  // the test run has completed" for this file.
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
 }
 
