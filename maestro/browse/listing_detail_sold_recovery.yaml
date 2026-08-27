@@ -38,7 +38,34 @@ appId: com.hatiwal.app
     stopApp: true
 - runFlow: ../_helpers/open_bundle.yaml
 - runFlow: ../_helpers/skip_onboarding.yaml
+# Let the app finish STARTING before firing the link. These flows launch with
+# clearState: true, so the splash and the auth bootstrap are still deciding where to go;
+# their router.replace lands after the link and silently discards it, leaving the app on
+# the feed. That is precisely what the failing hierarchy showed — 6 listing-cards and
+# not one detail element — and the scroll then burned 20s hunting a control that was on
+# a screen the flow never reached.
+#
+# share/open_seller_deep_link is the same shape and PASSES; its only difference is
+# clearState: false, i.e. no startup navigation left to run.
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 60000
 - openLink: "hatiwal://listing/${SOLD_LISTING_ID}"
+- waitForAnimationToEnd
+# Prove the link actually landed before asserting anything about the screen, and re-fire
+# it once if the app is still on the feed.
+- runFlow:
+    when:
+      visible:
+        id: "listing-card"
+    commands:
+      - openLink: "hatiwal://listing/${SOLD_LISTING_ID}"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-unavailable-actions"
+    timeout: 20000
 # The seller row sits below the photo, price and description on the listing
 # detail, so it needs a scroll — neither assertVisible nor tapOn scrolls to its
 # target, and this failed as `id: seller-profile-link is visible` being false on

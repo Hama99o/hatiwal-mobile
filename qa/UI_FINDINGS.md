@@ -2318,3 +2318,38 @@ price on screen is the kind of thing a buyer notices once and never forgives.
 
 The narrow version of the fix, if wanted: require `price < recent_price_drop.old_price`
 before reporting a percentage.
+
+---
+
+## OPEN QUESTION: does a shared listing link work on a FRESH install?
+
+Three listing deep-link flows fail while the one seller deep-link flow passes, and the
+only structural difference is `clearState`. The seller flow launches with
+`clearState: false`; the listing flows use `true`, and their hierarchy at failure shows
+the Bazaar feed — six listing cards, not one detail element. So on a cold start the
+link is arriving and then being discarded by the startup navigation (splash + auth
+bootstrap `router.replace`), which lands after it.
+
+The flows are now fixed to wait for the app to settle before firing the link, and to
+re-fire once if the app is still on the feed. **That does not answer the product
+question**, and it is worth being explicit about why: Maestro sends the link to an
+app that is ALREADY RUNNING, whereas a real person tapping a shared link on a fresh
+install has the OS launch the app WITH the URL, which expo-router picks up through
+`getInitialURL` — a different code path that nothing in this suite exercises.
+
+That path matters commercially. This marketplace has no web app, so a shared listing is
+the only way a seller can show a stranger what they are selling; if the first thing a
+new user sees after installing is the generic feed instead of the item they were sent,
+the referral is wasted.
+
+The test, when the device is free (it must NOT be run while a flow holds the device):
+
+```bash
+adb -s emulator-5580 shell pm clear com.hatiwal.app
+adb -s emulator-5580 shell am start -W -a android.intent.action.VIEW \
+  -d 'hatiwal://listing/82' com.hatiwal.app
+# then check whether the listing detail is showing, or the feed
+```
+
+If that lands on the feed too, it is a real bug and the fix belongs in the startup
+navigation: it must not replace a route that an initial URL has already set.

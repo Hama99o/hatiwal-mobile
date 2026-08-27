@@ -54,8 +54,8 @@ bug class a user reports as "nothing happened".
 | `listing_detail_saves_count` | UNTESTED | — |  | flow — tapped the save TOGGLE blind and unsaved it, so savesCount hit 0; now state-aware |  |
 | `listing_detail_share` | UNTESTED | — |  |  |  |
 | `listing_detail_similar` | UNTESTED | — |  |  |  |
-| `listing_detail_sold_recovery` | UNTESTED | — |  | flow | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
-| `listing_detail_sold_state` | UNTESTED | — |  |  |  |
+| `listing_detail_sold_recovery` | UNTESTED | — |  | flow — cold-start deep link discarded by startup nav; waits for settle + re-fires. See UI_FINDINGS | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
+| `listing_detail_sold_state` | UNTESTED | — |  | flow — same cold-start deep-link loss; fixed alongside sold_recovery |  |
 | `listing_detail_views_count` | UNTESTED | — |  |  |  |
 | `not_interested` | UNTESTED | — |  |  |  |
 | `saved_search_apply` | UNTESTED | — |  |  |  |
