@@ -37,11 +37,13 @@ appId: com.hatiwal.app
 # Attaching two here makes the swap below meaningful regardless of what the listing
 # started with. No seeded fixture can supply this: the only photo-bearing seeded listing
 # is the Lenovo, shared by eight flows and sold by two of them.
-- tapOn: "Add Photos"
+- tapOn:
+      id: "photos-add-button"
 - waitForAnimationToEnd
 - runFlow: ../_helpers/attach_photo_from_gallery.yaml
 - waitForAnimationToEnd
-- tapOn: "Add Photos"
+- tapOn:
+      id: "photos-add-button"
 - waitForAnimationToEnd
 - runFlow: ../_helpers/attach_photo_from_gallery.yaml
 - waitForAnimationToEnd

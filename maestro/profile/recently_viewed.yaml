@@ -48,10 +48,19 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Scroll down to find the "Recently Viewed" row in the Activity section
+# By testID, centred, with a timeout. This scroll had none of the three: the
+# shorthand `element: "..."` form, no timeout, and no centring — so it stopped as
+# soon as the row edged onto the screen, which can leave it under the gesture bar
+# where the tap is swallowed (see QA_HANDBOOK, "scrollUntilVisible stops at
+# visible"). The row had no testID at all until now.
 - scrollUntilVisible:
-    element: "Recently Viewed"
+    element:
+      id: "profile-row-recently-viewed"
     direction: DOWN
-- tapOn: "Recently Viewed"
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "profile-row-recently-viewed"
 - waitForAnimationToEnd
 
 # Verify the screen title is shown in the native header

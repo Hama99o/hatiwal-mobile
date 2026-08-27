@@ -12,6 +12,16 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Expired"
 
+# WAIT for the list, not just the animation. Selecting a status tab fires a fresh
+# /my/listings?status=expired request, and waitForAnimationToEnd does not wait on the
+# network — so the flow tapped into a list that was still empty. Verified from the
+# API directly that the data is fine (1 row: "Expired Winter Coat Size L", active,
+# expires_at 3 days ago) and the rig recorded api_errors=0, so nothing was broken
+# here except the timing. The status tabs have no testID, hence the text tap above.
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
 # Open expired listing
 # The card itself, not one of its action buttons. A bare `tapOn: index: 0` has no
 # selector: it matches every element on screen, so this tapped whatever landed at

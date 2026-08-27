@@ -1009,6 +1009,9 @@ function SettingsSection({
 
         <Button
           variant="ghost"
+          // Its sibling row already had profile-row-hidden-listings; this one was
+          // reachable only by its translated label, so a flow had to tap text.
+          testID="profile-row-recently-viewed"
           onPress={() => router.push("/(main)/recently-viewed" as never)}
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",

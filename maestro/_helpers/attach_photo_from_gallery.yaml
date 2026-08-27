@@ -27,9 +27,17 @@ appId: com.hatiwal.app
 # reason that has nothing to do with the app.
 
 # Some entry points show a source chooser first (Gallery / Camera).
+# By testID, and NOT optional. "Gallery" as text was optional, so when the source
+# sheet had not opened the tap silently did nothing, every later step no-opped too,
+# and the failure surfaced 30s later as "Element not found: listing-form-photo-thumb"
+# — pointing at the form instead of at the picker that never appeared. The app gives
+# this button a handle: PhotosSection.tsx:553.
+- extendedWaitUntil:
+    visible:
+      id: "photos-add-button-gallery"
+    timeout: 15000
 - tapOn:
-    text: "Gallery"
-    optional: true
+    id: "photos-add-button-gallery"
 - waitForAnimationToEnd
 
 # Select the first photo. These are the labels Android's picker gives gallery
