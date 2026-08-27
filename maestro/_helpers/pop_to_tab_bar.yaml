@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# Pops back until the tab bar is reachable. A no-op when it already is.
+#
+# Pushed screens — a conversation, a listing detail — have no tab bar, so tapping any
+# *-tab there fails with "Element not found: chat-tab", which reads like a missing
+# testID rather than a flow standing on the wrong screen. audit_structure walks the
+# flows and catches it; it found five doing exactly this.
+#
+# browse-tab is the probe because every tab bar renders it, whichever tab is selected.
+# Two attempts because a flow can be two screens deep (feed -> detail -> gallery, or
+# inbox -> conversation -> other profile).
+- runFlow:
+    when:
+      notVisible:
+        id: "browse-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      notVisible:
+        id: "browse-tab"
+    commands:
+      - back
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "browse-tab"
+    timeout: 15000

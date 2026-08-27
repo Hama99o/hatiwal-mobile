@@ -135,7 +135,7 @@ def check_menus(steps, where, findings):
                 open_menu = None
 
 
-def check_navigation(steps, where, findings):
+def check_navigation(steps, where, findings, spec_path=None):
     """`steps` is one flow's ordered step list."""
     pushed = None
     for step in steps:
@@ -149,6 +149,17 @@ def check_navigation(steps, where, findings):
         if "launchApp" in step:
             pushed = None
             continue
+        # A runFlow to a HELPER FILE that pops also counts. _helpers/pop_to_tab_bar
+        # exists precisely to make the tab bar reachable — its whole contract is "after
+        # this, browse-tab is present" — and its `back`s live inside `when:` guards, so
+        # reading only inline commands missed it and this audit went on reporting five
+        # defects that had just been fixed.
+        if "runFlow" in step and isinstance(step["runFlow"], str) and spec_path:
+            helper = (pathlib.Path(spec_path).parent / step["runFlow"]).resolve()
+            if helper.is_file() and "- back" in helper.read_text():
+                pushed = None
+            continue
+
         # A guarded pop counts as a pop: it pops when the bar is absent, which is
         # exactly the case being checked.
         if "runFlow" in step and isinstance(step["runFlow"], dict):
@@ -157,7 +168,7 @@ def check_navigation(steps, where, findings):
             if any(c == "back" or (isinstance(c, dict) and "back" in c) for c in cmds):
                 pushed = None
                 continue
-            check_navigation(cmds, where, findings)
+            check_navigation(cmds, where, findings, spec_path)
             continue
         for key in ("tapOn", "doubleTapOn", "longPressOn"):
             if key not in step:
@@ -200,7 +211,7 @@ def main() -> int:
         walk(docs, "", local)
         for doc in docs:
             if isinstance(doc, list):
-                check_navigation(doc, "", local)
+                check_navigation(doc, "", local, p)
                 check_menus(doc, "", local)
         findings += [(f"{p}{w}", msg) for w, msg in local]
 

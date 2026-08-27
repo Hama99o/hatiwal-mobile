@@ -122,6 +122,10 @@ appId: com.hatiwal.app
 # bubble — this flow used to relaunch as the same user and tap "Accept", which
 # is why run-232 reported "Element not found: Accept" here.
 - runFlow: ../_helpers/login_seller.yaml
+# No tab bar on a pushed screen, so this tap used to fail with "Element not
+# found" on a testID that exists — audit_structure flags it. The helper pops
+# back until the bar is there, and does nothing when it already is.
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd

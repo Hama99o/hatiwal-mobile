@@ -169,6 +169,10 @@ appId: com.hatiwal.app
 # never matches; the leading `.*` covers both the currency code and that space.
 - assertVisible: ".*3,500"
 # Save it
+# No tab bar on a pushed screen, so this tap used to fail with "Element not
+# found" on a testID that exists — audit_structure flags it. The helper pops
+# back until the bar is there, and does nothing when it already is.
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
 - tapOn:
     # The heart on listing detail is `save-toggle-button` — added when this
     # class of failure was traced (its label is localized AND flips on isSaved,
@@ -297,6 +301,10 @@ appId: com.hatiwal.app
 - assertVisible: "Offer accepted"
 
 # ── Step 5: Seller marks listing reserved then sold ──────────────────────────
+# No tab bar on a pushed screen, so this tap used to fail with "Element not
+# found" on a testID that exists — audit_structure flags it. The helper pops
+# back until the bar is there, and does nothing when it already is.
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd

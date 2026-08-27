@@ -67,6 +67,10 @@ appId: com.hatiwal.app
 
 # ── The buyer sees the dead end ───────────────────────
 - runFlow: ../_helpers/login.yaml
+# No tab bar on a pushed screen, so this tap used to fail with "Element not
+# found" on a testID that exists — audit_structure flags it. The helper pops
+# back until the bar is there, and does nothing when it already is.
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
