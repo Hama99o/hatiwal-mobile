@@ -61,13 +61,22 @@ appId: com.hatiwal.app
 
 # Save using the primary save button (for an active listing this is "Save",
 # NOT "Save Draft" — "Save Draft" would move the listing back to draft status)
-# Dismiss the IME before submitting. The keyboard covers the lower half of a
-# form, and Maestro still reports the tap COMPLETED — it finds the element in
-# the hierarchy and taps its bounds, while the touch lands on the keyboard. On
-# the login screen that swallowed EVERY sign-in in the suite: no request ever
-# reached the API and the flow blamed a missing tab bar 60s later.
-- hideKeyboard
-- waitForAnimationToEnd
+# NO hideKeyboard. On Android it IS the Back button, and on this pushed edit form it
+# popped the screen — so "Save" really was gone, and the flow failed with "Element not
+# found: Text matching regex: Save". This was one of five sites flagged in
+# QA_HANDBOOK.md when send_message_offline proved the same thing on the conversation
+# screen: the note said a missing control straight after a hideKeyboard is the first
+# thing to check. It was.
+#
+# The concern in the old comment is real — a tap can land on the keyboard while Maestro
+# reports it completed — but a scroll answers it, not Back.
+# create_listing_publish_direct passes doing exactly this: type, scroll, tap submit, no
+# keyboard dismissal anywhere.
+- scrollUntilVisible:
+    element:
+      text: "Save"
+    direction: DOWN
+    timeout: 20000
 - tapOn: "Save"
 - waitForAnimationToEnd
 

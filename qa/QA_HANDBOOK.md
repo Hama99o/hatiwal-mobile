@@ -1426,9 +1426,25 @@ executed, so none is yet evidence:
 | `listings/create_listing_with_condition` | `tapOn: "Condition Test Laptop"` |
 
 Deliberately NOT pre-emptively edited. Removing `hideKeyboard` where the IME really
-does cover the target would break a flow that currently works, and none of these has
+does cover the target would break a flow that currently works, and none of these had
 run. When one fails on a missing control right after a `hideKeyboard`, this is the
 first thing to check — and the fix is a one-line deletion.
+
+**UPDATE — the first of the five came in.** `price_drop_after_edit` failed with
+"Element not found: Text matching regex: Save", with `hideKeyboard` two lines above the
+tap. The prediction held, and waiting for the failure was the right call: it cost one
+flow run and produced certainty, where a pre-emptive sweep of all five would have been
+a guess about each.
+
+One correction to "the fix is a one-line deletion". Deleting it alone would have left the
+concern its own comment raised — the keyboard covering the submit, with Maestro
+reporting the tap completed anyway. A scroll answers that; Back does not.
+`create_listing_publish_direct` passes doing exactly type → scroll → tap submit, with no
+keyboard dismissal anywhere, so that is the shape to copy.
+
+Four sites remain (`report_listing`, `publish_success`,
+`multi_quantity_partial_sale` ×2, `create_listing_with_condition`), still unrun for this
+step and still left alone.
 
 ### Superseded: the earlier "could not reproduce" note
 
