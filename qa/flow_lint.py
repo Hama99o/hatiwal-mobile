@@ -16,6 +16,9 @@ failure classes already paid for:
   JSFUNC     ${visible(...)} / ${selectorExists(...)} — not in Maestro 2.7.0's JS
              sandbox; raises TypeError and asserts nothing. The .log does not show
              it; only the .xml does.
+  REGEXMETA  A literal with an unescaped `$`, which anchors the end of the pattern
+             rather than meaning a dollar sign. Cost: create_listing_currency_usd
+             asserting "$450", which could never match.
   KEYPATH    A literal that is a t() key path ("common.close") rather than the
              string it renders. Cost: send_photo, copied from a Jest expectation
              where i18next is not initialised and the key IS what comes back.
@@ -179,7 +182,14 @@ def check(path):
             re.search(r'^\s*text:\s*"([^"]+)"', l)
         if m:
             lit = m.group(1)
-            if KEYISH.match(lit) and lit in KEY_PATHS:
+            # A bare `$` is a regex end-anchor, not a dollar sign. "$450" reads as
+            # "end-of-string then 450" and matches nothing — create_listing_currency_usd
+            # asserted exactly that. Maestro's own ${var} syntax is stripped first.
+            probe = re.sub(r'\$\{[^}]*\}', '', lit)
+            if '$' in probe and '\\$' not in probe:
+                hits.append((i, "REGEXMETA",
+                             f'{lit!r} has an unescaped $ — a regex end-anchor'))
+            elif KEYISH.match(lit) and lit in KEY_PATHS:
                 hits.append((i, "KEYPATH",
                              f'{lit!r} is a translation KEY, not the rendered value'))
             elif re.fullmatch(r'"?(19|20)\d\d"?', lit):
@@ -238,7 +248,7 @@ if "--selftest" in sys.argv:
     fixture = os.path.join(ROOT, "qa/testdata/lint_synthetic.yaml")
     hits = check(fixture)
     got = {k for _, k, _ in hits}
-    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED", "ROLE", "KEYPATH"}
+    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED", "ROLE", "KEYPATH", "REGEXMETA"}
     for line, kind, why in hits:
         print(f"  L{line:<3} {kind:<10} {why[:56]}")
     missing = need - got

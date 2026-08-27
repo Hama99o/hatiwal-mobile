@@ -10,6 +10,8 @@ appId: com.hatiwal.app
 - assertVisible:
     id: "something"
     optional: true                         # TOOTHLESS
+# REGEXMETA — `$` is an end-anchor, so this matches nothing.
+- assertVisible: "$450"
 # KEYPATH — the t() key, not the string it renders.
 - assertVisible: "common.close"
 - inputText: "Zzq quite a distinctive sentence typed by this flow"

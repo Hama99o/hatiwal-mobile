@@ -92,4 +92,9 @@ appId: com.hatiwal.app
 # Open the listing — price shows $450
 - tapOn: "iPhone 14 Pro — USD Test"
 - waitForAnimationToEnd
-- assertVisible: "$450"
+# "$450" is not a literal — matching is a regex, and `$` anchors the END of the
+# string, so the pattern reads "end-of-string followed by 450" and can never match
+# anything. Intl also renders the amount and symbol as one node ("$450.00"), so even
+# an escaped \$450 would miss the cents.
+- assertVisible: ".*450.*"
+- assertVisible: ".*\\$.*"

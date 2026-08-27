@@ -80,8 +80,26 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- tapOn: "EUR Currency Test Item"
+# SEARCH for it. My Shop's list is virtualised, so a card that has not been rendered
+# yet is absent from the hierarchy entirely — which is why this failed with "Element
+# not found" rather than "No visible element found", and why the new draft's position
+# among the seller's dozen listings mattered.
+- tapOn: "Search my listings..."
+- inputText: "EUR Currency Test Item"
+- waitForAnimationToEnd
+# By CARD testID, not the title: the title is now sitting in the search box, higher in
+# the hierarchy than the results, so a text match lands on the input.
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
+- tapOn:
+    id: "seller-listing-card"
+    index: 0
 - waitForAnimationToEnd
 # Price should display with EUR formatting
-- assertVisible: "250"
-- assertVisible: "€"
+# Wildcards: Intl formats the amount and the symbol into ONE node ("€250.00"), so
+# neither bare literal can match an anchored full-string regex. Two assertions rather
+# than one combined pattern, because the symbol's side varies by locale.
+- assertVisible: ".*250.*"
+- assertVisible: ".*€.*"
