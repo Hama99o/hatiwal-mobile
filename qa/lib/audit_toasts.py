@@ -13,6 +13,15 @@ assert the durable consequence instead (a flipped menu item, a row leaving a lis
 a composer disappearing). Where nothing durable exists, that is itself worth
 knowing — UI-035 was found exactly that way.
 
+READ THE COMMENT ABOVE THE WAIT BEFORE TOUCHING IT. Every finding here is a
+hypothesis, not a defect, and some of these waits are LOAD-BEARING: in
+report/block_user the wait on "User blocked" is the barrier that lets the mutation
+settle before the menu is reopened, because blockMutation's onSuccess does
+setIsBlocked(true) AND setMenuVisible(false) — reopen too early and the success
+handler closes the menu again, so "Unblock User" never appears. A sweep that
+removed 14 of these "redundant" waits deleted that reasoning along with them and
+was reverted. Fix a flow here when it is actually red, one at a time.
+
 Reports every non-optional assertion on a string the app only ever shows via
 toast.success / toast.error / toast.info.
 """
@@ -76,7 +85,16 @@ def main():
     for p in sorted((MOBILE / "maestro").rglob("*.yaml")):
         lines = p.read_text().split("\n")
         for i, ln in enumerate(lines):
+            # `extendedWaitUntil` counts too. It LOOKS like the careful version —
+            # polling instead of one check — but it cannot help when the toast is
+            # raised immediately before a router.replace: the message renders on a
+            # screen being torn down, so there is nothing left to poll for. Missing
+            # this shape is why this audit reported a clean suite while edit_profile
+            # and away_mode were failing on exactly what it exists to catch.
             m = re.match(r'^-\s*assertVisible:\s*"(.+)"$', ln.strip())
+            if not m and re.match(r'^visible:\s*"(.+)"$', ln.strip()):
+                if "extendedWaitUntil" in "\n".join(lines[max(0, i - 3):i]):
+                    m = re.match(r'^visible:\s*"(.+)"$', ln.strip())
             if not m:
                 continue
             text = m.group(1)

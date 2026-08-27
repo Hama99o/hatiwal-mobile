@@ -251,6 +251,36 @@ So when a change is a bulk insertion, the audit needs both halves:
 
 A passing audit only proves the question you asked was satisfied.
 
+## An audit finding is a hypothesis — and some "flaky" waits are barriers
+
+`audit_toasts.py` only looked at `assertVisible`, so it reported a clean suite while
+flows were failing on the thing it exists to catch. Extending it to `extendedWaitUntil`
+turned 0 findings into 24 — polling looks like the careful version, but it cannot help
+when the toast is raised immediately before a `router.replace`, because the message
+renders on a screen being torn down.
+
+Then I swept 14 of those 24 away wherever a durable assertion already followed, on the
+reasoning that the toast wait was redundant. It was not. In `report/block_user` the wait
+on "User blocked" is a SYNCHRONISATION BARRIER, and the comment above it said so:
+`blockMutation`'s onSuccess does `setIsBlocked(true)` AND `setMenuVisible(false)`, so
+reopening the menu before the mutation lands means the success handler closes it again
+and "Unblock User" never appears. The comment also noted there is deliberately no
+`waitForAnimationToEnd` in front of the wait, because that is what used to eat the
+toast. The sweep deleted the wait and the reasoning together; it was reverted.
+
+Two rules that would have prevented it:
+
+- **Read the comment above a step before removing the step.** In this suite the reason
+  a step exists is usually written directly above it, by whoever paid for it.
+- **Fix flows that are actually red, one at a time.** A survey is for finding
+  candidates and for sizing a problem, not for authorising a bulk edit. The same
+  instinct produced the "Save Changes" over-sweep earlier, where 6 of 10 flows edited
+  were correct as written.
+
+Reverting uncommitted work here needs care too: `git checkout --`, `git restore`,
+`git stash` and `git reset --hard` are all forbidden in this shared tree. Per-file
+`git show HEAD:path > path` restores exactly the files you touched and nothing else.
+
 ## Audits that correctly produce no change
 
 Keeping these written down so they are not re-derived, and so the sweep is not
