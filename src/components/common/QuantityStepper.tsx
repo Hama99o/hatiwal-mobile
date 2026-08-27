@@ -55,9 +55,16 @@ export interface QuantityStepperProps {
   accessibilityLabel?: string;
 }
 
-const DIMENSIONS: Record<QuantityStepperSize, { button: number; icon: number; fontSize: number }> = {
-  sm: { button: 32, icon: 14, fontSize: 14 },
-  md: { button: 40, icon: 16, fontSize: 17 },
+const DIMENSIONS: Record<
+  QuantityStepperSize,
+  { button: number; icon: number; fontSize: number; hitSlop: number }
+> = {
+  // `hitSlop` tops both sizes up to the design system's ≥44px touch-target
+  // floor (DESIGN_SYSTEM.md §3) without growing the visible chip — the
+  // `−`/`+` buttons render at their compact `button` size but still accept a
+  // touch out to `button + 2*hitSlop`.
+  sm: { button: 32, icon: 14, fontSize: 14, hitSlop: 8 },
+  md: { button: 40, icon: 16, fontSize: 17, hitSlop: 6 },
 };
 
 /** Clamps to `[min, max]` — the one place this component enforces its range. */
@@ -145,6 +152,7 @@ export function QuantityStepper({
         onPress={handleDecrement}
         disabled={decrementDisabled}
         style={{ width: dims.button, height: dims.button, minHeight: dims.button }}
+        hitSlop={dims.hitSlop}
         accessibilityRole="button"
         accessibilityLabel={t("common.decreaseQuantity")}
         testID={testID ? `${testID}-decrement` : undefined}
@@ -201,6 +209,7 @@ export function QuantityStepper({
         onPress={handleIncrement}
         disabled={incrementDisabled}
         style={{ width: dims.button, height: dims.button, minHeight: dims.button }}
+        hitSlop={dims.hitSlop}
         accessibilityRole="button"
         accessibilityLabel={t("common.increaseQuantity")}
         testID={testID ? `${testID}-increment` : undefined}

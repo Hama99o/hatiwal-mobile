@@ -179,7 +179,7 @@ export function BuyerPickerSheet({
   errorMessage,
 }: BuyerPickerSheetProps) {
   const { t } = useTranslation();
-  const { isRtl, formatCurrency } = useLocalization();
+  const { isRtl, formatCurrency, formatNumber } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
@@ -467,7 +467,11 @@ export function BuyerPickerSheet({
                       }}
                       testID="buyer-picker-quantity-hint"
                     >
-                      {t("listing.stock.unitsAvailable", { count: remainingQuantity ?? 1 })}
+                      {/* Design review fix — a bare JS number here renders Western
+                          digits even in Pashto/Dari; every other quantity-in-a-
+                          sentence in this app (StockBadge, SellerListingCard's
+                          counts) goes through `formatNumber` first. */}
+                      {t("listing.stock.unitsAvailable", { count: formatNumber(remainingQuantity ?? 1) })}
                     </Text>
                   </View>
                 )}
@@ -626,7 +630,11 @@ export function BuyerPickerSheet({
                       }}
                       testID="buyer-picker-quantity-hint"
                     >
-                      {t("listing.stock.unitsAvailable", { count: remainingQuantity ?? 1 })}
+                      {/* Design review fix — a bare JS number here renders Western
+                          digits even in Pashto/Dari; every other quantity-in-a-
+                          sentence in this app (StockBadge, SellerListingCard's
+                          counts) goes through `formatNumber` first. */}
+                      {t("listing.stock.unitsAvailable", { count: formatNumber(remainingQuantity ?? 1) })}
                     </Text>
                   </View>
                 )}

@@ -737,6 +737,15 @@ export default function ListingFormScreen() {
         setQuantityServerError(inlineQuantityMessage);
         toast.error(inlineQuantityMessage);
         AccessibilityInfo.announceForAccessibility(inlineQuantityMessage);
+        // Design review fix: the quantity input shares its wrapping section
+        // with "price" (`registerSectionY("price")` — see the field below),
+        // so a seller scrolled away (e.g. down at Description when they hit
+        // Save) saw only the toast, which fades, with the actual pinned
+        // message off-screen — the exact "pinned inline, not just a toast"
+        // promise this ticket makes, undone by scroll position. The
+        // publish-blocker path already scrolls to the first offending
+        // section; a save-time 422 deserves the same courtesy.
+        scrollToBlocker("price");
         return;
       }
       // Show the server's own reason ("Price must be less than or equal to

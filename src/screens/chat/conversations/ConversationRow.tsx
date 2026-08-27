@@ -114,8 +114,18 @@ export function ConversationRow({
   const other     = item.otherParticipant;
   const otherName = other?.name ?? "";
   const unread    = item.unreadCount ?? 0;
-  const isInactive =
-    item.listing?.status === "sold" || item.listing?.status === "reserved";
+  // Design review fix — SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.4.3) explicitly
+  // calls for dropping "reserved" from this exact condition ("a held
+  // conversation stays full-weight in the inbox; only sold dims") but it was
+  // never done: this row was still fading the thumbnail, muting the title
+  // and PriceTag, for a Live-with-a-hold listing exactly as if it were
+  // terminal `sold` — the same "reserved reads as a dead end" bug the rest
+  // of this redesign exists to fix, just in the inbox instead of the thread.
+  const isInactive = item.listing?.status === "sold";
+  // The lifecycle badge overlay is a DIFFERENT concern from dimming — a held
+  // listing still gets its "Reserved" ribbon (the badge IS the signal the
+  // redesign wants, §1.1/§1.2), it just no longer dims everything around it.
+  const hasLifecycleBadge = isInactive || item.listing?.status === "reserved";
 
   // TASK-R517 — this row's role hint, mapped from the serializer's
   // buyer/seller vocabulary to the screen's filter vocabulary so it can be
@@ -227,7 +237,7 @@ export function ConversationRow({
                 <Camera size={22} color={colors.mutedForeground} />
               </View>
             )}
-            {isInactive && item.listing?.status && (
+            {hasLifecycleBadge && item.listing?.status && (
               <StatusBadge
                 status={item.listing.status as ListingStatus}
                 overlay
@@ -268,7 +278,9 @@ export function ConversationRow({
             {/* Price (TASK-J471, design north star: price-prominence) — renders
                 null when the listing has no price (PriceTag itself returns null),
                 so no extra wrapper here to avoid an empty flex-gap slot. Muted
-                tone on a sold/reserved row, matching the dimmed title/thumbnail.
+                tone on a SOLD row only (SF-M3 — see `isInactive`'s own doc),
+                matching the dimmed title/thumbnail; a reserved/held row stays
+                full-weight and just gains the "Reserved" badge overlay.
                 TASK-J471 (review fix): the role pill (TASK-R517) used to live
                 in this row too — with a vehicles-scale price (e.g.
                 "AFN 1,250,000") and a >7-day-old timestamp (which includes the

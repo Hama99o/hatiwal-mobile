@@ -834,7 +834,7 @@ export function ConversationScreen() {
   // CACHE/DUPLICATION — shared with the pinned ListingHeader's own
   // `onLifecycleDone` below, so reserving from EITHER path refreshes My
   // Listings and the status-count chips, not just this conversation).
-  const handleReserveAfterAcceptConfirm = useCallback(async () => {
+  const handleReserveAfterAcceptConfirm = useCallback(async (quantity?: number) => {
     if (!reserveConfirm) return;
     const convId = currentConversationId;
     setIsReservingAfterAccept(true);
@@ -842,6 +842,14 @@ export function ConversationScreen() {
     setReserveConfirmError(null);
     const succeeded = await reserveAfterAccept(reserveConfirm, {
       t,
+      // Design review fix — this was never threaded through, so BOTH the
+      // O947 auto-prompt AND the SF-M2 manual "Place a hold" trigger placed
+      // every hold for exactly 1 unit no matter what the seller picked in
+      // the sheet's own quantity stepper (once that stepper could even
+      // render at all — see the `remainingQuantity` fix on this sheet's JSX
+      // above). `BuyerPickerSheet`'s `onConfirm` already hands back
+      // `result.quantity` — the caller just never read it.
+      quantity,
       onReserved: () => invalidateListingLifecycleQueries(convId),
       onError: setReserveConfirmError,
     });
@@ -2035,6 +2043,16 @@ export function ConversationScreen() {
           price={reserveConfirm.finalPrice}
           currency={reserveConfirm.currency}
           action="reserve"
+          // Design review fix (SF-M2/§4.4's own spec — "with the quantity
+          // stepper when multiUnit"): this prop was never threaded through,
+          // so `asksQuantity` (`(remainingQuantity ?? 1) > 1`) could never be
+          // true here — a seller could never hold more than 1 unit for a
+          // buyer from EITHER chat trigger (the auto-prompt after accepting
+          // an offer, or the manual "Place a hold" row), on a multi-unit
+          // listing, from chat, ever. `conversation.listing.availableUnits`
+          // is the same field `ListingHeader`'s OWN BuyerPickerSheet already
+          // reads for the mark-sold case — reused here for the reserve case.
+          remainingQuantity={conversation?.listing?.availableUnits ?? 1}
           preselectedBuyer={reserveConfirm.buyer}
           listingThumbnailUrl={conversation?.listing?.thumbnailUrl ?? null}
           listingTitle={conversation?.listing?.title ?? null}
@@ -2042,8 +2060,8 @@ export function ConversationScreen() {
           confirmBody={reserveConfirm.body}
           cancelLabel={t("chat.offer.reserveAfterAcceptDismiss")}
           errorMessage={reserveConfirmError}
-          onConfirm={() => {
-            void handleReserveAfterAcceptConfirm();
+          onConfirm={(result) => {
+            void handleReserveAfterAcceptConfirm(result.quantity);
           }}
           isSubmitting={isReservingAfterAccept}
         />

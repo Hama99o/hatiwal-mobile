@@ -409,3 +409,55 @@ describe("SF-M2 — Release hold on a HELD BATCH where status is still \"active\
     expect(screen.getByTestId("composer-action-place-hold")).toBeTruthy();
   });
 });
+
+// ─── 4. SF-M8 — the manual Place-a-hold path threads a MULTI-UNIT quantity ──
+//
+// Design review finding (marketplace-designer, already tracked as FlowApp
+// SF-M8): the confirm-mode `BuyerPickerSheet` this screen renders for
+// `reserveConfirm` (both the O947 auto-prompt-after-accept path AND this
+// manual "Place a hold" path — SAME sheet instance, SAME state) never passed
+// `remainingQuantity`, so `asksQuantity` (`(remainingQuantity ?? 1) > 1`)
+// could never be true here — the quantity field could never even render for
+// EITHER trigger, on ANY multi-unit listing, from chat. And even with the
+// field visible, `onConfirm={() => handleReserveAfterAcceptConfirm()}`
+// discarded the `result` `BuyerPickerSheet` hands back, so a seller's typed
+// quantity would still never reach `reserveListing`. Both wires are fixed on
+// the same JSX/handler this test renders.
+describe("SF-M8 — Place a hold on a MULTI-UNIT listing threads the typed quantity through", () => {
+  it("shows the quantity field (remainingQuantity now wired) and calls reserveListing with the typed count, not the default 1", async () => {
+    (conversationsAPI.getConversation as jest.Mock).mockResolvedValue(
+      makeConversation({ multiUnit: true, availableUnits: 10 })
+    );
+    (listingsAPI.getMyListing as jest.Mock).mockResolvedValue(
+      makeOwnerListingDetail({ status: "active", heldUnits: 0, multiUnit: true, availableUnits: 10, quantity: 15 })
+    );
+
+    renderScreen();
+    await openComposerSheet();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("composer-action-place-hold"));
+    });
+
+    await waitFor(() => expect(screen.getByTestId("buyer-picker-confirm")).toBeTruthy());
+    // The field this whole ticket is about — absent before the fix, because
+    // `remainingQuantity` was never passed and `asksQuantity` was always
+    // false for this sheet instance.
+    const quantityInput = screen.getByTestId("buyer-picker-quantity");
+    expect(quantityInput).toBeTruthy();
+
+    fireEvent.changeText(quantityInput, "3");
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
+    });
+
+    await waitFor(() =>
+      expect(listingsAPI.reserveListing).toHaveBeenCalledWith(42, {
+        buyerId: 7,
+        finalPrice: 14000,
+        quantity: 3,
+      })
+    );
+  });
+});

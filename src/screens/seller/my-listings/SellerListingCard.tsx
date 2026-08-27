@@ -18,6 +18,7 @@ import { BuyerPickerSheet } from "@/components/common/BuyerPickerSheet";
 import { ReviewPromptSheet } from "@/components/common/ReviewPromptSheet";
 import { ListingActionsSheet } from "@/components/common/ListingActionsSheet";
 import { type Listing } from "@/api/listings";
+import { heldUnitsOf } from "@/utils/stock";
 import { useListingLifecycle } from "@/hooks/useListingLifecycle";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
@@ -264,8 +265,17 @@ export function SellerListingCard({ listing, onMutated, viewMode = "list" }: Sel
                 all, which is why a seller reported "the count did not change when I sell
                 some in the list page" — there was nothing to change. The owner audience
                 switches to "5 of 8 left" once a sale has happened, which is the progress
-                a batch seller comes here to read. */}
-            <StockBadge listing={listing} audience="owner" testID="seller-card-stock" />
+                a batch seller comes here to read. `heldBuyerName` gives a multi-unit
+                hold the same "N held for Ahmad" clause the detail screen already has
+                (docs/SELL_FLOW_REDESIGN.md §4.5's "detail/card view" wording) — the
+                plain sale-line below is suppressed for exactly this case to avoid
+                saying the same buyer's name twice on one card. */}
+            <StockBadge
+              listing={listing}
+              audience="owner"
+              heldBuyerName={listing.sale?.buyer?.name}
+              testID="seller-card-stock"
+            />
             {isList && (
               <View testID="seller-card-status">{isExpired ? (
               <View style={{ backgroundColor: colors.warning, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
@@ -312,8 +322,15 @@ export function SellerListingCard({ listing, onMutated, viewMode = "list" }: Sel
               for the still-actionable "reserved" state) / `mutedForeground`
               (dimmed, for the archived "sold" state) both meet AA in light
               and dark. CR fix (LOW): guard `sale.buyer?.name` the same way
-              SaleBuyerCard does, instead of assuming it is always present. */}
-          {listing.sale && (
+              SaleBuyerCard does, instead of assuming it is always present.
+              Suppressed for a multi-unit OPEN hold specifically: the
+              `StockBadge` above already says "N held for {name}" (with the
+              count this line lacks) — showing both would name the same
+              buyer twice on one card. A single-item hold (no stock badge
+              renders at all) and every `sold` row keep this line as their
+              only buyer indicator. */}
+          {listing.sale &&
+            !(listing.multiUnit === true && listing.sale.status === "reserved" && heldUnitsOf(listing) > 0) && (
             <Text
               style={{
                 fontSize: 12,

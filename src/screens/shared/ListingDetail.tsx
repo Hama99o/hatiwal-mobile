@@ -48,6 +48,7 @@ import {
   Ban,
   Clock,
   ShieldCheck,
+  MessageCircle,
 } from "lucide-react-native";
 import Animated, {
   useSharedValue,
@@ -82,6 +83,7 @@ import { ListingMapSection } from "@/components/common/ListingMapSection";
 import { ReportSheet } from "@/components/common/ReportSheet";
 import { SafetyTipsSheet } from "@/components/common/SafetyTipsSheet";
 import { QuantityStepper } from "@/components/common/QuantityStepper";
+import { StockBadge } from "@/components/common/StockBadge";
 import { useAuthStore } from "@/stores/auth.store";
 
 import { ListingGallery } from "./listing-detail/ListingGallery";
@@ -97,7 +99,7 @@ import { AwayBanner } from "@/components/common/AwayBanner";
 import { useReduceMotion } from "@/lib/animation";
 import { getActiveLabelText } from "@/utils/activeLabelUtil";
 import { resolveShareUrl } from "@/utils/shareUtils";
-import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow, heldUnitsOf } from "@/utils/stock";
+import { availableUnitsOf, hasStockToShow } from "@/utils/stock";
 import { apiErrorMessage } from "@/utils/apiError";
 import { galleryHeight, GALLERY_ASPECT_RATIO } from "@/utils/gallery";
 
@@ -197,15 +199,11 @@ export default function ListingDetailScreen() {
 
   // Stock, derived once, from the shared rules in @/utils/stock so this screen,
   // the seller's own detail screen and the web client can never disagree about
-  // what counts as "low" on the same listing.
+  // what counts as "low" on the same listing. The rendered pill itself (incl.
+  // the SF-M4 "held" clause) lives in the shared `StockBadge` below — not
+  // re-derived here — `availableUnits` is kept only because the buyer-side
+  // quantity stepper needs it as its `max`.
   const availableUnits = availableUnitsOf(listing);
-  const totalUnits = totalUnitsOf(listing);
-  const lowStock = isLowStock(availableUnits, totalUnits);
-  // SF-M4 (docs/SELL_FLOW_REDESIGN.md §4.2.2) — public-safe, never a name:
-  // this route (`GET /listings/:id`) never returns the owner-only `sale`
-  // block, so this screen can NEVER show "held for {name}" regardless of
-  // `isOwnListing` — only `MyListingDetail.tsx` (owner_detailed view) can.
-  const heldUnits = heldUnitsOf(listing);
 
   // Pull-to-refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -540,42 +538,22 @@ export default function ListingDetailScreen() {
             perUnit={listing.multiUnit === true}
           />
 
-          {/* Stock — reuses the firm-price badge treatment below, deliberately:
-              no new visual language, and it renders ONLY for a multi-unit
-              listing, so a single-item listing is byte-identical to before.
-              Detail only, never the browse card: every card row is a
-              fixed-height slot (FlashList's grid needs equal heights) and a chip
-              would grow every card in the feed, including the single-item
-              majority. The buyer sees this before tapping Message, which is
-              where the decision is actually made. */}
-          {hasStockToShow(listing) && (
-            <View
-              testID="stock-badge-detail"
-              style={{ alignSelf: isRtl ? "flex-end" : "flex-start", marginTop: 4 }}
-            >
-              <Badge
-                label={
-                  (lowStock
-                    ? t("listing.stock.leftOfTotal", {
-                        available: formatNumber(availableUnits),
-                        total: formatNumber(totalUnits),
-                      })
-                    : t("listing.stock.inStock", { count: availableUnits })) +
-                  // SF-M4 (docs/SELL_FLOW_REDESIGN.md §4.2.2) — held-units
-                  // transparency, PUBLIC/buyer phrasing (never a name: this
-                  // screen's endpoint never returns the owner-only `sale`
-                  // block). Appended, not a separate pill — one shared "here's
-                  // the real position" fact.
-                  (heldUnits > 0
-                    ? ` · ${t("listing.stock.held", { count: heldUnits })}`
-                    : "")
-                }
-                // Amber only when it is genuinely running out — the same token
-                // StatusBadge already uses for "reserved", not a new colour.
-                variant={lowStock ? "warning" : "muted"}
-              />
-            </View>
-          )}
+          {/* Stock — the shared `StockBadge` (incl. the SF-M4 "held" clause),
+              not a hand-rolled copy: this used to be an inline duplicate of
+              the same component's own logic, which is exactly how the two
+              drifted (this copy had the held clause, the component didn't).
+              Renders nothing for a single-item listing, so those stay
+              byte-identical to before. Detail only, never the browse card:
+              every card row is a fixed-height slot (FlashList's grid needs
+              equal heights) and a chip would grow every card in the feed,
+              including the single-item majority. The buyer sees this before
+              tapping Message, which is where the decision is actually made. */}
+          <StockBadge
+            listing={listing}
+            audience="buyer"
+            testID="stock-badge-detail"
+            style={{ alignSelf: isRtl ? "flex-end" : "flex-start", marginTop: 4 }}
+          />
 
           {/* Price-drop badge — subtle pill below price, only when a recent drop exists */}
           {listing.priceDropPercent != null && listing.priceDropPercent > 0 && (
@@ -643,7 +621,10 @@ export default function ListingDetailScreen() {
           >
             <Eye size={12} color={colors.mutedForeground} />
             <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-              {t("listing.viewsCount", { count: listing.viewsCount })}
+              {/* Design review fix — a bare JS number renders Western digits
+                  even in Pashto/Dari; every count-in-a-sentence elsewhere in
+                  this app (SellerListingCard, StockBadge) formats first. */}
+              {t("listing.viewsCount", { count: formatNumber(listing.viewsCount) })}
             </Text>
             {listing.createdAt ? (
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
@@ -662,7 +643,7 @@ export default function ListingDetailScreen() {
             >
               <Heart size={12} color={colors.mutedForeground} />
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                {t("listing.savesCount", { count: listing.savesCount })}
+                {t("listing.savesCount", { count: formatNumber(listing.savesCount) })}
               </Text>
             </View>
           ) : null}
@@ -1012,20 +993,60 @@ export default function ListingDetailScreen() {
                 implies a hold/reservation/purchase — it only feeds
                 FirstMessageSheet's prefilled message text below (docs/
                 SELL_FLOW_REDESIGN.md §4.2.3, §3.3's explicit flag on this
-                exact control). */}
+                exact control).
+
+                DESIGN REVIEW (marketplace-designer): `[−] N [+]` mounted
+                directly above a primary CTA is the literal shape of a
+                cart-quantity widget on every e-commerce app a buyer has ever
+                used — and Hatiwal has no cart, no checkout, no payment.
+                Copy alone ("How many are you asking about?") doesn't fully
+                defuse that shape, so the layout also has to: this is a quiet,
+                bordered "note" row (muted fill, a message icon, a horizontal
+                label/control pair — a settings-row shape, not a vertical
+                stack that mirrors a checkout stepper) with real air below it
+                before the button row starts, instead of a naked stack
+                12px above "Contact Seller". Placement stays inside the
+                sticky bar (not moved into the scroll content) so it's still
+                seen before the buyer taps — moving it would risk it being
+                scrolled past unseen, which would silently defeat the whole
+                point of SF-M6 (the unit×qty=total sentence needs the buyer to
+                have actually set a quantity). */}
             {hasStockToShow(listing) && (
-              <View style={{ marginBottom: 12 }} testID="listing-detail-quantity-intent">
-                <Text
+              <View
+                testID="listing-detail-quantity-intent"
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  backgroundColor: colors.muted,
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <View
                   style={{
-                    fontSize: 12,
-                    fontWeight: "600",
-                    color: colors.mutedForeground,
-                    marginBottom: 6,
-                    textAlign: isRtl ? "right" : "left",
+                    flexDirection: isRtl ? "row-reverse" : "row",
+                    alignItems: "center",
+                    gap: 6,
+                    flexShrink: 1,
                   }}
                 >
-                  {t("listing.detail.quantityAskingLabel")}
-                </Text>
+                  <MessageCircle size={14} color={colors.mutedForeground} />
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "600",
+                      color: colors.mutedForeground,
+                      textAlign: isRtl ? "right" : "left",
+                      flexShrink: 1,
+                    }}
+                  >
+                    {t("listing.detail.quantityAskingLabel")}
+                  </Text>
+                </View>
                 <QuantityStepper
                   value={messageQuantity}
                   onChange={setMessageQuantity}

@@ -71,7 +71,7 @@ const SALES_PAGE_SIZE = 20;
 
 export default function ListingSales() {
   const { t } = useTranslation();
-  const { isRtl } = useLocalization();
+  const { isRtl, formatNumber } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
@@ -213,7 +213,12 @@ export default function ListingSales() {
           testID="sales-tally"
         >
           <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground, textAlign: isRtl ? "right" : "left" }}>
-            {t("listing.sale.tally", { sold, total })}
+            {/* Design review fix — every other count-in-a-sentence in this
+                app goes through `formatNumber` (SellerListingCard's
+                viewsCount/conversationsCount, StockBadge's leftOfTotal) so
+                Pashto/Dari render Eastern Arabic-Indic digits; this tally was
+                the one place still interpolating a bare JS number. */}
+            {t("listing.sale.tally", { sold: formatNumber(sold), total: formatNumber(total) })}
           </Text>
         </View>
       ) : null,

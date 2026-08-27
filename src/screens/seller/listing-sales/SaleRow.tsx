@@ -30,7 +30,7 @@ export interface SaleRowProps {
 
 export function SaleRow({ transaction, multiUnit, onPress }: SaleRowProps) {
   const { t } = useTranslation();
-  const { isRtl, formatDate } = useLocalization();
+  const { isRtl, formatDate, formatNumber } = useLocalization();
   const colors = useColors();
   const Chevron = isRtl ? ChevronLeft : ChevronRight;
 
@@ -70,7 +70,9 @@ export function SaleRow({ transaction, multiUnit, onPress }: SaleRowProps) {
             style={{ fontSize: 12, color: colors.mutedForeground }}
             testID={`sale-row-quantity-${transaction.id}`}
           >
-            {t("listing.stock.unitsCount", { count: transaction.quantity ?? 1 })}
+            {/* Design review fix — same digit-localization rule as StockBadge:
+                a raw JS number renders Western digits even in Pashto/Dari. */}
+            {t("listing.stock.unitsCount", { count: formatNumber(transaction.quantity ?? 1) })}
           </Text>
         )}
         <PriceTag price={transaction.finalPrice} currency={transaction.currency} size="sm" perUnit={multiUnit} />

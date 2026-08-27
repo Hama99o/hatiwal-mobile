@@ -55,8 +55,7 @@ import type { ListingAnalyticsEntry } from "@/api/listings";
 import { PriceTag } from "@/components/common/PriceTag";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ExpiryBadge } from "@/components/common/ExpiryBadge";
-import { Badge } from "@/components/reusables/badge";
-import { availableUnitsOf, totalUnitsOf, isLowStock, hasStockToShow, hasSoldSome, heldUnitsOf } from "@/utils/stock";
+import { StockBadge } from "@/components/common/StockBadge";
 import { SaleBuyerCard } from "@/components/common/SaleBuyerCard";
 import { ListingMapSection } from "@/components/common/ListingMapSection";
 import { BuyerPickerSheet } from "@/components/common/BuyerPickerSheet";
@@ -340,51 +339,23 @@ export default function MyListingDetailScreen() {
               expired={listing.expired}
               status={listing.status}
             />
-            {/* Stock — docs/SPIKE_LISTING_QUANTITY.md. This is the seller's
-                answer to "how do I know when they're all gone?", and it belongs
-                in the status row rather than under the price: for the OWNER it
-                is lifecycle information ("6 of 15 left" is why this listing is
-                still active), not a buying signal. Always the "N of M left"
-                phrasing here, never the buyer's bare "N in stock" — a seller
-                needs to see progress through the batch, not just what remains.
-                Renders only for a multi-unit listing, so a single-item listing
-                is byte-identical to before. */}
-            {hasStockToShow(listing) && (
-              <View testID="stock-badge-owner">
-                <Badge
-                  label={
-                    // "15 of 15 left" is noise before the first sale — no
-                    // progress to show, and the second number just repeats the
-                    // first. Switch to the progress phrasing only once it says
-                    // something (QA run-017).
-                    (hasSoldSome(listing)
-                      ? t("listing.stock.leftOfTotal", {
-                          available: formatNumber(availableUnitsOf(listing)),
-                          total: formatNumber(totalUnitsOf(listing)),
-                        })
-                      : t("listing.stock.inStock", { count: availableUnitsOf(listing) })) +
-                    // SF-M4 (docs/SELL_FLOW_REDESIGN.md §4.2.2/§4.5) — the
-                    // OWNER's held clause names the buyer (`sale.buyer.name`
-                    // is owner-only and only ever populated on this
-                    // `owner_detailed` view, never on the public
-                    // ListingDetail.tsx). Falls back to the nameless phrasing
-                    // for a legacy buyer-less hold, same defensive pattern as
-                    // SaleBuyerCard's `noBuyerRecorded`.
-                    (heldUnitsOf(listing) > 0
-                      ? ` · ${
-                          listing.sale?.buyer?.name
-                            ? t("listing.stock.heldForBuyer", {
-                                count: heldUnitsOf(listing),
-                                name: listing.sale.buyer.name,
-                              })
-                            : t("listing.stock.held", { count: heldUnitsOf(listing) })
-                        }`
-                      : "")
-                  }
-                  variant={isLowStock(availableUnitsOf(listing), totalUnitsOf(listing)) ? "warning" : "muted"}
-                />
-              </View>
-            )}
+            {/* Stock — the shared `StockBadge` (incl. SF-M4's "held" clause),
+                not a hand-rolled copy (this used to duplicate the component's
+                own logic and had drifted ahead of it — the component didn't
+                even have the held clause). Belongs in the status row rather
+                than under the price: for the OWNER it is lifecycle
+                information ("6 of 15 left" is why this listing is still
+                active), not a buying signal — `audience="owner"` is what
+                gives the "N of M left" progress phrasing from the first sale
+                (vs. the buyer's threshold-gated version) and the buyer's name
+                on the held clause. Renders only for a multi-unit listing, so
+                a single-item listing is byte-identical to before. */}
+            <StockBadge
+              listing={listing}
+              audience="owner"
+              heldBuyerName={listing.sale?.buyer?.name}
+              testID="stock-badge-owner"
+            />
           </View>
 
           {/* 2b — TASK-R418: who reserved/bought it, with a one-tap Message CTA */}

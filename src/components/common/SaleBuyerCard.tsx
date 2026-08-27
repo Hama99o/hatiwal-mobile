@@ -48,7 +48,7 @@ interface SaleBuyerCardProps {
 
 export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
   const { t } = useTranslation();
-  const { isRtl, formatDate } = useLocalization();
+  const { isRtl, formatDate, formatNumber } = useLocalization();
   const colors = useColors();
   const router = useRouter();
 
@@ -183,7 +183,9 @@ export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
             {t("listing.sale.unitsSold")}
           </Text>
           <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }}>
-            {t("listing.stock.unitsCount", { count: sale.quantity ?? 1 })}
+            {/* Design review fix — digits must render Arabic-Indic in ps/fa;
+                every other count-in-a-sentence in this app formats first. */}
+            {t("listing.stock.unitsCount", { count: formatNumber(sale.quantity ?? 1) })}
           </Text>
         </View>
       )}
@@ -216,7 +218,7 @@ export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
           accessibilityRole="button"
         >
           <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary, textAlign: isRtl ? "right" : "left" }}>
-            {t("listing.sale.moreBuyers", { count: (listing.salesCount ?? 0) - 1 })}
+            {t("listing.sale.moreBuyers", { count: formatNumber((listing.salesCount ?? 0) - 1) })}
           </Text>
         </Pressable>
       )}

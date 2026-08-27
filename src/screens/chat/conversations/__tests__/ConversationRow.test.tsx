@@ -5,7 +5,10 @@
  *  1. Renders listing title and other participant name
  *  2. Renders unread count badge when unreadCount > 0
  *  3. Does NOT render unread badge when unreadCount is 0 or undefined
- *  4. Dims the row for sold/reserved listings (isInactive opacity logic via testID)
+ *  4. Dims the row for a SOLD listing only (isInactive opacity logic); a
+ *     reserved/held listing stays full-weight and just gains a badge
+ *     overlay (SF-M3, docs/SELL_FLOW_REDESIGN.md §4.4.3 — a held
+ *     conversation is not a dead end)
  *  5. Shows last message body (text preview)
  *  6. Shows meetup, offer, photo, file preview labels for special message kinds
  *  7. Navigates to the conversation thread on press
@@ -16,6 +19,7 @@
  */
 
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { ConversationRow } from "../ConversationRow";
 import type { Conversation } from "@/api/conversations";
@@ -313,9 +317,11 @@ describe("ConversationRow — special message kind previews", () => {
 // ── 4. Sold / reserved listing dimming ───────────────────────────────────────
 
 describe("ConversationRow — inactive listing dimming", () => {
-  // The sold/reserved rows use a faded thumbnail (opacity 0.45 via styles.thumbFaded)
-  // and a mutedForeground title color. The cleanest way to confirm both states render
-  // without crashing (color inspection is fragile) is a smoke test.
+  // SOLD rows use a faded thumbnail (opacity 0.45 via styles.thumbFaded) and a
+  // mutedForeground title color; a RESERVED row deliberately does NOT (SF-M3
+  // — a held conversation stays full-weight, it just gains a badge overlay).
+  // The cleanest way to confirm both states render without crashing (color
+  // inspection is fragile) is a smoke test.
   it("renders without crashing for a sold listing", () => {
     expect(() =>
       render(
@@ -353,6 +359,45 @@ describe("ConversationRow — inactive listing dimming", () => {
         />
       )
     ).not.toThrow();
+  });
+
+  // Design review fix (SF-M3, docs/SELL_FLOW_REDESIGN.md §4.4.3) — this was
+  // NOT dropping "reserved" from the dimming condition despite the spec
+  // explicitly naming this exact line: a held conversation read as dimmed
+  // and archived, identically to a terminal SOLD one. Real assertions (not
+  // just a smoke test) so this can't silently regress again. Compares
+  // against the ACTIVE row's own title colour (mirrors this file's own
+  // `StyleSheet.flatten` precedent, e.g. BuyerPickerSheet.test.tsx) instead
+  // of hardcoding a token string that would drift from the useColors() mock.
+  it("keeps a RESERVED row full-weight — SAME title colour as an active row, not the dimmed sold one — while still showing the Reserved badge overlay", () => {
+    const titleColorFor = (status: "active" | "reserved" | "sold", title: string) => {
+      render(
+        <ConversationRow
+          item={makeConversation({ listing: { id: 1, title, thumbnailUrl: null, status } })}
+          onDelete={jest.fn()}
+        />
+      );
+      return StyleSheet.flatten(screen.getByText(title).props.style).color;
+    };
+
+    const activeColor = titleColorFor("active", "Phone Active");
+    const reservedColor = titleColorFor("reserved", "Carpet Reserved");
+    const soldColor = titleColorFor("sold", "Old Laptop Sold");
+
+    expect(reservedColor).toBe(activeColor);
+    expect(reservedColor).not.toBe(soldColor);
+
+    // The lifecycle badge is a SEPARATE signal from dimming — still shown
+    // for reserved (and for sold), just never for active.
+    render(
+      <ConversationRow
+        item={makeConversation({
+          listing: { id: 2, title: "Carpet", thumbnailUrl: null, status: "reserved" },
+        })}
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByText("LISTING.STATUS.RESERVED")).toBeTruthy();
   });
 });
 
@@ -764,7 +809,7 @@ describe("ConversationRow — listing price", () => {
     expect(screen.getByText("AFN 40000")).toBeTruthy();
   });
 
-  it("still shows the price (muted tone) on a reserved listing", () => {
+  it("still shows the price (full-weight, NOT muted — SF-M3) on a reserved listing", () => {
     render(
       <ConversationRow
         item={makeConversation({
