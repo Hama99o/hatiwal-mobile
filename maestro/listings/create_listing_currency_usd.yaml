@@ -70,11 +70,9 @@ appId: com.hatiwal.app
 
 # The publish button reads "Publish" (listing.publish). "Post a listing" is the
 # ENTRY POINT into the form (listing.postListing) — a different control.
-# Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
-# stops as soon as the target is in the hierarchy, which can still be behind the
-# keyboard. Maestro then reports the tap COMPLETED while the touch lands on the
-# keyboard — register_duplicate_email submitted nothing at all, and the Rails log
-# showed no register POST for the whole run.
+# The IME can cover a submit button, and Maestro reports the tap COMPLETED while the
+# touch lands on the keyboard. `hideKeyboard` is NOT the fix on a pushed screen — it is
+# Back, and it pops the screen. Scroll-then-tap is: see qa/QA_HANDBOOK.md, "hideKeyboard".
 - waitForAnimationToEnd
 # Location is a PUBLISH BLOCKER (getPublishBlockers, mode "publish"), so the pin
 # has to exist before Publish will do anything. Without it the app correctly

@@ -113,11 +113,9 @@ appId: com.hatiwal.app
 # Open draft → Publish
 - tapOn: "Draft Test Listing"
 - waitForAnimationToEnd
-# Dismiss the IME. A SCROLL DOES NOT: it moves content, and scrollUntilVisible
-# stops as soon as the target is in the hierarchy, which can still be behind the
-# keyboard. Maestro then reports the tap COMPLETED while the touch lands on the
-# keyboard — register_duplicate_email submitted nothing at all, and the Rails log
-# showed no register POST for the whole run.
+# The IME can cover a submit button, and Maestro reports the tap COMPLETED while the
+# touch lands on the keyboard. `hideKeyboard` is NOT the fix on a pushed screen — it is
+# Back, and it pops the screen. Scroll-then-tap is: see qa/QA_HANDBOOK.md, "hideKeyboard".
 - waitForAnimationToEnd
 - tapOn: "Publish"
 - waitForAnimationToEnd

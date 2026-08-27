@@ -118,11 +118,9 @@ appId: com.hatiwal.app
     timeout: 45000
 - assertNotVisible: "Tap to set exact location on map"
 # Publish directly
-# Dismiss the IME before submitting. The keyboard covers the lower half of a
-# form, and Maestro still reports the tap COMPLETED — it finds the element in
-# the hierarchy and taps its bounds, while the touch lands on the keyboard. On
-# the login screen that swallowed EVERY sign-in in the suite: no request ever
-# reached the API and the flow blamed a missing tab bar 60s later.
+# The IME can cover a submit button, and Maestro reports the tap COMPLETED while the
+# touch lands on the keyboard. `hideKeyboard` is NOT the fix on a pushed screen — it is
+# Back, and it pops the screen. Scroll-then-tap is: see qa/QA_HANDBOOK.md, "hideKeyboard".
 - waitForAnimationToEnd
 - tapOn: "Publish"
 - waitForAnimationToEnd
