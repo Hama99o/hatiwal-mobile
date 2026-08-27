@@ -22,6 +22,21 @@ run="${1:-$(ls -dt qa/reports/run-* | head -1 | xargs basename)}"
 res="qa/reports/$run/results.jsonl"
 [ -f "$res" ] || { echo "no results for $run"; exit 1; }
 
+# A fixture fix lands in hatiwal-api's seed, not in the flow — and this script only
+# ever looked at the flow file, so a flow unblocked by a seed change still read as
+# "worth triaging". That is how listing_renew_flow looked after the expired-listing
+# fixture was committed: the fix existed, it just had not been seeded yet.
+SEED_FILE="../hatiwal-api/db/seeds/e2e.rb"
+seed_fixed=0
+[ -f "$SEED_FILE" ] && seed_fixed=$( (cd ../hatiwal-api && git log -1 --format=%ct -- db/seeds/e2e.rb) 2>/dev/null || echo 0 )
+
+# Compare the seed's commit against when the RUN began, not when the individual flow
+# did. The database is seeded once per cycle, before the first flow — so a flow that
+# started after the commit is still running against a pre-change database. Approximated
+# by the earliest log in the run directory, which is the first flow to finish.
+run_start=$(find "qa/reports/$run" -name '*.log' -printf '%T@\n' 2>/dev/null | sort -n | head -1 | cut -d. -f1)
+: "${run_start:=0}"
+
 printf '%-38s %-8s %s\n' FLOW VERDICT NOTE
 python3 - "$res" <<'PY' | while IFS='|' read -r feat flow; do
 import json,sys,io
@@ -79,6 +94,10 @@ PY
   ran=$(( $(stat -c %Y "$log") - ${secs:-0} ))
   if [ "${fixed:-0}" -gt "$ran" ]; then
     printf '%-38s %-8s %s\n' "$flow" "STALE" "flow changed $(( (fixed-ran)/60 ))m after this run — re-run before triaging"
+  elif [ "${seed_fixed:-0}" -gt "${run_start:-0}" ]; then
+    # A gate, not a verdict: the seed changed, which MAY have been for this flow.
+    # Re-seeding happens once per cycle, so the next cycle is the earliest honest read.
+    printf '%-38s %-8s %s\n' "$flow" "SEED" "seed changed $(( (seed_fixed-run_start)/60 ))m after this cycle was seeded — re-seed before triaging"
   else
     printf '%-38s %-8s %s\n' "$flow" "current" "worth triaging"
   fi
