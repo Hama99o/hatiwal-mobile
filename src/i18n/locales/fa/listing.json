@@ -224,9 +224,9 @@
     "multipleUnitsLabel": "بیشتر از یک عدد دارم",
     "howManyUnits": "چند عدد دارید؟",
     "howManySold": "چند عدد فروختید؟",
-    "photoPickFailed": "Couldn't open your photos. Please try again.",
-    "cameraFailed": "Couldn't open the camera. Please try again.",
-    "photoLimitReached": "You can add up to {{max}} photos — {{dropped}} weren't added.",
+    "photoPickFailed": "عکس‌ها باز نشدند — دوباره تلاش کنید.",
+    "cameraFailed": "دوربین باز نشد — دوباره تلاش کنید.",
+    "photoLimitReached": "شما می‌توانید تا {{max}} عکس اضافه کنید — {{dropped}} عکس اضافه نشد.",
     "quantityOutOfRange": "Enter a number between 1 and {{max}}."
   },
   "shopCount_one": "{{count}} آگهی",

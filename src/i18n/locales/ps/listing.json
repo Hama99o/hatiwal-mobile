@@ -224,9 +224,9 @@
     "multipleUnitsLabel": "زه له یوې څخه ډېرې لرم",
     "howManyUnits": "څو دانې لرې؟",
     "howManySold": "څو دانې مو وپلورلې؟",
-    "photoPickFailed": "Couldn't open your photos. Please try again.",
-    "cameraFailed": "Couldn't open the camera. Please try again.",
-    "photoLimitReached": "You can add up to {{max}} photos — {{dropped}} weren't added.",
+    "photoPickFailed": "انځورونه نه پرانستل شول — بیا هڅه وکړئ.",
+    "cameraFailed": "کیمره نه پرانستل شوه — بیا هڅه وکړئ.",
+    "photoLimitReached": "تاسو تر {{max}} انځورونو پورې اضافه کولی شئ — {{dropped}} انځورونه اضافه نشول.",
     "quantityOutOfRange": "Enter a number between 1 and {{max}}."
   },
   "shopCount_one": "{{count}} اعلان",
