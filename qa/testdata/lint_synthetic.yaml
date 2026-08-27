@@ -30,3 +30,10 @@ appId: com.hatiwal.app
   # lint: anchored-ok — deliberate, proving the marker is scoped to one command
 # ROLE — a tap on a seller-only action with no seller session anywhere in the file.
 - tapOn: "Mark Sold"
+
+# HIDEKEY: hideKeyboard with no typing before it. On Android this is Back, and with no
+# IME up it reaches the app and pops the screen.
+- tapOn:
+    id: "some-button"
+- waitForAnimationToEnd
+- hideKeyboard

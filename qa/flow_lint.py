@@ -23,6 +23,8 @@ failure classes already paid for:
              the end of the pattern (create_listing_currency_usd asserted "$450"); `(` and
              `)` are grouping (away_mode asserted "Away until (YYYY-MM-DD)", which the app
              renders with the brackets the pattern then dropped).
+  HIDEKEY    `hideKeyboard` with no typing before it — on Android that is Back, and
+             with no IME up it pops the screen.
   KEYPATH    A literal that is a t() key path ("common.close") rather than the
              string it renders. Cost: send_photo, copied from a Jest expectation
              where i18next is not initialised and the key IS what comes back.
@@ -178,6 +180,26 @@ def check(path):
                 break
         if re.search(r'search', target, re.I):
             searched.append(m.group(1))
+    # HIDEKEY — `hideKeyboard` IS the Android Back button, so it is only safe while an
+    # IME is actually up to consume it. With no keyboard, that Back reaches the app and
+    # pops the screen; the flow then fails somewhere else entirely, on a screen it did
+    # not expect to be on. Typing is what guarantees the IME. `waitForAnimationToEnd`
+    # between the two is fine — waiting does not dismiss a keyboard — and several flows
+    # deliberately sit like that, so it must not be flagged.
+    for i, raw in enumerate(lines, 1):
+        if raw.strip() != "- hideKeyboard":
+            continue
+        prev = ""
+        for k in range(i - 2, -1, -1):
+            st = lines[k].strip()
+            if st and not st.startswith("#") and st != "- waitForAnimationToEnd":
+                prev = st
+                break
+        if not re.match(r'-?\s*(inputText|eraseText)\b', prev):
+            hits.append((i, "HIDEKEY",
+                         f'hideKeyboard after {prev[:30]!r} — no IME guaranteed, so this '
+                         f'is a Back press that pops the screen'))
+
     for i, raw in enumerate(lines, 1):
         l = raw.strip()
         if l.startswith("#"): continue
@@ -306,7 +328,7 @@ if "--selftest" in sys.argv:
     fixture = os.path.join(ROOT, "qa/testdata/lint_synthetic.yaml")
     hits = check(fixture)
     got = {k for _, k, _ in hits}
-    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED", "ROLE", "KEYPATH", "REGEXMETA", "SEARCHTAP"}
+    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED", "ROLE", "KEYPATH", "HIDEKEY", "REGEXMETA", "SEARCHTAP"}
     for line, kind, why in hits:
         print(f"  L{line:<3} {kind:<10} {why[:56]}")
     missing = need - got
