@@ -181,18 +181,8 @@ appId: com.hatiwal.app
 - assertVisible: "This will permanently remove your listing."
 - tapOn: "Delete"
 - waitForAnimationToEnd
-
-# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
-
-# single check right after an action is a race — and any wait in front of it
-
-# loses that race, turning a successful action red. Polling keeps the check at
-
-# full strength while removing the timing dependency.
-
-- extendedWaitUntil:
-
-    visible: "Listing deleted"
-
-    timeout: 15000
+# NOT the toast. onDeleted does router.replace to My Shop (MyListingDetail.tsx:208), so
+# listing.deleteSuccess is raised on a screen being torn down — polling cannot help, as
+# delete_listing and edit_profile both proved. The durable consequence is asserted on the
+# next line: the listing is gone from the list.
 - assertNotVisible: "Listing Actions Sheet Test Item"
