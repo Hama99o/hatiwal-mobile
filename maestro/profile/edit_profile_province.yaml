@@ -100,6 +100,10 @@ appId: com.hatiwal.app
 # ── Clearing it is allowed — the field is optional ───────────────────────────
 # A required-field error here would be a real bug: nothing in the schema demands
 # a province, and a seller who moves should be able to remove it.
+# lint: searchtap-ok — this tap is on the EDIT PROFILE screen, after the province
+# picker sheet has closed and the value has been saved; it taps the saved value to
+# erase it. The province-search-input is long gone, so there is nothing to collide
+# with.
 - tapOn: "Kandahar"
 - eraseText
 - scrollUntilVisible:

@@ -10,6 +10,11 @@ appId: com.hatiwal.app
 - assertVisible:
     id: "something"
     optional: true                         # TOOTHLESS
+# SEARCHTAP — typed into a search field, then tapped by text.
+- tapOn:
+    id: "some-search-input"
+- inputText: "Zzq Searched Title"
+- tapOn: "Zzq Searched Title"
 # REGEXMETA — `$` is an end-anchor, so this matches nothing.
 - assertVisible: "$450"
 # KEYPATH — the t() key, not the string it renders.

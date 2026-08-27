@@ -153,7 +153,19 @@ appId: com.hatiwal.app
 # inputText.
 - hideKeyboard
 - waitForAnimationToEnd
-- tapOn: "Condition Test Laptop"
+# By CARD testID, not the title. The title was typed into the browse search box two
+# steps up, and that input sits higher in the hierarchy than the results — so an
+# anchored text match lands on the SEARCH FIELD. The tap did nothing, the flow stayed
+# on the feed, and it failed on the condition badge instead. The screenshot shows it:
+# "Condition Test Laptop" in the search box, the listing right there in the results,
+# and the app still on Bazaar. (run-252/listings/screens/create_listing_with_condition.png)
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- tapOn:
+    id: "listing-card"
+    index: 0
 - waitForAnimationToEnd
 # ConditionBadge must show "Like new" on the detail screen
 - assertVisible: "Like new"

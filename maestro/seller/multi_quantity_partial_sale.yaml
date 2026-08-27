@@ -106,7 +106,18 @@ appId: com.hatiwal.app
     visible: "Phone Case Silicone Clear - Wholesale"
     timeout: 20000
 
-- tapOn: "Phone Case Silicone Clear - Wholesale"
+# By CARD testID, not the title. The title is sitting in the search box from the step
+# above, and that input is higher in the hierarchy than the results — so an anchored
+# text match lands on the SEARCH FIELD, the tap does nothing, and the flow carries on
+# believing it navigated. Proven three times with screenshots (composer_draft,
+# full_marketplace_cycle, create_listing_with_condition).
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
+- tapOn:
+    id: "seller-listing-card"
+    index: 0
 - waitForAnimationToEnd
 
 # ── The seller's own view states the batch, not just "active" ────────────────

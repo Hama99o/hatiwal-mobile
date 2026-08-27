@@ -16,6 +16,9 @@ failure classes already paid for:
   JSFUNC     ${visible(...)} / ${selectorExists(...)} — not in Maestro 2.7.0's JS
              sandbox; raises TypeError and asserts nothing. The .log does not show
              it; only the .xml does.
+  SEARCHTAP  A tap on text that the flow typed into a SEARCH field. The input sits
+             above the results, so the tap hits the box and the flow never navigates.
+             Cost: three flows, each failing several steps later.
   REGEXMETA  A literal with an unescaped `$`, which anchors the end of the pattern
              rather than meaning a dollar sign. Cost: create_listing_currency_usd
              asserting "$450", which could never match.
@@ -151,6 +154,29 @@ def check(path):
     typed = [m for m in (re.match(r'-?\s*inputText:\s*"([^"]+)"', x.strip())
                          for x in lines if not x.strip().startswith("#")) if m]
     typed = [m.group(1) for m in typed]
+    # Values typed into a SEARCH field, with the line they were typed on. Tapping one
+    # of these by text later hits the INPUT, not the result: the search box sits above
+    # the list, and matching takes the first node in hierarchy order. Proven three
+    # times with screenshots (composer_draft, full_marketplace_cycle,
+    # create_listing_with_condition), each time leaving the flow on the feed believing
+    # it had navigated.
+    searched = []
+    for i, raw in enumerate(lines, 1):
+        st = raw.strip()
+        if st.startswith("#"):
+            continue
+        m = re.match(r'-?\s*inputText:\s*"([^"]+)"', st)
+        if not m:
+            continue
+        target = "?"
+        for k in range(i - 2, max(-1, i - 8), -1):
+            mm = re.search(r'id:\s*"([^"]+)"', lines[k]) or \
+                 re.match(r'\s*-\s*tapOn:\s*"([^"]+)"', lines[k])
+            if mm:
+                target = mm.group(1)
+                break
+        if re.search(r'search', target, re.I):
+            searched.append(m.group(1))
     for i, raw in enumerate(lines, 1):
         l = raw.strip()
         if l.startswith("#"): continue
@@ -178,13 +204,27 @@ def check(path):
         if re.search(r'\$\{[^}]*\b(visible|selectorExists|exists)\s*\(', l):
             hits.append((i, "JSFUNC", "no such function in Maestro's JS sandbox"))
 
-        m = re.search(r'assert(?:Not)?Visible:\s*"([^"]+)"', l) or \
-            re.search(r'^\s*text:\s*"([^"]+)"', l)
-        if m:
-            lit = m.group(1)
+        # tapOn is included deliberately. Until this line did, every check below saw
+        # only assertions and `text:` operands — so a tap on a nonexistent literal, a
+        # tap on a translation key, or a tap with an unescaped `$` all went unexamined.
+        mt = re.search(r'(assert(?:Not)?Visible|tapOn):\s*"([^"]+)"', l)
+        mx = re.match(r'^\s*text:\s*"([^"]+)"', l)
+        if mt or mx:
+            lit = mt.group(2) if mt else mx.group(1)
+            if mt:
+                kind = mt.group(1)
+            else:
+                bs0, _ = block_range(lines, i)
+                kind = lines[bs0].strip().lstrip("- ").split(":")[0]
+            is_tap = kind.startswith("tapOn")
             # A bare `$` is a regex end-anchor, not a dollar sign. "$450" reads as
             # "end-of-string then 450" and matches nothing — create_listing_currency_usd
             # asserted exactly that. Maestro's own ${var} syntax is stripped first.
+            if is_tap and lit in searched:
+                bs, be = block_range(lines, i)
+                if "lint: searchtap-ok" not in " ".join(lines[bs:be]):
+                    hits.append((i, "SEARCHTAP",
+                                 f'{lit!r} was typed into a search field — tap the row by testID'))
             probe = re.sub(r'\$\{[^}]*\}', '', lit)
             if '$' in probe and '\\$' not in probe:
                 hits.append((i, "REGEXMETA",
@@ -248,7 +288,7 @@ if "--selftest" in sys.argv:
     fixture = os.path.join(ROOT, "qa/testdata/lint_synthetic.yaml")
     hits = check(fixture)
     got = {k for _, k, _ in hits}
-    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED", "ROLE", "KEYPATH", "REGEXMETA"}
+    need = {"ANCHORED", "DATE", "JSFUNC", "TOOTHLESS", "SELFTYPED", "ROLE", "KEYPATH", "REGEXMETA", "SEARCHTAP"}
     for line, kind, why in hits:
         print(f"  L{line:<3} {kind:<10} {why[:56]}")
     missing = need - got

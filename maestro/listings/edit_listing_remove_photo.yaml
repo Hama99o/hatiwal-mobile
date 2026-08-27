@@ -33,8 +33,13 @@ appId: com.hatiwal.app
     id: "listing-form-photo-remove"
     index: 0
 - waitForAnimationToEnd
-# Confirm deletion if prompted
-- tapOn: "Remove"
+# No confirmation step. Nothing prompts: removePhoto (PhotosSection.tsx:210) drops the
+# photo straight out of the array —
+#     onChange(photos.filter((_, i) => i !== index))
+# — with no dialog, so `tapOn: "Remove"` was reaching for a button that never appears
+# and failed with "Element not found". The comment above it said "if prompted", which
+# was an assumption rather than an observation, and an unconditional tap made it a
+# requirement.
 - waitForAnimationToEnd
 
 # Save
