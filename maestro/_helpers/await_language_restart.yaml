@@ -23,8 +23,15 @@ appId: com.hatiwal.app
     visible:
       id: "browse-tab"
     timeout: 60000
+# `(seller-)?listing-card`, because the initial route depends on MODE. In buyer mode the
+# app comes back on the Bazaar feed (listing-card); in SELLER mode the first tab is My
+# Listings, which renders seller-listing-card. Maestro's id matching is an ANCHORED
+# regex, so a bare "listing-card" does NOT match "seller-listing-card" — and that is
+# exactly how my first version of this wait broke dark_mode/my_listings_dark, which
+# failed with "Assertion is false: id: listing-card is visible" on a screen full of
+# cards.
 - extendedWaitUntil:
     visible:
-      id: "listing-card"
+      id: "(seller-)?listing-card"
     timeout: 45000
 - waitForAnimationToEnd

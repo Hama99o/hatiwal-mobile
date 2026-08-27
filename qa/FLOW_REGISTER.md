@@ -171,7 +171,7 @@ bug class a user reports as "nothing happened".
 | `browse_dark` | FAIL-assert | s4/run-108 | 219 |  | [Failed] browse_dark (2m 57s) (Assertion is false: "APPEARANCE" is visible) |
 | `chat_dark` | FAIL-assert | s4/run-108 | 167 |  | [Failed] chat_dark (2m 21s) (Element not found: Text matching regex: Dark) |
 | `listing_detail_dark` | FAIL-assert | s4/run-108 | 192 |  | [Failed] listing_detail_dark (2m 19s) (Element not found: Text matching regex: Dark) |
-| `my_listings_dark` | FAIL-assert | s4/run-108 | 247 |  | [Failed] my_listings_dark (3m 40s) (Element not found: Text matching regex: Dark) |
+| `my_listings_dark` | FAIL-assert | s4/run-108 | 247 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed | [Failed] my_listings_dark (3m 40s) (Element not found: Text matching regex: Dark) |
 | `profile_dark` | FAIL-assert | s4/run-108 | 166 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
 | `saved_tab_dark` | FAIL-assert | s4/run-108 | 164 |  | [Failed] saved_tab_dark (2m 19s) (Element not found: Text matching regex: Appearance) |
 | `theme_light_all_screens` | FAIL-assert | s4/run-108 | 158 |  | [Failed] theme_light_all_screens (2m 14s) (Element not found: Text matching regex: Appearance) |
