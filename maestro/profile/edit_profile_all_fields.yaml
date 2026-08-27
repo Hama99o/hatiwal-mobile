@@ -67,6 +67,28 @@ appId: com.hatiwal.app
 - tapOn:
     id: "edit-profile-province-picker"
 - waitForAnimationToEnd
+# The sheet did not open and the flow failed on "Element not found: province-search-input"
+# — the testID is there (ProvincePickerSheet.tsx:111), so the TAP was lost. This flow
+# types into several fields first, and scrollUntilVisible stops as soon as its target is
+# in the hierarchy, which can still be behind the keyboard: Maestro then reports the tap
+# completed while the touch lands on the IME.
+#
+# Retry once rather than dismiss the keyboard — hideKeyboard is Back on this pushed screen
+# and would leave EditProfile entirely (send_message_offline and price_drop_after_edit both
+# lost their screen to it). A second tap, with the sheet as the gate, costs nothing when
+# the first one worked.
+- runFlow:
+    when:
+      notVisible:
+        id: "province-search-input"
+    commands:
+      - tapOn:
+          id: "edit-profile-province-picker"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "province-search-input"
+    timeout: 20000
 - tapOn:
     id: "province-search-input"
 - inputText: "Herat"
