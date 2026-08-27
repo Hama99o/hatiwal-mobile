@@ -23,6 +23,15 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Reserved"
 # Tap Sold tab
+# SCROLL right first: "Sold" is the last of six tabs in a horizontal scroller and sits
+# past the right edge, where Android's accessibility tree omits it. Proven by
+# listing_status_counts, which reached every earlier tab and failed with "Element not
+# found" on this one.
+- scrollUntilVisible:
+    element:
+      text: "Sold"
+    direction: RIGHT
+    timeout: 15000
 - tapOn: "Sold"
 - waitForAnimationToEnd
 - assertVisible: "Sold"

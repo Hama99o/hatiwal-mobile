@@ -35,6 +35,17 @@ appId: com.hatiwal.app
 - assertVisible: "Reserved"
 
 # Tap Sold.
+# SCROLL the tab row right first. "Sold" is the last of six tabs in a horizontal
+# scroller (MyListings.tsx:251, STATUS_TABS at line 24) and sits past the right edge —
+# the screenshot of My Shop cuts off mid-"Reserved". Android's accessibility tree omits
+# children clipped outside a horizontal scroller's viewport, which is why this reported
+# "Element not found" rather than "No visible element found", and why every earlier tab
+# in the same row was tappable.
+- scrollUntilVisible:
+    element:
+      text: "Sold"
+    direction: RIGHT
+    timeout: 15000
 - tapOn: "Sold"
 - waitForAnimationToEnd
 - assertVisible: "Sold"

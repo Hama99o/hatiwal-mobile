@@ -94,7 +94,12 @@ PY
   ran=$(( $(stat -c %Y "$log") - ${secs:-0} ))
   if [ "${fixed:-0}" -gt "$ran" ]; then
     printf '%-38s %-8s %s\n' "$flow" "STALE" "flow changed $(( (fixed-ran)/60 ))m after this run — re-run before triaging"
-  elif [ "${seed_fixed:-0}" -gt "${run_start:-0}" ]; then
+  # Narrowed to FIXTURE-SHAPED failures. A seed change is only a plausible explanation
+  # when the flow could not find a listing at all; applying it to every failure in the
+  # run over-claims and hides real defects — listing_status_counts failed on a filter TAB
+  # being off-screen and was labelled SEED on the first version of this check.
+  elif [ "${seed_fixed:-0}" -gt "${run_start:-0}" ] && \
+       grep -qaE '(seller-)?listing-card|conversation-row' "$xml" 2>/dev/null; then
     # A gate, not a verdict: the seed changed, which MAY have been for this flow.
     # Re-seeding happens once per cycle, so the next cycle is the earliest honest read.
     printf '%-38s %-8s %s\n' "$flow" "SEED" "seed changed $(( (seed_fixed-run_start)/60 ))m after this cycle was seeded — re-seed before triaging"
