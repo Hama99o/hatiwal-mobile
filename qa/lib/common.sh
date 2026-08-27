@@ -34,6 +34,13 @@ QA_METRO_CONTAINER="${QA_METRO_CONTAINER:-hatiwal-mobile-mobile-1}"
 # Substring identifying THIS project's Metro containers, so doctor can tell a
 # competing project's Metro on :8081 apart from ours.
 QA_PROJECT_TAG="${QA_PROJECT_TAG:-hatiwal}"
+# The Docker container running the Rails API — used by clear_blocks.sh AND by
+# doctor's card #296/SF-QA1 hard gate (step 8): "the app opened" is not
+# evidence the RIGHT bundle loaded, since :8081 can silently serve a different
+# Expo project's JS into this same APK (see the competing-Metro check above).
+# Tailing THIS container's own request log for a hit during THIS launch is the
+# one signal that cannot be faked by a wrong bundle rendering unrelated UI.
+QA_API_CONTAINER="${QA_API_CONTAINER:-hatiwal-api-web-1}"
 
 # ── Android / tooling ──────────────────────────────────────────────────
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"

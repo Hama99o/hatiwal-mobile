@@ -1,0 +1,116 @@
+appId: com.hatiwal.app
+---
+# SF-B4/SF-M5 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md §8.2/§10.3.1) —
+# the one deliberate refusal: a sold Transaction that already carries a
+# review cannot be voided or reassigned, but its QUANTITY can still be
+# corrected. This is the owner's own reported edge case, both directions in
+# one flow: the destructive path (void) is blocked with a readable inline
+# message, and the harmless path (quantity) still succeeds.
+#
+# Fixture: "Electric Kettle 1.8L Stainless - Bulk 10" (card #296 / SF-QA1,
+# db/seeds/e2e.rb "Sell-flow states") — active, quantity 10, sold 3, available
+# 7, ONE sale (3 units to Yusuf Haidari / e2ebuyer4) that carries a REVEALED
+# double-blind review pair. Read-only on the review itself; this flow mutates
+# only the sale's quantity (3 -> 2, restored implicitly by the next reseed).
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- tapOn: "Search my listings..."
+- eraseText
+- inputText: "Kettle"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Electric Kettle 1.8L Stainless - Bulk 10"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
+- tapOn:
+    id: "seller-card-more-action"
+    index: 0
+- waitForAnimationToEnd
+- assertVisible:
+    id: "listing-action-sales"
+- tapOn:
+    id: "listing-action-sales"
+- waitForAnimationToEnd
+
+- assertVisible: "Sales"
+- extendedWaitUntil:
+    visible:
+      id: "sales-tally"
+    timeout: 20000
+- assertVisible: ".*3 of 10 sold.*"
+
+# ── Open the reviewed row ────────────────────────────────────────────────
+- tapOn: "Yusuf Haidari"
+- waitForAnimationToEnd
+- assertVisible: "Edit this sale"
+
+# ── THE REFUSAL: void is blocked, with a READABLE reason ────────────────
+- assertVisible:
+    id: "sale-edit-delete"
+- tapOn:
+    id: "sale-edit-delete"
+- waitForAnimationToEnd
+# Destructive confirmAlert first — same as every other destructive action.
+- assertVisible: "Remove this sale?"
+# Via the helper, not the label: the dialog's destructive button says
+# "Delete" — the SAME word as the sheet's own Delete button behind it — so a
+# text tap matches both and can land on the sheet instead of the dialog.
+- runFlow: ../_helpers/confirm_dialog.yaml
+- waitForAnimationToEnd
+
+# The refusal surfaces INSIDE the sheet (a raw RN Modal occludes toasts on
+# Android, same reasoning as BuyerPickerSheet.errorMessage) — never the bare
+# "server error" string, and the sheet stays open with nothing removed.
+- extendedWaitUntil:
+    visible:
+      id: "sale-edit-error"
+    timeout: 15000
+- assertVisible: ".*already has a review.*"
+- assertVisible: "Edit this sale"
+# The refusal also retracts the controls that would repeat it — Delete and
+# Change buyer both disappear once the sheet knows this row is reviewed.
+- assertNotVisible:
+    id: "sale-edit-delete"
+- assertNotVisible:
+    id: "sale-edit-change-buyer"
+# The tally is UNCHANGED — the refused void touched nothing server-side.
+- assertVisible: ".*3 of 10 sold.*"
+
+# ── THE ALLOWANCE: a quantity-only correction still succeeds ────────────
+- assertVisible:
+    id: "sale-edit-quantity-value"
+    text: "3"
+- tapOn:
+    id: "sale-edit-quantity-decrement"
+- assertVisible:
+    id: "sale-edit-quantity-value"
+    text: "2"
+- tapOn:
+    id: "sale-edit-save"
+- waitForAnimationToEnd
+
+# Sheet closes on a successful save, and the tally reflects the correction —
+# proving this landed on the server, not just in this row's own view.
+- extendedWaitUntil:
+    visible:
+      id: "sales-tally"
+    timeout: 20000
+- assertVisible: ".*2 of 10 sold.*"
+
+# Back on My Shop's own card (this flow opened Sales from the CARD's More
+# sheet, not the owner-detail screen), the stock badge agrees — 8 of 10 left,
+# not 7 (the review never blocked the quantity fix from landing).
+- tapOn:
+    id: "back_button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "seller-card-stock"
+    timeout: 20000
+- assertVisible: ".*8 of 10 left.*"

@@ -8,7 +8,9 @@ appId: com.hatiwal.app
 #      "Publish" button (tapped directly, no sheet needed) and "More".
 #      Publishing works straight from the primary button.
 #   2. Once active, the My Shop card also shows exactly two controls —
-#      "Mark as Reserved" (primary) and "More".
+#      "Mark as Sold" (primary — SF-M1, Sell Flow Redesign: Reserve is gone
+#      from every listing surface, the primary is always "Mark as Sold" for
+#      any Live listing) and "More".
 #   3. Delete is reachable from the "More" sheet, still goes through the
 #      destructive confirmAlert copy, and still fires a success toast —
 #      never a raw Alert.alert (a no-op on web, but this flow runs on
@@ -160,7 +162,7 @@ appId: com.hatiwal.app
     # which is what a scroll running out of TIME rather than out of list looks like.
     timeout: 20000
 
-- assertVisible: "Mark as Reserved"
+- assertVisible: "Mark as Sold"
 - assertVisible: "More"
 # The buttons that used to sit inline on the card are now hidden until "More"
 # is opened.
@@ -172,8 +174,15 @@ appId: com.hatiwal.app
 - tapOn: "More"
 - waitForAnimationToEnd
 
-# Every other action is reachable from the sheet too.
-- assertVisible: "Mark as Sold"
+# SF-M1: "Mark as Sold" is the PRIMARY action for a non-expired active
+# listing — it is not duplicated inside the More sheet (useListingLifecycle
+# only adds a "sold" moreActions entry once the listing has EXPIRED). Checked
+# by TESTID, not the bare text: the primary button underneath still reads
+# "Mark as Sold" too, and a covered-but-present element can still count as
+# "visible" to Maestro's own hierarchy check — the sheet's OWN row
+# (`listing-action-sold`) is the thing that must be absent.
+- assertNotVisible:
+    id: "listing-action-sold"
 - assertVisible: "Unpublish"
 - assertVisible: "Edit"
 - assertVisible: "Duplicate"

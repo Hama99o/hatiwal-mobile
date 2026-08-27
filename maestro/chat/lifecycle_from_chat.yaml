@@ -5,20 +5,25 @@ env:
 ---
 # Lifecycle actions from the chat thread pinned listing header (seller owner only)
 #
-# TASK-TX01: Reserve / Mark Sold from the chat header now open the
-# BuyerPickerSheet (listing this listing's conversations, incl. the one the
-# seller is currently in) instead of firing directly / a plain confirmAlert.
+# SF-M2 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md §4.4.1): ListingHeader's
+# old `showReserve`/`showMarkSold` toggle is gone -- the header's ONE inline
+# pill is now ALWAYS "Mark Sold" for the owner of any Live listing (`active`
+# OR `reserved`), never "Reserve". Reserve is no longer triggered from this
+# header at all -- placing a hold moved into the composer's "+" menu
+# (`ComposerActionsSheet`, "Place a hold for {name}" -- see
+# ../chat/place_and_release_hold.yaml) and stays proven-reachable on a
+# RESERVED listing too by ../chat/reserve_after_accept.yaml's own final
+# assertions (its listing ends Reserved and still shows "Mark Sold").
 #
 # Covers:
-#   1. Happy path: seller opens conversation → taps Reserve on active listing
-#      → BuyerPickerSheet opens → skip (legacy path) → badge updates to Reserved
-#      (picking a specific buyer from the picker is covered end-to-end by
-#      ../seller/mark_sold_with_buyer.yaml, which targets a known seeded listing)
-#   2. Happy path: seller taps Mark Sold on reserved listing → BuyerPickerSheet
-#      → skip → badge updates to Sold, input closes
-#   3. Buyer perspective: no Reserve / Mark Sold button visible in the same conversation
+#   1. Happy path: seller opens conversation on an ACTIVE listing -> only
+#      "Mark Sold" is offered (never "Reserve", which does not exist here
+#      any more) -> tapping it opens BuyerPickerSheet -> skip -> badge
+#      updates to Sold, the pill disappears (sold is terminal), composer
+#      stays usable.
+#   2. Buyer perspective: no "Mark Sold" button visible in the same conversation.
 
-# ─── Scenario 1: Owner taps Reserve (active → reserved) ──────────────────────
+# ─── Scenario 1: Owner marks the listing sold, one tap, straight from chat ───
 
 - runFlow: ../_helpers/login_seller.yaml
 # The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
@@ -42,17 +47,18 @@ env:
 - waitForAnimationToEnd
 # The pinned listing header is visible at the top of the thread
 - assertVisible: "View Listing"
-# The Reserve button is visible (listing is active, user is the owner)
-- assertVisible: "Reserve"
-# The Mark Sold button is NOT visible yet
-- assertNotVisible: "Mark Sold"
-# Tap Reserve — opens the BuyerPickerSheet (TASK-TX01) instead of firing directly
-- tapOn: "Reserve"
+# SF-M2: "Mark Sold" is the ONLY lifecycle pill this header ever renders now --
+# no "Reserve" button exists anywhere in this thread.
+- assertVisible: "Mark Sold"
+- assertNotVisible: "Reserve"
+- tapOn: "Mark Sold"
 - waitForAnimationToEnd
-- assertVisible: "Who's buying this item?"
-- assertVisible: "Sold to someone not on Hatiwal"
+# BuyerPickerSheet opens, scoped to this thread's own buyer (confirm mode) --
+# TASK-TX01 / SF-M2, never the full pick-a-buyer list.
+- assertVisible: "Who bought this item?"
+- assertNotVisible: "Who's buying this item?"
 - tapOn: "Sold to someone not on Hatiwal"
-- tapOn: "Confirm reserve"
+- tapOn: "Confirm sold"
 - waitForAnimationToEnd
 # Success toast appears
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
@@ -60,35 +66,12 @@ env:
 # loses that race, turning a successful action red. Polling keeps the check at
 # full strength while removing the timing dependency.
 - extendedWaitUntil:
-    visible: "Listing marked as reserved"
-    timeout: 15000
-# StatusBadge in the pinned header updates to Reserved
-- assertVisible: "Reserved"
-# Reserve button is gone; Mark Sold appears instead
-- assertNotVisible: "Reserve"
-- assertVisible: "Mark Sold"
-
-# ─── Scenario 2: Owner taps Mark Sold (reserved → sold), skips buyer pick ─────
-
-# (continuing from scenario 1 — listing is now reserved)
-- tapOn: "Mark Sold"
-- waitForAnimationToEnd
-# BuyerPickerSheet fires instead of a plain confirmAlert
-- assertVisible: "Who bought this item?"
-- tapOn: "Sold to someone not on Hatiwal"
-- tapOn: "Confirm sold"
-- waitForAnimationToEnd
-# Success toast
-# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
-# single check right after an action is a race — and any wait in front of it
-# loses that race, turning a successful action red. Polling keeps the check at
-# full strength while removing the timing dependency.
-- extendedWaitUntil:
     visible: "Listing marked as sold"
     timeout: 15000
-# StatusBadge updates to Sold
+# StatusBadge in the pinned header updates to Sold
 - assertVisible: "Sold"
-# No lifecycle button remains (sold is terminal)
+# Sold is terminal — no lifecycle pill remains at all (never "Reserve", and
+# "Mark Sold" cannot re-fire on an already-sold listing).
 - assertNotVisible: "Reserve"
 - assertNotVisible: "Mark Sold"
 # The thread STAYS USABLE after the sale, and that is deliberate.
@@ -114,7 +97,7 @@ env:
 # renders ListingUnavailableNotice behind `!isOwner`, and this half of the flow is
 # the seller. maestro/chat/reserved_sold_dead_end_notice.yaml covers the buyer view.
 
-# ─── Scenario 3: Buyer sees no Reserve / Mark Sold button ─────────────────────
+# ─── Scenario 2: Buyer sees no Mark Sold button ────────────────────────────
 
 - launchApp:
     clearState: true
@@ -172,6 +155,6 @@ env:
 - waitForAnimationToEnd
 # Pinned listing header is visible
 - assertVisible: "View Listing"
-# Buyer must NOT see Reserve or Mark Sold
+# Buyer must NOT see Reserve or Mark Sold — this pill is owner-only.
 - assertNotVisible: "Reserve"
 - assertNotVisible: "Mark Sold"

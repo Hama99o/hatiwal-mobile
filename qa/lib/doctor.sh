@@ -231,6 +231,10 @@ step "8/8 clean launch"
 if [ -n "${QA_SERIAL:-}" ] && adb_qa_t 25 shell pm list packages 2>/dev/null | grep -q "$APP_ID"; then
   adb_qa_t 25 logcat -c >/dev/null 2>&1
   adb_qa_t 25 shell am force-stop "$APP_ID" >/dev/null 2>&1
+  # Marker BEFORE the launch, in the API container's OWN clock — `docker logs
+  # --since` below reads that clock, and this host's and the container's can
+  # drift. `date -u --iso-8601=seconds` matches what --since accepts.
+  LAUNCH_MARK="$(docker exec "$QA_API_CONTAINER" date -u '+%Y-%m-%dT%H:%M:%S' 2>/dev/null || date -u '+%Y-%m-%dT%H:%M:%S')"
   adb_qa_t 25 shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
   sleep 12
   CRASH=$(adb_qa_t 60 logcat -d 2>/dev/null | grep -iE "FATAL EXCEPTION|AndroidRuntime.*$APP_ID|Could not connect to development server|Unable to load script" | head -3)
@@ -240,6 +244,29 @@ if [ -n "${QA_SERIAL:-}" ] && adb_qa_t 25 shell pm list packages 2>/dev/null | g
   else
     adb_qa_t 25 shell pidof "$APP_ID" >/dev/null 2>&1 && ok "app launched and stayed up" \
       || BLOCK "app is not running after launch"
+  fi
+
+  # ── THE HARD GATE (card #296/SF-QA1) ────────────────────────────────────
+  # "The app opened" and even "no crash" are NOT evidence the RIGHT bundle
+  # loaded: :8081 can silently serve a DIFFERENT Expo project's JS into this
+  # exact APK (the competing-Metro check above only warns/blocks on what IT
+  # can see — a stale adb-reverse tunnel or a race at boot could still slip
+  # through). A wrong bundle can render SOMETHING and stay crash-free while
+  # never once talking to hatiwal-api, because it has no reason to. Splash's
+  # own auth bootstrap and the Bazaar feed both fire a request within a
+  # couple of seconds of a real Hatiwal launch — so tailing hatiwal-api's OWN
+  # request log for a hit DURING THIS EXACT LAUNCH is the one signal a wrong
+  # bundle cannot fake by accident.
+  if docker inspect "$QA_API_CONTAINER" >/dev/null 2>&1; then
+    HIT=$(docker logs --since "$LAUNCH_MARK" "$QA_API_CONTAINER" 2>&1 | grep -m1 '^Started ')
+    if [ -n "$HIT" ]; then
+      ok "hatiwal-api saw a request from this launch: ${HIT:0:100}"
+    else
+      BLOCK "no request reached hatiwal-api during this launch — the app may be running a DIFFERENT project's bundle (see the :8081 check above), or the emulator cannot reach the API at all"
+      say "compare against: docker logs --since $LAUNCH_MARK $QA_API_CONTAINER | grep '^Started '"
+    fi
+  else
+    warn "container $QA_API_CONTAINER not found — skipping the request-landed hard gate"
   fi
 fi
 

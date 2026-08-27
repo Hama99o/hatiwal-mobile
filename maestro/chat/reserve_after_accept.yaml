@@ -115,8 +115,12 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Sanity check: this is still an active, owned listing before any response --
-# the old manual "dismiss thread -> lifecycle button" path starts from here.
-- assertVisible: "Reserve"
+# SF-M2 (Sell Flow Redesign) removed ListingHeader's old showReserve/showMarkSold
+# toggle -- the pinned header's inline pill is now ALWAYS "Mark Sold" for the
+# owner of any Live listing (active or reserved), never "Reserve" (that button
+# no longer exists anywhere -- a hold is placed from the composer's "+" menu,
+# see chat/place_and_release_hold.yaml, or via this exact accept-offer prompt).
+- assertVisible: "Mark Sold"
 
 - tapOn: ".*Accept.*"
 - waitForAnimationToEnd

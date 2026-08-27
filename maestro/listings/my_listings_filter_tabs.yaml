@@ -1,6 +1,10 @@
 appId: com.hatiwal.app
 ---
-# My Listings — filter by status tab (All / Draft / Active / Reserved / Sold)
+# My Listings — filter by status tab (All / Draft / Active / Expired / Sold)
+#
+# SF-M1 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md §4.5) dropped
+# "Reserved" as its own tab — a held listing now shows under Active with its
+# own hold badge instead. STATUS_TABS is ["all","draft","active","expired","sold"].
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn:
@@ -20,16 +24,16 @@ appId: com.hatiwal.app
     id: "my-listings-status-active"
 - waitForAnimationToEnd
 - assertVisible: "Active"
-# Tap Reserved tab
-- tapOn:
+# The "Reserved" tab and its testID no longer exist — asserted here so a
+# regression (the tab quietly coming back) fails loudly instead of drifting
+# back in unnoticed.
+- assertNotVisible:
     id: "my-listings-status-reserved"
-- waitForAnimationToEnd
-- assertVisible: "Reserved"
 # Tap Sold tab
-# SCROLL right first: "Sold" is the last of six tabs in a horizontal scroller and sits
-# past the right edge, where Android's accessibility tree omits it. Proven by
-# listing_status_counts, which reached every earlier tab and failed with "Element not
-# found" on this one.
+# SCROLL right first: "Sold" is still the LAST of the (now five) tabs in a
+# horizontal scroller and sits past the right edge, where Android's
+# accessibility tree omits it. Proven by listing_status_counts, which reached
+# every earlier tab and failed with "Element not found" on this one.
 # SWIPE ON THE TAB ROW, not scrollUntilVisible. That helper swipes at screen CENTRE,
 # which on this screen is over the listing cards — the thin tab strip never moved, and
 # the error merely changed from "Element not found" to "No visible element found".

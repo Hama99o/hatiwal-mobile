@@ -54,22 +54,41 @@ appId: com.hatiwal.app
 
 # Conditional, because chat/reserve_after_accept also reserves this listing and may
 # have run first in this cycle. Either way the listing ends up reserved, which is all
-# the buyer half below depends on. A bare `tapOn: "Reserve"` would fail on an
-# already-reserved listing, where the lifecycle button reads "Mark Sold" instead.
+# the buyer half below depends on.
+#
+# SF-M2 (Sell Flow Redesign) removed the header's old showReserve/showMarkSold
+# toggle — the pinned pill is now ALWAYS "Mark Sold" for the owner of a Live
+# listing, so a bare `tapOn: "Reserve"` (that button no longer exists at all)
+# can never fire, and gating on its VISIBILITY would silently skip placing the
+# hold on every run, passing only by accident whenever some other flow had
+# already reserved this listing first. Gate on the STATUS BADGE instead — if
+# it does not already read "Reserved", place a hold from the composer's "+"
+# menu (ComposerActionsSheet's "Place a hold for {name}" row), scoped to
+# whichever buyer this seeded conversation already has.
 - runFlow:
     when:
-      visible: "Reserve"
+      notVisible: "Reserved"
     commands:
-      - tapOn: "Reserve"
+      - tapOn:
+          id: "composer-plus-button"
       - waitForAnimationToEnd
-      - assertVisible: "Who's buying this item?"
-      # No named buyer: the viewer below is not the sale buyer either way, so
-      # the neutral (non-viewer-scoped) path is what's exercised regardless.
-      - tapOn: "Sold to someone not on Hatiwal"
+      # Wait for the SHEET's contents, not just the animation — see
+      # place_and_release_hold.yaml's own note: ComposerActionsSheet is a
+      # native Modal and waitForAnimationToEnd returns before its children
+      # reach the a11y tree.
+      - extendedWaitUntil:
+          visible:
+            id: "composer-action-place-hold"
+          timeout: 15000
+      - tapOn:
+          id: "composer-action-place-hold"
+      - waitForAnimationToEnd
+      - assertVisible: ".*Reserve for.*"
+      - assertNotVisible: "Who's buying this item?"
       - tapOn: "Confirm reserve"
       - waitForAnimationToEnd
       - extendedWaitUntil:
-          visible: "Listing marked as reserved"
+          visible: ".*reserved.*"
           timeout: 15000
 - assertVisible: "Reserved"
 

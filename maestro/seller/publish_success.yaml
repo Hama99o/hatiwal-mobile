@@ -174,8 +174,8 @@ appId: com.hatiwal.app
 # ── 4) Edit-save returns to the owner detail — never Browse ──────────────────
 
 # Edit now lives in the "More" overflow sheet (TASK-L863) — an active
-# listing's owner detail renders only its primary action ("Mark as Reserved")
-# plus "More".
+# listing's owner detail renders only its primary action ("Mark as Sold" —
+# SF-M1, Sell Flow Redesign) plus "More".
 # SCROLL to it. This is the owner detail, where the actions row is section 7 —
 # below the gallery, the price/title block and the Location map. `tapOn` does not
 # scroll, hence "Element not found: More" for a control one screen down. Third

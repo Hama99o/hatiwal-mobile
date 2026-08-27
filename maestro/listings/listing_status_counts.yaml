@@ -32,16 +32,20 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "Expired"
 
-# Tap Reserved.
-- tapOn:
+# SF-M1 (Sell Flow Redesign) dropped "Reserved" from STATUS_TABS entirely —
+# a held listing now shows under Active with its own hold badge instead of a
+# dedicated tab (docs/SELL_FLOW_REDESIGN.md §4.5). The tab, and its
+# `my-listings-status-reserved` testID, no longer exist — asserted here so a
+# regression (the tab quietly coming back) fails loudly instead of drifting
+# back in unnoticed.
+- assertNotVisible:
     id: "my-listings-status-reserved"
-- waitForAnimationToEnd
-- assertVisible: "Reserved"
 
 # Tap Sold.
-# SCROLL the tab row right first. "Sold" is the last of six tabs in a horizontal
-# scroller (MyListings.tsx:251, STATUS_TABS at line 24) and sits past the right edge —
-# the screenshot of My Shop cuts off mid-"Reserved". Android's accessibility tree omits
+# SCROLL the tab row right first. STATUS_TABS is now five tabs — all, draft,
+# active, expired, sold (MyListings.tsx STATUS_TABS, "reserved" dropped by
+# SF-M1) — and "Sold" is still the LAST one, still past the right edge on a
+# typical phone width. Android's accessibility tree omits
 # children clipped outside a horizontal scroller's viewport, which is why this reported
 # "Element not found" rather than "No visible element found", and why every earlier tab
 # in the same row was tappable.

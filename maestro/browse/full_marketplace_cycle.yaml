@@ -335,11 +335,32 @@ appId: com.hatiwal.app
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
-- tapOn: "Mark as Reserved"
+# SF-M1 (Sell Flow Redesign) removed "Mark as Reserved" from every listing
+# surface — the primary action on a Live listing is now ALWAYS "Mark as
+# Sold", one tap, no reserve step in between. Selling opens BuyerPickerSheet
+# (TASK-TX01) rather than firing directly, so the confirm step below is not
+# optional the way a bare confirmAlert tap used to be.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- assertVisible:
+    id: "lifecycle-primary-action"
+    text: "Mark as Sold"
+- tapOn:
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
-- assertVisible: "Reserved"
-- tapOn: "Mark as Sold"
+- assertVisible: "Who bought this item?"
+- tapOn:
+    id: "buyer-row-skip"
 - waitForAnimationToEnd
+- tapOn: "Confirm sold"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Listing marked as sold"
+    timeout: 15000
 - assertVisible: "Sold"
 
 # ── Step 6: Buyer checks saved tab — listing shows Sold ──────────────────────

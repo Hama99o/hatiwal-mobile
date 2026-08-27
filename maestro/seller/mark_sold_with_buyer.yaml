@@ -4,10 +4,12 @@ appId: com.hatiwal.app
 #
 # Seller opens the "QA Disposable mark_sold_with_buyer" active listing (has a
 # seeded conversation with buyer@hatiwal.test / "Ahmad Karimi" — see
-# hatiwal-api/db/seeds/e2e.rb), opens "More" (TASK-L863: an active listing's
-# primary is "Mark as Reserved" — Mark as Sold now lives in the overflow
-# sheet) and taps "Mark as Sold" from there, then identifies the real buyer
-# from the BuyerPickerSheet instead of the legacy bare confirm. Verifies:
+# hatiwal-api/db/seeds/e2e.rb) and taps its PRIMARY action (SF-M1, Sell Flow
+# Redesign: "Mark as Sold" is the one-tap primary for any Live listing —
+# Reserve is gone from every listing surface, and "Mark as Sold" is no
+# longer duplicated in the "More" overflow sheet for a non-expired active
+# listing), then identifies the real buyer from the BuyerPickerSheet instead
+# of the legacy bare confirm. Verifies:
 #   - the sheet opens with the listing's conversations
 #   - selecting a buyer + confirming records the sale
 #   - the listing flips to Sold and the success toast fires
@@ -60,33 +62,23 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 
-# Owner detail screen — active listing's primary is "Mark as Reserved";
-# Mark as Sold is reachable from the "More" overflow sheet (TASK-L863).
-- tapOn: "More"
-- waitForAnimationToEnd
-# THE SHEET'S OWN ITEM. The "More" tap above opens ListingActionsSheet — the
-# hierarchy at failure showed it wide open, with Mark as Sold / Unpublish / Edit /
-# Duplicate / Delete — and `seller-card-primary-action` is a control on the CARD
-# underneath it, so the tap landed on the backdrop and nothing happened.
-#
-# This is a leftover from when the flow worked on the card directly: the comment
-# that used to sit here explained why the card's own button was the right target,
-# which it was, BEFORE the "More" tap was reintroduced. Two correct steps that are
-# wrong in sequence.
-#
-# `listing-action-sold` is also the accurate target for this flow's subject: for an
-# ACTIVE listing the primary action is "Mark as Reserved", and Mark as Sold lives
-# in this sheet (TASK-L863) — so the card's primary would have reserved it, not
-# sold it.
+# Owner detail screen — SF-M1's primary action for a Live listing is ALWAYS
+# "Mark as Sold" (Reserve no longer exists here, and "Mark as Sold" is not
+# duplicated in the "More" sheet for a non-expired active listing — that
+# entry only appears once a listing has EXPIRED). Tap the card's own primary
+# action directly.
 # Wait for the data, not the animation. Switching tabs refires the query and
 # waitForAnimationToEnd does not wait on the network, so this tap can land on a
 # list that has not rendered yet. Free when the row is already cached.
 - extendedWaitUntil:
     visible:
-      id: "listing-action-sold"
+      id: "seller-card-primary-action"
     timeout: 20000
+- assertVisible:
+    id: "seller-card-primary-action"
+    text: "Mark as Sold"
 - tapOn:
-    id: "listing-action-sold"
+    id: "seller-card-primary-action"
 - waitForAnimationToEnd
 
 # BuyerPickerSheet opens — "Who bought this item?"

@@ -2,7 +2,7 @@ appId: com.hatiwal.app
 ---
 # Active → Draft (unpublish): seller takes active listing back to draft
 #
-# TASK-L863: an active listing's primary action is "Mark as Reserved" —
+# TASK-L863 / SF-M1: an active listing's primary action is "Mark as Sold" —
 # Unpublish is reachable from the "More" overflow sheet.
 
 - runFlow: ../_helpers/login_seller.yaml

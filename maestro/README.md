@@ -122,15 +122,15 @@ listings/
   edit_listing_remove_photo.yaml       ← delete a photo, cover updates
   edit_listing_reorder_photos.yaml     ← drag to reorder photos
   delete_listing.yaml                  ← confirm dialog, toast, removed
-  draft_lifecycle.yaml                 ← draft → active → reserved → sold full chain
+  draft_lifecycle.yaml                 ← draft → active → sold full chain (one-tap primary, SF-M1)
   lifecycle_publish.yaml               ← draft → active
   lifecycle_unpublish.yaml             ← active → draft
-  lifecycle_reserve.yaml               ← active → reserved
+  lifecycle_reserve.yaml               ← active → reserved, via a hold placed from chat (SF-M2)
   lifecycle_reactivate.yaml            ← reserved → active
   lifecycle_sold.yaml                  ← reserved → sold
   expired_listing_badge.yaml           ← active listing shows expiry countdown badge
   listing_renew_flow.yaml              ← expired listing → tap Renew → active again
-  my_listings_filter_tabs.yaml         ← All / Draft / Active / Reserved / Sold tabs
+  my_listings_filter_tabs.yaml         ← All / Draft / Active / Expired / Sold tabs (no Reserved tab, SF-M1)
   my_listings_search.yaml              ← search within my listings
   listing_conversations_list.yaml      ← seller views conversations for a listing
 
@@ -226,7 +226,7 @@ onboarding/
 
 seller/
   mark_sold_with_buyer.yaml  ← TASK-TX01: Mark Sold on an active listing opens the BuyerPickerSheet, seller picks the real buyer from the listing's conversations, listing flips to Sold
-  reserved_buyer.yaml        ← TASK-R418: Mark as Reserved with a picked buyer + negotiated price shows the SaleBuyerCard ("Reserved for {name}", agreed price, Message CTA) on the owner detail screen, landing directly in that buyer's conversation thread
+  reserved_buyer.yaml        ← TASK-R418: an accepted below-asking offer reserves at the negotiated price (SF-M2 chat mechanism) and shows the SaleBuyerCard ("Reserved for {name}", agreed price, Message CTA) on the owner detail screen, landing directly in that buyer's conversation thread
 
 reviews/
   rate_buyer_after_sale.yaml       ← REV2: chains mark_sold_with_buyer, review prompt opens, Submit gated on a star pick, submitting shows the double-blind PENDING state

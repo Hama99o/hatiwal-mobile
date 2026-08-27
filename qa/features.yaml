@@ -36,18 +36,34 @@ features:
     self_login: true
 
   browse:
-    title: "Buyer browse, search, filters, sort, listing detail, seller profile"
+    # Sell Flow Redesign (docs/SELL_FLOW_REDESIGN.md, card #296/SF-QA1): a
+    # `reserved` listing is no longer a dead end here — SF-B1/SF-M3 keep it in
+    # search/the feed and message-able (Offer stays paused, Message does not),
+    # and SF-M4 adds "N in stock · M held" transparency to a multi-unit
+    # batch's stock pill. `Listing.browsable` widened, so Browse/Search/Saved
+    # are in the blast radius even though nobody edited those screens.
+    title: "Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold"
     flows: browse
     smoke: [browse_listings, listing_detail, search_listings]
-    jest: ["src/api/__tests__/listings*", "src/screens/buyer/__tests__/*", "src/screens/shared/listing-detail/__tests__/*"]
-    api: ["/listings", "/listings/:id", "/categories", "/users/:id"]
+    jest: ["src/api/__tests__/listings*", "src/screens/buyer/__tests__/*", "src/screens/shared/listing-detail/__tests__/*",
+           "src/components/common/__tests__/StockBadge*", "src/components/common/__tests__/ListingStatusBanner*"]
+    api: ["/listings", "/listings/:id", "/categories", "/users/:id", "/listings/:id/conversations"]
 
   listings:
-    title: "Seller create/edit/delete + full draft→active→reserved→sold lifecycle"
+    # SF-M1: the DB keeps 4 statuses, but the seller UI presents 3 states —
+    # Draft / Live (active OR reserved, with a hold badge) / Sold. "Mark sold"
+    # is the one-tap primary from ANY live listing; there is no more
+    # "Mark as Reserved" step and no more "Reserved" tab in My Listings (a
+    # held listing shows under Active). Reserve only exists in chat now (see
+    # the `chat` feature below) — this feature owns publish / unpublish /
+    # release-hold / renew / delete / the create-time quantity declaration.
+    title: "Seller create/edit/delete + the 3-state lifecycle (Draft/Live/Sold) — Mark sold is always the one-tap primary, no Reserved tab"
     flows: listings
     smoke: [create_listing, my_listings_filter_tabs, lifecycle_publish]
-    jest: ["src/screens/seller/listing-form/__tests__/*", "src/screens/seller/my-listings/__tests__/*"]
-    api: ["/listings", "/listings/:id", "/listings/:id/publish", "/listings/:id/reserve", "/listings/:id/sold"]
+    jest: ["src/screens/seller/listing-form/__tests__/*", "src/screens/seller/my-listings/__tests__/*",
+           "src/hooks/__tests__/useListingLifecycle*", "src/components/common/__tests__/QuantityStepper*"]
+    api: ["/listings", "/listings/:id", "/listings/:id/publish", "/listings/:id/reserve",
+          "/listings/:id/sold", "/listings/:id/activate"]
 
   maps:
     title: "Location pickers — create-listing pin, Browse filter range, current location, permissions"
@@ -66,11 +82,24 @@ features:
     needs_media: true
 
   chat:
-    title: "Conversations, messages, offers, meetup arrangement, read state"
+    # SF-M2: a hold is placed FROM the thread now, not the listing — the
+    # composer's "+" menu grows a seller-only "Place a hold for {name}" /
+    # "Release hold" pair (ComposerActionsSheet), scoped to whichever buyer
+    # the seller is already talking to (BuyerPickerSheet's confirm mode, the
+    # same mechanism reserveAfterAccept.ts already proved for the
+    # offer-accept trigger). The pinned ListingHeader's inline pill drops its
+    # old showReserve/showMarkSold toggle — it is ALWAYS "Mark Sold" for the
+    # owner of a Live listing now. SF-M3: reserved is no longer a chat dead
+    # end (sold-only from here on) and a held conversation is no longer
+    # dimmed in the inbox.
+    title: "Conversations, messages, offers, meetup arrangement, read state — mark-sold one-tap from the thread, place/release a hold with the buyer you're already talking to"
     flows: chat
     smoke: [conversations_list, send_message, start_conversation]
-    jest: ["src/api/__tests__/*conversation*", "src/api/__tests__/*message*", "src/screens/chat/**/__tests__/*"]
-    api: ["/conversations", "/conversations/:id/messages", "/offers", "/meetups"]
+    jest: ["src/api/__tests__/*conversation*", "src/api/__tests__/*message*", "src/screens/chat/**/__tests__/*",
+           "src/screens/chat/conversation/__tests__/ListingHeader*", "src/screens/chat/conversation/__tests__/ComposerActionsSheet*",
+           "src/screens/chat/conversation/__tests__/threadAvailability*", "src/screens/chat/conversations/__tests__/ConversationRow*"]
+    api: ["/conversations", "/conversations/:id/messages", "/offers", "/meetups",
+          "/listings/:id/reserve", "/listings/:id/sold", "/listings/:id/activate"]
 
   saved:
     title: "Save / unsave a listing, saved tab, sold-while-saved"
@@ -80,11 +109,22 @@ features:
     api: ["/saved_listings"]
 
   seller:
-    title: "Seller action sheet, publish, mark reserved/sold with buyer"
+    # SF-M1/SF-M5: "Mark sold" is the one-tap primary from any live listing —
+    # never a "reserve first" step, and BuyerPickerSheet's own Confirm is the
+    # confirmation (no separate dialog). The Sales ledger ("View sales") is
+    # new here: every sold row is editable (quantity, buyer) and voidable,
+    # stock restores on void, a reviewed sale refuses void/reassign but still
+    # allows a quantity fix (422 sale_has_review), and an outside-Hatiwal sale
+    # gets its own nil-safe row. Marking sold also offers an immediate "Undo"
+    # on the toast — same DELETE the ledger's own row Delete calls.
+    title: "One-tap Mark sold from any live listing (never reserve-first) + the Sales ledger (edit/void a row, reviewed-sale refusal, outside-buyer rows, undo-after-sold)"
     flows: seller
-    smoke: [publish_success, listing_actions_sheet]
-    jest: ["src/screens/seller/__tests__/*"]
-    api: ["/listings/:id/publish", "/listings/:id/sold"]
+    smoke: [publish_success, listing_actions_sheet, sell_without_reserving]
+    jest: ["src/screens/seller/__tests__/*", "src/screens/seller/listing-sales/__tests__/*",
+           "src/api/__tests__/transactions*", "src/components/common/__tests__/BuyerPickerSheet*",
+           "src/components/common/__tests__/SaleBuyerCard*"]
+    api: ["/listings/:id/publish", "/listings/:id/sold", "/listings/:id/reserve",
+          "/listings/:id/activate", "/my/transactions", "/my/transactions/:id"]
 
   mode:
     title: "Buyer ↔ seller mode switch, tab bar, persistence"

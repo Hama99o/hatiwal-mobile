@@ -1,49 +1,92 @@
 appId: com.hatiwal.app
 ---
-# Lifecycle: active → reserved
+# Lifecycle: active → reserved, via a hold placed from the CHAT THREAD.
 #
-# TASK-TX01: "Mark as Reserved" now opens the BuyerPickerSheet instead of a
-# plain confirmAlert. This flow exercises the legacy skip path — "Sold to
-# someone not on Hatiwal" (no buyer recorded) — the buyer-recorded path is covered by
-# ../seller/mark_sold_with_buyer.yaml.
+# SF-M2 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md §4.4.2) removed
+# Reserve from every listing surface — there is no "Mark as Reserved" primary
+# action or More-sheet entry any more (SF-M1: the primary is always
+# "Mark as Sold", live or held). This flow used to tap the card's own
+# `seller-card-primary-action` and land in a pick-a-buyer sheet titled "Who's
+# buying this item?" — that control now opens the SOLD flow instead ("Who
+# bought this item?"), so this is a full rewrite of the MECHANISM, not a copy
+# fix. A hold is placed from the chat thread's composer "+" menu now, scoped
+# to whichever buyer the seller is already talking to
+# (ComposerActionsSheet's "Place a hold for {name}" row) — generalizing the
+# exact confirm-mode BuyerPickerSheet mechanism
+# ../chat/reserve_after_accept.yaml already proves for the offer-accept
+# trigger. This flow proves the same fact as before (an active, single-item
+# listing can be held for a specific buyer and its status flips to Reserved)
+# through the mechanism that actually exists today.
 
-- runFlow: ../_helpers/login_seller.yaml
+# ─── Buyer messages the disposable listing, creating a conversation ────────
+- runFlow: ../_helpers/login.yaml
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-# Find an active listing
-# Search for THIS FLOW'S disposable listing. The seed creates one per destructive
-# flow, named after it, precisely so this flow can ruin it without touching a
-# fixture anything else asserts on. It used to act on "whichever listing comes
-# first", which was a shared one.
-- tapOn: "Search my listings..."
-- eraseText
+- tapOn:
+    id: "browse-search-input"
 - inputText: "QA Disposable lifecycle_reserve"
 - waitForAnimationToEnd
 - extendedWaitUntil:
-      visible: "QA Disposable lifecycle_reserve"
-      timeout: 30000
-# With the search working (the API used to drop it — UI-031), the list holds
-# exactly ONE card, so its own action button is unambiguous and there is no need
-# to open the detail at all. Tapping the title did not navigate anyway: after
-# typing, the first tap outside the field goes to dismissing the IME, so the flow
-# stayed on the list and then looked for the DETAIL's `lifecycle-primary-action`.
-# Verified by screenshot — header "1 listing", one card, still on My Shop.
+    visible:
+      id: "listing-card"
+    timeout: 20000
 - tapOn:
-    id: "seller-card-primary-action"
+    id: "listing-card"
     index: 0
 - waitForAnimationToEnd
-# BuyerPickerSheet opens
-- assertVisible: "Who's buying this item?"
-- tapOn: "Sold to someone not on Hatiwal"
+- runFlow: ../_helpers/open_thread_from_listing.yaml
+
+# ─── Seller places a hold for this buyer from the composer's "+" menu ──────
+- runFlow: ../_helpers/login_seller.yaml
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversations-search-bar"
+    timeout: 20000
+- tapOn:
+    id: "conversations-search-bar"
+- inputText: "QA Disposable lifecycle_reserve"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+# Wait for the SHEET's contents, not just the animation — ComposerActionsSheet
+# is a native Modal and waitForAnimationToEnd returns before its children
+# reach the a11y tree (see place_and_release_hold.yaml's own note).
+- extendedWaitUntil:
+    visible:
+      id: "composer-action-place-hold"
+    timeout: 15000
+- tapOn:
+    id: "composer-action-place-hold"
+- waitForAnimationToEnd
+
+# Confirm sheet — LOCKED to this thread's own buyer, never a pick-a-buyer list.
+- assertVisible: ".*Reserve for.*"
+- assertNotVisible: "Who's buying this item?"
 - tapOn: "Confirm reserve"
 - waitForAnimationToEnd
-# Status changed
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
 # single check right after an action is a race — and any wait in front of it
 # loses that race, turning a successful action red. Polling keeps the check at
 # full strength while removing the timing dependency.
 - extendedWaitUntil:
-    visible: "Listing marked as reserved"
+    visible: ".*reserved.*"
     timeout: 15000
+
+# ─── Status confirmed Reserved on the pinned thread header ─────────────────
 - assertVisible: "Reserved"
+- assertVisible: "Mark Sold"

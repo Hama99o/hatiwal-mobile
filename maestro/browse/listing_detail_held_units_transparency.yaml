@@ -1,0 +1,91 @@
+appId: com.hatiwal.app
+---
+# SF-M4 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md §4.2.2/§4.5) — held-unit
+# transparency on a multi-unit batch. A hold on part of a batch does NOT pull
+# the batch off the market (§3.6: held units are advisory, not subtracted from
+# `availableUnits`) — but hiding that a hold exists at all would be its own
+# kind of dishonesty, so both audiences see it, worded differently:
+#   - buyer  (no identity in the public payload): "N in stock · M held"
+#   - owner  (has `sale.buyer.name`):             "N in stock · M held for {name}"
+#
+# Fixture: "Winter Gloves Wholesale Box - 15 Pairs" (card #296 / SF-QA1,
+# db/seeds/e2e.rb "Sell-flow states") — active, quantity 15, sold 0,
+# available 15, held 10 for Ahmad Karimi. A batch with an OPEN HOLD staying
+# `active` (never `reserved`) is the point of the fixture: `status` is not the
+# signal a hold exists here, `heldUnits` is (see the seed's own comment).
+#
+# Complements ../chat/place_and_release_hold.yaml, which proves the SAME
+# clause disappears once a hold is released, on a DIFFERENT (0-held) fixture
+# so the two flows never race each other's stock badge.
+
+# ── Buyer view: "N held", no name ───────────────────────────────────────────
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- tapOn:
+    id: "browse-search-input"
+- inputText: "Gloves"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      id: "stock-badge-detail"
+    timeout: 20000
+# ONE Badge node carries the whole label — assert it as a single string so a
+# regression that splits "in stock" from "held" onto the wrong audience (or
+# drops one half) fails here instead of two narrower, easier-to-satisfy
+# assertions.
+- assertVisible: ".*15 in stock.*10 held.*"
+# The public payload never carries buyer identity — the buyer-facing clause
+# must never leak the held-for name.
+- assertNotVisible: ".*held for.*"
+- assertNotVisible: "Ahmad Karimi"
+# Reserved (single-item) is a STATUS; a multi-unit hold is not — the batch
+# stays fully live, no "Reserved" ribbon anywhere on this listing.
+- assertNotVisible: "Reserved"
+
+# ── Owner view: same clause, WITH the buyer's name ──────────────────────────
+# Pop back to the tab bar FIRST, while still the buyer — login_seller.yaml
+# swaps accounts, but audit_structure's own navigation check only recognizes
+# a helper that contains a literal `back` as a "the tab bar is reachable
+# again" signal, and this is also the more deterministic reset (no reliance
+# on login_seller.yaml's cold-restart fallback for a pushed screen).
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- tapOn: "Search my listings..."
+- eraseText
+- inputText: "Gloves"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Winter Gloves Wholesale Box - 15 Pairs"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
+- assertVisible: ".*15 in stock.*10 held for Ahmad Karimi.*"
+# Still Active — a batch hold never flips the listing's own status.
+- assertVisible: "Active"
+
+# Owner detail repeats the same clause, with the same name.
+- tapOn:
+    id: "seller-listing-card"
+    index: 0
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "stock-badge-owner"
+    timeout: 20000
+- assertVisible: ".*15 in stock.*10 held for Ahmad Karimi.*"

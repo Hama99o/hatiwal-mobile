@@ -4,17 +4,36 @@ appId: com.hatiwal.app
 # with the agreed price and a one-tap Message CTA into that buyer's existing
 # conversation.
 #
-# Reuses the seeded "QA Disposable reserved_buyer" listing + its
-# buyer@hatiwal.test / "Ahmad Karimi" conversation (see
-# ../seller/mark_sold_with_buyer.yaml and ../reviews/rate_buyer_after_sale.yaml,
-# which share this SAME fixture to sell the listing straight to Sold). This
-# flow only RESERVES it (non-terminal), but still mutates shared listing
-# state — do not run this in the same suite pass as those two flows without
-# an E2E DB reset in between (`bundle exec rails db:seed:reset_e2e`).
+# SF-M1/SF-M2 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md) removed Reserve
+# from every listing surface — there is no more "Mark as Reserved" primary
+# action to negotiate a price from directly (`seller-card-primary-action` on
+# an active listing now opens the SOLD flow, "Who bought this item?", not a
+# pick-a-buyer reserve sheet). A hold placed from the chat composer's "+" menu
+# always confirms at the listing's ASKING price (docs/SELL_FLOW_REDESIGN.md
+# §4.4.2: "finalPrice defaults to the listing's asking price... on the manual
+# path") — so it cannot reproduce a NEGOTIATED price on its own. The one
+# still-current path to a reserve at a price that differs from asking is the
+# same accept-a-lower-offer mechanism ../chat/reserve_after_accept.yaml
+# already proves: buyer sends an offer, seller accepts it, and the resulting
+# one-tap confirm reserves at the AGREED (offer) price. This flow reuses that
+# exact mechanism to get to "reserved at a negotiated price", then goes on to
+# check what reserve_after_accept.yaml does not: the owner detail's
+# SaleBuyerCard and its Message CTA.
+#
+# Reuses the seeded "QA Disposable reserved_buyer" listing (asking price AFN
+# 1,400) + its buyer@hatiwal.test / "Ahmad Karimi" conversation (see
+# ../listings/lifecycle_reactivate.yaml, which shares this SAME fixture to
+# round-trip a hold — both leave it exactly as found: active, no hold — and
+# ../seller/mark_sold_with_buyer.yaml, which sells a DIFFERENT disposable to
+# Sold). This flow only RESERVES it (non-terminal), but still mutates shared
+# listing state — do not run this in the same suite pass as
+# lifecycle_reactivate.yaml without an E2E DB reset in between
+# (`bundle exec rails db:seed:reset_e2e`), since both places-then-releases /
+# places a hold on the same fixture.
 #
 # Covers:
-#   - BuyerPickerSheet → pick "Ahmad Karimi" → set a negotiated final price
-#     that differs from the asking price → confirm reserve
+#   - Buyer offers below asking -> seller accepts -> one-tap reserve confirm
+#     at the AGREED (not asking) price
 #   - Owner detail shows the SaleBuyerCard: "Reserved for Ahmad Karimi",
 #     the buyer's name via the shared UserIdentity row, and the agreed price
 #     line (since it differs from the listing's asking price)
@@ -23,95 +42,127 @@ appId: com.hatiwal.app
 #     "Message {name}" button text) — the Message control lands directly in
 #     the existing conversation thread (not a generic conversations list)
 
-- runFlow: ../_helpers/login_seller.yaml
+# ── Step 1: buyer sends a below-asking offer on the disposable listing ──────
+- runFlow: ../_helpers/login.yaml
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-
-# Search for THIS FLOW'S disposable listing. The seed creates one per destructive
-# flow, named after it, so this flow can ruin it without touching a fixture
-# anything else asserts on. It used to act on "whichever listing comes first".
-- tapOn: "Search my listings..."
-- eraseText
+- tapOn:
+    id: "browse-search-input"
 - inputText: "QA Disposable reserved_buyer"
 - waitForAnimationToEnd
 - extendedWaitUntil:
-      visible: "QA Disposable reserved_buyer"
-      timeout: 30000
-
-- scrollUntilVisible:
-    element:
-      text: "QA Disposable reserved_buyer"
-    direction: DOWN
-    # 20s, not 8s: this is a scroll down the whole feed to one seeded title, and 8s ran
-    # out on a loaded device — offer_send_and_accept and offer_send_and_decline both
-    # reported "No visible element found" with the title present in the hierarchy,
-    # which is what a scroll running out of TIME rather than out of list looks like.
+    visible:
+      id: "listing-card"
     timeout: 20000
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
 
-# By CARD testID, not the title. The title is sitting in the search box from the step
-# above, and that input is higher in the hierarchy than the results — so an anchored
-# text match lands on the SEARCH FIELD, the tap does nothing, and the flow carries on
-# believing it navigated. Proven three times with screenshots (composer_draft,
-# full_marketplace_cycle, create_listing_with_condition).
+# "Make an Offer" is a sibling of "Contact Seller" directly on the listing
+# detail page -- no need to open the thread first (mirrors
+# ../chat/reserve_after_accept.yaml's own verified selector notes).
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- assertVisible: "Send Offer"
+- tapOn:
+    id: "offer-amount-input"
+- inputText: "1000"
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+- assertVisible: ".*1,000.*"
+
+# ── Step 2: the real listing owner accepts the offer ────────────────────────
+# Pop back to the tab bar FIRST, while still the buyer — see the identical
+# note in listing_detail_held_units_transparency.yaml.
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
 - extendedWaitUntil:
     visible:
-      id: "seller-listing-card"
+      id: "conversations-search-bar"
     timeout: 20000
 - tapOn:
-    id: "seller-listing-card"
+    id: "conversations-search-bar"
+- inputText: "QA Disposable reserved_buyer"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
+- tapOn:
+    id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
 
-# With the search working (the API used to drop it — UI-031), the list holds
-# exactly ONE card, so its own action button is unambiguous and there is no need
-# to open the detail at all. Tapping the title did not navigate anyway: after
-# typing, the first tap outside the field goes to dismissing the IME, so the flow
-# stayed on the list and then looked for the DETAIL's `lifecycle-primary-action`.
-# Verified by screenshot — header "1 listing", one card, still on My Shop.
-- tapOn:
-    id: "seller-card-primary-action"
-    index: 0
+# Sanity check: this is still an active, owned listing before any response --
+# SF-M2's pinned header pill is ALWAYS "Mark Sold" for the owner of a Live
+# listing, never "Reserve" (that button does not exist here any more).
+- assertVisible: "Mark Sold"
+
+- tapOn: ".*Accept.*"
 - waitForAnimationToEnd
+- assertVisible: "Offer accepted"
 
-# BuyerPickerSheet opens with the seeded conversation
-- assertVisible: "Who's buying this item?"
-- assertVisible: "Ahmad Karimi"
-
-- tapOn: "Ahmad Karimi"
-- waitForAnimationToEnd
-
-# Negotiate a lower final price than the 38,000 AFN asking price so the
-# SaleBuyerCard's agreed-price line has something real to show.
-- tapOn:
-    id: "buyer-picker-final-price"
-- inputText: "32000"
+# ── Step 3: one-tap reserve confirm fires -- no pick-a-buyer list, agreed
+#    price carried over from the accepted offer, not the asking price ───────
+- assertVisible: ".*Reserve for.*Ahmad Karimi.*"
+- assertVisible: ".*Ahmad Karimi.*"
+- assertVisible: ".*1,000.*"
+- assertNotVisible: ".*Who's buying this item.*"
 
 - tapOn: "Confirm reserve"
 - waitForAnimationToEnd
 
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
-
 # single check right after an action is a race — and any wait in front of it
-
 # loses that race, turning a successful action red. Polling keeps the check at
-
 # full strength while removing the timing dependency.
-
+#
+# This confirm fires through reserveAfterAccept.ts, whose OWN success toast is
+# "Listing reserved for {{buyerName}}" (chat.offer.reserveAfterAcceptSuccess) —
+# NOT "Listing marked as reserved" (listing.reserveSuccess / SF-M1's now-DEAD
+# standalone reserve mutation, deleted from every listing surface). The name
+# is bidi-isolate wrapped (wrapBidiIsolate), so match loosely, same convention
+# as place_and_release_hold.yaml's own toast check.
 - extendedWaitUntil:
-
-    visible: "Listing marked as reserved"
-
+    visible: ".*reserved.*"
     timeout: 15000
 
 # ── SaleBuyerCard on the owner detail screen ──────────────────────────────
-# OPEN THE DETAIL FIRST. This flow reserves from the CARD in My Shop, so it never
-# left the list — and the two assertions below are about different screens:
-# "Reserved for Ahmad Karimi" appears on the card too (so it passed), while
-# "Agreed price" (listing.finalPrice) exists only on the owner detail. The flow
-# failed on the second while the reserve had worked perfectly: the hierarchy showed
-# the card reading "Reserved for Ahmad Karimi" with its action already flipped to
-# "Mark as Sold".
+# OPEN THE DETAIL. This flow reserved from CHAT, so it never visited My Shop —
+# the two assertions below are about the OWNER DETAIL specifically:
+# "Reserved for Ahmad Karimi" appears on the My Shop CARD too, while
+# "Agreed price" (listing.finalPrice) exists only on the owner detail.
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- tapOn: "Search my listings..."
+- eraseText
+- inputText: "QA Disposable reserved_buyer"
+# Dismiss the IME right away — reproduced TWICE live (card #296/SF-QA1): left
+# focused, the search field silently reclaims the keyboard after the
+# lifecycle mutation below re-renders this list, and the reclaimed IME then
+# sits over the toast for the rest of the flow (the mutation itself succeeds
+# either way — confirmed via a direct DB check both times — only the toast
+# assertion that follows is affected). Safe HERE specifically: no modal is
+# open yet, so Back reaches the IME and nothing else (contrast the sheet
+# case a few flows document elsewhere, where Back would close the SHEET
+# instead).
+- hideKeyboard
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "QA Disposable reserved_buyer"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
+- assertVisible: "Reserved for Ahmad Karimi"
 - tapOn:
     id: "seller-listing-card"
     index: 0
@@ -130,14 +181,7 @@ appId: com.hatiwal.app
     id: "sale-buyer-message-button"
 - waitForAnimationToEnd
 
-# Conversation thread screen, not a generic list — the composer + the
-# seeded first message from this buyer are both visible.
+# Conversation thread screen, not a generic list — the composer + the offer
+# just accepted are both visible.
 - assertVisible: "Type a message..."
-# The picker shows `conv.lastMessageBody` — the LAST message, not the first. For the
-# disposable listing these flows use, db/seeds/e2e.rb seeds:
-#     buyer:  "Is this still available? I can collect today."
-#     seller: "Yes — when suits you?"        <- so this is what renders
-# The old assertion, "Hi, is this laptop still available?", belongs to a different
-# fixture entirely (RESPONSE_BADGE_CONVOS) and was never this conversation's text —
-# not before the seller reply was added to the fixture, and not after.
-- assertVisible: "Yes — when suits you?"
+- assertVisible: "Offer accepted"

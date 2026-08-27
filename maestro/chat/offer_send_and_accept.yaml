@@ -103,6 +103,8 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Accepted state, and the listing is untouched -- still Active, still shows
-# its own lifecycle "Reserve" action (never auto-reserved by "Not now").
+# the pinned header's own lifecycle pill (SF-M2, Sell Flow Redesign: ALWAYS
+# "Mark Sold" for a Live listing now, never "Reserve" -- and never
+# auto-reserved by "Not now").
 - assertVisible: "Offer accepted"
-- assertVisible: "Reserve"
+- assertVisible: "Mark Sold"

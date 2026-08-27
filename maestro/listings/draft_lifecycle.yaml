@@ -1,6 +1,17 @@
 appId: com.hatiwal.app
 ---
-# Full draft lifecycle: draft → publish → reserve → sold → back to active (deal fell through)
+# Full draft lifecycle: draft → publish → sold (one tap, no reserve step)
+#
+# SF-M1 (Sell Flow Redesign, docs/SELL_FLOW_REDESIGN.md) removed "Mark as
+# Reserved" from every listing surface — the primary action on a Live listing
+# is now ALWAYS "Mark as Sold", and Sold is terminal (no "Reactivate" from
+# Sold exists; a mistaken sale is undone via the toast's "Undo" action or the
+# Sales screen instead — see ../seller/undo_mark_sold.yaml). This flow used
+# to tap "Mark as Reserved" then "Reactivate" straight off a Sold listing —
+# neither control exists any more — so it is rewritten to prove the CURRENT
+# one-tap lifecycle end to end, including the BuyerPickerSheet confirm step
+# TASK-TX01 already requires (the old version skipped it and would have
+# failed on "Who bought this item?" regardless of the SF-M1 rename).
 
 - runFlow: ../_helpers/login_seller.yaml
 - tapOn:
@@ -110,22 +121,41 @@ appId: com.hatiwal.app
 # full_marketplace_cycle.yaml, which was already corrected.
 - assertVisible: "Your listing is live!"
 
-# 3) Mark as Reserved
+# 3) Mark as Sold — the one-tap primary, no reserve step in between
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
 - tapOn: "Lifecycle Test Item"
 - waitForAnimationToEnd
-- tapOn: "Mark as Reserved"
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- assertVisible:
+    id: "lifecycle-primary-action"
+    text: "Mark as Sold"
+- tapOn:
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
-- assertVisible: "Reserved"
-
-# 4) Mark as Sold
-- tapOn: "Mark as Sold"
+# BuyerPickerSheet opens (TASK-TX01) — never a plain confirmAlert.
+- assertVisible: "Who bought this item?"
+- tapOn:
+    id: "buyer-row-skip"
 - waitForAnimationToEnd
+- tapOn: "Confirm sold"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Listing marked as sold"
+    timeout: 15000
 - assertVisible: "Sold"
 
-# 5) Reactivate — deal fell through
-- tapOn: "Reactivate"
-- waitForAnimationToEnd
-- assertVisible: "Active"
+# 4) Sold is terminal — no lifecycle primary action remains, and neither
+# "Mark as Reserved" nor a "Reactivate" control exist anywhere on this
+# screen (a mistaken sale is undone via the toast's own "Undo" action, or
+# corrected from the Sales screen — not by reactivating the listing itself).
+- assertNotVisible:
+    id: "lifecycle-primary-action"
+- assertNotVisible: "Reactivate"
+- assertNotVisible: "Mark as Reserved"
