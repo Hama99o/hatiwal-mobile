@@ -1365,6 +1365,31 @@ dismissal, which is what the meetup flows do.
 An audit for the same shape — `hideKeyboard` within a dozen lines of a sheet
 input or a sheet button — found exactly one instance, this one. Fixed.
 
+### RESOLVED: text matching is case-INSENSITIVE
+
+Left open earlier tonight with a probe flow written for it
+(maestro/_diag/probe_case_sensitivity.yaml). The repo already had the answer, in
+_helpers/confirm_dialog.yaml:
+
+> `t("listing.publish")` = "Publish", over a screen whose primary button is also
+> "Publish" … `tapOn: "Publish"` matched both and tapped the one BEHIND the modal
+
+Android renders a native AlertDialog's buttons UPPERCASE — the screenshot of
+draft_lifecycle shows "CANCEL" and "PUBLISH". For a title-case `tapOn: "Publish"` to
+have matched the dialog's button at all, matching cannot be case-sensitive. Second,
+independent instance: browse/offer_counter_flow asserts "Price Offer" and passes, while
+MessageBubble.tsx:859 renders `t("chat.offer.label").toUpperCase()` — "PRICE OFFER" —
+and nothing else in src/ renders the title-case form.
+
+**Consequences for triage.** A failure is never explained by case alone, so a "fix"
+that only changes capitalisation is not a fix and the real cause is still there. Two
+strings that differ only in case are the SAME selector, which is why
+confirm_dialog.yaml has to use `android:id/button1` rather than a cleverer spelling of
+the word.
+
+The probe stays: it costs 30 seconds and would catch a Maestro upgrade changing this.
+It is a regression check now, not an open question.
+
 ### Second amendment: it pops a PUSHED SCREEN too, not just a Modal
 
 `send_message_offline` types into the composer, calls `hideKeyboard`, taps "Send",

@@ -175,6 +175,18 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - tapOn: "Publish"
 - waitForAnimationToEnd
+# CONFIRM the dialog. Publishing raises a native confirmAlert, and the flow used to
+# assert the success sheet straight after tapping Publish — so it was waiting for a
+# sheet that no one had asked for. (Screenshot: the dialog "Publish this listing?" still
+# open, the listing still a Draft.)
+#
+# Via the helper, not `tapOn: "Publish"`: the dialog's confirm button says the same word
+# as the button behind it, so a text tap matches both, lands on the scrim and dismisses
+# the dialog without publishing — the helper's own comment documents that, and
+# lifecycle_publish already uses it.
+- assertVisible: "Publish this listing?"
+- runFlow: ../_helpers/confirm_dialog.yaml
+- waitForAnimationToEnd
 
 # ── 3) Success sheet appears on the SAME listing; dismiss it ─────────────────
 

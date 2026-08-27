@@ -72,7 +72,11 @@ PY
     continue
   fi
   fixed=$(git log -1 --format=%ct -- "$f" 2>/dev/null || echo 0)
-  ran=$(stat -c %Y "$log")
+  # Compare against when the flow STARTED, not when its log was written. A fix that
+  # lands while a flow is running produced a row reading "current" three seconds after
+  # the commit — the run had begun 169s earlier and executed the old file
+  # (edit_listing_discard). Log mtime minus the recorded duration is the start.
+  ran=$(( $(stat -c %Y "$log") - ${secs:-0} ))
   if [ "${fixed:-0}" -gt "$ran" ]; then
     printf '%-38s %-8s %s\n' "$flow" "STALE" "flow changed $(( (fixed-ran)/60 ))m after this run — re-run before triaging"
   else
