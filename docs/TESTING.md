@@ -83,18 +83,18 @@ maestro/
     edit_listing.yaml
     delete_listing.yaml
     lifecycle_publish.yaml
-    lifecycle_reserve.yaml
-    lifecycle_sold.yaml
-    lifecycle_reactivate.yaml
+    lifecycle_sold.yaml           # one-tap from any live listing, hold never required
   browse/
     browse_listings.yaml
     search_listings.yaml
     filter_by_category.yaml
     listing_detail.yaml
+    reserved_still_searchable.yaml   # a held listing stays in search/feed and message-able
   chat/
     start_conversation.yaml
     send_message.yaml
     meetup_proposal.yaml
+    place_and_release_hold.yaml      # hold is placed/released from the chat thread, not the listing
   saved/
     save_listing.yaml
     unsave_listing.yaml
@@ -237,30 +237,41 @@ Each flow below must be implemented as a Maestro YAML file. The **happy path** a
 - Confirm → listing removed from My Listings
 - Toast "Listing deleted" shown
 
+> **Updated 2026-08-27 — Sell Flow Redesign.** Reserve is no longer a listing-surface action and
+> selling never requires a hold first — see `docs/SELL_FLOW_REDESIGN.md`. The flows below reflect the
+> shipped model. Real, ticket-specific Maestro flow names from this redesign (e.g.
+> `maestro/browse/listing_detail_reserved_contactable.yaml`,
+> `maestro/chat/reserved_sold_dead_end_notice.yaml`) live in `docs/BACKLOG.md`'s Sell Flow section and
+> `qa/QA_HANDBOOK.md` — this section stays a general template for the pattern, not a literal file
+> inventory. **No Maestro flow for this redesign has run on a device yet** (`SF-QA1`, board card 296,
+> in progress) — do not read any flow description below as device-verified.
+
 **`listings/lifecycle_publish.yaml`**
 - Open a draft listing
 - Tap "Publish" → confirm
 - Status badge changes from "draft" to "active"
 - Listing now appears in public Browse feed
 
-**`listings/lifecycle_reserve.yaml`**
-- Open an active listing (seller view)
-- Tap "Mark as Reserved"
-- Status badge changes to "reserved" (amber)
-- Listing still visible in Browse with reserved badge
-
 **`listings/lifecycle_sold.yaml`**
-- Open a reserved listing
-- Tap "Mark as Sold" → confirm
-- Status badge changes to "sold"
-- Listing no longer appears in Browse feed
-- Toast shown
+- Open a **live** listing (seller view) — `active`, with or without a hold, reserving first is never
+  required
+- Tap "Mark Sold" (the always-present primary action) → confirm the buyer (from the listing's own
+  conversations, or "not on Hatiwal") → confirm
+- Status badge changes to "sold"; the listing no longer appears in Browse feed
+- Toast shown, with an "Undo" action that reverses the sale within the toast's display window
 
-**`listings/lifecycle_reactivate.yaml`**
-- Open a reserved listing
-- Tap "Reactivate" (deal fell through)
-- Status returns to "active"
-- Listing visible in Browse again
+**`chat/place_and_release_hold.yaml`**
+- From a conversation thread on a live, unheld listing, open the composer's "+" menu
+- Tap "Place a hold for {name}" → confirm (optionally set a quantity on a multi-unit listing)
+- The listing shows a "Reserved"/hold badge; it **stays** visible in Browse/search and remains
+  message-able for other buyers (only `sold` is a dead end)
+- Re-open the composer "+" menu → "Release hold" → confirm → hold badge clears, listing returns to
+  fully open
+
+**`browse/reserved_still_searchable.yaml`**
+- With a listing held for a buyer (via the flow above), search/browse as a *different* account
+- The held listing still appears in results and in the category feed, with its hold badge/ribbon
+- Opening it shows "Message seller" (not a dead end); "Make an Offer" is hidden while a hold is open
 
 ---
 

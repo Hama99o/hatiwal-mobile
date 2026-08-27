@@ -19,19 +19,27 @@
 | Model | Role in the app |
 |---|---|
 | **User** | One account = both buyer and seller. `status`: active/suspended/banned. `preferred_language`: en/ps/fa. |
-| **Listing** | An item for sale. `status`: **draft → active → reserved → sold**. Photos via Active Storage. `price`+`currency` (AFN/USD), `category`, `location` (+lat/long), `views_count`. |
+| **Listing** | An item for sale. `status`: `draft`/`active`/`reserved`/`sold` (4 DB values, unchanged). **Sell Flow Redesign (2026-08-27):** presented to the seller as **3 states — Draft, Live, Sold** — `active` and `reserved` both mean "Live"; a hold shows as a badge, not a 4th state or its own tab. Selling is the one-tap primary from any live listing and never requires reserving first; a reserved listing stays fully browsable/searchable/message-able (only `sold` is a dead end). See `docs/SELL_FLOW_REDESIGN.md`. Photos via Active Storage. `price`+`currency` (AFN/USD), `category`, `location` (+lat/long), `views_count`, `quantity`/`available_units`/`held_units` (multi-unit listings). |
 | **Category** | 12 marketplace categories, trilingual names (`name_en/ps/fa`), `icon`, `position`. |
 | **Conversation** | Chat thread between a **buyer** and **seller** about one listing. `status`: open/closed. `last_message_at`, `unread_count`. |
 | **Message** | One message in a conversation. `kind`: text / meetup_proposal / system. `read_at`. |
 | **SavedListing** | A buyer's bookmarked listing (favorites/shortlist). |
 | **Report** | Polymorphic report against a Listing or User. `reason`: spam/inappropriate/fraud/wrong_category/prohibited_item/other. |
 
-**Listing lifecycle (seller-driven):**
+**Listing lifecycle (seller-driven) — Sell Flow Redesign, 2026-08-27:**
 ```
-draft ──publish──▶ active ──reserve──▶ reserved ──sold──▶ sold
-                     ▲                                   
-                     └────── (deal falls through, future) 
+draft ──publish──▶  Live (active ⇄ reserved)  ──mark sold, always available, no hold required──▶ sold
+                     a hold is a badge on Live, placed/released from the CHAT thread
+                     ▲                                                │
+                     └──────────────────── release hold ──────────────┘
 ```
+Both `active` and `reserved` are "Live": browsable, searchable, message-able. `reserved` does **not**
+mean off-market — check `held_units` and the `sale` block, not `status`, to know whether a hold
+exists (a multi-unit batch holds units while staying `status: active`). Mistakes after marking sold
+are fixed with an Undo toast or an editable Sales-ledger row (`PATCH`/`DELETE /my/transactions/:id`),
+not a second sold state. Full spec: `docs/SELL_FLOW_REDESIGN.md`. **`hatiwal-web` has not been ported
+to this model yet** (SF-W1, board card 285) — it still requires reserving before a single-item sale
+and treats `reserved` as leaving search.
 
 ---
 
@@ -70,11 +78,12 @@ draft ──publish──▶ active ──reserve──▶ reserved ──sold�
 | Create listing | `POST /my/listings` (`listing:{title,description,price,currency,category_id,location,lat,long,images[]}`) → starts as **draft** | `screens/seller/ListingForm` | Sectioned `react-hook-form`+`zod`: **photos first** (`expo-image-picker` multi + reorder + cover) → title → `PriceTag` input + currency → `CategoryPicker` sheet → description → location (`expo-location`). Sticky submit; Save draft vs Publish. Upload via `FormData`. | ⬜ |
 | Edit listing (draft) | `PUT /my/listings/:id` | reuse `ListingForm` | Same form, prefilled. Edit allowed while draft. | ⬜ |
 | Delete listing | `DELETE /my/listings/:id` | My listings row action | `confirmAlert` (destructive) + `sonner-native` toast. | ⬜ |
-| Publish (draft → active) | `PUT /my/listings/:id/publish` | Lifecycle action | Primary button on a draft; toast on success; sets `published_at`. | ⬜ |
-| Reserve (active → reserved) | `PUT /my/listings/:id/reserve` | Lifecycle action | Amber state; often triggered from a conversation. | ⬜ |
-| Mark sold (reserved → sold) | `PUT /my/listings/:id/sold` | Lifecycle action | Confirm; dims card; celebratory toast. | ⬜ |
+| Publish (draft → active) | `PUT /my/listings/:id/publish` | Lifecycle action | Primary button on a draft; toast on success; sets `published_at`. | ✅ |
+| Mark sold (active or reserved → sold, one-tap, reserve never required) | `PUT /my/listings/:id/sold` (`buyer_id`/`clear_buyer`/`quantity`) | Lifecycle action (listing surfaces + inline in chat header) | Always the loudest primary action on any live listing; `BuyerPickerSheet` proposes the buyer (from the listing's own conversations, or "not on Hatiwal"); undo toast on success; dims card when sold-out. | ✅ |
+| Place / release a hold (optional; active ⇄ reserved) | `PUT /my/listings/:id/reserve` / `PUT /my/listings/:id/activate` | **Chat thread** composer "+" menu (`ComposerActionsSheet`) — **not** a listing action anymore | "Place a hold for {name}" scoped to that conversation's buyer; "Release hold" when this thread's buyer holds it. Shows as a badge/ribbon on the listing, never removes it from search or chat. | ✅ |
+| Undo a sale / view & edit sales ledger | `PATCH`/`DELETE /my/transactions/:id`, `GET /my/transactions?listing_id=` | New `Sales` screen (`/(main)/listing/[id]/sales`) + "Undo" on the mark-sold toast | Every sold row is listed, editable (quantity/buyer/price) and voidable (restores stock); a sale with a review attached can't be voided/reassigned. | ✅ |
 
-**Lifecycle UX rule:** the card/detail always answers "what state is this, and what's my next action?" via `StatusBadge` + a single obvious primary button (Publish / Reserve / Mark sold).
+**Lifecycle UX rule:** the card/detail always answers "what state is this, and what's my next action?" via `StatusBadge` + a single obvious primary button — **Publish** on a draft, **Mark sold** on any live listing (reserved included). Reserve/release-hold live in chat, not on the listing's own action list. See `docs/SELL_FLOW_REDESIGN.md`.
 
 ---
 
@@ -155,7 +164,7 @@ draft ──publish──▶ active ──reserve──▶ reserved ──sold�
 1. **Browse feed + `ListingCard`** (the shop window — establishes the card, price, status, image patterns). ⬜
 2. **Listing detail + gallery** (trust + Message seller). ⬜
 3. **Create/Edit listing form** (image picker, category sheet). ⬜
-4. **My Listings + lifecycle actions** (publish/reserve/sold). ⬜
+4. **My Listings + lifecycle actions** (publish / mark sold one-tap / hold from chat / sales ledger). ✅
 5. **Chat** (conversations list + gifted-chat thread). ⬜
 6. **Saved** (save-heart + list). ⬜
 7. **Profile / Edit / Public profile**. 🟡

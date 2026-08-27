@@ -11,7 +11,7 @@
 > **Owner / taken by:** `_unassigned_` · `feature-builder` · `marketplace-designer` · `feature-builder → marketplace-designer`
 > **Normal pipeline:** `feature-builder` builds → `marketplace-designer` polishes → product-owner marks `✅`.
 >
-> _Last reconciled: 2026-06-17 by product-owner. Board was empty (all 42 prior cards in Done). Reconciled all screen statuses against real code — every A/B/C/D/E/F/G/P/Q/R feature is confirmed built. Added 12 new cards (IDs 156-167) covering: Q3 Platform guards, P2-P4 polish, P5 reduce-motion gap, Q5 device testing, T701 CI pipeline, and new features N801-N805 (push token groundwork, seller analytics, conversation search, price history badge, seller response rate). BACKLOG statuses updated to match board reality. R-series (R0-R6) and P-series (P1-P5) and Q3/Q5 remain Not started per actual code._
+> _Last reconciled: 2026-06-17 by product-owner (see that entry's own detail below it in this file's history for the Q/R/N-series pass). **Documentation-truth pass, 2026-08-27:** the Sell Flow Redesign (SF-B1–B9, SF-M1–M8, SF-M4b) reconciled from ⬜/🟡 to ✅ Done against the FlowApp board (cards 274–284, 288–294, 297) and the shipping commits (`hatiwal-api` `c5e155c`/`48c1cc2`, `hatiwal-mobile` `16cd19f`/`09cb4d0`) — RSpec 1704/0 failures, Jest 154 suites/2472 tests/0 failures. C2's per-card detail rewritten to match (Reserve is no longer a listing action; no more "Reserved" tab). Open follow-ups added: `TASK-API-FEEDN1` (286), `SF-M3b` (287), `SF-B10` (295), `SF-QA1` (296, in progress — no Maestro flow for this redesign has run on a device yet), `SF-M9` (298, product-owner decided to keep BuyerPickerSheet's over-stock warning rather than switch to a silent clamp). 3 new ideas added. Root `CLAUDE.md`, `docs/FEATURES.md`, `docs/SPIKE_LISTING_QUANTITY.md` and several other docs corrected in the same pass — see that session's report for the full list._
 
 ---
 
@@ -32,7 +32,7 @@
 | **B6** | **"Seen / already viewed" indicator** (per-user `ListingView`; dim + badge on card) — _was the "Recently viewed" idea_ | ✅ Done                                  | —                | P2       | within B1/B2                        |
 | **B7** | **Item condition** (enum brand_new/like_new/good/fair; form picker, detail badge, Browse filter chips, 3 locales)       | ✅ Done                                  | claude           | P2       | `ConditionChips`, `ConditionBadge`  |
 | C1     | Create / Edit listing                                                                                                  | ✅ Done (map location, photos, category) | —                | P0       | `/(main)/listing/new`, `/edit/[id]` |
-| C2     | My Listings + lifecycle (publish/unpublish/reserve/activate/sold + clear text actions) | ✅ Done | — | P0 | `/(main)/(tabs)/my-listings` |
+| C2     | My Listings + lifecycle (publish · one-tap Mark sold from any live listing · hold placed/released from chat, not the listing · Sales ledger) | ✅ Done | — | P0 | `/(main)/(tabs)/my-listings` |
 | **C3** | **Expiry visibility** (`ExpiryBadge` countdown on seller card + owner detail; **Expired tab** in My Listings; clock starts at publish) | ✅ Done | claude | P2 | `ExpiryBadge`, My Listings |
 | D1     | Conversations list (+ friendly previews, sold dimming)                                                                 | ✅ Done                                  | —                | P1       | `/(main)/(tabs)/chat`               |
 | D2     | Conversation thread                                                                                                    | ✅ Done (library waivers in §D2)         | feature-builder  | P1       | `/(main)/conversation/[id]`         |
@@ -74,19 +74,30 @@
 | **REV1** | **Reviews — backend** — double-blind `Review` on sold `Transaction`; `avg_rating`/`review_count` on User; create/index/update/pending endpoints; reveal-on-second-submit + `RevealOverdueReviewsJob` (14d); policy + factory + specs | ✅ Done (claude, 2026-07-09) | claude | P2 trust | `hatiwal-api/` · spec: `docs/REVIEWS_SYSTEM.md` |
 | **REV2** | **Reviews — mobile** — `reviews.ts` + RQ hooks, `RatingDisplay`/`StarRatingInput`/`ReviewCard`/`ReviewsList`/`ReviewPromptSheet`, profile section + all-reviews screen, pending-reviews nudge, double-blind pending state, buyer-picker nudge live, 3 locales+RTL, Jest+Storybook+Maestro. Designer polish: star pop+haptics, list stagger, compact empty state, pre-submit blind notice | ✅ Done (built claude → polished marketplace-designer, 2026-07-09) | feature-builder → marketplace-designer | P2 trust | card #231 · `src/api/reviews.ts`, `app/(main)/user/[id]/reviews.tsx` |
 | **REV3** | **Reviews — web** — `reviews.ts` + TanStack Query, `RatingDisplay`/`StarRating`/`ReviewCard`/`ReviewsSection`, seller-profile rating summary + reviews tabs (as-seller/as-buyer), guest-readable `reviews#index` (backend), 3 locales+RTL, e2e. Mirrors mobile contract | ✅ Done (claude, 2026-07-09) — tsc 0 errors + e2e green (`npm run build` blocked by pre-existing root-owned `.next/` Docker artifacts) | claude | P2 trust | `hatiwal-web/` · `e2e/reviews.spec.ts` |
-| **SF-B1** | **Sell Flow Redesign — widen live/browsable/messaging** so a reserved listing stays in search/chat (ships atomically with SF-M3) | ✅ Done (API — RSpec+RuboCop green) | claude (backend feature-builder) | P0 | `hatiwal-api/app/models/listing.rb` |
-| **SF-B2** | **Sell Flow Redesign — reserve gains quantity; expose "N held"** | ✅ Done (API — RSpec+RuboCop green) | claude (backend feature-builder) | P0 | `hatiwal-api/app/models/listing.rb` |
-| **SF-B3** | **Sell Flow Redesign — outside-buyer sales get a ledger row** (nullable `transactions.buyer_id`) | ✅ Done (API — RSpec+RuboCop green) | claude (backend feature-builder) | P1 | `hatiwal-api/app/models/transaction.rb` |
-| **SF-B4** | **Sell Flow Redesign — undo & edit a recorded sale** (`PATCH`/`DELETE /my/transactions/:id`) | ✅ Done (API — RSpec+RuboCop green) | claude (backend feature-builder) | P1 | `hatiwal-api/app/controllers/api/v1/my/transactions_controller.rb` |
-| **SF-B5** | **Sell Flow Redesign — per-listing sales ledger read** (`listing_id` filter + `sales_count`) | ✅ Done (API — RSpec+RuboCop green) | claude (backend feature-builder) | P2 | `hatiwal-api/app/controllers/api/v1/my/transactions_controller.rb` |
-| **SF-M1** | **Sell Flow Redesign — "Mark sold" is the one-tap primary from Live; drop Reserve tab** | ⬜ Not started | _unassigned_ → feature-builder | P0 | `src/hooks/useListingLifecycle.ts` |
-| **SF-M2** | **Sell Flow Redesign — reserve moves into the chat thread** | ⬜ Not started | _unassigned_ → feature-builder | P1 | `src/screens/chat/conversation/ListingHeader.tsx` |
-| **SF-M3** | **Sell Flow Redesign — stop treating reserved as a dead end on mobile** (ships atomically with SF-B1) | 🟡 Built, tests green, awaiting review | claude (mobile feature-builder) → marketplace-designer | P0 | `src/screens/shared/ListingDetail.tsx` |
-| **SF-M4** | **Sell Flow Redesign — multi-unit "held" transparency on the stock pill** | 🟡 Built, tests green, awaiting review | claude (mobile feature-builder) → marketplace-designer | P2 | `src/utils/stock.ts` |
-| **SF-M5** | **Sell Flow Redesign — Undo toast + Sales screen with editable/deletable rows** | ⬜ Not started | _unassigned_ → feature-builder → marketplace-designer | P1 | `/(main)/listing/[id]/sales` |
-| **SF-M6** | **Sell Flow Redesign — `QuantityStepper` + buyer-side quantity intent + structured first message** | 🟡 In progress (built, tests green, awaiting design polish) | feature-builder (built) → marketplace-designer | P1 | `src/components/common/QuantityStepper.tsx` |
-| **SF-W1** | **Sell Flow Redesign — bring hatiwal-web to the same model** — NOT this pass | ⏸ Blocked | _unassigned_ | P2 | `hatiwal-web/` |
-| **SF-B6** | **Sell Flow Redesign — editing a SOLD listing's quantity upward must re-open it to Live.** DISCOVERED 2026-08-27 while building SF-M1/SF-M2, from an exact owner-reported scenario: sell all 15 of a batch (status flips to `sold`, terminal/out of `browsable`), then edit the SAME listing's quantity up to 20 (restocked 5 more) — `Api::V1::My::ListingsController#update` does a bare `@listing.update(...)` with no status reconciliation, so the listing STAYS `sold` and the 5 new units are unsellable (no seller-facing path back except Duplicate, which loses views/conversations/history). SF-B4 already solved the identical reconciliation for a TRANSACTION correction (`correct_sold_transaction!`: `sold_units < quantity` on a `sold` listing flips it back to `active`) — this is the same fix, triggered from the LISTING edit path instead. Needs a design call: automatic-and-silent vs. an explicit "this will relist your item" confirmation. **hatiwal-api change — backend feature-builder, not this mobile agent** (board card 289, column To Do). | ⬜ Not started | _unassigned_ → backend feature-builder | P1 | `hatiwal-api/app/controllers/api/v1/my/listings_controller.rb` |
+| **SF-B1** | **Sell Flow Redesign — widen live/browsable/messaging** so a reserved listing stays in search/chat (shipped atomically with SF-M3) | ✅ Done (board card 274) | claude (backend feature-builder) | P0 | `hatiwal-api/app/models/listing.rb` |
+| **SF-B2** | **Sell Flow Redesign — reserve gains quantity; expose "N held"** | ✅ Done (board card 275) | claude (backend feature-builder) | P0 | `hatiwal-api/app/models/listing.rb` |
+| **SF-B3** | **Sell Flow Redesign — outside-buyer sales get a ledger row** (nullable `transactions.buyer_id`) | ✅ Done (board card 276) | claude (backend feature-builder) | P1 | `hatiwal-api/app/models/transaction.rb` |
+| **SF-B4** | **Sell Flow Redesign — undo & edit a recorded sale** (`PATCH`/`DELETE /my/transactions/:id`) | ✅ Done (board card 277) | claude (backend feature-builder) | P1 | `hatiwal-api/app/controllers/api/v1/my/transactions_controller.rb` |
+| **SF-B5** | **Sell Flow Redesign — per-listing sales ledger read** (`listing_id` filter + `sales_count`) | ✅ Done (board card 278) | claude (backend feature-builder) | P2 | `hatiwal-api/app/controllers/api/v1/my/transactions_controller.rb` |
+| **SF-M1** | **Sell Flow Redesign — "Mark sold" is the one-tap primary from Live; drop Reserve tab** | ✅ Done (board card 279) | claude (mobile feature-builder) | P0 | `src/hooks/useListingLifecycle.ts` |
+| **SF-M2** | **Sell Flow Redesign — reserve moves into the chat thread** | ✅ Done (board card 280) | claude (mobile feature-builder) | P1 | `src/screens/chat/conversation/ListingHeader.tsx` |
+| **SF-M3** | **Sell Flow Redesign — stop treating reserved as a dead end on mobile** (shipped atomically with SF-B1) | ✅ Done (board card 281) | claude (mobile feature-builder) | P0 | `src/screens/shared/ListingDetail.tsx` |
+| **SF-M4** | **Sell Flow Redesign — multi-unit "held" transparency on the stock pill** | ✅ Done (board card 282) | claude (mobile feature-builder) | P2 | `src/utils/stock.ts` |
+| **SF-M5** | **Sell Flow Redesign — Undo toast + Sales screen with editable/deletable rows** | ✅ Done (board card 283) | claude (feature-builder) | P1 | `/(main)/listing/[id]/sales` |
+| **SF-M6** | **Sell Flow Redesign — `QuantityStepper` + buyer-side quantity intent + structured first message** | ✅ Done (board card 284) — design pass 09cb4d0 fixed the "cart shape" layout issue | claude (feature-builder → marketplace-designer) | P1 | `src/components/common/QuantityStepper.tsx` |
+| **SF-W1** | **Sell Flow Redesign — bring hatiwal-web to the same model** — NOT this pass | ⏸ Blocked (board card 285) | _unassigned_ | P2 | `hatiwal-web/` |
+| **SF-B6** | **Sell Flow Redesign — editing a listing's quantity must reconcile its sold status, both directions** (upward re-opens a sold-out listing to Live; downward below what's already sold is a 422, not a 500) | ✅ Done (board cards 289/290) | claude (backend feature-builder) | P1 | `hatiwal-api/app/models/listing.rb`, `my/listings_controller.rb` |
+| **SF-B7** | **Sell Flow Redesign — `renew`/`unpublish`/`activate` rescue `RecordInvalid`** like `sold`/`reserve` already did, instead of a 500 with an empty body | ✅ Done (board card 292) | claude (backend feature-builder) | P2 | `hatiwal-api/app/controllers/api/v1/my/listings_controller.rb` |
+| **SF-B8** | **Sell Flow Redesign — lowering quantity below an OPEN HOLD is refused, not silently accepted** (was rendering "2 available · 10 held" to buyers) | ✅ Done (board card 293) | claude (backend feature-builder) | P1 | `hatiwal-api/app/models/listing.rb` |
+| **SF-B9** | **Sell Flow Redesign — selling a BATCH now closes out its own open hold** (a hold used to survive its own sale, leaving a phantom "5 available · 10 held" on already-sold stock) | ✅ Done (board card 294) | claude (backend feature-builder) | P1 | `hatiwal-api/app/models/listing.rb` |
+| **SF-M4b** | **Sell Flow Redesign — seed a multi-unit listing WITH an open hold**, so Maestro can assert the "N held" text end-to-end (SF-M3/SF-M4 shipped with no fixture to prove the positive case) | ✅ Done (board card 288) | claude | P2 | `hatiwal-api/db/seeds/e2e.rb` |
+| **SF-M7** | **Sell Flow Redesign — mobile side of the quantity/sold-status reconciliation**: inline 422 pinned to the field (localized from the server's `quantity_below_sold_units` code, not raw English) + a note that raising quantity will relist the item | ✅ Done (board card 291) | claude (mobile feature-builder) | P2 | `src/screens/seller/ListingForm.tsx` |
+| **SF-M8** | **Sell Flow Redesign — `BuyerPickerSheet`'s confirm mode was dropping the typed hold quantity** on a multi-unit listing (a seller could never place a hold for >1 unit from chat) | ✅ Done (board card 297, design-pass commit 09cb4d0) | claude (marketplace-designer) | P1 | `src/screens/chat/Conversation.tsx` |
+| **TASK-API-FEEDN1** | `GET /listings` N+1 — serializer reads `user`/`category`/`thumbnail_url` (and now `sale_transactions` for `held_units`) but the feed doesn't always eager-load every association it touches | ⬜ Not started (board card 286) | _unassigned_ → backend feature-builder | P2 | `hatiwal-api/app/controllers/api/v1/listings_controller.rb` |
+| **SF-M3b** | Narrow `reserved` out of the `ListingUnavailable*` prop types (`"reserved" \| "sold"` → `"sold"`) + `ConversationRow.tsx`'s dimming condition — behaviour is already correct at runtime (SF-M3), this is the type-level cleanup flagged as a fast-follow when it was built | ⬜ Not started (board card 287) | _unassigned_ → feature-builder | P3 | `src/screens/chat/conversation/ListingUnavailableNotice.tsx`, `ConversationRow.tsx` |
+| **SF-B10** | `reserved_at` stays `nil` while a BATCH holds units — the 3rd instance of the "status-as-proxy-for-hold" root cause SF-B9's commit named but didn't fix (a batch's hold never touches `reserved_at` because it never becomes `status: reserved`) | ⬜ Not started (board card 295) | _unassigned_ → backend feature-builder | P3 | `hatiwal-api/app/models/listing.rb` |
+| **SF-QA1** | QA readiness: rewrite `qa/features.yaml` to the new flow (it still describes reserve-then-sell), fix 3 stale Maestro flows, seed fixtures — see `docs/SELL_FLOW_QA_PLAN.md`. **No Maestro flow has ever been executed on a device for this redesign** — this ticket owns that gap | 🟡 In progress (board card 296) | _in progress_ | P0 | `qa/`, `maestro/` |
+| **SF-M9** | `BuyerPickerSheet` should use the shared `QuantityStepper` instead of its raw numeric `Input` — deliberately deferred by SF-M6 because it touches 4 Maestro flows and needed a **product decision**: the `Input` warns visibly on an over-stock count before confirming; `QuantityStepper` today clamps silently. **Decision (product-owner, 2026-08-27): keep the warning.** `hatiwal-web`'s equivalent dialog (`sell-buyer-dialog`) already warns instead of silently clamping, and a seller typing "20" when only 15 are left is very plausibly a fat-finger they should catch before confirming a sale/hold they can't take back cheaply — a silent clamp to 15 hides that mistake. **Scope for the swap:** add an optional `onOverMax?: (typed: number, max: number) => void` (or a `warnOnOverMax` prop) to `QuantityStepper` so it can surface the same visible warning instead of clamping, then swap `BuyerPickerSheet`'s `Input` for it once SF-QA1's Maestro rewrite is in and can absorb the ~25 assertion changes in one pass rather than two | ⬜ Not started (board card 298) | _unassigned_ → feature-builder | P2 | `src/components/common/BuyerPickerSheet.tsx`, `QuantityStepper.tsx` |
 | —      | 💡 Ideas backlog                                                                                                       | 💡 Idea                                  | _unassigned_     | post-MVP | see §Ideas                          |
 
 > "In progress (raw RN)" = the screen exists and works, but is built with raw `Text`/`FlatList`/`Alert`
@@ -199,26 +210,28 @@
   - **States:** validation errors inline; upload progress; network error toast.
 - **Acceptance:** can post a listing with photos end-to-end; draft and publish both work; RTL + dark.
 
-### C2 — My Listings + lifecycle 🟡 (migrate)
+### C2 — My Listings + lifecycle ✅
 
-> **2026-08-27 — superseded in part by the Sell Flow Redesign.** The "Active→Reserve·
-> Reserved→Mark sold" lifecycle described below is being replaced: Mark sold becomes the one-tap
-> primary from any live listing, Reserve moves into the chat thread, and "Reserved" stops being its
-> own status tab (folded into Active with a hold badge). See `docs/SELL_FLOW_REDESIGN.md` and
-> tickets `SF-M1`/`SF-M2` above. This section's per-card detail below is being left as historical
-> context rather than rewritten in place — `SF-M1` is the authoritative spec for what ships.
+> **2026-08-27 — superseded by the Sell Flow Redesign, SHIPPED.** The "Active→Reserve·
+> Reserved→Mark sold" lifecycle this section originally described no longer exists. As of `SF-M1`/
+> `SF-M2` (board cards 279/280, both ✅ Done): Mark sold is the one-tap primary from any live listing
+> (`active` or `reserved`, never requires reserving first); Reserve/Release-hold moved into the chat
+> thread (`ComposerActionsSheet`'s "+" menu), off the listing surface entirely; "Reserved" is no
+> longer its own status tab — a held listing appears under **Active** with a hold badge. Full spec:
+> `docs/SELL_FLOW_REDESIGN.md`. The per-card detail immediately below is corrected to match; it is
+> **not** left as stale historical context, because it would otherwise directly contradict `SF-M1`.
 
-- **Owner:** _unassigned_ → `feature-builder → marketplace-designer` · **Route:** `/(main)/(tabs)/my-listings`
-- **Endpoints:** `GET /my/listings?status` (`:seller_list`: views_count, conversations_count, timestamps); `DELETE /my/listings/:id`; `PUT .../publish|reserve|sold` · **File:** `src/screens/seller/MyListings.tsx` (exists, raw RN + `Alert` — replace; **uses `Alert` = rule violation**)
+- **Owner:** claude (feature-builder), Sell Flow Redesign portion · **Route:** `/(main)/(tabs)/my-listings`
+- **Endpoints:** `GET /my/listings?status` (`:seller_list`: views_count, conversations_count, timestamps); `DELETE /my/listings/:id`; `PUT .../publish|sold` (mark sold, always available on a live listing) · `PUT .../reserve|activate` (place/release a hold — called from the **chat thread** now, not this screen) · **File:** `src/screens/seller/MyListings.tsx`, `src/hooks/useListingLifecycle.ts`
 - **Options & detail:**
-  - `UniversalList` of `ListingCard` (seller variant) with **views** + **conversation count**.
-  - **Status tabs/filter:** All · Draft · Active · Reserved · Sold.
-  - **Per-card next-action button** (the one obvious action by state): Draft→**Publish** · Active→**Reserve** · Reserved→**Mark sold** · any→Edit/Delete (overflow).
-  - **Delete** via `confirmAlert` (destructive) + toast. **Replace the raw `Alert.alert`.**
+  - `UniversalList` of `ListingCard` (seller variant, `SellerListingCard`) with **views** + **conversation count** + a "N held [for {name}]" clause when a multi-unit listing has an open hold.
+  - **Status tabs/filter:** All · Draft · Active · Expired · Sold. No separate **Reserved** tab — a held listing (single- or multi-item) shows under **Active** with its hold badge.
+  - **Per-card next-action button** (the one obvious action by state): Draft→**Publish** · Active or Active-with-a-hold→**Mark sold** (always, one tap, never gated on reserving first) · Sold→*(none, terminal)* · overflow menu→Edit / Duplicate / Delete / **Release hold** (when this listing has an open hold) / **View sales** (once ≥1 unit has sold).
+  - **Delete** via `confirmAlert` (destructive) + toast.
   - FAB / header **"+ Post"** → C1.
   - **States:** skeleton · empty "You haven't posted anything yet" + **Post a listing**.
   - `useFocusEffect` refetch (so a new/published listing shows immediately).
-- **Acceptance:** every lifecycle transition works with confirmation + toast; status filter works; no raw `Alert`.
+- **Acceptance:** every lifecycle transition works with confirmation + toast; status filter works (no Reserved tab, held listings count under Active); no raw `Alert`.
 
 ---
 
@@ -1283,26 +1296,38 @@ Examples:
 
 ---
 
-## Sell Flow Redesign — Groomed 2026-08-27
+## Sell Flow Redesign — Groomed 2026-08-27, SHIPPED same day
 
+> **Status: shipped.** SF-B1–B9 (backend), SF-M1–M8 (mobile) and the QA fixture seed (SF-M4b) are all
+> `✅ Done` (board cards 274–284, 288–294, 297). RSpec 1704 examples / 0 failures, RuboCop clean
+> (301 files); Jest 154 suites / 2472 tests, 0 failures. **No Maestro flow has been executed on a
+> device for this redesign yet** — device QA is tracked separately as SF-QA1 (board card 296, in
+> progress) and is NOT implied by any status above. `hatiwal-web` was **not** touched (SF-W1, board
+> card 285, still blocked/unscheduled) and still runs the pre-redesign reserve-then-sold model.
+>
 > Owner mandate: *"we change completely what we have... we will do what big tech does and what is
 > good for UI/UX."* Full spec, state diagram, screen-by-screen detail, API shapes, judgment calls,
-> and copy: **`docs/SELL_FLOW_REDESIGN.md`**. Audit of what exists today (verified file:line):
-> `docs/SELL_FLOW_AUDIT.md`. This section is the ticket breakdown only — read the redesign doc
-> before picking up any ticket here, it has the full context these summaries deliberately omit.
+> and copy: **`docs/SELL_FLOW_REDESIGN.md`**. Audit of what the flow did before this pass (verified
+> file:line): `docs/SELL_FLOW_AUDIT.md`. This section is the ticket breakdown only — read the
+> redesign doc before touching any of this surface, it has the full context these summaries
+> deliberately omit.
 >
 > **Model in one line:** sell is the one-tap primary from any live listing (reserved included);
 > reserve is initiated from chat, not the listing; a reserved listing stays fully in search/chat
 > (was NOT true before this pass); mistakes are fixed by an Undo toast or an editable Sales-screen
 > row, never a "correction form"; a buyer-side quantity stepper feeds a written unit×qty=total
 > first message. DB keeps its 4-value `status` enum untouched — "3 states" is presentation only.
+> **`status == "reserved"` does NOT mean "has a hold"** — a multi-unit batch holds units while
+> staying `status: active`; always check `held_units`/`listing.sale`, never bare `status`. Three
+> separate bugs shipped from that exact confusion and were fixed same-day (SF-B8, SF-B9, and the
+> mark-sold-in-chat wiring) — a fourth instance (`reserved_at` never set for a batch hold) is filed
+> as SF-B10, not fixed.
 >
-> **Hard sequencing constraints** (do not ship out of order): **SF-B1 and SF-M3 ship together**
-> (widening search without fixing the detail-screen dead end strands buyers worse than today).
-> **SF-B1 + SF-B2 must land before the tab-drop half of SF-M1** (dropping the "Reserved" tab before
-> the backend widen makes held listings vanish from every tab). **SF-M6 has zero dependencies —
-> ship it first**, every other mobile ticket that touches a quantity control consumes its
-> `QuantityStepper`.
+> **What's still open, in priority order:** SF-QA1 (device QA — in progress), SF-M3b (type-level
+> cleanup, cosmetic), TASK-API-FEEDN1 (feed N+1 from the new `held_units` field), SF-B10
+> (`reserved_at` gap), SF-M9 (BuyerPickerSheet → shared stepper, needs the swap sequenced after
+> SF-QA1's Maestro rewrite), SF-W1 (web parity, unscheduled). See each ticket in the Status Overview
+> table above for full detail.
 
 ### SF-B1 (board card 274) — Widen live/browsable/messaging to keep reserved listings in search ✅
 
@@ -1369,23 +1394,23 @@ Examples:
 - **Acceptance:** `GET /my/transactions?listing_id=42&as=seller` returns only that listing's rows, correctly paginated; `sales_count` matches an independent `COUNT` for the same listing.
 - **BUILT:** `?status=` is also honoured (the Sales screen's documented call is `?listing_id=42&as=seller&status=sold`, and the spec's own §9 example sends it — it was silently dropped before). An unrecognised status is ignored rather than raising `ArgumentError` from the enum. `sales_count` counts SALES, not units (a buyer taking 3 of 15 is one sale) and uses the same loaded-array guard as everything else reading `sale_transactions`.
 
-### SF-M1 (board card 279) — "Mark sold" is the one-tap primary from Live; drop Reserve from the listing surface ⬜
+### SF-M1 (board card 279) — "Mark sold" is the one-tap primary from Live; drop Reserve from the listing surface ✅
 
-- **Priority:** P0 · **Owner:** _unassigned_ → `feature-builder` (mobile) · **Sprint:** MVP Core (2)
-- **Depends on:** SF-B1 + SF-B2 (see the hard sequencing note above — the tab-drop and the release-hold condition both need the backend changes to be correct on day one)
+- **Priority:** P0 · **Owner:** claude (mobile feature-builder) · **Sprint:** MVP Core (2)
+- **Depended on:** SF-B1 + SF-B2 (shipped first, same day, per the hard sequencing note above — the tab-drop and the release-hold condition both needed the backend changes to be correct on day one)
 - **Files:** `src/hooks/useListingLifecycle.ts`, `src/screens/seller/MyListings.tsx` (`STATUS_TABS`, `StatusCounts`)
 - **What:** `primaryAction` for `active` (not expired) **and** `reserved` both become "Mark sold" (today only `reserved` does; `active`'s primary is "Mark reserved" — the exact gap `docs/SELL_FLOW_AUDIT.md` §2 names). Delete the `reserve` mutation/handler/moreActions entry from this hook entirely — reserve only exists in chat now (SF-M2). Rename "Activate" → "Release hold" in the moreActions row; widen its condition from `status === "reserved"` to `listing.sale?.status === "reserved"` (the one check that correctly covers both single- and multi-item holds — see §6/§10.1 of the redesign doc for why). New moreActions entry "View sales" whenever `hasSoldSome(listing)`. Drop "Reserved" from `MyListings.tsx`'s `STATUS_TABS` — a held listing now simply appears under Active with its hold badge.
 - **Acceptance:** a fresh active listing's primary button reads "Mark sold", never "Mark reserved"; a reserved listing (single or multi) also shows "Mark sold" as primary; "Release hold" appears exactly when `sale?.status === "reserved"` for both item counts; My Listings has no "Reserved" tab and the "Active" tab's count/contents include held listings; "View sales" appears the moment any unit has sold.
 
-### SF-M2 (board card 280) — Reserve moves into the chat thread; mark-sold in chat becomes one-tap for the known buyer ⬜
+### SF-M2 (board card 280) — Reserve moves into the chat thread; mark-sold in chat becomes one-tap for the known buyer ✅
 
-- **Priority:** P1 · **Owner:** _unassigned_ → `feature-builder` (mobile) · **Sprint:** MVP Core (2)
-- **Depends on:** SF-B2 (hold quantity); reuses `SF-M6`'s `QuantityStepper` once it exists (sequence after SF-M6 or accept a follow-up swap)
+- **Priority:** P1 · **Owner:** claude (mobile feature-builder) · **Sprint:** MVP Core (2)
+- **Depended on:** SF-B2 (hold quantity); reused `SF-M6`'s `QuantityStepper`
 - **Files:** `src/screens/chat/conversation/ListingHeader.tsx`, `src/screens/chat/conversation/ComposerActionsSheet.tsx`, `src/screens/chat/conversation/reserveAfterAccept.ts` (generalize, don't fork)
 - **What:** `ListingHeader`'s inline pill drops its `showReserve`/`showMarkSold` toggle — it's **always** "Mark sold" for `isOwner && listing.live`, opening `BuyerPickerSheet` in confirm mode scoped to this conversation's participant (no picker, the buyer is who you're already talking to) with the quantity stepper when `multiUnit`. "Place a hold for {name}" / "Release hold" move into `ComposerActionsSheet`'s "+" menu (seller-only, conditional per §4.4.2 of the redesign doc). Both reuse the pure-builder/side-effect split already proven by `reserveAfterAccept.ts` — generalize it rather than duplicating the toast copy/bidi-isolation/stay-open-on-error contract it already got right.
 - **Acceptance:** tapping "Mark sold" in a chat thread never shows a buyer list — straight to the confirm sheet for that thread's participant; "Place a hold"/"Release hold" appear/disappear exactly per the conditions in §4.4.2 of the redesign doc (never both, never for a hold that belongs to a different buyer than this thread's).
 
-### SF-M3 (board card 281) — Stop treating a reserved listing as a dead end on mobile 🟡
+### SF-M3 (board card 281) — Stop treating a reserved listing as a dead end on mobile ✅
 
 - **Priority:** P0 · **Owner:** claude (mobile feature-builder) → marketplace-designer · **Sprint:** MVP Core (2)
 - **Ships atomically with SF-B1** — SF-B1 is merged; do not merge this independently of it either.
@@ -1397,7 +1422,7 @@ Examples:
 - **NOT narrowed, flagged rather than silently left wrong:** `ListingUnavailableNotice.tsx`'s `status` prop stays `"reserved" | "sold"` (not narrowed to `"sold"` as the redesign doc's §4.4.3 asked) and `ListingUnavailableActions.tsx` was not touched at all. Both would need `Conversation.tsx` (an explicit hard `as "reserved" | "sold"` cast at its `ListingUnavailableNotice` call site) and/or `ListingUnavailableActions.tsx` edited to compile cleanly narrowed — both files are outside this ticket's strict ownership (the concurrently in-flight SF-M1/M2 ticket owns adjacent chat-thread files). The **behavioural** fix is complete regardless (`showUnavailableNotice` already never feeds `"reserved"` to either component at runtime; `ListingDetail.tsx`'s own ternary already never reaches `ListingUnavailableActions` with `"reserved"`) — only the type-level cleanup + `ConversationRow.tsx`'s dimming condition (also untouched, same reason) are the fast-follow.
 - **BUILT — no seed fixture exists for a multi-unit listing with an open hold**, so the Maestro flow cannot assert SF-M4's positive "N held" text end-to-end; noted in the new flow's comments and here as a fast-follow (either a new `hatiwal-api/db/seeds/e2e.rb` fixture, or wait for SF-M2's manual "Place a hold" chat action to exist).
 
-### SF-M4 (board card 282) — Multi-unit "held" transparency on the stock pill 🟡
+### SF-M4 (board card 282) — Multi-unit "held" transparency on the stock pill ✅
 
 - **Priority:** P2 · **Owner:** claude (mobile feature-builder) → marketplace-designer · **Sprint:** MVP Core (2)
 - **Depends on:** SF-B2 (`held_units` field) — merged.
@@ -1407,29 +1432,96 @@ Examples:
 - **BUILT — did not fork `src/components/common/StockBadge.tsx`:** that shared component exists but neither `ListingDetail.tsx` nor `MyListingDetail.tsx` actually consume it (both hand-roll their own `Badge` with the same label logic inline, pre-existing tech debt, unrelated to this ticket) — only `SellerListingCard.tsx` (owned by the concurrent SF-M1/M2 ticket right now) does. The held clause was added to the two inline call sites this ticket owns instead of migrating either screen onto `StockBadge` (out of scope) or forking it (against house rules). `SellerListingCard.tsx`'s own stock pill does not yet show a held clause — flagged as a fast-follow once that file is free, ideally alongside consolidating all three call sites onto `StockBadge`.
 - **NOT asserted in Maestro:** the positive "N held"/"N held for {name}" text on an actual multi-unit + open-hold fixture — no such seed fixture exists yet (see the SF-M3 note above). Covered instead by `heldUnitsOf`'s Jest suite and the single-item negative case in Maestro.
 
-### SF-M5 (board card 283) — Undo toast on Mark Sold + a real Sales screen with an editable/deletable row ⬜
+### SF-M5 (board card 283) — Undo toast on Mark Sold + a real Sales screen with an editable/deletable row ✅
 
-- **Priority:** P1 · **Owner:** _unassigned_ → `feature-builder → marketplace-designer` (mobile) · **Sprint:** MVP Core (2)
-- **Depends on:** SF-B3, SF-B4, SF-B5, and SF-M6 (for `QuantityStepper` in the edit sheet)
+- **Priority:** P1 · **Owner:** claude (feature-builder → marketplace-designer) · **Sprint:** MVP Core (2)
+- **Depended on:** SF-B3, SF-B4, SF-B5, and SF-M6 (for `QuantityStepper` in the edit sheet)
 - **New route:** `/(main)/listing/[id]/sales` · **New files:** `src/screens/seller/ListingSales.tsx`, `src/components/common/SaleRowEditSheet.tsx`
 - **What:** (1) `useListingLifecycle`'s `markSold` success toast gains a `sonner-native` `action: { label: t('common.undo'), onClick: ... }` (the library already supports this, confirmed — `ToastAction` in `sonner-native`'s own types) calling `DELETE /my/transactions/:id`, extended toast duration (~6-8s). (2) New Sales screen: `GET /my/transactions?listing_id=&as=seller&status=sold`, tally header when multi-unit, stacked rows (`UserIdentity` or "Buyer not on Hatiwal" fallback, quantity, `PriceTag perUnit`, date), row tap → `SaleRowEditSheet` (quantity `QuantityStepper`, buyer reassignment via the listing's conversation list + "Not on Hatiwal", final price, Save/Delete). Delete on a reviewed sale is refused inline (422 → `listing.sale.voidBlockedReviewed`, quantity/price still editable). Full spec: §9/§10.3 of the redesign doc.
 - **Acceptance:** the Undo toast reverses a just-completed sale and restores stock; the Sales screen lists every sold transaction for the listing and tallies correctly when multi-unit; deleting a row restores stock and, if it was the last unit, flips the listing back to Live; a reviewed sale cannot be deleted/reassigned but its quantity can still be corrected; skeleton/empty/error states present; RTL + dark verified.
 
-### SF-M6 (board card 284) — `QuantityStepper` + buyer-side quantity intent + structured first message 🟡
+### SF-M6 (board card 284) — `QuantityStepper` + buyer-side quantity intent + structured first message ✅
 
-- **Priority:** P1 · **Owner:** `feature-builder` (built) → `marketplace-designer` (mobile) · **Sprint:** MVP Core (2)
-- **Depends on:** nothing — **shipped first among the mobile tickets.**
+- **Priority:** P1 · **Owner:** claude (feature-builder → marketplace-designer, polish commit 09cb4d0) · **Sprint:** MVP Core (2)
+- **Depended on:** nothing — **shipped first among the mobile tickets.**
 - **New files:** `src/components/common/QuantityStepper.tsx` (+ `.test.tsx`, `.stories.tsx`), `src/screens/shared/listing-detail/firstMessageQuantity.ts` (+ `__tests__/firstMessageQuantity.test.ts`) · **Files touched:** `src/screens/shared/ListingDetail.tsx` (new buyer-side stepper + quantity state), `src/screens/shared/listing-detail/FirstMessageSheet.tsx` (structured template via `buildFirstMessageText`) · **New Maestro flow:** `maestro/browse/listing_detail_quantity_intent.yaml`
 - **What:** new shared `−`/tap-to-edit-number/`+` component (RNR primitives only, no new dependency) — resolves the tap-count tension between "big tech uses a stepper" and the original spike's own rejection of a stepper for a 15-unit case (§10.4 of the redesign doc). On the buyer-facing `ListingDetail`, a `QuantityStepper` (default 1, max `availableUnits`) appears near the sticky action bar when `multiUnit`, feeding `FirstMessageSheet`'s prefilled message: "Hi! I'd like to buy 3 × AFN 14,000 = AFN 42,000. Is this still available?" — no backend change, purely templated text. **Flagged explicitly in the redesign doc §3.3:** label this control "How many are you asking about?", never "Buy"/checkout framing — Hatiwal has no cart or payment, and a stepper styled like one would misrepresent what tapping it does.
-- **Acceptance:** `QuantityStepper` renders identically at `value=1` regardless of mount point ✅ (unit-tested); a single-item listing's buyer detail page renders no stepper at all ✅ (Maestro); selecting qty=3 changes `FirstMessageSheet`'s prefilled text to the unit×qty=total sentence in the buyer's own locale's number formatting ✅ (unit-tested against the real en/ps/fa catalogs + Maestro); `BuyerPickerSheet`'s existing quantity behaviour (default-to-1, clamp-to-remainder) is unchanged, just rendered via the new control — **NOT done this pass, deliberately deferred.**
-- **Deferred, flagged explicitly (not silently dropped):** the `BuyerPickerSheet.tsx` swap. Its own `__tests__/BuyerPickerSheet.test.tsx` already carries 4 failing tests from a different, concurrently in-flight ticket (all about the sold-quantity pre-fill default — "whole remainder" vs "1" — nothing to do with SF-M6), and the remaining 34 passing tests assert the exact free-text `Input` interaction (typing past the remainder, a destructive hint color, `selectTextOnFocus`) that a clamp-on-commit `QuantityStepper` cannot reproduce byte-for-byte. Swapping the control now would have turned 4 known, owned-elsewhere failures into ~15+ new ones in a file another ticket is actively mid-edit on — a shared-working-tree collision, not a design tradeoff. Recommend sequencing this swap as a fast-follow once that other ticket's quantity-default question is resolved.
+- **Acceptance:** `QuantityStepper` renders identically at `value=1` regardless of mount point ✅ (unit-tested); a single-item listing's buyer detail page renders no stepper at all ✅ (Maestro); selecting qty=3 changes `FirstMessageSheet`'s prefilled text to the unit×qty=total sentence in the buyer's own locale's number formatting ✅ (unit-tested against the real en/ps/fa catalogs + Maestro); `BuyerPickerSheet`'s existing quantity behaviour (default-to-1, clamp-to-remainder) is unchanged, just rendered via the new control — **NOT done this pass, deliberately deferred (tracked as SF-M9 above).**
+- **Deferred, flagged explicitly (not silently dropped):** the `BuyerPickerSheet.tsx` swap. Its own `__tests__/BuyerPickerSheet.test.tsx` already carried 4 failing tests from a different, concurrently in-flight ticket (all about the sold-quantity pre-fill default — "whole remainder" vs "1" — nothing to do with SF-M6), and the remaining 34 passing tests assert the exact free-text `Input` interaction (typing past the remainder, a destructive hint color, `selectTextOnFocus`) that a clamp-on-commit `QuantityStepper` cannot reproduce byte-for-byte. Swapping the control then would have turned 4 known, owned-elsewhere failures into ~15+ new ones in a file another ticket was actively mid-edit on — a shared-working-tree collision, not a design tradeoff. **Still open as SF-M9** (board card 298) — product-owner decided 2026-08-27 to keep the over-stock warning rather than switch to a silent clamp; see that ticket for the scoped swap.
+
+### Same-day fast-follows (board cards 288–294, 297) — all ✅ Done
+
+Discovered and fixed the same day as SF-B1–B9/SF-M1–M6, once real fixtures existed to exercise the
+new model against. Full detail lives in the commits (`hatiwal-api` `c5e155c`, `48c1cc2`;
+`hatiwal-mobile` `16cd19f`) — summarized here so they aren't lost.
+
+- **SF-M4b (card 288)** — seeded a multi-unit listing ("Winter Gloves – 15 Pairs") WITH an open hold
+  for a buyer, so Maestro can finally assert the positive "N held" text SF-M3/SF-M4 shipped with no
+  fixture to prove. Part of the 5-fixture QA seed in `hatiwal-api/db/seeds/e2e.rb`
+  (`db:seed:reset_e2e`), which also self-checks its own invariants (`sold_units <= quantity`,
+  `available_units >= held_units`, at most one open hold per listing) and raises rather than handing
+  QA a fixture that lies.
+- **SF-B6 (cards 289/290)** — editing a listing's `quantity` now reconciles its `sold` status **both
+  directions**: raising it re-opens a sold-out listing to `active` (the owner's own reported bug —
+  15/15 sold, raised to 20, stayed `sold` with 5 unsellable units); lowering it below what's already
+  sold is a 422 with a `quantity_below_sold_units` field-error code (localizable), not an uncaught
+  `CheckViolation` 500.
+- **SF-B7 (card 292)** — `renew`/`unpublish`/`activate` now rescue `ActiveRecord::RecordInvalid` like
+  `sold`/`reserve` already did — a listing invalidated by a retroactive rule used to 500 with an empty
+  body on these three actions.
+- **SF-B8 (card 293)** — lowering a listing's `quantity` below an **open hold**'s quantity is now
+  refused (422), not silently accepted — it used to render "2 available · 10 held" to buyers, which
+  is a promise the seller can't keep. `activate?` (release hold) widened alongside it — it was
+  returning 403 on exactly the batches where "release the hold first" is the advice being given.
+- **SF-B9 (card 294)** — selling a BATCH now closes out its own open hold. The close-out used to gate
+  on `status == "reserved"`, but a batch stays `active` while holding units (SF-B2), so selling the
+  held units to the very buyer holding them left a phantom hold and "5 available · 10 held" on
+  already-sold stock. Now gated on "an open hold for THIS buyer"; `available_units >= held_units` is
+  an asserted invariant.
+- **SF-M7 (card 291)** — mobile side of SF-B6: the quantity-edit failure is now legible — an inline
+  note under the field before saving ("this will put your listing back on sale, with N available"),
+  and the refusal pinned to the field itself, localized from the server's `quantity_below_sold_units`
+  code rather than raw English shown to a Pashto/Dari seller.
+- **SF-M8 (card 297, design-pass commit `09cb4d0`)** — `BuyerPickerSheet`'s shared instance in
+  `Conversation.tsx` never received `remainingQuantity` and discarded `result.quantity` on confirm —
+  a seller could never place a hold for more than one unit from chat. Both wires fixed, with a
+  regression test typing 3 and asserting `reserveListing` receives `quantity: 3`. The same design pass
+  also fixed the buyer-side `QuantityStepper` reading as a shopping-cart control next to "Contact
+  Seller" (restyled as a quiet settings-row, not a stepper-beside-a-buy-button), consolidated the
+  three hand-rolled "N of M left" badges onto one `StockBadge` component (previously built, unused,
+  and missing the held clause the inline copies had each grown independently), fixed six raw-number
+  interpolations that rendered Western digits in Pashto/Dari, and raised `QuantityStepper`'s `−`/`+`
+  hit targets to the 44px floor.
 
 ### SF-W1 (board card 285) — Bring hatiwal-web to the same sell-flow model ⏸ (NOT THIS PASS)
 
 - **Priority:** P2 · **Owner:** _unassigned_ · **Sprint:** _unscheduled_
 - **Status:** ⏸ Blocked — explicitly deferred. The owner asked for mobile first, web after; recorded here so the debt is tracked, not discovered later.
 - **Blocked on:** every SF-B*/SF-M* ticket above shipping first.
-- **Scope note:** `reserved` is referenced in **26 hatiwal-web files** (grepped 2026-08-27) — same audit-then-port approach as the mobile tickets, mirroring the mobile contract per `docs/MOBILE_TO_WEB_MIGRATION.md`'s convention. Do not start until explicitly scheduled by product-owner.
+- **Scope note:** `reserved` is referenced in **26 hatiwal-web files** (grepped 2026-08-27) — same audit-then-port approach as the mobile tickets, mirroring the mobile contract per `docs/MOBILE_TO_WEB_MIGRATION.md`'s convention. Do not start until explicitly scheduled by product-owner. **Two small bug fixes already landed on web the same day, independent of the model port**: mark-sold defaults to ONE unit rather than the whole remaining stock (`hatiwal-web` `a3c3c1e`, mirrors the mobile/API fix), and an off-platform sale ("sold to someone not on Hatiwal") now sends its quantity instead of silently wiping the whole batch (`hatiwal-web` `9853405`). Neither touches the reserve/search model — web still requires reserving before some flows treat a listing as "spoken for" and still drops a single-item `reserved` listing out of search, unlike mobile/API post-SF-B1.
+
+### Other open follow-ups from this pass (board cards 286, 287, 295, 296)
+
+Full detail in the Status Overview table above (`TASK-API-FEEDN1`, `SF-M3b`, `SF-B10`, `SF-QA1`) —
+listed here only so this section's own ticket numbering is complete:
+
+- **TASK-API-FEEDN1 (card 286, Backlog)** — `GET /listings` N+1: the feed serializer touches
+  associations (now including `sale_transactions` for `held_units`) that aren't always eager-loaded.
+  SF-B2 already fixed the worst instance of this class of bug for `held_units` specifically
+  (`Listing#open_sale` + preloading in the six `:list`/`:seller_list` renderers) — this card is
+  whatever's left across the rest of the feed.
+- **SF-M3b (card 287, Backlog)** — type-level cleanup only, no behavioural change: narrow
+  `ListingUnavailableNotice`'s `status` prop from `"reserved" | "sold"` to `"sold"`, and remove
+  `ConversationRow.tsx`'s now-dead `"reserved"` branch from its dimming condition. Flagged, not
+  fixed, by SF-M3 because the files are owned by adjacent in-flight tickets at the time.
+- **SF-B10 (card 295, To Do)** — `reserved_at` stays `nil` while a batch holds units. The 3rd
+  instance of "code reading `status == reserved` to mean `has a hold`", which SF-B9's commit message
+  names explicitly as a known-but-unfixed 4th instance of that root cause.
+- **SF-QA1 (card 296, In Progress)** — device QA readiness: rewrite `qa/features.yaml` (still
+  describes the old reserve-then-sell flow), fix 3 stale Maestro flows, verify the 5 seed fixtures
+  (SF-M4b) on an actual emulator. **No Maestro flow for this redesign has ever run on a device** — do
+  not read any ✅ above as device-verified. See `docs/SELL_FLOW_QA_PLAN.md` for the environment
+  facts this ticket needs (two-Metro-bundler trap, preflight false-positive, concurrency ceiling).
 
 ---
 
@@ -1453,9 +1545,12 @@ Examples:
 | Seller "away" mode              | trust / expectation   | A seller can mark themselves as temporarily away; listings stay active but a banner shows "Seller is away until [date]" — needs a `away_until` field on User and a banner in ListingDetail |
 | Recently active filter in Browse | buyer utility        | Filter listings by when seller was last active (last_sign_in_at on User) — "Posted by active sellers" chip — gives buyers confidence someone will reply |
 | ~~Multi-quantity listings (Tier 1)~~ ✅ shipped | traders / clarity | 15 identical items on one listing. `listings.quantity`/`sold_units` + `transactions.quantity` (+ DB CHECKs so the DB itself cannot oversell); collapsed toggle in the form; `PriceTag perUnit` ("14,000 each") at every price site; stock pill on both detail screens; "how many did you sell?" in the buyer picker; a partial sale leaves the listing **active**. Shared rules in `src/utils/stock.ts` (mirrored 1:1 in `hatiwal-web/src/lib/stock.ts` — change one, change both). Full spec + what shipped: `docs/SPIKE_LISTING_QUANTITY.md` §13. |
-| ~~Seller sales history screen~~ → **promoted to SF-M5** | seller trust / records | Formally scheduled 2026-08-27 as part of the Sell Flow Redesign — a **per-listing** Sales screen (not cross-listing) with an editable/deletable row per sale, undo-on-toast for the common case. See `docs/SELL_FLOW_REDESIGN.md` §9/§10.3 and `SF-M5` above. A cross-listing "all my sales, every item" dashboard remains a distinct, later idea (below) if sellers ask for it once SF-M5 ships. |
-| **Cross-listing "My Sales" dashboard** | seller trust / records | Once SF-M5's per-listing Sales screen ships, a seller with many listings still can't see ALL their sales in one place (`GET /my/transactions` already supports this with no `listing_id` filter — the read side is free). Only worth building once a seller actually has several listings with sales; watch for the request rather than building speculatively. |
+| ~~Seller sales history screen~~ ✅ shipped as **SF-M5** | seller trust / records | Shipped 2026-08-27 as part of the Sell Flow Redesign — a **per-listing** Sales screen (`/(main)/listing/[id]/sales`, not cross-listing) with an editable/deletable row per sale, undo-on-toast for the common case. See `docs/SELL_FLOW_REDESIGN.md` §9/§10.3 and `SF-M5` above. A cross-listing "all my sales, every item" dashboard remains a distinct, later idea (below) if sellers ask for it now that SF-M5 has shipped. |
+| **Cross-listing "My Sales" dashboard** | seller trust / records | Now that SF-M5's per-listing Sales screen has shipped, a seller with many listings still can't see ALL their sales in one place (`GET /my/transactions` already supports this with no `listing_id` filter — the read side is free). Only worth building once a seller actually has several listings with sales; watch for the request rather than building speculatively. |
 | **"My Holds" — cross-listing view of what's currently reserved** | seller convenience | After the Sell Flow Redesign, "Reserved" is no longer its own tab in My Listings (folded into "Active" with a hold badge, `SF-M1`) — a seller with many active listings has no single place to see everything currently on hold. Not asked for in the redesign brief; noted here as a plausible follow-up if the hold badge alone proves hard to scan across a large shop. |
+| **Hold-gone-stale nudge in chat** | trust / fewer dead holds | Held units are deliberately **advisory, not a real per-unit hold with expiry** (`docs/SPIKE_LISTING_QUANTITY.md` §5.2 decision B, reaffirmed by the Sell Flow Redesign). That means a hold placed for a buyer who ghosts sits invisibly forever with no signal to the seller that it's worth releasing. A cheap, no-schema-change version: if a hold's conversation has had no new message in N days, surface a dismissible "Still holding this for {name}? [Release hold] [Keep holding]" prompt the next time the seller opens that thread or listing — reuses the existing `release hold` action, adds no new lifecycle state, and directly protects the "reserved is advisory" bet the redesign made. |
+| **Share a sale as a plain-text receipt** | trust, no payment system | With no online payment, the Sales-ledger row (`SF-M5`) is the closest thing either side has to a receipt. A "Share" action on a sale row (native `Share.share`, already used for listing deep-links) that formats item, quantity, unit price, total and date as one message — pasteable into the same chat thread — gives both buyer and seller a durable, referenceable record of what was agreed, at zero backend cost. |
+| **Browse filter: "sellers with bulk stock"** | discovery for traders/buyers | Now that multi-unit listings are common enough to have earned their own redesign pass, a Browse chip filtering to `multi_unit: true` listings would surface traders/bulk sellers for a buyer specifically looking to buy several of something — the exact "15 bags" trader case `docs/SPIKE_LISTING_QUANTITY.md` was written around, but as a discovery feature rather than a display one. Needs a `GET /listings?multi_unit=true` param (cheap) and one chip in the existing category-chip row. |
 
 **Never schedule (MVP boundaries):** online payment · delivery/shipping · web app · admin web · push delivery · voice/video.
 

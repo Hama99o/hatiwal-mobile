@@ -264,40 +264,49 @@ Seller creates or edits a listing. Photos first, then text fields, then category
 
 **Route:** `/(main)/(tabs)/my-listings`
 
+> **Updated 2026-08-27 — Sell Flow Redesign.** Reserve is no longer a listing-surface action and
+> "Reserved" is no longer its own status tab — see `docs/SELL_FLOW_REDESIGN.md`. The layout/tabs/CTA
+> table below reflect what shipped, not the pre-redesign design.
+
 ### What it does
-Seller's own listings. Filter tabs for status. 2-column grid. Each card shows photo collage, price, views/favourites count, quick-action button per status.
+Seller's own listings. Filter tabs for status. 2-column grid. Each card shows photo collage, price, views/favourites count, a hold clause when applicable, and one obvious next-action button per status.
 
 ### Layout
 ```
 ┌─────────────────────────────────────────┐
 │  My Listings                      [+]  │
 ├─────────────────────────────────────────┤
-│  [All] [Active] [Draft] [Reserved] →   │  ← filter chips, fixed height 52px
+│  [All] [Draft] [Active] [Expired] →    │  ← filter chips, fixed height 52px — no "Reserved" tab
 ├──────────────────┬──────────────────────┤
 │  [photo collage] │  [photo collage]     │  ← 2-col grid
-│  DRAFT           │  ACTIVE              │  ← StatusBadge overlay
+│  DRAFT           │  ACTIVE · Reserved ↩ │  ← StatusBadge + hold ribbon overlay
 │  AFN 1,500       │  AFN 800             │
 │  0 views · 0 ♥  │  12 views · 3 ♥     │
-│ [Finish Editing] │  [Mark Reserved]     │  ← context CTA per status
+│ [Finish Editing] │  [Mark Sold]         │  ← "Mark Sold" always, one tap, no hold required
 ├──────────────────┴──────────────────────┤
 │  ...more listings                       │
 └─────────────────────────────────────────┘
 ```
 
 ### Listing card (seller variant) — `SellerListingCard`
-- Photo: same 4:3 ratio, StatusBadge overlay top-left
-- Below photo: Price (bold), Title (2 lines), views + saves row with Eye + Heart icons
-- Bottom action row: primary action button (flex 1) + Edit icon button + Delete icon button
+- Photo: same 4:3 ratio, StatusBadge overlay top-left (+ a "Reserved"/hold ribbon when applicable)
+- Below photo: Price (bold), Title (2 lines), views + saves row with Eye + Heart icons, and a stock
+  pill ("N available · M held [for {name}]") when the listing is multi-unit
+- Bottom action row: primary action button (flex 1) + overflow "More" menu (Edit / Duplicate /
+  Delete / Release hold / View sales)
 - Primary action per status:
   - `draft` → "Publish" (primary blue)
-  - `active` → "Mark Reserved" (secondary)
-  - `reserved` → "Mark Sold" (primary)
-  - `sold` → no action button
-- Destructive delete button always on right (Trash icon, red)
+  - `active` (no hold) → "Mark Sold" (primary) — reserve is **not** on this card; it's initiated from
+    the chat thread with the specific buyer (`ComposerActionsSheet`'s "+" menu)
+  - `active` or `reserved` (**with** a hold) → still "Mark Sold" (primary), identically — a hold never
+    blocks or gates the sell action; "Release hold" moves to the overflow menu
+  - `sold` → no primary action button; overflow still offers Edit / Duplicate / Delete / View sales
+- Destructive delete lives in the overflow menu, not a standalone icon button on the row
 
 ### Filter chips
 - Horizontal scroll, fixed height 52px wrapper — prevents stretching full page
-- All / Active / Draft / Reserved / Sold
+- All / Draft / Active / Expired / Sold — **no separate Reserved chip.** A held listing (single- or
+  multi-item) appears under **Active** with its hold badge.
 
 ---
 

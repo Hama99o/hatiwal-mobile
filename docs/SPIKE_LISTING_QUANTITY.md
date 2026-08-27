@@ -1,9 +1,45 @@
 # Spike — multi-quantity listings ("I have 5 of these")
 
-**Status:** spike / product brief. Nothing built. Written 2026-08-21 at the owner's request.
-**Question asked:** *"What if I want to sell multiple identical items at once? Before creating, the seller
-says how many they have; buyers can see it and can try to buy more than one. Is this big and
-complicated?"*
+**Status:** spike / product brief that shipped, then was extended. **Read `§13` first if you only
+read one section** — it records what actually landed. Written 2026-08-21 at the owner's request;
+Tier 1 shipped the same day (§13); a second pass, the **Sell Flow Redesign** (2026-08-27,
+`docs/SELL_FLOW_REDESIGN.md`), then rebuilt the seller lifecycle around this feature and closed most
+of §13.4's "still open" list. This file is kept as the reasoning trail — the "why" behind the
+quantity model — not as a live spec; where anything below conflicts with `SELL_FLOW_REDESIGN.md` or
+`docs/BACKLOG.md`'s Sell Flow section, **those two win.**
+
+**What has since shipped, beyond Tier 1 (2026-08-27, do not mistake §13.4's old "still open" list for
+current status):**
+- The seller sales-history screen §0b/§13.4 called "the real work, the largest single piece" —
+  **shipped** as a per-listing Sales screen with an editable/voidable row (`SF-M5`).
+- Reserving a multi-unit listing now **does** ask "how many are you holding" — `reserve_with_buyer!`
+  gained an optional `quantity:` and a public-safe `held_units` field (`SF-B2`). This is *not* Tier 2:
+  held units are still **advisory** (§5.2 decision B, below, is unchanged) — nothing is subtracted
+  from `available_units`, there is no expiry, and only one open hold can exist per listing (§0b's
+  constraint, also unchanged). It is a small, cheap addition on top of decision B, not the per-unit
+  inventory system §5.2 option A describes.
+- A reserved listing (single- **or** multi-item) now **stays** in search/feed/chat — before
+  2026-08-27, a single-item `reserved` listing left `browsable` with nothing to explain it, which was
+  a live bug this spike did not anticipate (`SF-B1`).
+- A sold-out listing whose quantity is later raised now **reopens automatically** — §7's open question
+  5 ("does a sold-out listing archive or relist?") went unanswered when Tier 1 shipped, and that gap
+  was a real, owner-reported bug (`SF-B6`) before it was closed.
+
+**What Tier-2 speculation got right, still true today:** §0b's "only one *reserved* transaction may
+exist per listing" DB constraint is unchanged and still the line between what shipped and true
+per-unit holds. §0c's "invisible unless used" governing rule was honoured throughout the Sell Flow
+Redesign too — a single-item listing still renders with no quantity control, no count, no extra tap,
+anywhere in the app. §10's warning against redefining `status` was cited **by name** in the redesign
+and is why the DB still has 4 status values, not 3. **True Tier 2** (per-unit holds with real expiry,
+so a hold actually reserves stock rather than just labelling it) remains **unbuilt and
+unrecommended** — the redesign got the "reserved semantics with N units" problem cheap by exposing an
+advisory quantity, not by building the inventory system §5.2 sized at +2 cycles.
+
+---
+
+**Question asked (2026-08-21):** *"What if I want to sell multiple identical items at once? Before
+creating, the seller says how many they have; buyers can see it and can try to buy more than one. Is
+this big and complicated?"*
 
 ---
 
@@ -731,13 +767,16 @@ file's header mandates (serializer → snapshot → mock), plus a multi-unit fix
 the "each" suffix, the localized stock line in ps/fa, and that a single-item listing shows no quantity
 UI at all.
 
-### 13.4 Still open (deliberately)
+### 13.4 Still open (deliberately) — **as of 2026-08-21. Updated 2026-08-27: two of these shipped.**
 
-- **§0b's seller sales-history screen.** `GET /my/transactions` exists and now returns per-sale
-  quantities; no screen renders it. This is the "who bought how many" ledger as a *list*, and it stays
-  its own ticket precisely because §12.4 flags it as the piece most likely to scope-creep.
-- **Reserve on a multi-unit listing** remains advisory and whole-listing (§5.2 B). The sheet does not
-  ask "how many" when reserving, because the backend does not model a per-unit hold.
+- ~~§0b's seller sales-history screen.~~ **Shipped 2026-08-27 as `SF-M5`** — a per-listing Sales
+  screen with an editable/deletable row, `docs/SELL_FLOW_REDESIGN.md` §9/§10.3.
+- ~~Reserve on a multi-unit listing remains advisory and whole-listing (§5.2 B); the sheet doesn't ask
+  "how many."~~ **Partially shipped 2026-08-27 as `SF-B2`/`SF-M2`** — reserving a multi-unit listing
+  now does ask "how many are you holding" and stores it (`held_units`). Decision B itself is
+  unchanged: a hold is still advisory (nothing subtracted from `available_units`, no expiry, still one
+  open hold per listing) — only the *display* of how many units a hold covers is new. True per-unit
+  inventory holds (§5.2 option A) remain unbuilt.
 - **An offer carries no quantity.** `messages` stores an offer as an amount, so nothing downstream can
   tell whether "I offer 12,000" meant one of the 15 bags or the whole lot — and the seller accepting it
   is agreeing to a number whose meaning was never stated. This was NOT closed, because closing it means
@@ -746,5 +785,8 @@ UI at all.
   anchor above the offer input now says *(each)* on a multi-unit listing, on both clients, so the buyer
   is at least reasoning from an unambiguous reference. If offers on batch listings turn out to matter,
   the honest fix is a quantity on the offer — not more copy.
-- **Tier 2** (a `sales` array on the API + `SaleBuyerCard` rendering a list) is untouched.
+- **Tier 2, mostly still untouched.** `SaleBuyerCard` itself still renders only the latest sale, not
+  a list — but it now carries a "+N more · View all sales" link (`sales_count`, `SF-B5`) to the Sales
+  screen (`SF-M5`), which *is* the list this bullet asked for, just as its own screen rather than
+  inline on the card. True Tier 2 (per-unit inventory holds with expiry) is untouched.
 - **On-device verification** on a real iPhone and Android — no agent can clear this (cf. TASK-Q501).
