@@ -21,6 +21,14 @@ Scope, so this is not over-trusted: it detects RETARGETING — a testID the run 
 used that the current file can no longer produce. It does NOT notice an edit that only
 adds a wait or a scroll, so "selectors still live" means the verdict is worth reading,
 not that the file is byte-identical to what ran.
+
+It also cannot see a TEXT retarget, which is a common one. When a verdict names a text
+selector, grep the flow for that string before triaging — if it survives only inside a
+comment explaining its removal, the verdict is stale. That is how three of these were
+caught by hand:
+
+    grep -n 'Kabul' maestro/listings/create_listing_all_fields.yaml
+    #  85:# and then tapped "Kabul", which is not a label anywhere in the picker
 """
 import json, pathlib, re, sys
 
@@ -68,10 +76,13 @@ def main(flows):
             print(f"  {flow:34} NO EVIDENCE  (never executed under this rig)")
             continue
         now = current_selectors(spec)
-        # Compare TESTIDS only. Everything else differs for boring reasons: the file
-        # holds ${EMAIL} where the run holds the resolved address, and the run carries
-        # runtime URLs the file never mentions. A testID is also exactly what changes
-        # when a flow is retargeted, which is the case this needs to catch.
+        # TESTIDS ONLY, on purpose. I tried including text selectors, because three
+        # stale verdicts in a row were missed by ids alone (create_listing_all_fields
+        # retargeted off `tapOn: "Kabul"`, both my-listings tab flows off
+        # `tapOn: "Sold"`). It made the tool useless: the executed list inlines shared
+        # HELPERS, so strings like "Performance monitor" or "Allow Hatiwal to send you
+        # notifications?" differ whenever a helper changes, and every flow reported
+        # EXECUTED-OLD. A testID retarget is specific to the flow; text is not.
         testid = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$")
         gone = {s for s in ran if testid.match(s) and s not in now}
         run = re.search(r"run-\d+", str(cj)).group(0)
