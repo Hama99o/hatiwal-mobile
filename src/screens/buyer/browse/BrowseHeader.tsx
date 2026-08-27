@@ -387,6 +387,10 @@ export function BrowseHeader({
 
           {/* Clear all button */}
           <Pressable
+            // Its accessibilityLabel is browse.clearAllFilters = "Clear all", and
+            // browse.clearHistory is the SAME string, so text alone cannot tell the
+            // filter chip from the search-history clear.
+            testID="browse-clear-filters"
             onPress={onClearAllFilters}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={{

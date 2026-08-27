@@ -140,8 +140,14 @@ appId: com.hatiwal.app
 # By testID. The search bar shows the PLACEHOLDER "Search listings..." — Maestro
 # text matching is an anchored full-string regex, so a bare "Search" never matched
 # it. Six other flows already use browse-search-input.
+- runFlow: ../_helpers/clear_browse_filters.yaml
 - tapOn:
     id: "browse-search-input"
+# eraseText, like every other search site in this flow. Without it the typing APPENDS:
+# the feed was found holding "Marketplace Cycle PhoneCycle Phone", which matches
+# nothing. This flow's own comment at the top says Maestro mangles the first character
+# without an eraseText, and this was the one site that did not have one.
+- eraseText
 - inputText: "Marketplace Cycle Phone"
 - waitForAnimationToEnd
 # NOT `tapOn: "Marketplace Cycle Phone"`. That text is sitting in the SEARCH BOX,
@@ -209,6 +215,7 @@ appId: com.hatiwal.app
 # and typing into a box that already has text APPENDS rather than replaces. So
 # erase first and re-search: this then reaches the same listing whatever state
 # the Bazaar was left in.
+- runFlow: ../_helpers/clear_browse_filters.yaml
 - tapOn:
     id: "browse-search-input"
 - eraseText
@@ -306,6 +313,7 @@ appId: com.hatiwal.app
 # and typing into a box that already has text APPENDS rather than replaces. So
 # erase first and re-search: this then reaches the same listing whatever state
 # the Bazaar was left in.
+- runFlow: ../_helpers/clear_browse_filters.yaml
 - tapOn:
     id: "browse-search-input"
 - eraseText

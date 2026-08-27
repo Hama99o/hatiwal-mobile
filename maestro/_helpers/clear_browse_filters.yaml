@@ -1,0 +1,21 @@
+appId: com.hatiwal.app
+---
+# Clears any active browse filters. Does nothing when there are none.
+#
+# Filters PERSIST. They outlive a relaunch, so any flow that relaunches with
+# `clearState: false` inherits whatever the previous flow left behind. That is how
+# browse/full_marketplace_cycle came to search a feed pinned to "Electronics •
+# 5000-∞" and read "No listings found" for a listing it had created itself seconds
+# earlier at 3,500 — the price filter excluded it. The failure surfaced as "Element
+# not found: listing-card" with api_errors: 0, which reads like a broken feed.
+#
+# By testID: browse.clearAllFilters and browse.clearHistory are BOTH "Clear all",
+# so the text cannot tell the filter chip from the search-history clear.
+- runFlow:
+    when:
+      visible:
+        id: "browse-clear-filters"
+    commands:
+      - tapOn:
+          id: "browse-clear-filters"
+      - waitForAnimationToEnd
