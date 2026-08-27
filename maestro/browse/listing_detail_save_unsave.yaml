@@ -103,4 +103,12 @@ appId: com.hatiwal.app
 - tapOn:
     id: "saved-tab"
 - waitForAnimationToEnd
-- assertVisible: "No saved items yet"
+# Assert THIS listing is gone, not that the whole Saved tab is empty. Saves are
+# per-account state that no flow owns: the buyer accumulates them across the suite
+# (saved/save_from_browse_feed, saved_listing_goes_sold and the report/block flows all
+# save things), so "No saved items yet" can only pass if this flow happens to run
+# before any of them. It failed with api_errors: 0 — the unsave worked perfectly, the
+# tab simply still held somebody else's save.
+- extendedWaitUntil:
+    notVisible: "Wool Blanket Handmade King Size"
+    timeout: 20000

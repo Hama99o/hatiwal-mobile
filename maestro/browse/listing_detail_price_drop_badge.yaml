@@ -24,6 +24,18 @@ appId: com.hatiwal.app
 # never matched. The DETAIL page uses a different key,
 # `listing.priceDrop.badge` = "{{percent}}% price drop", which this flow already
 # asserts correctly further down — so the two screens were half right.
+# Scroll to the listing that actually HAS the drop before asserting the card badge.
+# The seeded price drop is on the LENOVO — db/seeds/e2e.rb creates a ListingPriceHistory
+# of 38 000 -> 32 300 AFN (~15%) dated 2 days ago, and Listing#recent_price_drop only
+# counts reductions inside a 14-day window. The Wool Blanket this flow used to open has
+# price_drop_percent: null (checked against the API), so neither the card badge nor the
+# detail line could ever render for it.
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - assertVisible:
     text: "↓\\d+%"
 
@@ -35,12 +47,7 @@ appId: com.hatiwal.app
 # A NAMED seeded listing, not "the first card": it does not depend on feed
 # ordering, it is active, and it belongs to seller@hatiwal.test — so the buyer
 # running this flow sees the contact affordance rather than their own listing.
-- scrollUntilVisible:
-    element:
-      text: "Wool Blanket Handmade King Size"
-    direction: DOWN
-    timeout: 15000
-- tapOn: "Wool Blanket Handmade King Size"
+- tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
 - waitForAnimationToEnd
 # NOT tapping "Contact Seller" here: that opens the first-message sheet, which
 # then covers the detail screen the rest of this flow acts on. Opening the

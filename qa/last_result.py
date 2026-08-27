@@ -19,11 +19,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def latest():
     """flow -> (run, record), keeping the highest run number per flow."""
     out = {}
-    for p in glob.glob(os.path.join(ROOT, "qa/reports/run-*/results.jsonl")):
-        m = re.search(r'run-(\d+)', p)
-        if not m:
-            continue
-        run = int(m.group(1))
+    # history.jsonl FIRST, then the surviving run dirs. Old runs get pruned and folded
+    # into history (archive_results.py), so reading only reports/run-* reports "never
+    # run" for flows that have run many times — which sent me chasing a coverage gap of
+    # 139 flows that was really 3, and made six saved/ flows look untested.
+    sources = [(int(m.group(1)), p)
+               for p in glob.glob(os.path.join(ROOT, "qa/reports/run-*/results.jsonl"))
+               for m in [re.search(r'run-(\d+)', p)] if m]
+    hist = os.path.join(ROOT, "qa/history.jsonl")
+    if os.path.isfile(hist):
+        sources.insert(0, (None, hist))          # run number comes from each record
+    for run, p in sources:
         for line in io.open(p, encoding="utf-8", errors="replace"):
             line = line.strip()
             if not line.startswith("{"):
@@ -32,9 +38,18 @@ def latest():
                 d = json.loads(line)
             except Exception:
                 continue
+            # Per-LINE, never reassigning `run`: history rows each carry their own
+            # run, and mutating the loop variable would stamp the first row's number
+            # onto every later row in the file.
+            rec_run = run
+            if rec_run is None:
+                hm = re.search(r'run-(\d+)', str(d.get("run", "")))
+                if not hm:
+                    continue
+                rec_run = int(hm.group(1))
             f = d.get("flow")
-            if f and (f not in out or run >= out[f][0]):
-                out[f] = (run, d)
+            if f and (f not in out or rec_run >= out[f][0]):
+                out[f] = (rec_run, d)
     return out
 
 L = latest()

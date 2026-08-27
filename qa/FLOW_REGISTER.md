@@ -48,7 +48,7 @@ bug class a user reports as "nothing happened".
 | `listing_detail_multi_quantity` | UNTESTED | — |  | flow — scroll stopped at the clipped bottom row so the price row never showed; centred. API data verified correct |  |
 | `listing_detail_offer` | UNTESTED | — |  |  |  |
 | `listing_detail_offer_invalid` | UNTESTED | — |  |  |  |
-| `listing_detail_price_drop_badge` | UNTESTED | — |  |  |  |
+| `listing_detail_price_drop_badge` | UNTESTED | — |  | flow — asserted the drop badge on a listing with no drop; retargeted to the seeded Lenovo |  |
 | `listing_detail_report` | UNTESTED | — |  | fixture | RIG-004 tolerance; covers the detail-screen entry point. |
 | `listing_detail_save_unsave` | UNTESTED | — |  |  |  |
 | `listing_detail_saves_count` | UNTESTED | — |  |  |  |
@@ -241,7 +241,7 @@ bug class a user reports as "nothing happened".
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `create_listing` | PASS | run-252 | 268 |  |  |
-| `create_listing_all_fields` | FAIL-assert ⟳stale | run-252 | 260 | flow | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
+| `create_listing_all_fields` | FAIL-assert ⟳stale | run-252 | 260 | STALE — already retargeted off tapOn "Kabul" (comment at :85 records it); awaiting re-run | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
 | `create_listing_category_search` | PASS | run-252 | 176 |  |  |
 | `create_listing_currency_eur` | FAIL-assert ⟳stale | run-252 | 224 | flow | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
 | `create_listing_currency_usd` | PASS ⟳stale | run-252 | 238 | flow | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |

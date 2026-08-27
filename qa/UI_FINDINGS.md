@@ -2293,3 +2293,28 @@ recurs: with header rotation on, a single 401 on a non-auth endpoint should be r
 once with the freshly stored token before the session is thrown away. Ending a session
 on a race is a bad trade for a marketplace where the user may be mid-conversation with
 a buyer. Watch for `api_errors: 1` alongside a missing tab bar.
+
+---
+
+## CANDIDATE: the price-drop badge never checks the CURRENT price
+
+`Listing#price_drop_percent` (listing.rb:554) is computed purely from
+`recent_price_drop` — the newest `ListingPriceHistory` row with `new_price < old_price`
+inside a 14-day window. Nothing compares that old figure to what the listing costs
+today.
+
+So a seller who drops a price and then puts it back keeps a "↓15%" badge on their card
+and a "15% price drop" line on the detail screen for two weeks, at the original price.
+The seeded fixture demonstrated it by accident: the Lenovo ThinkPad carried a
+38 000 → 32 300 history while its `price` was still 38 000, so the app showed
+"AFN 38,000" next to "↓15%" and every client believed it.
+
+Fixed the fixture (the seeded price is now the post-drop 32 300, which is what the
+history claims), so this no longer misleads QA. The app rule is left alone: whether a
+drop that has been reversed should still advertise itself is a product call, not a bug
+I should decide unilaterally. But for a marketplace whose whole premise is trust
+between strangers meeting in person, a discount badge that does not correspond to the
+price on screen is the kind of thing a buyer notices once and never forgives.
+
+The narrow version of the fix, if wanted: require `price < recent_price_drop.old_price`
+before reporting a percentage.
