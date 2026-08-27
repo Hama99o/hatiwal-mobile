@@ -1462,6 +1462,31 @@ What the episode does justify, on its own merits: tap a submit control **by
 testID** rather than by label whenever the label changes while submitting —
 `meetup-propose-submit` swaps to "Sending…", and its own source comment says so.
 
+## A toast raised just before `router.replace` cannot be waited for
+
+Polling does not help, and two flows proved it the hard way (`delete_listing`,
+`edit_profile`), both of which already used `extendedWaitUntil` and still failed.
+
+```ts
+toast.success(t("profile.edit.saved"));
+router.replace("/(main)/(tabs)/profile")      // EditProfile.tsx:267
+```
+
+The message is rendered on a screen that is being torn down in the next statement. The
+comment above one of these replaces even says "after a short delay so the toast is
+visible" — there is no delay in the code. `MyListingDetail`'s `onDeleted` does the same.
+
+**Assert the durable consequence instead:** you land on the destination screen, and the
+change is visible there. That is a stronger check anyway — it survives a copy change and
+proves the write, not the notification.
+
+**Four sites still assert one of these toasts** and are deliberately left alone, because
+they have no durable assertion to fall back on and removing the wait would leave them
+proving nothing about the save: `away_mode` (×2), `edit_profile_all_fields`,
+`edit_profile_province` (×2). Three have never run. When one fails on the toast, the fix
+is to assert what the save produced — for away mode that is the profile banner, gated on
+`user?.isAway && user?.awayUntil` (Profile.tsx:753) — not to delete the assertion.
+
 ## Never type the word "tomorrow" into a field
 
 It costs the screen. Typing `tomorrow` (either case) into a text field on this

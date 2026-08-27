@@ -30,14 +30,16 @@ appId: com.hatiwal.app
 # Save
 - tapOn: "Save Changes"
 - waitForAnimationToEnd
-# Success toast
-# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
-# single check right after an action is a race — and any wait in front of it
-# loses that race, turning a successful action red. Polling keeps the check at
-# full strength while removing the timing dependency.
-- extendedWaitUntil:
-    visible: "Profile saved"
-    timeout: 15000
+# NOT the toast, even with polling. EditProfile.tsx:267 raises it and then replaces the
+# screen in the next statement —
+#     toast.success(t("profile.edit.saved"));
+#     router.replace("/(main)/(tabs)/profile")
+# — so the message is on a dying screen and extendedWaitUntil has nothing to find. The
+# comment above the replace says "after a short delay so the toast is visible"; there is
+# no delay in the code. delete_listing failed the same way for the same reason.
+#
+# The durable consequence is asserted immediately below, and it is the stronger check
+# anyway: we land back on the profile with the new name showing.
 # Back on Profile — name updated
 # The profile renders "firstname lastname" as ONE Text, so after changing only the
 # first name the node reads "Ahmad Updated Karimi" — and Maestro anchors the whole
