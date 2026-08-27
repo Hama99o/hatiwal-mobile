@@ -14,6 +14,14 @@ appId: com.hatiwal.app
 - tapOn:
     id: "composer-plus-button"
 - waitForAnimationToEnd
+# Wait for the SHEET's contents, not just the animation. ComposerActionsSheet is a
+# native Modal and waitForAnimationToEnd returns before its children reach the
+# accessibility tree; offer_in_existing_thread failed with "Element not found:
+# composer-action-offer" while the hierarchy captured at that moment contained it.
+- extendedWaitUntil:
+    visible:
+      id: "composer-action-meetup"
+    timeout: 15000
 - tapOn:
     id: "composer-action-meetup"
 - waitForAnimationToEnd

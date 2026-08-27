@@ -40,6 +40,14 @@ appId: com.hatiwal.app
 # Note "Propose Meetup" is TWO different controls: this row
 # (chat.proposeMeetup) and the submit button inside the sheet
 # (chat.meetup.propose). Same words, so they must be told apart by testID.
+# Wait for the SHEET's contents, not just the animation. ComposerActionsSheet is a
+# native Modal and waitForAnimationToEnd returns before its children reach the
+# accessibility tree; offer_in_existing_thread failed with "Element not found:
+# composer-action-offer" while the hierarchy captured at that moment contained it.
+- extendedWaitUntil:
+    visible:
+      id: "composer-action-meetup"
+    timeout: 15000
 - tapOn:
     id: "composer-action-meetup"
 - waitForAnimationToEnd

@@ -27,6 +27,15 @@ appId: com.hatiwal.app
 - tapOn:
     id: "composer-plus-button"
 - waitForAnimationToEnd
+# Wait for the SHEET's contents, not just the animation. ComposerActionsSheet is a
+# native Modal, and waitForAnimationToEnd returns before its children are in the
+# accessibility tree — the failing step reported "Element not found:
+# composer-action-offer" while the hierarchy captured at that moment DID contain it,
+# which is what a tap losing a race with a modal looks like.
+- extendedWaitUntil:
+    visible:
+      id: "composer-action-offer"
+    timeout: 15000
 - tapOn:
     id: "composer-action-offer"
 - waitForAnimationToEnd
