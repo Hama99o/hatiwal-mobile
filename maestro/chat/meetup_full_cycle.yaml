@@ -15,9 +15,19 @@ appId: com.hatiwal.app
     visible:
       id: "listing-card"
     timeout: 20000
-- tapOn:
-    id: "listing-card"
-    index: 0
+# The PHONE CASE, not feed index 0. Both legs have to meet in the SAME thread: leg 1
+# proposes a meetup as the buyer, leg 2 accepts it as seller@hatiwal.test. Index 0 of the
+# feed is whatever is newest — usually QA debris owned by another account — so the
+# proposal could land in a thread that seller never sees, and Accept (rendered only when
+# the proposal is NOT yours) would be missing for a reason that looks like a broken
+# button. The phone case is seeded to this seller.
+- scrollUntilVisible:
+    element:
+      text: "Phone Case Silicone Clear - Wholesale"
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+- tapOn: "Phone Case Silicone Clear - Wholesale"
 - waitForAnimationToEnd
 # Not a bare `tapOn: "Contact Seller"`: on a FIRST contact the app opens
 # FirstMessageSheet ("Message Seller" + a pre-filled opener + Send Message)
@@ -136,6 +146,10 @@ appId: com.hatiwal.app
     visible:
       id: "conversation-row-\\d+"
     timeout: 20000
+# Narrow to the phone-case thread. The seller has twelve conversations and the inbox is
+# ordered by recent activity, so index 0 is not the thread leg 1 used. This helper leaves
+# index 0 pointing at the right one.
+- runFlow: ../_helpers/pin_phone_case_conversation.yaml
 - tapOn:
     id: "conversation-row-\\d+"
     index: 0
