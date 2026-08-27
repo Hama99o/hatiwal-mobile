@@ -53,7 +53,7 @@ bug class a user reports as "nothing happened".
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
-11/29 passing · 11 open
+9/29 passing · 10 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -65,12 +65,12 @@ bug class a user reports as "nothing happened".
 | `change_language_english` | FAIL-? ⟳stale | run-257 | 543 | flow — toothless restart wait; helper+nav fixed cb68fa4 | [Failed] change_language_english (8m 47s) (No visible element found: "Sign Out") |
 | `change_language_pashto` | PASS | run-257 | 181 |  |  |
 | `edit_profile` | FAIL-assert ⟳stale | run-257 | 479 | stale — toast assertion already replaced by durable name check | [Failed] edit_profile (7m 44s) (Assertion is false: "Profile saved" is visible) |
-| `edit_profile_all_fields` | FAIL-assert ⟳stale | run-257 | 250 | open — province-search-input never appeared (sheet did not open) | [Failed] edit_profile_all_fields (3m 56s) (Element not found: Id matching regex: province-search-input) |
+| `edit_profile_all_fields` | FAIL-assert ⟳stale | run-257 | 250 | flow — same nav-bar tap; my retap guard aimed at the same dead coords. Fixed 1983b60 | [Failed] edit_profile_all_fields (3m 56s) (Element not found: Id matching regex: province-search-input) |
 | `edit_profile_avatar` | PASS | run-257 | 193 |  |  |
 | `edit_profile_bio_too_long` | FAIL-assert ⟳stale | run-257 | 302 | flow — 520 chars do type; error renders above viewport; now scrolls UP cb68fa4 | [Failed] edit_profile_bio_too_long (4m 47s) (Assertion is false: "Bio must be 500 characters or less" is visib |
-| `edit_profile_province` | FAIL-? | run-257 | 269 | investigating — sheet stays open, typing not landing; probe _diag/probe_province_select | [Failed] edit_profile_province (4m 14s) (No visible element found: "Save Changes") |
-| `edit_profile_validation` | PASS | run-257 | 202 |  |  |
-| `hidden_listings` | PASS | run-257 | 209 |  |  |
+| `edit_profile_province` | FAIL-? ⟳stale | run-257 | 269 | flow — tap landed on the NAV BAR (trigger centre y~2308 of 2400); centerElement fixes it, 1983b60 | [Failed] edit_profile_province (4m 14s) (No visible element found: "Save Changes") |
+| `edit_profile_validation` | PASS ⟳stale | run-257 | 202 |  |  |
+| `hidden_listings` | PASS ⟳stale | run-257 | 209 |  |  |
 | `language_persists_across_tabs` | PASS | run-257 | 286 |  |  |
 | `language_switch_all_screens` | FAIL-? ⟳stale | run-257 | 286 | flow — asserted Profile content while restart left app on feed; reordered cb68fa4 | [Failed] language_switch_all_screens (4m 31s) (No visible element found: "اطلاعات شخصی") |
 | `profile_stats_verify` | FAIL-? | run-257 | 480 | flow | Same hardcoded year. |
@@ -200,7 +200,7 @@ bug class a user reports as "nothing happened".
 
 ## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
 
-14/40 passing · 4 open
+12/40 passing · 4 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -224,10 +224,10 @@ bug class a user reports as "nothing happened".
 | `create_listing_with_photos` | PASS | run-252 | 276 |  |  |
 | `delete_listing` | FAIL-assert ⟳stale | run-252 | 233 | flow | Toast unwaitable: onDeleted does router.replace, so it fires on a dying screen. Asserts the outcome. |
 | `draft_lifecycle` | FAIL-assert ⟳stale | run-252 | 261 | flow | Never confirmed the native publish dialog; now via confirm_dialog (android:id/button1). |
-| `edit_listing` | PASS | run-252 | 227 |  |  |
+| `edit_listing` | PASS ⟳stale | run-252 | 227 |  |  |
 | `edit_listing_all_fields` | FAIL-? ⟳stale | run-252 | 166 | flow | Reached for lifecycle-more-action (detail-only) from the list. Card ⋮ route now. |
 | `edit_listing_discard` | FAIL-? | run-252 | 169 | flow | Same detail-control-from-the-list mistake; identical opening in four flows. |
-| `edit_listing_quantity` | PASS | run-252 | 211 |  |  |
+| `edit_listing_quantity` | PASS ⟳stale | run-252 | 211 |  |  |
 | `edit_listing_remove_photo` | FAIL-assert ⟳stale | run-252 | 169 | flow | Phantom "Remove" confirm (removePhoto has no dialog); also needed a photo to exist. |
 | `edit_listing_reorder_photos` | FAIL-assert | run-252 | 171 | flow | HOLLOW: one tap only selects. Now two taps, asserts the hint clears, attaches 2 photos. |
 | `expired_listing_badge` | FAIL-assert | run-252 | 168 | fixture | No expired listing existed at all; expires_at was never seeded. Fixture added. |
@@ -294,7 +294,7 @@ bug class a user reports as "nothing happened".
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile
 
-19/38 passing · 0 open
+17/38 passing · 0 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -328,8 +328,8 @@ bug class a user reports as "nothing happened".
 | `search_empty_state` | PASS | run-248 | 165 |  |  |
 | `search_listings` | PASS | run-248 | 194 |  |  |
 | `search_with_filter` | FAIL-assert ⟳stale | run-248 | 190 |  | [Failed] search_with_filter (2m 54s) (Assertion is false: "Good" is visible) |
-| `seller_profile` | PASS | run-248 | 191 |  |  |
-| `seller_profile_from_listing` | PASS | run-248 | 195 |  |  |
+| `seller_profile` | PASS ⟳stale | run-248 | 191 |  |  |
+| `seller_profile_from_listing` | PASS ⟳stale | run-248 | 195 |  |  |
 | `seller_response_rate_badge` | FAIL-? ⟳stale | run-248 | 197 |  | [Failed] seller_response_rate_badge (2m 59s) (No visible element found: "Usually responds.*") |
 | `subcategory_drilldown` | FAIL-assert ⟳stale | run-248 | 187 | flow | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
 | `user_profile_empty_listings` | FAIL-assert ⟳stale | run-248 | 193 | flow | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
