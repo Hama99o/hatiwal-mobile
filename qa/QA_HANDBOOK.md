@@ -491,6 +491,7 @@ the resulting failure names something else entirely.
 | **Buyer/seller mode** | Yes — persisted on the USER, so it also crosses devices | Seller mode has no "Bazaar" tab at all (My Shop / Chats / Me), so buyer flows fail "Element not found: Bazaar" while perfectly signed in | `_helpers/ensure_buyer_mode.yaml` (or `login_seller.yaml`, which always did this) |
 | **Airplane mode** | Yes — device-wide | Set by an offline flow that then FAILS before its own cleanup; every later flow cannot reach Metro and fails on `"Me" is visible` | cleared in the per-flow preflight (`lib/flows.sh`) |
 | **GPS fix** | It is one-shot and goes STALE | A location flow minutes into a suite gets nothing and the app correctly says "Couldn't determine your location" | re-sent before every flow; override with `QA_GEO_LAT/LON` |
+| **Browse filters** | Yes — persisted, and they outlive a relaunch | A flow that relaunches with `clearState: false` inherits the PREVIOUS flow's filters. full_marketplace_cycle searched a feed pinned to "Electronics • 5000-∞" and read "No listings found" for a 3,500 listing it had just created; the failure named `listing-card` with api_errors: 0, so it read like a broken feed | `runFlow: ../_helpers/clear_browse_filters.yaml` before relying on the feed. It is a no-op when nothing is active |
 
 **`pm reset-permissions`, not `pm revoke`.** Revoke marks the permission USER-FIXED
 ("don't ask again"), so Android never shows the dialog — the app gets an immediate
