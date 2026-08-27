@@ -2200,7 +2200,7 @@ the `DISPOSABLE_LISTINGS` pattern — rather than a shared seeded fixture.
 
 ---
 
-### UI-048 · OPEN — two dark_mode flows ended on the Bazaar feed mid-flow
+### UI-048 · RESOLVED — a theme switch RESTARTS the app, so it reopens on the Bazaar feed
 
 **Occurrences (both run-250):** `profile_dark` failed on `"Sign Out"`;
 `theme_persists_after_navigate` failed on `id: theme-option-dark`. In both, the
@@ -2230,6 +2230,37 @@ scroll; `theme_persists_after_navigate` waits for "Edit Profile" after each
 itself proved nothing about which screen was showing. A repeat now fails naming the
 lost screen, at the step that lost it.
 
-**Next step when a device is free:** re-run both with the recording on. If the
-checkpoint fails, the screen is lost before the scroll; if the scroll still fails with
-the checkpoint green, the swiping is implicated and it belongs in the app, not the flow.
+**RESOLVED, and it is designed behaviour rather than a bug.**
+
+```ts
+// src/stores/theme.store.ts
+setTheme: (theme) => {
+  const changed = get().theme !== theme;
+  ...
+  // Persist BEFORE reloading so the saved theme matches on next launch, then
+  // reload for a clean apply (Android's live theme swap can be janky).
+  AsyncStorage.setItem(STORAGE_KEY, theme).finally(() => { if (changed) reloadApp(); });
+}
+```
+
+`reloadApp()` is `RNRestart.restart()` — a full native restart. So the app comes back on
+its INITIAL ROUTE, the Bazaar feed, and every profile-screen element the two flows were
+reaching for had legitimately gone. The theme had applied perfectly; the screen had moved.
+
+**Why my earlier elimination missed it.** I checked the root layout and concluded a theme
+change "cannot remount the Stack", because `ready` is three one-way flags. That was true
+and irrelevant: the mechanism is not a remount inside a living app, it is the app being
+replaced. I was looking one level too high, and the five hypotheses I ruled out were all
+about navigation *within* a running process.
+
+**The lead was in the repo the whole time.** `_helpers/await_language_restart.yaml` exists
+for exactly this on the LANGUAGE path — "applyLanguageFromUser() calls
+I18nManager.forceRTL and then reloadApp()" — and the theme path had no equivalent. What
+finally surfaced it was `profile/change_language_english` failing on "Sign Out" with the
+same Bazaar-feed screenshot: the same symptom on the path that already had a helper.
+
+**Fixed:** `_helpers/await_theme_restart.yaml` added, and every theme switch now awaits
+the restart and navigates back deliberately. Six dark_mode flows that PASSED were also
+racing the restart — they happened to want the feed next — so they are now explicit
+rather than accidentally correct. `ensure_english` was in the same position and its
+callers resumed against a restarting app.

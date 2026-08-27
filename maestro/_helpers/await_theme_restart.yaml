@@ -1,0 +1,26 @@
+appId: com.hatiwal.app
+---
+# Wait out the app restart that a THEME switch causes.
+#
+# theme.store.ts's setTheme persists the choice and then calls reloadApp() whenever the
+# value actually changed (line 26) — reloadApp is RNRestart.restart(), a full native
+# restart, and the store's own comment says why: "Android's live theme swap can be janky",
+# so it reloads for a clean apply.
+#
+# The consequence is the one that cost two flows (UI-048): the app comes back on its
+# INITIAL ROUTE — the Bazaar feed — not on the screen you switched the theme from. Both
+# profile_dark and theme_persists_after_navigate carried on looking for profile rows and
+# failed on "Sign Out" and a theme pill, with the failure-time screenshots showing the
+# Bazaar feed in dark mode. The theme had applied perfectly; the screen had moved.
+#
+# So: call this after every theme switch, and then NAVIGATE EXPLICITLY to wherever you
+# need to be. Waiting for `browse-tab` proves the app is back, NOT which screen is
+# showing — the tab bar renders on every tab.
+#
+# Mirrors _helpers/await_language_restart.yaml, which exists for the same reason on the
+# language path (applyLanguageFromUser -> forceRTL -> reloadApp).
+- extendedWaitUntil:
+    visible:
+      id: "browse-tab"
+    timeout: 60000
+- waitForAnimationToEnd

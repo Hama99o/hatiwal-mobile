@@ -23,6 +23,11 @@ appId: com.hatiwal.app
     timeout: 20000
 - tapOn:
     id: "theme-option-dark"
+# Theme switches RESTART the app (theme.store.ts:26 -> reloadApp -> RNRestart), so it
+# returns on the Bazaar feed. This flow happens to want the feed next, so it passed
+# without waiting — but the tap after a switch was racing a restarting app. UI-048
+# is what that race looks like when a flow needs to stay on the profile screen.
+- runFlow: ../_helpers/await_theme_restart.yaml
 - waitForAnimationToEnd
 # Navigate to Bazaar — all elements should be visible in dark mode
 - tapOn:

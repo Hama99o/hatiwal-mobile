@@ -126,7 +126,7 @@ bug class a user reports as "nothing happened".
 
 ## `listings` — Seller create/edit/delete + full draft→active→reserved→sold lifecycle
 
-18/40 passing · 5 open
+15/40 passing · 5 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -134,14 +134,14 @@ bug class a user reports as "nothing happened".
 | `create_listing_all_fields` | FAIL-assert ⟳stale | run-252 | 260 | flow | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
 | `create_listing_category_search` | PASS | run-252 | 176 |  |  |
 | `create_listing_currency_eur` | FAIL-assert ⟳stale | run-252 | 224 | flow | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
-| `create_listing_currency_usd` | PASS | run-252 | 238 | flow | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
+| `create_listing_currency_usd` | PASS ⟳stale | run-252 | 238 | flow | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
 | `create_listing_draft_discard` | PASS | run-252 | 161 |  |  |
 | `create_listing_draft_restore` | FAIL-assert ⟳stale | run-252 | 252 | flow | "Draft saved" is a toast from toast.success; a bare assert races it. Now polls. |
-| `create_listing_full_publish` | PASS | run-252 | 247 |  | AxiosError |
+| `create_listing_full_publish` | PASS ⟳stale | run-252 | 247 |  | AxiosError |
 | `create_listing_multi_quantity` | PASS | run-252 | 199 | fixed | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
 | `create_listing_price_edges` | PASS | run-252 | 207 |  |  |
 | `create_listing_publish_blocked` | FAIL-assert ⟳stale | run-252 | 229 | flow | Touched the form before the location sheet closed; the helper allows 45s for it. |
-| `create_listing_publish_direct` | PASS | run-252 | 285 |  |  |
+| `create_listing_publish_direct` | PASS ⟳stale | run-252 | 285 |  |  |
 | `create_listing_publish_requirements` | PASS | run-252 | 206 |  |  |
 | `create_listing_quantity_edges` | FAIL-assert ⟳stale | run-252 | 210 | flow | Field maps empty to 1, so eraseText appends. Blur-then-focus lets selectTextOnFocus replace. |
 | `create_listing_title_edges` | FAIL-assert | run-252 | 446 | env | Login gate timed out at 60s under host load; flow never ran its own steps. |
@@ -173,7 +173,7 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state
 
-23/44 passing · 5 open
+22/44 passing · 5 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -185,7 +185,7 @@ bug class a user reports as "nothing happened".
 | `conversation_delete` | PASS | run-249 | 167 |  |  |
 | `conversation_read_status` | FAIL-assert ⟳stale | run-249 | 193 | fixture | mark_unread needs an INBOUND message; index 0 was QA debris with none. Pinned via helper. |
 | `conversations-search` | PASS | run-249 | 220 |  |  |
-| `conversations_empty_state` | PASS | run-249 | 159 |  |  |
+| `conversations_empty_state` | PASS ⟳stale | run-249 | 159 |  |  |
 | `conversations_filter` | FAIL-? ⟳stale | run-249 | 194 | flow | ${visible()} does not exist in Maestro's JS sandbox; raised TypeError. Regex alternation instead. |
 | `conversations_list` | PASS | run-249 | 178 |  |  |
 | `conversations_role_filter` | PASS | run-249 | 260 |  |  |
@@ -261,22 +261,9 @@ bug class a user reports as "nothing happened".
 | `seller_mode_tab_bar_changes` | PASS | run-254 | 164 |  |  |
 | `seller_views_own_listing_buyer_mode` | FAIL-assert ⟳stale | run-254 | 228 | flow | Searched the feed for "seller"; search matches titles, so it found nothing. |
 
-## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
-
-5/6 passing · 1 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_pagination` | PASS | s2/run-156 | 151 |  |  |
-| `conversations_pagination` | PASS | s2/run-156 | 138 |  |  |
-| `filter_combined_pagination` | FAIL-assert | s2/run-156 | 155 |  | [Failed] filter_combined_pagination (2m 20s) (Element not found: Text matching regex: Electronics) |
-| `my_listings_pagination` | PASS | s2/run-156 | 202 |  |  |
-| `saved_pagination_deep` | PASS | s2/run-156 | 147 |  |  |
-| `search_pagination` | PASS | s2/run-156 | 161 |  |  |
-
 ## `auth` — Sign up, login, logout, session persistence, guest gating
 
-16/16 passing · 0 open
+13/16 passing · 0 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -291,11 +278,11 @@ bug class a user reports as "nothing happened".
 | `login_wrong_password` | PASS | run-247 | 128 |  | Request failed with status code |
 | `logout` | PASS | run-247 | 236 | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
 | `logout_cancel` | PASS | run-247 | 234 |  |  |
-| `register_duplicate_email` | PASS | run-247 | 161 | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
+| `register_duplicate_email` | PASS ⟳stale | run-247 | 161 | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
 | `register_navigate_to_login` | PASS | run-247 | 117 |  |  |
 | `session_persist` | PASS | run-247 | 162 |  |  |
-| `sign_up` | PASS | run-247 | 187 |  |  |
-| `sign_up_validation` | PASS | run-247 | 159 |  |  |
+| `sign_up` | PASS ⟳stale | run-247 | 187 |  |  |
+| `sign_up_validation` | PASS ⟳stale | run-247 | 159 |  |  |
 
 ## `onboarding` — First-run experience
 
@@ -373,6 +360,19 @@ bug class a user reports as "nothing happened".
 | `listing_edit_add_photos` | FAIL-assert ⟳stale | run-251 | 203 | flow | Published listing saves via common.save = "Save"; "Save Changes" is Edit Profile's. |
 | `listing_gallery_no_photo` | PASS | run-251 | 192 |  |  |
 | `listing_gallery_swipe` | PASS | run-251 | 153 |  |  |
+
+## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
+
+5/6 passing · 0 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_pagination` | PASS | run-256 | 200 |  |  |
+| `conversations_pagination` | PASS | run-256 | 153 |  |  |
+| `filter_combined_pagination` | FAIL-assert ⟳stale | run-256 | 168 |  | [Failed] filter_combined_pagination (2m 33s) (Element not found: Text matching regex: Electronics) |
+| `my_listings_pagination` | PASS | run-256 | 218 |  |  |
+| `saved_pagination_deep` | PASS | run-256 | 187 |  |  |
+| `search_pagination` | PASS | run-256 | 163 |  |  |
 
 ## `dark_mode` — Every main screen in dark theme + theme persistence
 

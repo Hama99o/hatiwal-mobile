@@ -29,7 +29,12 @@ appId: com.hatiwal.app
       - runFlow: open_language_picker.yaml
       - tapOn:
           id: "language-option-en"
-      - waitForAnimationToEnd
+      # Switching FROM an RTL locale flips direction, and applyLanguageFromUser then
+      # calls reloadApp — a full native restart. Without waiting, the browse-tab tap
+      # below and the CALLER's first action both race a restarting app. It happens to
+      # end up on the feed either way, since that is the initial route, so this was
+      # correct by luck rather than by construction.
+      - runFlow: await_language_restart.yaml
       # Back to the feed. Leaving the app on Profile breaks the next Browse step
       # while `assertVisible` on the tab label still passes — the trap documented
       # at the end of ensure_buyer_mode.yaml.
