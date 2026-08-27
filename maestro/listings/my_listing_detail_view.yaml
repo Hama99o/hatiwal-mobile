@@ -24,6 +24,15 @@ appId: com.hatiwal.app
 # Owner detail screen should be visible — verify analytics row
 - assertVisible:
     id: "my-listing-detail-scroll"
+# SCROLL to the analytics block. It renders well down the owner detail
+# (MyListingDetail.tsx:417) — below the photo, price and description — and assertVisible
+# does not scroll. listing_analytics_sparkline failed on exactly this, asserting an
+# analytics element that was simply further down the page.
+- scrollUntilVisible:
+    element:
+      id: "analytics-views"
+    direction: DOWN
+    timeout: 20000
 - assertVisible:
     id: "analytics-views"
 - assertVisible:

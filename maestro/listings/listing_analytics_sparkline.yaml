@@ -44,6 +44,18 @@ appId: com.hatiwal.app
 # TRANSLATION KEY, and the screen renders the resolved string.
 # Expressed with a native conditional instead: the chart is absent only when there
 # is nothing to plot, and then the empty state has to be there.
+# SCROLL to the analytics block first. It renders well down the owner detail
+# (MyListingDetail.tsx:417) — below the photo, price and description — so neither the
+# sparkline nor its empty state was on screen, and the conditional below correctly saw
+# no sparkline and then failed asserting the empty text that was equally off-screen.
+# Asserting the container's own testID, which is present whichever of the two the
+# section is showing.
+- scrollUntilVisible:
+    element:
+      id: "analytics-views"
+    direction: DOWN
+    timeout: 20000
+
 - runFlow:
     when:
       notVisible:
