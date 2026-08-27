@@ -60,4 +60,13 @@ appId: com.hatiwal.app
 - assertVisible: ".*20[0-9][0-9].*"
 
 # Message button visible (buyer can message from profile)
-- assertVisible: "Message"
+# NOT "Message". common.message = "Message" is real copy but it is rendered in exactly
+# one place — SaleBuyerCard.tsx:164, a seller-side card about a completed sale's buyer,
+# gated on hasDirectConversation. The user profile has no messaging affordance at all,
+# and that is by design rather than an omission: a Conversation in this product belongs
+# to a LISTING, so contact starts from the listing, not from a person's profile.
+#
+# Assert a trust signal the screen genuinely owns instead — the rating block, which is
+# where the profile clusters them.
+- assertVisible:
+    id: "profile-header-rating"
