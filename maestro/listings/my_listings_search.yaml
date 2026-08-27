@@ -18,7 +18,14 @@ appId: com.hatiwal.app
 - inputText: "xyznonexistent"
 - waitForAnimationToEnd
 # Empty state shown
-- assertVisible: "No"
+# NOT "No". Matching is an anchored full-string regex, so that needs a node whose
+# whole text is the two letters "No" — nothing renders that. (The flow lint missed it
+# because it skips literals of two characters or fewer.)
+# Asserting the ABSENCE of cards instead of the empty-state copy: it is the same claim,
+# it does not depend on which empty string this screen picks for a no-match search, and
+# it stays true if that copy is reworded.
+- assertNotVisible:
+    id: "seller-listing-card"
 # Clear search
 - eraseText
 - waitForAnimationToEnd

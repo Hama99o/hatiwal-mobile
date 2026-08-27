@@ -234,7 +234,16 @@ def check(path):
                              f'{lit!r} is a translation KEY, not the rendered value'))
             elif re.fullmatch(r'"?(19|20)\d\d"?', lit):
                 hits.append((i, "DATE", f'hardcoded year {lit!r}'))
-            elif is_plain(lit) and len(lit) > 2:
+            # Length floor of 3, with an ASCII exception at 2. The floor keeps short
+            # non-Latin words out (Dari "من" is a substring of many longer strings and
+            # is a legitimate tab label), but it also let a bare "No" through in
+            # my_listings_search, which could never match. Two ASCII letters are
+            # almost never a whole UI string, so those are worth flagging — except
+            # digits, which are real values ("15" is a quantity, and it renders exactly).
+            elif is_plain(lit) and (
+                len(lit) > 2
+                or (len(lit) == 2 and lit.isascii() and not lit.isdigit())
+            ):
                 # An exact UI string is fine however else it appears: "Edit" is a
                 # real button label even when it also sits inside a listing title
                 # the flow typed. Only a literal that matches NOTHING exactly can

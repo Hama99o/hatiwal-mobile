@@ -66,14 +66,19 @@ appId: com.hatiwal.app
 - assertVisible: "This will permanently remove your listing."
 - tapOn: "Delete"
 - waitForAnimationToEnd
-# Toast confirmation
-# extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
-# single check right after an action is a race — and any wait in front of it
-# loses that race, turning a successful action red. Polling keeps the check at
-# full strength while removing the timing dependency.
+# NOT the toast. Polling was already in place here and still failed, because the
+# problem is not timing: deleting navigates AWAY immediately —
+#     onDeleted: () => router.replace("/(main)/(tabs)/my-listings")
+# (MyListingDetail.tsx:208) — so listing.deleteSuccess is raised on a screen that is
+# being torn down. The failure screenshot is My Shop with the list already loaded, i.e.
+# the delete had worked and the flow was waiting for a message that had gone with the
+# screen.
+#
+# Assert the durable consequences instead: we land on My Shop, and the listing is gone.
 - extendedWaitUntil:
-    visible: "Listing deleted"
-    timeout: 15000
+    visible:
+      id: "seller-listing-card"
+    timeout: 30000
 # Listing no longer in list
 # The listing this flow created is gone; the seeded ones are untouched.
 - assertNotVisible: "QA Delete Target"
