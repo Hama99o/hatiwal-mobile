@@ -10,13 +10,12 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**102 of 235 flows passing** · 132 still need attention
+**103 of 235 flows passing** · 131 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 102 | green, and no backend error underneath |
+| PASS | 103 | green, and no backend error underneath |
 | FAIL-assert | 74 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-? | 16 | failed, cause unclear — read the log |
 | (rig) | 1 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 41 | never executed |
@@ -233,17 +232,6 @@ bug class a user reports as "nothing happened".
 | `profile_reviews_empty_state` | UNTESTED | — |  |  |  |
 | `rate_buyer_after_sale` | UNTESTED | — |  |  |  |
 
-## `mode` — Buyer ↔ seller mode switch, tab bar, persistence
-
-2/4 passing · 2 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `seller_mode_my_listings_empty` | FAIL-assert ⚠1 | run-254 | 132 | fixture | new_seller@hatiwal.test was referenced by the flow and seeded nowhere. |
-| `seller_mode_persists` | PASS | run-254 | 272 |  |  |
-| `seller_mode_tab_bar_changes` | PASS | run-254 | 164 |  |  |
-| `seller_views_own_listing_buyer_mode` | FAIL-assert | run-254 | 228 | flow | Searched the feed for "seller"; search matches titles, so it found nothing. |
-
 ## `safety` — Safety tips on listing detail and in the meetup sheet
 
 0/2 passing · 2 open
@@ -262,13 +250,16 @@ bug class a user reports as "nothing happened".
 | `open_listing_deep_link` | UNTESTED | — |  |  |  |
 | `open_seller_deep_link` | UNTESTED | — |  |  |  |
 
-## `onboarding` — First-run experience
+## `mode` — Buyer ↔ seller mode switch, tab bar, persistence
 
-0/1 passing · 1 open
+2/4 passing · 1 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `first_run` | FAIL-redbox | s2/run-156 | 127 |  | [Failed] first_run (1m 47s) (Assertion is false: "Buy or sell — your choice" is visible) |
+| `seller_mode_my_listings_empty` | FAIL-assert ⚠1 | run-254 | 132 | fixture | new_seller@hatiwal.test was referenced by the flow and seeded nowhere. |
+| `seller_mode_persists` | PASS | run-254 | 272 |  |  |
+| `seller_mode_tab_bar_changes` | PASS | run-254 | 164 |  |  |
+| `seller_views_own_listing_buyer_mode` | FAIL-assert ⟳stale | run-254 | 228 | flow | Searched the feed for "seller"; search matches titles, so it found nothing. |
 
 ## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
 
@@ -305,6 +296,14 @@ bug class a user reports as "nothing happened".
 | `session_persist` | PASS | run-247 | 162 |  |  |
 | `sign_up` | PASS | run-247 | 187 |  |  |
 | `sign_up_validation` | PASS | run-247 | 159 |  |  |
+
+## `onboarding` — First-run experience
+
+1/1 passing · 0 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `first_run` | PASS | run-255 | 220 |  |  |
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile
 
