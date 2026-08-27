@@ -41,11 +41,30 @@ appId: com.hatiwal.app
 # children clipped outside a horizontal scroller's viewport, which is why this reported
 # "Element not found" rather than "No visible element found", and why every earlier tab
 # in the same row was tappable.
-- scrollUntilVisible:
-    element:
-      text: "Sold"
-    direction: RIGHT
-    timeout: 15000
+# SWIPE ON THE TAB ROW, not scrollUntilVisible. That helper swipes at screen CENTRE,
+# which on this screen is over the listing cards — the thin tab strip never moved, and
+# the error merely changed from "Element not found" to "No visible element found".
+# `swipe: from:` anchors the gesture to an element, so the drag happens inside the
+# horizontal scroller. Two swipes because one may not clear the last tab, and a swipe
+# with nothing left to scroll is a no-op rather than an error.
+# A COORDINATE swipe across the tab row. Two things did not work first:
+#   scrollUntilVisible direction: RIGHT — it swipes at screen CENTRE, which here is over
+#     the listing cards, so the thin tab strip never moved. The error only changed from
+#     "Element not found" to "No visible element found".
+#   swipe: from: <selector> — semantic and self-documenting, but nothing in this repo
+#     has ever run it (the only other uses are two never-executed pagination flows), and
+#     an unsupported property fails the whole flow rather than the step.
+# `start`/`end` is a field the bundled maestro-cli 2.7.0 does carry. The row sits at a
+# stable ~14% of screen height — directly under the search bar, above the first card —
+# measured off qa/reports/run-252/listings/screens/delete_listing.png.
+- swipe:
+    start: "85%, 14%"
+    end: "20%, 14%"
+- waitForAnimationToEnd
+- swipe:
+    start: "85%, 14%"
+    end: "20%, 14%"
+- waitForAnimationToEnd
 - tapOn: "Sold"
 - waitForAnimationToEnd
 - assertVisible: "Sold"
