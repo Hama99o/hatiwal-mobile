@@ -164,6 +164,17 @@ def check_navigation(steps, where, findings, spec_path=None):
         # exactly the case being checked.
         if "runFlow" in step and isinstance(step["runFlow"], dict):
             rf = step["runFlow"]
+            # The BLOCK form can name a helper file too — `runFlow:` with `file:` (and
+            # often `env:` or `when:` beside it). Handling only the string form above
+            # made this report a defect in the one flow that used the block form to call
+            # pop_to_tab_bar, which is the helper that fixes the very thing being
+            # reported.
+            rel = rf.get("file")
+            if rel and spec_path:
+                helper = (pathlib.Path(spec_path).parent / rel).resolve()
+                if helper.is_file() and "- back" in helper.read_text():
+                    pushed = None
+                    continue
             cmds = rf.get("commands") or []
             if any(c == "back" or (isinstance(c, dict) and "back" in c) for c in cmds):
                 pushed = None
