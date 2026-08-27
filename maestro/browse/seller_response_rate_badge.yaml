@@ -42,15 +42,20 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Scroll down to the Seller section
+# LEADING .* is required. ResponseRateBadge renders rate and time as ONE Text node —
+# `${ratePart} · ${timePart}` — so the node reads "82% reply rate · Usually responds
+# within 1 hour". Maestro matching is an ANCHORED regex, so a pattern that starts at
+# "Usually" can never match a string that starts with the rate. This flow spent 20s
+# scrolling a screen the badge was already on.
 - scrollUntilVisible:
     element:
-      text: "Usually responds.*"   # "Usually responds within 1 hour" / "within a day" / "within a few days"
+      text: ".*Usually responds.*"   # "Usually responds within 1 hour" / "within a day" / "within a few days"
     direction: DOWN
     timeout: 20000
 
 # The badge should contain the response-time string
 - assertVisible:
-    text: "Usually responds within.*"
+    text: ".*Usually responds within.*"
 
 # The response-rate percent must also be rendered (e.g. "100% reply rate")
 - assertVisible:
@@ -82,7 +87,7 @@ appId: com.hatiwal.app
 # non-null and > 0, so a missing badge would otherwise have meant missing stats.
 - scrollUntilVisible:
     element:
-      text: "Usually responds within.*"
+      text: ".*Usually responds within.*"
     direction: DOWN
     timeout: 20000
 

@@ -608,6 +608,30 @@ and wait for it to be empty. Use a different session's emulator if you have one.
 > here, both times leaving a half-finished job and an exit code (144) that explains
 > nothing. Kill by PID from `pgrep -af`, or use a `[b]racket` in the pattern.
 
+### A label built from TWO translations needs a leading `.*`
+
+Matching is an anchored regex, so a pattern is checked against a node's WHOLE text. When
+a component joins two translated parts into one Text, a pattern that starts at the
+second part can never match — and the failure looks like the element is missing.
+
+`ResponseRateBadge` renders `${ratePart} · ${timePart}`, so the node reads
+"82% reply rate · Usually responds within 1 hour". `seller_response_rate_badge` searched
+for `"Usually responds.*"` and spent 20s scrolling a screen the badge was already on,
+with the API returning response_rate_percent: 82 and response_time_label:
+"within_one_hour" on both the user endpoint and the listing's embedded seller. The copy
+existed, the data existed, the screen was right; only the anchor was wrong.
+
+The locale file cannot tell you this — it holds the parts, not the joined result — so
+`audit_labels` passes it too. Grep the component for a template literal or a `.join`
+before trusting a pattern that starts mid-label:
+
+```bash
+grep -rn '} · ${\|" · "\|\.join(" ' src/ --include=*.tsx | grep -v test
+```
+
+Three sites exist today. `TransactionStatsBadge` (`parts.join(" · ")`) is already
+targeted by testID, which is the better answer where a component offers one.
+
 ### Never take an expected string from a locale file
 
 **15% of the translation keys in this app are dead** — 132 of 862 are referenced
