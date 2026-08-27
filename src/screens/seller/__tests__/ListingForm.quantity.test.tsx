@@ -117,6 +117,22 @@ describe("ListingForm — a seller with several of the same item", () => {
     expect(await savedValues()).toMatchObject({ quantity: 15 });
   });
 
+  it("sends a THREE-digit count — reported from the device as 120 not saving", async () => {
+    // The case above is two digits. A seller reported entering 120 on staging and
+    // finding neither the option nor the number saved; that turned out to be an API
+    // that predates the feature, not the form. Pinned anyway, because the report is
+    // cheap to encode and nothing between 15 and the 999 ceiling should differ.
+    mockListingsAPI.createListingWithImages.mockResolvedValueOnce(makeListing({ id: 503 }));
+
+    renderListingForm();
+    await fillMinimumDraft();
+    toggleMultipleUnits(true);
+    fireEvent.changeText(screen.getByTestId(QUANTITY_INPUT), "120");
+    fireEvent.press(screen.getByText("listing.form.saveDraft"));
+
+    expect(await savedValues()).toMatchObject({ quantity: 120 });
+  });
+
   it("collapses back to a plain single-item listing when switched off again", async () => {
     mockListingsAPI.createListingWithImages.mockResolvedValueOnce(makeListing({ id: 503 }));
 

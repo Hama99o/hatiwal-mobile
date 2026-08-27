@@ -2353,3 +2353,46 @@ adb -s emulator-5580 shell am start -W -a android.intent.action.VIEW \
 
 If that lands on the feed too, it is a real bug and the fix belongs in the startup
 navigation: it must not replace a route that an initial URL has already set.
+
+---
+
+## An off-platform sale can only be recorded as "I sold everything"
+
+Reported from the device with screenshots: a listing with 10 units, one sale, and the
+result was status `sold` with "0 of 10 left". Nine units gone, and no undo.
+
+The mechanism, and every part of it is deliberate:
+
+1. `BuyerPickerSheet` renders the "How many did you sell?" field only when
+   `asksQuantity && selected !== null && selected !== SKIP` — so choosing "someone not on
+   Hatiwal" HIDES it. The web dialog does the same via
+   `selected === "else" ? null : quantity`.
+2. Both clients then send no quantity, which is covered by a test ("sends no quantity on
+   the 'someone else' skip path").
+3. The API reads a missing quantity as the whole remaining stock —
+   `record_units_sold!(txn&.quantity || @listing.available_units)` — also covered
+   ("defaults to the whole remaining stock when no quantity is sent") and described there
+   as "the 'sold the lot' path for multi-unit ones".
+
+So the pieces are consistent with each other. What they add up to is not: **a seller who
+sells 2 of 10 to a neighbour has no way to say "2".** Their only route retires the
+listing and destroys the other 8. For a marketplace with no online payment, where most
+sales are exactly that — cash, in person, to someone who may not have the app — this is
+the common case, not the edge one.
+
+I reverted my first attempt at fixing it (sending the hidden field's value anyway):
+it broke the specified contract while changing nothing the seller could see.
+
+Two ways forward, both small, and it is a product call:
+
+- **Show the quantity field on the skip path too.** A sale to an off-platform buyer still
+  has a unit count; only the BUYER is unknown. Most faithful to what sellers do.
+- **Make the skip path send 1 by default**, with "sold the lot" as an explicit choice.
+  Safer, but hides the whole-lot case behind a second step.
+
+Related, and already documented in the same file: the quantity field is pre-filled with
+the WHOLE remainder. The test comment beside it records this biting on a real device in
+run-018 — "typing '3' produced '153', the clamp silently made that 15, and the listing
+SOLD OUT and retired. One mistyped digit destroyed the seller's remaining stock." The
+mitigation then was `selectTextOnFocus`. Defaulting the field to 1 would remove the
+hazard rather than soften it.
