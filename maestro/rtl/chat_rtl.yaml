@@ -26,6 +26,13 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # The conversation row by its own id — `conversation-row-<db id>` — rather than
 # index 0 of everything on screen.
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
 - tapOn:
     id: "conversation-row-\\d+"
     index: 0

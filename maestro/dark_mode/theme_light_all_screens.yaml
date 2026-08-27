@@ -16,6 +16,13 @@ appId: com.hatiwal.app
     timeout: 20000
 - tapOn: "Appearance"
 - waitForAnimationToEnd
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "theme-option-light"
+    timeout: 20000
 - tapOn:
     id: "theme-option-light"
 # Theme switches RESTART the app (theme.store.ts:26 -> reloadApp -> RNRestart), so it
@@ -64,6 +71,13 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # A bare `tapOn: index:` has NO selector: it matches every element on screen and
 # index N is whatever lands there in hierarchy order, not the thing meant.
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
 - tapOn:
     id: "listing-card"
     index: 0
@@ -86,6 +100,13 @@ appId: com.hatiwal.app
     timeout: 20000
 - tapOn: "Appearance"
 - waitForAnimationToEnd
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "theme-option-system"
+    timeout: 20000
 - tapOn:
     id: "theme-option-system"
 # Theme switches RESTART the app (theme.store.ts:26 -> reloadApp -> RNRestart), so it

@@ -25,6 +25,13 @@ appId: com.hatiwal.app
 # "Report" lives inside the MORE sheet (ListingDetail:1037), not on the detail
 # screen — so tapping it directly could never work. `more-options-button` is the
 # icon-only overlay control that opens the sheet.
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "more-options-button"
+    timeout: 20000
 - tapOn:
     id: "more-options-button"
 - waitForAnimationToEnd

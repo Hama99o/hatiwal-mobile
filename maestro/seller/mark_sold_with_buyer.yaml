@@ -74,6 +74,13 @@ appId: com.hatiwal.app
 # ACTIVE listing the primary action is "Mark as Reserved", and Mark as Sold lives
 # in this sheet (TASK-L863) — so the card's primary would have reserved it, not
 # sold it.
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "listing-action-sold"
+    timeout: 20000
 - tapOn:
     id: "listing-action-sold"
 - waitForAnimationToEnd

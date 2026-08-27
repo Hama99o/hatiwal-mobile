@@ -29,6 +29,13 @@ env:
     id: "chat-tab"
 - waitForAnimationToEnd
 # Open the first conversation where the seller owns the listing
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
 - tapOn:
     id: "conversation-row-\\d+"
     index: 0
@@ -152,6 +159,13 @@ env:
 # and index 0 is whatever comes first in the hierarchy — the heading or the
 # search bar, never a conversation. The flow stayed on the list and then failed
 # on the composer it never reached ("Type a message..." is visible).
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
 - tapOn:
     id: "conversation-row-\\d+"
     index: 0

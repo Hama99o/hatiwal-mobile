@@ -19,6 +19,13 @@ appId: com.hatiwal.app
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "conversations-search-bar"
+    timeout: 20000
 - tapOn:
     id: "conversations-search-bar"
 - inputText: "Xiaomi"

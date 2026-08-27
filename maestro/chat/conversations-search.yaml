@@ -60,6 +60,13 @@ tags:
 # ── Search composes with the Unread filter (not a replacement for it) ───────
 - tapOn: "Unread"
 - waitForAnimationToEnd
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "conversations-search-input"
+    timeout: 20000
 - tapOn:
     id: "conversations-search-input"
 - inputText: "xzxzxzxz_no_such_conversation_xzxzxz"

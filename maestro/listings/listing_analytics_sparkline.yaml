@@ -34,6 +34,13 @@ appId: com.hatiwal.app
 # merely below the fold.
 - tapOn: "Active"
 - waitForAnimationToEnd
+# Wait for the data, not the animation. Switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network, so this tap can land on a
+# list that has not rendered yet. Free when the row is already cached.
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
 - tapOn:
     id: "seller-listing-card"
     index: 0
