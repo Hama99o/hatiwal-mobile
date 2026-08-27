@@ -29,7 +29,13 @@ appId: com.hatiwal.app
 # Wait for auto-save (debounced)
 - waitForAnimationToEnd
 # Clear filters
-- tapOn: "Clear"
+# The feed's chip, not the sheet's button. `tapOn: "Clear"` is common.clear, which is
+# rendered inside FilterSheet (FilterSheet.tsx:270) — and the flow closed that sheet
+# with "Show results" two steps earlier, so the tap could not land. On the feed the
+# affordance is the "Clear all" chip, whose accessibilityLabel collides with the
+# search-history clear, hence the testID.
+- tapOn:
+    id: "browse-clear-filters"
 - waitForAnimationToEnd
 # Saved search chip should appear (auto-saved the previous filter combo)
 # `browse.savedSearch` = "Saved search" — singular, lower-case s.

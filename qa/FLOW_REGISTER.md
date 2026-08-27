@@ -58,7 +58,7 @@ bug class a user reports as "nothing happened".
 | `listing_detail_sold_state` | UNTESTED | — |  | flow — same cold-start deep-link loss; fixed alongside sold_recovery |  |
 | `listing_detail_views_count` | UNTESTED | — |  |  |  |
 | `not_interested` | UNTESTED | — |  |  |  |
-| `saved_search_apply` | UNTESTED | — |  |  |  |
+| `saved_search_apply` | UNTESTED | — |  | flow — tapped the SHEET's "Clear" after closing the sheet; now the feed's clear-filters chip |  |
 | `scroll_to_top` | UNTESTED | — |  |  |  |
 | `search_empty_state` | UNTESTED | — |  |  |  |
 | `search_listings` | UNTESTED | — |  |  |  |
@@ -152,7 +152,7 @@ bug class a user reports as "nothing happened".
 | `theme_switch` | FAIL-assert | s2/run-156 | 168 |  | [Failed] theme_switch (2m 28s) (Element not found: Id matching regex: theme-option-light) |
 | `transaction_stats_hidden_when_zero` | FAIL-assert | s2/run-156 | 157 |  | [Failed] transaction_stats_hidden_when_zero (2m 16s) (Assertion is false: "Buy and sell locally in Afghanistan |
 | `transaction_stats_own_profile` | FAIL-assert | s2/run-156 | 183 |  | [Failed] transaction_stats_own_profile (2m 41s) (Assertion is false: "Items Bought" is visible) |
-| `transaction_stats_public_profile` | FAIL-assert | s2/run-156 | 170 |  | [Failed] transaction_stats_public_profile (2m 30s) (Assertion is false: id: transaction-stats-badge is visible |
+| `transaction_stats_public_profile` | FAIL-assert | s2/run-156 | 170 | flow — vacuous assertNotVisible on the dead soldItems key; removed | [Failed] transaction_stats_public_profile (2m 30s) (Assertion is false: id: transaction-stats-badge is visible |
 | `transaction_stats_seller_own_profile` | PASS | s2/run-156 | 205 |  |  |
 | `user_profile_sold_tab` | FAIL-? | s2/run-156 | 168 | flow | Same ${visible()} problem. |
 | `view_profile` | FAIL-assert | s2/run-156 | 178 |  | [Failed] view_profile (2m 38s) (Assertion is false: "Edit Profile" is visible) |
@@ -383,7 +383,7 @@ bug class a user reports as "nothing happened".
 |---|---|---|---:|---|---|
 | `browse_pagination` | PASS | run-256 | 200 |  |  |
 | `conversations_pagination` | PASS | run-256 | 153 |  |  |
-| `filter_combined_pagination` | FAIL-assert ⟳stale | run-256 | 168 |  | [Failed] filter_combined_pagination (2m 33s) (Element not found: Text matching regex: Electronics) |
+| `filter_combined_pagination` | FAIL-assert ⟳stale | run-256 | 168 | flow — assertNotVisible on dead copy (vacuous); now asserts a cross-category listing is absent | [Failed] filter_combined_pagination (2m 33s) (Element not found: Text matching regex: Electronics) |
 | `my_listings_pagination` | PASS | run-256 | 218 |  |  |
 | `saved_pagination_deep` | PASS | run-256 | 187 |  |  |
 | `search_pagination` | PASS | run-256 | 163 |  |  |
