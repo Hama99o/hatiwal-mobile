@@ -856,6 +856,49 @@ tell is the last tab: `"Me"` when authenticated, `"Login"` when not. So
 | `seller@hatiwal.test` | `Password123!` | Omar Noori — draft/active/reserved/sold |
 | `newbuyer@hatiwal.test` | `Password123!` | fresh, no history |
 
+### Sell-flow fixtures (`hatiwal-api/db/seeds/e2e.rb`, section "Sell-flow states")
+
+Card #296 / SF-QA1. The sell-flow redesign shipped five states nothing seeded, so
+its two headline cases could not be asserted on a device at all — a run would
+have skipped them in silence and reported a pass. All five belong to
+`seller@hatiwal.test`, all are searchable by the **bold** word (each is unique
+across the whole database, so a search returns exactly one card), and each is
+**rebuilt to the state below on every seed** — they are asserted on *and*
+mutated by the flows that target them, so a cycle that does not re-seed measures
+drift.
+
+| Search for | Fixture | State after a seed | What it is for |
+|---|---|---|---|
+| **Gloves** | Winter Gloves Wholesale Box - 15 Pairs | `active` · q 15 · sold 0 · avail 15 · **held 10** (for Ahmad Karimi) | "N held · N available" (buyer), "N held for {name}" (seller), release-hold from the chat thread |
+| **Lantern** | Solar Lantern Rechargeable - Batch of 6 | `sold` · q 6 · sold 6 · avail 0 | the sold-out terminal state |
+| **Backpack** | School Backpack Bulk Restock - 20 Bags | `active` · q 20 · **sold 15** · avail 5 | sold out, then quantity RAISED — live again (SF-B6, the owner's own bug report) |
+| **Thermos** | Steel Thermos Flask 1L - Bulk Batch | `active` · q 15 · sold 6 · avail 9 · **3 sales** (2 to Bilal Khan, 3 to Roya Nazari, 1 outside Hatiwal) | the Sales ledger screen (SF-B5); the newest row has **no buyer**, which is the nil-safe outside-buyer card (SF-B3) |
+| **Kettle** | Electric Kettle 1.8L Stainless - Bulk 10 | `active` · q 10 · sold 3 · avail 7 · sale **carries a review** | void / reassign must be refused `422 sale_has_review`; a quantity edit must still succeed (SF-B4) |
+
+Three things about them that look like bugs and are not:
+
+- **A batch with a hold stays `active`** (SF-B2). 15 pairs do not leave the market
+  because one buyer reserved 10 of them, so `status` is not the signal that a hold
+  exists — `heldUnits` is. A fixture forced to `reserved` would be a state the app
+  never produces.
+- **Held units are not subtracted from available** (SELL_FLOW_REDESIGN §3.6), so
+  the Gloves batch legitimately reads 15 available *and* 10 held.
+- **The Gloves batch is not the Phone Case.** `chat/place_and_release_hold.yaml`
+  asserts `composer-action-release-hold` is ABSENT on the Phone Case before
+  placing its own hold, so that batch has to keep 0 held units — which is why the
+  open-hold fixture is a separate listing.
+
+Sold rows deliberately avoid `buyer@hatiwal.test`: a sold sale creates a pending
+review for both sides, and `reviews/pending_reviews_nudge.yaml` ends with
+`assertNotVisible: "Rate your recent deals"` as that account. They use the
+synthetic `e2ebuyerN@hatiwal.test` accounts instead. `newbuyer@hatiwal.test` is
+untouched — it is the zero-history fixture.
+
+> Do **not** put this table in `FLOW_REGISTER.md`. That file is rewritten whole by
+> `qa/lib/register.py` on every `./qa/qa.sh register`; only the `Triage` and
+> `Notes` columns survive, so anything else added there disappears without a
+> trace.
+
 Maestro evaluates `${...}` as **JavaScript**. Bash-style defaults
 (`${EMAIL:-"x"}`) do **not** mean "or default" — they evaluate to `NaN`, and every
 affected flow typed the literal `NaN` into both fields. Use an `env:` block in the
