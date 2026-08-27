@@ -105,8 +105,22 @@ appId: com.hatiwal.app
 # seller.
 - tapOn:
     id: "listing-form-quantity-input"
-- eraseText
+# NO eraseText here. This field maps an empty value back to 1 —
+#     field.onChange(digits === "" ? 1 : Number(digits))   (ListingForm.tsx)
+# — so erasing cannot leave it blank: it snaps to "1" and the next inputText APPENDS,
+# leaving "11000". That is what failed: `assertVisible: "1000"` refused to match, and
+# was right to.
+#
+# Use the app's own mechanism instead. The input carries selectTextOnFocus, which fires
+# on a FOCUS CHANGE — so blur it first by tapping another field, then come back and the
+# existing value is selected and the typing replaces it. edit_listing_quantity.yaml
+# already uses this (its comment says so); the technique just had not reached here.
+- tapOn:
+    id: "listing-form-price-input"
+- tapOn:
+    id: "listing-form-quantity-input"
 - inputText: "1000"
+# Exact, because the value really is exactly this now.
 - assertVisible: "1000"
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
