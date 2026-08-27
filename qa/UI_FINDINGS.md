@@ -2264,3 +2264,32 @@ the restart and navigates back deliberately. Six dark_mode flows that PASSED wer
 racing the restart — they happened to want the feed next — so they are now explicit
 rather than accidentally correct. `ensure_english` was in the same position and its
 callers resumed against a restarting app.
+
+---
+
+## CANDIDATE: one spurious 401 ends the session (needs a second sighting)
+
+`mode/seller_mode_my_listings_empty` failed on "Element not found: profile-tab" with
+`api_errors: 1`, and the logcat holds exactly one `Request failed with status code 401`.
+The tab bar was missing because the app had bounced to login: per the auth design a 401
+is the one thing that logs a user out (optimistic auth otherwise).
+
+What has been ruled out:
+
+- **Bad fixture credentials.** `new_seller@hatiwal.test` / `Password123!` returns HTTP
+  200 from `POST /auth/sign_in` right now.
+- **The client ignoring rotated tokens.** `devise_token_auth` runs with its defaults —
+  every override in `config/initializers/devise_token_auth.rb` is commented out, so
+  `change_headers_on_each_request` is ON and the 5s `batch_request_buffer_throttle`
+  applies — and `src/api/http.ts:79-83` does persist the fresh `access-token` from each
+  response, with a guard against blank ones.
+
+So the 401 was transient: most likely two requests racing a rotation outside the 5s
+buffer, or a request firing during the post-`clearState` login before the token reached
+storage.
+
+Not filed as a defect on one sighting, but worth stating what the fix would be if it
+recurs: with header rotation on, a single 401 on a non-auth endpoint should be retried
+once with the freshly stored token before the session is thrown away. Ending a session
+on a race is a bad trade for a marketplace where the user may be mid-conversation with
+a buyer. Watch for `api_errors: 1` alongside a missing tab bar.

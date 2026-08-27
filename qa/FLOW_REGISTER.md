@@ -145,7 +145,7 @@ bug class a user reports as "nothing happened".
 | `hidden_listings` | PASS ⟳stale | run-257 | 209 |  |  |
 | `language_persists_across_tabs` | PASS | run-257 | 286 |  |  |
 | `language_switch_all_screens` | FAIL-? ⟳stale | run-257 | 286 | flow — asserted Profile content while restart left app on feed; reordered cb68fa4 | [Failed] language_switch_all_screens (4m 31s) (No visible element found: "اطلاعات شخصی") |
-| `profile_stats_verify` | FAIL-? | run-257 | 480 | flow | Same hardcoded year. |
+| `profile_stats_verify` | FAIL-? | run-257 | 480 | rig — killed mid-flow (no failure reason, 7m45s); feature-timeout truncation, re-run | Same hardcoded year. |
 | `recently_viewed` | FAIL-? | run-257 | 148 | flow+app — row had no testID; added profile-row-recently-viewed. Fixed 34e713a | [Failed] recently_viewed (2m 12s) (No visible element found: "Recently Viewed") |
 | `recently_viewed_empty_state` | FAIL-assert | s2/run-156 | 160 |  | [Failed] recently_viewed_empty_state (2m 20s) (Assertion is false: "Buy and sell locally in Afghanistan" is vi |
 | `seller_mode_toggle` | PASS | s2/run-156 | 187 |  |  |
@@ -326,7 +326,7 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `seller_mode_my_listings_empty` | FAIL-assert ⚠1 | run-254 | 132 | fixture | new_seller@hatiwal.test was referenced by the flow and seeded nowhere. |
+| `seller_mode_my_listings_empty` | FAIL-assert ⚠1 | run-254 | 132 | candidate — one spurious 401 logged the app out; see UI_FINDINGS, needs 2nd sighting | new_seller@hatiwal.test was referenced by the flow and seeded nowhere. |
 | `seller_mode_persists` | PASS | run-254 | 272 |  |  |
 | `seller_mode_tab_bar_changes` | PASS | run-254 | 164 |  |  |
 | `seller_views_own_listing_buyer_mode` | FAIL-assert ⟳stale | run-254 | 228 | flow | Searched the feed for "seller"; search matches titles, so it found nothing. |
