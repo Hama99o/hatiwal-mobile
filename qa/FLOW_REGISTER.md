@@ -43,7 +43,7 @@ bug class a user reports as "nothing happened".
 | `filter_by_category` | UNTESTED | — |  |  |  |
 | `filter_condition` | UNTESTED | — |  |  |  |
 | `filter_price_range` | UNTESTED | — |  |  |  |
-| `full_marketplace_cycle` | UNTESTED | — |  | flow | Four taps with the same search-box collision; three now erase and re-search first. |
+| `full_marketplace_cycle` | UNTESTED | — |  | flow — doubled search (missing eraseText) + inherited price filter emptied the feed; fixed | Four taps with the same search-box collision; three now erase and re-search first. |
 | `listing_detail` | UNTESTED | — |  |  |  |
 | `listing_detail_multi_quantity` | UNTESTED | — |  |  |  |
 | `listing_detail_offer` | UNTESTED | — |  |  |  |
