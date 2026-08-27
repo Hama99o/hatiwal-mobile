@@ -23,9 +23,21 @@ appId: com.hatiwal.app
     id: "chat-tab"
 - waitForAnimationToEnd
 
+# Ahmad Karimi SPECIFICALLY, not whichever row happens to be first. The inbox is
+# ordered by recent activity, so index 0 changes as other flows send messages, and one
+# of the seller's twelve partners is Fatima Rahimi (newbuyer@hatiwal.test) — who owns a
+# seeded "Mountain Bike 26-inch Steel Frame". Landing on her profile fails the
+# empty-state assertion for a reason that has nothing to do with the screen, which is
+# exactly what happened: api_errors 0, "Active Listings" visible, empty state absent.
+# Ahmad is buyer@hatiwal.test and has 0 active listings — checked in the DB.
+- scrollUntilVisible:
+    element:
+      text: ".*Ahmad Karimi.*"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - tapOn:
-    id: "conversation-row-\\d+"
-    index: 0
+    text: ".*Ahmad Karimi.*"
 - waitForAnimationToEnd
 - assertVisible: "Type a message..."
 

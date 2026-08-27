@@ -50,7 +50,14 @@ def current_selectors(spec: pathlib.Path, seen=None) -> set:
     live = "\n".join(l for l in body.split("\n") if not l.strip().startswith("#"))
     out = set(re.findall(r'(?:id|text):\s*"([^"]{2,})"', live))
     out |= set(re.findall(r'- (?:tapOn|assertVisible|assertNotVisible):\s*"([^"]{2,})"', live))
-    for rel in re.findall(r'runFlow:\s*([^\s#]+\.yaml)', live):
+    # BOTH invocation forms. `- runFlow: path.yaml` and the block form, which puts the
+    # path under `file:` (often beside a `when:`). Matching only the inline form made
+    # this under-count what the current flow can produce, so every flow that pulls its
+    # login in via the block form reported EXECUTED-OLD on helper internals it still
+    # uses — user_profile_empty_listings "dropped" browse-tab, which is absurd on its
+    # face and is the tell that the resolver, not the flow, is wrong.
+    for rel in (re.findall(r'runFlow:\s*([^\s#]+\.yaml)', live)
+                + re.findall(r'file:\s*([^\s#]+\.yaml)', live)):
         out |= current_selectors((spec.parent / rel).resolve(), seen)
     return out
 
