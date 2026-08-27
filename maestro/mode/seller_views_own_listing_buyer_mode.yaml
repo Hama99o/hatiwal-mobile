@@ -20,9 +20,21 @@ appId: com.hatiwal.app
     id: "browse-tab"
 - waitForAnimationToEnd
 # Search for own listing (seeded seller listing)
+# Search for a TITLE, not the word "seller". Browse search matches listing titles, and
+# no title contains "seller" — so the feed came back empty and the card tap failed with
+# "Element not found: listing-card". The flow needs one of THIS seller's own listings, and
+# it has to find it the way a buyer would.
+#
+# "Men Winter Jacket XL Black" is seeded to seller@hatiwal.test, active, and left active
+# by the other flows that use it (the offer flows answer "Not now" to the reserve
+# prompt). Not the Toyota or the Lenovo: those get reserved and sold by lifecycle flows.
 - tapOn: "Search listings..."
-- inputText: "seller"
+- inputText: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
 # A bare `tapOn: index:` has NO selector: it matches every element on screen and
 # index N is whatever lands there in hierarchy order, not the thing meant.
 - tapOn:
