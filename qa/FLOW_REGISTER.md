@@ -66,7 +66,7 @@ bug class a user reports as "nothing happened".
 | `seller_profile` | UNTESTED | — |  |  |  |
 | `seller_profile_from_listing` | PASS | s2/run-141 | 237 |  |  |
 | `seller_response_rate_badge` | UNTESTED | — |  | flow — anchored pattern started mid-label; badge renders "82% reply rate · Usually responds…" as one Text |  |
-| `subcategory_drilldown` | UNTESTED | — |  | flow | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
+| `subcategory_drilldown` | UNTESTED | — |  | flow — chip reads "Subcategory: Phones & Tablets"; the two chip asserts still said "Phones" | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
 | `user_profile_empty_listings` | UNTESTED | — |  | flow | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
 | `user_profile_listing_grid` | UNTESTED | — |  | flow | Grid sits below the profile header; assertVisible does not scroll. Added both ways. |
 | `user_profile_stats` | UNTESTED | — |  | flow | Hardcoded "2024"; member_since renders "August 2026" as one node. Year-shaped pattern. |

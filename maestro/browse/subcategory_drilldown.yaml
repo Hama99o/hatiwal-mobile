@@ -52,9 +52,13 @@ appId: com.hatiwal.app
 - assertVisible: "Bazaar"
 
 # ── Active subcategory filter chip must be visible ────────────────────────────
-# BrowseHeader renders "Subcategory: Phones" as the chip label
+# BrowseHeader renders browse.subcategoryFilter = "Subcategory: {{name}}", and the
+# seeded name is "Phones & Tablets" — so the chip reads "Subcategory: Phones & Tablets".
+# Matching is anchored, so the exact string "Subcategory: Phones" can never match it.
+# The taps and asserts further up already carry this note and use `.*Phones.*`; these
+# two chip assertions were left behind.
 - assertVisible:
-    text: "Subcategory: Phones"
+    text: "Subcategory: Phones.*"
 
 # ── Clear the subcategory filter chip ────────────────────────────────────────
 - tapOn:
@@ -63,7 +67,7 @@ appId: com.hatiwal.app
 
 # The chip must disappear after clearing
 - assertNotVisible:
-    text: "Subcategory: Phones"
+    text: "Subcategory: Phones.*"
 
 # ── Parent with no children keeps its original tap→Browse behavior ────────────
 # Go back to the hub and verify a childless category navigates directly
