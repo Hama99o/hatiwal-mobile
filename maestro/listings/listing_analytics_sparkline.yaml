@@ -23,6 +23,17 @@ appId: com.hatiwal.app
 # The card itself, not one of its action buttons. A bare `tapOn: index: 0` has no
 # selector: it matches every element on screen, so this tapped whatever landed at
 # hierarchy position 0 — usually a header, never the card.
+# The ACTIVE tab first. Analytics renders only for a published listing —
+# MyListingDetail.tsx gates the whole block on `{!isDraft && ...}` with the comment
+# "only for a listing that has actually been published" — and index 0 of the unfiltered
+# list is frequently a draft (My Shop's first cards were "Laptop HP" and "QA Batch Edit
+# Target 15", both drafts). So there was no analytics section to scroll to at all.
+#
+# Filtering to Active makes index 0 a published listing by construction. Adding a scroll
+# alone, as I did first, was necessary but not sufficient: the section was missing, not
+# merely below the fold.
+- tapOn: "Active"
+- waitForAnimationToEnd
 - tapOn:
     id: "seller-listing-card"
     index: 0
