@@ -59,10 +59,18 @@ appId: com.hatiwal.app
     visible:
       text: "AFN.*"
     timeout: 40000
+# centerElement, because the assertion below needs the card's PRICE ROW, not just its
+# title. Without it the scroll stopped the instant the title edged into the bottom row
+# — screenshot run-263 step-054 shows the phone case in the clipped last row — so
+# "each" was not merely off-screen, it was absent from the hierarchy, and the failure
+# read as "the per-unit price is not rendered for a multi-unit listing". It is: the API
+# returns multi_unit: true / quantity: 15 for this fixture (checked directly), and both
+# ListingCard sites pass perUnit={listing.multiUnit === true}.
 - scrollUntilVisible:
     element:
       text: "Phone Case Silicone Clear - Wholesale"
     direction: DOWN
+    centerElement: true
     timeout: 30000
 
 # The feed card already says "each" — the per-unit price is passed at every

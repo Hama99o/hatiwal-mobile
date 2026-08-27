@@ -45,7 +45,7 @@ bug class a user reports as "nothing happened".
 | `filter_price_range` | UNTESTED | — |  |  |  |
 | `full_marketplace_cycle` | UNTESTED | — |  | flow — doubled search (missing eraseText) + inherited price filter emptied the feed; fixed | Four taps with the same search-box collision; three now erase and re-search first. |
 | `listing_detail` | UNTESTED | — |  |  |  |
-| `listing_detail_multi_quantity` | UNTESTED | — |  |  |  |
+| `listing_detail_multi_quantity` | UNTESTED | — |  | flow — scroll stopped at the clipped bottom row so the price row never showed; centred. API data verified correct |  |
 | `listing_detail_offer` | UNTESTED | — |  |  |  |
 | `listing_detail_offer_invalid` | UNTESTED | — |  |  |  |
 | `listing_detail_price_drop_badge` | UNTESTED | — |  |  |  |
@@ -275,9 +275,9 @@ bug class a user reports as "nothing happened".
 | `listing_analytics_sparkline` | FAIL-assert ⟳stale | run-252 | 168 | flow | Analytics does not render for a draft ({!isDraft}); needed the Active tab, not just a scroll. |
 | `listing_conversations_list` | PASS | run-252 | 161 | flow | Tapped "chats"; the card renders "{{count}} chats". |
 | `listing_renew_flow` | FAIL-assert | run-252 | 167 | flow — same missing wait as expired_listing_badge. Fixed 34e713a | Needed the expired fixture; nothing to renew before it existed. |
-| `listing_status_counts` | FAIL-assert ⟳stale | run-252 | 182 | flow | "Sold" is the last tab in a horizontal scroller; scrollUntilVisible swipes at screen centre. |
+| `listing_status_counts` | FAIL-assert ⟳stale | run-252 | 182 | flow — swipe fix already present; tab taps now by testID (SOLD badge collided). Verdict stale | "Sold" is the last tab in a horizontal scroller; scrollUntilVisible swipes at screen centre. |
 | `my_listing_detail_view` | FAIL-? ⟳stale | run-252 | 168 | flow | Same draft-gated analytics; Active tab first. |
-| `my_listings_filter_tabs` | FAIL-? ⟳stale | run-252 | 176 | flow | Same clipped last tab; coordinate swipe across the row. |
+| `my_listings_filter_tabs` | FAIL-? ⟳stale | run-252 | 176 | flow — same; executed step was pre-swipe scrollUntilVisible. Verdict stale | Same clipped last tab; coordinate swipe across the row. |
 | `my_listings_search` | PASS | run-252 | 168 | flow | Asserted a bare "No"; now asserts the absence of cards instead of empty-state copy. |
 | `price_drop_after_edit` | FAIL-assert ⟳stale | run-252 | 195 | flow | hideKeyboard is Back and popped the edit form — first of the five sites the handbook predicted. |
 
