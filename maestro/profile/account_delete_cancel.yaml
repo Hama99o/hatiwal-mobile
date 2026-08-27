@@ -23,6 +23,7 @@ appId: com.hatiwal.app
     element:
       text: "Delete account"
     direction: DOWN
+    centerElement: true
     timeout: 15000
 - tapOn: "Delete account"
 - waitForAnimationToEnd

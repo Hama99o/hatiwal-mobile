@@ -101,6 +101,7 @@ appId: com.hatiwal.app
     element:
       text: "Wool Blanket Handmade King Size"
     direction: DOWN
+    centerElement: true
     timeout: 30000
 - tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd

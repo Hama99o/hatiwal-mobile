@@ -50,6 +50,7 @@ appId: com.hatiwal.app
     element:
       text: "Enter price"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 # eraseText between the tap and the typing. Maestro drops the FIRST CHARACTER
 # otherwise: "Abroad Location Item" arrived as "Broad Location Item", and the
@@ -71,6 +72,7 @@ appId: com.hatiwal.app
     element:
       text: "Tap to select category"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd
@@ -125,6 +127,7 @@ appId: com.hatiwal.app
     element:
       text: "Enter price"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 # eraseText between the tap and the typing. Maestro drops the FIRST CHARACTER
 # otherwise: "Abroad Location Item" arrived as "Broad Location Item", and the
@@ -146,6 +149,7 @@ appId: com.hatiwal.app
     element:
       text: "Tap to select category"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd
@@ -193,6 +197,7 @@ appId: com.hatiwal.app
     element:
       text: "Edit"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Edit"
 - waitForAnimationToEnd

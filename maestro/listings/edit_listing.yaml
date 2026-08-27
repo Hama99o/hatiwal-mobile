@@ -32,6 +32,7 @@ appId: com.hatiwal.app
     element:
       text: "Tap to select category"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd
@@ -79,6 +80,7 @@ appId: com.hatiwal.app
     element:
       text: "Enter price"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Enter price"
 - eraseText

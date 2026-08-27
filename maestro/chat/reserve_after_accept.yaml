@@ -79,6 +79,7 @@ appId: com.hatiwal.app
     element:
       text: "Traditional Kandahari Carpet 3x4"
     direction: DOWN
+    centerElement: true
     timeout: 8000
 - tapOn: "Traditional Kandahari Carpet 3x4"
 - waitForAnimationToEnd

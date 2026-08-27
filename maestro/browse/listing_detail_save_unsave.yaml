@@ -18,6 +18,7 @@ appId: com.hatiwal.app
     element:
       text: "Wool Blanket Handmade King Size"
     direction: DOWN
+    centerElement: true
     timeout: 15000
 - tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
@@ -69,6 +70,7 @@ appId: com.hatiwal.app
     element:
       text: "Wool Blanket Handmade King Size"
     direction: DOWN
+    centerElement: true
     timeout: 15000
 - tapOn: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd

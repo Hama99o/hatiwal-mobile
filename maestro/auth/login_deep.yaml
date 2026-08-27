@@ -66,6 +66,7 @@ appId: com.hatiwal.app
     element:
       text: "Sign Out"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Sign Out"
 - waitForAnimationToEnd
@@ -77,6 +78,7 @@ appId: com.hatiwal.app
     element:
       text: "Sign Out"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Sign Out"
 - waitForAnimationToEnd

@@ -47,7 +47,12 @@ appId: com.hatiwal.app
     element:
       text: "Men Winter Jacket XL Black"
     direction: DOWN
-    timeout: 8000
+    centerElement: true
+    # 20s, not 8s. This is a scroll down the whole feed to a specific seeded title, and
+    # 8s was not enough on a loaded device — the title WAS in the hierarchy (twice) when
+    # the step gave up, which is what "No visible element found" reports for a scroll
+    # that ran out of time rather than out of list.
+    timeout: 20000
 - tapOn: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
 

@@ -13,6 +13,7 @@ appId: com.hatiwal.app
     element:
       text: "Appearance"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Appearance"
 - waitForAnimationToEnd
@@ -97,6 +98,7 @@ appId: com.hatiwal.app
     element:
       text: "Appearance"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Appearance"
 - waitForAnimationToEnd

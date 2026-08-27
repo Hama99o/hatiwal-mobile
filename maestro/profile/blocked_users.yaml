@@ -37,6 +37,7 @@ appId: com.hatiwal.app
     element:
       text: "Blocked Users"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Blocked Users"
 - waitForAnimationToEnd
@@ -94,6 +95,7 @@ appId: com.hatiwal.app
     element:
       text: "Blocked Users"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Blocked Users"
 - waitForAnimationToEnd

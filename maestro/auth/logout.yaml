@@ -22,6 +22,7 @@ appId: com.hatiwal.app
     element:
       text: "Sign Out"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Sign Out"
 # Confirm dialog appears
@@ -33,6 +34,7 @@ appId: com.hatiwal.app
     element:
       text: "Sign Out"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Sign Out"
 # Lands on Bazaar (guests can browse without auth)

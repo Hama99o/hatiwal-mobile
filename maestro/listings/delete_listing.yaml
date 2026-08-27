@@ -31,6 +31,7 @@ appId: com.hatiwal.app
     element:
       text: "Tap to select category"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd

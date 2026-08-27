@@ -62,6 +62,7 @@ appId: com.hatiwal.app
     element:
       text: "Enter price"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Enter price"
 - eraseText
@@ -84,6 +85,7 @@ appId: com.hatiwal.app
     element:
       text: "Save"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Save"
 - waitForAnimationToEnd

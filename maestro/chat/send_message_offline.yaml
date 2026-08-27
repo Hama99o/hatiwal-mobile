@@ -34,6 +34,7 @@ appId: com.hatiwal.app
     element:
       text: "Lenovo ThinkPad Laptop Core i5 8GB"
     direction: DOWN
+    centerElement: true
     timeout: 15000
 - tapOn: "Lenovo ThinkPad Laptop Core i5 8GB"
 - waitForAnimationToEnd

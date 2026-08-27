@@ -19,6 +19,7 @@ appId: com.hatiwal.app
     element:
       text: "Tap to set exact location on map"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Tap to set exact location on map"
 - waitForAnimationToEnd

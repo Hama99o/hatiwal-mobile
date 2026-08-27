@@ -85,6 +85,7 @@ appId: com.hatiwal.app
     element:
       text: "Save Changes"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Save Changes"
 - waitForAnimationToEnd
@@ -141,6 +142,7 @@ appId: com.hatiwal.app
     element:
       text: "Save Changes"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Save Changes"
 - waitForAnimationToEnd

@@ -12,6 +12,7 @@ appId: com.hatiwal.app
     element:
       text: "Sign Out"
     direction: DOWN
+    centerElement: true
     timeout: 20000
 - tapOn: "Sign Out"
 - assertVisible: "Are you sure you want to sign out?"
