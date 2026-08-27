@@ -37,5 +37,11 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Filter chip still present — category filter survived pagination
 - assertVisible: "Electronics"
-# Results are still filtered (not all categories showing)
-- assertNotVisible: "All Categories"
+# Results are still filtered (not all categories showing).
+#
+# NOT `assertNotVisible: "All Categories"`, which is what this was: browse.allCategories
+# is a DEAD key — in the locale, rendered by nothing (audit_labels flags it) — so the
+# assertion could never fail and proved nothing. A listing from another category is the
+# real test: the Bajaj is in `vehicles` (category 3), so under an Electronics filter it
+# must not be on the feed.
+- assertNotVisible: "Bajaj CT100 Motorbike 2021"

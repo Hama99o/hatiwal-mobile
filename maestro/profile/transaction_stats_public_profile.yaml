@@ -50,7 +50,11 @@ appId: com.hatiwal.app
 # Seller profile page opens
 - assertVisible: "Active Listings"
 - assertVisible: "Joined"
-- assertNotVisible: "Items Sold"
+# The "Items Sold" assertion that used to sit here was vacuous: profile.userProfile
+# .soldItems is a DEAD key, rendered nowhere (audit_labels), so asserting its absence
+# could never fail. It also encoded a stale belief — sold volume IS shown on this
+# screen, through the trust badge asserted by testID just below, which is the real
+# check and is locale-independent.
 
 # The combined trust badge — locale-independent testID (asserting on the
 # rendered "N sold" copy would break the moment the label runs through ps/fa).
