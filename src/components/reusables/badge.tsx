@@ -19,9 +19,21 @@ interface BadgeProps {
    * sizing per variant.
    */
   icon?: LucideIcon;
+  /**
+   * Handle for E2E taps and unit queries. Badges carry counts that flows and tests
+   * genuinely need to read — the chat unread count above all — and asserting on the
+   * bare number instead collides with prices, times and ids on the same screen.
+   */
+  testID?: string;
 }
 
-export function Badge({ label, variant = "default", style, icon: Icon }: BadgeProps) {
+export function Badge({
+  label,
+  variant = "default",
+  style,
+  icon: Icon,
+  testID,
+}: BadgeProps) {
   const colors = useColors();
   const { isRtl } = useLocalization();
 
@@ -45,6 +57,7 @@ export function Badge({ label, variant = "default", style, icon: Icon }: BadgePr
 
   return (
     <View
+      testID={testID}
       style={[
         {
           backgroundColor: backgroundMap[variant],

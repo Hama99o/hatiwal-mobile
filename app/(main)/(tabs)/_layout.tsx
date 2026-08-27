@@ -2,7 +2,7 @@ import { Tabs, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useModeStore } from "@/stores/mode.store";
 import { useAuthStore } from "@/stores/auth.store";
-import { useChatStore } from "@/stores/chat.store";
+import { useUnreadMessageCount } from "@/hooks/useUnreadMessageCount";
 import { Store, MessageCircle, Package, User, Heart, LogIn, LayoutGrid } from "lucide-react-native";
 import { FloatingTabBar } from "@/components/common/FloatingTabBar";
 
@@ -13,7 +13,11 @@ export default function TabsLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const isSeller = mode === "seller";
-  const unreadMessageTotal = useChatStore((s) => s.unreadMessageTotal);
+  // From ["me"], not from the inbox list. This used to read a zustand total that
+  // Conversations.tsx synced from the inbox, so the badge only appeared once the user
+  // had opened Chats — after they had already found the messages. That store had no
+  // other reader and has been removed; see useUnreadMessageCount for the reasoning.
+  const unreadMessageTotal = useUnreadMessageCount();
 
   // A logged-out guest gets a deliberately minimal bar — just Browse + Login —
   // instead of the full logged-in set (Saved/Messages/Profile) that would only

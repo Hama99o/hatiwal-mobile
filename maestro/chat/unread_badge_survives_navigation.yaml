@@ -1,0 +1,79 @@
+appId: com.hatiwal.app
+---
+# Unread accounting for the chat badge.
+#
+# Why this flow exists: the chat TAB badge used to read a zustand total that
+# Conversations.tsx only syncs once the inbox has been opened, so the tab showed nothing
+# while the Profile screen correctly showed "Messages 7" — a badge that appears only
+# after you have already found the messages. The count now comes from ["me"], which is
+# fetched wherever the tab bar lives, and a read invalidates it.
+#
+# What this flow can and cannot check. The tab badge itself is React Navigation's own
+# element (`tabBarBadge`) with no testID, and its rendered text is a bare number that an
+# anchored matcher cannot tell from any other number on the feed — so it is NOT asserted
+# here. What IS asserted is the accounting the badge reads: chat-unread-badge on the
+# inbox header, which is fed from the same fetch, survives leaving and returning, and
+# clears once the thread is read. The data source itself is unit-tested in
+# src/hooks/__tests__/useUnreadMessageCount.test.tsx.
+- runFlow:
+    file: ../_helpers/login_seller.yaml
+
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+# Wait for the data, not the animation — switching tabs refires the query.
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
+
+# Guarantee at least one unread, whatever earlier flows left behind: reading is the one
+# thing many flows do, so an inbox with nothing unread is the normal state by this point.
+- tapOn:
+    id: "conversation-action-menu"
+    index: 0
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible:
+        id: "menu-mark-unread"
+    commands:
+      - tapOn:
+          id: "menu-mark-unread"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "chat-unread-badge"
+    timeout: 20000
+
+# It must survive leaving the screen and coming back — the count is fetched, not
+# remembered in component state.
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "chat-unread-badge"
+    timeout: 20000
+
+# Reading the thread clears it. This is the half that used to leave the badge
+# advertising messages the user had just read.
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 0
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Type a message..."
+    timeout: 20000
+- runFlow:
+    file: ../_helpers/pop_to_tab_bar.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    notVisible:
+      id: "chat-unread-badge"
+    timeout: 20000

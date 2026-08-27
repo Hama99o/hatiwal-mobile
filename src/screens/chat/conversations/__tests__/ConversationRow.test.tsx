@@ -85,9 +85,6 @@ jest.mock("@/utils/alert", () => ({
 
 // ── Zustand stores — not needed by ConversationRow directly ───────────────────
 
-jest.mock("@/stores/chat.store", () => ({
-  useChatStore: jest.fn(() => ({ unreadMessageTotal: 0, setUnreadMessageTotal: jest.fn() })),
-}));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

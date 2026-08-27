@@ -28,6 +28,7 @@
 
 import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -40,11 +41,24 @@ jest.mock("sonner-native", () => ({
   toast: { success: jest.fn(), error: jest.fn() },
 }));
 
-const mockSetUnreadMessageTotal = jest.fn();
-jest.mock("@/stores/chat.store", () => ({
-  useChatStore: (selector: (s: { unreadMessageTotal: number; setUnreadMessageTotal: jest.Mock }) => unknown) =>
-    selector({ unreadMessageTotal: 0, setUnreadMessageTotal: mockSetUnreadMessageTotal }),
-}));
+// The chat-tab badge no longer reads a zustand store — it reads unreadMessageCount off
+// ["me"], so it is right before the user ever opens this screen. What this screen still
+// owns is its OWN header badge, and the page-1-only / never-role-filtered reasoning
+// below applies to it unchanged, so these tests now assert that rendered badge.
+const unreadBadge = () => screen.queryByTestId("chat-unread-badge");
+
+// The screen now uses useQueryClient — it invalidates ["me"] after a read so the chat
+// TAB badge (which reads unreadMessageCount off that query) does not keep advertising
+// messages the user has just read. A bare render therefore throws "No QueryClient set".
+function renderScreen() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <ConversationsScreen />
+    </QueryClientProvider>
+  );
+}
+
 
 jest.mock("@/api/conversations", () => {
   const actual = jest.requireActual("@/api/conversations");
@@ -115,14 +129,14 @@ beforeEach(() => {
 
 describe("Conversations — role chip row", () => {
   it("renders both the Buying and Selling chips", async () => {
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
     expect(screen.getByTestId("role-chip-buying")).toBeTruthy();
     expect(screen.getByTestId("role-chip-selling")).toBeTruthy();
   });
 
   it("still renders the All/Unread/Read read-state chips alongside the role chips", async () => {
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
     expect(screen.getByTestId("filter-chip-all")).toBeTruthy();
     expect(screen.getByTestId("filter-chip-unread")).toBeTruthy();
@@ -130,7 +144,7 @@ describe("Conversations — role chip row", () => {
   });
 
   it("tapping Selling calls getConversations with role: 'selling'", async () => {
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
 
     await act(async () => {
@@ -145,7 +159,7 @@ describe("Conversations — role chip row", () => {
   });
 
   it("tapping Buying calls getConversations with role: 'buying'", async () => {
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
 
     await act(async () => {
@@ -160,7 +174,7 @@ describe("Conversations — role chip row", () => {
   });
 
   it("tapping Selling twice deselects it back to both (role omitted)", async () => {
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
 
     await act(async () => {
@@ -183,7 +197,7 @@ describe("Conversations — role chip row", () => {
   });
 
   it("selecting Buying while Selling is active switches to Buying (mutually exclusive)", async () => {
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
 
     await act(async () => {
@@ -208,7 +222,7 @@ describe("Conversations — role chip row", () => {
 
 describe("Conversations — role scope composes with the Archived tab (review fix)", () => {
   it("keeps the role chip visible (and active) after switching to Archived", async () => {
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
 
     await act(async () => {
@@ -237,7 +251,7 @@ describe("Conversations — role scope composes with the Archived tab (review fi
   });
 
   it("lets the user clear the role scope from the Archived tab", async () => {
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
 
     await act(async () => {
@@ -259,7 +273,7 @@ describe("Conversations — role scope composes with the Archived tab (review fi
   });
 
   it("does NOT show the read-state (All/Unread/Read) chips in the Archived tab", async () => {
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list")).toBeTruthy());
 
     await act(async () => {
@@ -275,7 +289,7 @@ describe("Conversations — role scope composes with the Archived tab (review fi
 
   it("shows the plain archive-empty copy (not the role/inbox copy or CTA) when Archived+Selling is empty", async () => {
     (conversationsAPI.getConversations as jest.Mock).mockResolvedValue(makeResult([]));
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list-empty")).toBeTruthy());
 
     await act(async () => {
@@ -302,27 +316,30 @@ describe("Conversations — unread badge trap (TASK-R517)", () => {
         makeConversation({ id: 2, unreadCount: 2 }),
       ])
     );
-    render(<ConversationsScreen />);
-    await waitFor(() => expect(mockSetUnreadMessageTotal).toHaveBeenCalledWith(5));
+    renderScreen();
+    await waitFor(() => expect(unreadBadge()).toHaveTextContent("5"));
   });
 
   it("does NOT overwrite the unread badge while a role filter is active", async () => {
-    // Unfiltered fetch on mount reports a total of 5.
-    (conversationsAPI.getConversations as jest.Mock).mockResolvedValueOnce(
-      makeResult([
-        makeConversation({ unreadCount: 3 }),
-        makeConversation({ id: 2, unreadCount: 2 }),
-      ])
+    // Keyed mockImplementation, NOT a queue of mockResolvedValueOnce. The screen fires
+    // more fetches than a fixed queue covers (six, measured with a probe), and once the
+    // queue runs dry the unmocked calls resolve undefined and wipe the very state being
+    // asserted. Keying on `role` also states the fixture's intent directly: the FULL
+    // inbox totals 5, a role-scoped page holds one side only and reports 1.
+    (conversationsAPI.getConversations as jest.Mock).mockImplementation((params) =>
+      Promise.resolve(
+        params?.role
+          ? makeResult([makeConversation({ id: 3, unreadCount: 1 })])
+          : makeResult([
+              makeConversation({ unreadCount: 3 }),
+              makeConversation({ id: 2, unreadCount: 2 }),
+            ])
+      )
     );
-    render(<ConversationsScreen />);
-    await waitFor(() => expect(mockSetUnreadMessageTotal).toHaveBeenCalledWith(5));
-    mockSetUnreadMessageTotal.mockClear();
 
-    // The role-scoped fetch that follows returns a page holding only ONE
-    // side of the inbox (a subset) — the badge must NOT drop to it.
-    (conversationsAPI.getConversations as jest.Mock).mockResolvedValueOnce(
-      makeResult([makeConversation({ id: 3, unreadCount: 1 })])
-    );
+    renderScreen();
+    await waitFor(() => expect(unreadBadge()).toHaveTextContent("5"));
+
     await act(async () => {
       fireEvent.press(screen.getByTestId("role-chip-selling"));
     });
@@ -332,19 +349,25 @@ describe("Conversations — unread badge trap (TASK-R517)", () => {
       )
     );
 
-    expect(mockSetUnreadMessageTotal).not.toHaveBeenCalled();
+    // Still 5 — never the role-scoped page's 1.
+    await waitFor(() => expect(unreadBadge()).toHaveTextContent("5"));
   });
 
   it("resumes syncing the badge once the role filter is cleared back to both", async () => {
-    (conversationsAPI.getConversations as jest.Mock).mockResolvedValueOnce(
-      makeResult([makeConversation({ unreadCount: 5 })])
+    // Same keyed mock; `fullInbox` is swapped mid-test so the resumed sync has a
+    // different total to pick up, which is the whole point of the assertion.
+    let fullInbox = [makeConversation({ unreadCount: 5 })];
+    (conversationsAPI.getConversations as jest.Mock).mockImplementation((params) =>
+      Promise.resolve(
+        params?.role
+          ? makeResult([makeConversation({ id: 3, unreadCount: 1 })])
+          : makeResult(fullInbox)
+      )
     );
-    render(<ConversationsScreen />);
-    await waitFor(() => expect(mockSetUnreadMessageTotal).toHaveBeenCalledWith(5));
 
-    (conversationsAPI.getConversations as jest.Mock).mockResolvedValueOnce(
-      makeResult([makeConversation({ id: 3, unreadCount: 1 })])
-    );
+    renderScreen();
+    await waitFor(() => expect(unreadBadge()).toHaveTextContent("5"));
+
     await act(async () => {
       fireEvent.press(screen.getByTestId("role-chip-selling"));
     });
@@ -353,23 +376,20 @@ describe("Conversations — unread badge trap (TASK-R517)", () => {
         expect.objectContaining({ role: "selling" })
       )
     );
-    mockSetUnreadMessageTotal.mockClear();
 
-    (conversationsAPI.getConversations as jest.Mock).mockResolvedValueOnce(
-      makeResult([makeConversation({ unreadCount: 7 })])
-    );
+    fullInbox = [makeConversation({ unreadCount: 7 })];
     await act(async () => {
       // Deselect — back to the full, unfiltered inbox.
       fireEvent.press(screen.getByTestId("role-chip-selling"));
     });
-    await waitFor(() => expect(mockSetUnreadMessageTotal).toHaveBeenCalledWith(7));
+    await waitFor(() => expect(unreadBadge()).toHaveTextContent("7"));
   });
 });
 
 describe("Conversations — role-aware empty states", () => {
   it("shows the Selling empty state with a Post-a-listing CTA", async () => {
     (conversationsAPI.getConversations as jest.Mock).mockResolvedValue(makeResult([]));
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list-empty")).toBeTruthy());
 
     await act(async () => {
@@ -382,7 +402,7 @@ describe("Conversations — role-aware empty states", () => {
 
   it("shows the Buying empty state with a Browse CTA", async () => {
     (conversationsAPI.getConversations as jest.Mock).mockResolvedValue(makeResult([]));
-    render(<ConversationsScreen />);
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId("universal-list-empty")).toBeTruthy());
 
     await act(async () => {

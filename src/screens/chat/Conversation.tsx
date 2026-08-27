@@ -539,13 +539,20 @@ export function ConversationScreen() {
   );
 
   // Mark messages as read silently
-  const markRead = useCallback(async (convId: number) => {
-    try {
-      await conversationsAPI.markMessagesRead(convId);
-    } catch {
-      // silent — non-critical
-    }
-  }, []);
+  const markRead = useCallback(
+    async (convId: number) => {
+      try {
+        await conversationsAPI.markMessagesRead(convId);
+        // The chat tab badge reads unreadMessageCount off ["me"], so reading a thread
+        // has to invalidate it or the badge keeps advertising messages the user has
+        // just read — up to a minute, until the poll comes round.
+        qc.invalidateQueries({ queryKey: ["me"] });
+      } catch {
+        // silent — non-critical
+      }
+    },
+    [qc]
+  );
 
   useFocusEffect(
     useCallback(() => {

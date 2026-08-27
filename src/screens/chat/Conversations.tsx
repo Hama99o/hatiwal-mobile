@@ -7,6 +7,7 @@ import {
   type NativeScrollEvent,
 } from "react-native";
 import { useCallback, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -30,7 +31,6 @@ import {
 } from "@/api/conversations";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
-import { useChatStore } from "@/stores/chat.store";
 import { Text } from "@/components/reusables/text";
 import { Badge } from "@/components/reusables/badge";
 import { SearchBar } from "@/components/common/SearchBar";
@@ -112,6 +112,11 @@ export default function ConversationsScreen() {
 
   // Bump to trigger UniversalList silent background refresh (no skeleton, no setItems([])).
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Only for invalidating ["me"] after a read: the chat tab badge reads
+  // unreadMessageCount off that query. This screen still fetches its own list through
+  // refreshKey rather than React Query — out of scope to change here.
+  const qc = useQueryClient();
   // Bump to trigger a FULL reset (skeleton + reload). Only used for deletions.
   const [resetKey, setResetKey] = useState(0);
 
@@ -157,7 +162,6 @@ export default function ConversationsScreen() {
     [updateChipRowOverflow]
   );
 
-  const setUnreadMessageTotal = useChatStore((s) => s.setUnreadMessageTotal);
 
   // Raw inbox conversations ref — written by the fetcher, read for badge sync
   const allConversationsRef = useRef<Conversation[]>([]);
@@ -206,7 +210,6 @@ export default function ConversationsScreen() {
           if (query.page === 1 && !roleParam) {
             allConversationsRef.current = page;
             const total = getUnreadTotal(page);
-            setUnreadMessageTotal(total);
             setUnreadBadgeCount(total);
           }
 
@@ -234,7 +237,7 @@ export default function ConversationsScreen() {
           currentPage: response.pagination.currentPage,
         };
       },
-    [setUnreadMessageTotal]
+    []
   );
 
   // ── Handle delete ──────────────────────────────────────────────────────────
@@ -246,7 +249,6 @@ export default function ConversationsScreen() {
         const updated = allConversationsRef.current.filter((c) => c.id !== id);
         allConversationsRef.current = updated;
         const total = getUnreadTotal(updated);
-        setUnreadMessageTotal(total);
         setUnreadBadgeCount(total);
         // Full reset so UniversalList re-renders without the deleted row
         setResetKey((k) => k + 1);
@@ -254,7 +256,7 @@ export default function ConversationsScreen() {
         toast.error(apiErrorMessage(err, t));
       }
     },
-    [setUnreadMessageTotal, t]
+    [t]
   );
 
   // ── Handle archive (optimistic row-removal + badge update) ────────────────
@@ -267,7 +269,6 @@ export default function ConversationsScreen() {
       const optimistic = prev.filter((c) => c.id !== id);
       allConversationsRef.current = optimistic;
       const total = getUnreadTotal(optimistic);
-      setUnreadMessageTotal(total);
       setUnreadBadgeCount(total);
 
       try {
@@ -277,13 +278,12 @@ export default function ConversationsScreen() {
         // Rollback
         allConversationsRef.current = prev;
         const rollbackTotal = getUnreadTotal(prev);
-        setUnreadMessageTotal(rollbackTotal);
         setUnreadBadgeCount(rollbackTotal);
         setRefreshKey((k) => k + 1);
         toast.error(t("chat.archive.error"));
       }
     },
-    [setUnreadMessageTotal, t]
+    [t]
   );
 
   // ── Handle unarchive (optimistic row-removal from archived tab) ───────────
@@ -309,22 +309,22 @@ export default function ConversationsScreen() {
       );
       allConversationsRef.current = optimistic;
       const total = getUnreadTotal(optimistic);
-      setUnreadMessageTotal(total);
       setUnreadBadgeCount(total);
 
       try {
         await conversationsAPI.markRead(id);
+        // The chat tab badge reads unreadMessageCount off ["me"].
+        qc.invalidateQueries({ queryKey: ["me"] });
         setRefreshKey((k) => k + 1);
       } catch {
         allConversationsRef.current = prev;
         const rollbackTotal = getUnreadTotal(prev);
-        setUnreadMessageTotal(rollbackTotal);
         setUnreadBadgeCount(rollbackTotal);
         setRefreshKey((k) => k + 1);
         toast.error(t("chat.actions.markReadError"));
       }
     },
-    [setUnreadMessageTotal, t]
+    [t]
   );
 
   // ── Handle mark unread ────────────────────────────────────────────────────
@@ -336,22 +336,22 @@ export default function ConversationsScreen() {
       );
       allConversationsRef.current = optimistic;
       const total = getUnreadTotal(optimistic);
-      setUnreadMessageTotal(total);
       setUnreadBadgeCount(total);
 
       try {
         await conversationsAPI.markUnread(id);
+        // The chat tab badge reads unreadMessageCount off ["me"].
+        qc.invalidateQueries({ queryKey: ["me"] });
         setRefreshKey((k) => k + 1);
       } catch {
         allConversationsRef.current = prev;
         const rollbackTotal = getUnreadTotal(prev);
-        setUnreadMessageTotal(rollbackTotal);
         setUnreadBadgeCount(rollbackTotal);
         setRefreshKey((k) => k + 1);
         toast.error(t("chat.actions.markReadError"));
       }
     },
-    [setUnreadMessageTotal, t]
+    [t]
   );
 
   // Whether the (trimmed) search term is active — drives the no-match empty
@@ -511,6 +511,7 @@ export default function ConversationsScreen() {
           </Text>
           {unreadBadgeCount > 0 && (
             <Badge
+              testID="chat-unread-badge"
               label={unreadBadgeCount >= 99 ? "99+" : unreadBadgeCount}
               variant="default"
               style={{ paddingHorizontal: 8, height: 24, borderRadius: 12 }}

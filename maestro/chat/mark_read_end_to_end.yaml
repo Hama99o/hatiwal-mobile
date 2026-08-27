@@ -58,6 +58,18 @@ appId: com.hatiwal.app
 # TASK-D428: the divider is resolved from the conversation's unreadCount at
 # load — captured BEFORE the markRead call just above zeroes it server-side —
 # so it must be visible right after the thread finishes loading.
+# Scroll UP to it. The divider sits ABOVE the oldest unread INBOUND message
+# (resolveUnreadBoundaryId returns incoming[len - n].id), and in this fixture that
+# message is mid-thread: conversation 424 holds 5 messages of which only 1 is inbound,
+# and later flows appended the buyer's own messages after it. A thread opens at the
+# bottom, so in a virtualised list the divider is not off-screen — it is not rendered at
+# all, which is why the hierarchy had zero occurrences of it.
+- scrollUntilVisible:
+    element:
+      text: "Unread messages"
+    direction: UP
+    centerElement: true
+    timeout: 20000
 - assertVisible: "Unread messages"
 
 # ── Step 2b: send a message — the divider must survive it ──────────────────
@@ -72,6 +84,18 @@ appId: com.hatiwal.app
 - assertVisible: "Today"
 # DR-BLOCKER regression guard: sending a new message must never move or hide
 # the divider that was already resolved when the thread was opened.
+# Scroll UP to it. The divider sits ABOVE the oldest unread INBOUND message
+# (resolveUnreadBoundaryId returns incoming[len - n].id), and in this fixture that
+# message is mid-thread: conversation 424 holds 5 messages of which only 1 is inbound,
+# and later flows appended the buyer's own messages after it. A thread opens at the
+# bottom, so in a virtualised list the divider is not off-screen — it is not rendered at
+# all, which is why the hierarchy had zero occurrences of it.
+- scrollUntilVisible:
+    element:
+      text: "Unread messages"
+    direction: UP
+    centerElement: true
+    timeout: 20000
 - assertVisible: "Unread messages"
 
 # ── Step 3: return to list; badge must be cleared ───────────────────────────
