@@ -87,6 +87,8 @@ appId: com.hatiwal.app
 # (it used to always ask for Pashto, so an English UI got
 # "لسمه ناحیه, کابل, کابل ښاروالی" — that was a real bug this flow found). The
 # coordinate fallback covers Nominatim not answering at all.
+# lint: regex-ok — these parentheses ARE grouping, deliberately: the pin label can come
+# back in English, in Dari, or as raw coordinates, so this alternates over all three.
 - assertVisible: "(.*Kabul.*|.*کابل.*|.*34\\.555.*)"
 
 # And the sheet closes onto a filtered feed. Waiting for the button to GO is the

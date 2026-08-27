@@ -17,6 +17,8 @@ appId: com.hatiwal.app
 - tapOn: "Zzq Searched Title"
 # REGEXMETA — `$` is an end-anchor, so this matches nothing.
 - assertVisible: "$450"
+# REGEXMETA — ( ) are grouping, so this cannot match text containing brackets.
+- assertVisible: "Away until (YYYY-MM-DD)"
 # KEYPATH — the t() key, not the string it renders.
 - assertVisible: "common.close"
 - inputText: "Zzq quite a distinctive sentence typed by this flow"

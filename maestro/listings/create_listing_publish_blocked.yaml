@@ -263,7 +263,7 @@ appId: com.hatiwal.app
 - assertVisible: "Add Title to publish this listing"
 # ...and the form auto-scrolled back up: the inline Title error is visible
 # again WITHOUT the seller scrolling manually.
-- assertVisible: "Title is required (max 150 characters)"
+- assertVisible: "Title is required \\(max 150 characters\\)"
 
 # Still on the create form — nothing was created.
 - assertNotVisible: "Your listing is live!"

@@ -81,11 +81,23 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
+# Anchor on Sign Out first: it is the last control the other profile flows prove
+# reachable, and "Delete account" is immediately below it.
+- scrollUntilVisible:
+    element:
+      id: "sign-out-button"
+    direction: DOWN
+    timeout: 20000
 - scrollUntilVisible:
     element:
       text: "Delete account"
     direction: DOWN
-    timeout: 15000
+    # 20s, and reached via sign-out-button just above it. The row is a plain Pressable at
+    # Profile.tsx:1198 with no testID, sitting BELOW Sign Out (1174) on a profile screen
+    # that is over a thousand lines tall — the flows that reach Sign Out allow 20s, this
+    # one allowed 15 and failed with "Element not found: Text matching regex: Delete
+    # account" on a row that exists.
+    timeout: 20000
 - tapOn: "Delete account"
 - waitForAnimationToEnd
 - assertVisible: "Delete your account?"

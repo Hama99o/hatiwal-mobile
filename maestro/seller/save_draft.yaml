@@ -164,7 +164,7 @@ appId: com.hatiwal.app
 # Toast names exactly the missing field — and the form auto-scrolled back to
 # the inline Title error, visible without the seller scrolling manually.
 - assertVisible: "Add Title to save this draft"
-- assertVisible: "Title is required (max 150 characters)"
+- assertVisible: "Title is required \\(max 150 characters\\)"
 
 # Photos/location are never listed or flagged as draft blockers.
 - assertNotVisible: "Add at least one photo before publishing"

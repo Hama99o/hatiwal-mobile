@@ -19,9 +19,10 @@ failure classes already paid for:
   SEARCHTAP  A tap on text that the flow typed into a SEARCH field. The input sits
              above the results, so the tap hits the box and the flow never navigates.
              Cost: three flows, each failing several steps later.
-  REGEXMETA  A literal with an unescaped `$`, which anchors the end of the pattern
-             rather than meaning a dollar sign. Cost: create_listing_currency_usd
-             asserting "$450", which could never match.
+  REGEXMETA  A literal with an unescaped regex metacharacter used as text. `$` anchors
+             the end of the pattern (create_listing_currency_usd asserted "$450"); `(` and
+             `)` are grouping (away_mode asserted "Away until (YYYY-MM-DD)", which the app
+             renders with the brackets the pattern then dropped).
   KEYPATH    A literal that is a t() key path ("common.close") rather than the
              string it renders. Cost: send_photo, copied from a Jest expectation
              where i18next is not initialised and the key IS what comes back.
@@ -229,6 +230,14 @@ def check(path):
             if '$' in probe and '\\$' not in probe:
                 hits.append((i, "REGEXMETA",
                              f'{lit!r} has an unescaped $ — a regex end-anchor'))
+            # Parentheses are grouping, not brackets. away_mode asserted
+            # "Away until (YYYY-MM-DD)" — which the app really does render, brackets and
+            # all — and the pattern asked for it WITHOUT them. A literal that reads
+            # correctly and behaves as syntax is the whole hazard here.
+            elif re.search(r'(?<!\\)[()]', probe) and \
+                    "lint: regex-ok" not in " ".join(lines[block_range(lines, i)[0]:block_range(lines, i)[1]]):
+                hits.append((i, "REGEXMETA",
+                             f'{lit!r} has unescaped ( ) — regex grouping, not brackets'))
             elif KEYISH.match(lit) and lit in KEY_PATHS:
                 hits.append((i, "KEYPATH",
                              f'{lit!r} is a translation KEY, not the rendered value'))

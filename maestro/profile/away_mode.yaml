@@ -31,13 +31,18 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 # `scrollUntilVisible` with an `element:` wrapper.
 - scrollUntilVisible:
     element:
-      text: "I'm away (temporarily unavailable)"
+      text: "I'm away \\(temporarily unavailable\\)"
     direction: DOWN
     timeout: 15000
-- tapOn: "I'm away (temporarily unavailable)"
+- tapOn: "I'm away \\(temporarily unavailable\\)"
 
 # Away until date field appears
-- assertVisible: "Away until (YYYY-MM-DD)"
+# Parentheses ESCAPED. The app really does render "Away until (YYYY-MM-DD)" — it is
+# profile.away.untilLabel, telling the user the expected date format — but matching is a
+# regex, where ( ) are grouping. Unescaped, the pattern asks for "Away until YYYY-MM-DD"
+# with no brackets, which nothing renders. Same class as the "$450" that could never
+# match: a literal that reads correctly and behaves as syntax.
+- assertVisible: "Away until \\(YYYY-MM-DD\\)"
 # By testID. "Away until (YYYY-MM-DD)" is `profile.away.untilLabel` — the LABEL
 # above the field, not the field, so tapping it focuses nothing and the inputText
 # that follows goes nowhere. The input's own placeholder is just "YYYY-MM-DD".
@@ -97,13 +102,13 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 # `scrollUntilVisible` with an `element:` wrapper.
 - scrollUntilVisible:
     element:
-      text: "I'm away (temporarily unavailable)"
+      text: "I'm away \\(temporarily unavailable\\)"
     direction: DOWN
     timeout: 15000
-- tapOn: "I'm away (temporarily unavailable)"
+- tapOn: "I'm away \\(temporarily unavailable\\)"
 
 # Confirm the date field disappears
-- assertNotVisible: "Away until (YYYY-MM-DD)"
+- assertNotVisible: "Away until \\(YYYY-MM-DD\\)"
 
 - tapOn: "Save Changes"
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a

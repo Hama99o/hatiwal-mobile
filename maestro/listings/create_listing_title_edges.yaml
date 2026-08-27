@@ -40,7 +40,7 @@ appId: com.hatiwal.app
 - inputText: "   "
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
-- assertVisible: "Title is required (max 150 characters)"
+- assertVisible: "Title is required \\(max 150 characters\\)"
 
 # ── A title at the 150-char boundary is accepted ─────────────────────────────
 # Exactly 150 characters: 15 blocks of 10 ("BulkItem01".."BulkItem15").
@@ -72,7 +72,7 @@ appId: com.hatiwal.app
 - inputText: "500"
 # The title error must be GONE — that is the assertion that proves 150 is legal
 # rather than merely "something happened".
-- assertNotVisible: "Title is required (max 150 characters)"
+- assertNotVisible: "Title is required \\(max 150 characters\\)"
 
 # ── Leading/trailing spaces are trimmed, not rejected ───────────────────────
 - tapOn: "What are you selling?"
@@ -80,6 +80,6 @@ appId: com.hatiwal.app
 - inputText: "  Padded Title Item  "
 - tapOn: "Save Draft"
 - waitForAnimationToEnd
-- assertNotVisible: "Title is required (max 150 characters)"
+- assertNotVisible: "Title is required \\(max 150 characters\\)"
 # It gets as far as the NEXT blocker (category), which proves the title passed.
 - assertVisible: "Please select a category"
