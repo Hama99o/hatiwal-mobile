@@ -11,15 +11,18 @@ appId: com.hatiwal.app
 # Default tab shows All
 - assertVisible: "All"
 # Tap Draft tab
-- tapOn: "Draft"
+- tapOn:
+    id: "my-listings-status-draft"
 - waitForAnimationToEnd
 - assertVisible: "Draft"
 # Tap Active tab
-- tapOn: "Active"
+- tapOn:
+    id: "my-listings-status-active"
 - waitForAnimationToEnd
 - assertVisible: "Active"
 # Tap Reserved tab
-- tapOn: "Reserved"
+- tapOn:
+    id: "my-listings-status-reserved"
 - waitForAnimationToEnd
 - assertVisible: "Reserved"
 # Tap Sold tab
@@ -51,11 +54,13 @@ appId: com.hatiwal.app
     start: "85%, 14%"
     end: "20%, 14%"
 - waitForAnimationToEnd
-- tapOn: "Sold"
+- tapOn:
+    id: "my-listings-status-sold"
 - waitForAnimationToEnd
 - assertVisible: "Sold"
 # Back to All
-- tapOn: "All"
+- tapOn:
+    id: "my-listings-status-all"
 - waitForAnimationToEnd
 # The seller home tab is labelled "My Shop" (sidebar.myListings).
 - assertVisible: "My Shop"

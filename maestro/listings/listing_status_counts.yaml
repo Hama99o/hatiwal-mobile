@@ -15,22 +15,26 @@ appId: com.hatiwal.app
 - assertVisible: "All"
 
 # Tap the Draft tab and assert its count renders (any digit is acceptable).
-- tapOn: "Draft"
+- tapOn:
+    id: "my-listings-status-draft"
 - waitForAnimationToEnd
 - assertVisible: "Draft"
 
 # Tap the Active tab and assert it shows.
-- tapOn: "Active"
+- tapOn:
+    id: "my-listings-status-active"
 - waitForAnimationToEnd
 - assertVisible: "Active"
 
 # Tap the Expired tab.
-- tapOn: "Expired"
+- tapOn:
+    id: "my-listings-status-expired"
 - waitForAnimationToEnd
 - assertVisible: "Expired"
 
 # Tap Reserved.
-- tapOn: "Reserved"
+- tapOn:
+    id: "my-listings-status-reserved"
 - waitForAnimationToEnd
 - assertVisible: "Reserved"
 
@@ -65,11 +69,13 @@ appId: com.hatiwal.app
     start: "85%, 14%"
     end: "20%, 14%"
 - waitForAnimationToEnd
-- tapOn: "Sold"
+- tapOn:
+    id: "my-listings-status-sold"
 - waitForAnimationToEnd
 - assertVisible: "Sold"
 
 # Return to All — counts remain stable after tab switching.
-- tapOn: "All"
+- tapOn:
+    id: "my-listings-status-all"
 - waitForAnimationToEnd
 - assertVisible: "All"

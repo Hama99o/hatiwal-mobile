@@ -269,6 +269,12 @@ function CompactHeader({
             return (
               <Pressable
                 key={tab}
+                // Per-tab handle. The strip is a horizontal scroller and its later
+                // tabs sit outside the viewport — "Sold" is not merely off-screen,
+                // it is absent from the hierarchy — so a flow needs to scroll the
+                // strip and then target one tab unambiguously. "All" as bare text
+                // also collides with filter copy elsewhere on the screen.
+                testID={`my-listings-status-${tab}`}
                 onPress={() => onTabChange(tab)}
                 android_ripple={{ color: colors.muted, borderless: true }}
                 style={{
