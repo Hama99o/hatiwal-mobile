@@ -61,7 +61,16 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # After "Save Draft" the toast is `listing.form.savedDraft` = "Draft saved".
 # "Listing saved" exists nowhere ("Changes saved" is the EDIT toast).
-- assertVisible: "Draft saved"
+# extendedWaitUntil, not assertVisible: this is a TOAST from toast.success in
+# ListingForm.tsx and it lives a few seconds. A plain assert races that window and
+# loses under load — which is how create_listing_draft_restore failed here, with the
+# draft itself created correctly. extendedWaitUntil polls, so it can only ever wait
+# longer, never less.
+# ("Offer accepted"/"Offer declined" are NOT converted: those strings are also the
+# offer bubble's own outcome label, so they are durable rather than transient.)
+- extendedWaitUntil:
+    visible: "Draft saved"
+    timeout: 15000
 
 # BACK FIRST. Saving a draft navigates to the listing DETAIL screen, which is not a
 # tab route — so the tab bar is not on screen and `browse-tab` was simply not there

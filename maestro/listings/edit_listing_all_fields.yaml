@@ -66,7 +66,16 @@ appId: com.hatiwal.app
 # asserts afterwards, and which is probably where "Save Changes" came from.
 - tapOn: "Save"
 - waitForAnimationToEnd
-- assertVisible: "Changes saved"
+# extendedWaitUntil, not assertVisible: this is a TOAST from toast.success in
+# ListingForm.tsx and it lives a few seconds. A plain assert races that window and
+# loses under load — which is how create_listing_draft_restore failed here, with the
+# draft itself created correctly. extendedWaitUntil polls, so it can only ever wait
+# longer, never less.
+# ("Offer accepted"/"Offer declined" are NOT converted: those strings are also the
+# offer bubble's own outcome label, so they are durable rather than transient.)
+- extendedWaitUntil:
+    visible: "Changes saved"
+    timeout: 15000
 
 # Verify on detail
 - assertVisible: "Updated Title Deep Test"
