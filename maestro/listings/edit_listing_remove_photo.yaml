@@ -28,6 +28,24 @@ appId: com.hatiwal.app
     id: "listing-action-edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Listing"
+
+# ── Guarantee there IS a photo to remove ─────────────────
+# The flow edits whichever listing is first in My Shop, and that one need not have any
+# photos — the list's first card is often a draft with the "No photo" placeholder. That
+# is what failed: "Element not found: Id matching regex: listing-form-photo-remove",
+# because there was no tile to remove.
+#
+# Attaching one first makes the flow self-contained instead of depending on which
+# listing happens to rank first. No seeded fixture can carry this: the only photo-
+# bearing seeded listing is the Lenovo, which eight flows share and two of them sell,
+# and "Samsung Galaxy S22" only exists after two other create flows have run.
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
+- waitForAnimationToEnd
+- assertVisible:
+    id: "listing-form-photo-remove"
+    index: 0
 # By testID. FieldLabel renders a required field's label plus a nested
 # `<Text> *</Text>`, so the node reads "Photos *" and an anchored regex on the bare
 # word cannot match it.

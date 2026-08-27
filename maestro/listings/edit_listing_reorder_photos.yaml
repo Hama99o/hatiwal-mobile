@@ -28,6 +28,26 @@ appId: com.hatiwal.app
     id: "listing-action-edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Listing"
+
+# ── Guarantee there are TWO photos to swap ────────────────
+# Reordering needs two tiles, and this flow edits whichever listing is first in My Shop
+# — which need not have any photos at all (the first card is often a draft showing the
+# "No photo" placeholder). Its sibling edit_listing_remove_photo failed for exactly that
+# reason: "Element not found: listing-form-photo-remove".
+# Attaching two here makes the swap below meaningful regardless of what the listing
+# started with. No seeded fixture can supply this: the only photo-bearing seeded listing
+# is the Lenovo, shared by eight flows and sold by two of them.
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
+- waitForAnimationToEnd
+- tapOn: "Add Photos"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
+- waitForAnimationToEnd
+- assertVisible:
+    id: "listing-form-photo-thumb"
+    index: 1
 # By testID. FieldLabel renders a required field's label plus a nested
 # `<Text> *</Text>`, so the node reads "Photos *" and an anchored regex on the bare
 # word cannot match it.
