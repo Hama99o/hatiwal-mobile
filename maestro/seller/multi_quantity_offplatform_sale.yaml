@@ -1,0 +1,97 @@
+appId: com.hatiwal.app
+---
+# Selling SOME of a batch to a buyer who is not on Hatiwal.
+#
+# Reported from a device with screenshots: a listing with 50 in stock, one sale marked
+# through "Sold to someone not on Hatiwal", and the listing came back "Sold — 0 of 50
+# left". The seller lost 49 units and there is no undo, no payment system, and nothing
+# on screen that said it would happen.
+#
+# Three deliberate decisions lined up to do that:
+#   * BuyerPickerSheet HID the "How many did you sell?" field unless a registered buyer
+#     was chosen, so on this path the seller could not state a count;
+#   * the sheet then sent no quantity at all;
+#   * the API reads a MISSING quantity as the whole remaining stock
+#     (my/listings_controller.rb: `txn&.quantity || available_units`).
+# Each is defensible alone. Together they made the common Afghan sale — cash, in person,
+# to someone without the app — destroy the seller's inventory.
+#
+# multi_quantity_partial_sale covers the registered-buyer path on the Phone Case. This
+# flow owns its own fixture ("QA Disposable offplatform_units", 8 units, reset every
+# seed) because both flows MUTATE stock, and sharing one batch means whichever runs
+# second asserts against a stock it did not set.
+- runFlow:
+    file: ../_helpers/login_seller.yaml
+
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
+- tapOn:
+    id: "my-listings-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
+
+# Open the disposable batch. By title: index 0 of My Listings is whatever was touched
+# most recently, which other flows change.
+- scrollUntilVisible:
+    element:
+      text: "QA Disposable offplatform_units"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "QA Disposable offplatform_units"
+- waitForAnimationToEnd
+
+# Pre-sale stock, from the seller's own badge ("N of M left", not the buyer's "N in
+# stock"). If this reads anything but 8 the seed did not reset — stop here rather than
+# assert a sale against an unknown starting point.
+- extendedWaitUntil:
+    visible:
+      id: "stock-badge-owner"
+    timeout: 20000
+- assertVisible: ".*8 of 8 left.*"
+
+- tapOn:
+    id: "lifecycle-more-action"
+- waitForAnimationToEnd
+- tapOn: "Mark as Sold"
+- waitForAnimationToEnd
+- assertVisible: "Who bought this item?"
+
+# Nothing selected yet: the count is not asked for, because there is nothing to attach
+# it to. This was true before the fix and stays true.
+- assertNotVisible:
+    id: "buyer-picker-quantity"
+
+# The off-platform path. THIS is the fix: the count must be askable here.
+- tapOn:
+    id: "buyer-row-skip"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "buyer-picker-quantity"
+    timeout: 15000
+# The final price stays hidden — no buyer means no transaction for a price to hang off.
+- assertNotVisible:
+    id: "buyer-picker-final-price"
+
+# Sell 3 of the 8.
+- tapOn:
+    id: "buyer-picker-quantity"
+- eraseText
+- inputText: "3"
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn: "Confirm sold"
+- waitForAnimationToEnd
+
+# The whole point: 5 left, and the listing is STILL ACTIVE and browsable. Before the fix
+# this read "0 of 8 left" with a Sold badge.
+- extendedWaitUntil:
+    visible:
+      id: "stock-badge-owner"
+    timeout: 20000
+- assertVisible: ".*5 of 8 left.*"
+- assertVisible: "Active"
+- assertNotVisible: "Sold"

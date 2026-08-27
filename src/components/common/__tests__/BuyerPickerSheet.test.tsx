@@ -229,7 +229,9 @@ describe("BuyerPickerSheet — someone else / skip", () => {
     fireEvent.press(screen.getByTestId("buyer-row-skip"));
     fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
 
-    expect(onConfirm).toHaveBeenCalledWith({ buyerId: undefined, finalPrice: undefined, clearBuyer: true });
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ buyerId: undefined, finalPrice: undefined, clearBuyer: true })
+    );
   });
 
   it("does not show the final-price input when 'skip' is selected", async () => {
@@ -537,7 +539,27 @@ describe("BuyerPickerSheet — sold quantity", () => {
     expect(screen.getByText("listing.stock.unitsAvailable")).toBeTruthy();
   });
 
-  it("sends no quantity on the 'someone else' skip path", async () => {
+  // REVERSED deliberately. This used to assert that the skip path sends NO quantity,
+  // which the API reads as "sold the lot" — so a seller with 15 units who sold one to
+  // someone not on Hatiwal lost the other 14 and the listing retired. Reported from a
+  // device (50 in stock, one sale, "0 of 50 left"). Only the BUYER is unknown on this
+  // path; how many units left the shelf is not, and the seller can now say so.
+  it("still asks how many, and sends it, when the buyer is skipped", async () => {
+    const { onConfirm } = renderSheet({ action: "sold", remainingQuantity: 15 });
+    await waitFor(() => screen.getByText("buyerPicker.someoneElse"));
+
+    fireEvent.press(screen.getByTestId("buyer-row-skip"));
+    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "1");
+    fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ quantity: 1, clearBuyer: true, buyerId: undefined })
+    );
+  });
+
+  it("still sells the lot when the seller leaves the count alone", async () => {
+    // The field is pre-filled with the whole remainder, so confirm-and-done keeps
+    // meaning "I sold all of them" — the case that used to be the ONLY outcome.
     const { onConfirm } = renderSheet({ action: "sold", remainingQuantity: 15 });
     await waitFor(() => screen.getByText("buyerPicker.someoneElse"));
 
@@ -545,7 +567,7 @@ describe("BuyerPickerSheet — sold quantity", () => {
     fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
 
     expect(onConfirm).toHaveBeenCalledWith(
-      expect.objectContaining({ quantity: undefined, clearBuyer: true })
+      expect.objectContaining({ quantity: 15, clearBuyer: true })
     );
   });
 

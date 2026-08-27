@@ -243,7 +243,11 @@ export function BuyerPickerSheet({
     onConfirm({
       buyerId: selected === SKIP ? undefined : selected,
       finalPrice: selected === SKIP ? undefined : finalPrice,
-      quantity: selected === SKIP ? undefined : quantity,
+      // NOT conditional on the buyer: this is how many UNITS were sold, true whoever
+      // bought them. A missing quantity means "sold the lot" to the API
+      // (my/listings_controller.rb), so tying it to the buyer destroyed the remaining
+      // stock on every off-platform sale.
+      quantity,
       // TASK-TX02 (review fix, MAJOR) — explicit skip must be distinguishable
       // on the wire from a legacy client that never sends buyer info at all.
       clearBuyer: selected === SKIP ? true : undefined,
@@ -506,7 +510,13 @@ export function BuyerPickerSheet({
                     "how many" is answered before "for how much", and it is
                     pre-filled with the whole remainder so the common case is
                     still confirm-and-done. */}
-                {asksQuantity && selected !== null && selected !== SKIP && (
+                {/* Shown on the SKIP path too. When a seller ticks "sold to someone
+                    not on Hatiwal" only the BUYER is unknown — the unit count is not,
+                    and hiding the field left them no way to say it. A missing quantity
+                    means "sold the lot" to the API, so the sheet's silence retired the
+                    listing: reported from a device with 50 in stock, one sale, and
+                    "0 of 50 left" afterwards. */}
+                {asksQuantity && selected !== null && (
                   <View style={{ marginTop: 16 }}>
                     <Label className="mb-2" style={{ textAlign: isRtl ? "right" : "left" }}>
                       {t("listing.form.howManySold")}
