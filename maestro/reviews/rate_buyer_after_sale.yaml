@@ -80,7 +80,16 @@ appId: com.hatiwal.app
 
 # The double-blind ReviewPromptSheet opened automatically —
 # "How was Ahmad Karimi as a buyer?" (buyer's full name from the seeded conversation).
-- assertVisible: "How was Ahmad Karimi as a buyer?"
+#
+# QA-BUG2 (FlowApp #300): `extendedWaitUntil`, not a bare `assertVisible` — the
+# sheet now deliberately waits for the "Marked sold · Undo" toast above to
+# finish its own ~4s lifecycle before opening (it used to open in the same
+# tick, which on Android put its backdrop on top of the toast's Undo button —
+# see ../seller/mark_sold_with_buyer.yaml for the full story). A few seconds'
+# delay here is the fix working, not flakiness.
+- extendedWaitUntil:
+    visible: "How was Ahmad Karimi as a buyer?"
+    timeout: 10000
 
 # Submit is disabled until a star is picked
 - assertVisible: "Your rating"

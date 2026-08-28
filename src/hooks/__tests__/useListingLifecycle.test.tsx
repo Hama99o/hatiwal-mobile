@@ -628,7 +628,7 @@ describe("useListingLifecycle — Mark sold drives buyerPicker, never confirmAle
     expect(mockListingsAPI.markSold).not.toHaveBeenCalled();
   });
 
-  it("REV2: a sold response carrying transaction.buyer opens reviewPrompt", async () => {
+  it("REV2: a sold response carrying transaction.buyer opens reviewPrompt once the Undo toast's own lifecycle finishes (QA-BUG2 sequencing)", async () => {
     mockListingsAPI.markSold.mockResolvedValueOnce({
       listing: { status: "sold" } as Listing,
       transaction: {
@@ -641,10 +641,100 @@ describe("useListingLifecycle — Mark sold drives buyerPicker, never confirmAle
     act(() => result.current.primaryAction!.onPress());
     act(() => result.current.buyerPicker.onConfirm({ buyerId: 5 }));
 
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalled());
+    // QA-BUG2 (FlowApp #300): reviewPrompt is a native <Modal> that would
+    // cover the toast's own Undo button (its only affordance) if it opened
+    // in the same tick as the toast — it must NOT be visible yet.
+    expect(result.current.reviewPrompt.visible).toBe(false);
+
+    // Once the toast finishes its own lifecycle (auto-close here; a manual
+    // swipe-dismiss fires the same `onDismiss` callback and behaves
+    // identically), REV2 still gets its invite — this is the "don't fix one
+    // feature by breaking the other" requirement.
+    const [, options] = mockToast.success.mock.calls[0];
+    act(() => options.onAutoClose(99));
+
     await waitFor(() => expect(result.current.reviewPrompt.visible).toBe(true));
     expect(result.current.reviewPrompt.transactionId).toBe(99);
     expect(result.current.reviewPrompt.buyerName).toBe("Ahmad Karimi");
     expect(result.current.reviewPrompt.buyerAvatarUrl).toBe("https://example.com/a.jpg");
+  });
+
+  it("QA-BUG2: a manual swipe-dismiss of the toast (onDismiss, not onAutoClose) also opens reviewPrompt", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({
+      listing: { status: "sold" } as Listing,
+      transaction: {
+        id: 99,
+        buyer: { id: 5, name: "Ahmad Karimi", avatarUrl: "https://example.com/a.jpg" },
+      },
+    } as never);
+    const { result } = renderLifecycle({ status: "reserved", expired: false }, { listingId: 10 });
+
+    act(() => result.current.primaryAction!.onPress());
+    act(() => result.current.buyerPicker.onConfirm({ buyerId: 5 }));
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalled());
+
+    const [, options] = mockToast.success.mock.calls[0];
+    act(() => options.onDismiss(99));
+
+    await waitFor(() => expect(result.current.reviewPrompt.visible).toBe(true));
+  });
+
+  it("QA-BUG2: onAutoClose firing twice (sonner-native can call onAutoClose AND onDismiss for the same toast) only opens reviewPrompt once", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({
+      listing: { status: "sold" } as Listing,
+      transaction: {
+        id: 99,
+        buyer: { id: 5, name: "Ahmad Karimi", avatarUrl: "https://example.com/a.jpg" },
+      },
+    } as never);
+    const { result } = renderLifecycle({ status: "reserved", expired: false }, { listingId: 10 });
+
+    act(() => result.current.primaryAction!.onPress());
+    act(() => result.current.buyerPicker.onConfirm({ buyerId: 5 }));
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalled());
+
+    const [, options] = mockToast.success.mock.calls[0];
+    act(() => {
+      options.onAutoClose(99);
+      options.onDismiss(99);
+    });
+
+    await waitFor(() => expect(result.current.reviewPrompt.visible).toBe(true));
+    // No crash, no double-open — same transaction id either way.
+    expect(result.current.reviewPrompt.transactionId).toBe(99);
+  });
+
+  it("QA-BUG2: Undo reachability on the buyer-attributed path — tapping Undo BEFORE the toast finishes still calls deleteTransaction with the sold transaction's id, and reviewPrompt never opens for the voided sale", async () => {
+    mockListingsAPI.markSold.mockResolvedValueOnce({
+      listing: { status: "sold" } as Listing,
+      transaction: {
+        id: 99,
+        buyer: { id: 5, name: "Ahmad Karimi", avatarUrl: "https://example.com/a.jpg" },
+      },
+    } as never);
+    mockTransactionsAPI.deleteTransaction.mockResolvedValueOnce({
+      listing: { status: "active" } as Listing,
+    });
+    const { result } = renderLifecycle({ status: "reserved", expired: false }, { listingId: 10 });
+
+    act(() => result.current.primaryAction!.onPress());
+    act(() => result.current.buyerPicker.onConfirm({ buyerId: 5 }));
+    await waitFor(() => expect(mockToast.success).toHaveBeenCalled());
+
+    const [, options] = mockToast.success.mock.calls[0];
+    // This is the exact affordance QA-BUG2 says is unreachable on Android
+    // once the review sheet opens first — proving here that the toast's
+    // action handler is reachable and correct is what the ticket asks Jest
+    // to demonstrate, since toast visibility itself is unreliable on device.
+    act(() => options.action.onClick());
+    await waitFor(() => expect(mockTransactionsAPI.deleteTransaction).toHaveBeenCalledWith(99));
+
+    // The toast eventually finishing its lifecycle after Undo was already
+    // pressed must NOT resurrect a review invite for a sale that no longer
+    // exists.
+    act(() => options.onAutoClose(99));
+    expect(result.current.reviewPrompt.visible).toBe(false);
   });
 
   it("no transaction.buyer in the response never opens reviewPrompt (legacy skip path)", async () => {

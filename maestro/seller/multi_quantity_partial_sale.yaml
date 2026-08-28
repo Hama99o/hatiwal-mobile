@@ -182,11 +182,22 @@ appId: com.hatiwal.app
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
 
-# NOT the success toast. REV2's review sheet opens the instant a sale records a
-# buyer and covers the toast, so asserting the toast is a race the sheet usually
-# wins (run-019 failed on exactly that, while the sale had gone through
-# perfectly). The review prompt IS the durable proof: it only appears when the
-# sale recorded a real buyer.
+# QA-BUG2 (FlowApp #300) — history note, kept rather than deleted: this flow
+# used to skip the success toast assertion entirely, because REV2's review
+# sheet opened in the SAME tick as the sale and covered/raced the toast on
+# Android (run-019). That deletion is exactly how SF-M5 later got built with
+# its whole "Marked sold · Undo" toast pattern never having been proven
+# reachable in this flow. The fix (useListingLifecycle.ts) now makes the
+# review sheet WAIT for the toast's own ~4s lifecycle to finish before it
+# opens, so the two no longer race — restoring the toast assertion below,
+# `optional: true` per the house rule (general toast-observability flakiness
+# on this host is a separate, already-known issue) while the review prompt
+# stays the real, blocking, durable assertion — it only appears when the sale
+# recorded a real buyer.
+- extendedWaitUntil:
+    visible: "Listing marked as sold"
+    timeout: 15000
+    optional: true
 - extendedWaitUntil:
     visible: "How was Ahmad Karimi as a buyer?"
     timeout: 30000

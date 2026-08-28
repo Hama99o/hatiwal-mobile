@@ -36,7 +36,11 @@
  * so the seller can identify the real buyer from the listing's conversations;
  * the sheet's own Confirm button IS the confirmation step (TASK-TX01). A
  * `sold` response carrying a recorded buyer (`transaction.buyer`) opens
- * `ReviewPromptSheet` right after (REV2, double-blind reviews).
+ * `ReviewPromptSheet` — but only once the "Marked sold · Undo" toast has
+ * finished (QA-BUG2, FlowApp #300): the sheet is a native `<Modal>` and would
+ * otherwise open in the same tick as the toast and cover its Undo action on
+ * Android, where sonner-native has no `FullWindowOverlay` to escape it (see
+ * the `markSold.onSuccess` comment below for the full story).
  */
 import { useCallback, useMemo, useState } from "react";
 import { AccessibilityInfo } from "react-native";
@@ -244,27 +248,65 @@ export function useListingLifecycle({
       // buyer-less/skip paths both record a real, ledger-visible row), so
       // this is unconditional whenever the response actually carries an id.
       const soldTransactionId = data.transaction?.id;
+      const buyer = data.transaction?.buyer;
+
+      // QA-BUG2 (FlowApp #300) — this exact toast/sheet pair used to open in
+      // the SAME tick: `ReviewPromptSheet` is a raw RN <Modal> (see its own
+      // file header — @gorhom/bottom-sheet crashes the web dev runner, so
+      // every sheet in the app uses this pattern), and a native RN <Modal>
+      // opens its OWN native window on Android. sonner-native only escapes
+      // that via react-native-screens' `FullWindowOverlay`, and that
+      // component has NO Android implementation at all (checked: its native
+      // folder is `ios/`-only) — there is no library-provided way to render
+      // a JS toast above a native Android Dialog window. So the sheet's own
+      // backdrop landed on top of the "Marked sold · Undo" toast on Android,
+      // and tapping where Undo used to be just dismissed the sheet instead.
+      //
+      // This was already caught once (QA run-019) and "fixed" by deleting
+      // the toast assertion from the Maestro flow — which is exactly how
+      // SF-M5 got built with its Undo hanging on a toast nothing had
+      // confirmed was reachable. Not repeating that: instead of racing the
+      // sheet against the toast, the review invite now WAITS for the toast
+      // to finish its own lifecycle (auto-close after its duration, or a
+      // manual swipe-dismiss) before it opens — so Undo always gets the
+      // toast to itself first, on every platform. `reviewOpened` guards
+      // against firing twice (sonner-native can call onAutoClose AND
+      // onDismiss for the same toast); `undone` cancels the invite entirely
+      // if the seller actually used Undo before the toast went away — the
+      // sale it would invite a review for no longer exists.
+      let undone = false;
+      let reviewOpened = false;
+      const openReviewIfDue = () => {
+        if (reviewOpened || undone || !buyer || !data.transaction) return;
+        reviewOpened = true;
+        setReviewPrompt({
+          transactionId: data.transaction.id,
+          buyerName: buyer.name,
+          buyerAvatarUrl: buyer.avatarUrl,
+        });
+      };
+
       toast.success(
         t("listing.markSoldSuccess"),
         soldTransactionId
           ? {
               action: {
                 label: t("common.undo"),
-                onClick: () => undoMarkSold.mutate(soldTransactionId),
+                onClick: () => {
+                  undone = true;
+                  undoMarkSold.mutate(soldTransactionId);
+                },
               },
+              onAutoClose: openReviewIfDue,
+              onDismiss: openReviewIfDue,
             }
           : undefined
       );
-      // REV2: a recorded buyer means a real sold Transaction exists — invite
-      // the seller to rate them right away (double-blind, hidden until the
-      // buyer reviews back too).
-      if (data.transaction?.buyer) {
-        setReviewPrompt({
-          transactionId: data.transaction.id,
-          buyerName: data.transaction.buyer.name,
-          buyerAvatarUrl: data.transaction.buyer.avatarUrl,
-        });
-      }
+
+      // No transaction id means no Undo action was ever offered (SF-B3 says
+      // this shouldn't happen, but stays defensive) — nothing can occlude a
+      // toast that carries no action, so there is no reason to wait for it.
+      if (!soldTransactionId) openReviewIfDue();
     },
     onError: (err) => toast.error(apiErrorMessage(err, t)),
   });

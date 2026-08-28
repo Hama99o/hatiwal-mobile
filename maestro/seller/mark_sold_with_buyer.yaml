@@ -118,7 +118,18 @@ appId: com.hatiwal.app
 
 # REV2: the double-blind review prompt opens automatically — dismiss it here
 # (out of scope for this flow) so the underlying Sold badge is checkable.
-- assertVisible: "How was Ahmad Karimi as a buyer?"
+#
+# QA-BUG2 (FlowApp #300): this is now `extendedWaitUntil`, not a bare
+# `assertVisible`. The sheet used to open in the SAME tick as the "Marked
+# sold · Undo" toast above, which on Android put the sheet's own backdrop on
+# top of the toast's Undo button — tapping where Undo used to be just
+# dismissed the sheet. The fix holds this sheet until the toast finishes its
+# own ~4s lifecycle (sonner-native's default `duration`), so it can now
+# legitimately open a few seconds after the toast text above, not
+# instantly — waiting is correct here, not a workaround.
+- extendedWaitUntil:
+    visible: "How was Ahmad Karimi as a buyer?"
+    timeout: 10000
 - tapOn: "Not now"
 - waitForAnimationToEnd
 
