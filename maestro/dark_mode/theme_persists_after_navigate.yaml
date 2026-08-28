@@ -68,16 +68,17 @@ appId: com.hatiwal.app
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
-- tapOn:
-    id: "profile-tab"
-- waitForAnimationToEnd
-# CHECKPOINT: the tab BAR is visible on every tab, so waiting for `profile-tab` proves
-# nothing about which screen is showing. "Edit Profile" is profile-only. Without this,
-# a tap that did not register left the flow scrolling the Bazaar feed for a theme pill
-# and blaming the pill 20s later — see UI-048.
-- extendedWaitUntil:
-    visible: "Edit Profile"
-    timeout: 20000
+# CHECKPOINT, via the helper: the tab BAR is visible on every tab, so tapping
+# `profile-tab` and waiting for it proves nothing about which screen is showing.
+# goto_profile_tab.yaml is that check — and it is the right one HERE in particular,
+# because this flow has just scrolled Profile down to the theme pills and the tab
+# navigator keeps that scroll offset. The old checkpoint was
+# `extendedWaitUntil: "Edit Profile"`, which matches the AVATAR in the header: it
+# failed on a correctly-rendered Profile screen whose header was simply scrolled
+# off the top (2026-08-28, this exact step). The helper asserts a profile-only
+# testID instead — locale-independent, and it returns the screen to the top first,
+# which is also what the steps below expect.
+- runFlow: ../_helpers/goto_profile_tab.yaml
 
 # Restart and verify still dark
 - launchApp:

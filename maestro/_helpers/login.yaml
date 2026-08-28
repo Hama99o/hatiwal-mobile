@@ -76,6 +76,27 @@ env:
       - tapOn:
           id: "profile-tab"
       - waitForAnimationToEnd
+      # BACK TO THE TOP OF PROFILE BEFORE READING THE NAME.
+      #
+      # The Profile screen KEEPS ITS SCROLL POSITION: the tab navigator leaves it
+      # mounted, so a warm launch inherits wherever the last flow left it. The header
+      # — and `profile-display-name`, which the guard below reads — is then off screen,
+      # the guard concludes "not the expected user" about the RIGHT user, and the
+      # helper goes hunting Sign Out for no reason. Observed exactly that on
+      # 2026-08-28 while verifying QA-BUG4: Omar Noori's own profile, arrived at
+      # scrolled to PERSONAL INFO, and login_seller.yaml then failed its OWN
+      # `"Switch to .*"` gate — because that gate does not scroll either, and the
+      # pointless sign-out scroll had pushed the mode toggle off the top.
+      #
+      # `optional`, and legitimately so: on a signed-OUT app this element does not
+      # exist at all, which is a valid state the guard below already handles. It is
+      # not masking a miss — the very next step re-reads the same element.
+      - scrollUntilVisible:
+          element:
+            id: "profile-display-name"
+          direction: UP
+          timeout: 10000
+          optional: true
       # Sign out unless we are ALREADY the intended account.
       #
       # This used to trigger on ONE known-wrong identity, so any OTHER account
@@ -129,10 +150,44 @@ env:
                 commands:
                   - tapOn:
                       id: "sign-out-button"
-            - waitForAnimationToEnd
-            - tapOn:
-                text: "Sign Out"
-                optional: true
+                  - waitForAnimationToEnd
+                  # CONFIRM THE DIALOG BY RESOURCE-ID, NEVER BY ITS LABEL.
+                  #
+                  # handleLogout (Profile.tsx) raises a confirmAlert -> React Native
+                  # `Alert.alert`, whose confirm button is `t("profile.logout")` — the SAME
+                  # translated word as the row that opened it. This step used to be
+                  # `tapOn: {text: "Sign Out", optional: true}`, which was wrong twice over:
+                  #
+                  #   * ENGLISH ONLY. In Pashto that button reads "وتل", so the step matched
+                  #     nothing — and being `optional`, it reported nothing either. The dialog
+                  #     stayed open; a native Alert is its own window, so the app's own views
+                  #     drop out of Maestro's hierarchy and the NEXT step failed on
+                  #     `id: profile-tab` — a tab bar that was present and merely covered.
+                  #     Screenshot: run-266 rtl/listing_detail_rtl, the Pashto dialog
+                  #     (`ایا ډاډه یاست چې وتل غواړئ؟`) still on screen. A clean A/B on the
+                  #     same step in the same run: with the app back in English the identical
+                  #     line logged `Tap on (Optional) "Sign Out" COMPLETED`.
+                  #   * NOT OPTIONAL AT ALL. Reaching this line means the sign-out row WAS
+                  #     tapped, so the dialog must be up. A miss has to fail HERE, loudly,
+                  #     instead of three steps later on an unrelated selector.
+                  #
+                  # `android:id/button1` is the platform's positive button — React Native maps
+                  # a 2-button Android alert as [0]=negative, [1]=positive, and handleLogout
+                  # passes [Cancel, Sign Out]. It is identical in all three locales and exists
+                  # only inside the dialog, so it cannot collide with the "Sign Out" row
+                  # sitting behind the scrim. The tap itself lives in confirm_dialog.yaml,
+                  # which several flows already use for exactly this reason.
+                  #
+                  # The explicit wait is for the host, not the app: on a loaded rig the alert
+                  # can take longer to reach the hierarchy than tapOn's default lookup, and a
+                  # failure here should say "the dialog never appeared", not "tap failed".
+                  - extendedWaitUntil:
+                      visible:
+                        id: "android:id/button1"
+                      timeout: 15000
+                  - runFlow: confirm_dialog.yaml
+            # Whether or not a sign-out happened, let the screen settle before the
+            # sign-in block below inspects it.
             - waitForAnimationToEnd
 
 - runFlow: goto_login.yaml

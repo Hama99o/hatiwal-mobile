@@ -33,16 +33,20 @@ env:
 - inputText: ${PASSWORD}
 
 # The keyboard hides "Sign In" on a small screen — scroll rather than tap blind.
+# BY TESTID, not by the label. `auth.loginButton` is "Sign In" only in English, and
+# login.yaml already targets `login-submit` for this exact reason. The testID also
+# removes the ambiguity with any other "Sign In" text on the screen.
 - scrollUntilVisible:
     element:
-      text: "Sign In"
+      id: "login-submit"
     direction: DOWN
     timeout: 15000
 # The IME can cover a submit button, and Maestro reports the tap COMPLETED while the
 # touch lands on the keyboard. `hideKeyboard` is NOT the fix on a pushed screen — it is
 # Back, and it pops the screen. Scroll-then-tap is: see qa/QA_HANDBOOK.md, "hideKeyboard".
 - waitForAnimationToEnd
-- tapOn: "Sign In"
+- tapOn:
+    id: "login-submit"
 
 # ── Dismiss the NOTIFICATION prompt FIRST ───────────────────────────────────
 # ORDER MATTERS, and getting it wrong cost two runs. On this path — and only this

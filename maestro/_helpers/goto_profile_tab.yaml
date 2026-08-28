@@ -8,21 +8,81 @@ appId: com.hatiwal.app
 # Bazaar feed) and the flow carries on against the wrong screen. Waiting for the tab
 # bar does not catch it — the tab bar renders on every tab.
 #
-# profile-edit-button is the marker: it exists only on the Profile screen, and it
-# sits at y~2103 of 2400, so it is on screen without scrolling. Re-tapping the tab
-# when already on Profile is a no-op, so the guard is safe if it fires spuriously.
+# ── THE MARKER MUST BE ABOVE THE FOLD ───────────────────────────────────────
+# This helper used to wait 20s for `profile-edit-button`, on the stated belief that
+# it "sits at y~2103 of 2400, so it is on screen without scrolling". That was false,
+# and `extendedWaitUntil` does not scroll, so the wait could only ever time out:
+# `profile-edit-button` is the small `Edit` control in the PERSONAL INFO section
+# header, five sections down the screen — below the header block, the REV2
+# `PendingReviewsNudge`, the stats card and the quick-action rows. The nudge alone
+# renders ~200px whenever the account has a pending review ("Rate your recent
+# deals"), which is exactly the headroom the old assumption was banking on.
+# One helper, three failures across two runs: run-265 `profile_dark` and
+# `theme_persists_after_navigate`, then run-266 `profile_dark` again — and dark mode
+# was rendering perfectly in the screenshot taken at the moment it "failed".
+#
+# What hid it: the callers' sibling `assertVisible: "Edit Profile"` passes on the
+# AVATAR, not the button — the `avatar-picker` Pressable in Profile.tsx carries
+# `accessibilityLabel={t("profile.editProfile")}`. So a flow asserts "Edit Profile" at the top of the screen and
+# then times out on the real control far below.
+#
+# `mode-toggle-button` is the marker instead:
+#   * it is the second thing on the screen — directly under the avatar and name, in
+#     the header card — so no scroll can be required;
+#   * it exists ONLY on the Profile screen, in both buyer and seller mode, so it
+#     still catches the "restart discarded my tap" case the helper exists for;
+#   * it is a testID, so it is identical in en/ps/fa;
+#   * and it is already proven: ensure_buyer_mode.yaml gates on this same control
+#     with no scroll in ~200 flows, and its own comments record that scrolling to it
+#     was the WRONG fix ("scrollUntilVisible only ever scrolls DOWN, it scrolled the
+#     toggle AWAY").
+#
+# Asserting rather than scrolling is deliberate. `scrollUntilVisible` on the old
+# marker would leave Profile scrolled five sections down, and every caller
+# immediately runs its own DOWN scroll afterwards (`change_language_english` hunts
+# the language row, `profile_dark` hunts the theme options) — starting mid-screen
+# risks having already scrolled past the target, and a scroll gesture on this AVD
+# has been observed registering as a tap. This helper only owes its callers "you are
+# on Profile, at the top"; it does not owe them the Edit control.
+#
+# Re-tapping the tab when already on Profile is a no-op, so the guard is safe if it
+# fires spuriously.
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
 - runFlow:
     when:
       notVisible:
-        id: "profile-edit-button"
+        id: "mode-toggle-button"
     commands:
       - tapOn:
           id: "profile-tab"
       - waitForAnimationToEnd
+# ── AND AT THE TOP ──────────────────────────────────────────────────────────
+# The Profile screen KEEPS ITS SCROLL POSITION: the tab navigator leaves it
+# mounted, so tapping the tab returns to wherever the last visitor left it, header
+# off screen. Every caller of this helper then scrolls DOWN looking for a settings
+# row, from an unknown starting offset — and a bare assert on a header control
+# would fail on a Profile screen that is perfectly fine, which is the very failure
+# class this helper exists to stop. Observed on 2026-08-28 in
+# dark_mode/theme_persists_after_navigate: it scrolled to the theme pills, toured
+# the tabs, came back to Profile and failed its "Edit Profile" checkpoint with the
+# screen still at PERSONAL INFO.
+#
+# So the postcondition is "on Profile, scrolled to the top". `optional` masks
+# nothing here: the hard assert immediately below reads the same element, so it
+# stays the single, clearly-worded point of failure — and scrolling UP on a screen
+# that is already at its top is a no-op, since scrollUntilVisible checks first.
+- scrollUntilVisible:
+    element:
+      id: "mode-toggle-button"
+    direction: UP
+    timeout: 10000
+    optional: true
+# 30s, matching ensure_buyer_mode.yaml's gate on the same control: the profile
+# screen fetches before it renders, and on a loaded rig that is genuinely slow
+# rather than hung.
 - extendedWaitUntil:
     visible:
-      id: "profile-edit-button"
-    timeout: 20000
+      id: "mode-toggle-button"
+    timeout: 30000

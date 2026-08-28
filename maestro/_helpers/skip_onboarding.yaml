@@ -10,7 +10,18 @@ appId: com.hatiwal.app
 #
 # Deliberately NOT part of open_bundle.yaml: onboarding/first_run.yaml exists to
 # test this carousel, and must not have it skipped out from under it.
+# ALL THREE LOCALES, not just English. `onboarding.skip` is a translated label
+# ("Skip" / "پرېښودل" / "رد کردن") and the control has no testID, so an
+# English-only matcher can miss it — and `optional: true` makes that miss SILENT,
+# which is the same trap that hid the sign-out confirm in login.yaml. The carousel
+# also carries its own language switcher, so it is genuinely reachable in ps/fa.
+#
+# `optional` stays, and is correct HERE: this helper is called on warm apps where
+# onboarding legitimately is not showing at all. Widening the matcher is what turns
+# "no carousel" (fine) and "carousel in Pashto" (broken) back into different cases —
+# with the alternation, a real carousel is always tapped, and goto_login.yaml's own
+# retry catches whatever is left. Same alternation style as open_bundle.yaml.
 - tapOn:
-    text: "Skip"
+    text: "Skip|پرېښودل|رد کردن"
     optional: true
 - waitForAnimationToEnd
