@@ -39,8 +39,15 @@
  * `ReviewPromptSheet` — but only once the "Marked sold · Undo" toast has
  * finished (QA-BUG2, FlowApp #300): the sheet is a native `<Modal>` and would
  * otherwise open in the same tick as the toast and cover its Undo action on
- * Android, where sonner-native has no `FullWindowOverlay` to escape it (see
- * the `markSold.onSuccess` comment below for the full story).
+ * Android, where sonner-native has no `FullWindowOverlay` to escape it.
+ *
+ * QA-BUG5 (FlowApp #303): the mark-sold mutation itself — the Undo toast and
+ * the QA-BUG2 sequencing above — now lives in the shared `useMarkSoldWithUndo`
+ * hook (`./useMarkSoldWithUndo.ts`), not here. `ListingHeader.tsx` (the chat
+ * thread's pinned mark-sold pill) used to hand-roll its own copy with no Undo
+ * at all; it now calls that same hook directly instead. See that file's own
+ * header for the full story and why it was extracted rather than widening
+ * this hook's `listing` prop to fit a conversation payload.
  */
 import { useCallback, useMemo, useState } from "react";
 import { AccessibilityInfo } from "react-native";
@@ -59,7 +66,7 @@ import {
 } from "lucide-react-native";
 
 import { listingsAPI, type Listing } from "@/api/listings";
-import { transactionsAPI } from "@/api/transactions";
+import { useMarkSoldWithUndo } from "@/hooks/useMarkSoldWithUndo";
 import { type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 import { type ListingActionRow } from "@/components/common/ListingActionsSheet";
 import { confirmAlert } from "@/utils/alert";
@@ -207,12 +214,6 @@ export function useListingLifecycle({
   // TASK-TX01 / SF-M1: whether the buyer picker (Mark sold — the only action
   // it drives now) is open.
   const [buyerPickerAction, setBuyerPickerAction] = useState<"sold" | null>(null);
-  // REV2: after a sold sale records a real buyer, prompt the seller to rate them.
-  const [reviewPrompt, setReviewPrompt] = useState<{
-    transactionId: number;
-    buyerName: string;
-    buyerAvatarUrl: string | null;
-  } | null>(null);
 
   // Invalidate the listing feed, status-count pills, this listing's own
   // detail query, and (TASK-TX01) the listing's conversations — a
@@ -227,101 +228,28 @@ export function useListingLifecycle({
     onDone?.();
   }, [qc, listingId, onDone]);
 
+  // QA-BUG5 (FlowApp #303) — the markSold mutation, its "Marked sold · Undo"
+  // toast (SF-M5), and the QA-BUG2 toast-before-review-prompt sequencing all
+  // live in this ONE shared hook now — `ListingHeader.tsx` (chat) calls the
+  // exact same one. See its own file header for why it was extracted here
+  // rather than the other direction.
+  const {
+    markSold: triggerMarkSold,
+    isSubmitting: isMarkSoldSubmitting,
+    reviewPrompt,
+  } = useMarkSoldWithUndo({
+    listingId,
+    onChange: () => {
+      invalidateAll();
+      setBuyerPickerAction(null);
+    },
+  });
+
   // ── Mutations ────────────────────────────────────────────────────────────
 
   const publish = useMutation({
     mutationFn: () => listingsAPI.publishListing(listingId),
     onSuccess: () => { invalidateAll(); toast.success(t("listing.publishSuccess")); },
-    onError: (err) => toast.error(apiErrorMessage(err, t)),
-  });
-
-  const markSold = useMutation({
-    mutationFn: (opts?: BuyerPickerResult) => listingsAPI.markSold(listingId, opts),
-    onSuccess: (data) => {
-      invalidateAll();
-      setBuyerPickerAction(null);
-      // SF-M5 (docs/SELL_FLOW_REDESIGN.md §10.3) — "Marked sold · Undo". The
-      // big-tech answer to a mistake is a snackbar undo, not a correction
-      // form, and it must never BLOCK: the sale already completed by the
-      // time this fires, undo is only ever offered afterward. Every markSold
-      // call now leaves exactly one sold Transaction (SF-B3 — the legacy
-      // buyer-less/skip paths both record a real, ledger-visible row), so
-      // this is unconditional whenever the response actually carries an id.
-      const soldTransactionId = data.transaction?.id;
-      const buyer = data.transaction?.buyer;
-
-      // QA-BUG2 (FlowApp #300) — this exact toast/sheet pair used to open in
-      // the SAME tick: `ReviewPromptSheet` is a raw RN <Modal> (see its own
-      // file header — @gorhom/bottom-sheet crashes the web dev runner, so
-      // every sheet in the app uses this pattern), and a native RN <Modal>
-      // opens its OWN native window on Android. sonner-native only escapes
-      // that via react-native-screens' `FullWindowOverlay`, and that
-      // component has NO Android implementation at all (checked: its native
-      // folder is `ios/`-only) — there is no library-provided way to render
-      // a JS toast above a native Android Dialog window. So the sheet's own
-      // backdrop landed on top of the "Marked sold · Undo" toast on Android,
-      // and tapping where Undo used to be just dismissed the sheet instead.
-      //
-      // This was already caught once (QA run-019) and "fixed" by deleting
-      // the toast assertion from the Maestro flow — which is exactly how
-      // SF-M5 got built with its Undo hanging on a toast nothing had
-      // confirmed was reachable. Not repeating that: instead of racing the
-      // sheet against the toast, the review invite now WAITS for the toast
-      // to finish its own lifecycle (auto-close after its duration, or a
-      // manual swipe-dismiss) before it opens — so Undo always gets the
-      // toast to itself first, on every platform. `reviewOpened` guards
-      // against firing twice (sonner-native can call onAutoClose AND
-      // onDismiss for the same toast); `undone` cancels the invite entirely
-      // if the seller actually used Undo before the toast went away — the
-      // sale it would invite a review for no longer exists.
-      let undone = false;
-      let reviewOpened = false;
-      const openReviewIfDue = () => {
-        if (reviewOpened || undone || !buyer || !data.transaction) return;
-        reviewOpened = true;
-        setReviewPrompt({
-          transactionId: data.transaction.id,
-          buyerName: buyer.name,
-          buyerAvatarUrl: buyer.avatarUrl,
-        });
-      };
-
-      toast.success(
-        t("listing.markSoldSuccess"),
-        soldTransactionId
-          ? {
-              action: {
-                label: t("common.undo"),
-                onClick: () => {
-                  undone = true;
-                  undoMarkSold.mutate(soldTransactionId);
-                },
-              },
-              onAutoClose: openReviewIfDue,
-              onDismiss: openReviewIfDue,
-            }
-          : undefined
-      );
-
-      // No transaction id means no Undo action was ever offered (SF-B3 says
-      // this shouldn't happen, but stays defensive) — nothing can occlude a
-      // toast that carries no action, so there is no reason to wait for it.
-      if (!soldTransactionId) openReviewIfDue();
-    },
-    onError: (err) => toast.error(apiErrorMessage(err, t)),
-  });
-
-  // SF-M5 — the "Undo" toast action's side effect. Same DELETE the Sales
-  // screen's own row Delete button calls (`transactionsAPI.deleteTransaction`)
-  // — one void path, not two. Restores stock and, if this sale had sold the
-  // listing out, flips it back to `active` server-side; both are already
-  // covered by `invalidateAll`'s refetch.
-  const undoMarkSold = useMutation({
-    mutationFn: (transactionId: number) => transactionsAPI.deleteTransaction(transactionId),
-    onSuccess: () => {
-      invalidateAll();
-      toast.success(t("listing.sale.voidedSuccess"));
-    },
     onError: (err) => toast.error(apiErrorMessage(err, t)),
   });
 
@@ -359,7 +287,7 @@ export function useListingLifecycle({
 
   const isBusy =
     publish.isPending ||
-    markSold.isPending ||
+    isMarkSoldSubmitting ||
     unpublish.isPending ||
     releaseHold.isPending ||
     renew.isPending ||
@@ -439,9 +367,9 @@ export function useListingLifecycle({
 
   const handleBuyerPickerConfirm = useCallback(
     (result: BuyerPickerResult) => {
-      if (buyerPickerAction === "sold") markSold.mutate(result);
+      if (buyerPickerAction === "sold") triggerMarkSold(result);
     },
-    [buyerPickerAction, markSold]
+    [buyerPickerAction, triggerMarkSold]
   );
 
   const handleUnpublish = useCallback(() => {
@@ -625,18 +553,15 @@ export function useListingLifecycle({
       action: "sold",
       onClose: () => setBuyerPickerAction(null),
       onConfirm: handleBuyerPickerConfirm,
-      isSubmitting: markSold.isPending,
+      isSubmitting: isMarkSoldSubmitting,
       // The sheet only asks "how many?" when this is > 1, so nothing changes for
       // the single-item case. Falls back to 1 rather than availableUnitsOf's 0
       // for a listing that hasn't loaded — 0 would be read as "sold out".
       remainingQuantity: listing ? availableUnitsOf(listing) : 1,
     },
-    reviewPrompt: {
-      visible: reviewPrompt !== null,
-      transactionId: reviewPrompt?.transactionId ?? 0,
-      buyerName: reviewPrompt?.buyerName ?? "",
-      buyerAvatarUrl: reviewPrompt?.buyerAvatarUrl ?? null,
-      onClose: () => setReviewPrompt(null),
-    },
+    // QA-BUG5: sourced straight from the shared `useMarkSoldWithUndo` hook —
+    // same shape (`ListingLifecycleReviewPrompt`), so no other caller of this
+    // hook (MyListingDetail, SellerListingCard) needs to change at all.
+    reviewPrompt,
   };
 }

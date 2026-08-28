@@ -18,6 +18,17 @@
  * TASK-N071: when `listing.negotiable === false` and the current user
  * is NOT the owner, a quiet "Firm price" pill is shown and the offer
  * affordance in the conversation is suppressed.
+ *
+ * QA-BUG5 (FlowApp #303): the mark-sold confirm here used to call
+ * `listingsAPI.markSold` directly and raise its OWN plain success toast —
+ * no Undo action at all, unlike the listing screens' `useListingLifecycle`,
+ * whose "Marked sold · Undo" (SF-M5) this component never got. Since the
+ * Sell Flow Redesign made chat a PRIMARY selling surface (the buyer is
+ * already known here — this is the shortest real path to a sale), the path
+ * most likely to be used was the one with no way back from a mistake. Now
+ * calls the shared `useMarkSoldWithUndo` hook — the exact same mutation,
+ * toast, Undo, and QA-BUG2 toast-before-review-prompt sequencing
+ * `useListingLifecycle` uses — instead of a second copy of any of it.
  */
 import React, { useState } from "react";
 import { View, Pressable, ActivityIndicator } from "react-native";
@@ -33,8 +44,8 @@ import { BuyerPickerSheet, type BuyerPickerResult } from "@/components/common/Bu
 import { ReviewPromptSheet } from "@/components/common/ReviewPromptSheet";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
-import { listingsAPI } from "@/api/listings";
-import { toast } from "@/lib/toast";
+import { useMarkSoldWithUndo } from "@/hooks/useMarkSoldWithUndo";
+import { apiErrorMessage } from "@/utils/apiError";
 
 interface ListingInfo {
   id: number;
@@ -102,20 +113,29 @@ export function ListingHeader({ listing, onPress, isOwner = false, buyer = null,
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
-  const [isLifecycleLoading, setIsLifecycleLoading] = useState(false);
   // SF-M2: whether the (always "Mark sold" now) confirm sheet is open.
   const [markSoldVisible, setMarkSoldVisible] = useState(false);
+
+  // QA-BUG5 — the ONE mark-sold mutation, Undo toast, and QA-BUG2
+  // toast-before-review-prompt sequencing, shared with `useListingLifecycle`.
+  const {
+    markSoldAsync,
+    isSubmitting: isLifecycleLoading,
+    error: markSoldError,
+    resetError: resetMarkSoldError,
+    reviewPrompt,
+  } = useMarkSoldWithUndo({
+    listingId: listing.id,
+    onChange: () => {
+      setMarkSoldVisible(false);
+      onLifecycleDone?.();
+    },
+  });
   // Review fix (MEDIUM, ERROR FEEDBACK) — same reasoning as
   // reserveAfterAccept.ts / Conversation.tsx's `reserveConfirmError`: the
   // sheet's own raw RN <Modal> occludes the sonner-native toast on Android,
   // so a failure needs a signal INSIDE the sheet too.
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  // REV2: after a sold sale records a real buyer, prompt the seller to rate them.
-  const [reviewPrompt, setReviewPrompt] = useState<{
-    transactionId: number;
-    buyerName: string;
-    buyerAvatarUrl: string | null;
-  } | null>(null);
+  const errorMessage = markSoldError ? apiErrorMessage(markSoldError, t) : null;
 
   const validStatuses: ListingStatus[] = ["draft", "active", "reserved", "sold"];
   const status = validStatuses.includes(listing.status as ListingStatus)
@@ -141,30 +161,19 @@ export function ListingHeader({ listing, onPress, isOwner = false, buyer = null,
     status !== "reserved" &&
     status !== "sold";
 
+  // QA-BUG5: the mutation, its "Marked sold · Undo" toast, and the REV2
+  // review-prompt invite (deferred until that toast's own lifecycle
+  // finishes, per QA-BUG2) all happen INSIDE `useMarkSoldWithUndo` — this
+  // handler only needs to know success/failure, to keep its own sheet open
+  // for a retry on error. `markSoldAsync`'s rejection is already surfaced
+  // (globally via `toast.error`, and inline via `markSoldError` above); the
+  // empty catch here just stops it becoming an unhandled rejection.
   const handleMarkSoldConfirm = async (result: BuyerPickerResult) => {
-    setIsLifecycleLoading(true);
-    setErrorMessage(null);
     try {
-      const soldData = await listingsAPI.markSold(listing.id, result);
-      toast.success(t("chat.listingActions.markSoldSuccess"));
-      // REV2: a recorded buyer means a real sold Transaction exists —
-      // invite the seller to rate them right away (double-blind, hidden
-      // until the buyer reviews back too).
-      if (soldData.transaction?.buyer) {
-        setReviewPrompt({
-          transactionId: soldData.transaction.id,
-          buyerName: soldData.transaction.buyer.name,
-          buyerAvatarUrl: soldData.transaction.buyer.avatarUrl,
-        });
-      }
-      setMarkSoldVisible(false);
-      onLifecycleDone?.();
+      await markSoldAsync(result);
     } catch {
-      const message = t("chat.listingActions.markSoldFailed");
-      toast.error(message);
-      setErrorMessage(message);
-    } finally {
-      setIsLifecycleLoading(false);
+      // Sheet stays open — `errorMessage` (derived from `markSoldError`)
+      // renders inline above the footer.
     }
   };
 
@@ -251,7 +260,7 @@ export function ListingHeader({ listing, onPress, isOwner = false, buyer = null,
               if (e && typeof e.stopPropagation === "function") {
                 e.stopPropagation();
               }
-              setErrorMessage(null);
+              resetMarkSoldError();
               setMarkSoldVisible(true);
             }}
             disabled={isLifecycleLoading}
@@ -327,7 +336,7 @@ export function ListingHeader({ listing, onPress, isOwner = false, buyer = null,
           picker: the buyer is who the seller is already talking to. */}
       <BuyerPickerSheet
         visible={markSoldVisible}
-        onClose={() => { setMarkSoldVisible(false); setErrorMessage(null); }}
+        onClose={() => { setMarkSoldVisible(false); resetMarkSoldError(); }}
         listingId={listing.id}
         price={listing.price ?? 0}
         currency={listing.currency ?? "AFN"}
@@ -339,14 +348,16 @@ export function ListingHeader({ listing, onPress, isOwner = false, buyer = null,
         errorMessage={errorMessage}
       />
 
-      {/* REV2: rate the buyer right after a sold sale records them */}
+      {/* REV2: rate the buyer right after a sold sale records them — QA-BUG5:
+          sourced from the shared `useMarkSoldWithUndo` hook, same as
+          `useListingLifecycle`'s own reviewPrompt. */}
       <ReviewPromptSheet
-        visible={reviewPrompt !== null}
-        onClose={() => setReviewPrompt(null)}
-        transactionId={reviewPrompt?.transactionId ?? 0}
+        visible={reviewPrompt.visible}
+        onClose={reviewPrompt.onClose}
+        transactionId={reviewPrompt.transactionId}
         callerRole="seller"
-        counterpartyName={reviewPrompt?.buyerName ?? ""}
-        counterpartyAvatarUrl={reviewPrompt?.buyerAvatarUrl ?? null}
+        counterpartyName={reviewPrompt.buyerName}
+        counterpartyAvatarUrl={reviewPrompt.buyerAvatarUrl}
       />
     </View>
   );
