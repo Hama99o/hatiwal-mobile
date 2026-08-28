@@ -11,6 +11,8 @@
   "finalPricePerUnitHint": "The price for one item",
   "finalPricePlaceholder": "Listed price",
   "agreedPrice": "Agreed price",
+  "holdQuantityLabel": "How many are you holding?",
+  "quantityAtCapReason": "Only {{count}} left. Edit the listing if you have more.",
   "confirmReserve": "Confirm reserve",
   "confirmSold": "Confirm sold",
   "cancel": "Cancel",

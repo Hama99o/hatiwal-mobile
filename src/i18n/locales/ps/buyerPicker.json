@@ -11,6 +11,8 @@
   "finalPricePerUnitHint": "د یوې دانې بیه",
   "finalPricePlaceholder": "لیست شوې بیه",
   "agreedPrice": "موافقه شوې بیه",
+  "holdQuantityLabel": "تاسو څو دانې ساتئ؟",
+  "quantityAtCapReason": "یوازې {{count}} پاتې دي. که نور لرئ، اعلان سمول کړئ.",
   "confirmReserve": "ریزرو تایید کړئ",
   "confirmSold": "خرڅلاو تایید کړئ",
   "cancel": "لغوه کول",

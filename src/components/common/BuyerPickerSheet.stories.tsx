@@ -216,7 +216,7 @@ export const OpenConfirmModeSubmitting: Story = {
 // new questions.
 //
 // Pre-filled with ONE unit, not the whole remainder — see the field's own
-// `quantityText` doc in BuyerPickerSheet.tsx for why (a seller reported
+// `quantity` doc in BuyerPickerSheet.tsx for why (a seller reported
 // selling one item from a batch of 50 and watching the listing retire itself
 // with "0 of 50 left"). Selling out is now a deliberate typed choice.
 export const OpenSoldMultiUnit: Story = {
@@ -237,7 +237,10 @@ export const OpenSoldMultiUnit: Story = {
 };
 
 // The last two of a batch — the sale that will retire the listing (only if
-// the seller explicitly types "2").
+// the seller explicitly types "2". SF-M9 (FlowApp #298): tap "+" once in the
+// canvas after picking a buyer — the stepper's `+` disables and the at-cap
+// reason ("Only 2 left. Edit the listing if you have more.") appears, since
+// the ceiling here is only one tap away from the pre-filled "1".
 export const OpenSoldLastUnits: Story = {
   render: () => (
     <QueryClientProvider client={queryClient}>
@@ -315,6 +318,99 @@ export const OpenConfirmModeMultiUnitHold: Story = {
         listingThumbnailUrl={SAMPLE_THUMBNAIL}
         listingTitle="Box of 15 hand-woven coasters"
         confirmTitle="Place a hold for Ahmad Karimi?"
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};
+
+// ── SF-M9 (FlowApp #298): the at-cap reason ──────────────────────────────────
+//
+// Confirm mode is the fastest way to DEMONSTRATE the cap live: the stepper is
+// visible on open with no buyer-selection step first. `remainingQuantity: 2`
+// puts the ceiling one `+` tap away from the "1" pre-fill — tap it once (or
+// tap the number and type "9") in the canvas to watch the `+` button disable
+// and "Only 2 left. Edit the listing if you have more." appear underneath.
+export const OpenConfirmModeNearCap: Story = {
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={14000}
+        currency="AFN"
+        action="sold"
+        remainingQuantity={2}
+        preselectedBuyer={{ id: 42, name: "Ahmad Karimi", avatarUrl: null, verified: true, city: "Kandahar" }}
+        listingThumbnailUrl={SAMPLE_THUMBNAIL}
+        listingTitle="Box of 2 hand-woven coasters"
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};
+
+// Dark surface — verifies useColors() tokens (no hardcoded colors), same
+// convention as PriceDropBadge.stories.tsx's own dark stories. Tap "+" once
+// to reach the cap and see the reason render against the dark background.
+export const OpenConfirmModeNearCapDark: Story = {
+  decorators: [
+    (Story) => (
+      <View style={{ flex: 1, backgroundColor: "#0f172a" }}>
+        <Story />
+      </View>
+    ),
+  ],
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={14000}
+        currency="AFN"
+        action="sold"
+        remainingQuantity={2}
+        preselectedBuyer={{ id: 42, name: "Ahmad Karimi", avatarUrl: null, verified: true, city: "Kandahar" }}
+        listingThumbnailUrl={SAMPLE_THUMBNAIL}
+        listingTitle="Box of 2 hand-woven coasters"
+        onConfirm={() => {}}
+      />
+    </QueryClientProvider>
+  ),
+};
+
+// RTL (Pashto) — same real-i18n-flip decorator as `OpenConfirmModeRtl` above.
+// Tap "+" once to see the row mirror (`+`/`−` swap visual sides, not
+// meaning) and the Pashto at-cap reason (`buyerPicker.quantityAtCapReason`,
+// Arabic-Indic digit) render right-aligned.
+export const OpenConfirmModeNearCapRtl: Story = {
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("ps");
+      return <Story />;
+    },
+  ],
+  render: () => (
+    <QueryClientProvider client={queryClient}>
+      <BuyerPickerSheet
+        visible
+        onClose={() => {}}
+        listingId={1}
+        price={14000}
+        currency="AFN"
+        action="sold"
+        remainingQuantity={2}
+        preselectedBuyer={{
+          id: 42,
+          name: "احمد ولي محمد کریمي زی",
+          avatarUrl: null,
+          verified: true,
+          city: "کندهار",
+        }}
+        listingThumbnailUrl={null}
+        listingTitle="د لاسي جوړو ګلاسونو یوه بسته (۲ دانې)"
         onConfirm={() => {}}
       />
     </QueryClientProvider>

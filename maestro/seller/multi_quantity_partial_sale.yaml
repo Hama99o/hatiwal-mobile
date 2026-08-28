@@ -157,26 +157,33 @@ appId: com.hatiwal.app
 - tapOn: "Ahmad Karimi"
 - waitForAnimationToEnd
 
-# Pre-filled with the whole remainder, so "I sold the lot" stays one tap.
+# Pre-filled with ONE unit, not the whole remainder — selling out is a
+# deliberate typed choice (see `quantity`'s own doc in BuyerPickerSheet.tsx).
 - assertVisible:
     id: "buyer-picker-quantity"
-# The remainder is stated, so the number is never typed blind.
-- assertVisible: "15 available"
 # And the final-price field says out loud that it is per item.
 - assertVisible: "The price for one item"
 
-# Sell three of them.
-# Tapping selects the pre-filled value (selectTextOnFocus), so this REPLACES
-# the 15 rather than appending to it. run-018 proved the danger: without that,
-# "3" became "153", the clamp made it 15, and the whole batch sold.
+# Sell three of them. SF-M9 (FlowApp #298): the field is now the shared
+# QuantityStepper, not a raw Input — tap the tap-to-edit VALUE to swap in the
+# numeric Input (this REPLACES the pre-filled "1" via `selectTextOnFocus`,
+# hardcoded on the stepper's own internal Input — the same run-018 insert-vs-
+# replace protection the raw Input used to need explicitly), type "3", then
+# commit by tapping the sheet's own header title.
+#
+# NOT hideKeyboard to commit — it is Back on Android, and
+# multi_quantity_offplatform_sale.yaml documents it closing the SHEET rather
+# than the IME on this exact sheet. Tapping the header title dismisses the
+# IME/commits the edit with no key event at all.
 - tapOn:
-    id: "buyer-picker-quantity"
+    id: "buyer-picker-quantity-value"
+- eraseText
 - inputText: "3"
-- hideKeyboard
+- tapOn: "Who bought this item?"
 # Prove the field holds exactly 3 BEFORE confirming — this is the assertion that
 # would have caught run-018 at the point of failure instead of after the sale.
 - assertVisible:
-    id: "buyer-picker-quantity"
+    id: "buyer-picker-quantity-value"
     text: "3"
 
 - tapOn: "Confirm sold"

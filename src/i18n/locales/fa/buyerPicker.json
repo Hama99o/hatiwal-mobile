@@ -11,6 +11,8 @@
   "finalPricePerUnitHint": "قیمت یک عدد",
   "finalPricePlaceholder": "قیمت اعلان‌شده",
   "agreedPrice": "قیمت توافق‌شده",
+  "holdQuantityLabel": "چند عدد را نگه داشته‌اید؟",
+  "quantityAtCapReason": "فقط {{count}} عدد باقی مانده. اگر بیشتر دارید، آگهی را ویرایش کنید.",
   "confirmReserve": "تایید رزرو",
   "confirmSold": "تایید فروش",
   "cancel": "لغو",

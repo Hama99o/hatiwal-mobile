@@ -96,16 +96,26 @@ appId: com.hatiwal.app
 - assertNotVisible:
     id: "buyer-picker-final-price"
 
-# Sell 3 of the 8.
+# Sell 3 of the 8. SF-M9 (FlowApp #298): the field is now the shared
+# QuantityStepper, not a raw Input — tap the tap-to-edit VALUE to swap in the
+# numeric Input, type into THAT, then commit.
+#
+# NO hideKeyboard to commit. It is Back on Android, and here it closed the SHEET
+# rather than the IME: the hierarchy at the next step had no "Who bought this
+# item?", no buyer-picker-* and not even the detail screen's stock badge.
+# Tapping the sheet's own header title instead — a plain, always-on-screen Text
+# OUTSIDE the scrollable field — dismisses the IME/commits the edit with no key
+# event at all, the same safe pattern open_bundle.yaml's own "DISMISS THE
+# KEYBOARD BY TAPPING THE HEADER" note documents.
 - tapOn:
-    id: "buyer-picker-quantity"
+    id: "buyer-picker-quantity-value"
 - eraseText
 - inputText: "3"
-# NO hideKeyboard. It is Back on Android, and here it closed the SHEET rather than the
-# IME: the hierarchy at the next step had no "Who bought this item?", no buyer-picker-*
-# and not even the detail screen's stock badge. Confirming with the keyboard up is fine —
-# the sheet's button sits above it.
-- waitForAnimationToEnd
+- tapOn: "Who bought this item?"
+# Prove the field holds exactly 3 BEFORE confirming.
+- assertVisible:
+    id: "buyer-picker-quantity-value"
+    text: "3"
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
 

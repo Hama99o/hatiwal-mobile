@@ -9,6 +9,11 @@
  * src/__tests__/setup.ts (t(key) => key). `useLocalization` is re-mocked here
  * as a jest.fn() so individual tests can flip `isRtl` — mirrors
  * ExpiryBadge.test.tsx's own local override of a globally-mocked hook.
+ *
+ * SF-M9 (FlowApp #298) — `atMaxReason`: renders ONLY once `value` is
+ * actually AT `max`, never while there's still room, and never at all when
+ * the prop is omitted — the opt-in this ticket promised every pre-existing
+ * consumer (nothing here changes appearance unless a caller passes it).
  */
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react-native";
@@ -292,5 +297,83 @@ describe("QuantityStepper — accessibility", () => {
       min: 1,
       max: 10,
     });
+  });
+});
+
+// ─── SF-M9: atMaxReason ────────────────────────────────────────────────────
+
+describe("QuantityStepper — atMaxReason (SF-M9)", () => {
+  it("renders nothing when atMaxReason is omitted, even at max — every pre-SF-M9 consumer is unaffected", () => {
+    render(<QuantityStepper value={10} onChange={jest.fn()} max={10} testID="qty" />);
+    expect(screen.queryByTestId("qty-at-max-reason")).toBeNull();
+  });
+
+  it("renders nothing when below max, even if a reason is supplied", () => {
+    render(
+      <QuantityStepper value={3} onChange={jest.fn()} max={10} testID="qty" atMaxReason="Only 10 left." />
+    );
+    expect(screen.queryByTestId("qty-at-max-reason")).toBeNull();
+  });
+
+  it("renders the reason once value reaches max", () => {
+    render(
+      <QuantityStepper value={10} onChange={jest.fn()} max={10} testID="qty" atMaxReason="Only 10 left." />
+    );
+    expect(screen.getByTestId("qty-at-max-reason")).toBeTruthy();
+    expect(screen.getByText("Only 10 left.")).toBeTruthy();
+  });
+
+  it("renders the reason after a `+` tap lands exactly on max", () => {
+    const onChange = jest.fn();
+    const { rerender } = render(
+      <QuantityStepper value={9} onChange={onChange} max={10} testID="qty" atMaxReason="Only 10 left." />
+    );
+    expect(screen.queryByTestId("qty-at-max-reason")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("qty-increment"));
+    expect(onChange).toHaveBeenCalledWith(10);
+    rerender(
+      <QuantityStepper value={10} onChange={onChange} max={10} testID="qty" atMaxReason="Only 10 left." />
+    );
+    expect(screen.getByTestId("qty-at-max-reason")).toBeTruthy();
+  });
+
+  it("renders the reason after a typed over-max value is clamped on commit — the cap holds AND is explained", () => {
+    const onChange = jest.fn();
+    const { rerender } = render(
+      <QuantityStepper value={3} onChange={onChange} max={10} testID="qty" atMaxReason="Only 10 left." />
+    );
+
+    fireEvent.press(screen.getByTestId("qty-value"));
+    fireEvent.changeText(screen.getByTestId("qty-input"), "153");
+    fireEvent(screen.getByTestId("qty-input"), "submitEditing");
+
+    expect(onChange).toHaveBeenCalledWith(10);
+    rerender(
+      <QuantityStepper value={10} onChange={onChange} max={10} testID="qty" atMaxReason="Only 10 left." />
+    );
+    expect(screen.getByTestId("qty-at-max-reason")).toBeTruthy();
+  });
+
+  it("hides the reason again once value drops back below max", () => {
+    const { rerender } = render(
+      <QuantityStepper value={10} onChange={jest.fn()} max={10} testID="qty" atMaxReason="Only 10 left." />
+    );
+    expect(screen.getByTestId("qty-at-max-reason")).toBeTruthy();
+
+    rerender(
+      <QuantityStepper value={9} onChange={jest.fn()} max={10} testID="qty" atMaxReason="Only 10 left." />
+    );
+    expect(screen.queryByTestId("qty-at-max-reason")).toBeNull();
+  });
+
+  it("hides the reason while the value is mid-edit, even if the draft reads over max — the reason describes the COMMITTED ceiling, not a keystroke in progress", () => {
+    render(
+      <QuantityStepper value={10} onChange={jest.fn()} max={10} testID="qty" atMaxReason="Only 10 left." />
+    );
+    expect(screen.getByTestId("qty-at-max-reason")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("qty-value"));
+    expect(screen.queryByTestId("qty-at-max-reason")).toBeNull();
   });
 });

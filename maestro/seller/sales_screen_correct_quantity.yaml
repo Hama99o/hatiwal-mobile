@@ -112,11 +112,18 @@ appId: com.hatiwal.app
     visible:
       id: "buyer-picker-quantity"
     timeout: 15000
+# SF-M9 (FlowApp #298): the field is now the shared QuantityStepper — tap the
+# tap-to-edit VALUE to swap in the numeric Input, type into THAT, then commit
+# by tapping the sheet's own header title (no hideKeyboard/Back — see
+# multi_quantity_offplatform_sale.yaml's own note for why).
 - tapOn:
-    id: "buyer-picker-quantity"
+    id: "buyer-picker-quantity-value"
 - eraseText
 - inputText: "3"
-- waitForAnimationToEnd
+- tapOn: "Who bought this item?"
+- assertVisible:
+    id: "buyer-picker-quantity-value"
+    text: "3"
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
 

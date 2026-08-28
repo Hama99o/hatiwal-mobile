@@ -135,3 +135,51 @@ export const AllStates: Story = {
     </View>
   ),
 };
+
+// ── SF-M9 (FlowApp #298): atMaxReason ────────────────────────────────────────
+//
+// `BuyerPickerSheet` is consumer #1: the ceiling is stated, not just enforced
+// — "Only 15 left. Edit the listing if you have more." — the moment the
+// seller reaches it (never before, and never while mid-edit). Optional: every
+// OTHER consumer that never passes it (SaleRowEditSheet, ListingDetail as of
+// this ticket) renders exactly as before.
+
+export const AtCapWithReason: Story = {
+  render: () => (
+    <View style={{ gap: 6, alignItems: "flex-start" }}>
+      <Text style={{ fontSize: 12, fontWeight: "600", opacity: 0.7 }}>How many did you sell?</Text>
+      <StepperWrapper initial={15} max={15} atMaxReason="Only 15 left. Edit the listing if you have more." />
+    </View>
+  ),
+};
+
+// Dark surface — verifies useColors() tokens (no hardcoded colors), same
+// convention as PriceDropBadge.stories.tsx's own dark stories.
+export const AtCapWithReasonDark: Story = {
+  decorators: [
+    (Story) => (
+      <View style={{ padding: 16, backgroundColor: "#0f172a" }}>
+        <Story />
+      </View>
+    ),
+  ],
+  render: () => <StepperWrapper initial={15} max={15} atMaxReason="Only 15 left. Edit the listing if you have more." />,
+};
+
+// RTL (Pashto) — same real-i18n-flip pattern as `RtlPashto` above; the reason
+// text itself is caller-supplied (BuyerPickerSheet's own translated string),
+// so this story passes the actual Pashto copy rather than the English one.
+export const AtCapWithReasonRtlPashto: Story = {
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("ps");
+      return <Story />;
+    },
+  ],
+  render: () => (
+    <View style={{ gap: 6, alignItems: "flex-end" }}>
+      <Text style={{ fontSize: 12, fontWeight: "600", opacity: 0.7 }}>څو دانې مو وپلورلې؟</Text>
+      <StepperWrapper initial={15} max={15} atMaxReason="یوازې ۱۵ پاتې دي. که نور لرئ، اعلان سمول کړئ." />
+    </View>
+  ),
+};

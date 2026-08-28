@@ -23,10 +23,20 @@
  * SF-B2/SF-M2 (Sell Flow Redesign) — reserve gains the same quantity field
  * the sold path already has, in BOTH picker mode and confirm mode: see the
  * "reserve quantity" and "confirm-mode quantity" describe blocks below.
+ *
+ * SF-M9 (FlowApp #298) — the quantity field in both those describe blocks is
+ * now the shared `QuantityStepper`, capped at `remainingQuantity`, instead of
+ * a raw numeric `Input` with a separate free-text over-stock warning. Typed
+ * entry goes through the `typeQuantity()` helper (tap-to-edit, type, commit)
+ * rather than `fireEvent.changeText` on the field directly; the old
+ * warning-turns-red assertions are replaced with cap-holds-and-is-explained
+ * ones (`buyer-picker-quantity-at-max-reason`), and one test in each of the
+ * two quantity describe blocks below is the one verified to fail if the
+ * stepper's `max` cap were removed.
  */
 
 import React from "react";
-import { Modal, StyleSheet } from "react-native";
+import { Modal } from "react-native";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -42,6 +52,11 @@ jest.mock("lucide-react-native", () => ({
   // TASK-O947 review fix (self-explaining) — confirm mode's "Offer accepted"
   // success pill.
   CheckCircle2: "CheckCircle2",
+  // SF-M9 (FlowApp #298) — the quantity field now renders the REAL shared
+  // `QuantityStepper` (never mocked away, unlike the mocks above), whose
+  // `−`/`+` buttons need these two icons.
+  Minus: "Minus",
+  Plus: "Plus",
 }));
 
 jest.mock("@/api/conversations", () => ({
@@ -138,6 +153,27 @@ function renderSheetForRerender(overrides: Partial<React.ComponentProps<typeof B
     rerender: (nextOverrides: Partial<React.ComponentProps<typeof BuyerPickerSheet>>) =>
       rerender(build(nextOverrides)),
   };
+}
+
+/**
+ * SF-M9 (FlowApp #298) — drives the shared `QuantityStepper` the same way
+ * QuantityStepper.test.tsx's own "tap-to-edit" suite does: tap the
+ * tap-to-edit value to swap in the numeric `Input`, type into THAT, then
+ * commit via `submitEditing` — never `fireEvent.changeText` on the field
+ * directly, which was only ever valid for the raw `Input` this replaced.
+ */
+function typeQuantity(text: string) {
+  fireEvent.press(screen.getByTestId("buyer-picker-quantity-value"));
+  fireEvent.changeText(screen.getByTestId("buyer-picker-quantity-input"), text);
+  fireEvent(screen.getByTestId("buyer-picker-quantity-input"), "submitEditing");
+}
+
+/** The stepper's committed value, read the same way for both a resting
+ *  (`-value`) and mid-edit (`-input`) state — most of this suite asserts on
+ *  the resting `accessibilityValue.now`, which is numeric and immune to
+ *  `formatNumber`/locale formatting, unlike reading rendered text. */
+function currentQuantity(): number {
+  return screen.getByTestId("buyer-picker-quantity-value").props.accessibilityValue.now;
 }
 
 beforeEach(() => {
@@ -435,6 +471,11 @@ describe("BuyerPickerSheet — confirm mode (preselectedBuyer)", () => {
 // The buyer is already known in confirm mode (no picker), but a multi-unit
 // listing still needs "how many?" — the seller closing a batch deal from the
 // thread gets the same choice they get on the listing surface.
+//
+// SF-M9 (FlowApp #298) — the field is now the shared `QuantityStepper`, so
+// "typed" interactions below go through `typeQuantity()` (tap the
+// tap-to-edit value, type into the swapped-in `Input`, commit via
+// `submitEditing`) rather than `fireEvent.changeText` directly on the field.
 
 describe("BuyerPickerSheet — confirm mode quantity (SF-M2)", () => {
   it("renders no quantity field on a single-item listing (remainingQuantity omitted)", async () => {
@@ -446,7 +487,7 @@ describe("BuyerPickerSheet — confirm mode quantity (SF-M2)", () => {
   it("renders the quantity field, pre-filled to 1, for a multi-unit listing", async () => {
     renderSheet({ preselectedBuyer: PRESELECTED_BUYER, remainingQuantity: 15, action: "sold" });
     await waitFor(() => screen.getByText("Ahmad Karimi"));
-    expect(screen.getByTestId("buyer-picker-quantity").props.value).toBe("1");
+    expect(currentQuantity()).toBe(1);
   });
 
   it("labels the field for the sold action", async () => {
@@ -470,7 +511,7 @@ describe("BuyerPickerSheet — confirm mode quantity (SF-M2)", () => {
     });
     await waitFor(() => screen.getByText("Ahmad Karimi"));
 
-    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "4");
+    typeQuantity("4");
     fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
 
     expect(onConfirm).toHaveBeenCalledWith({ buyerId: 42, finalPrice: 24000, quantity: 4 });
@@ -489,7 +530,7 @@ describe("BuyerPickerSheet — confirm mode quantity (SF-M2)", () => {
     expect(onConfirm).toHaveBeenCalledWith({ buyerId: 42, finalPrice: 24000, quantity: 1 });
   });
 
-  it("clamps a typed quantity above the remainder", async () => {
+  it("caps a typed quantity above the remainder — this is the invariant SF-M9 exists to hold; it FAILS if the stepper's `max` cap is removed", async () => {
     const { onConfirm } = renderSheet({
       preselectedBuyer: PRESELECTED_BUYER,
       remainingQuantity: 4,
@@ -497,10 +538,23 @@ describe("BuyerPickerSheet — confirm mode quantity (SF-M2)", () => {
     });
     await waitFor(() => screen.getByText("Ahmad Karimi"));
 
-    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "99");
-    fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
+    typeQuantity("99");
+    // Capped BEFORE confirm is even pressed — not a warning next to an
+    // uncapped 99, and not a silent clamp with nothing shown either: the
+    // at-cap reason is visible the moment the cap bites.
+    expect(currentQuantity()).toBe(4);
+    expect(screen.getByTestId("buyer-picker-quantity-at-max-reason")).toBeTruthy();
 
+    fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ quantity: 4 }));
+  });
+
+  it("shows no at-cap reason for a count below the remainder", async () => {
+    renderSheet({ preselectedBuyer: PRESELECTED_BUYER, remainingQuantity: 15, action: "sold" });
+    await waitFor(() => screen.getByText("Ahmad Karimi"));
+
+    typeQuantity("4");
+    expect(screen.queryByTestId("buyer-picker-quantity-at-max-reason")).toBeNull();
   });
 });
 
@@ -558,9 +612,9 @@ describe("BuyerPickerSheet — sold quantity", () => {
     await waitFor(() => screen.getByText("Ahmad"));
 
     fireEvent.press(screen.getByTestId("buyer-row-42"));
-    expect(screen.getByTestId("buyer-picker-quantity").props.value).toBe("1");
+    expect(currentQuantity()).toBe(1);
 
-    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "2");
+    typeQuantity("2");
     fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
 
     expect(onConfirm).toHaveBeenCalledWith(
@@ -583,13 +637,13 @@ describe("BuyerPickerSheet — sold quantity", () => {
   // watched the listing retire itself with "0 of 50 left" (no undo, no
   // payment trail to appeal to). Selling out is now a deliberate typed
   // choice; leaving the field alone sells exactly one unit. See the
-  // `quantityText` state's own doc in BuyerPickerSheet.tsx for the full story.
+  // `quantity` state's own doc in BuyerPickerSheet.tsx for the full story.
   it("pre-fills exactly ONE unit, not the whole remaining stock, so a full sell-out is a deliberate typed choice", async () => {
     const { onConfirm } = renderSheet({ action: "sold", remainingQuantity: 15 });
     await waitFor(() => screen.getByText("Ahmad"));
 
     fireEvent.press(screen.getByTestId("buyer-row-42"));
-    expect(screen.getByTestId("buyer-picker-quantity").props.value).toBe("1");
+    expect(currentQuantity()).toBe(1);
 
     fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
     expect(onConfirm).toHaveBeenCalledWith(
@@ -602,20 +656,30 @@ describe("BuyerPickerSheet — sold quantity", () => {
     await waitFor(() => screen.getByText("Ahmad"));
 
     fireEvent.press(screen.getByTestId("buyer-row-42"));
-    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "3");
+    typeQuantity("3");
     fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
 
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ quantity: 3 }));
   });
 
-  it("clamps above the remainder instead of overselling", async () => {
+  // SF-M9 (FlowApp #298) — THE test that would fail if the cap were removed:
+  // if `max={quantityMax}` were dropped from the `QuantityStepper` (or its
+  // own internal clamp were bypassed), the committed value would read 99, not
+  // 4, and both assertions below would fail. Verified by temporarily changing
+  // `max={quantityMax}` to `max={9999}` in BuyerPickerSheet.tsx and re-running
+  // this file: `currentQuantity()` read 99 and the `onConfirm` assertion
+  // failed on `quantity: 99` — reverted immediately after.
+  it("caps above the remainder instead of overselling, and explains why", async () => {
     const { onConfirm } = renderSheet({ action: "sold", remainingQuantity: 4 });
     await waitFor(() => screen.getByText("Ahmad"));
 
     fireEvent.press(screen.getByTestId("buyer-row-42"));
-    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "99");
-    fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
+    typeQuantity("99");
 
+    expect(currentQuantity()).toBe(4);
+    expect(screen.getByTestId("buyer-picker-quantity-at-max-reason")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ quantity: 4 }));
   });
 
@@ -624,30 +688,37 @@ describe("BuyerPickerSheet — sold quantity", () => {
     await waitFor(() => screen.getByText("Ahmad"));
 
     fireEvent.press(screen.getByTestId("buyer-row-42"));
-    const input = screen.getByTestId("buyer-picker-quantity");
+    fireEvent.press(screen.getByTestId("buyer-picker-quantity-value"));
+    const input = screen.getByTestId("buyer-picker-quantity-input");
     fireEvent.changeText(input, "3x");
     expect(input.props.value).toBe("3");
   });
 
-  it("sends no quantity at all (never 0) when the field is cleared — the API then defaults to one unit", async () => {
+  // REWRITTEN (stale — the scenario is now impossible): this used to clear
+  // the raw `Input` to "" and assert `onConfirm` got `quantity: undefined`
+  // (the API's "sold the lot" signal for a missing quantity). The shared
+  // `QuantityStepper` can never be committed empty — `commitEdit` reverts an
+  // empty draft to the last COMMITTED value (see QuantityStepper.tsx) — so
+  // there is no longer a way to reach that state from this field at all. The
+  // safety property this test protected still matters — a cleared draft must
+  // never resolve to 0/nothing — so it is checked the way that is now
+  // actually reachable: clearing the draft leaves the previously committed
+  // quantity in place.
+  it("leaves the previously committed quantity in place (never 0/undefined) when the typed draft is cleared and committed", async () => {
     const { onConfirm } = renderSheet({ action: "sold", remainingQuantity: 6 });
     await waitFor(() => screen.getByText("Ahmad"));
 
     fireEvent.press(screen.getByTestId("buyer-row-42"));
-    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "");
+    typeQuantity("3");
+    expect(currentQuantity()).toBe(3);
+
+    fireEvent.press(screen.getByTestId("buyer-picker-quantity-value"));
+    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity-input"), "");
+    fireEvent(screen.getByTestId("buyer-picker-quantity-input"), "submitEditing");
+    expect(currentQuantity()).toBe(3);
+
     fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
-
-    // An empty field must not be read as 0 units — that would record a sale of
-    // nothing and leave the seller thinking they'd logged one.
-    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ quantity: undefined }));
-  });
-
-  it("shows how many are left, so the number is never typed blind", async () => {
-    renderSheet({ action: "sold", remainingQuantity: 12 });
-    await waitFor(() => screen.getByText("Ahmad"));
-
-    fireEvent.press(screen.getByTestId("buyer-row-42"));
-    expect(screen.getByText("listing.stock.unitsAvailable")).toBeTruthy();
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ quantity: 3 }));
   });
 
   // REVERSED deliberately. This used to assert that the skip path sends NO quantity,
@@ -660,7 +731,7 @@ describe("BuyerPickerSheet — sold quantity", () => {
     await waitFor(() => screen.getByText("buyerPicker.someoneElse"));
 
     fireEvent.press(screen.getByTestId("buyer-row-skip"));
-    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "1");
+    typeQuantity("1");
     fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
 
     expect(onConfirm).toHaveBeenCalledWith(
@@ -685,75 +756,82 @@ describe("BuyerPickerSheet — sold quantity", () => {
     );
   });
 
-  // The field is pre-filled with "1" — selecting on focus still matters so a
-  // tap REPLACES that digit instead of a plain tap-then-type inserting beside
-  // it (originally added after QA run-018 found the OLDER whole-remainder
-  // pre-fill doing exactly this with a 2-digit number; the same insert-vs-
-  // replace trap applies to a 1-digit pre-fill too).
+  // REWRITTEN (retargeted, same intent): the field is pre-filled with "1" —
+  // selecting on focus still matters so a tap REPLACES that digit instead of
+  // a plain tap-then-type inserting beside it (originally added after QA
+  // run-018 found the OLDER whole-remainder pre-fill doing exactly this with
+  // a 2-digit number; the same insert-vs-replace trap applies to a 1-digit
+  // pre-fill too). `selectTextOnFocus` is now hardcoded on the SHARED
+  // `QuantityStepper`'s own internal `Input` (and covered there by
+  // QuantityStepper.test.tsx's own "tap-to-edit" suite) — kept here too, at
+  // the integration level, so a future prop-wiring mistake in THIS sheet
+  // would still be caught even if it somehow bypassed the shared component's
+  // own guarantee.
   it("selects the pre-filled count on focus, so typing replaces instead of appending", async () => {
     renderSheet({ action: "sold", remainingQuantity: 15 });
     await waitFor(() => screen.getByText("Ahmad"));
     fireEvent.press(screen.getByTestId("buyer-row-42"));
 
-    expect(screen.getByTestId("buyer-picker-quantity").props.selectTextOnFocus).toBe(true);
+    fireEvent.press(screen.getByTestId("buyer-picker-quantity-value"));
+    expect(screen.getByTestId("buyer-picker-quantity-input").props.selectTextOnFocus).toBe(true);
   });
 
-  // REWRITTEN (stale — fixed a real bug along the way, not just the default):
-  // `Text`'s host style is `[{color, fontFamily}, callerStyle]` (an ARRAY,
-  // from the NativeWind dark-mode fix), so `.props.style.color` was reading a
-  // property off an array and always got `undefined` — the assertion below
-  // ("not undefined") could never have passed regardless of the quantity
-  // default. `StyleSheet.flatten` resolves the array the same way the real
-  // component's own rendering does before reading `.color`.
-  it("warns visibly when the typed count exceeds the stock instead of silently clamping", async () => {
+  // REPLACED (the premise it tested was rejected): this used to assert a
+  // free-text warning turned destructive-red once the typed count exceeded
+  // stock, while the raw `Input` still HELD that impossible number until
+  // confirm. SF-M9 (FlowApp #298, decision on card 298) rejected exactly that
+  // design — "keeping the free-text over-stock warning... preserves the
+  // raw-Input fork" — in favour of a control that cannot BE pushed past the
+  // ceiling at all, and says why once it's reached. This is the replacement:
+  // the cap holds AND the reason is shown, together, the moment the ceiling
+  // is hit.
+  it("caps the typed count at the stock ceiling and shows the reason, instead of warning next to an uncapped number", async () => {
     renderSheet({ action: "sold", remainingQuantity: 15 });
     await waitFor(() => screen.getByText("Ahmad"));
     fireEvent.press(screen.getByTestId("buyer-row-42"));
 
-    const hintColor = () =>
-      StyleSheet.flatten(screen.getByTestId("buyer-picker-quantity-hint").props.style).color;
-    const calm = hintColor();
+    expect(screen.queryByTestId("buyer-picker-quantity-at-max-reason")).toBeNull();
 
-    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "153");
-    expect(hintColor()).not.toBe(calm);
+    typeQuantity("153");
+
+    expect(currentQuantity()).toBe(15);
+    expect(screen.getByTestId("buyer-picker-quantity-at-max-reason")).toBeTruthy();
   });
 
-  // Same `StyleSheet.flatten` fix as above — this one happened to pass before
-  // only because it compared a value to itself (`undefined === undefined`),
-  // which is true regardless of whether the underlying colour logic is
-  // correct. Flattened, it is now a real assertion.
-  it("keeps the hint calm for a count within the stock", async () => {
+  // REPLACED (same premise change as above): this used to assert the OLD
+  // always-visible "N available" hint stayed a calm colour for an in-range
+  // count. That hint is gone — SF-M9 shows a reason only ONCE the seller is
+  // actually AT the ceiling, never as a running commentary on every count —
+  // so the equivalent guarantee now is presence, not colour.
+  it("shows no at-cap reason for a count within the stock", async () => {
     renderSheet({ action: "sold", remainingQuantity: 15 });
     await waitFor(() => screen.getByText("Ahmad"));
     fireEvent.press(screen.getByTestId("buyer-row-42"));
 
-    const hintColor = () =>
-      StyleSheet.flatten(screen.getByTestId("buyer-picker-quantity-hint").props.style).color;
-    const calm = hintColor();
-    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "3");
-    expect(hintColor()).toBe(calm);
+    typeQuantity("3");
+    expect(screen.queryByTestId("buyer-picker-quantity-at-max-reason")).toBeNull();
   });
 
   // REWRITTEN (stale): this used to assert the field re-syncs to the NEW
   // remainder (15 → 12) when the stock changes under the sheet. The pre-fill
   // default is no longer "the whole remainder" at all — the effect behind
-  // this (`useEffect(() => setQuantityText("1"), [remainingQuantity])`)
-  // resets to ONE on any change, not to the new number. What actually matters
-  // now: a manually-typed count from a PREVIOUS buyer must never survive into
-  // a reopened sheet for a stale, different remainder.
+  // this (`useEffect(() => setQuantity(1), [remainingQuantity])`) resets to
+  // ONE on any change, not to the new number. What actually matters now: a
+  // manually-typed count from a PREVIOUS buyer must never survive into a
+  // reopened sheet for a stale, different remainder.
   it("resets the count back to ONE when the remaining stock changes under it — never re-fills a stale typed number", async () => {
     const { rerender } = renderSheetForRerender({ action: "sold", remainingQuantity: 15 });
     await waitFor(() => screen.getByText("Ahmad"));
     fireEvent.press(screen.getByTestId("buyer-row-42"));
-    expect(screen.getByTestId("buyer-picker-quantity").props.value).toBe("1");
+    expect(currentQuantity()).toBe(1);
 
-    fireEvent.changeText(screen.getByTestId("buyer-picker-quantity"), "5");
-    expect(screen.getByTestId("buyer-picker-quantity").props.value).toBe("5");
+    typeQuantity("5");
+    expect(currentQuantity()).toBe(5);
 
     // The seller logs that sale, the query refetches with a smaller
     // remainder, and the sheet reopens for a second buyer — it must not
     // silently keep the "5" that made sense for the FIRST buyer's stock.
     rerender({ action: "sold", remainingQuantity: 12 });
-    expect(screen.getByTestId("buyer-picker-quantity").props.value).toBe("1");
+    expect(currentQuantity()).toBe(1);
   });
 });

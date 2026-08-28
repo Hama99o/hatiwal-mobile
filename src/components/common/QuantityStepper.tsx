@@ -25,6 +25,18 @@
  * reserve quantity field, the chat "Mark sold"/"Place a hold" quantity, the
  * Sales edit sheet's quantity (SF-M5), and the buyer-side `ListingDetail`
  * stepper (SF-M6) — one component, every call site, never forked.
+ *
+ * SF-M9 (FlowApp #298) — optional `atMaxReason`: this control has always
+ * clamped silently at `max`; what it never did was SAY why, which is exactly
+ * the standing complaint that killed both alternatives considered for
+ * `BuyerPickerSheet`'s over-stock case (a free-text warning that forked this
+ * component, and clamping with no explanation at all). `atMaxReason` renders
+ * a small caption under the row, but ONLY once the value is actually AT
+ * `max` — never while there's still room to grow — so a caller that never
+ * passes it (every consumer as of SF-M6) renders byte-for-byte what it did
+ * before. The caller owns the copy (and its own `t()`/`formatNumber()`
+ * interpolation) because "why" differs by context — a seller can "edit the
+ * listing"; a buyer on `ListingDetail` cannot.
  */
 import React, { useCallback, useEffect, useState } from "react";
 import { View, Pressable, TextInput } from "react-native";
@@ -49,10 +61,19 @@ export interface QuantityStepperProps {
   max: number;
   size?: QuantityStepperSize;
   disabled?: boolean;
-  /** Base test id — child controls append `-decrement` / `-increment` / `-value` / `-input`. */
+  /** Base test id — child controls append `-decrement` / `-increment` / `-value` / `-input` / `-at-max-reason`. */
   testID?: string;
   /** Overrides the tap-to-edit value's accessibility label (defaults to `common.quantity`). */
   accessibilityLabel?: string;
+  /**
+   * SF-M9 — already-translated caption shown ONLY once `value` reaches `max`
+   * (e.g. "Only 15 left. Edit the listing if you have more."). Omit it and
+   * nothing renders, exactly as before this prop existed — see the file
+   * header. The caller is responsible for interpolating the count via
+   * `useLocalization().formatNumber` before passing it in, same as every
+   * other quantity-in-a-sentence in this app.
+   */
+  atMaxReason?: string;
 }
 
 const DIMENSIONS: Record<
@@ -82,6 +103,7 @@ export function QuantityStepper({
   disabled = false,
   testID,
   accessibilityLabel,
+  atMaxReason,
 }: QuantityStepperProps) {
   const { t } = useTranslation();
   const { isRtl, formatNumber } = useLocalization();
@@ -136,86 +158,106 @@ export function QuantityStepper({
   const dims = DIMENSIONS[size];
   const decrementDisabled = disabled || atMin;
   const incrementDisabled = disabled || atMax;
+  // SF-M9 — only once there is genuinely nowhere left to go, and only when
+  // the caller opted in. `editing` is excluded on purpose: mid-edit the
+  // draft may momentarily read as anything, and the reason is about the
+  // COMMITTED ceiling, not a keystroke in progress.
+  const showAtMaxReason = !!atMaxReason && atMax && !editing;
 
   return (
-    <View
-      testID={testID}
-      style={{
-        flexDirection: isRtl ? "row-reverse" : "row",
-        alignItems: "center",
-        gap: 10,
-      }}
-    >
-      <Button
-        variant="outline"
-        size="icon"
-        onPress={handleDecrement}
-        disabled={decrementDisabled}
-        style={{ width: dims.button, height: dims.button, minHeight: dims.button }}
-        hitSlop={dims.hitSlop}
-        accessibilityRole="button"
-        accessibilityLabel={t("common.decreaseQuantity")}
-        testID={testID ? `${testID}-decrement` : undefined}
+    <>
+      <View
+        testID={testID}
+        style={{
+          flexDirection: isRtl ? "row-reverse" : "row",
+          alignItems: "center",
+          gap: 10,
+        }}
       >
-        <Minus size={dims.icon} color={decrementDisabled ? colors.mutedForeground : colors.foreground} />
-      </Button>
-
-      {editing ? (
-        <TextInput
-          value={draft}
-          onChangeText={(v) => setDraft(v.replace(/[^0-9]/g, ""))}
-          onBlur={commitEdit}
-          onSubmitEditing={commitEdit}
-          keyboardType="numeric"
-          selectTextOnFocus
-          autoFocus
-          style={{
-            minWidth: 36,
-            textAlign: "center",
-            fontSize: dims.fontSize,
-            fontWeight: "700",
-            color: colors.foreground,
-            paddingVertical: 0,
-          }}
-          testID={testID ? `${testID}-input` : undefined}
-        />
-      ) : (
-        <Pressable
-          onPress={startEditing}
-          disabled={disabled}
-          hitSlop={8}
+        <Button
+          variant="outline"
+          size="icon"
+          onPress={handleDecrement}
+          disabled={decrementDisabled}
+          style={{ width: dims.button, height: dims.button, minHeight: dims.button }}
+          hitSlop={dims.hitSlop}
           accessibilityRole="button"
-          accessibilityLabel={accessibilityLabel ?? t("common.quantity")}
-          accessibilityValue={{ now: value, min, max }}
-          testID={testID ? `${testID}-value` : undefined}
+          accessibilityLabel={t("common.decreaseQuantity")}
+          testID={testID ? `${testID}-decrement` : undefined}
         >
-          <Text
+          <Minus size={dims.icon} color={decrementDisabled ? colors.mutedForeground : colors.foreground} />
+        </Button>
+
+        {editing ? (
+          <TextInput
+            value={draft}
+            onChangeText={(v) => setDraft(v.replace(/[^0-9]/g, ""))}
+            onBlur={commitEdit}
+            onSubmitEditing={commitEdit}
+            keyboardType="numeric"
+            selectTextOnFocus
+            autoFocus
             style={{
-              minWidth: 28,
+              minWidth: 36,
               textAlign: "center",
               fontSize: dims.fontSize,
               fontWeight: "700",
-              color: disabled ? colors.mutedForeground : colors.foreground,
+              color: colors.foreground,
+              paddingVertical: 0,
             }}
+            testID={testID ? `${testID}-input` : undefined}
+          />
+        ) : (
+          <Pressable
+            onPress={startEditing}
+            disabled={disabled}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={accessibilityLabel ?? t("common.quantity")}
+            accessibilityValue={{ now: value, min, max }}
+            testID={testID ? `${testID}-value` : undefined}
           >
-            {formatNumber(value)}
-          </Text>
-        </Pressable>
-      )}
+            <Text
+              style={{
+                minWidth: 28,
+                textAlign: "center",
+                fontSize: dims.fontSize,
+                fontWeight: "700",
+                color: disabled ? colors.mutedForeground : colors.foreground,
+              }}
+            >
+              {formatNumber(value)}
+            </Text>
+          </Pressable>
+        )}
 
-      <Button
-        variant="outline"
-        size="icon"
-        onPress={handleIncrement}
-        disabled={incrementDisabled}
-        style={{ width: dims.button, height: dims.button, minHeight: dims.button }}
-        hitSlop={dims.hitSlop}
-        accessibilityRole="button"
-        accessibilityLabel={t("common.increaseQuantity")}
-        testID={testID ? `${testID}-increment` : undefined}
-      >
-        <Plus size={dims.icon} color={incrementDisabled ? colors.mutedForeground : colors.foreground} />
-      </Button>
-    </View>
+        <Button
+          variant="outline"
+          size="icon"
+          onPress={handleIncrement}
+          disabled={incrementDisabled}
+          style={{ width: dims.button, height: dims.button, minHeight: dims.button }}
+          hitSlop={dims.hitSlop}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.increaseQuantity")}
+          testID={testID ? `${testID}-increment` : undefined}
+        >
+          <Plus size={dims.icon} color={incrementDisabled ? colors.mutedForeground : colors.foreground} />
+        </Button>
+      </View>
+      {showAtMaxReason ? (
+        <Text
+          testID={testID ? `${testID}-at-max-reason` : undefined}
+          style={{
+            fontSize: 12,
+            color: colors.mutedForeground,
+            textAlign: isRtl ? "right" : "left",
+            marginTop: 4,
+          }}
+        >
+          {atMaxReason}
+        </Text>
+      ) : null}
+    </>
   );
 }

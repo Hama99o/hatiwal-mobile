@@ -26,6 +26,16 @@
  * immediately with `{ buyerId, finalPrice, quantity? }` built from the
  * caller-supplied values plus whatever the quantity field holds — there is
  * no buyer/price left to pick, only (optionally) how many units.
+ *
+ * SF-M9 (FlowApp #298) — the quantity field in BOTH modes is the shared
+ * `QuantityStepper` (docs/SELL_FLOW_REDESIGN.md §10.4), not a raw numeric
+ * `Input`. It caps at `remainingQuantity` and, once the seller reaches that
+ * ceiling, states why (`buyerPicker.quantityAtCapReason`) instead of either
+ * silently rounding down or letting a typed over-stock number sit uncapped
+ * behind a separate warning — the two alternatives the owner's decision on
+ * card 298 rejected. This replaced a second, forked quantity `Input` that
+ * lived here specifically because the redesign deferred this exact
+ * conversion (see the file's own git history / card 298's description).
  */
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -53,6 +63,7 @@ import { UserAvatar } from "@/components/common/UserAvatar";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { PriceTag } from "@/components/common/PriceTag";
 import { RemoteImage } from "@/components/common/RemoteImage";
+import { QuantityStepper } from "@/components/common/QuantityStepper";
 import { ConversationRowSkeleton } from "@/components/common/ListingCardSkeleton";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -66,13 +77,16 @@ export interface BuyerPickerResult {
    * How many units this action covered. `undefined` for a single-unit
    * listing (the field is never shown, so there is nothing to send).
    *
-   * For `action: "sold"`: `undefined` also when the field is left blank/
-   * cleared — the backend then defaults to ONE unit, not the whole remaining
-   * stock (`docs/SELL_FLOW_REDESIGN.md` §7.1's `units_for_sale`, reversed
-   * from an earlier "defaults to all of it" design after a seller reported
-   * selling one item from a batch of 50 and watching the listing retire
-   * itself with "0 of 50 left"). The field is pre-filled with "1" for exactly
-   * this reason — see `quantityText`'s init below.
+   * For `action: "sold"`: the backend defaults to ONE unit, not the whole
+   * remaining stock, when this is absent (`docs/SELL_FLOW_REDESIGN.md`
+   * §7.1's `units_for_sale`, reversed from an earlier "defaults to all of
+   * it" design after a seller reported selling one item from a batch of 50
+   * and watching the listing retire itself with "0 of 50 left"). The field
+   * is pre-filled with "1" for exactly this reason — see `quantity`'s init
+   * below. Unlike the old free-text field, the `QuantityStepper` this now
+   * feeds through can never be committed empty (SF-M9), so this can no
+   * longer be `undefined` from a cleared field — only ever a real, capped
+   * count.
    *
    * For `action: "reserve"` (SF-B2/SF-M2, multi-unit only): how many units
    * are held for this buyer — advisory only, never subtracted from
@@ -199,22 +213,29 @@ export function BuyerPickerSheet({
   // destructive outcome the default: confirm-and-done meant "I sold all fifty", the
   // listing retired, and there is no undo and no payment trail to appeal to. A seller
   // reported losing 49 of 50 that way. Selling one is the common case for a batch;
-  // selling out is a deliberate act and can be typed. The API agrees — a sold call with
-  // no quantity now moves one unit (my/listings_controller.rb).
-  const [quantityText, setQuantityText] = useState("1");
-  // Typed more than exists. Drives the destructive hint below — the confirm is
-  // still allowed (it clamps, and so does the API), because refusing outright
-  // would strand a seller whose stock changed under them mid-sheet. Declared
-  // AFTER quantityText: a const reading it above its own declaration is a TDZ
-  // crash, not a lint nit.
-  const exceedsStock =
-    asksQuantity && Number(quantityText) > (remainingQuantity ?? 1);
+  // selling out is a deliberate act, and now a deliberate tap/type on the
+  // `QuantityStepper` below (SF-M9). The API agrees — a sold call with no
+  // quantity moves one unit (my/listings_controller.rb).
+  const [quantity, setQuantity] = useState(1);
+  // The stepper's own ceiling — never below 1, so a listing whose stock read
+  // as 0 mid-sheet (a race with another sale) still renders a usable control
+  // instead of a `max={0}` one that can't move.
+  const quantityMax = Math.max(remainingQuantity ?? 1, 1);
   // Resets to ONE when the stock changes under the sheet, not to the new remainder.
   // This effect is why setting the initial state to "1" alone did nothing — it ran on
   // mount and put the whole remainder back, which the test suite caught immediately.
   useEffect(() => {
-    setQuantityText("1");
+    setQuantity(1);
   }, [remainingQuantity]);
+  // SF-M9 (FlowApp #298) — the cap-and-explain copy for the stepper below.
+  // Only ever RENDERED by `QuantityStepper` once the seller actually reaches
+  // `quantityMax` (never while there's still room) — see that component's
+  // own `atMaxReason` doc. Computed here (not in `QuantityStepper`) because
+  // the "why" is caller-specific: a seller can edit the listing, a buyer on
+  // `ListingDetail` cannot, so the copy is never the shared component's own.
+  const atCapReason = asksQuantity
+    ? t("buyerPicker.quantityAtCapReason", { count: formatNumber(quantityMax) })
+    : undefined;
   const [priceError, setPriceError] = useState(false);
 
   // Confirm mode already knows the buyer — never fetch the conversation list.
@@ -246,15 +267,15 @@ export function BuyerPickerSheet({
   }, [isSubmitting, onClose]);
 
   // Shared by BOTH modes — confirm mode (below) and the picker mode's own
-  // handleConfirm branch. Clamps to what is actually left; the API clamps
-  // too, but a client that sends an impossible number is a client bug worth
-  // not having.
+  // handleConfirm branch. `quantity` itself is always already capped to
+  // `quantityMax` (SF-M9): the `QuantityStepper` it feeds can never commit
+  // an out-of-range value (it clamps on every `+`/`−` tap and on every
+  // tap-to-edit commit), so there is nothing left to re-derive here — unlike
+  // the old free-text field, a client bug sending an impossible number is
+  // now a `QuantityStepper` bug, not a `BuyerPickerSheet` one.
   const computeQuantity = useCallback((): number | undefined => {
-    const parsedQty = Number(quantityText);
-    return asksQuantity && Number.isFinite(parsedQty) && parsedQty > 0
-      ? Math.min(Math.trunc(parsedQty), remainingQuantity ?? 1)
-      : undefined;
-  }, [asksQuantity, quantityText, remainingQuantity]);
+    return asksQuantity ? quantity : undefined;
+  }, [asksQuantity, quantity]);
 
   const handleConfirm = useCallback(() => {
     // Confirm mode: buyer + price are already known — nothing left to pick.
@@ -444,35 +465,24 @@ export function BuyerPickerSheet({
 
                 {/* SF-M2 — quantity, confirm mode. Multi-unit only (same
                     `asksQuantity` gate as the picker mode below); a
-                    single-item listing renders nothing here, unchanged. */}
+                    single-item listing renders nothing here, unchanged.
+                    SF-M9 (FlowApp #298) — the shared `QuantityStepper`,
+                    capped at `quantityMax`, states why once the seller
+                    reaches it (`atCapReason`) instead of a free-text field
+                    with a separate over-stock warning. */}
                 {asksQuantity && (
                   <View style={{ gap: 4 }}>
                     <Label style={{ textAlign: isRtl ? "right" : "left" }}>
                       {t(action === "reserve" ? "buyerPicker.holdQuantityLabel" : "listing.form.howManySold")}
                     </Label>
-                    <Input
-                      value={quantityText}
-                      onChangeText={(v) => setQuantityText(v.replace(/[^0-9]/g, ""))}
-                      placeholder={String(remainingQuantity ?? 1)}
-                      keyboardType="numeric"
-                      selectTextOnFocus
-                      style={{ textAlign: isRtl ? "right" : "left" }}
+                    <QuantityStepper
+                      value={quantity}
+                      onChange={setQuantity}
+                      min={1}
+                      max={quantityMax}
                       testID="buyer-picker-quantity"
+                      atMaxReason={atCapReason}
                     />
-                    <Text
-                      style={{
-                        color: exceedsStock ? colors.destructive : colors.mutedForeground,
-                        fontSize: 12,
-                        textAlign: isRtl ? "right" : "left",
-                      }}
-                      testID="buyer-picker-quantity-hint"
-                    >
-                      {/* Design review fix — a bare JS number here renders Western
-                          digits even in Pashto/Dari; every other quantity-in-a-
-                          sentence in this app (StockBadge, SellerListingCard's
-                          counts) goes through `formatNumber` first. */}
-                      {t("listing.stock.unitsAvailable", { count: formatNumber(remainingQuantity ?? 1) })}
-                    </Text>
                   </View>
                 )}
 
@@ -584,9 +594,15 @@ export function BuyerPickerSheet({
 
                 {/* How many units — multi-unit sold only, so a single-item listing
                     renders nothing new here. Sits ABOVE the final price because
-                    "how many" is answered before "for how much", and it is
-                    pre-filled with the whole remainder so the common case is
-                    still confirm-and-done. */}
+                    "how many" is answered before "for how much".
+                    SF-M9 (FlowApp #298) — the shared `QuantityStepper`, capped
+                    at `quantityMax`. Replaces a raw numeric `Input` that let a
+                    seller TYPE past the remainder and showed a separate red
+                    warning below it before confirm; the owner's decision on
+                    card 298 rejected both that fork and silent clamping with
+                    no explanation — the stepper cannot be pushed or typed past
+                    the ceiling at all, and states why via `atMaxReason` once
+                    it's reached, so the ceiling is never invisible. */}
                 {/* Shown on the SKIP path too. When a seller ticks "sold to someone
                     not on Hatiwal" only the BUYER is unknown — the unit count is not,
                     and hiding the field left them no way to say it. A missing quantity
@@ -598,44 +614,14 @@ export function BuyerPickerSheet({
                     <Label className="mb-2" style={{ textAlign: isRtl ? "right" : "left" }}>
                       {t(action === "reserve" ? "buyerPicker.holdQuantityLabel" : "listing.form.howManySold")}
                     </Label>
-                    <Input
-                      value={quantityText}
-                      onChangeText={(v) => setQuantityText(v.replace(/[^0-9]/g, ""))}
-                      placeholder={String(remainingQuantity ?? 1)}
-                      keyboardType="numeric"
-                      // The field is pre-filled with "1" (see `quantityText`'s
-                      // init above) — selecting on focus still matters so a tap
-                      // REPLACES that placeholder digit instead of inserting
-                      // beside it (a plain tap-then-type on a pre-filled numeric
-                      // field appends by default, e.g. "1" + "3" typed = "13"
-                      // instead of "3"). Originally added after QA run-018 found
-                      // the OLDER whole-remainder default doing exactly this with
-                      // a 2-digit number; kept because the same insert-vs-replace
-                      // trap applies to a 1-digit pre-fill too.
-                      selectTextOnFocus
-                      style={{ textAlign: isRtl ? "right" : "left" }}
+                    <QuantityStepper
+                      value={quantity}
+                      onChange={setQuantity}
+                      min={1}
+                      max={quantityMax}
                       testID="buyer-picker-quantity"
+                      atMaxReason={atCapReason}
                     />
-                    <Text
-                      style={{
-                        // Destructive when the number exceeds what is left. It
-                        // still clamps (the API clamps too), but silently
-                        // clamping is how a typo became a sold-out listing —
-                        // the seller has to be able to SEE that the number they
-                        // typed is not the number that will be recorded.
-                        color: exceedsStock ? colors.destructive : colors.mutedForeground,
-                        fontSize: 12,
-                        marginTop: 4,
-                        textAlign: isRtl ? "right" : "left",
-                      }}
-                      testID="buyer-picker-quantity-hint"
-                    >
-                      {/* Design review fix — a bare JS number here renders Western
-                          digits even in Pashto/Dari; every other quantity-in-a-
-                          sentence in this app (StockBadge, SellerListingCard's
-                          counts) goes through `formatNumber` first. */}
-                      {t("listing.stock.unitsAvailable", { count: formatNumber(remainingQuantity ?? 1) })}
-                    </Text>
                   </View>
                 )}
 

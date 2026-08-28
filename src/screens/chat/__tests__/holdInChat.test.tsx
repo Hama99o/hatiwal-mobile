@@ -66,6 +66,11 @@ jest.mock("lucide-react-native", () => ({
   Check: "Check",
   UserX: "UserX",
   CheckCircle2: "CheckCircle2",
+  // QuantityStepper, which BuyerPickerSheet now renders for a multi-unit
+  // listing instead of a raw Input (SF-M9). `Plus` is already mocked above for
+  // Conversation.tsx's own composer button; `Minus` is only reachable through
+  // the stepper, so it was absent until the sheet started using it.
+  Minus: "Minus",
   // VerifiedBadge, rendered by the real UserIdentity (nav header + the
   // locked buyer row in BuyerPickerSheet's confirm mode) whenever a fixture
   // sets `verified: true`.
@@ -446,7 +451,21 @@ describe("SF-M8 — Place a hold on a MULTI-UNIT listing threads the typed quant
     const quantityInput = screen.getByTestId("buyer-picker-quantity");
     expect(quantityInput).toBeTruthy();
 
-    fireEvent.changeText(quantityInput, "3");
+    // Drive the QuantityStepper, not a text field: SF-M9 replaced the sheet's
+    // raw numeric `Input` with the shared stepper, so `changeText` on the
+    // container is a no-op and the value would silently stay at the default 1
+    // — which is exactly the bug this test exists to catch, so it must set the
+    // count the way a seller actually can. Two increments: 1 -> 3.
+    // One `act` PER press, deliberately. `QuantityStepper` is controlled, so two
+    // presses batched into a single `act` both read the same stale `value` and
+    // compute `value + 1` — landing on 2, not 3. A real seller's taps have a
+    // render between them; the test has to reproduce that, not the batch.
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("buyer-picker-quantity-increment"));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("buyer-picker-quantity-increment"));
+    });
 
     await act(async () => {
       fireEvent.press(screen.getByTestId("buyer-picker-confirm"));
