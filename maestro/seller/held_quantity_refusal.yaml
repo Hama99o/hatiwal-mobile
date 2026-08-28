@@ -1,0 +1,130 @@
+appId: com.hatiwal.app
+---
+# QA-BUG3 (card 301) — SF-B8's sibling to ../seller/sold_quantity_reconciliation.yaml's
+# "lower quantity below what has already sold" half, same shape, different floor:
+# lowering `quantity` below the units currently HELD for a buyer on an open
+# reservation.
+#
+# WHY THIS EXISTS
+#
+# SF-B8 (card 293) added the backend refusal — a real 422,
+# `code: "quantity_below_held_units"` — but shipped with no client mapping for
+# it: a seller doing exactly this got the raw English Rails sentence
+# ("Quantity cannot be less than the 10 units on hold for a buyer. Release the
+# hold first, or set it to 10 or more.") in a Pashto or Dari UI, the "server
+# error" class of bug the owner has flagged twice. This flow proves the fix
+# against a REAL round trip: a READABLE, LOCALIZED message pinned under the
+# quantity field, never the server's own sentence.
+#
+# WHY THIS LISTING
+#
+# "Winter Gloves Wholesale Box - 15 Pairs" (db/seeds/e2e.rb, SF-QA1 fixture) —
+# active, quantity 15, 10 held for Ahmad Karimi, 0 sold. The ONE seeded
+# fixture with an open hold and headroom above it (15 > 10), so a refused
+# down-edit (to 2) and a restoring up-edit (back to 15) can both be proven
+# without ever placing or releasing the hold itself.
+#
+# ../browse/listing_detail_held_units_transparency.yaml reads this SAME
+# fixture (read-only — it never edits quantity) and asserts the exact
+# "15 in stock ... 10 held for Ahmad Karimi" state this flow starts AND ends
+# on. This flow is a ROUND TRIP, same convention as
+# ../chat/place_and_release_hold.yaml: mutate, assert the refusal, then
+# restore the fixture to precisely the state it started in — no residue for
+# that flow (or the next run of this one) to trip over.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- tapOn: "Search my listings..."
+- eraseText
+- inputText: "Gloves"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Winter Gloves Wholesale Box - 15 Pairs"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
+- tapOn:
+    id: "seller-listing-card"
+    index: 0
+- waitForAnimationToEnd
+
+# Starting state — the same one the read-only transparency flow asserts.
+- extendedWaitUntil:
+    visible:
+      id: "stock-badge-owner"
+    timeout: 20000
+- assertVisible: ".*15 in stock.*10 held for Ahmad Karimi.*"
+- assertVisible: "Active"
+
+# ── Into the edit form ──────────────────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-more-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-more-action"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Edit"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Edit"
+- waitForAnimationToEnd
+- assertVisible: "Edit Listing"
+
+- scrollUntilVisible:
+    element:
+      id: "listing-form-quantity-row"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "listing-form-quantity-input"
+    text: "15"
+
+# ── THE BUG: lower quantity below the 10 held for Ahmad Karimi ─────────────
+- tapOn:
+    id: "listing-form-quantity-input"
+- inputText: "2"
+- tapOn: "Save"
+- waitForAnimationToEnd
+
+# THE FIX: a READABLE, LOCALIZED message under the field — never the bare
+# "server error" string, and never the server's own raw English sentence.
+- extendedWaitUntil:
+    visible:
+      id: "listing-form-quantity-server-error"
+    timeout: 15000
+- assertVisible: ".*A buyer is holding 10.*Release the hold first.*"
+- assertNotVisible: ".*cannot be less than.*"
+- assertNotVisible: "common.error"
+- assertNotVisible: "No connection"
+# The refused save changed nothing — still on the edit form, not bounced
+# back to the detail screen with a silently-accepted (or silently-ignored)
+# value.
+- assertVisible: "Edit Listing"
+
+# ── Restore the fixture to exactly where it started ─────────────────────────
+- tapOn:
+    id: "listing-form-quantity-input"
+- inputText: "15"
+- assertVisible:
+    id: "listing-form-quantity-input"
+    text: "15"
+- tapOn: "Save"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "Winter Gloves Wholesale Box - 15 Pairs"
+    timeout: 30000
+- assertVisible:
+    id: "stock-badge-owner"
+- assertVisible: ".*15 in stock.*10 held for Ahmad Karimi.*"
+- assertVisible: "Active"

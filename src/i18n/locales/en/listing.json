@@ -237,6 +237,7 @@
     "photoLimitReached": "You can add up to {{max}} photos — {{dropped}} weren't added.",
     "quantityOutOfRange": "Enter a number between 1 and {{max}}.",
     "quantityBelowSoldUnits": "You've already sold {{count}} of these. Set the quantity to {{count}} or more, or undo a sale first.",
+    "quantityBelowHeldUnits": "A buyer is holding {{count}} of these. Release the hold first, or set the quantity to {{count}} or more.",
     "quantityReopensListing": "Saving will put this listing back on sale — with {{count}} available."
   },
   "shopCount_one": "{{count}} listing",

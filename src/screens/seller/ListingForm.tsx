@@ -97,9 +97,11 @@ import { FieldLabel } from "@/components/common/FieldLabel";
 import { EmptyState } from "@/components/common/EmptyState";
 import {
   quantityBelowSoldUnitsMessage,
+  quantityBelowHeldUnitsMessage,
   soldUnitsOf,
   willReopenOnSave,
 } from "./listing-form/quantityReconciliation";
+import { heldUnitsOf } from "@/utils/stock";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // TASK-P736 — maps each publish blocker to the translation key for its
@@ -455,6 +457,11 @@ export default function ListingFormScreen() {
   // message in `saveMutation.onError`, so the two can never disagree on the
   // count.
   const soldUnits = soldUnitsOf(existingListing);
+  // QA-BUG3 (card 301) — SF-B8's sibling floor: how many units of the listing
+  // BEING EDITED are currently held for a buyer. Feeds the inline 422 message
+  // in `saveMutation.onError` alongside `soldUnits`, the same way; never
+  // re-derived, always `heldUnitsOf` (`@/utils/stock`).
+  const heldUnits = heldUnitsOf(existingListing);
   const typedQuantityRaw = watch("quantity");
   const typedQuantity = typeof typedQuantityRaw === "number" ? typedQuantityRaw : Number(typedQuantityRaw);
   // Reassurance, not a warning (§4.1's instruction) — shown BEFORE Save, only
@@ -727,7 +734,17 @@ export default function ListingFormScreen() {
       // react to THAT one known failure with a localized, actionable inline
       // message instead of the server's raw English sentence — this app
       // ships Pashto and Dari, and the server only ever answers in English.
-      const inlineQuantityMessage = quantityBelowSoldUnitsMessage(err, soldUnits, t, formatNumber);
+      //
+      // QA-BUG3 (card 301) — SF-B8 added a sibling floor (lowering quantity
+      // below the units on hold for a buyer) with the same 422 shape and a
+      // different `code`, and shipped with no client mapping for it: a
+      // seller hitting it got the raw English Rails sentence. The backend
+      // guarantees only ONE of the two codes is ever sent for a given
+      // refusal (whichever minimum is higher), so trying both mappers here
+      // is safe — exactly one can ever return non-null.
+      const inlineQuantityMessage =
+        quantityBelowSoldUnitsMessage(err, soldUnits, t, formatNumber) ??
+        quantityBelowHeldUnitsMessage(err, heldUnits, t, formatNumber);
       if (inlineQuantityMessage) {
         // Reveal the field if the seller had collapsed it back to a single
         // item — otherwise this message would land under a HIDDEN input,
@@ -1611,7 +1628,14 @@ export default function ListingFormScreen() {
               DELETE /my/transactions/:id) rather than a dead end. Mutually
               exclusive with the reopen note below: this only ever fires from
               a REFUSED save (typed quantity <= soldUnits), the note below
-              only ever shows for a quantity ABOVE it. */}
+              only ever shows for a quantity ABOVE it.
+
+              QA-BUG3 (card 301) — `quantityServerError` also carries SF-B8's
+              sibling refusal (typed quantity below what is currently HELD for
+              a buyer), set from the exact same `saveMutation.onError`. One
+              string, one slot: the backend only ever sends ONE of the two
+              codes for a given refusal, so this never has to pick between
+              them. */}
           {!errors.quantity && quantityServerError && (
             <FieldError message={quantityServerError} testID="listing-form-quantity-server-error" />
           )}

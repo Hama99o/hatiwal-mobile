@@ -2,10 +2,19 @@
  * SF-M7 — pure logic behind the sold-quantity reconciliation copy on
  * ListingForm.tsx. See quantityReconciliation.ts's own header for the bug
  * report this exists to fix.
+ *
+ * QA-BUG3 (card 301) adds `quantityBelowHeldUnitsMessage` — SF-B8's sibling
+ * floor (lowering quantity below what is currently HELD for a buyer) shipped
+ * with a real 422 and a `code`, but no client mapping for it, so a seller
+ * hitting it saw the raw English Rails sentence. Mirrors the sold-units
+ * suite below exactly, plus one extra: proving the two mappers never both
+ * fire for the same response (the backend only ever sends one code).
  */
 import {
   QUANTITY_BELOW_SOLD_UNITS_CODE,
+  QUANTITY_BELOW_HELD_UNITS_CODE,
   quantityBelowSoldUnitsMessage,
+  quantityBelowHeldUnitsMessage,
   soldUnitsOf,
   willReopenOnSave,
 } from "../quantityReconciliation";
@@ -87,6 +96,63 @@ describe("quantityBelowSoldUnitsMessage", () => {
     expect(quantityBelowSoldUnitsMessage(httpError(422, { errors: ["nope"] }), 15, t)).toBeNull();
     expect(quantityBelowSoldUnitsMessage(httpError(500, {}), 15, t)).toBeNull();
     expect(quantityBelowSoldUnitsMessage({}, 15, t)).toBeNull();
+  });
+});
+
+describe("quantityBelowHeldUnitsMessage", () => {
+  it("maps SF-B8's known 422 code to a localized, actionable message", () => {
+    const err = httpError(422, {
+      errors: ["Quantity cannot be less than the 10 units on hold for a buyer. Release the hold first, or set it to 10 or more."],
+      code: QUANTITY_BELOW_HELD_UNITS_CODE,
+    });
+
+    const message = quantityBelowHeldUnitsMessage(err, 10, t, String);
+
+    expect(message).toBe('listing.form.quantityBelowHeldUnits({"count":"10"})');
+  });
+
+  it("clamps a negative held-units input to 0 rather than showing a negative count", () => {
+    const err = httpError(422, { code: QUANTITY_BELOW_HELD_UNITS_CODE });
+
+    const message = quantityBelowHeldUnitsMessage(err, -3, t, String);
+
+    expect(message).toBe('listing.form.quantityBelowHeldUnits({"count":"0"})');
+  });
+
+  it("formats the count through the caller's own locale formatter, not a bare number", () => {
+    const err = httpError(422, { code: QUANTITY_BELOW_HELD_UNITS_CODE });
+    const formatCount = jest.fn((n: number) => `۱۰-ish(${n})`);
+
+    quantityBelowHeldUnitsMessage(err, 10, t, formatCount);
+
+    expect(formatCount).toHaveBeenCalledWith(10);
+  });
+
+  it("returns null for any OTHER error code — the caller falls back to its existing generic handling, unchanged", () => {
+    const err = httpError(422, {
+      errors: ["Title can't be blank"],
+      code: "some_other_code",
+    });
+
+    expect(quantityBelowHeldUnitsMessage(err, 10, t)).toBeNull();
+  });
+
+  it("returns null when the response carries no code at all — the common case for every other mutation failure", () => {
+    expect(quantityBelowHeldUnitsMessage(httpError(422, { errors: ["nope"] }), 10, t)).toBeNull();
+    expect(quantityBelowHeldUnitsMessage(httpError(500, {}), 10, t)).toBeNull();
+    expect(quantityBelowHeldUnitsMessage({}, 10, t)).toBeNull();
+  });
+
+  // QA-BUG3 — the backend guarantees only ONE of the two floors ever speaks
+  // for a given refusal (`Listing#hold_sets_quantity_floor?`); the client
+  // mirrors that by never treating a sold-units 422 as a held-units one, or
+  // vice versa, so a caller trying both mappers in sequence is safe.
+  it("does not match the sibling sold-units code, and vice versa", () => {
+    const soldError = httpError(422, { code: QUANTITY_BELOW_SOLD_UNITS_CODE });
+    const heldError = httpError(422, { code: QUANTITY_BELOW_HELD_UNITS_CODE });
+
+    expect(quantityBelowHeldUnitsMessage(soldError, 10, t)).toBeNull();
+    expect(quantityBelowSoldUnitsMessage(heldError, 15, t)).toBeNull();
   });
 });
 

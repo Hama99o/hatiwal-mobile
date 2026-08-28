@@ -15,13 +15,25 @@
  * `soldUnits` is refused with a real 422, `{ errors: [...], code:
  * "quantity_below_sold_units" }`.
  *
- * This file supplies the two pieces of copy ListingForm.tsx needs around
- * that contract — kept pure and separate from the 1900-line screen so both
- * can be unit-tested without rendering it:
- *   1. `quantityBelowSoldUnitsMessage` — turn that ONE known 422 into a
- *      localized, actionable sentence instead of the server's raw English
- *      (this app ships Pashto and Dari; showing an untranslated string is a
- *      house rule violation, not a style choice).
+ * QA-BUG3 (card 301) — SF-B8's sibling floor. Lowering `quantity` below the
+ * units currently HELD for a buyer on an open reservation is refused the same
+ * way, `{ errors: [...], code: "quantity_below_held_units" }`, but the
+ * client had no mapping for it: a seller doing exactly this got the raw
+ * English Rails sentence ("Quantity cannot be less than the 10 units on hold
+ * for a buyer...") in a Pashto or Dari UI. `quantityBelowHeldUnitsMessage`
+ * below closes that gap the same way `quantityBelowSoldUnitsMessage` already
+ * closed it for the sold-units floor. The backend guarantees only ONE of the
+ * two codes is ever sent for a given refusal (whichever minimum is higher —
+ * see `Listing#hold_sets_quantity_floor?`), so a caller trying both mappers
+ * in sequence never has to choose between them.
+ *
+ * This file supplies the pieces of copy ListingForm.tsx needs around that
+ * contract — kept pure and separate from the 1900-line screen so both can be
+ * unit-tested without rendering it:
+ *   1. `quantityBelowSoldUnitsMessage` / `quantityBelowHeldUnitsMessage` —
+ *      turn each known 422 into a localized, actionable sentence instead of
+ *      the server's raw English (this app ships Pashto and Dari; showing an
+ *      untranslated string is a house rule violation, not a style choice).
  *   2. `willReopenOnSave` — whether the reassuring "this puts it back on
  *      sale" note belongs on screen BEFORE the seller ever taps Save.
  */
@@ -30,6 +42,9 @@ import { apiErrorCode } from "@/utils/apiError";
 
 /** The one error code this screen reacts to specially — SF-B6's contract. */
 export const QUANTITY_BELOW_SOLD_UNITS_CODE = "quantity_below_sold_units";
+
+/** SF-B8's sibling floor — the units currently on hold for a buyer. */
+export const QUANTITY_BELOW_HELD_UNITS_CODE = "quantity_below_held_units";
 
 /**
  * How many units of THIS listing have already sold — `quantity -
@@ -61,6 +76,30 @@ export function quantityBelowSoldUnitsMessage(
   if (apiErrorCode(err) !== QUANTITY_BELOW_SOLD_UNITS_CODE) return null;
   const count = formatCount(Math.max(soldUnits, 0));
   return t("listing.form.quantityBelowSoldUnits", { count });
+}
+
+/**
+ * QA-BUG3 (card 301) — the localized, actionable message for SF-B8's sibling
+ * refusal (lowering `quantity` below the units on hold for a buyer), or null
+ * for every OTHER error — same contract as `quantityBelowSoldUnitsMessage`
+ * above, so a caller tries both in sequence and falls back to its existing
+ * generic handling (`apiErrorMessage`) only when neither matches.
+ *
+ * `heldUnits` is the caller's `heldUnitsOf(listing)` (`@/utils/stock`) —
+ * passed in rather than re-derived here, exactly like `soldUnits` above, so
+ * this file never disagrees with the rest of the app about what "held" means.
+ * `formatCount` is the caller's `useLocalization().formatNumber`, for the
+ * same locale-digit reason as `quantityBelowSoldUnitsMessage`.
+ */
+export function quantityBelowHeldUnitsMessage(
+  err: unknown,
+  heldUnits: number,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  formatCount: (n: number) => string = (n) => String(n)
+): string | null {
+  if (apiErrorCode(err) !== QUANTITY_BELOW_HELD_UNITS_CODE) return null;
+  const count = formatCount(Math.max(heldUnits, 0));
+  return t("listing.form.quantityBelowHeldUnits", { count });
 }
 
 /**
