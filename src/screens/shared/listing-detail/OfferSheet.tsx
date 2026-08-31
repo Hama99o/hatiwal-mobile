@@ -139,7 +139,7 @@ export function OfferSheet({
   availableUnits,
 }: OfferSheetProps) {
   const { t } = useTranslation();
-  const { isRtl, formatCurrency } = useLocalization();
+  const { isRtl, formatCurrency, formatNumber } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const isCounter = mode === "counter";
@@ -398,7 +398,7 @@ export function OfferSheet({
                   textAlign: isRtl ? "right" : "left",
                 }}
               >
-                {t(parsedQuantity.errorKey, { available: availableUnits ?? 0 })}
+                {t(parsedQuantity.errorKey, { available: formatNumber(availableUnits ?? 0) })}
               </Text>
             )}
             {/* Read-back line: "3 × AFN 14,000 = AFN 42,000". The buyer sees
@@ -415,7 +415,11 @@ export function OfferSheet({
                 }}
               >
                 {t("chat.offer.quantityTotal", {
-                  units: lineTotal.units,
+                  // formatNumber, not the raw value: prices here go through
+                  // formatCurrency, so a bare "3" beside "۱۴٬۰۰۰" would mix
+                  // Latin and Arabic-Indic digits in one line (mobile.prompt.md
+                  // §4: never render a number without useLocalization).
+                  units: formatNumber(lineTotal.units),
                   unitPrice: formatCurrency(parseOfferAmount(offerAmount) ?? 0, currency),
                   total: formatCurrency(lineTotal.total, currency),
                 })}

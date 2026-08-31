@@ -642,7 +642,7 @@ function ImageMessageBubble({
 export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome, meetupActionsDisabled, meetupResponsePending, onOfferRespond, offerOutcome, onOfferCounter, offerActionsDisabled, offerResponsePending, searchQuery, onDeleteMessage }: MessageBubbleProps) {
   const { t } = useTranslation();
   const { width: windowWidth } = useWindowDimensions();
-  const { isRtl, formatTime, formatCurrency } = useLocalization();
+  const { isRtl, formatTime, formatCurrency, formatNumber } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
@@ -904,7 +904,8 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 }}
               >
                 {t("chat.offer.quantityTotal", {
-                  units: offerUnits(message.offerQuantity),
+                  // Localized digits — see the note in OfferSheet.
+                  units: formatNumber(offerUnits(message.offerQuantity)),
                   unitPrice: formatCurrency(amount, currency),
                   total: formatCurrency(amount * offerUnits(message.offerQuantity), currency),
                 })}
@@ -1101,7 +1102,8 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
                 }}
               >
                 {t("chat.offer.quantityTotal", {
-                  units: offerUnits(message.offerQuantity),
+                  // Localized digits — see the note in OfferSheet.
+                  units: formatNumber(offerUnits(message.offerQuantity)),
                   unitPrice: formatCurrency(amount, currency),
                   total: formatCurrency(amount * offerUnits(message.offerQuantity), currency),
                 })}

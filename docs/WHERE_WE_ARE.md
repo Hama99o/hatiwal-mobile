@@ -305,3 +305,43 @@ instead of colliding.
 **Host note:** two stray `pollinations-mcp` processes (from an unrelated project) were pinned at 100%
 CPU each, starving the emulator. `renice -n 19` on them is enough and is non-destructive; killing
 them needs the owner (`kill` is blocked for the agent).
+
+### 7d. A real dark-mode bug the assertions could not see
+
+The map QA matrix passed every step on `fa_dark`, and the screenshots showed the
+basemap rendering **light inside dark chrome** on two of the four surfaces. No
+assertion could have caught it: every testID was present and every tap worked.
+It took looking at the images.
+
+Same app, same cell, same tile server, two different answers:
+
+| surface | component | reads | result |
+|---|---|---|---|
+| listing detail | `ListingMapSection` | `colors.isDark` | correct dark map |
+| browse filter | `LocationRangePicker` | nativewind `useColorScheme()` | **light map** |
+| create-listing pin | `LocationRangePicker` | nativewind `useColorScheme()` | **light map** |
+
+The dark vector styles were fine all along — one component asked the wrong
+source. This app's theme is its OWN store (`useThemeStore`, read through
+`useColors`: `"system"` follows the OS, `"dark"`/`"light"` is an explicit user
+choice). The nativewind hook does not read that store, so **a user who picks
+Dark in the app on a light-OS phone got a light map** — which is exactly the
+configuration the QA cells run in, and the one most people who prefer dark are
+in. `LocationRangePicker` already called `useColors()` on the line above; it
+just ignored it for this one value. It was the last nativewind
+`useColorScheme` consumer in `src/` (144 files use `useColors()`); now there
+are none.
+
+### 7e. Where the matrix screenshots actually live
+
+Not in `qa/reports/mapqa/`, despite `SHOTS` being an absolute path. Maestro
+treats an absolute `takeScreenshot` path as a suffix **under its own debug
+directory**:
+
+```
+~/.maestro/tests/<run>/<cell>/takeScreenshot/home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/qa/reports/mapqa/ps-dark-2-browse-filter.png
+```
+
+This briefly looked like cells overwriting each other's evidence (only
+`en-light-*` and `fa-dark-*` names existed in the intended directory). They are
+not: every cell has its own full set, nested per run. Look there.

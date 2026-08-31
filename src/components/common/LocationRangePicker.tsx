@@ -13,7 +13,6 @@ import { X, MapPin, Check, TriangleAlert, Search } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
-import { useColorScheme } from "nativewind";
 import { useColors } from "@/hooks/useColors";
 import {
   getCurrentLocation,
@@ -59,8 +58,24 @@ export function LocationRangePicker({
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
-  const { colorScheme } = useColorScheme();
-  const dark = colorScheme === "dark";
+  // Read the APP's theme via `colors.isDark` — not the nativewind color-scheme
+  // hook this component used to call.
+  //
+  // This map rendered the LIGHT basemap inside dark chrome on both surfaces this
+  // component owns — the browse filter and the create-listing pin picker — while
+  // the listing-detail map (ListingMapSection, which already read
+  // `colors.isDark`) was correctly dark in the same app, same cell, same tile
+  // server. Caught by EYE in the map QA matrix screenshots, not by an assertion:
+  // every testID was present and every step passed.
+  //
+  // Cause: this app's theme is its OWN store (`useThemeStore` via `useColors`:
+  // "system" follows the OS, "dark"/"light" is an explicit user choice). The
+  // nativewind hook does not read that store, so a user who picks Dark IN THE
+  // APP on a light-OS phone got a light map — precisely the configuration the QA
+  // cells run in, and the one most users who prefer dark are in.
+  //
+  // This was the last such consumer in src/; 144 files use `useColors()`.
+  const dark = colors.isDark;
   const insets = useSafeAreaInsets();
 
   const [coords, setCoords] = useState<MapCanvasCoords>(initialCoords ?? DEFAULT_CENTER);

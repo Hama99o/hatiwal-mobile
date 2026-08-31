@@ -94,7 +94,17 @@ function valuesOf(lang: string): Map<string, string> {
  *   appName  — a brand name; translating it would be a bug.
  *   share.body — "{{title}} — {{price}}\n{{url}}", pure interpolation, no words.
  */
-const IDENTICAL_BY_DESIGN = new Set(["common.appName", "listing.share.body"]);
+const IDENTICAL_BY_DESIGN = new Set([
+  "common.appName",
+  "listing.share.body",
+  // SF-M11. "{{units}} × {{unitPrice}} = {{total}}" — two placeholders, a
+  // multiplication sign and an equals sign. There is no WORD in it to
+  // translate, and every value inside is localized by the caller
+  // (`formatNumber`/`formatCurrency`), so ps/fa render Arabic-Indic digits from
+  // an identical template. Note this belongs HERE and not in
+  // AWAITING_TRANSLATION, which is debt and says so.
+  "chat.offer.quantityTotal",
+]);
 
 /**
  * Known untranslated strings — DEBT, not permission.
