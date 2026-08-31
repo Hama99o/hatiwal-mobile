@@ -191,6 +191,32 @@ Five sell-flow fixtures exist, and the seed **raises** if any violates an invari
 
 ---
 
+## 5b. Map — done, with one deferred item
+
+`map.hatiwal.com` serves our own vector tiles from the VPS (`hatiwal-map/README.md` has the whole
+story). No API key, no cap, no provider able to change the terms — which is exactly what CARTO did.
+Android and web are wired and verified; **iOS is written but has never been run** and needs an EAS
+build before it ships. `hatiwal-map/deploy/deploy.sh` recreates the whole thing from nothing and has
+been run end to end to prove it.
+
+**DEFERRED — board card 305: place search still uses Nominatim.** Not the map, just the location
+search box. Recorded so it is not rediscovered:
+
+- It is **fine today**, and fine for a long time. Both clients call Nominatim **directly from the
+  user's own device**, so its ~1 req/sec cap — which is enforced **per IP** — is never approached by
+  one person. The search is also debounced (450ms, min 2 chars), so it fires on a typing pause, not
+  a keystroke.
+- **Do NOT proxy geocoding through the server.** That would funnel every user through one IP and turn
+  a non-problem into an outage. This is the single most important line in this section.
+- Estimated thresholds: comfortable to tens of thousands of daily actives; worth acting somewhere
+  around 50k–100k DAU. Hatiwal is on Play internal testing today.
+- When it matters: **cache query→results first** (Afghan city names are a small, repetitive set; no
+  new infrastructure). Self-hosting Nominatim is a *different weight class* from the tiles — PostGIS,
+  an hours-long import, 10–20 GB, plus replication — on a 4-core box already running the API, web and
+  three other apps. The tiles were 132 MB of static files.
+
+---
+
 ## 6. Known-open bugs NOT in the sell flow
 
 - **Android maps are defaced in production** — stopgapped, see §3.
