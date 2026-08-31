@@ -1,0 +1,178 @@
+appId: com.hatiwal.app
+---
+# NO `env:` BLOCK IN THIS FILE — DELIBERATELY, AND IT IS NOT COSMETIC.
+#
+# In this Maestro version a sub-flow's own `env:` default WINS over the
+# `runFlow: env:` values the caller passes, silently. Proven with a probe: a
+# sub-flow declaring `V: DEFAULT_WINS` and called with `env: {V: OVERRIDE_WINS}`
+# wrote `envprobe-withdefault-DEFAULT_WINS.png`, while the identical sub-flow
+# with NO env block wrote `envprobe-nodefault-OVERRIDE_WINS.png`.
+#
+# That is what broke the first matrix run: every cell inherited `LOCALE: en` /
+# `THEME: light` / `CELL: en-light` from these defaults, so ps_dark and fa_dark
+# both set English + light and then overwrote each other's screenshots. The
+# QA_HANDBOOK already records this for `--env`; it applies to runFlow: env: too.
+#
+# Every variable below therefore comes from the CALLER and is required.
+# SURFACE 4 — the create-listing form's map pin picker (LocationRangePicker,
+# mode="point"). Seller mode only, because that is the only place the form is
+# reachable from a tab.
+#
+# MODE IS DETECTED BY THE TAB SET, never by the mode toggle's label:
+# `saved-tab` is rendered only for an authenticated BUYER
+# (app/(main)/(tabs)/_layout.tsx: href = isAuthenticated && !isSeller). The
+# label reads "Switch to Seller Mode" in English and something else entirely in
+# ps/fa, so ensure_buyer_mode.yaml's text guard cannot be used here.
+# TAP UP TO THREE TIMES, and let the tab set decide when to stop.
+#
+# ps_light died here at step 151 on `saved-tab is not visible` after the full
+# 30s wait — so this was NOT the wait being too short. The screenshot showed
+# Profile still in buyer mode with all five buyer tabs and the button still
+# reading "د پلورونکي حالت ته لاړ شئ" (Switch to Seller Mode): the tap simply
+# did not land. en_light, fa_dark and ps_dark all passed the identical step on
+# the same build, which makes it a flaky tap (a re-render moving the button
+# between the scroll and the press), not a locale or app defect.
+#
+# Each iteration is GUARDED on `saved-tab` still being visible, so once the
+# switch happens the remaining iterations do nothing — without that guard a
+# second tap would switch straight back to buyer mode. The scroll is inside the
+# loop because the page can move under the first press.
+- repeat:
+    times: 3
+    commands:
+      - runFlow:
+          when:
+            visible:
+              id: "saved-tab"
+          commands:
+            - tapOn:
+                id: "profile-tab"
+            - waitForAnimationToEnd
+            # The toggle sits just under the avatar at the TOP of Profile, and
+            # Profile keeps its scroll position across visits.
+            - scrollUntilVisible:
+                element:
+                  id: "mode-toggle-button"
+                direction: UP
+                timeout: 20000
+            - tapOn:
+                id: "mode-toggle-button"
+            - waitForAnimationToEnd
+            - waitForAnimationToEnd
+
+# Only now insist on it: three guarded attempts have had their chance, so a
+# failure here is a real one worth reporting rather than a race.
+- extendedWaitUntil:
+    notVisible:
+      id: "saved-tab"
+    timeout: 20000
+
+# In seller mode the home tab IS My Shop.
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "my-listings-new-button"
+    timeout: 60000
+- tapOn:
+    id: "my-listings-new-button"
+- waitForAnimationToEnd
+# Target the FIELD WRAPPER, not the row inside it, and do not ask for centring.
+# In Pashto and Dari the form is considerably taller (every label wraps), and a
+# `centerElement: true` scroll times out on an element it cannot bring to the
+# middle even while that element is plainly on screen — the ps_dark cell spent
+# 30s that way and failed with "No visible element found:
+# listing-form-location-row" on a form that had rendered correctly (see
+# qa/reports/run-281 screenshot: the RTL dark form, at the top, intact).
+# ...and accept a PARTIALLY visible element. This is the rest of the same bug:
+# dropping `centerElement` was not enough, because `visibilityPercentage`
+# defaults to 100 and in Pashto this field WRAPPER is taller than the viewport
+# (every label wraps, so the form is materially longer than in en or fa). An
+# element taller than the screen can never be 100% visible, so the scroll could
+# never succeed however long it ran — ps_dark and ps_light both burned the full
+# 60s, while en_light (167 steps) and fa_dark (181 steps) passed the identical
+# step. Maestro says so in its own failure hint:
+#   "visibilityPercentage: current = 100% -> Lower this value if you want to
+#    detect partially visible elements"
+# The app is NOT at fault: the failure screenshot shows the RTL dark Pashto form
+# rendering correctly, Arabic-Indic digits in the character counter and all.
+# SWIPE IN THE MARGIN, do not use scrollUntilVisible here.
+#
+# Third iteration on this one step, so the reasoning is worth keeping. The form
+# renders perfectly in Pashto — the failure screenshot shows correct RTL, the dark
+# palette, Pashto labels and Arabic-Indic digits in the character counter. What
+# fails is the GESTURE: `scrollUntilVisible` swipes from the screen CENTRE, and in
+# Pashto every label wraps so the layout is taller, putting the centre on the
+# title TextInput, which consumes the vertical drag. The form never moved a pixel
+# — `listing-form-field-location` was absent from the view hierarchy because it
+# was never scrolled into it, not because it was not rendered. en and fa put a
+# different element under the centre, which is why they passed the identical step
+# (en_light 167 steps, fa_dark 181).
+#
+# Neither earlier attempt could have worked: dropping `centerElement` and then
+# lowering `visibilityPercentage` to 30 both tuned the SEARCH while the scroll
+# itself was doing nothing.
+#
+# x=88% keeps the drag in the right-hand margin, clear of the centred inputs, and
+# works in both directions since only the vertical component matters.
+- repeat:
+    times: 6
+    commands:
+      - swipe:
+          start: "88%, 72%"
+          end: "88%, 28%"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-form-field-location"
+    timeout: 30000
+- tapOn:
+    id: "listing-form-location-row"
+
+# The picker is open when its own confirm button is there — a screenshot proves
+# nothing about whether the tap landed.
+- extendedWaitUntil:
+    visible:
+      id: "location-confirm"
+    timeout: 60000
+# ...and the MAP CANVAS mounted, not merely the sheet around it.
+- assertVisible:
+    id: "map-canvas"
+# Give MapLibre time to fetch the style, the glyph PBFs and the tiles, and to
+# stop repainting. waitForAnimationToEnd returns when the screen goes STILL,
+# which for a map is exactly "the tiles finished drawing".
+- waitForAnimationToEnd:
+    timeout: 30000
+# A SECOND stability check. MapLibre paints geometry first and SDF text a beat
+# later, so a single waitForAnimationToEnd can return in the gap between the two
+# and screenshot a map whose labels have not drawn yet.
+- waitForAnimationToEnd:
+    timeout: 20000
+- takeScreenshot: ${SHOTS}/${CELL}-4-create-listing
+
+# The zoom controls are real controls, so prove they exist and are hittable.
+- assertVisible:
+    id: "map-zoom-in"
+- assertVisible:
+    id: "map-zoom-out"
+- tapOn:
+    id: "map-zoom-in"
+- waitForAnimationToEnd:
+    timeout: 20000
+- takeScreenshot: ${SHOTS}/${CELL}-4-create-listing-zoom-in
+- tapOn:
+    id: "map-zoom-out"
+- waitForAnimationToEnd:
+    timeout: 15000
+
+# Leave via a cold start, NOT Back: backing out of a half-filled listing form
+# raises a discard confirm, and guessing how many Backs and which dialog is in
+# the way is precisely the brittleness this suite already paid for once.
+- launchApp:
+    stopApp: true
+- runFlow: ../_helpers/open_bundle.yaml
+- extendedWaitUntil:
+    visible:
+      id: "browse-tab"
+    timeout: 120000

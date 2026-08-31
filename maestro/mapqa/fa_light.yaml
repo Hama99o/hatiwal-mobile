@@ -1,0 +1,46 @@
+appId: com.hatiwal.app
+---
+# MAP MATRIX CELL — locale fa, theme light.
+# RTL + Arabic script (Dari) on the light style.
+#
+# Drives all four surfaces that render a MapCanvas after commit e09c6fe
+# repointed the app at map.hatiwal.com:
+#   1  listing detail (read-only snippet + fullscreen modal)
+#   2  browse filter  ("Set location & range" — pin + radius circle)
+#   3  edit profile   (LocationRangePicker, point mode)
+#   4  create listing (the form's map pin picker)
+#
+# ONE account throughout (seller@hatiwal.test), because preferred_language and
+# preferred_theme are stored on the USER — switching accounts mid-cell would
+# silently reapply the other account's theme and locale from the backend.
+#
+# EVERY variable is passed from HERE and none of the sub-flows declares a
+# default, because a sub-flow's own env: default silently WINS over these (see
+# the note at the top of each _body_*.yaml).
+#
+# ORDER MATTERS: the three BUYER surfaces run BEFORE the create-listing form.
+# That form is the deepest navigation in the cell and the most locale-sensitive
+# (its labels wrap in ps/fa, which is what made a scroll time out), so running it
+# first meant one failure there cost the other three surfaces their screenshots —
+# the first ps_dark attempt produced nothing at all for exactly that reason.
+- runFlow: ../_helpers/login_seller.yaml
+- runFlow:
+    file: _set_locale_theme.yaml
+    env:
+      LOCALE: fa
+      THEME: light
+- runFlow:
+    file: _body_buyer.yaml
+    env:
+      CELL: fa-light
+      SHOTS: /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/qa/reports/mapqa
+      # Winter Gloves Wholesale Box (db/seeds/e2e.rb sell-flow fixture): active,
+      # and one of only 28 of 66 active listings that HAS coordinates —
+      # ListingMapSection is gated on `!!latitude && !!longitude`, so tapping a
+      # random feed card lands on a listing with no map about half the time.
+      MAP_LISTING_ID: "1058"
+- runFlow:
+    file: _body_form.yaml
+    env:
+      CELL: fa-light
+      SHOTS: /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/qa/reports/mapqa

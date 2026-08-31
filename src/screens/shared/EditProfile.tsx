@@ -520,6 +520,9 @@ export default function EditProfileScreen() {
           <Separator />
           <Pressable
             onPress={() => setLocationPickerVisible(true)}
+            // QA: a locale-independent handle — the row's own copy is translated
+            // AND changes once a location is set, so it cannot be targeted safely.
+            testID="edit-profile-location-row"
             style={{
               flexDirection: isRtl ? "row-reverse" : "row",
               alignItems: "center",

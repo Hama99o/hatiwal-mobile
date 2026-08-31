@@ -197,6 +197,10 @@ export function FilterSheet({
               </Text>
               <Pressable
                 onPress={onOpenLocationPicker}
+                // QA: a locale-independent handle. The row's copy is translated
+                // AND flips to "Within N km" once a location is chosen, so
+                // targeting its text works in exactly one locale and one state.
+                testID="filter-set-location-range"
                 style={{
                   flexDirection: isRtl ? "row-reverse" : "row",
                   alignItems: "center",

@@ -92,6 +92,7 @@ export function ListingMapSection({ latitude, longitude, location, address }: Pr
     <View style={{ gap: 12 }}>
       {/* ── Static preview — tap to open fullscreen ───────────────────── */}
       <View
+        testID="listing-map-preview"
         style={{
           borderRadius: 12,
           overflow: "hidden",

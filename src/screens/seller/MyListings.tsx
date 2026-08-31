@@ -234,6 +234,10 @@ function CompactHeader({
             useColors() tokens → respects light/dark. */}
         <Pressable
           onPress={onNewListing}
+          // QA: a locale-independent handle. The only other way in is the
+          // TRANSLATED accessibilityLabel below, which ties every flow that
+          // creates a listing to English.
+          testID="my-listings-new-button"
           accessibilityRole="button"
           accessibilityLabel={t("listing.postListing")}
           android_ripple={{ color: colors.primaryForeground, borderless: false }}

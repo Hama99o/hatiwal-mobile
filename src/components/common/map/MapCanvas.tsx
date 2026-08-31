@@ -277,7 +277,10 @@ export default function MapCanvas({
   };
 
   return (
-    <View style={{ width: "100%", height, overflow: "hidden", backgroundColor: colors.background }}>
+    <View
+      testID="map-canvas"
+      style={{ width: "100%", height, overflow: "hidden", backgroundColor: colors.background }}
+    >
       <Map
         style={{ width: "100%", height: "100%" }}
         mapStyle={mapStyle}
@@ -393,6 +396,11 @@ export default function MapCanvas({
             onPress={(_e: GestureResponderEvent) => zoomBy(1)}
             style={zoomButtonStyle}
             hitSlop={4}
+            // QA: neither zoom control carried a testID, so nothing could target
+            // them. They still lack an accessibilityLabel — icon-only controls
+            // announce as an unnamed button to a screen reader. Flagged rather
+            // than fixed here: that needs new copy in all three locales.
+            testID="map-zoom-in"
             accessibilityRole="button"
           >
             <Plus size={18} color={colors.foreground} />
@@ -401,6 +409,7 @@ export default function MapCanvas({
             onPress={(_e: GestureResponderEvent) => zoomBy(-1)}
             style={zoomButtonStyle}
             hitSlop={4}
+            testID="map-zoom-out"
             accessibilityRole="button"
           >
             <Minus size={18} color={colors.foreground} />

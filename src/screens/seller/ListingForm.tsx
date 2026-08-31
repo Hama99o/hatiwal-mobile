@@ -1798,6 +1798,10 @@ export default function ListingFormScreen() {
             ]}
             onPress={() => setLocationPickerVisible(true)}
             android_ripple={{ color: colors.muted }}
+            // QA: a locale-independent handle for the row that OPENS the map.
+            // Flows previously tapped the translated prompt copy
+            // ("Tap to set exact location on map"), which cannot work in ps/fa.
+            testID="listing-form-location-row"
             accessibilityRole="button"
             // TASK-P736 (review fix, CR round 3, a11y) — same fix as Category
             // above: the field's own identity ("Location") now comes from

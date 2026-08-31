@@ -1,0 +1,197 @@
+appId: com.hatiwal.app
+---
+# NO `env:` BLOCK IN THIS FILE — DELIBERATELY, AND IT IS NOT COSMETIC.
+#
+# In this Maestro version a sub-flow's own `env:` default WINS over the
+# `runFlow: env:` values the caller passes, silently. Proven with a probe: a
+# sub-flow declaring `V: DEFAULT_WINS` and called with `env: {V: OVERRIDE_WINS}`
+# wrote `envprobe-withdefault-DEFAULT_WINS.png`, while the identical sub-flow
+# with NO env block wrote `envprobe-nodefault-OVERRIDE_WINS.png`.
+#
+# That is what broke the first matrix run: every cell inherited `LOCALE: en` /
+# `THEME: light` / `CELL: en-light` from these defaults, so ps_dark and fa_dark
+# both set English + light and then overwrote each other's screenshots. The
+# QA_HANDBOOK already records this for `--env`; it applies to runFlow: env: too.
+#
+# Every variable below therefore comes from the CALLER and is required.
+# SURFACES 1-3 — buyer mode.
+#   1  listing detail   — the read-only snippet (ListingMapSection) + its
+#                         fullscreen interactive modal
+#   2  browse filter    — "Set location & range": pin + radius circle
+#   3  edit profile     — LocationRangePicker in point mode
+#
+# Mode by TAB SET, never by the translated toggle label (see _body_form.yaml).
+- runFlow:
+    when:
+      notVisible:
+        id: "saved-tab"
+    commands:
+      - tapOn:
+          id: "profile-tab"
+      - waitForAnimationToEnd
+      - scrollUntilVisible:
+          element:
+            id: "mode-toggle-button"
+          direction: UP
+          timeout: 20000
+      - tapOn:
+          id: "mode-toggle-button"
+      - waitForAnimationToEnd
+      - extendedWaitUntil:
+          visible:
+            id: "saved-tab"
+          timeout: 30000
+
+# ── SURFACE 1: listing detail ───────────────────────────────────────────────
+# A deep link, not a feed tap: it is the only locale-independent way to land on
+# a listing KNOWN to carry coordinates.
+- openLink: "hatiwal://listing/${MAP_LISTING_ID}"
+- extendedWaitUntil:
+    visible:
+      id: "more-options-button"
+    timeout: 90000
+- scrollUntilVisible:
+    element:
+      id: "listing-map-preview"
+    direction: DOWN
+    centerElement: true
+    timeout: 45000
+- waitForAnimationToEnd:
+    timeout: 30000
+# A SECOND stability check. MapLibre paints geometry first and SDF text a beat
+# later, so a single waitForAnimationToEnd can return in the gap between the two
+# and screenshot a map whose labels have not drawn yet.
+- waitForAnimationToEnd:
+    timeout: 20000
+- takeScreenshot: ${SHOTS}/${CELL}-1-listing-detail
+
+# The same surface's fullscreen modal — the interactive variant, and the only
+# place on listing detail where the zoom controls and attribution are unobscured.
+- tapOn:
+    id: "listing-map-preview"
+- waitForAnimationToEnd:
+    timeout: 30000
+# A SECOND stability check. MapLibre paints geometry first and SDF text a beat
+# later, so a single waitForAnimationToEnd can return in the gap between the two
+# and screenshot a map whose labels have not drawn yet.
+- waitForAnimationToEnd:
+    timeout: 20000
+- takeScreenshot: ${SHOTS}/${CELL}-1-listing-detail-fullscreen
+# Back is safe here: this is a <Modal> with onRequestClose, so Back closes the
+# modal rather than reaching the navigator.
+- pressKey: Back
+- waitForAnimationToEnd
+
+# ── SURFACE 2: browse filter ────────────────────────────────────────────────
+# POP FIRST. Closing the modal leaves the app on LISTING DETAIL, which is a
+# PUSHED screen and therefore has no tab bar at all — so `tapOn: browse-tab`
+# failed with "Element not found: browse-tab" on a perfectly healthy screen, and
+# it killed the first three matrix cells 8 minutes in, after the surface-1
+# screenshots but before surfaces 2 and 3. The deep link that opened this listing
+# is what makes it a pushed route.
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+# Filters PERSIST across flows and outlive a relaunch; a stale one changes what
+# this sheet reads back. No-op when nothing is active.
+- runFlow: ../_helpers/clear_browse_filters.yaml
+- tapOn:
+    id: "browse-filters-toggle"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "filter-set-location-range"
+    direction: DOWN
+    centerElement: true
+    timeout: 25000
+- tapOn:
+    id: "filter-set-location-range"
+- extendedWaitUntil:
+    visible:
+      id: "location-confirm"
+    timeout: 60000
+- assertVisible:
+    id: "map-canvas"
+- waitForAnimationToEnd:
+    timeout: 30000
+# A SECOND stability check. MapLibre paints geometry first and SDF text a beat
+# later, so a single waitForAnimationToEnd can return in the gap between the two
+# and screenshot a map whose labels have not drawn yet.
+- waitForAnimationToEnd:
+    timeout: 20000
+- takeScreenshot: ${SHOTS}/${CELL}-2-browse-filter
+# 25 km makes the radius circle unmistakable in the screenshot — the default
+# radius draws a circle small enough to be mistaken for the pin's shadow.
+- tapOn:
+    id: "location-radius-25"
+- waitForAnimationToEnd:
+    timeout: 25000
+- takeScreenshot: ${SHOTS}/${CELL}-2-browse-filter-radius25
+
+# ── SURFACE 3: edit profile ─────────────────────────────────────────────────
+# Cold start rather than dismissing two stacked sheets by hand.
+- launchApp:
+    stopApp: true
+- runFlow: ../_helpers/open_bundle.yaml
+- extendedWaitUntil:
+    visible:
+      id: "browse-tab"
+    timeout: 120000
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "profile-edit-button"
+    direction: DOWN
+    centerElement: true
+    timeout: 25000
+- tapOn:
+    id: "profile-edit-button"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-location-row"
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "edit-profile-location-row"
+- extendedWaitUntil:
+    visible:
+      id: "location-confirm"
+    timeout: 60000
+- assertVisible:
+    id: "map-canvas"
+- waitForAnimationToEnd:
+    timeout: 30000
+# A SECOND stability check. MapLibre paints geometry first and SDF text a beat
+# later, so a single waitForAnimationToEnd can return in the gap between the two
+# and screenshot a map whose labels have not drawn yet.
+- waitForAnimationToEnd:
+    timeout: 20000
+- takeScreenshot: ${SHOTS}/${CELL}-3-edit-profile
+
+
+# LEAVE THE APP AS WE FOUND IT. This body used to stop at the screenshot above,
+# with the full-screen "Pick location on map" picker still open and Edit Profile
+# still on the stack — so `_body_form`'s very first step, `tapOn: browse-tab`,
+# was reaching for a tab bar sitting two screens underneath. It failed with
+# "Element not found: browse-tab" after 145 successful steps, which reads like a
+# navigation regression and is not one: a shared body that does not restore the
+# screen it started from breaks whichever body runs NEXT, not itself.
+#
+# Exit the way the existing map flows already do
+# (maestro/maps/filter_map_default_kabul.yaml): confirm, then wait for the
+# control to disappear — the only reliable signal the picker has actually closed
+# rather than merely begun animating.
+- tapOn:
+    id: "location-confirm"
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 30000
+# ...and back off Edit Profile, so the tab bar is reachable again.
+- back
+- waitForAnimationToEnd
