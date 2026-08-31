@@ -58,6 +58,8 @@ describe("findAgreedOffer", () => {
       offerMessageId: 1,
       amount: 12000,
       currency: "AFN",
+      // SF-M11: these offers name no quantity, so the agreed units are ONE.
+      quantity: 1,
     });
   });
 
@@ -71,6 +73,8 @@ describe("findAgreedOffer", () => {
       offerMessageId: 2,
       amount: 13500,
       currency: "AFN",
+      // SF-M11: these offers name no quantity, so the agreed units are ONE.
+      quantity: 1,
     });
   });
 
@@ -83,6 +87,8 @@ describe("findAgreedOffer", () => {
       offerMessageId: 1,
       amount: 9000,
       currency: "AFN",
+      // SF-M11: these offers name no quantity, so the agreed units are ONE.
+      quantity: 1,
     });
   });
 
@@ -97,6 +103,8 @@ describe("findAgreedOffer", () => {
       offerMessageId: 3,
       amount: 7000,
       currency: "AFN",
+      // SF-M11: these offers name no quantity, so the agreed units are ONE.
+      quantity: 1,
     });
   });
 
@@ -141,5 +149,46 @@ describe("shouldShowAgreedDealBanner", () => {
 
   it("false when the listing is missing entirely", () => {
     expect(shouldShowAgreedDealBanner({ isOwner: true, listing: null, agreedOffer })).toBe(false);
+  });
+});
+
+// ── SF-M11: the agreed offer carries how many units it was for ─────────────
+//
+// This is the number mark-sold opens on, so a wrong answer here sells the
+// wrong quantity — the failure the whole ticket exists to prevent.
+describe("findAgreedOffer — agreed quantity", () => {
+  it("carries the accepted offer's quantity through", () => {
+    const messages = [
+      msg({ id: 1, kind: "offer", offerAmount: 12000, offerCurrency: "AFN", offerQuantity: 3 }),
+      msg({ id: 2, kind: "offer_accepted", respondsToId: 1 }),
+    ];
+    expect(findAgreedOffer(messages, buildOfferIndex(messages))?.quantity).toBe(3);
+  });
+
+  it("reads an offer that named no quantity as ONE unit", () => {
+    const messages = [
+      msg({ id: 1, kind: "offer", offerAmount: 12000, offerCurrency: "AFN" }),
+      msg({ id: 2, kind: "offer_accepted", respondsToId: 1 }),
+    ];
+    expect(findAgreedOffer(messages, buildOfferIndex(messages))?.quantity).toBe(1);
+  });
+
+  it("takes the quantity from the NEWEST accepted offer, not a superseded one", () => {
+    // A counter restates the quantity as well as the price (the API permits
+    // `offer_quantity` on `offer_counter` for exactly this reason), so a deal
+    // re-agreed at 5 units must not settle at the 3 of the superseded offer.
+    const messages = [
+      msg({ id: 1, kind: "offer", offerAmount: 12000, offerCurrency: "AFN", offerQuantity: 3 }),
+      msg({
+        id: 2,
+        kind: "offer_counter",
+        respondsToId: 1,
+        offerAmount: 11000,
+        offerCurrency: "AFN",
+        offerQuantity: 5,
+      }),
+      msg({ id: 3, kind: "offer_accepted", respondsToId: 2 }),
+    ];
+    expect(findAgreedOffer(messages, buildOfferIndex(messages))?.quantity).toBe(5);
   });
 });

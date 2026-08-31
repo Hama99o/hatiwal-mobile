@@ -173,7 +173,11 @@
     "reserveAfterAcceptDismiss": "اوس نه",
     "reserveAfterAcceptSuccess": "اعلان د {{buyerName}} لپاره ریزرو شو",
     "agreedBannerTitle": "{{buyerName}} ستاسو وړاندیز ومانه",
-    "agreedReserveCta": "اوس یې ریزرو کړئ"
+    "agreedReserveCta": "اوس یې ریزرو کړئ",
+    "quantityLabel": "څو دانې؟",
+    "quantityInvalid": "بشپړ شمېر ولیکئ.",
+    "quantityAboveAvailable": "یوازې {{available}} موجود دي.",
+    "quantityTotal": "{{units}} × {{unitPrice}} = {{total}}"
   },
   "block": {
     "blockUser": "کارونکی بند کړئ",

@@ -125,6 +125,22 @@ interface BuyerPickerSheetProps {
    * field-for-field. Held units stay advisory (`docs/SELL_FLOW_REDESIGN.md`
    * §3.6) — never subtracted from `available_units`.
    */
+  /**
+   * SF-M11 — the quantity to OPEN the stepper on, when the thread already
+   * agreed one: the units named by the accepted offer this sale settles
+   * (`findAgreedOffer().quantity`). Absent/null keeps the historical default
+   * of ONE.
+   *
+   * This is deliberately NOT the same thing as pre-filling the whole
+   * remainder, which the note on `quantity` above explains was harmful (a
+   * seller confirmed "sold" on a batch of 50 and retired the listing). The
+   * difference: a remainder is OUR guess, while this is a number the buyer
+   * typed and the seller accepted in the thread — the seller is confirming
+   * their own agreement, not accepting our assumption. It is still just a
+   * starting value in an editable stepper, and still capped by
+   * `remainingQuantity`.
+   */
+  suggestedQuantity?: number | null;
   remainingQuantity?: number;
   onConfirm: (result: BuyerPickerResult) => void;
   isSubmitting?: boolean;
@@ -182,6 +198,7 @@ export function BuyerPickerSheet({
   currency,
   action,
   remainingQuantity,
+  suggestedQuantity,
   onConfirm,
   isSubmitting = false,
   preselectedBuyer = null,
@@ -216,17 +233,25 @@ export function BuyerPickerSheet({
   // selling out is a deliberate act, and now a deliberate tap/type on the
   // `QuantityStepper` below (SF-M9). The API agrees — a sold call with no
   // quantity moves one unit (my/listings_controller.rb).
-  const [quantity, setQuantity] = useState(1);
+  // SF-M11 — the agreed units, clamped into the stepper's own range. Kept as a
+  // derived constant so the init and the reset effect below cannot drift.
+  const initialQuantity = Math.min(
+    Math.max(Math.floor(suggestedQuantity ?? 1) || 1, 1),
+    Math.max(remainingQuantity ?? 1, 1)
+  );
+  const [quantity, setQuantity] = useState(initialQuantity);
   // The stepper's own ceiling — never below 1, so a listing whose stock read
   // as 0 mid-sheet (a race with another sale) still renders a usable control
   // instead of a `max={0}` one that can't move.
   const quantityMax = Math.max(remainingQuantity ?? 1, 1);
-  // Resets to ONE when the stock changes under the sheet, not to the new remainder.
-  // This effect is why setting the initial state to "1" alone did nothing — it ran on
-  // mount and put the whole remainder back, which the test suite caught immediately.
+  // Resets when the stock changes under the sheet — to the AGREED units when
+  // the thread named some (SF-M11), otherwise to ONE, and never to the new
+  // remainder. This effect is why setting the initial state alone did nothing:
+  // it runs on mount too, so a suggestion applied only at init was immediately
+  // overwritten — the test suite caught exactly that with the old "1".
   useEffect(() => {
-    setQuantity(1);
-  }, [remainingQuantity]);
+    setQuantity(initialQuantity);
+  }, [remainingQuantity, initialQuantity]);
   // SF-M9 (FlowApp #298) — the cap-and-explain copy for the stepper below.
   // Only ever RENDERED by `QuantityStepper` once the seller actually reaches
   // `quantityMax` (never while there's still room) — see that component's

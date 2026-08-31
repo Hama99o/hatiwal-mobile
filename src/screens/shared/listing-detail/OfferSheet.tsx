@@ -45,6 +45,7 @@ import { Input } from "@/components/reusables/input";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { parseOfferAmount } from "@/utils/offerAmount";
+import { parseOfferQuantity } from "./offerQuantity";
 
 /** Percentages of the asking price used to derive the three quick-amount chips. */
 const CHIP_PERCENTAGES = [0.95, 0.9, 0.85] as const;
@@ -101,6 +102,24 @@ interface OfferSheetProps {
    * ListingDetail's call site is unchanged.
    */
   inThread?: boolean;
+  /**
+   * SF-M11 — the quantity field's value and setter, as typed. Supplied by the
+   * caller (which owns the state and does the sending) so `onSend` keeps its
+   * one-argument signature and every pre-existing call site is untouched.
+   *
+   * The field renders ONLY when `perUnit` is true AND `onChangeQuantity` is
+   * given, i.e. a multi-unit listing whose caller is ready to send the value.
+   * A single-item listing shows nothing new, which is the same rule the server
+   * applies (`Message#discard_meaningless_offer_quantity`).
+   */
+  quantity?: string;
+  onChangeQuantity?: (v: string) => void;
+  /**
+   * `listing.availableUnits` — the ceiling. Used to catch "I'll take 20" on a
+   * 15-unit batch inline, instead of letting it become a server 422 the buyer
+   * has to decode. Mirrors the server's own ceiling rather than a softer one.
+   */
+  availableUnits?: number | null;
 }
 
 export function OfferSheet({
@@ -115,6 +134,9 @@ export function OfferSheet({
   mode = "offer",
   perUnit = false,
   inThread = false,
+  quantity,
+  onChangeQuantity,
+  availableUnits,
 }: OfferSheetProps) {
   const { t } = useTranslation();
   const { isRtl, formatCurrency } = useLocalization();
@@ -135,6 +157,23 @@ export function OfferSheet({
   // strings — were never disabled. Both modes now share the exact same
   // positive-number guard as the send handlers themselves (`parseOfferAmount`).
   const isAmountValid = parseOfferAmount(offerAmount) != null;
+
+  // SF-M11 — a counter names its own quantity too (a seller countering
+  // "3 for 40,000" must be able to restate how many, or the quantity is lost
+  // the moment either side moves the price), so this is NOT gated on !isCounter.
+  const showQuantity = perUnit && typeof onChangeQuantity === "function";
+  const parsedQuantity = useMemo(
+    () => parseOfferQuantity(quantity ?? "", availableUnits),
+    [quantity, availableUnits]
+  );
+  // The line the buyer reads back before sending. Only shown once BOTH numbers
+  // are usable — a running total next to an invalid field is noise.
+  const lineTotal = useMemo(() => {
+    const amount = parseOfferAmount(offerAmount);
+    const units = parsedQuantity.value;
+    if (amount == null || units == null || units <= 1) return null;
+    return { units, total: amount * units };
+  }, [offerAmount, parsedQuantity.value]);
 
   return (
     <Modal
@@ -306,6 +345,85 @@ export function OfferSheet({
           />
         </View>
 
+        {/* SF-M11 — units, for a multi-unit listing only.
+            This is the field that used to not exist: the buyer's "how many"
+            lived in prose ("3 × AFN 14,000"), the seller had to re-read it,
+            and mark-sold opened at 1 regardless — so a batch silently kept
+            units that were already gone. `perUnit`'s own docstring named the
+            hole; this is the field that fills it. */}
+        {showQuantity && (
+          <View style={{ marginTop: 16 }}>
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                color: colors.foreground,
+                marginBottom: 8,
+                textAlign: isRtl ? "right" : "left",
+              }}
+            >
+              {t("chat.offer.quantityLabel")}
+            </Text>
+            <Input
+              value={quantity ?? ""}
+              onChangeText={onChangeQuantity}
+              placeholder="1"
+              keyboardType="numeric"
+              style={{ textAlign: isRtl ? "right" : "left" }}
+              testID="offer-quantity-input"
+              accessibilityLabel={t("chat.offer.quantityLabel")}
+            />
+            {/* Available-units hint, so the ceiling is visible BEFORE it is hit. */}
+            {availableUnits != null && availableUnits > 0 && (
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: colors.mutedForeground,
+                  marginTop: 6,
+                  textAlign: isRtl ? "right" : "left",
+                }}
+              >
+                {t("listing.stock.unitsAvailable", { count: availableUnits })}
+              </Text>
+            )}
+            {/* Inline error — the same rules the server enforces, so the buyer
+                never has to decode a 422 for a mistake we can see locally. */}
+            {parsedQuantity.errorKey && (
+              <Text
+                testID="offer-quantity-error"
+                style={{
+                  fontSize: 12,
+                  color: colors.destructive,
+                  marginTop: 6,
+                  textAlign: isRtl ? "right" : "left",
+                }}
+              >
+                {t(parsedQuantity.errorKey, { available: availableUnits ?? 0 })}
+              </Text>
+            )}
+            {/* Read-back line: "3 × AFN 14,000 = AFN 42,000". The buyer sees
+                the total they are committing to before they send it. */}
+            {lineTotal && (
+              <Text
+                testID="offer-quantity-total"
+                style={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: colors.foreground,
+                  marginTop: 8,
+                  textAlign: isRtl ? "right" : "left",
+                }}
+              >
+                {t("chat.offer.quantityTotal", {
+                  units: lineTotal.units,
+                  unitPrice: formatCurrency(parseOfferAmount(offerAmount) ?? 0, currency),
+                  total: formatCurrency(lineTotal.total, currency),
+                })}
+              </Text>
+            )}
+          </View>
+        )}
+
         <Text
           style={{
             fontSize: 12,
@@ -327,7 +445,11 @@ export function OfferSheet({
         <Button
           variant="default"
           onPress={() => onSend(offerAmount)}
-          disabled={isBusy || !isAmountValid}
+          // SF-M11: an unusable quantity blocks Send the same way an unusable
+          // amount does. Without this the sheet would happily send an offer for
+          // "20 of 15", which the server rejects — the buyer would get a toast
+          // for something the sheet already knew was wrong.
+          disabled={isBusy || !isAmountValid || (showQuantity && parsedQuantity.errorKey !== null)}
           style={{ marginTop: 20 }}
         >
           <Text>{t(isCounter ? "chat.offer.sendCounter" : "listing.detail.sendOffer")}</Text>

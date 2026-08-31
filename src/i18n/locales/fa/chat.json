@@ -173,7 +173,11 @@
     "reserveAfterAcceptDismiss": "نه الان",
     "reserveAfterAcceptSuccess": "آگهی برای {{buyerName}} رزرو شد",
     "agreedBannerTitle": "{{buyerName}} پیشنهاد شما را پذیرفت",
-    "agreedReserveCta": "اکنون رزرو کنید"
+    "agreedReserveCta": "اکنون رزرو کنید",
+    "quantityLabel": "چند عدد؟",
+    "quantityInvalid": "یک عدد کامل وارد کنید.",
+    "quantityAboveAvailable": "تنها {{available}} موجود است.",
+    "quantityTotal": "{{units}} × {{unitPrice}} = {{total}}"
   },
   "block": {
     "blockUser": "مسدود کردن کاربر",

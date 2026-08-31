@@ -95,6 +95,14 @@ interface ListingHeaderProps {
    * nothing at all while this is `null`/`undefined` (e.g. the conversation's
    * own query hasn't resolved yet) — there is no one to confirm sold-to.
    */
+  /**
+   * SF-M11 — units named by the accepted offer in this thread
+   * (`findAgreedOffer().quantity`), used to open the mark-sold stepper on the
+   * agreed number. Passed by `Conversation.tsx`, which is where the message
+   * list (and therefore the agreed offer) lives; null when nothing has been
+   * accepted, which keeps the sheet's historical default of one unit.
+   */
+  agreedQuantity?: number | null;
   buyer?: {
     id: number;
     name: string;
@@ -109,7 +117,14 @@ interface ListingHeaderProps {
   onLifecycleDone?: () => void;
 }
 
-export function ListingHeader({ listing, onPress, isOwner = false, buyer = null, onLifecycleDone }: ListingHeaderProps) {
+export function ListingHeader({
+  listing,
+  onPress,
+  isOwner = false,
+  buyer = null,
+  agreedQuantity = null,
+  onLifecycleDone,
+}: ListingHeaderProps) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
@@ -342,6 +357,11 @@ export function ListingHeader({ listing, onPress, isOwner = false, buyer = null,
         currency={listing.currency ?? "AFN"}
         action="sold"
         remainingQuantity={listing.availableUnits ?? 1}
+        // SF-M11 — open the stepper on the units this thread agreed, so the
+        // seller confirms their own deal instead of re-deriving it. Without
+        // this the sheet always opened at 1 and a "3 units" agreement silently
+        // sold one, leaving 2 units on the batch that were already gone.
+        suggestedQuantity={agreedQuantity}
         preselectedBuyer={buyer}
         onConfirm={handleMarkSoldConfirm}
         isSubmitting={isLifecycleLoading}

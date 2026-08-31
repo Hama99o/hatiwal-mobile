@@ -447,3 +447,109 @@ describe("OfferSheet — per-unit reference price", () => {
     expect(screen.queryByText(/listing\.stock\.each/)).toBeNull();
   });
 });
+
+// ─── SF-M11: the quantity field ───────────────────────────────────────────────
+//
+// The gating is the contract worth pinning: a single-item listing must render
+// nothing new, because that is what keeps every single-item thread — the large
+// majority — byte-identical to before this ticket.
+
+describe("OfferSheet — SF-M11 quantity field", () => {
+  it("renders NO quantity field for a single-item listing", () => {
+    render(<OfferSheet {...buildProps({ quantity: "", onChangeQuantity: jest.fn() })} />);
+    // `perUnit` is false, so even a caller that supplies the handler gets nothing.
+    expect(screen.queryByTestId("offer-quantity-input")).toBeNull();
+  });
+
+  it("renders no quantity field on a multi-unit listing when the caller cannot send it", () => {
+    // No `onChangeQuantity` means the caller is not wired to send the value —
+    // showing an input that goes nowhere is worse than showing none.
+    render(<OfferSheet {...buildProps({ perUnit: true, availableUnits: 15 })} />);
+    expect(screen.queryByTestId("offer-quantity-input")).toBeNull();
+  });
+
+  it("renders the quantity field for a multi-unit listing with a wired caller", () => {
+    render(
+      <OfferSheet
+        {...buildProps({
+          perUnit: true,
+          availableUnits: 15,
+          quantity: "3",
+          onChangeQuantity: jest.fn(),
+        })}
+      />
+    );
+    expect(screen.getByTestId("offer-quantity-input")).toBeTruthy();
+  });
+
+  it("shows the read-back total once amount and quantity are both usable", () => {
+    render(
+      <OfferSheet
+        {...buildProps({
+          offerAmount: "14000",
+          perUnit: true,
+          availableUnits: 15,
+          quantity: "3",
+          onChangeQuantity: jest.fn(),
+        })}
+      />
+    );
+    // The buyer sees what they are committing to before sending it.
+    expect(screen.getByTestId("offer-quantity-total")).toBeTruthy();
+    expect(screen.queryByTestId("offer-quantity-error")).toBeNull();
+  });
+
+  it("shows an inline error and no total when more units are asked for than exist", () => {
+    render(
+      <OfferSheet
+        {...buildProps({
+          offerAmount: "14000",
+          perUnit: true,
+          availableUnits: 15,
+          quantity: "20",
+          onChangeQuantity: jest.fn(),
+        })}
+      />
+    );
+    expect(screen.getByTestId("offer-quantity-error")).toBeTruthy();
+    expect(screen.queryByTestId("offer-quantity-total")).toBeNull();
+  });
+
+  it("does not send an offer whose quantity exceeds stock", () => {
+    // The server rejects this, so the sheet must not let it leave: otherwise the
+    // buyer gets a toast for something the sheet already knew was wrong.
+    const onSend = jest.fn();
+    render(
+      <OfferSheet
+        {...buildProps({
+          onSend,
+          offerAmount: "14000",
+          perUnit: true,
+          availableUnits: 15,
+          quantity: "20",
+          onChangeQuantity: jest.fn(),
+        })}
+      />
+    );
+    fireEvent.press(screen.getByText("listing.detail.sendOffer"));
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it("still sends when the quantity field is left empty (means: didn't say)", () => {
+    const onSend = jest.fn();
+    render(
+      <OfferSheet
+        {...buildProps({
+          onSend,
+          offerAmount: "14000",
+          perUnit: true,
+          availableUnits: 15,
+          quantity: "",
+          onChangeQuantity: jest.fn(),
+        })}
+      />
+    );
+    fireEvent.press(screen.getByText("listing.detail.sendOffer"));
+    expect(onSend).toHaveBeenCalledWith("14000");
+  });
+});

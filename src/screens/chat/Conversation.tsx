@@ -84,6 +84,7 @@ import {
 } from "./conversation/offerGuards";
 import { findAgreedOffer, shouldShowAgreedDealBanner } from "./conversation/agreedOffer";
 import { parseOfferAmount } from "@/utils/offerAmount";
+import { parseOfferQuantity, offerUnits } from "@/screens/shared/listing-detail/offerQuantity";
 // Review fix (SHOULD-FIX, DUPLICATION) — reuse the SAME query-key constants
 // `useListingLifecycle.ts` already exports ("exported so callers/tests can
 // assert against the exact same constants instead of hardcoding strings")
@@ -274,6 +275,10 @@ export function ConversationScreen() {
   // Counter-offer sheet state
   const [counterSheetVisible, setCounterSheetVisible] = useState(false);
   const [counterOfferAmount, setCounterOfferAmount] = useState("");
+  // SF-M11 — units a counter is for. Prefilled from the offer being
+  // countered (see `handleOpenCounterSheet`) so restating the price does not
+  // silently reset the quantity both sides already agreed on.
+  const [counterOfferQuantity, setCounterOfferQuantity] = useState("");
   // The original offer message the counter is responding to
   const [counterOfferTarget, setCounterOfferTarget] = useState<Message | null>(null);
   const [isSendingCounter, setIsSendingCounter] = useState(false);
@@ -284,6 +289,7 @@ export function ConversationScreen() {
   // pinned listing.
   const [threadOfferSheetVisible, setThreadOfferSheetVisible] = useState(false);
   const [threadOfferAmount, setThreadOfferAmount] = useState("");
+  const [threadOfferQuantity, setThreadOfferQuantity] = useState("");
   const [isSendingThreadOffer, setIsSendingThreadOffer] = useState(false);
   // Pagination
   const [page, setPage] = useState(1);
@@ -686,10 +692,27 @@ export function ConversationScreen() {
       const listedPrice = conversation?.listing?.price ?? 0;
       const body = `${amount}|${currency}|${listedPrice}`;
 
+      // SF-M11 — validated against the same ceiling the server enforces, so
+      // "I'll take 20" on a 15-unit batch is caught here rather than coming
+      // back as a 422 the sender has to decode.
+      const parsedQuantity = parseOfferQuantity(
+        threadOfferQuantity,
+        conversation?.listing?.availableUnits
+      );
+      if (parsedQuantity.errorKey) {
+        toast.error(
+          t(parsedQuantity.errorKey, {
+            available: conversation?.listing?.availableUnits ?? 0,
+          })
+        );
+        return;
+      }
+
       // Close the sheet immediately — mirrors handleSend clearing the
       // composer before the request resolves.
       setThreadOfferSheetVisible(false);
       setThreadOfferAmount("");
+      setThreadOfferQuantity("");
       setIsSendingThreadOffer(true);
 
       // Optimistic append — same pattern as handleSend / handleProposeMeetup.
@@ -700,23 +723,38 @@ export function ConversationScreen() {
         readAt: null,
         createdAt: new Date().toISOString(),
         sender: { id: currentUser?.id ?? 0, name: currentUser?.fullName ?? "" },
+        // SF-M11: the optimistic bubble carries the quantity too, or it would
+        // render "AFN 14,000" for a beat and then jump to "3 × AFN 14,000"
+        // when the real row arrives.
+        offerQuantity: parsedQuantity.value,
       };
       isNearBottomRef.current = true;
       setMessages((prev) => [...prev, optimistic]);
 
       try {
-        const sent = await conversationsAPI.sendMessage(convId, body, "offer");
+        const sent = await conversationsAPI.sendMessage(
+          convId,
+          body,
+          "offer",
+          undefined,
+          parsedQuantity.value ?? undefined
+        );
         setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? sent : m)));
-      } catch {
+      } catch (err) {
         // Rollback — remove the optimistic bubble; the buyer/seller can
         // retry from the composer's offer button again.
         setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
-        toast.error(t("chat.thread.sendFailed"));
+        // SF-M11: show what the SERVER said, not a blanket "couldn't send".
+        // This path can now fail for a reason the sender can act on (someone
+        // else bought units between opening the sheet and sending), and
+        // "Message failed to send" would hide it — the exact class of bug
+        // reported as "user did not see this error, it says server error".
+        toast.error(apiErrorMessage(err, t, "chat.thread.sendFailed"));
       } finally {
         setIsSendingThreadOffer(false);
       }
     },
-    [currentConversationId, conversation, currentUser, t]
+    [currentConversationId, conversation, currentUser, threadOfferQuantity, t]
   );
 
   // ── Send meetup proposal ─────────────────────────────────────────────────
@@ -952,6 +990,13 @@ export function ConversationScreen() {
     const parts = offer.body.split("|");
     const priorAmount = offer.offerAmount ?? Number(parts[0] ?? 0);
     setCounterOfferAmount(String(priorAmount > 0 ? priorAmount : ""));
+    // SF-M11 — carry the prior quantity in as the starting value, the same way
+    // the amount is carried. Left EMPTY when the prior offer named no quantity
+    // (`offerQuantity == null`), because empty means "unspecified" on the wire:
+    // prefilling a literal "1" would turn a silence into an assertion.
+    setCounterOfferQuantity(
+      offer.offerQuantity != null ? String(offerUnits(offer.offerQuantity)) : ""
+    );
     setCounterSheetVisible(true);
   }, []);
 
@@ -977,26 +1022,48 @@ export function ConversationScreen() {
       const listedPrice = parts[2] ?? "0";
       const body = `${amount}|${currency}|${listedPrice}`;
 
+      // SF-M11 — a counter restates the quantity as well as the price. The API
+      // permits it on `offer_counter` for exactly this reason: without it, the
+      // agreed units are lost the moment either side moves the price, because
+      // `findAgreedOffer` reads the terms off the NEWEST accepted offer.
+      const parsedQuantity = parseOfferQuantity(
+        counterOfferQuantity,
+        conversation?.listing?.availableUnits
+      );
+      if (parsedQuantity.errorKey) {
+        toast.error(
+          t(parsedQuantity.errorKey, {
+            available: conversation?.listing?.availableUnits ?? 0,
+          })
+        );
+        setIsSendingCounter(false);
+        return;
+      }
+
       try {
         const sent = await conversationsAPI.sendMessage(
           convId,
           body,
           "offer_counter",
-          counterOfferTarget.id
+          counterOfferTarget.id,
+          parsedQuantity.value ?? undefined
         );
         isNearBottomRef.current = true;
         setMessages((prev) => [...prev, sent]);
         setCounterSheetVisible(false);
         setCounterOfferTarget(null);
         setCounterOfferAmount("");
+        setCounterOfferQuantity("");
         toast.success(t("chat.offer.counterSentToast"));
-      } catch {
-        toast.error(t("chat.thread.sendFailed"));
+      } catch (err) {
+        // Same reasoning as the in-thread offer path: surface the server's own
+        // reason (e.g. only 12 units left now) instead of a blanket failure.
+        toast.error(apiErrorMessage(err, t, "chat.thread.sendFailed"));
       } finally {
         setIsSendingCounter(false);
       }
     },
-    [currentConversationId, counterOfferTarget, t]
+    [currentConversationId, counterOfferTarget, conversation, counterOfferQuantity, t]
   );
 
   // ── Send file attachment ─────────────────────────────────────────────────
@@ -1501,6 +1568,12 @@ export function ConversationScreen() {
           // exact same "built the sheet, never wired the prop" bug this
           // ticket exists to close, one control over.
           buyer={conversation.buyer ?? null}
+          // SF-M11 — the units this thread agreed on, so "Mark sold" opens on
+          // that number instead of 1. Passed HERE deliberately: the two
+          // previous times a control was added to this header it was built and
+          // never wired (see the `buyer` note directly above), so this prop is
+          // covered by a test that fails if it stops arriving.
+          agreedQuantity={agreedOffer?.quantity ?? null}
           // Review fix (MUST-FIX, CACHE/DUPLICATION) — same shared helper the
           // reserve-after-accept confirm uses below, so a manual Reserve/Mark
           // Sold tap from THIS header also refreshes My Listings and the
@@ -1955,14 +2028,21 @@ export function ConversationScreen() {
           onClose={() => {
             setThreadOfferSheetVisible(false);
             setThreadOfferAmount("");
+            setThreadOfferQuantity("");
           }}
           onSend={handleSendOfferInThread}
           offerAmount={threadOfferAmount}
           onChangeAmount={setThreadOfferAmount}
+          quantity={threadOfferQuantity}
+          onChangeQuantity={setThreadOfferQuantity}
+          availableUnits={conversation.listing.availableUnits}
           currency={conversation.listing.currency ?? "AFN"}
           price={conversation.listing.price ?? 0}
-          // The buyer's offer anchor must be per-unit on a batch listing, same
-          // as on the listing detail — an offer carries no quantity of its own.
+          // The offer anchor is per-unit on a batch listing, same as on the
+          // listing detail. SF-M11 also makes this the flag that reveals the
+          // quantity field — so the offer now carries how many units it is
+          // for, which is what the old version of this comment said it could
+          // not do.
           perUnit={conversation.listing.multiUnit === true}
           isBusy={isSendingThreadOffer}
           // Review fix (DR): role-neutral safety note — this button is
@@ -1985,10 +2065,19 @@ export function ConversationScreen() {
           setCounterSheetVisible(false);
           setCounterOfferTarget(null);
           setCounterOfferAmount("");
+          setCounterOfferQuantity("");
         }}
         onSend={handleSendCounter}
         offerAmount={counterOfferAmount}
         onChangeAmount={setCounterOfferAmount}
+        quantity={counterOfferQuantity}
+        onChangeQuantity={setCounterOfferQuantity}
+        availableUnits={conversation?.listing?.availableUnits}
+        // SF-M11 — a counter on a batch listing gets the quantity field too
+        // (the API permits `offer_quantity` on `offer_counter` for this
+        // reason). Without it, a seller countering "3 for 40,000" could only
+        // restate the price and the units would silently fall back to one.
+        perUnit={conversation?.listing?.multiUnit === true}
         currency={
           counterOfferTarget?.offerCurrency ??
           counterOfferTarget?.body?.split("|")[1] ??

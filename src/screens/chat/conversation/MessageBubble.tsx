@@ -29,6 +29,10 @@ import {
 import { Image } from "expo-image";
 import { Text } from "@/components/reusables/text";
 import { PriceTag } from "@/components/common/PriceTag";
+import {
+  offerUnits,
+  shouldShowOfferUnits,
+} from "@/screens/shared/listing-detail/offerQuantity";
 import { HighlightedText } from "@/components/common/HighlightedText";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
@@ -883,6 +887,30 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
               <PriceTag price={amount} currency={currency} size="lg" tone={isMine ? "warning" : "default"} />
             </View>
 
+            {/* SF-M11 — units this offer is for, on a multi-unit listing. The
+                quantity used to live only in prose the sender typed, so the
+                seller had to re-read the thread to know how many were sold and
+                mark-sold opened at 1 regardless. Hidden entirely for one unit
+                (`shouldShowOfferUnits`), so single-item threads are unchanged. */}
+            {shouldShowOfferUnits(message.offerQuantity) && (
+              <Text
+                testID="offer-bubble-units"
+                style={{
+                  fontSize: 12,
+                  fontWeight: "600",
+                  color: isMine ? colors.warning : colors.foreground,
+                  marginTop: 4,
+                  textAlign: isRtl ? "right" : "left",
+                }}
+              >
+                {t("chat.offer.quantityTotal", {
+                  units: offerUnits(message.offerQuantity),
+                  unitPrice: formatCurrency(amount, currency),
+                  total: formatCurrency(amount * offerUnits(message.offerQuantity), currency),
+                })}
+              </Text>
+            )}
+
             {listedPrice > 0 && (
               <Text
                 style={{
@@ -1055,6 +1083,30 @@ export function MessageBubble({ message, isMine, onMeetupRespond, meetupOutcome,
             <View style={{ alignItems: isRtl ? "flex-end" : "flex-start" }}>
               <PriceTag price={amount} currency={currency} size="lg" tone={isMine ? "warning" : "default"} />
             </View>
+
+            {/* SF-M11 — units this offer is for, on a multi-unit listing. The
+                quantity used to live only in prose the sender typed, so the
+                seller had to re-read the thread to know how many were sold and
+                mark-sold opened at 1 regardless. Hidden entirely for one unit
+                (`shouldShowOfferUnits`), so single-item threads are unchanged. */}
+            {shouldShowOfferUnits(message.offerQuantity) && (
+              <Text
+                testID="offer-bubble-units"
+                style={{
+                  fontSize: 12,
+                  fontWeight: "600",
+                  color: isMine ? colors.warning : colors.foreground,
+                  marginTop: 4,
+                  textAlign: isRtl ? "right" : "left",
+                }}
+              >
+                {t("chat.offer.quantityTotal", {
+                  units: offerUnits(message.offerQuantity),
+                  unitPrice: formatCurrency(amount, currency),
+                  total: formatCurrency(amount * offerUnits(message.offerQuantity), currency),
+                })}
+              </Text>
+            )}
 
             {/* No payment note */}
             <View

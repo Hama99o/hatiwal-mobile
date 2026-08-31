@@ -98,13 +98,12 @@ jest.mock("@/components/common/BuyerPickerSheet");
 // MyListingDetail.test.tsx, so the QA-BUG2 sequencing (it must not appear
 // before the mark-sold toast finishes its own lifecycle) is assertable here
 // too, not just in useListingLifecycle.test.tsx.
-jest.mock("@/components/common/ReviewPromptSheet", () => {
-  const { View } = require("react-native");
-  function ReviewPromptSheet({ visible }: { visible: boolean }) {
-    return visible ? <View testID="review-prompt-sheet" /> : null;
-  }
-  return { ReviewPromptSheet };
-});
+// Uses the manual mock at `src/components/common/__mocks__/ReviewPromptSheet.tsx`
+// — NOT an inline factory. The inline version that used to live here required
+// `react-native` and returned JSX in the same hoisted factory, which crashes
+// babel-plugin-jest-hoist and took this entire suite down (0 of 22 tests ran).
+// Same trap, same fix, as `__mocks__/BuyerPickerSheet.tsx` documents.
+jest.mock("@/components/common/ReviewPromptSheet");
 
 // Import AFTER mocks
 import { ListingHeader } from "../ListingHeader";
@@ -134,10 +133,31 @@ const baseListing = {
 
 const baseBuyer = { id: 55, name: "Ahmad Karimi" };
 
+// Every client this suite creates, so `afterEach` can clear them — cache
+// hygiene between tests, not a fix for anything.
+//
+// Recorded because it cost a bisect: running THIS SUITE ALONE does not exit
+// ("Jest did not exit one second after the test run has completed"). Every
+// test that starts a `useMutation` reproduces it; the smoke, firm-price,
+// multi-quantity and agreed-quantity groups all exit cleanly because they
+// never start one. `--detectOpenHandles` reports NOTHING, and clearing the
+// clients below does NOT fix it — so it is not a tracked libuv handle.
+//
+// It does not affect CI: a single-suite run executes in-band, where a leak
+// blocks the parent process, while a multi-suite run kills its workers.
+// Verified — this suite plus one more exits 0, and CI runs `npm test` over
+// everything. So do NOT "fix" this by adding `forceExit` to jest.config.js:
+// that would mask real leaks across the whole repo for a problem CI does not
+// have. If you are running this file on its own and it appears to hang, the
+// tests have already passed — read the summary above the hang.
+const createdClients: QueryClient[] = [];
+
 function makeQueryClient() {
-  return new QueryClient({
+  const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  createdClients.push(qc);
+  return qc;
 }
 
 /** Wraps every render in a QueryClientProvider — see the import comment above. */
@@ -147,6 +167,12 @@ function renderHeader(element: React.ReactElement, qc: QueryClient = makeQueryCl
 
 beforeEach(() => {
   jest.clearAllMocks();
+});
+
+afterEach(() => {
+  // `clear()` empties both caches and cancels their pending gc timers, which
+  // is what lets the process exit.
+  while (createdClients.length) createdClients.pop()!.clear();
 });
 
 // ── 1. Buyer — no lifecycle button ────────────────────────────────────────────
@@ -264,6 +290,48 @@ describe("ListingHeader — Mark Sold action", () => {
     expect(mockConfirmAlert).not.toHaveBeenCalled();
     expect(screen.getByTestId("buyer-picker-visible-sold")).toBeTruthy();
     expect(screen.getByTestId("buyer-picker-preselected-buyer-id")).toHaveTextContent("55");
+  });
+
+  // ── SF-M11: the thread's agreed units reach the mark-sold sheet ──────────
+  //
+  // This is a WIRING test, and it exists because this exact prop path has been
+  // built-and-not-wired twice on this component (see the `buyer` note in
+  // Conversation.tsx). Asserting the sheet's own `suggestedQuantity` — rather
+  // than that ListingHeader merely accepts the prop — is what makes it fail if
+  // the forwarding is ever dropped.
+  it("forwards `agreedQuantity` to the sheet as `suggestedQuantity`", () => {
+    renderHeader(
+      <ListingHeader
+        listing={{ ...baseListing, status: "active", multiUnit: true, availableUnits: 11 }}
+        isOwner={true}
+        buyer={baseBuyer}
+        agreedQuantity={3}
+      />
+    );
+
+    fireEvent.press(screen.getByText("chat.listingActions.markSold"));
+
+    // The seller confirms the 3 units the thread agreed on — not 1, which is
+    // what the sheet opened on before SF-M11 and which silently left 2 sold
+    // units on the batch.
+    expect(screen.getByTestId("buyer-picker-suggested")).toHaveTextContent("3");
+    // The ceiling is still the real stock, not the agreed number.
+    expect(screen.getByTestId("buyer-picker-remaining")).toHaveTextContent("11");
+  });
+
+  it("passes no suggestion when the thread agreed nothing", () => {
+    // An offer that named no quantity (and every offer predating SF-B11) must
+    // leave the sheet on its historical default of one unit.
+    renderHeader(
+      <ListingHeader
+        listing={{ ...baseListing, status: "active", multiUnit: true, availableUnits: 11 }}
+        isOwner={true}
+        buyer={baseBuyer}
+      />
+    );
+
+    fireEvent.press(screen.getByText("chat.listingActions.markSold"));
+    expect(screen.getByTestId("buyer-picker-suggested")).toHaveTextContent("");
   });
 
   it("calls listingsAPI.markSold with listing id + result on picker confirm", async () => {

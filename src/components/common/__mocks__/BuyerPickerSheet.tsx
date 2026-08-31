@@ -21,6 +21,7 @@ export function BuyerPickerSheet({
   onClose,
   action,
   remainingQuantity,
+  suggestedQuantity,
   preselectedBuyer,
 }: {
   visible: boolean;
@@ -30,6 +31,13 @@ export function BuyerPickerSheet({
   /** Surfaced so a consumer suite can assert what the real sheet would be told
    *  about the stock — the number that decides whether it asks "how many?". */
   remainingQuantity?: number;
+  /**
+   * SF-M11 — surfaced (additively) so a suite can assert the caller told the
+   * sheet which quantity to OPEN on. This is the prop that carries a thread's
+   * agreed units into mark-sold; the two previous controls added to this path
+   * were built and never wired, so it is asserted rather than assumed.
+   */
+  suggestedQuantity?: number | null;
   /**
    * SF-M2 — surfaced (additively; existing consumers never query for it) so a
    * suite can assert a caller scoped this sheet to a SPECIFIC, already-known
@@ -42,6 +50,7 @@ export function BuyerPickerSheet({
     <>
       <Text testID={`buyer-picker-visible-${action}`}>buyer-picker-open</Text>
       <Text testID="buyer-picker-remaining">{String(remainingQuantity ?? "")}</Text>
+      <Text testID="buyer-picker-suggested">{String(suggestedQuantity ?? "")}</Text>
       {preselectedBuyer ? (
         <Text testID="buyer-picker-preselected-buyer-id">{String(preselectedBuyer.id)}</Text>
       ) : null}

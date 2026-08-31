@@ -173,7 +173,11 @@
     "reserveAfterAcceptDismiss": "Not now",
     "reserveAfterAcceptSuccess": "Listing reserved for {{buyerName}}",
     "agreedBannerTitle": "{{buyerName}} accepted your offer",
-    "agreedReserveCta": "Reserve now"
+    "agreedReserveCta": "Reserve now",
+    "quantityLabel": "How many?",
+    "quantityInvalid": "Enter a whole number of units.",
+    "quantityAboveAvailable": "Only {{available}} available.",
+    "quantityTotal": "{{units}} × {{unitPrice}} = {{total}}"
   },
   "block": {
     "blockUser": "Block User",

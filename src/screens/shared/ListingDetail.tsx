@@ -89,6 +89,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import { ListingGallery } from "./listing-detail/ListingGallery";
 import { FirstMessageSheet } from "./listing-detail/FirstMessageSheet";
 import { OfferSheet } from "./listing-detail/OfferSheet";
+import { parseOfferQuantity } from "./listing-detail/offerQuantity";
 import { DetailSkeleton } from "./listing-detail/DetailSkeleton";
 import { SellerPhoneReveal } from "./listing-detail/SellerPhoneReveal";
 import { canContactListing, canOfferOnListing, isListingDeadEnd } from "./listing-detail/listingAvailability";
@@ -153,6 +154,11 @@ export default function ListingDetailScreen() {
   const [showReportSheet, setShowReportSheet] = useState(false);
   const [showSafetyTips, setShowSafetyTips] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
+  // SF-M11 — units this offer is for, as typed. A STRING (not a number) so the
+  // field can be empty, which means "didn't say" and sends nothing, exactly as
+  // the server reads a missing `offer_quantity`. Only ever shown on a
+  // multi-unit listing.
+  const [offerQuantity, setOfferQuantity] = useState("");
   // SF-M6 — buyer-side quantity INTENT, never a reservation/hold. Feeds only
   // FirstMessageSheet's prefilled text (docs/SELL_FLOW_REDESIGN.md §4.2.3);
   // no API call is ever made with it. Reset to 1 whenever the sheet closes
@@ -290,11 +296,15 @@ export default function ListingDetailScreen() {
   // fetching the existing conversation for this listing and posting the offer
   // message there directly, mirroring the duplicate-handling in FirstMessageSheet.
   const offerMutation = useMutation({
-    mutationFn: async (offerBody: string) => {
+    // SF-M11: the variable is now `{ body, quantity }` rather than a bare
+    // string. Both `sendMessage` calls below must pass the quantity — the 422
+    // fallback path is the one a buyer hits on their SECOND offer in a thread,
+    // so dropping it there would lose the quantity precisely for repeat buyers.
+    mutationFn: async ({ body: offerBody, quantity }: { body: string; quantity?: number }) => {
       const defaultMsg = t("listing.detail.defaultMessage");
       try {
         const conversation = await conversationsAPI.startConversation(Number(id), defaultMsg);
-        await conversationsAPI.sendMessage(conversation.id, offerBody, "offer");
+        await conversationsAPI.sendMessage(conversation.id, offerBody, "offer", undefined, quantity);
         return conversation;
       } catch (err: unknown) {
         const axiosErr = err as { response?: { status?: number } };
@@ -304,7 +314,7 @@ export default function ListingDetailScreen() {
           const existing = await conversationsAPI.getConversations({ listingId: Number(id) });
           const conversation = existing.items[0];
           if (!conversation) throw err;
-          await conversationsAPI.sendMessage(conversation.id, offerBody, "offer");
+          await conversationsAPI.sendMessage(conversation.id, offerBody, "offer", undefined, quantity);
           return conversation;
         }
         throw err;
@@ -313,6 +323,7 @@ export default function ListingDetailScreen() {
     onSuccess: (conversation) => {
       setShowOfferSheet(false);
       setOfferAmount("");
+      setOfferQuantity("");
       router.push(`/(main)/conversation/${conversation.id}` as never);
     },
     onError: (err) => toast.error(apiErrorMessage(err, t)),
@@ -349,9 +360,20 @@ export default function ListingDetailScreen() {
     }
     const currency = listing?.currency ?? "AFN";
     const listedPrice = listing?.price ?? 0;
+    // SF-M11 — the quantity rides alongside the body, NOT inside it. The pipe
+    // string's three segments are parsed by mobile, web and the API; appending
+    // a 4th would have changed a field all three already read.
+    const parsedQuantity = parseOfferQuantity(offerQuantity, listing?.availableUnits);
+    if (parsedQuantity.errorKey) {
+      toast.error(t(parsedQuantity.errorKey, { available: listing?.availableUnits ?? 0 }));
+      return;
+    }
     // Body format "amount|currency|listedPrice" — parsed by OfferBubble in chat
-    offerMutation.mutate(`${amount}|${currency}|${listedPrice}`);
-  }, [offerMutation, listing, t]);
+    offerMutation.mutate({
+      body: `${amount}|${currency}|${listedPrice}`,
+      quantity: parsedQuantity.value ?? undefined,
+    });
+  }, [offerMutation, listing, offerQuantity, t]);
 
   const handleShare = useCallback(async () => {
     setShowMoreSheet(false);
@@ -1208,6 +1230,9 @@ export default function ListingDetailScreen() {
         onSend={handleSendOffer}
         offerAmount={offerAmount}
         onChangeAmount={setOfferAmount}
+        quantity={offerQuantity}
+        onChangeQuantity={setOfferQuantity}
+        availableUnits={listing.availableUnits}
         currency={listing.currency}
         price={listing.price}
         isBusy={isBusy}

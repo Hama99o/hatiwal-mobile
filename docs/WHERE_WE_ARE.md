@@ -223,3 +223,85 @@ search box. Recorded so it is not rediscovered:
 - **Web uses OSM's forbidden tiles** — no watermark, but on borrowed time.
 - **The `/admin` "Reserved" tile counts status only**, so it under-reports holds on batches.
   Cosmetic, sits beside an explicit enum breakdown — a product call, not a silent edit.
+
+---
+
+## 7. Tonight's session (2026-08-31, later) — what changed and what it cost
+
+### 7a. SF-M11 shipped — an offer now carries how many units it is for
+
+Board card 307. This was the **last hole in the buy flow**, and the one the owner asked about
+directly ("how the people have buy, like, how they choose, how many item they can buy"). SF-B11
+shipped the API half; without this mobile half it **ships inert**, which is exactly how QA-BUG3 came
+back this morning.
+
+What it looked like before: a buyer on a 15-unit batch could only type a *price*. The quantity lived
+in prose the composer generated ("3 × AFN 14,000 = AFN 42,000"), the seller had to re-read the
+thread, and **mark-sold opened at 1 regardless** — so a 3-unit agreement sold one unit and left two
+on the batch that were already gone. `OfferSheet`'s own `perUnit` docstring named the hole
+("an offer carries no quantity of its own, so nothing downstream disambiguates it").
+
+Now: `Message.offerQuantity` on the wire, a quantity field in `OfferSheet` for **both** offer and
+counter (the API permits `offer_quantity` on `offer_counter` for a reason — a counter that could only
+restate the price would lose the units the moment either side moved), the units on the offer bubble,
+and `findAgreedOffer().quantity` feeding `BuyerPickerSheet`'s stepper through
+`ListingHeader.agreedQuantity` → `suggestedQuantity`.
+
+Load-bearing rules, all in ONE place (`screens/shared/listing-detail/offerQuantity.ts`):
+
+- **`null` means UNSPECIFIED, not one.** It is null for every non-offer kind, every offer on a
+  single-item listing, every offer whose sender named no quantity, and every offer written before
+  SF-B11. `offerUnits()` answers 1 for all of them; nothing else may re-derive that.
+- **Single-unit stays invisible.** `shouldShowOfferUnits()` hides a "1 ×" prefix, so single-item
+  threads render byte-identically to before.
+- **Prefilling the agreed number is NOT prefilling the remainder.** The note on
+  `BuyerPickerSheet.quantity` explains why defaulting to the whole stock was harmful (a seller
+  confirmed "sold" on a batch of 50 and retired the listing). The difference: a remainder is *our*
+  guess; the agreed quantity is a number the buyer typed and the seller accepted. Still editable,
+  still capped by `remainingQuantity`.
+
+Also fixed on the way, because SF-M11 adds a new 422 to these paths: the in-thread offer and
+counter handlers both had `catch { toast.error("couldn't send") }`, which would have hidden
+`offer_quantity_above_available_units` behind a generic failure — the same class the owner reported
+as *"user did not see this error it say servcer error"*. Both now use `apiErrorMessage`.
+
+### 7b. `ListingHeader.test.tsx` had not run a single test since QA-BUG5
+
+Found while adding the SF-M11 wiring test. The suite **crashed in transform** —
+`TypeError: Property declarations[0] of VariableDeclaration ... got undefined` — so **0 of 22 tests
+ran**, and it reads as a toolchain error rather than as lost coverage. Cause: QA-BUG5 added an inline
+`jest.mock("@/components/common/ReviewPromptSheet", () => { const { View } = require(...); ... JSX })`
+— the precise trap that `__mocks__/BuyerPickerSheet.tsx`'s own header comment documents. Fixed by
+moving it to a manual mock at `src/components/common/__mocks__/ReviewPromptSheet.tsx`.
+
+A scan found 5 other suites with the same require+JSX shape — `HiddenListings`,
+`ListingConversations`, `ListingSales`, `MyListingDetail`, `BlockedUsers`. **All 5 pass** (61 tests),
+so the pattern alone is not the trigger and they need no change. Recorded so nobody "fixes" them.
+
+### 7c. The map QA matrix — and two rig lessons that cost hours
+
+Six cells (en/ps/fa × light/dark), each driving all four map surfaces: listing detail, browse filter,
+edit profile, create-listing.
+
+**Lesson 1 — `scrollUntilVisible` swipes from the screen CENTRE.** Both Pashto cells failed at
+`listing-form-field-location` for three separate attempts. It was never an app bug: the form renders
+correctly in Pashto (RTL, dark palette, Arabic-Indic digits), but Pashto labels wrap, so the taller
+layout puts the screen centre on the title `TextInput`, which **consumes the vertical drag**. The
+form never moved a pixel, and the field was absent from the view hierarchy because it was never
+scrolled into it. en and fa put a different element under the centre, which is why they passed the
+identical step. Fix: an explicit `swipe` at **x=88%**, in the margin, clear of the centred inputs.
+Two earlier attempts (dropping `centerElement`, then `visibilityPercentage: 30`) could not have
+worked — both tuned the *search* while the scroll itself was doing nothing.
+
+**Lesson 2 — one Maestro per device, always.** `qa/qa.sh` documents this (`hold_device_lock`:
+*"two Maestro instances driving the same emulator tear down each other's on-device driver. The
+signature is a flow that 'fails' in ~0s having run nothing"*). I ran a background batch and a
+foreground cell at once and got exactly that signature four times, plus a half-installed driver
+(`dev.mobile.maestro.MaestroDriverService: Process crashed.` / `NameNotFoundException:
+dev.mobile.maestro.test`) that had to be uninstalled so Maestro would reinstall it. **Run cells
+serially under `flock qa/reports/.device.lock`** — the rig's own lock, so a concurrent `qa.sh` waits
+instead of colliding.
+
+**Host note:** two stray `pollinations-mcp` processes (from an unrelated project) were pinned at 100%
+CPU each, starving the emulator. `renice -n 19` on them is enough and is non-destructive; killing
+them needs the owner (`kill` is blocked for the agent).

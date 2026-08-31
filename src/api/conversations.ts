@@ -41,6 +41,22 @@ export interface Message {
   /** Currency code (e.g. "AFN") — populated for `offer` and `offer_counter` kinds. */
   offerCurrency?: string | null;
   /**
+   * SF-M11 — how many units this offer is for, on a multi-unit listing.
+   *
+   * A real column server-side, NOT a 4th segment of `body`'s pipe encoding:
+   * mobile, web and the API all already parse that string, so widening it
+   * would have changed a field every one of them reads. This is additive, so
+   * an older client simply ignores it.
+   *
+   * `null` means UNSPECIFIED, not one — it is null for every non-offer kind,
+   * every offer on a single-item listing, every offer whose sender named no
+   * quantity, and every offer sent before SF-B11 shipped. Read it with
+   * `offerUnits()` (`@/screens/shared/listing-detail/offerQuantity`), which
+   * applies the "absence means a single unit" rule in ONE place rather than
+   * leaving each call site to remember it.
+   */
+  offerQuantity?: number | null;
+  /**
    * True when the message has been soft-deleted by its author.
    * Body, attachment_url, offer_amount and offer_currency are null when deleted.
    */
@@ -241,11 +257,24 @@ export const conversationsAPI = {
       | "offer_accepted"
       | "offer_declined"
       | "offer_counter" = "text",
-    respondsToId?: number
+    respondsToId?: number,
+    /**
+     * SF-M11 — units this offer is for. Omit (or pass undefined) for every
+     * non-offer message and for a single-item listing; the server DISCARDS a
+     * value that cannot mean anything rather than rejecting it, so a stale
+     * client can never invent a 422 on a flow that works today. Sent only
+     * when set, which keeps every pre-existing call site byte-identical on
+     * the wire.
+     */
+    offerQuantity?: number
   ): Promise<Message> => {
     const response = await http.post(
       `/conversations/${conversationId}/messages`,
-      convertKeysToSnake({ body, kind, respondsToId })
+      convertKeysToSnake(
+        offerQuantity == null
+          ? { body, kind, respondsToId }
+          : { body, kind, respondsToId, offerQuantity }
+      )
     );
     return convertKeysToCamel(response.data.message) as Message;
   },

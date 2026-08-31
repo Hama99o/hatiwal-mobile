@@ -272,3 +272,90 @@ function OfferSheetCounterDemo() {
 export const CounterModeInteractive: Story = {
   render: () => <OfferSheetCounterDemo />,
 };
+
+// ─── SF-M11: multi-unit quantity field ───────────────────────────────────────
+//
+// The field only exists when the listing has several identical units AND the
+// caller supplies `onChangeQuantity` — a single-item listing renders nothing
+// new, which is what keeps those threads unchanged. Three states, because each
+// one is a different thing the buyer sees.
+
+/** Multi-unit, quantity filled in — shows the "3 × 14,000 = 42,000" read-back. */
+export const MultiUnitWithQuantity: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onSend: () => {},
+    offerAmount: "14000",
+    onChangeAmount: () => {},
+    quantity: "3",
+    onChangeQuantity: () => {},
+    availableUnits: 15,
+    perUnit: true,
+    currency: "AFN",
+    price: 14000,
+    isBusy: false,
+  },
+};
+
+/** Multi-unit, nothing typed yet — the ceiling is visible BEFORE it is hit. */
+export const MultiUnitEmptyQuantity: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onSend: () => {},
+    offerAmount: "14000",
+    onChangeAmount: () => {},
+    quantity: "",
+    onChangeQuantity: () => {},
+    availableUnits: 15,
+    perUnit: true,
+    currency: "AFN",
+    price: 14000,
+    isBusy: false,
+  },
+};
+
+/**
+ * Asked for more than exists — the inline error, and Send disabled. The buyer
+ * learns this here rather than from a server 422 they would have to decode.
+ */
+export const MultiUnitQuantityAboveStock: Story = {
+  args: {
+    visible: true,
+    onClose: () => {},
+    onSend: () => {},
+    offerAmount: "14000",
+    onChangeAmount: () => {},
+    quantity: "20",
+    onChangeQuantity: () => {},
+    availableUnits: 15,
+    perUnit: true,
+    currency: "AFN",
+    price: 14000,
+    isBusy: false,
+  },
+};
+
+/**
+ * A counter names its own quantity too — the API permits `offer_quantity` on
+ * `offer_counter` because a counter that could only restate the price would
+ * lose the agreed units the moment either side moved.
+ */
+export const CounterModeWithQuantity: Story = {
+  args: {
+    mode: "counter" as const,
+    visible: true,
+    onClose: () => {},
+    onSend: () => {},
+    offerAmount: "13000",
+    onChangeAmount: () => {},
+    quantity: "5",
+    onChangeQuantity: () => {},
+    availableUnits: 15,
+    perUnit: true,
+    currency: "AFN",
+    price: 14000,
+    isBusy: false,
+  },
+};

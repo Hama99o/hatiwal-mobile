@@ -21,11 +21,12 @@
  */
 import type { Message } from "@/api/conversations";
 import type { OfferRowFlags } from "./offerGuards";
+import { offerUnits } from "@/screens/shared/listing-detail/offerQuantity";
 
 /** The subset of `Message` this module actually reads. */
 export type AgreedOfferMessage = Pick<
   Message,
-  "id" | "kind" | "body" | "offerAmount" | "offerCurrency"
+  "id" | "kind" | "body" | "offerAmount" | "offerCurrency" | "offerQuantity"
 >;
 
 export interface AgreedOffer {
@@ -33,6 +34,14 @@ export interface AgreedOffer {
   offerMessageId: number;
   amount: number;
   currency: string | null;
+  /**
+   * SF-M11 — units the accepted offer was for, already normalized through
+   * `offerUnits()`, so this is always ≥ 1 and never null. An offer that named
+   * no quantity (and every offer predating SF-B11) yields 1, which is what
+   * mark-sold already defaulted to — so this field cannot change the outcome
+   * of a deal that worked before, only carry one that used to be lost.
+   */
+  quantity: number;
 }
 
 /**
@@ -59,7 +68,16 @@ export function findAgreedOffer(
     if (!amount || amount <= 0) continue;
     const currency = m.offerCurrency ?? parts[1] ?? null;
 
-    return { offerMessageId: m.id, amount, currency };
+    // SF-M11: no `body` fallback for the quantity, deliberately. The pipe
+    // string has three segments and never carried one, so there is nothing to
+    // fall back TO — `offerUnits` answering 1 for a legacy row is the correct
+    // reading of "this offer never said", not a lossy guess.
+    return {
+      offerMessageId: m.id,
+      amount,
+      currency,
+      quantity: offerUnits(m.offerQuantity),
+    };
   }
   return null;
 }
