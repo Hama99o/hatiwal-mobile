@@ -1,13 +1,14 @@
 /**
  * Manual Jest mock for MapCanvas.
  *
- * MapCanvas is a platform-split module (MapCanvas.native.tsx / MapCanvas.web.tsx)
- * that renders native OSM tiles (via expo-image) or a Leaflet CDN map, neither of
- * which can run in the Jest/Node environment.
+ * MapCanvas (a single MapCanvas.tsx, shared by Android and iOS) renders a
+ * native MapLibre GL map against Hatiwal's self-hosted vector tiles at
+ * map.hatiwal.com, via the `@maplibre/maplibre-react-native` native module —
+ * which cannot run in the Jest/Node environment.
  *
  * This stub renders a plain View with testID="map-canvas-stub" so component tests
  * that include ListingMapSection can assert the map area is present without
- * triggering any native tile or browser DOM code.
+ * triggering any native map module.
  *
  * It is a plain CommonJS file so NativeWind's Babel transform does NOT inject
  * _ReactNativeCSSInterop into its output — avoiding the jest.mock() factory

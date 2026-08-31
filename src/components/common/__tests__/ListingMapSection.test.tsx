@@ -10,9 +10,9 @@
  * tests must first open the modal by pressing the preview overlay (labelled
  * with the "listing.detail.mapTapToInteract" key).
  *
- * Because MapCanvas is a platform-split module (MapCanvas.native.tsx /
- * MapCanvas.web.tsx) that renders native tiles or Leaflet, we stub it with a
- * simple View so tests can run in Jest / Node without any native map module.
+ * MapCanvas renders a native MapLibre GL map (Hatiwal's self-hosted vector
+ * tiles at map.hatiwal.com) via a native module, so we stub it with a simple
+ * View so tests can run in Jest / Node without any native map module.
  *
  * Global mocks provided by src/__tests__/setup.ts:
  *   - react-i18next  → t(key) returns the key
@@ -33,7 +33,16 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react-
 // the component. The manual mock uses plain CommonJS (no react-native require)
 // to avoid NativeWind's Babel transform injecting _ReactNativeCSSInterop into
 // the jest.mock factory scope, which would trigger an out-of-scope variable error.
-jest.mock("@/components/common/map/MapCanvas");
+//
+// An explicit factory (rather than the bare `jest.mock(id)` call that relies on
+// Jest auto-discovering the adjacent __mocks__ file) — verified that the bare
+// form silently never engaged here: MapCanvas now requires the real
+// `@maplibre/maplibre-react-native` native module at import time (no root-level
+// `__mocks__` net like `react-native-maps` has), so without this explicit
+// factory the suite tried to parse MapLibre's native TS source and failed.
+jest.mock("@/components/common/map/MapCanvas", () =>
+  require("@/components/common/map/__mocks__/MapCanvas")
+);
 
 // Stub expo-location. The component calls getForegroundPermissionsAsync on mount.
 const mockGetForegroundPermissions = jest.fn();

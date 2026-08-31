@@ -17,10 +17,11 @@
  *   DarkSurface            — dark background to verify useColors() token correctness
  *
  * Map rendering notes:
- *   The preview MapCanvas renders tile-based map imagery (CartoCDN) and is
- *   static — gestures are disabled until the user taps to open the fullscreen
- *   modal. The stories below verify the preview, the address row, and the
- *   directions button; tap the preview at runtime to exercise the modal.
+ *   The preview MapCanvas renders Hatiwal's self-hosted MapLibre vector tiles
+ *   (map.hatiwal.com — see hatiwal-map/README.md) and is static — gestures
+ *   are disabled until the user taps to open the fullscreen modal. The
+ *   stories below verify the preview, the address row, and the directions
+ *   button; tap the preview at runtime to exercise the modal.
  */
 
 import React from "react";

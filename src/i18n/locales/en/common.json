@@ -53,6 +53,7 @@
   "quantity": "Quantity",
   "decreaseQuantity": "Decrease quantity",
   "increaseQuantity": "Increase quantity",
+  "mapPreviewUnavailable": "Map preview is only available in the built app (not Expo Go).",
   "splash": {
     "validating": "Checking your session…"
   },

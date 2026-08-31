@@ -53,6 +53,7 @@
   "quantity": "تعداد",
   "decreaseQuantity": "کاهش تعداد",
   "increaseQuantity": "افزایش تعداد",
+  "mapPreviewUnavailable": "پیش‌نمایش نقشه فقط در اپلیکیشن نصب‌شده در دسترس است (نه در Expo Go).",
   "splash": {
     "validating": "در حال بررسی نشست شما…"
   },

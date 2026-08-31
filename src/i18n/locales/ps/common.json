@@ -53,6 +53,7 @@
   "quantity": "شمېر",
   "decreaseQuantity": "شمېر کمول",
   "increaseQuantity": "شمېر زیاتول",
+  "mapPreviewUnavailable": "د نقشې مخکتنه یوازې په جوړ شوي اپلیکیشن کې شتون لري (نه په Expo Go کې).",
   "splash": {
     "validating": "ستاسو ناستې ازمایل کیږي…"
   },
