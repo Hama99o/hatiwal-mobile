@@ -68,9 +68,24 @@ appId: com.hatiwal.app
 - tapOn: "Publish"
 - waitForAnimationToEnd
 
+# QA-F1 (run-266): publishing lands on the owner detail with the
+# PublishSuccessSheet — a native <Modal> — on top of it. Every assertion below
+# used to run against THAT sheet: it renders the title and a StatusBadge too, so
+# `"Active"` passed while the flow had never reached the screen it thought it
+# was on, and the first `scrollUntilVisible` after it then failed on a control
+# the backdrop was covering. Assert the sheet (it IS the publish confirmation),
+# then dismiss it, then assert the screen underneath.
+- extendedWaitUntil:
+    visible: "Your listing is live!"
+    timeout: 60000
+- tapOn:
+    id: "publish-success-done"
+- waitForAnimationToEnd
+- assertNotVisible: "Your listing is live!"
+
 - extendedWaitUntil:
     visible: "QA Undo Mark Sold"
-    timeout: 60000
+    timeout: 30000
 - assertVisible: "Active"
 
 # ── Mark it sold ──────────────────────────────────────────────────────────────
@@ -88,28 +103,93 @@ appId: com.hatiwal.app
     id: "buyer-row-skip"
 - waitForAnimationToEnd
 - tapOn: "Confirm sold"
-- waitForAnimationToEnd
 
-# The sale completed BEFORE the undo is offered — never a blocking dialog.
+# DO NOT `waitForAnimationToEnd` BEFORE ASSERTING A TOAST, and assert the
+# ACTION first (run-268, measured).
+#
+# The mark-sold toast lives ~4s (sonner-native's default `duration`) and carries
+# the ONLY affordance this flow exists to test. A `waitForAnimationToEnd` here
+# waits for the screen to stop changing — which includes the toast animating IN,
+# sitting, and animating OUT. Measured on device: `Tap on "Confirm sold"`
+# completed 17:09:51.7, `waitForAnimationToEnd` did not return until 17:09:56.4,
+# and by 17:09:57.9 the toast was gone (its hierarchy dump shows the bare owner
+# detail). The toast TEXT assertion caught the very last frame and the Undo
+# assertion 1.4s later found nothing — reading exactly like a missing Undo, on a
+# feature that was working.
+#
+# So: `extendedWaitUntil` on **"Undo"**, which polls and therefore catches the
+# toast the moment it appears, and is a STRICTLY STRONGER toast assertion than
+# the text (a toast that fired without its action fails it). The text is then
+# checked in the same frame, with no polling in between.
 - extendedWaitUntil:
-    visible: "Listing marked as sold"
-    timeout: 15000
-- assertVisible: "Sold"
-
-# ── The Undo toast ────────────────────────────────────────────────────────────
-- assertVisible: "Undo"
-- tapOn: "Undo"
-- waitForAnimationToEnd
-
-# The undo is a REAL DELETE round trip, not a client-side revert: back on the
-# owner detail screen, this listing must show Active again with its stock
-# restored, not merely "not literally Sold" on a stale cache.
-- extendedWaitUntil:
-    visible: "QA Undo Mark Sold"
+    visible: "Undo"
     timeout: 20000
-- assertVisible: "Active"
-- assertNotVisible: "Sold"
+# NOTHING between the wait and the tap — run-268 proved that three ~1s
+# assertions plus the tap's own lookup outlive the toast, and Maestro then
+# reports a COMPLETED tap on coordinates the toast has vacated. The
+# "Listing marked as sold" text is asserted by ./mark_sold_with_buyer.yaml,
+# which does not tap and can afford it; here the toast's mere existence (it only
+# fires from `useMarkSoldWithUndo`'s `onSuccess`) already carries the claim that
+# the sale completed before any undo was offered — SF-M5's no-blocking-dialog
+# rule.
+
+# ── Tap it, immediately ──────────────────────────────────────────────────────
+# Nothing between the assertion and the tap: every extra command spends toast
+# life. The "sold is terminal" half of this flow's claim is asserted AFTER the
+# undo instead, as its mirror — the primary action coming BACK (see below), which
+# is the same information and is what an undo round trip actually promises.
+- tapOn: "Undo"
+
+# NO `waitForAnimationToEnd` HERE EITHER (run-269). The VOID toast runs on the
+# same ~4s default as the mark-sold one, and this wait measured 9.5s — so
+# `.*Sale removed.*` failed at 18:20:25 on a void that had completed perfectly:
+# `Started DELETE "/api/v1/my/transactions/132" … 16:19:54` in the Rails access
+# log, and the listing back to `active sold_units=0` with zero transactions.
+# Same lesson as the mark-sold toast above, one toast later.
 
 # The void-success toast confirms the server-side round trip completed, not
 # just an optimistic local flip.
-- assertVisible: "Sale removed"
+# `.*Sale removed.*`: Maestro anchors against the node's WHOLE text and the copy
+# is "Sale removed — stock restored." (listing.sale.voidedSuccess), so the bare
+# literal this line used to carry could never match (run-268).
+- extendedWaitUntil:
+    visible: ".*Sale removed.*"
+    timeout: 20000
+
+# The undo is a REAL DELETE round trip, not a client-side revert: back on the
+# owner detail screen, this listing must show Active again with its stock
+# restored, not merely "not literally Sold" on a stale cache. NOW the scroll is
+# free — there is no toast left to race.
+# SCROLL FIRST, THEN READ THE TITLE (run-270). The listing title sits at the top
+# of MyListingDetail and the screen is parked at the bottom — where the flow
+# tapped the primary action — so waiting on the title before scrolling failed on
+# a screen that was entirely correct. The void itself had already succeeded in
+# the two lines above (`.*Sale removed.*` at 00:01:44, 2.6s after the Undo tap).
+- scrollUntilVisible:
+    element:
+      id: "listing-status-badge"
+    direction: UP
+    timeout: 20000
+- extendedWaitUntil:
+    visible: "QA Undo Mark Sold"
+    timeout: 20000
+# Two assertions, not one compound — see sell_without_reserving.yaml for the
+# hierarchy evidence (the testID node and the label node are SIBLINGS on Android,
+# and the one holding the testID has empty text).
+- assertVisible:
+    id: "listing-status-badge"
+- assertVisible: "Active"
+- assertNotVisible: "Sold"
+# THE MIRROR of the "sold is terminal" claim the toast window could not afford:
+# a sold listing has NO primary action (`useListingLifecycle` maps `sold` to
+# `null`), so the one-tap "Mark as Sold" being BACK proves both that the listing
+# had left `active` and that the void put it back.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- assertVisible:
+    id: "lifecycle-primary-action"
+    text: "Mark as Sold"

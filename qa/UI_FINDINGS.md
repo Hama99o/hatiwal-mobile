@@ -2396,3 +2396,190 @@ run-018 — "typing '3' produced '153', the clamp silently made that 15, and the
 SOLD OUT and retired. One mistyped digit destroyed the seller's remaining stock." The
 mitigation then was `selectTextOnFocus`. Defaulting the field to 1 would remove the
 hazard rather than soften it.
+
+---
+
+## UI-049 — every map in the app renders "API KEY REQUIRED" across it — FIXED (run-267)
+
+**Severity: blocker-class.** Android only (iOS uses Apple Maps via
+`MapCanvas.ios.tsx`). Reported as B1 in `qa/reports/SELL_FLOW_QA_2026-08-27.md`
+but never logged here, so it had no status.
+
+`MapCanvas.android.tsx` built its MapLibre style from CARTO's raster endpoint,
+described in that file's own comment as "Free, keyless OSM raster tiles served by
+CARTO". CARTO has since started **keying that endpoint**, and the way it enforces
+it is the reason this looked so confusing: the request still returns **HTTP 200
+with a perfectly valid 256×256 PNG**, so nothing in the app, the logcat or the
+network layer reports anything wrong — the tile IMAGE simply has
+`API KEY REQUIRED  carto.com/basemaps/apikey` watermarked diagonally across it.
+
+Reproduced off-device, from the host, with no emulator involved:
+
+```
+curl https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png   -> 200, PNG, watermarked
+curl https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png  -> 200, PNG, watermarked
+curl https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png             -> 200, PNG, watermarked
+curl https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png             -> 200, PNG, watermarked
+```
+
+Every CARTO path is affected, light and dark, at every zoom — so this is not a
+style choice that can be swapped inside CARTO. On device it appears on the
+listing-detail location map, the owner-detail location map, the create-listing
+pin picker and the Browse distance filter; screenshots in
+`qa/reports/run-267/seller/screens/` (`sell_without_reserving.png`,
+`held_quantity_refusal.png`) catch it twice incidentally, which is how much of the
+app it covers.
+
+**Fix.** Point at OpenStreetMap's own standard tiles, verified clean in the same
+probe:
+
+```
+https://tile.openstreetmap.org/{z}/{x}/{y}.png   -> 200, PNG, no watermark
+```
+
+Attribution updated to "© OpenStreetMap contributors" (CARTO is no longer in the
+pipeline, so crediting it would be wrong).
+
+**Dark mode.** There is no keyless dark raster tileset — every candidate probed
+(`osmfr`, `tile.openstreetmap.de`, `tileserver.memomaps.de`, ESRI's light-gray
+canvas) is light, and CARTO's dark is watermarked like the rest. Rather than ship
+a blazing white map inside a dark UI, the dark theme now derives from the same
+light tiles using MapLibre's own raster paint properties — no second provider, no
+key:
+
+```
+raster-brightness-min: 0.95 / raster-brightness-max: 0.10   (inverts luminance)
+raster-hue-rotate: 180                                      (puts water back to blue)
+raster-saturation: -0.5                                     (calms the inverted hues)
+```
+
+Chosen by simulating the exact transform on a real Kabul-area tile before writing
+any code (`dark_sim*.png` in the run's scratch): a plain brightness *dim*
+(`brightness-max` alone, no inversion) was tried first and rejected — it darkens
+the background but leaves the labels black, so place names became illegible,
+which is worse than the watermark. Inversion keeps labels light and readable; the
+hue rotation is needed because inverting turns rivers orange.
+
+**Still open, and a business decision rather than an engineering one (ESCALATED):**
+OSM's tile usage policy is a courtesy service and explicitly discourages apps
+with meaningful traffic from depending on it. Hatiwal is live on Play internal
+testing and in App Store review, so the durable answer is a paid tile provider
+(MapTiler / Stadia / Protomaps) or self-hosted tiles — which needs a key, a
+budget and a place to keep the key that is not this repo (see the standing
+"no hardcoded infra in the repo" rule). This fix restores working maps today; it
+does not settle who serves the tiles at scale.
+
+---
+
+## UI-050 — a guest gets a SELLER tab bar ("My Shop") after their token is revoked — OPEN (found run-268)
+
+Caught incidentally, from a live screenshot taken between QA batches. Re-seeding
+the database destroys and recreates the e2e users, which invalidates their tokens
+server-side — the same thing a real user experiences when a session is revoked or
+expires. The app came back as a **guest** (last tab reads `Login`, not `Me`) while
+still labelling the first tab **`My Shop`** in seller green, with the buyer feed
+rendered underneath it. Evidence: the pre-login screenshot in this run's scratch,
+tab bar = `My Shop` · `Login`.
+
+The mechanism is exact and sits in two places that disagree:
+
+`src/api/http.ts:99-101` — on a 401 the interceptor clears the stored auth
+headers but, unlike the `blocked` branch three lines above it, does **not** call
+`useAuthStore.getState().clearUser()`:
+
+```ts
+if (blocked) {
+  await secureStorage.clearAuthHeaders();
+  useAuthStore.getState().clearUser();      // <- blocked does this
+  useAuthStore.getState().setBlockedNotice(blocked);
+} else if (httpStatus === 401) {
+  await secureStorage.clearAuthHeaders();   // <- 401 does not
+}
+```
+
+`src/stores/mode.store.ts` persists the buyer/seller mode under
+`hatiwal-mode` in AsyncStorage, and `resetMode()` is called from exactly two
+places — both inside `Profile.tsx`'s explicit sign-out handlers
+(`Profile.tsx:542,568`). A session that ends by revocation rather than by the
+user tapping Sign Out therefore never resets it, and the next launch bootstraps
+as a guest with `mode: "seller"` still on disk.
+
+**Not fixed here, deliberately, and the reason is the interesting part.** The
+obvious one-liner — add `clearUser()` to the 401 branch — is in the area
+`docs`/memory already flag as hazardous ("optimistic auth, only 401 logs out;
+never flash login for a logged-in user"). devise_token_auth rotates the access
+token on every request, so two concurrent requests can race and produce a
+*spurious* 401; making that log the user out of the whole app is a worse failure
+than a mislabelled tab, and nothing in this sell-flow sweep exercised auth hard
+enough to tell me which way that lands. Changing it blind at the end of a sweep
+would be trading a cosmetic bug for a possible session-loss bug.
+
+Two candidates, with a recommendation:
+
+1. **(recommended)** Gate the mode purely on authentication in the UI layer —
+   treat `mode` as `buyer` whenever there is no authenticated user, rather than
+   trusting the persisted value. Pure presentation, no auth semantics touched, and
+   it also fixes every other surface that reads the mode while signed out.
+2. Call `resetMode()` (plus theme/language, matching the sign-out handlers) from
+   wherever the app concludes it is a guest during bootstrap — correct, but it
+   spends a write on every guest launch and puts session logic in the store layer.
+
+Fixing the 401 branch itself is a third, separate question and should be decided
+with an auth-focused test pass, not folded into this.
+
+---
+
+## UI-051 · "1 units", "1 reviews", "1 chats", "1 conversations" — a whole family of dead plurals — FIXED (run-269/270)
+
+Found by reading screenshots rather than by any assertion, which is the point of
+looking at them.
+
+Five call sites, one mistake, repeated: each passes i18next a `count` that has
+already been through `formatNumber()` — i.e. a **string**. i18next only selects
+`_one` / `_other` from a **numeric** `count`, so plural selection was dead at all
+five, and English rendered the plural form at 1:
+
+| Where | Rendered at 1 | Evidence |
+|---|---|---|
+| `SaleRow` + `SaleBuyerCard` — `listing.stock.unitsCount` | **"1 units"** | the commonest sale of all: one unit out of a batch |
+| `RatingDisplay` — `reviews.summary` | **"5 (1 reviews)"** | `run-269/rtl/screens/sales_ledger_rtl.png`, on the Profile header every user sees |
+| `SellerListingCard` — `listing.conversationsCount` | **"1 chats"** | `run-269/seller/screens/undo_mark_sold_with_buyer.png` |
+| `SellerListingCard` — `listing.viewsCount` | "1 views" | same card |
+| `MyListingDetail` — `listing.ownerDetail.conversationsCount` | **"1 conversations"** | `run-267/seller/screens/sell_without_reserving.png` |
+| `ListingDetail` — `listing.viewsCount` | "1 views" | buyer side, same shape |
+
+**Fix, applied identically at every site:** `count` goes back to being the
+number (so i18next can select), and a new `display` variable carries
+`formatNumber`'s output (so Pashto and Dari keep Eastern Arabic-Indic digits).
+`_one` / `_other` added in all three locales, following the `categories.itemCount`
+convention already in the codebase.
+
+Pashto gets a real singular (`دانه`, `لیدنه`, `خبره`, `نظر` against the plurals
+`دانې`, `لیدنې`, `خبرې`, `نظرونه`). **Dari deliberately uses the same form for
+both** — Persian does not inflect a noun after a numeral, so "۱ عدد" and "۵ عدد"
+are both correct; writing a different singular there would be wrong, not thorough.
+
+Two tests pin it: `RatingDisplay.test.tsx` now asserts the numeric `count` at 45
+**and at 1** (the case that was broken), and `QuantityStepper.test.tsx`'s new
+suite covers the stepper half.
+
+---
+
+## UI-052 · The active tab's tint looks like a hard-edged square — NOT REPRODUCED, recorded so it is not re-chased
+
+Visible in two run-269 screenshots (`sales_ledger_rtl.png`, `buyer_picker_rtl.png`
+on "Me"; `undo_mark_sold_with_buyer.png` on "My Shop"): the accent tint behind the
+active tab reads as a sharp-cornered rectangle spanning nearly the whole height of
+a fully-rounded tab bar.
+
+**I did not change anything, and the reason is worth recording.**
+`FloatingTabBar.styles.itemInner` already carries `borderRadius: 999`, with a
+comment saying it was raised from 18 for exactly this complaint ("an 18px radius
+reads as a rounded SQUARE"). So the shape in these screenshots is not that view.
+The likeliest explanation is `PlatformPressable`'s Android ripple/press highlight,
+which is rectangular and bounded by the button — and in every one of these
+screenshots the tab in question is **the one the flow last tapped**, which fits.
+
+Confirming it needs a screenshot of the bar with no recent tap, which no current
+flow produces. Worth one probe next session; not worth changing a component whose
+code already documents a deliberate fix for the same symptom.

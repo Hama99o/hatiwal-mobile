@@ -68,9 +68,24 @@ appId: com.hatiwal.app
 - tapOn: "Publish"
 - waitForAnimationToEnd
 
+# QA-F1 (run-266): publishing lands on the owner detail with the
+# PublishSuccessSheet — a native <Modal> — on top of it. Every assertion below
+# used to run against THAT sheet: it renders the title and a StatusBadge too, so
+# `"Active"` passed while the flow had never reached the screen it thought it
+# was on, and the first `scrollUntilVisible` after it then failed on a control
+# the backdrop was covering. Assert the sheet (it IS the publish confirmation),
+# then dismiss it, then assert the screen underneath.
+- extendedWaitUntil:
+    visible: "Your listing is live!"
+    timeout: 60000
+- tapOn:
+    id: "publish-success-done"
+- waitForAnimationToEnd
+- assertNotVisible: "Your listing is live!"
+
 - extendedWaitUntil:
     visible: "QA Sell Without Reserving"
-    timeout: 60000
+    timeout: 30000
 - assertNotVisible: "Draft"
 - assertVisible: "Active"
 
@@ -121,4 +136,37 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible: "Listing marked as sold"
     timeout: 15000
+
+# SCROLL BACK UP BEFORE READING THE STATUS BADGE.
+#
+# run-267: this line was a bare `assertVisible: "Sold"` and it failed while the
+# app was completely correct — the DB row was `status=sold, sold_units=1,
+# sold_at=14:33:45`, verified directly. The two `scrollUntilVisible` steps above
+# had left the screen down at "Location / Manage Listing", and the StatusBadge
+# lives in section 2, at the very top of MyListingDetail. Same class as run-266's
+# F5/F7: asserting a marker that is off-screen, on a screen that never scrolls
+# itself back.
+#
+# `direction: UP` with a bounded timeout, because scrollUntilVisible only ever
+# moves the way it is told and the badge is ABOVE the current position.
+- scrollUntilVisible:
+    element:
+      id: "listing-status-badge"
+    direction: UP
+    timeout: 20000
+# TWO assertions, not one compound `{id: …, text: "Sold"}`, and the reason is a
+# real Maestro/RN detail worth writing down (run-268): `StatusBadge` renders the
+# testID on its container and the label on a child `<Text>`, and Android exposes
+# BOTH as sibling TextViews — the one carrying `resource-id:
+# listing-status-badge` has EMPTY text. Proven from the failing step's own
+# hierarchy dump, with the screenshot showing the badge reading "Sold" perfectly:
+#   24 'listing-status-badge' ''
+#   24 ''                     'Sold'
+# So a compound selector can never match, while `seller-card-primary-action` +
+# text CAN (that testID sits on a Button, whose accessible text is its label).
+# The id assertion proves we are looking at the badge; the text assertion proves
+# what it says. Neither is weaker than the compound would have been.
+- assertVisible:
+    id: "listing-status-badge"
 - assertVisible: "Sold"
+- assertNotVisible: "Active"

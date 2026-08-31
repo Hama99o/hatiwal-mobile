@@ -57,17 +57,64 @@ env:
 # TASK-TX01 / SF-M2, never the full pick-a-buyer list.
 - assertVisible: "Who bought this item?"
 - assertNotVisible: "Who's buying this item?"
-- tapOn: "Sold to someone not on Hatiwal"
+
+# run-266 F8, reproduced run-267: this used to tap
+# "Sold to someone not on Hatiwal" and failed with `Element not found`. The
+# flow's own header comment already said "confirm mode, never the full
+# pick-a-buyer list" — but its STEPS still drove the picker. In confirm mode
+# `BuyerPickerSheet` is passed `preselectedBuyer`, which by design renders no
+# conversation list, no "someone else / skip" row and no editable price: just
+# the buyer's identity, the agreed price and one Confirm. The premise the old
+# step encoded is genuinely gone, so it is replaced by assertions of the
+# premise that replaced it — and they are stronger, because they pin the scope
+# (this thread's buyer, this thread's price) that the skip row would have
+# thrown away. Screenshot: qa/reports/run-267/chat/screens/lifecycle_from_chat.png
+- assertVisible: "Ahmad Karimi"
+- assertVisible: "Agreed price"
+- assertNotVisible: "Sold to someone not on Hatiwal"
+- assertNotVisible:
+    id: "buyer-row-skip"
+- assertNotVisible:
+    id: "buyer-picker-final-price"
+
 - tapOn: "Confirm sold"
-- waitForAnimationToEnd
 # Success toast appears
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
 # single check right after an action is a race — and any wait in front of it
 # loses that race, turning a successful action red. Polling keeps the check at
 # full strength while removing the timing dependency.
+# TOAST WINDOW (run-268): `waitForAnimationToEnd` after a confirm waits out the
+# toast's ENTIRE in-sit-out animation — measured at 4.6s against a ~4s toast — so
+# anything asserted after it is a coin flip, and the Undo action had already gone.
+# Assert the ACTION first with `extendedWaitUntil` (it polls, so it catches the
+# toast as it appears, and it is stronger than the text: a toast that fired
+# without its action fails it), then the text in the same frame.
 - extendedWaitUntil:
-    visible: "Listing marked as sold"
+    visible: "Undo"
+    timeout: 20000
+- assertVisible: "Listing marked as sold"
+# QA-BUG5 (card 303) — the toast raised from the CHAT thread must carry the same
+# "Undo" action the listing screens have offered since SF-M5. Before commit
+# 3e083ab, ListingHeader hand-rolled its own markSold + a plain success toast,
+# so the seller who sold from the thread — the path this redesign deliberately
+# made PRIMARY, because the buyer is already there — was the one seller with no
+# way back from a mistap. Asserted here, not merely unit-tested, because the
+# reason it broke in the first place was that no device test ever looked.
+#
+# Reachability only (the tap-through round trip is undo_mark_sold.yaml's job on
+# a listing this flow does not have to leave sold): "Undo" being on screen at
+# all is what regressed, and what a duplicate mark-sold implementation would
+# silently take away again.
+# ...and the review sheet is NOT up yet, so nothing is covering it (QA-BUG2).
+# This sale records a REAL buyer now (confirm mode always does), so REV2's
+# prompt WILL arrive — after the toast finishes its own lifecycle, which is
+# exactly the ordering commit c7bbf3f introduced.
+- assertNotVisible: "How was Ahmad Karimi as a buyer?"
+- extendedWaitUntil:
+    visible: "How was Ahmad Karimi as a buyer?"
     timeout: 15000
+- tapOn: "Not now"
+- waitForAnimationToEnd
 # StatusBadge in the pinned header updates to Sold
 - assertVisible: "Sold"
 # Sold is terminal — no lifecycle pill remains at all (never "Reserve", and
@@ -99,37 +146,19 @@ env:
 
 # ─── Scenario 2: Buyer sees no Mark Sold button ────────────────────────────
 
-- launchApp:
-    clearState: true
-# Log in as a buyer
-# NOT "Welcome to Hatiwal": the onboarding carousel's FIRST SLIDE and the login
-# screen both render that exact heading (onboarding.slides.welcome.title and
-# auth.welcome), so asserting it cannot tell the two apart — a flow could pass
-# this line while sitting on onboarding and then fail on the next one.
-# auth.subtitle appears on the login screen only.
+# run-269: scenario 2 used to hand-roll `launchApp: clearState: true` followed by
+# its own sign-in, and it could not work. `clearState` runs `pm clear`, which also
+# wipes the dev client's REMEMBERED METRO SERVER — so the app comes back in the
+# expo-dev-client launcher, not in Hatiwal, and the flow waited 60s for a login
+# screen that was never going to render ("Buy and sell locally in Afghanistan" is
+# visible, FAILED). Scenario 1 above had already passed in full by then.
 #
-# extendedWaitUntil, not assertVisible: after `clearState` the dev client
-# re-fetches the JS bundle, and a bare assert can fire before the first screen
-# has rendered at all. guest_browse failed exactly that way after passing minutes
-# earlier — neither screen was up yet.
-- extendedWaitUntil:
-    visible: "Buy and sell locally in Afghanistan"
-    timeout: 60000
-- tapOn:
-    id: "login-email-input"
-- inputText: ${EMAIL}
-- tapOn:
-    id: "login-password-input"
-- inputText: ${PASSWORD}
-# Dismiss the IME before submitting. The keyboard covers the lower half of a
-# form, and Maestro still reports the tap COMPLETED — it finds the element in
-# the hierarchy and taps its bounds, while the touch lands on the keyboard. On
-# the login screen that swallowed EVERY sign-in in the suite: no request ever
-# reached the API and the flow blamed a missing tab bar 60s later.
-- hideKeyboard
-- waitForAnimationToEnd
-- tapOn: "Sign In"
-- assertVisible: "Bazaar"
+# `_helpers/login_fresh.yaml` exists for exactly this: `clearState` +
+# `open_bundle` (which re-enters the bundle at 10.0.2.2:3008) + `goto_login` +
+# sign in, with `buyer@hatiwal.test` as its default account — which is the
+# account this scenario wants. Using it also deletes ~25 lines of duplicated
+# login handling, per the house no-duplication rule.
+- runFlow: ../_helpers/login_fresh.yaml
 # The Chats TAB by testID. "Chats" is also `listing.ownerDetail.conversations`,
 # a label on the seller's owner-detail screen, so a text tap can land on that
 # instead — Maestro takes the first match, and the flow then carries on

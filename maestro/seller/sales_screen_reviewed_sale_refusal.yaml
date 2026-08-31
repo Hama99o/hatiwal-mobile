@@ -17,9 +17,13 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- tapOn: "Search my listings..."
-- eraseText
-- inputText: "Kettle"
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "Kettle"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Electric Kettle 1.8L Stainless - Bulk 10"
@@ -83,13 +87,29 @@ appId: com.hatiwal.app
 - assertVisible: ".*3 of 10 sold.*"
 
 # ── THE ALLOWANCE: a quantity-only correction still succeeds ────────────
+# ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
+#
+# run-268, from a hierarchy dump after a committed edit: `…-value` is the
+# Pressable, which Android renders as a Button whose contentDescription is its
+# a11y label ("Quantity") and whose own text is EMPTY — the number lives on an
+# unnamed child TextView. So `{id: …-value, text: "N"}` can never match. The
+# component now also puts `…-value-text` on that Text, so the value has a handle;
+# `…-value` stays the TAP target and keeps the accessibility props.
 - assertVisible:
-    id: "sale-edit-quantity-value"
+    id: "sale-edit-quantity-value-text"
     text: "3"
 - tapOn:
     id: "sale-edit-quantity-decrement"
+# ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
+#
+# run-268, from a hierarchy dump after a committed edit: `…-value` is the
+# Pressable, which Android renders as a Button whose contentDescription is its
+# a11y label ("Quantity") and whose own text is EMPTY — the number lives on an
+# unnamed child TextView. So `{id: …-value, text: "N"}` can never match. The
+# component now also puts `…-value-text` on that Text, so the value has a handle;
+# `…-value` stays the TAP target and keeps the accessibility props.
 - assertVisible:
-    id: "sale-edit-quantity-value"
+    id: "sale-edit-quantity-value-text"
     text: "2"
 - tapOn:
     id: "sale-edit-save"

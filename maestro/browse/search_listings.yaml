@@ -1,24 +1,97 @@
 appId: com.hatiwal.app
 ---
-# Search filters listings, clear returns full feed, no-results shows empty state
+# Buyer search: a query narrows the feed, clearing it restores the feed, and a
+# nonsense query shows the empty state.
+#
+# REWRITTEN (run-267, was run-266's F14). The previous version asserted
+# `"Bazaar"` three times — once after typing, once after erasing, once after
+# clearing — and nothing else. That is a tautology twice over: "Bazaar" is the
+# bottom TAB LABEL, it is visible to guests and to everyone else on every screen
+# of the buyer feed, and it is completely unaffected by what the search field
+# contains. So the flow could pass with search entirely broken, and its only
+# real risk was that the IME covers the tab bar it was reading — a failure that
+# would have pointed at the wrong thing.
+#
+# The premise ("search works") is unchanged; the assertions now express it.
+# Verified against the live API before being written, so the expected results
+# are facts about the seeded data rather than guesses:
+#
+#   GET /api/v1/listings?search=phone  ->  total_count 1, id 908
+#                                          "Phone Case Silicone Clear - Wholesale"
+#
+# One match is what makes this a real test: a narrowing query has to REMOVE
+# things, so the flow asserts a listing that the unfiltered feed shows and the
+# filtered feed must not.
+#
+# REGRESSION SURFACE (card #296/SF-QA1): `Listing.browsable` was widened by
+# SF-B1 to include `reserved`, so this screen's scope changed even though nobody
+# edited it. Confirmed at the API in the same session: 4 of the 65 browsable
+# listings are `reserved` and they are returned to a buyer. That is the intended
+# new behaviour — a held listing is not a dead end — and it is why search is in
+# this sweep at all.
 
 - runFlow: ../_helpers/login.yaml
-- assertVisible: "Bazaar"
-# Type in search bar
-- tapOn: "Search listings..."
-- inputText: "phone"
-- waitForAnimationToEnd
-# Results visible
-- assertVisible: "Bazaar"
-# Clear search — full feed returns
+- runFlow: ../_helpers/ensure_buyer_mode.yaml
+- runFlow: ../_helpers/clear_browse_filters.yaml
+
+# ── Baseline: the unfiltered feed carries listings that "phone" must exclude ──
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 30000
+
+# ── A query NARROWS the feed ──────────────────────────────────────────────────
+# By testID, not the translated placeholder.
+- tapOn:
+    id: "browse-search-input"
 - eraseText
+- inputText: "phone"
+# NO `hideKeyboard` HERE (run-270). It is Back on Android, and on this screen Back
+# CANCELS the search: the screenshot shows the query committed to "Recent
+# searches" while the field is back to its placeholder and the feed is
+# unfiltered — so the flow then waited 30s for a result the list no longer had.
+#
+# It is also unnecessary, for the reason multi_quantity_partial_sale.yaml already
+# documents about its own search: the first result sits directly under the search
+# box, above where the keyboard covers.
 - waitForAnimationToEnd
-- assertVisible: "Bazaar"
-# Search with no results
+- extendedWaitUntil:
+    visible: "Phone Case Silicone Clear - Wholesale"
+    timeout: 30000
+# ...and it is the ONLY result. `Samsung Galaxy S24 Ultra` is in the unfiltered
+# feed and does not match "phone", so its absence is the proof that the query
+# reached the server rather than the list merely re-rendering.
+- assertNotVisible: "Samsung Galaxy S24 Ultra"
+
+# ── Clearing the query RESTORES the feed ─────────────────────────────────────
+- tapOn:
+    id: "browse-search-clear"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 30000
+- assertNotVisible: "No listings found"
+
+# ── A nonsense query shows the EMPTY STATE, with its real copy ───────────────
+- tapOn:
+    id: "browse-search-input"
+- eraseText
 - inputText: "xzxzxzxz_no_results_xzxzxz"
+# Same reason as above — Back cancels the search on this screen.
 - waitForAnimationToEnd
-- assertVisible: "No listings found"
-# Tap clear / reset
+- extendedWaitUntil:
+    visible: "No listings found"
+    timeout: 30000
+- assertVisible: "Try changing your search or filter."
+- assertNotVisible:
+    id: "listing-card"
+
+# ── Reset returns to a populated feed ────────────────────────────────────────
 - tapOn: "Reset filters"
 - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 30000
 - assertNotVisible: "No listings found"

@@ -72,7 +72,10 @@ export function SaleRow({ transaction, multiUnit, onPress }: SaleRowProps) {
           >
             {/* Design review fix — same digit-localization rule as StockBadge:
                 a raw JS number renders Western digits even in Pashto/Dari. */}
-            {t("listing.stock.unitsCount", { count: formatNumber(transaction.quantity ?? 1) })}
+            {t("listing.stock.unitsCount", {
+              count: transaction.quantity ?? 1,
+              display: formatNumber(transaction.quantity ?? 1),
+            })}
           </Text>
         )}
         <PriceTag price={transaction.finalPrice} currency={transaction.currency} size="sm" perUnit={multiUnit} />

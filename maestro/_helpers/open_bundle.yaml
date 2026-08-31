@@ -31,7 +31,7 @@ appId: com.hatiwal.app
 # if nothing matches, behaviour is exactly as it was before this wait existed.
 - extendedWaitUntil:
     visible:
-      text: "Development Build|Continue|Performance monitor|Welcome to Hatiwal|هاتیوال ته ښه راغلاست|Bazaar|Me|Email"
+      text: "Development Build|Continue|Performance monitor|Welcome to Hatiwal|هاتیوال ته ښه راغلاست|Bazaar|Me|Email|My Shop|Login|زما هټۍ|دکان من"
     timeout: 120000
     optional: true
 
@@ -122,9 +122,26 @@ appId: com.hatiwal.app
 # nothing when the app is already up — it exits on the first match.
 - extendedWaitUntil:
     visible:
-      text: "Continue|Performance monitor|Welcome to Hatiwal|هاتیوال ته ښه راغلاست|Bazaar|Me|Email"
+      text: "Continue|Performance monitor|Welcome to Hatiwal|هاتیوال ته ښه راغلاست|Bazaar|Me|Email|My Shop|Login|زما هټۍ|دکان من"
     timeout: 180000
     optional: true
+
+# WHY "My Shop" AND "Login" ARE IN THAT LIST (run-269).
+#
+# The alternation is "any marker that proves the app itself is up". It listed
+# `Bazaar|Me|Email` — the buyer feed's tab, the authenticated profile tab, and the
+# login form. It did NOT cover the app's real fourth shape: a GUEST in SELLER
+# mode, whose tab bar reads "My Shop" · "Login" and contains none of the three.
+# That state is not exotic — it is what every account looks like straight after
+# `db:seed:reset_e2e`, because recreating the users revokes their tokens while
+# the mode store (persisted under `hatiwal-mode`) survives (see qa/UI_FINDINGS.md
+# UI-050, which is the app-side half of this).
+#
+# The cost was a silent 3 minutes: the gate is `optional`, so it simply waited
+# out its full 180s timeout on a screen that was perfectly ready, on the first
+# flow of every post-seed batch. Widening the alternation cannot weaken anything
+# — an optional wait that matches sooner is strictly better, and the real
+# starting-state gates are the ones below.
 
 # ── Known starting state ───────────────────────────────────────────────
 # Two things stand between "bundle loaded" and "the flow can assert anything":

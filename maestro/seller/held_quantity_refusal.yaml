@@ -36,9 +36,13 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- tapOn: "Search my listings..."
-- eraseText
-- inputText: "Gloves"
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "Gloves"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Winter Gloves Wholesale Box - 15 Pairs"
@@ -70,13 +74,27 @@ appId: com.hatiwal.app
 - tapOn:
     id: "lifecycle-more-action"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Edit"
-    direction: DOWN
-    centerElement: true
+
+# NEVER SCROLL INSIDE THE MORE SHEET.
+#
+# run-267: this was `scrollUntilVisible: {text: "Edit", direction: DOWN}` and it
+# failed with `No visible element found: "Edit"` after 20s. The screenshot shows
+# why: ListingActionsSheet is a bottom sheet whose backdrop dismisses on a
+# drag/scroll gesture, so the first scroll CLOSED the sheet and the remaining
+# 20s were spent scrolling the owner-detail page underneath it looking for a
+# control that no longer existed. Identical to run-266's F6
+# (listings/edit_listing_quantity).
+#
+# The sheet is short — every action fits — so nothing needed scrolling to begin
+# with. By testID, and by the ACTION's key (`useListingLifecycle` pushes
+# `key: "edit"`), which is locale-independent: `t("common.edit")` is "Edit" in
+# English but "سمول"/"ویرایش" in ps/fa, and this same flow shape is reused there.
+- extendedWaitUntil:
+    visible:
+      id: "listing-action-edit"
     timeout: 20000
-- tapOn: "Edit"
+- tapOn:
+    id: "listing-action-edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Listing"
 
@@ -104,16 +122,53 @@ appId: com.hatiwal.app
     timeout: 15000
 - assertVisible: ".*A buyer is holding 10.*Release the hold first.*"
 - assertNotVisible: ".*cannot be less than.*"
-- assertNotVisible: "common.error"
-- assertNotVisible: "No connection"
+# TOOTHLESS BEFORE (qa/flow_lint.py, run-267): these were
+# `assertNotVisible: "common.error"` and `assertNotVisible: "No connection"`.
+# Neither could ever fail. `common.error` is a translation KEY — nothing renders
+# it, so asserting its absence is trivially true; and Maestro anchors a pattern
+# against a node's WHOLE text, so the bare literal "No connection" never matched
+# the actual copy ("No connection. Check your internet and try again."). The pair
+# read as "we checked the seller was not shown a raw key or a generic network
+# error" while checking nothing at all — on the one flow whose entire subject is
+# that the seller sees a REAL, localized message instead.
+#
+# Kept as assertions, made capable of failing: the rendered generic error string,
+# and the network error matched loosely so it can actually match.
+- assertNotVisible: "Error"
+- assertNotVisible: ".*No connection.*"
 # The refused save changed nothing — still on the edit form, not bounced
 # back to the detail screen with a silently-accepted (or silently-ignored)
 # value.
-- assertVisible: "Edit Listing"
+#
+# run-268: this was `assertVisible: "Edit Listing"` and it failed while the
+# screenshot shows the edit form, the inline refusal and the untouched value all
+# rendered perfectly. "Edit Listing" is the screen HEADING inside the scroll
+# view, not part of the sticky header — the flow had scrolled down to the
+# quantity row, so the title was off the top and the numeric IME was over the
+# bottom. Same off-screen class as run-266's F5/F7.
+#
+# `Save` is the right marker instead: it lives in the STICKY header (visible in
+# the failure screenshot), exists only on the form, and never appears on the
+# owner detail screen — so it distinguishes exactly what this assertion is
+# about. Paired with the value still reading what was typed, which is the
+# "silently accepted" half of the claim.
+- assertVisible: "Save"
+- assertVisible:
+    id: "listing-form-quantity-input"
 
 # ── Restore the fixture to exactly where it started ─────────────────────────
+# ERASE FIRST. `selectTextOnFocus` only fires on a FRESH focus, and this field is
+# ALREADY focused — the flow typed "2" into it a few steps up and the refused
+# Save never moved focus away. So `inputText: "15"` APPENDED: run-269 failed here
+# with the field reading `text: '215'` (hierarchy dump), which is the same
+# 2-becomes-215 hazard `ListingForm.tsx`'s own comment above `selectTextOnFocus`
+# describes — it just does not protect a second edit in the same session.
+#
+# It failed SAFE, which is worth recording: the assertion below aborted the flow
+# before Save, so 215 was never sent and the Gloves fixture was still q=15.
 - tapOn:
     id: "listing-form-quantity-input"
+- eraseText
 - inputText: "15"
 - assertVisible:
     id: "listing-form-quantity-input"

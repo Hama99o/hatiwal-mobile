@@ -139,6 +139,23 @@ export function QuantityStepper({
     setEditing(true);
   }, [disabled, value]);
 
+  // Commit AS TYPED when the number is already in range, so the parent never
+  // holds a stale value while the keypad is still up (run-268 — see this file's
+  // A8 note in the QA report). Out of range is deliberately NOT committed here:
+  // it is left to `commitEdit` on blur, which clamps it and lets the at-cap
+  // reason explain the ceiling, rather than fighting the seller between the
+  // first and second digit of "15".
+  const handleDraftChange = useCallback(
+    (raw: string) => {
+      const digitsOnly = raw.replace(/[^0-9]/g, "");
+      setDraft(digitsOnly);
+      if (digitsOnly.length === 0) return;
+      const parsed = Number(digitsOnly);
+      if (parsed >= min && parsed <= max && parsed !== value) onChange(parsed);
+    },
+    [min, max, value, onChange]
+  );
+
   const commitEdit = useCallback(() => {
     setEditing(false);
     const digitsOnly = draft.replace(/[^0-9]/g, "");
@@ -191,7 +208,7 @@ export function QuantityStepper({
         {editing ? (
           <TextInput
             value={draft}
-            onChangeText={(v) => setDraft(v.replace(/[^0-9]/g, ""))}
+            onChangeText={handleDraftChange}
             onBlur={commitEdit}
             onSubmitEditing={commitEdit}
             keyboardType="numeric"
@@ -218,6 +235,7 @@ export function QuantityStepper({
             testID={testID ? `${testID}-value` : undefined}
           >
             <Text
+              testID={testID ? `${testID}-value-text` : undefined}
               style={{
                 minWidth: 28,
                 textAlign: "center",

@@ -157,13 +157,58 @@ describe("ListingForm — a seller with several of the same item", () => {
     expect(input.props.value).toBe("15");
   });
 
-  it("reads a cleared field as 1, never as 0 — a zero-unit listing is not a thing", () => {
+  // REWRITTEN, not deleted (A11, run-270) — and it is worth saying why, because
+  // this test was PINNING A BUG IN PLACE.
+  //
+  // Its intent is right and is kept: a cleared quantity must never be committed
+  // as 0, because a zero-unit listing is not a thing. Its MECHANISM was the
+  // problem: it asserted the DISPLAY snaps to "1" on the keystroke that empties
+  // the field. That snap is exactly what made the controlled Input re-render as
+  // "1" mid-edit, so a seller who cleared the box and typed 15 got **115**
+  // (reproduced on device — hierarchy dump in run-270 shows `text: '115'`).
+  //
+  // The behaviour now matches QuantityStepper.commitEdit's rule: an empty field
+  // is allowed to LOOK empty while editing, the committed value is left alone
+  // (never forced to a number the seller did not choose), and blur restores the
+  // committed number. The zero-unit guarantee is asserted where it actually
+  // matters — on what gets SAVED — which is a stronger check than the old one.
+  it("lets a cleared field look empty while editing, but never commits 0 — the saved value keeps the last real number", async () => {
     renderListingForm();
+    await fillMinimumDraft();
     toggleMultipleUnits(true);
 
     const input = screen.getByTestId(QUANTITY_INPUT);
+    fireEvent.changeText(input, "15");
     fireEvent.changeText(input, "");
-    expect(input.props.value).toBe("1");
+
+    // Empty on screen — no "1" appearing under the seller's cursor for the next
+    // keystroke to append to.
+    expect(input.props.value).toBe("");
+
+    // ...and typing continues cleanly from empty, rather than producing "115".
+    fireEvent.changeText(input, "8");
+    expect(input.props.value).toBe("8");
+
+    fireEvent.press(screen.getByText("listing.form.saveDraft"));
+    expect(await savedValues()).toMatchObject({ quantity: 8 });
+  });
+
+  it("never saves 0 when the field is left empty — the last committed number stands", async () => {
+    renderListingForm();
+    await fillMinimumDraft();
+    toggleMultipleUnits(true);
+
+    const input = screen.getByTestId(QUANTITY_INPUT);
+    fireEvent.changeText(input, "6");
+    fireEvent.changeText(input, "");
+    fireEvent(input, "blur");
+
+    // Blur puts the committed number back on screen...
+    expect(screen.getByTestId(QUANTITY_INPUT).props.value).toBe("6");
+
+    // ...and it is what gets saved. Never 0, never undefined.
+    fireEvent.press(screen.getByText("listing.form.saveDraft"));
+    expect(await savedValues()).toMatchObject({ quantity: 6 });
   });
 });
 

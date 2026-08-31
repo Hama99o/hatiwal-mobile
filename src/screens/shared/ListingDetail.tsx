@@ -624,7 +624,10 @@ export default function ListingDetailScreen() {
               {/* Design review fix — a bare JS number renders Western digits
                   even in Pashto/Dari; every count-in-a-sentence elsewhere in
                   this app (SellerListingCard, StockBadge) formats first. */}
-              {t("listing.viewsCount", { count: formatNumber(listing.viewsCount) })}
+              {t("listing.viewsCount", {
+                count: listing.viewsCount,
+                display: formatNumber(listing.viewsCount),
+              })}
             </Text>
             {listing.createdAt ? (
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>

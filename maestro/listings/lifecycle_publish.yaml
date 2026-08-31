@@ -21,8 +21,13 @@ appId: com.hatiwal.app
 #
 # db/seeds/e2e.rb now seeds "Ready To Publish Draft" with both, precisely so a flow can
 # ask for it by name instead of hoping about ordering.
-- tapOn: "Search my listings..."
-- inputText: "Ready To Publish Draft"
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "Ready To Publish Draft"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible:

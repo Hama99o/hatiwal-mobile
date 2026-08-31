@@ -40,6 +40,15 @@ import { transactionsAPI, type Transaction } from "@/api/transactions";
 import { type BuyerPickerResult } from "@/components/common/BuyerPickerSheet";
 import { apiErrorMessage } from "@/utils/apiError";
 
+/**
+ * How long the "Marked sold · Undo" toast stays up. sonner-native's default is
+ * 4000ms, which is the floor for a snackbar with NO action; this one carries the
+ * only way back from a mistaken sale, so it gets the read-decide-and-act budget
+ * an actioned snackbar is supposed to have. Named rather than inlined because
+ * the review-prompt sequencing below hangs off this same toast's lifecycle.
+ */
+export const UNDO_TOAST_DURATION_MS = 8000;
+
 export interface MarkSoldResponse {
   listing: Listing;
   transaction?: Transaction;
@@ -170,6 +179,10 @@ export function useMarkSoldWithUndo({
         t("listing.markSoldSuccess"),
         soldTransactionId
           ? {
+              // See A10 in qa/reports/SELL_FLOW_QA_2026-08-28.md: the default
+              // 4000ms gave the seller four seconds to undo a sale that has no
+              // other recourse, and a device run proved a real tap can miss it.
+              duration: UNDO_TOAST_DURATION_MS,
               action: {
                 label: t("common.undo"),
                 onClick: () => {

@@ -72,10 +72,30 @@ appId: com.hatiwal.app
     direction: DOWN
     centerElement: true
     timeout: 20000
+# SF-M1 (run-266's F3, reproduced run-267): "Mark as Sold" is NOT in the More
+# sheet for a live, non-expired listing any more — `useListingLifecycle` pushes
+# `key: "sold"` into `moreActions` only `if (isLive && isExpired)`. It is the
+# one-tap PRIMARY instead. Opening the sheet and tapping the label matched the
+# primary button still on screen BEHIND the backdrop, so the touch dismissed the
+# sheet and the buyer picker never opened.
+#
+# The old premise ("mark sold lives in the overflow") is genuinely gone, so it is
+# replaced with the assertion that expresses the new one — and the new one is
+# stronger, because SF-M1's actual claim is that the action is NOT duplicated.
 - tapOn:
     id: "lifecycle-more-action"
 - waitForAnimationToEnd
-- tapOn: "Mark as Sold"
+- assertVisible:
+    id: "listing-actions-sheet"
+- assertNotVisible:
+    id: "listing-action-sold"
+- tapOn:
+    id: "listing-actions-backdrop"
+- waitForAnimationToEnd
+
+# One tap on the primary action, straight to the sold copy.
+- tapOn:
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
 - assertVisible: "Who bought this item?"
 
@@ -111,16 +131,49 @@ appId: com.hatiwal.app
     id: "buyer-picker-quantity-value"
 - eraseText
 - inputText: "3"
-- tapOn: "Who bought this item?"
+# COMMIT THE TYPED VALUE WITH ENTER, NOT BY TAPPING THE HEADER.
+#
+# run-268, proven from the failing step's own hierarchy dump: after the tap and
+# `inputText`, the stepper was still in EDIT mode — the node on screen was
+# `buyer-picker-quantity-input` (an EditText holding "3") and
+# `buyer-picker-quantity-value` did not exist at all. Tapping the sheet's plain
+# `<Text>` header dismisses nothing and does not blur a focused TextInput on
+# Android, so `QuantityStepper.commitEdit` (wired to onBlur/onSubmitEditing)
+# never ran: the field still read 3 while the SHEET still held 1.
+#
+# `pressKey: Enter` is the component's own documented commit path
+# (`onSubmitEditing`), it is what the numeric keypad's ✓ key sends, and unlike
+# `hideKeyboard` (which is Back on Android) it cannot close the sheet — the
+# hazard the previous note in this file was working around.
+- pressKey: Enter
+- waitForAnimationToEnd
 # Prove the field holds exactly 3 BEFORE confirming.
+# ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
+#
+# run-268, from a hierarchy dump after a committed edit: `…-value` is the
+# Pressable, which Android renders as a Button whose contentDescription is its
+# a11y label ("Quantity") and whose own text is EMPTY — the number lives on an
+# unnamed child TextView. So `{id: …-value, text: "N"}` can never match. The
+# component now also puts `…-value-text` on that Text, so the value has a handle;
+# `…-value` stays the TAP target and keeps the accessibility props.
 - assertVisible:
-    id: "buyer-picker-quantity-value"
+    id: "buyer-picker-quantity-value-text"
     text: "3"
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
 
 # The whole point: 5 left, and the listing is STILL ACTIVE and browsable. Before the fix
 # this read "0 of 8 left" with a Sold badge.
+#
+# SCROLL BACK UP FIRST (run-269). The badge row is section 2 of MyListingDetail
+# and the flow is parked at the bottom, where it tapped the primary action — so
+# `stock-badge-owner` was simply off the top of the screen and this failed on a
+# listing whose stock was perfectly correct. run-266's F5/F7 class.
+- scrollUntilVisible:
+    element:
+      id: "listing-status-badge"
+    direction: UP
+    timeout: 20000
 - extendedWaitUntil:
     visible:
       id: "stock-badge-owner"

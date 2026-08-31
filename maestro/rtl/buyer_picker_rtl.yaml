@@ -1,0 +1,213 @@
+appId: com.hatiwal.app
+---
+# The BUYER PICKER in RTL (Dari/fa) + the SF-M9 quantity CAP — the second of
+# the two sell-flow surfaces that had no right-to-left coverage at all (card
+# #296/SF-QA1; the ledger's half is ./sales_ledger_rtl.yaml, which covers ps).
+# Dari here rather than Pashto on purpose: both are RTL but they are separate
+# translation files, and a sweep that only ever runs `ps` proves nothing about
+# `fa`.
+#
+# This sheet is the single densest RTL risk in the redesign: it sits behind
+# EVERY mark-sold and every chat-initiated hold, and since commit 3201271 its
+# quantity control is the shared `QuantityStepper` — a `[−] n [+]` row that has
+# to mirror its BUTTONS without mirroring their MEANING, with the number in the
+# middle rendered in Eastern Arabic-Indic digits, plus an at-cap explanation
+# underneath that has to align right.
+#
+# It therefore also serves as the device verification of the "cap + reason"
+# decision on card 298: the stepper stops at available stock and SAYS SO
+# ("فقط ۷ عدد باقی مانده…"), instead of silently rounding a bigger number down
+# or accepting an impossible one behind a separate warning.
+#
+# FIXTURE: "Electric Kettle 1.8L Stainless - Bulk 10" (db/seeds/e2e.rb SF-QA1)
+# — active, quantity 10, 3 sold, 7 available. Multi-unit with a remainder above
+# 1, which is what makes the quantity field render at all, and 7 is small
+# enough to walk to the ceiling in a handful of taps.
+#
+# READ-ONLY: the sheet is opened and CANCELLED. Nothing is confirmed, so no
+# sale is recorded and seller/sales_screen_reviewed_sale_refusal.yaml can still
+# rely on this fixture's reviewed sale.
+#
+# HYGIENE: language is persisted ON THE USER — this flow puts it back and
+# asserts that it did (run-266's F13).
+
+- runFlow: ../_helpers/login_seller.yaml
+
+# ── Into Dari ───────────────────────────────────────────────────────────────
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-fa"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/await_language_restart.yaml
+
+# Already in seller mode from login_seller — assert it rather than toggling
+# (run-266 F11).
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "mode-toggle-button"
+    timeout: 30000
+
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+
+# ── Find the 10-unit batch (testID: the placeholder is translated) ──────────
+- extendedWaitUntil:
+    visible:
+      id: "my-listings-search-input"
+    timeout: 20000
+- tapOn:
+    id: "my-listings-search-input"
+- eraseText
+- inputText: "Kettle"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Electric Kettle 1.8L Stainless - Bulk 10"
+    timeout: 30000
+
+# ── One tap from the card's own primary action (SF-M1) ─────────────────────
+- extendedWaitUntil:
+    visible:
+      id: "seller-card-primary-action"
+    timeout: 20000
+- tapOn:
+    id: "seller-card-primary-action"
+- waitForAnimationToEnd
+
+# ── The picker, in Dari ────────────────────────────────────────────────────
+# Header copy, from the device (listing.markSoldBuyerTitle).
+- extendedWaitUntil:
+    visible: "این کالا را چه کسی خرید؟"
+    timeout: 20000
+
+# The outside-buyer row selects without needing a conversation, and it is what
+# reveals the quantity field in picker mode (the stepper renders once a row is
+# chosen).
+- tapOn:
+    id: "buyer-row-skip"
+- waitForAnimationToEnd
+
+# ── The stepper mirrors, and its number is localized ──────────────────────
+- extendedWaitUntil:
+    visible:
+      id: "buyer-picker-quantity"
+    timeout: 20000
+- assertVisible:
+    id: "buyer-picker-quantity-decrement"
+- assertVisible:
+    id: "buyer-picker-quantity-increment"
+# Default is ONE, and in Dari that is ۱ — not "1". A Western digit here is the
+# exact defect `formatNumber` exists to prevent and the reason the sold sheet's
+# old free-text Input was replaced.
+# ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
+#
+# run-268, from a hierarchy dump after a committed edit: `…-value` is the
+# Pressable, which Android renders as a Button whose contentDescription is its
+# a11y label ("Quantity") and whose own text is EMPTY — the number lives on an
+# unnamed child TextView. So `{id: …-value, text: "N"}` can never match. The
+# component now also puts `…-value-text` on that Text, so the value has a handle;
+# `…-value` stays the TAP target and keeps the accessibility props.
+- assertVisible:
+    id: "buyer-picker-quantity-value-text"
+    text: "۱"
+# Nothing to explain yet — 1 of 7 is not the ceiling.
+- assertNotVisible:
+    id: "buyer-picker-quantity-at-max-reason"
+
+# ── Walk to the ceiling: 1 -> 7 (7 available on this fixture) ─────────────
+- tapOn:
+    id: "buyer-picker-quantity-increment"
+- tapOn:
+    id: "buyer-picker-quantity-increment"
+- tapOn:
+    id: "buyer-picker-quantity-increment"
+- tapOn:
+    id: "buyer-picker-quantity-increment"
+- tapOn:
+    id: "buyer-picker-quantity-increment"
+- tapOn:
+    id: "buyer-picker-quantity-increment"
+- waitForAnimationToEnd
+# ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
+#
+# run-268, from a hierarchy dump after a committed edit: `…-value` is the
+# Pressable, which Android renders as a Button whose contentDescription is its
+# a11y label ("Quantity") and whose own text is EMPTY — the number lives on an
+# unnamed child TextView. So `{id: …-value, text: "N"}` can never match. The
+# component now also puts `…-value-text` on that Text, so the value has a handle;
+# `…-value` stays the TAP target and keeps the accessibility props.
+- assertVisible:
+    id: "buyer-picker-quantity-value-text"
+    text: "۷"
+
+# THE CAP, AND THE REASON (card 298). At 7 of 7 the stepper must (a) refuse to
+# go further and (b) say why, in Dari, with the count in Eastern digits —
+# rather than accepting 8 and failing at the API, which is the "user hit a
+# failure they could not see" class the owner has ruled against.
+- assertVisible:
+    id: "buyer-picker-quantity-at-max-reason"
+- assertVisible: ".*فقط ۷.*"
+- assertNotVisible: ".*Only 7 left.*"
+
+# One more press changes nothing — the ceiling holds.
+- tapOn:
+    id: "buyer-picker-quantity-increment"
+- waitForAnimationToEnd
+# ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
+#
+# run-268, from a hierarchy dump after a committed edit: `…-value` is the
+# Pressable, which Android renders as a Button whose contentDescription is its
+# a11y label ("Quantity") and whose own text is EMPTY — the number lives on an
+# unnamed child TextView. So `{id: …-value, text: "N"}` can never match. The
+# component now also puts `…-value-text` on that Text, so the value has a handle;
+# `…-value` stays the TAP target and keeps the accessibility props.
+- assertVisible:
+    id: "buyer-picker-quantity-value-text"
+    text: "۷"
+
+# Decrement clears the explanation again — it is about the COMMITTED ceiling,
+# not a sticky banner.
+- tapOn:
+    id: "buyer-picker-quantity-decrement"
+- waitForAnimationToEnd
+# ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
+#
+# run-268, from a hierarchy dump after a committed edit: `…-value` is the
+# Pressable, which Android renders as a Button whose contentDescription is its
+# a11y label ("Quantity") and whose own text is EMPTY — the number lives on an
+# unnamed child TextView. So `{id: …-value, text: "N"}` can never match. The
+# component now also puts `…-value-text` on that Text, so the value has a handle;
+# `…-value` stays the TAP target and keeps the accessibility props.
+- assertVisible:
+    id: "buyer-picker-quantity-value-text"
+    text: "۶"
+- assertNotVisible:
+    id: "buyer-picker-quantity-at-max-reason"
+
+# ── READ-ONLY: cancel, record nothing ─────────────────────────────────────
+- tapOn:
+    id: "buyer-picker-close"
+- waitForAnimationToEnd
+- assertNotVisible: "این کالا را چه کسی خرید؟"
+
+# ── Restore English on the account, and prove it landed ───────────────────
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-en"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/await_language_restart.yaml
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Switch to Buyer Mode"
+    timeout: 30000

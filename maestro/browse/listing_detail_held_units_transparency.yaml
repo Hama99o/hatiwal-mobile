@@ -64,9 +64,13 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- tapOn: "Search my listings..."
-- eraseText
-- inputText: "Gloves"
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "Gloves"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Winter Gloves Wholesale Box - 15 Pairs"

@@ -94,8 +94,13 @@ appId: com.hatiwal.app
 # The 8s scrolls in the other seller flows are fine and are left alone: they look for
 # listings the flow just created, or "QA Disposable ..." fixtures, which are at the
 # top of My Shop.
-- tapOn: "Search my listings..."
-- inputText: "Phone Case Silicone Clear - Wholesale"
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "Phone Case Silicone Clear - Wholesale"
 # NO hideKeyboard here. Back is not reliably consumed by the IME on a search screen —
 # the screen handles it, clearing the query and remounting the list:
 # rate_buyer_after_sale's screenshot shows the filter back on "All 37", the search box
@@ -135,16 +140,42 @@ appId: com.hatiwal.app
 # off-screen on arrival — `tapOn` does not scroll to find its target. Anchored on
 # the testID rather than the word "More": the label is `listing.actions.more`,
 # which is localized, and the button also contains an icon.
+# 20s, not 10s — every sibling flow uses 20s for this same scroll and this one
+# was the outlier. It failed in run-269 with `No visible element found: id:
+# lifecycle-more-action` at load average 7.7-8.9 of 16, on a screen it had just
+# asserted the top of (stock badge, "each"). The action row sits below the
+# description, the 7-day views chart and the location map, so this is a long
+# scroll on a loaded device, not a missing control.
 - scrollUntilVisible:
     element:
       id: "lifecycle-more-action"
     direction: DOWN
     centerElement: true
-    timeout: 10000
+    timeout: 20000
+
+# SF-M1 (run-266's F3, reproduced twice in run-269): "Mark as Sold" is NOT in the
+# More sheet for a live, non-expired listing — `useListingLifecycle` pushes
+# `key: "sold"` into `moreActions` only `if (isLive && isExpired)`. It is the
+# one-tap PRIMARY now. Tapping the label with the sheet open matched nothing
+# (the sheet owns its own window, so the primary button behind it is not even in
+# the hierarchy), and the buyer picker never opened.
+#
+# The old premise is gone, so it is replaced with the assertion of the new one —
+# and the new one is stronger, because SF-M1's actual claim is NON-DUPLICATION.
 - tapOn:
     id: "lifecycle-more-action"
 - waitForAnimationToEnd
-- tapOn: "Mark as Sold"
+- assertVisible:
+    id: "listing-actions-sheet"
+- assertNotVisible:
+    id: "listing-action-sold"
+- tapOn:
+    id: "listing-actions-backdrop"
+- waitForAnimationToEnd
+
+# One tap on the primary action goes straight to the sold copy.
+- tapOn:
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
 
 - assertVisible: "Who bought this item?"
@@ -169,21 +200,47 @@ appId: com.hatiwal.app
 # numeric Input (this REPLACES the pre-filled "1" via `selectTextOnFocus`,
 # hardcoded on the stepper's own internal Input — the same run-018 insert-vs-
 # replace protection the raw Input used to need explicitly), type "3", then
-# commit by tapping the sheet's own header title.
+# commit with Enter.
 #
-# NOT hideKeyboard to commit — it is Back on Android, and
+# NOT hideKeyboard — it is Back on Android, and
 # multi_quantity_offplatform_sale.yaml documents it closing the SHEET rather
-# than the IME on this exact sheet. Tapping the header title dismisses the
-# IME/commits the edit with no key event at all.
+# than the IME on this exact sheet. And NOT a tap on the sheet's header title
+# either, which is what this used to do: run-268 proved from a hierarchy dump
+# that tapping a plain `<Text>` does not blur a focused TextInput on Android, so
+# `commitEdit` never ran and the sheet still held 1 while the field read 3.
+# `pressKey: Enter` is the stepper's own documented commit (`onSubmitEditing`).
 - tapOn:
     id: "buyer-picker-quantity-value"
 - eraseText
 - inputText: "3"
-- tapOn: "Who bought this item?"
+# COMMIT THE TYPED VALUE WITH ENTER, NOT BY TAPPING THE HEADER.
+#
+# run-268, proven from the failing step's own hierarchy dump: after the tap and
+# `inputText`, the stepper was still in EDIT mode — the node on screen was
+# `buyer-picker-quantity-input` (an EditText holding "3") and
+# `buyer-picker-quantity-value` did not exist at all. Tapping the sheet's plain
+# `<Text>` header dismisses nothing and does not blur a focused TextInput on
+# Android, so `QuantityStepper.commitEdit` (wired to onBlur/onSubmitEditing)
+# never ran: the field still read 3 while the SHEET still held 1.
+#
+# `pressKey: Enter` is the component's own documented commit path
+# (`onSubmitEditing`), it is what the numeric keypad's ✓ key sends, and unlike
+# `hideKeyboard` (which is Back on Android) it cannot close the sheet — the
+# hazard the previous note in this file was working around.
+- pressKey: Enter
+- waitForAnimationToEnd
 # Prove the field holds exactly 3 BEFORE confirming — this is the assertion that
 # would have caught run-018 at the point of failure instead of after the sale.
+# ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
+#
+# run-268, from a hierarchy dump after a committed edit: `…-value` is the
+# Pressable, which Android renders as a Button whose contentDescription is its
+# a11y label ("Quantity") and whose own text is EMPTY — the number lives on an
+# unnamed child TextView. So `{id: …-value, text: "N"}` can never match. The
+# component now also puts `…-value-text` on that Text, so the value has a handle;
+# `…-value` stays the TAP target and keeps the accessibility props.
 - assertVisible:
-    id: "buyer-picker-quantity-value"
+    id: "buyer-picker-quantity-value-text"
     text: "3"
 
 - tapOn: "Confirm sold"
@@ -201,10 +258,32 @@ appId: com.hatiwal.app
 # on this host is a separate, already-known issue) while the review prompt
 # stays the real, blocking, durable assertion — it only appears when the sale
 # recorded a real buyer.
+#
+# run-267 AMENDMENT — `optional: true` REMOVED, and two lines added below it.
+# The caveat it was hedging against ("general toast-observability flakiness on
+# this host") did not survive contact with a device: on 2026-08-28 this exact
+# non-optional assertion passed on the same emulator in
+# ./mark_sold_with_buyer.yaml (PASS, 196s), ./undo_mark_sold.yaml and
+# ./sell_without_reserving.yaml — three times, including twice on the
+# named-buyer path this flow uses. An `optional` assertion cannot fail, so
+# while it stood, the toast SF-M5's Undo hangs on was still unguarded here in
+# practice — a softer version of the deletion the note above is about. The
+# assertion and its history stay; only the escape hatch is gone.
+# TOAST WINDOW (run-268): `waitForAnimationToEnd` after a confirm waits out the
+# toast's ENTIRE in-sit-out animation — measured at 4.6s against a ~4s toast — so
+# anything asserted after it is a coin flip, and the Undo action had already gone.
+# Assert the ACTION first with `extendedWaitUntil` (it polls, so it catches the
+# toast as it appears, and it is stronger than the text: a toast that fired
+# without its action fails it), then the text in the same frame.
 - extendedWaitUntil:
-    visible: "Listing marked as sold"
-    timeout: 15000
-    optional: true
+    visible: "Undo"
+    timeout: 20000
+- assertVisible: "Listing marked as sold"
+# And the Undo has to be REACHABLE, not merely present: the absence check is the
+# load-bearing half, because "Undo is in the hierarchy" stayed true throughout
+# QA-BUG2 — what was false was that any touch could get to it past the review
+# sheet's own native-window backdrop.
+- assertNotVisible: "How was Ahmad Karimi as a buyer?"
 - extendedWaitUntil:
     visible: "How was Ahmad Karimi as a buyer?"
     timeout: 30000
@@ -232,9 +311,13 @@ appId: com.hatiwal.app
 # budget on a tablet-height list — and it lost. The seller's search box filters
 # server-side (that parameter was being dropped by /my/listings until it was
 # fixed), which turns this into one exact step.
-- tapOn: "Search my listings..."
-- eraseText
-- inputText: "Phone Case Silicone Clear - Wholesale"
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "Phone Case Silicone Clear - Wholesale"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "Phone Case Silicone Clear - Wholesale"

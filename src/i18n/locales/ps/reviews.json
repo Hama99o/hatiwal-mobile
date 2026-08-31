@@ -8,7 +8,9 @@
   "skip": "اوس نه",
   "thanks": "مننه! ستاسو نظر خپور شو.",
   "sectionTitle": "درجې او نظرونه",
-  "summary": "{{rating}} ({{count}} نظرونه)",
+  "summary_one": "{{rating}} ({{display}} نظر)",
+  "summary_other": "{{rating}} ({{display}} نظرونه)",
+  "summary": "{{rating}} ({{display}} نظرونه)",
   "viewAll": "ټول نظرونه وګورئ",
   "asSeller": "د پلورونکي په توګه",
   "asBuyer": "د پیرودونکي په توګه",
@@ -22,5 +24,7 @@
   "submittedPendingBody": "مننه! ستاسو نظر به هغه وخت افشا شي کله چې {{name}} هم خپل نظر وسپاري (یا په اتوماتيک ډول د ۱۴ ورځو دننه).",
   "gotIt": "سمه ده",
   "myReviewsTitle": "زما نظرونه",
-  "errors": { "generic": "ستاسو نظر ونه سپارل شو. بیا هڅه وکړئ." }
+  "errors": {
+    "generic": "ستاسو نظر ونه سپارل شو. بیا هڅه وکړئ."
+  }
 }

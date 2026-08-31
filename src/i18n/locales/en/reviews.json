@@ -8,7 +8,9 @@
   "skip": "Not now",
   "thanks": "Thanks! Your review is posted.",
   "sectionTitle": "Ratings & Reviews",
-  "summary": "{{rating}} ({{count}} reviews)",
+  "summary_one": "{{rating}} ({{display}} review)",
+  "summary_other": "{{rating}} ({{display}} reviews)",
+  "summary": "{{rating}} ({{display}} reviews)",
   "viewAll": "View all reviews",
   "asSeller": "As a seller",
   "asBuyer": "As a buyer",
@@ -22,5 +24,7 @@
   "submittedPendingBody": "Thanks! Your review will be revealed once {{name}} submits theirs too (or automatically within 14 days).",
   "gotIt": "Got it",
   "myReviewsTitle": "My reviews",
-  "errors": { "generic": "Couldn't submit your review. Please try again." }
+  "errors": {
+    "generic": "Couldn't submit your review. Please try again."
+  }
 }

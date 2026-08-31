@@ -24,10 +24,20 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-# ps profile.switchToSeller is "د پلورونکي حالت ته لاړ شئ" — the flow had
-# "پلور" where the app says "پلورونکي", so it could never match.
-- tapOn: "د پلورونکي حالت ته لاړ شئ"
-- waitForAnimationToEnd
+# run-266 F11 / run-267: this used to TAP "switch to SELLER mode"
+# ("د پلورونکي حالت ته لاړ شئ") — an action that can only exist when the account
+# is in BUYER mode. `login_seller.yaml` above already guarantees seller mode (it
+# asserts "Switch to Buyer Mode" as its own last step, and the language switch
+# does not change mode), so that tap could never match and the flow could never
+# reach the screen it exists to look at.
+#
+# Replaced with the positive assertion of the same premise, in Pashto: the
+# toggle now OFFERS buyer mode, i.e. we are in seller mode. That is the
+# precondition the rest of this flow needs, stated rather than performed.
+# ps profile.switchToBuyer — taken from the device, not the locale file.
+- extendedWaitUntil:
+    visible: "د اخیستونکي حالت ته لاړ شئ"
+    timeout: 30000
 # My Shop is the FIRST tab in seller mode — the same route and testID as Bazaar
 # in buyer mode, only relabelled. It was never tab index 3.
 - tapOn:

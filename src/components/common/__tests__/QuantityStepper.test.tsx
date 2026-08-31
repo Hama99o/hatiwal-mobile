@@ -377,3 +377,72 @@ describe("QuantityStepper — atMaxReason (SF-M9)", () => {
     expect(screen.queryByTestId("qty-at-max-reason")).toBeNull();
   });
 });
+
+// ─── run-268: the typed value must not sit uncommitted, and it must be addressable
+//
+// Both of these came out of a device sweep (card #296/SF-QA1) rather than from
+// reading the component, and both are about the same moment: the seller has
+// typed a number and the keypad is still up.
+
+describe("QuantityStepper — commits as typed (run-268)", () => {
+  it("calls onChange on every KEYSTROKE while the typed value is in range — the parent must never hold a stale quantity while the keypad is still up", () => {
+    const onChange = jest.fn();
+    render(<QuantityStepper value={1} onChange={onChange} max={8} testID="qty" />);
+
+    fireEvent.press(screen.getByTestId("qty-value"));
+    fireEvent.changeText(screen.getByTestId("qty-input"), "3");
+
+    // No blur, no submitEditing — exactly the state a seller is in when they
+    // reach straight for "Confirm sold". Before this, `quantity` was still 1 and
+    // confirming would have sold ONE unit after typing 3.
+    expect(onChange).toHaveBeenCalledWith(3);
+  });
+
+  it("does NOT commit an out-of-range keystroke — that stays with the blur/submit clamp, so typing the '1' of '15' cannot fight the seller", () => {
+    const onChange = jest.fn();
+    render(<QuantityStepper value={1} onChange={onChange} max={8} testID="qty" />);
+
+    fireEvent.press(screen.getByTestId("qty-value"));
+    fireEvent.changeText(screen.getByTestId("qty-input"), "15");
+
+    expect(onChange).not.toHaveBeenCalledWith(15);
+    expect(onChange).not.toHaveBeenCalledWith(8);
+
+    // ...and the clamp still happens on commit, with the value capped.
+    fireEvent(screen.getByTestId("qty-input"), "submitEditing");
+    expect(onChange).toHaveBeenCalledWith(8);
+  });
+
+  it("still strips non-digits, and commits the stripped value when it is in range", () => {
+    const onChange = jest.fn();
+    render(<QuantityStepper value={1} onChange={onChange} max={20} testID="qty" />);
+
+    fireEvent.press(screen.getByTestId("qty-value"));
+    fireEvent.changeText(screen.getByTestId("qty-input"), "1a2b");
+
+    expect(screen.getByTestId("qty-input").props.value).toBe("12");
+    expect(onChange).toHaveBeenCalledWith(12);
+  });
+});
+
+describe("QuantityStepper — the number has its own node (run-268)", () => {
+  it("exposes the displayed number as `<testID>-value-text`, separate from the `-value` control", () => {
+    render(<QuantityStepper value={4} onChange={jest.fn()} max={10} testID="qty" />);
+
+    // The Android hierarchy renders `-value` as the Button (its accessible text
+    // is the a11y LABEL, not the number) and the number as a child TextView with
+    // no id of its own — so a Maestro `{id: -value, text: "4"}` selector could
+    // never match. The number now has a handle; the control keeps the a11y props
+    // and stays the tap target.
+    expect(screen.getByTestId("qty-value-text")).toHaveTextContent("4");
+    expect(screen.getByTestId("qty-value").props.accessibilityLabel).toBe("common.quantity");
+  });
+
+  it("does not render `-value-text` while editing (the input owns the value then)", () => {
+    render(<QuantityStepper value={4} onChange={jest.fn()} max={10} testID="qty" />);
+    fireEvent.press(screen.getByTestId("qty-value"));
+
+    expect(screen.queryByTestId("qty-value-text")).toBeNull();
+    expect(screen.getByTestId("qty-input")).toBeTruthy();
+  });
+});

@@ -5,6 +5,7 @@
   "loading": "Loading conversations...",
   "noConversations": "No conversations yet on this listing.",
   "nudge": "Pick your buyer so you can review each other — reviewed sellers earn more trust ⭐",
+  "nudgeConfirm": "You'll both be able to review each other after this — reviewed sellers earn more trust ⭐",
   "someoneElse": "Sold to someone not on Hatiwal",
   "someoneElseHint": "No buyer is recorded and no review can be left",
   "finalPriceLabel": "Final price (optional)",

@@ -352,7 +352,13 @@ export function SellerListingCard({ listing, onMutated, viewMode = "list" }: Sel
             <View style={[styles.metaItem, { flexDirection: rowDirection }]}>
               <Eye size={12} color={colors.mutedForeground} />
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                {t("listing.viewsCount", { count: formatNumber(listing.viewsCount ?? 0) })}
+                {/* `count` numeric for plural selection, `display` for the
+                    localized digits — see A3/A12; passing the formatted string
+                    as `count` is what made this read "1 views". */}
+                {t("listing.viewsCount", {
+                  count: listing.viewsCount ?? 0,
+                  display: formatNumber(listing.viewsCount ?? 0),
+                })}
               </Text>
             </View>
             {/* Only when there ARE chats. `!= null` let 0 through, so a listing
@@ -371,7 +377,10 @@ export function SellerListingCard({ listing, onMutated, viewMode = "list" }: Sel
               >
                 <MessageCircle size={12} color={colors.primary} />
                 <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>
-                  {t("listing.conversationsCount", { count: formatNumber(listing.conversationsCount) })}
+                  {t("listing.conversationsCount", {
+                    count: listing.conversationsCount,
+                    display: formatNumber(listing.conversationsCount),
+                  })}
                 </Text>
               </Pressable>
             )}

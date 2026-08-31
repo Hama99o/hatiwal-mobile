@@ -249,10 +249,30 @@ export default function ListingSales() {
         <View style={{ flexDirection: isRtl ? "row-reverse" : "row", alignItems: "center", gap: 10 }}>
           <BackButton />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ fontSize: 17, fontWeight: "700", color: colors.foreground }} numberOfLines={1}>
+            {/* QA (card #296/SF-QA1): these two were the only Text nodes in this
+                file without an `isRtl` alignment — the tally below already had
+                one. In Pashto/Dari the row reverses (BackButton moves to the
+                right) but the title and subtitle stayed LEFT-aligned inside it,
+                so the screen's own heading read away from the edge it belongs
+                to while every row beneath it was mirrored correctly. */}
+            <Text
+              style={{
+                fontSize: 17,
+                fontWeight: "700",
+                color: colors.foreground,
+                textAlign: isRtl ? "right" : "left",
+              }}
+              numberOfLines={1}
+            >
               {listing?.title || t("listing.salesScreen.title")}
             </Text>
-            <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: colors.mutedForeground,
+                textAlign: isRtl ? "right" : "left",
+              }}
+            >
               {t("listing.salesScreen.title")}
             </Text>
           </View>

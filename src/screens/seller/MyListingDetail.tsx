@@ -333,7 +333,7 @@ export default function MyListingDetailScreen() {
         {/* 2 — Status + Expiry row */}
         <Section delay={40} style={[styles.section, { gap: 6 }]} reduceMotion={reduceMotion}>
           <View style={{ flexDirection: rowDir, alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <StatusBadge status={listing.status} />
+            <StatusBadge status={listing.status} testID="listing-status-badge" />
             <ExpiryBadge
               expiresAt={listing.expiresAt}
               expired={listing.expired}
@@ -582,7 +582,8 @@ export default function MyListingDetailScreen() {
                 </Text>
                 <Text style={{ fontSize: 12, color: colors.mutedForeground, textAlign: isRtl ? "right" : "left" }}>
                   {t("listing.ownerDetail.conversationsCount", {
-                    count: formatNumber(listing.conversationsCount ?? 0),
+                    count: listing.conversationsCount ?? 0,
+                    display: formatNumber(listing.conversationsCount ?? 0),
                   })}
                 </Text>
               </View>

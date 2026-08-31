@@ -80,9 +80,24 @@ appId: com.hatiwal.app
 - tapOn: "Publish"
 - waitForAnimationToEnd
 
+# QA-F1 (run-266): publishing lands on the owner detail with the
+# PublishSuccessSheet — a native <Modal> — on top of it. Every assertion below
+# used to run against THAT sheet: it renders the title and a StatusBadge too, so
+# `"Active"` passed while the flow had never reached the screen it thought it
+# was on, and the first `scrollUntilVisible` after it then failed on a control
+# the backdrop was covering. Assert the sheet (it IS the publish confirmation),
+# then dismiss it, then assert the screen underneath.
+- extendedWaitUntil:
+    visible: "Your listing is live!"
+    timeout: 60000
+- tapOn:
+    id: "publish-success-done"
+- waitForAnimationToEnd
+- assertNotVisible: "Your listing is live!"
+
 - extendedWaitUntil:
     visible: "QA Sales Screen Void Row"
-    timeout: 60000
+    timeout: 30000
 - assertVisible: "Active"
 - assertVisible:
     id: "stock-badge-owner"
@@ -114,9 +129,32 @@ appId: com.hatiwal.app
     id: "buyer-picker-quantity-value"
 - eraseText
 - inputText: "2"
-- tapOn: "Who bought this item?"
+# COMMIT THE TYPED VALUE WITH ENTER, NOT BY TAPPING THE HEADER.
+#
+# run-268, proven from the failing step's own hierarchy dump: after the tap and
+# `inputText`, the stepper was still in EDIT mode — the node on screen was
+# `buyer-picker-quantity-input` (an EditText holding "3") and
+# `buyer-picker-quantity-value` did not exist at all. Tapping the sheet's plain
+# `<Text>` header dismisses nothing and does not blur a focused TextInput on
+# Android, so `QuantityStepper.commitEdit` (wired to onBlur/onSubmitEditing)
+# never ran: the field still read 3 while the SHEET still held 1.
+#
+# `pressKey: Enter` is the component's own documented commit path
+# (`onSubmitEditing`), it is what the numeric keypad's ✓ key sends, and unlike
+# `hideKeyboard` (which is Back on Android) it cannot close the sheet — the
+# hazard the previous note in this file was working around.
+- pressKey: Enter
+- waitForAnimationToEnd
+# ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
+#
+# run-268, from a hierarchy dump after a committed edit: `…-value` is the
+# Pressable, which Android renders as a Button whose contentDescription is its
+# a11y label ("Quantity") and whose own text is EMPTY — the number lives on an
+# unnamed child TextView. So `{id: …-value, text: "N"}` can never match. The
+# component now also puts `…-value-text` on that Text, so the value has a handle;
+# `…-value` stays the TAP target and keeps the accessibility props.
 - assertVisible:
-    id: "buyer-picker-quantity-value"
+    id: "buyer-picker-quantity-value-text"
     text: "2"
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
@@ -124,6 +162,23 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible: "Listing marked as sold"
     timeout: 15000
+# SCROLL BACK UP TO THE BADGES FIRST (run-269).
+#
+# These four assertions are about the top of MyListingDetail — section 2 is the
+# StatusBadge + StockBadge row — but the flow is parked at the bottom, where the
+# preceding `scrollUntilVisible` left it to tap the primary action. A bare
+# `assertVisible: "Active"` therefore failed on a listing that was correctly
+# Active, which is run-266's F5/F7 class and cost this flow two runs.
+#
+# Safe to spend a scroll here, unlike the mark-sold flows: nothing below depends
+# on the ~8s Undo toast still being up.
+- scrollUntilVisible:
+    element:
+      id: "listing-status-badge"
+    direction: UP
+    timeout: 20000
+- assertVisible:
+    id: "listing-status-badge"
 - assertVisible: "Active"
 - assertNotVisible: "Sold"
 - assertVisible:
@@ -177,9 +232,32 @@ appId: com.hatiwal.app
 - assertVisible: "Sales you record will show up here."
 
 # ── Back on the listing's own detail, stock is FULLY restored ───────────────
+# SETTLE, TAP, THEN PROVE WE LEFT (run-271).
+#
+# `sales_screen_void_row` does the identical step and passes, so the Sales
+# screen's back chevron works — but here the tap landed 2.3s after an edit sheet
+# had just closed and the list had just refetched, and the screen did not change
+# (the end-of-flow screenshot is still the Sales screen). A settle before the tap
+# removes the race; the assertion after it means a genuine back-button failure
+# says "we are still on Sales" instead of surfacing three steps later as a
+# missing stock badge.
+- waitForAnimationToEnd
 - tapOn:
     id: "back_button"
 - waitForAnimationToEnd
+- assertNotVisible:
+    id: "sales-tally"
+# SCROLL UP AFTER `back_button` (run-270). Back returns to the owner detail at
+# the scroll position it was left at — which is down at the Manage Listing row,
+# because that is where this flow opened the More sheet. The badges are section 2,
+# at the very top, so `stock-badge-owner` was off-screen and this failed on a
+# stock figure that was perfectly correct (the tally on the previous screen had
+# just confirmed the PATCH landed). run-266's F5/F7 class, one screen later.
+- scrollUntilVisible:
+    element:
+      id: "listing-status-badge"
+    direction: UP
+    timeout: 20000
 - extendedWaitUntil:
     visible:
       id: "stock-badge-owner"

@@ -8,7 +8,9 @@
   "skip": "بعداً",
   "thanks": "سپاس! نظر شما ثبت شد.",
   "sectionTitle": "امتیازها و نظرها",
-  "summary": "{{rating}} ({{count}} نظر)",
+  "summary_one": "{{rating}} ({{display}} نظر)",
+  "summary_other": "{{rating}} ({{display}} نظر)",
+  "summary": "{{rating}} ({{display}} نظر)",
   "viewAll": "مشاهده همه نظرها",
   "asSeller": "به عنوان فروشنده",
   "asBuyer": "به عنوان خریدار",
@@ -22,5 +24,7 @@
   "submittedPendingBody": "سپاس! نظر شما زمانی نمایش داده می‌شود که {{name}} نیز نظر خود را ثبت کند (یا به صورت خودکار ظرف ۱۴ روز).",
   "gotIt": "متوجه شدم",
   "myReviewsTitle": "نظرهای من",
-  "errors": { "generic": "نظر شما ثبت نشد. لطفاً دوباره تلاش کنید." }
+  "errors": {
+    "generic": "نظر شما ثبت نشد. لطفاً دوباره تلاش کنید."
+  }
 }

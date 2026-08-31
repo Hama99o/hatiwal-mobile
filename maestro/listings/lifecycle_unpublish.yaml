@@ -14,9 +14,13 @@ appId: com.hatiwal.app
 # flow, named after it, precisely so this flow can ruin it without touching a
 # fixture anything else asserts on. It used to act on "whichever listing comes
 # first", which was a shared one.
-- tapOn: "Search my listings..."
-- eraseText
-- inputText: "QA Disposable lifecycle_unpublish"
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "QA Disposable lifecycle_unpublish"
 - waitForAnimationToEnd
 - extendedWaitUntil:
       visible: "QA Disposable lifecycle_unpublish"

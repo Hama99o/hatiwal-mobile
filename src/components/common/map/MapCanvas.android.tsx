@@ -51,14 +51,51 @@ if (!isExpoGo) {
   ML = require("@maplibre/maplibre-react-native");
 }
 
-// Free, keyless OSM raster tiles served by CARTO. Attribution is required and is
-// shown via the map's built-in attribution button.
-const TILE_URL = {
-  light: "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-  dark: "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
-};
-const ATTRIBUTION = "© OpenStreetMap contributors © CARTO";
+// Keyless OSM raster tiles, straight from OpenStreetMap.
+//
+// This used to read CARTO's `basemaps.cartocdn.com` endpoints, described right
+// here as "free, keyless". CARTO has since started KEYING them, and the way it
+// enforces that is why nothing in the app ever complained: the request still
+// returns HTTP 200 with a valid 256x256 PNG — the tile IMAGE simply has
+// "API KEY REQUIRED  carto.com/basemaps/apikey" watermarked diagonally across
+// it. So every map in the app (listing detail, owner detail, the create-listing
+// pin picker, the Browse distance filter) rendered that text over Kabul, with no
+// error to find. Verified off-device against all four CARTO paths — voyager,
+// rastertiles/dark_all, light_all, dark_all — every one watermarked, at every
+// zoom, so no CARTO style avoids it. See qa/UI_FINDINGS.md UI-049.
+//
+// NOTE for whoever ships this at scale: OSM's tile policy is a courtesy service
+// and discourages apps with real traffic from relying on it. The durable answer
+// is a paid provider (MapTiler / Stadia / Protomaps) or self-hosted tiles, which
+// needs a key kept out of this repo. Escalated with UI-049; this restores
+// working maps in the meantime.
+const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const ATTRIBUTION = "© OpenStreetMap contributors";
 const PIN_SIZE = 32;
+
+// DARK MODE — derived from the same light tiles, because no keyless DARK raster
+// tileset exists (probed: openstreetmap.fr, tile.openstreetmap.de,
+// tileserver.memomaps.de, ESRI light-gray canvas — all light; CARTO's dark is
+// watermarked like the rest). MapLibre's own raster paint properties do it with
+// no second provider and no key:
+//
+//   brightness-min 0.95 / brightness-max 0.10  INVERTS luminance, so the dark
+//     background comes with LIGHT labels. A plain dim (brightness-max alone, no
+//     inversion) was tried first and rejected: it darkens the paper but leaves
+//     the place names black, which is less readable than the watermark it
+//     replaced.
+//   hue-rotate 180  puts water back to blue — inverting luminance also flips
+//     hue, and rivers came out orange.
+//   saturation -0.5  calms what is left of the inverted hues.
+//
+// Chosen by applying the exact transform to a real Kabul-area tile and looking
+// at the result before writing any of it (evidence in UI-049).
+const DARK_RASTER_PAINT = {
+  "raster-brightness-min": 0.95,
+  "raster-brightness-max": 0.1,
+  "raster-hue-rotate": 180,
+  "raster-saturation": -0.5,
+} as const;
 
 function buildMapStyle(dark: boolean): StyleSpecification {
   return {
@@ -66,12 +103,16 @@ function buildMapStyle(dark: boolean): StyleSpecification {
     sources: {
       base: {
         type: "raster",
-        tiles: [dark ? TILE_URL.dark : TILE_URL.light],
+        tiles: [TILE_URL],
         tileSize: 256,
         attribution: ATTRIBUTION,
       },
     },
-    layers: [{ id: "base", type: "raster", source: "base" }],
+    layers: [
+      dark
+        ? { id: "base", type: "raster", source: "base", paint: { ...DARK_RASTER_PAINT } }
+        : { id: "base", type: "raster", source: "base" },
+    ],
   };
 }
 

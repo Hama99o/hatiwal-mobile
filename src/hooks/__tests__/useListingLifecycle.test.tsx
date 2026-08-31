@@ -98,6 +98,7 @@ jest.mock("expo-router", () => ({
 
 // Import AFTER mocks
 import { useListingLifecycle, MY_LISTINGS_QK, MY_LISTING_STATUS_COUNTS_QK, MY_LISTING_QK, CONVERSATIONS_QK } from "../useListingLifecycle";
+import { UNDO_TOAST_DURATION_MS } from "../useMarkSoldWithUndo";
 import { listingsAPI } from "@/api/listings";
 import { transactionsAPI } from "@/api/transactions";
 import { confirmAlert } from "@/utils/alert";
@@ -652,6 +653,16 @@ describe("useListingLifecycle — Mark sold drives buyerPicker, never confirmAle
     // identically), REV2 still gets its invite — this is the "don't fix one
     // feature by breaking the other" requirement.
     const [, options] = mockToast.success.mock.calls[0];
+
+    // run-268: the toast also has to LAST long enough for a person to use it.
+    // sonner-native's default is 4000ms, and a device sweep proved a real tap can
+    // land after the toast has gone (Maestro reported the tap COMPLETED, no
+    // DELETE reached the API, the sale stood). Pinned here because the review
+    // sequencing above hangs off this same toast's lifecycle, so shortening it
+    // would silently shorten the Undo window too.
+    expect(options.duration).toBe(UNDO_TOAST_DURATION_MS);
+    expect(UNDO_TOAST_DURATION_MS).toBeGreaterThanOrEqual(8000);
+
     act(() => options.onAutoClose(99));
 
     await waitFor(() => expect(result.current.reviewPrompt.visible).toBe(true));

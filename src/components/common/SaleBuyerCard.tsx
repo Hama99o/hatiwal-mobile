@@ -185,7 +185,10 @@ export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
           <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }}>
             {/* Design review fix — digits must render Arabic-Indic in ps/fa;
                 every other count-in-a-sentence in this app formats first. */}
-            {t("listing.stock.unitsCount", { count: formatNumber(sale.quantity ?? 1) })}
+            {t("listing.stock.unitsCount", {
+              count: sale.quantity ?? 1,
+              display: formatNumber(sale.quantity ?? 1),
+            })}
           </Text>
         </View>
       )}

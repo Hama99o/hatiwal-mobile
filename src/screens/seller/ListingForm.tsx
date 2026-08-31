@@ -262,6 +262,11 @@ export default function ListingFormScreen() {
   // this state pins the localized, actionable version of it right here,
   // under the field that caused it — not just a toast that scrolls away.
   const [quantityServerError, setQuantityServerError] = useState<string | null>(null);
+  // A11 — the quantity field's in-progress text. `null` = not editing, render the
+  // committed form value. Exists so an EMPTY field can stay empty for a keystroke
+  // without the form coercing it to 1 underneath the seller (run-270: clearing
+  // then typing "15" produced "115").
+  const [quantityDraft, setQuantityDraft] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const sectionYRef = useRef<Partial<Record<PublishBlocker, number>>>({});
 
@@ -1575,13 +1580,29 @@ export default function ListingFormScreen() {
               name="quantity"
               render={({ field }) => (
                 <Input
-                  value={String(field.value ?? "")}
+                  // `quantityDraft` is the in-progress string; `null` means "not
+                  // editing, show the committed value". See A11 in
+                  // qa/reports/SELL_FLOW_QA_2026-08-28.md.
+                  value={quantityDraft ?? String(field.value ?? "")}
                   onChangeText={(text) => {
                     const digits = normalizeDigits(text).replace(/[^0-9]/g, "");
-                    field.onChange(digits === "" ? 1 : Number(digits));
+                    setQuantityDraft(digits);
+                    // An EMPTY field stays empty. It used to coerce to 1 right
+                    // here, which re-rendered the Input as "1" on the keystroke
+                    // that cleared it — so a seller who cleared the field and
+                    // typed 15 got 115 (reproduced on device, run-270). Leaving
+                    // the committed value alone until something usable is typed
+                    // mirrors QuantityStepper.commitEdit's own rule.
+                    if (digits !== "") field.onChange(Number(digits));
                     // SF-M7 — a stale server error about the PREVIOUS number
                     // must not linger under a number the seller has since changed.
                     setQuantityServerError(null);
+                  }}
+                  onBlur={() => {
+                    // Back to the committed number, so an abandoned empty field
+                    // never reads as blank.
+                    setQuantityDraft(null);
+                    field.onBlur?.();
                   }}
                   keyboardType="numeric"
                   placeholder="2"

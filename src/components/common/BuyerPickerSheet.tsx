@@ -503,8 +503,20 @@ export function BuyerPickerSheet({
                     nudge entirely (`!isConfirmMode` above), even though a real
                     buyer IS already recorded here — the nudge is just as true
                     at this moment, and arguably lands better right as the
-                    seller commits to reserving. Reuses the exact same
-                    translated copy as the picker mode's nudge, no new key. */}
+                    seller commits to reserving.
+
+                    QA (card #296/SF-QA1): it used to reuse the PICKER's copy
+                    verbatim — "Pick your buyer so you can review each other" —
+                    on a sheet that has no buyer to pick. Confirm mode is
+                    reached from a chat thread, so the buyer is already known
+                    and their name and avatar are rendered directly above this
+                    line; instructing the seller to choose one describes a
+                    control that is not on screen. Screenshot:
+                    qa/reports/run-267/chat/screens/lifecycle_from_chat.png.
+                    Same incentive, stated as what will happen rather than as an
+                    instruction — which is also the more accurate claim here,
+                    since the review is already guaranteed by this buyer being
+                    named. */}
                 <Text
                   style={{
                     fontSize: 12,
@@ -512,7 +524,7 @@ export function BuyerPickerSheet({
                     textAlign: isRtl ? "right" : "left",
                   }}
                 >
-                  {t("buyerPicker.nudge")}
+                  {t("buyerPicker.nudgeConfirm")}
                 </Text>
               </View>
             ) : isLoading ? (

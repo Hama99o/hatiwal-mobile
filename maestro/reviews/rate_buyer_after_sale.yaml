@@ -29,8 +29,13 @@ appId: com.hatiwal.app
 # SEARCH, do not scroll. This is a SEEDED listing among many the seller owns, so 8s
 # of scrolling cannot reach it — "No visible element found" for a listing that is
 # present and active. Same fix as multi_quantity_partial_sale.
-- tapOn: "Search my listings..."
-- inputText: "Lenovo ThinkPad Laptop Core i5 8GB"
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "Lenovo ThinkPad Laptop Core i5 8GB"
 # NO hideKeyboard here. Back is not reliably consumed by the IME on a search screen —
 # the screen handles it, clearing the query and remounting the list:
 # rate_buyer_after_sale's screenshot shows the filter back on "All 37", the search box

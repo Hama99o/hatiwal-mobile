@@ -109,9 +109,24 @@ appId: com.hatiwal.app
 - tapOn: "Publish"
 - waitForAnimationToEnd
 
+# QA-F1 (run-266): publishing lands on the owner detail with the
+# PublishSuccessSheet — a native <Modal> — on top of it. Every assertion below
+# used to run against THAT sheet: it renders the title and a StatusBadge too, so
+# `"Active"` passed while the flow had never reached the screen it thought it
+# was on, and the first `scrollUntilVisible` after it then failed on a control
+# the backdrop was covering. Assert the sheet (it IS the publish confirmation),
+# then dismiss it, then assert the screen underneath.
+- extendedWaitUntil:
+    visible: "Your listing is live!"
+    timeout: 60000
+- tapOn:
+    id: "publish-success-done"
+- waitForAnimationToEnd
+- assertNotVisible: "Your listing is live!"
+
 - extendedWaitUntil:
     visible: "QA SF-M7 Reconcile Batch"
-    timeout: 60000
+    timeout: 30000
 - assertNotVisible: "Draft"
 - assertVisible: "Active"
 - assertVisible:
@@ -149,9 +164,32 @@ appId: com.hatiwal.app
     id: "buyer-picker-quantity-value"
 - eraseText
 - inputText: "5"
-- tapOn: "Who bought this item?"
+# COMMIT THE TYPED VALUE WITH ENTER, NOT BY TAPPING THE HEADER.
+#
+# run-268, proven from the failing step's own hierarchy dump: after the tap and
+# `inputText`, the stepper was still in EDIT mode — the node on screen was
+# `buyer-picker-quantity-input` (an EditText holding "3") and
+# `buyer-picker-quantity-value` did not exist at all. Tapping the sheet's plain
+# `<Text>` header dismisses nothing and does not blur a focused TextInput on
+# Android, so `QuantityStepper.commitEdit` (wired to onBlur/onSubmitEditing)
+# never ran: the field still read 3 while the SHEET still held 1.
+#
+# `pressKey: Enter` is the component's own documented commit path
+# (`onSubmitEditing`), it is what the numeric keypad's ✓ key sends, and unlike
+# `hideKeyboard` (which is Back on Android) it cannot close the sheet — the
+# hazard the previous note in this file was working around.
+- pressKey: Enter
+- waitForAnimationToEnd
+# ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
+#
+# run-268, from a hierarchy dump after a committed edit: `…-value` is the
+# Pressable, which Android renders as a Button whose contentDescription is its
+# a11y label ("Quantity") and whose own text is EMPTY — the number lives on an
+# unnamed child TextView. So `{id: …-value, text: "N"}` can never match. The
+# component now also puts `…-value-text` on that Text, so the value has a handle;
+# `…-value` stays the TAP target and keeps the accessibility props.
 - assertVisible:
-    id: "buyer-picker-quantity-value"
+    id: "buyer-picker-quantity-value-text"
     text: "5"
 - tapOn: "Confirm sold"
 - waitForAnimationToEnd
@@ -159,7 +197,18 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible: "Listing marked as sold"
     timeout: 15000
-- assertVisible: "Sold"
+
+# THE SELLOUT LANDED — asserted where the screen already is.
+#
+# run-267: a bare `assertVisible: "Sold"` here is the same off-screen trap that
+# failed sell_without_reserving.yaml and undo_mark_sold.yaml while the app was
+# entirely correct. The StatusBadge is at the TOP of MyListingDetail and the
+# `scrollUntilVisible` above parked the screen down at the Manage Listing row.
+# `sold` is terminal, so `useListingLifecycle` maps `primaryAction` to null —
+# and the screen is sitting exactly where "Mark as Sold" was a second ago, so
+# its disappearance is the same claim, in view, with no scroll to spend.
+- assertNotVisible:
+    id: "lifecycle-primary-action"
 
 # ── THE BUG, part 1: raise quantity on the now-SOLD listing ─────────────────
 # Once sold, `primaryAction` is null (terminal) — only "More" renders, full
@@ -174,13 +223,19 @@ appId: com.hatiwal.app
 - tapOn:
     id: "lifecycle-more-action"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Edit"
-    direction: DOWN
-    centerElement: true
+# NEVER SCROLL INSIDE THE MORE SHEET (run-267, and run-266's F6).
+# ListingActionsSheet's backdrop dismisses on a drag, so a scroll here CLOSES the
+# sheet and the rest of the timeout is spent hunting the page underneath it for a
+# control that no longer exists — `No visible element found: "Edit"`, on a sheet
+# that was open a moment earlier and never needed scrolling (every action fits).
+# By testID and by the action's own KEY, which is identical in all three locales
+# (`t("common.edit")` is "سمول"/"ویرایش" in ps/fa).
+- extendedWaitUntil:
+    visible:
+      id: "listing-action-edit"
     timeout: 20000
-- tapOn: "Edit"
+- tapOn:
+    id: "listing-action-edit"
 - waitForAnimationToEnd
 - assertVisible: "Edit Listing"
 
@@ -198,8 +253,14 @@ appId: com.hatiwal.app
 
 # THE FIX, part 1: state the consequence BEFORE saving — reassuring, not a
 # warning, and never a silent no-op.
+# `eraseText` before typing, always. `selectTextOnFocus` on this field only fires
+# on a FRESH focus — a second edit in the same session APPENDS instead
+# ("2" + "15" = "215", reproduced in run-269 on held_quantity_refusal.yaml). This
+# flow happens to re-enter the form each time, so focus IS fresh here, but the
+# guard costs nothing and the failure mode is a silently wrong quantity.
 - tapOn:
     id: "listing-form-quantity-input"
+- eraseText
 - inputText: "8"
 - assertVisible:
     id: "listing-form-quantity-reopen-note"
@@ -209,6 +270,17 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # THE FIX, proven end to end: back on sale, not stranded sold-out.
+#
+# SCROLL UP FIRST (run-270). Saving returns to the owner detail at the scroll
+# position it was left at — down at the Manage Listing row, where the More sheet
+# was opened — so the title and the badges are off the top. The reopen itself had
+# already been proven two lines above (`listing-form-quantity-reopen-note` and
+# ".*3 available.*" both visible BEFORE the save).
+- scrollUntilVisible:
+    element:
+      id: "listing-status-badge"
+    direction: UP
+    timeout: 20000
 - extendedWaitUntil:
     visible: "QA SF-M7 Reconcile Batch"
     timeout: 30000
@@ -228,13 +300,19 @@ appId: com.hatiwal.app
 - tapOn:
     id: "lifecycle-more-action"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Edit"
-    direction: DOWN
-    centerElement: true
+# NEVER SCROLL INSIDE THE MORE SHEET (run-267, and run-266's F6).
+# ListingActionsSheet's backdrop dismisses on a drag, so a scroll here CLOSES the
+# sheet and the rest of the timeout is spent hunting the page underneath it for a
+# control that no longer exists — `No visible element found: "Edit"`, on a sheet
+# that was open a moment earlier and never needed scrolling (every action fits).
+# By testID and by the action's own KEY, which is identical in all three locales
+# (`t("common.edit")` is "سمول"/"ویرایش" in ps/fa).
+- extendedWaitUntil:
+    visible:
+      id: "listing-action-edit"
     timeout: 20000
-- tapOn: "Edit"
+- tapOn:
+    id: "listing-action-edit"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
@@ -245,8 +323,14 @@ appId: com.hatiwal.app
     id: "listing-form-quantity-input"
     text: "8"
 
+# `eraseText` before typing, always. `selectTextOnFocus` on this field only fires
+# on a FRESH focus — a second edit in the same session APPENDS instead
+# ("2" + "15" = "215", reproduced in run-269 on held_quantity_refusal.yaml). This
+# flow happens to re-enter the form each time, so focus IS fresh here, but the
+# guard costs nothing and the failure mode is a silently wrong quantity.
 - tapOn:
     id: "listing-form-quantity-input"
+- eraseText
 - inputText: "3"
 - tapOn: "Save"
 - waitForAnimationToEnd
@@ -258,12 +342,39 @@ appId: com.hatiwal.app
       id: "listing-form-quantity-server-error"
     timeout: 15000
 - assertVisible: ".*already sold 5.*"
-- assertNotVisible: "common.error"
-- assertNotVisible: "No connection"
+# TOOTHLESS BEFORE (qa/flow_lint.py, run-267): these were
+# `assertNotVisible: "common.error"` and `assertNotVisible: "No connection"`.
+# Neither could ever fail. `common.error` is a translation KEY — nothing renders
+# it, so asserting its absence is trivially true; and Maestro anchors a pattern
+# against a node's WHOLE text, so the bare literal "No connection" never matched
+# the actual copy ("No connection. Check your internet and try again."). The pair
+# read as "we checked the seller was not shown a raw key or a generic network
+# error" while checking nothing at all — on the one flow whose entire subject is
+# that the seller sees a REAL, localized message instead.
+#
+# Kept as assertions, made capable of failing: the rendered generic error string,
+# and the network error matched loosely so it can actually match.
+- assertNotVisible: "Error"
+- assertNotVisible: ".*No connection.*"
 # The refused save changed nothing — still on the edit form, not bounced
 # back to the detail screen with a silently-accepted (or silently-ignored)
 # value.
-- assertVisible: "Edit Listing"
+#
+# run-268: this was `assertVisible: "Edit Listing"` and it failed while the
+# screenshot shows the edit form, the inline refusal and the untouched value all
+# rendered perfectly. "Edit Listing" is the screen HEADING inside the scroll
+# view, not part of the sticky header — the flow had scrolled down to the
+# quantity row, so the title was off the top and the numeric IME was over the
+# bottom. Same off-screen class as run-266's F5/F7.
+#
+# `Save` is the right marker instead: it lives in the STICKY header (visible in
+# the failure screenshot), exists only on the form, and never appears on the
+# owner detail screen — so it distinguishes exactly what this assertion is
+# about. Paired with the value still reading what was typed, which is the
+# "silently accepted" half of the claim.
+- assertVisible: "Save"
+- assertVisible:
+    id: "listing-form-quantity-input"
 
 # Leaving without saving must not leave the listing any different from the
 # last SUCCESSFUL save above (8 total, 3 available, Active).

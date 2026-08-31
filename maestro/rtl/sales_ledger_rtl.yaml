@@ -1,0 +1,176 @@
+appId: com.hatiwal.app
+---
+# The SALES LEDGER in RTL (Pashto) — SF-M5's new screen, and the one sell-flow
+# surface that had NO right-to-left coverage at all (card #296/SF-QA1, run-266
+# gap list: "RTL (ps/fa) on the Sales ledger and the buyer picker — never yet
+# tested on a device").
+#
+# Why it needs its own flow rather than a line in my_listings_rtl.yaml: this
+# screen is the redesign's densest mixed-direction layout. It puts NUMBERS
+# INSIDE SENTENCES ("6 of 15 sold"), a UserIdentity row, a per-unit PriceTag and
+# a direction-dependent chevron on one line, then opens a sheet with a
+# QuantityStepper whose +/− must swap visual sides without swapping meaning. All
+# four are the things that break first in ps/fa and none of them is checked
+# anywhere else.
+#
+# EVERY HANDLE IS A testID, deliberately (QA_HANDBOOK §"Never take an expected
+# string from a locale file"): testIDs are identical in all three locales, so
+# this flow tests the LAYOUT rather than re-asserting the translation files.
+# The two exceptions are the two assertions whose whole subject IS the
+# localized text — the Eastern Arabic-Indic digits in the tally, and the Pashto
+# screen title — and those are taken from what the device renders.
+#
+# FIXTURE: "Steel Thermos Flask 1L - Bulk Batch" (db/seeds/e2e.rb SF-QA1) —
+# active, quantity 15, 6 sold across 3 sales, one of them an outside-Hatiwal
+# row with no buyer. Three rows and a nil buyer is exactly the shape worth
+# looking at in RTL. READ-ONLY: this flow opens the edit sheet and closes it
+# again without saving, so the fixture is left exactly as seeded and
+# seller/sales_screen_* can still rely on it.
+#
+# HYGIENE: the language is persisted ON THE USER, so this flow MUST put it back
+# (run-266's F13 — an rtl flow that died mid-way left the seller in Pashto and
+# every later English flow failed on copy that was perfectly correct).
+
+- runFlow: ../_helpers/login_seller.yaml
+
+# ── Into Pashto ─────────────────────────────────────────────────────────────
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-ps"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/await_language_restart.yaml
+
+# login_seller already left the account in SELLER mode and the language switch
+# does not change it, so there is no mode toggle to press here — asserting the
+# mode positively instead (run-266's F11: my_listings_rtl tapped "switch to
+# seller mode" on an account that was already in it, which can only fail).
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "mode-toggle-button"
+    timeout: 30000
+
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+
+# ── Find the 3-sale batch ───────────────────────────────────────────────────
+# By testID: the placeholder ("Search my listings...") is translated, so the
+# text handle every English flow uses cannot work here.
+- extendedWaitUntil:
+    visible:
+      id: "my-listings-search-input"
+    timeout: 20000
+- tapOn:
+    id: "my-listings-search-input"
+- eraseText
+- inputText: "Thermos"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Steel Thermos Flask 1L - Bulk Batch"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
+- tapOn:
+    id: "seller-listing-card"
+    index: 0
+- waitForAnimationToEnd
+
+# ── Open the ledger from the owner detail's More sheet ──────────────────────
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-more-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-more-action"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-action-sales"
+    timeout: 20000
+- tapOn:
+    id: "listing-action-sales"
+- waitForAnimationToEnd
+
+# ── The ledger, in Pashto ───────────────────────────────────────────────────
+# The screen's own Pashto subtitle (listing.salesScreen.title). Taken from the
+# device, not from the locale JSON.
+- extendedWaitUntil:
+    visible: "پلورنې"
+    timeout: 20000
+
+# THE TALLY — the redesign's one number-inside-a-sentence. `formatNumber` must
+# render Eastern Arabic-Indic digits here, not Western ones: the fixture is
+# 6 sold of 15, so ۶ and ۱۵. A Western "6 of 15" rendering is the exact defect
+# ListingSales' own design-review note says this call site was fixed for, and
+# nothing until now has checked it on a device.
+- extendedWaitUntil:
+    visible:
+      id: "sales-tally"
+    timeout: 20000
+- assertVisible: ".*۶.*۱۵.*"
+- assertNotVisible: ".*6 of 15.*"
+
+# Three rows, and one of them is the nil-buyer outside sale.
+- assertVisible:
+    id: "sale-row-\\d+"
+- assertVisible: "له Hatiwal نه بهر خرڅ شوی"
+
+# ── The correction sheet, in Pashto ────────────────────────────────────────
+- tapOn:
+    id: "sale-row-\\d+"
+    index: 0
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "دا پلورنه سمول"
+    timeout: 20000
+# The stepper mirrors: both controls present and the value localized. `-value`
+# is the tap-to-edit number, so its presence proves the middle of the stepper
+# rendered rather than collapsing in a row-reverse container.
+- assertVisible:
+    id: "sale-edit-quantity-decrement"
+- assertVisible:
+    id: "sale-edit-quantity-value"
+- assertVisible:
+    id: "sale-edit-quantity-increment"
+- assertVisible:
+    id: "sale-edit-price"
+- assertVisible:
+    id: "sale-edit-save"
+- assertVisible:
+    id: "sale-edit-delete"
+
+# READ-ONLY: close without saving, so the fixture stays exactly as seeded.
+- tapOn:
+    id: "sale-edit-close"
+- waitForAnimationToEnd
+- assertNotVisible: "دا پلورنه سمول"
+
+# ── Restore English on the account ─────────────────────────────────────────
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-en"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/await_language_restart.yaml
+# Prove the restore actually landed — a flow that leaves the account in Pashto
+# poisons every English flow after it (run-266 F13), so this is an assertion,
+# not a hopeful last step.
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Switch to Buyer Mode"
+    timeout: 30000

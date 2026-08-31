@@ -59,9 +59,22 @@ describe("RatingDisplay — empty states", () => {
 });
 
 describe("RatingDisplay — filled states", () => {
-  it("calls t('reviews.summary') with the formatted rating and count", () => {
+  it("calls t('reviews.summary') with the formatted rating, a NUMERIC count for plural selection, and the localized digits to display", () => {
     render(<RatingDisplay avgRating={4.8} reviewCount={45} testID="rating" />);
-    expect(mockT).toHaveBeenCalledWith("reviews.summary", { rating: "4.8", count: "45" });
+    expect(mockT).toHaveBeenCalledWith("reviews.summary", {
+      rating: "4.8",
+      count: 45,
+      display: "45",
+    });
+  });
+
+  it("keeps `count` a number at 1, so i18next can pick the singular — this line read \"(1 reviews)\" before", () => {
+    render(<RatingDisplay avgRating={5} reviewCount={1} testID="rating" />);
+    expect(mockT).toHaveBeenCalledWith("reviews.summary", {
+      rating: "5",
+      count: 1,
+      display: "1",
+    });
   });
 
   it("renders in sm size without crashing", () => {

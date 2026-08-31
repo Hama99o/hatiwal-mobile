@@ -82,19 +82,19 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
-- tapOn: "Search my listings..."
-- eraseText
-- inputText: "QA Disposable reserved_buyer"
-# Dismiss the IME right away — reproduced TWICE live (card #296/SF-QA1): left
-# focused, the search field silently reclaims the keyboard after the
-# lifecycle mutation below re-renders this list, and the reclaimed IME then
-# sits over the toast for the rest of the flow (the mutation itself succeeds
-# either way — confirmed via a direct DB check both times — only the toast
-# assertion that follows is affected). Safe HERE specifically: no modal is
-# open yet, so Back reaches the IME and nothing else (contrast the sheet
-# case a few flows document elsewhere, where Back would close the SHEET
-# instead).
-- hideKeyboard
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "QA Disposable reserved_buyer"
+# `hideKeyboard` REMOVED (run-270, qa/flow_lint HIDEKEY). The shared search
+# helper above already settles the field, so there is no IME guaranteed to be
+# up here — and with no keyboard to consume it, `hideKeyboard` is a plain Back
+# press that pops the screen. The reason it was here (an IME reclaiming focus
+# over a later toast) is gone too: clearing via the ✕ leaves the field
+# unfocused.
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible: "QA Disposable reserved_buyer"

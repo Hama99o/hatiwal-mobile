@@ -30,9 +30,13 @@ appId: com.hatiwal.app
 # Search for THIS FLOW'S disposable listing. The seed creates one per destructive
 # flow, named after it, so this flow can ruin it without touching a fixture
 # anything else asserts on. It used to act on "whichever listing comes first".
-- tapOn: "Search my listings..."
-- eraseText
-- inputText: "QA Disposable mark_sold_with_buyer"
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "QA Disposable mark_sold_with_buyer"
 - waitForAnimationToEnd
 - extendedWaitUntil:
       visible: "QA Disposable mark_sold_with_buyer"
@@ -57,19 +61,16 @@ appId: com.hatiwal.app
     visible:
       id: "seller-listing-card"
     timeout: 20000
-- tapOn:
-    id: "seller-listing-card"
-    index: 0
-- waitForAnimationToEnd
-
-# Owner detail screen — SF-M1's primary action for a Live listing is ALWAYS
-# "Mark as Sold" (Reserve no longer exists here, and "Mark as Sold" is not
-# duplicated in the "More" sheet for a non-expired active listing — that
-# entry only appears once a listing has EXPIRED). Tap the card's own primary
-# action directly.
-# Wait for the data, not the animation. Switching tabs refires the query and
-# waitForAnimationToEnd does not wait on the network, so this tap can land on a
-# list that has not rendered yet. Free when the row is already cached.
+# QA-F2 (run-266): this used to TAP the card first — which navigates to the
+# owner DETAIL screen — and then assert `seller-card-primary-action`, a testID
+# that exists only on the LIST card (SellerListingCard.tsx:411) and has never
+# existed on the detail screen. The flow could not pass as written.
+#
+# The card's own primary action is the right subject here: SF-M1's acceptance
+# bar is that "Mark as Sold" is ONE TAP from any live listing surface, and My
+# Shop's card is the surface a seller actually reaches for. So act on the card
+# in place, without navigating away from it. (The DETAIL screen's equivalent,
+# `lifecycle-primary-action`, is covered by sell_without_reserving.yaml.)
 - extendedWaitUntil:
     visible:
       id: "seller-card-primary-action"
@@ -105,16 +106,34 @@ appId: com.hatiwal.app
 
 # Confirm sold with the default (listed) price
 - tapOn: "Confirm sold"
-- waitForAnimationToEnd
 
 # Sale recorded — success toast fires
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a
 # single check right after an action is a race — and any wait in front of it
 # loses that race, turning a successful action red. Polling keeps the check at
 # full strength while removing the timing dependency.
+# TOAST WINDOW (run-268): `waitForAnimationToEnd` after a confirm waits out the
+# toast's ENTIRE in-sit-out animation — measured at 4.6s against a ~4s toast — so
+# anything asserted after it is a coin flip, and the Undo action had already gone.
+# Assert the ACTION first with `extendedWaitUntil` (it polls, so it catches the
+# toast as it appears, and it is stronger than the text: a toast that fired
+# without its action fails it), then the text in the same frame.
 - extendedWaitUntil:
-    visible: "Listing marked as sold"
-    timeout: 15000
+    visible: "Undo"
+    timeout: 20000
+- assertVisible: "Listing marked as sold"
+
+# QA-BUG2 (card 300) — THE OCCLUSION, pinned. This is the named-buyer path, the
+# one where the review sheet used to open in the SAME tick as the toast and put
+# its own native-window backdrop on top of Undo. The two lines below are the
+# actual regression guard, and the ABSENCE assertion is the load-bearing half:
+# "Undo is in the hierarchy" stayed true throughout the bug — what was false was
+# that anything could reach it. A sheet that has not opened yet cannot cover it.
+#
+# The tap-through (Undo actually voiding a named-buyer sale, and cancelling the
+# review invite with it) is ./undo_mark_sold_with_buyer.yaml — this flow has to
+# leave the listing SOLD for its own last assertion.
+- assertNotVisible: "How was Ahmad Karimi as a buyer?"
 
 # REV2: the double-blind review prompt opens automatically — dismiss it here
 # (out of scope for this flow) so the underlying Sold badge is checkable.

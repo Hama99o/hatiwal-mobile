@@ -126,6 +126,14 @@ appId: com.hatiwal.app
 # full_marketplace_cycle.yaml, which was already corrected.
 - assertVisible: "Your listing is live!"
 
+# QA-F1 (run-266): the PublishSuccessSheet is a native <Modal>, so its backdrop
+# owns every touch until it is dismissed — the `browse-tab` tap below landed on
+# the backdrop, not the tab bar. Dismiss the sheet first.
+- tapOn:
+    id: "publish-success-done"
+- waitForAnimationToEnd
+- assertNotVisible: "Your listing is live!"
+
 # Now shows in Active tab
 - tapOn:
     id: "browse-tab"

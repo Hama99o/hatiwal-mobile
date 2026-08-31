@@ -1,0 +1,144 @@
+appId: com.hatiwal.app
+---
+# QA-BUG2 (card 300) — UNDO A SALE THAT NAMED A BUYER, tapped through on a
+# device. This is the case the SF-M5 Undo did NOT work for, and the one nothing
+# had ever exercised.
+#
+# THE HISTORY, because it is the reason this file exists rather than one more
+# line in an existing flow:
+#
+#   run-019   marking sold with a buyer raced the REV2 review sheet against the
+#             "Marked sold · Undo" toast. On Android a native <Modal> opens its
+#             own window, so the sheet's backdrop landed on top of the toast and
+#             a tap where Undo sat dismissed the sheet instead. The response at
+#             the time was to DELETE the toast assertion from
+#             multi_quantity_partial_sale.yaml.
+#   SF-M5     Undo was then BUILT on that same toast — on a surface no test was
+#             watching any more.
+#   run-266   the occlusion was re-found by source/hierarchy analysis. Undo
+#             worked only on the paths that recorded NO buyer, i.e. the minority
+#             of real sales.
+#   3de2954.. commit c7bbf3f sequenced them: the review invite now waits for the
+#             toast's own onAutoClose/onDismiss, and tapping Undo cancels the
+#             invite outright.
+#
+# ../seller/undo_mark_sold.yaml already round-trips Undo on the NO-BUYER path.
+# This flow covers the path that was actually broken, and asserts the two
+# properties the fix turns on:
+#   1. the toast's Undo is on screen while the review sheet is NOT — the
+#      occlusion is genuinely gone, not merely less likely;
+#   2. tapping Undo voids the sale AND cancels the review invite — there is
+#      nothing left to review, so that sheet must never arrive afterwards.
+#
+# FIXTURE: "QA Disposable reserved_buyer" (db/seeds/e2e.rb) — one of only two
+# disposables seeded WITH a buyer@hatiwal.test / "Ahmad Karimi" conversation,
+# which is what makes a named buyer selectable at all. Round trip: sold, then
+# undone, so it ends `active` exactly as seeded. Do NOT run in the same pass as
+# ../seller/reserved_buyer.yaml or ../listings/lifecycle_reactivate.yaml, which
+# share it.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+
+# Via the shared helper: it clears with the field's own ✕ instead of racing
+# `eraseText` against `inputText` (run-270 — see search_my_shop.yaml), and it
+# uses testIDs, so this step also works in ps/fa.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "QA Disposable reserved_buyer"
+# `hideKeyboard` REMOVED (run-270, qa/flow_lint HIDEKEY). The shared search
+# helper above already settles the field, so there is no IME guaranteed to be
+# up here — and with no keyboard to consume it, `hideKeyboard` is a plain Back
+# press that pops the screen. The reason it was here (an IME reclaiming focus
+# over a later toast) is gone too: clearing via the ✕ leaves the field
+# unfocused.
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "QA Disposable reserved_buyer"
+    timeout: 30000
+
+# One tap on the CARD's own primary action — SF-M1's acceptance bar, and the
+# surface a seller actually reaches for. (Tapping the card first would navigate
+# to the detail screen, where `seller-card-primary-action` does not exist —
+# run-266's F2.)
+- extendedWaitUntil:
+    visible:
+      id: "seller-card-primary-action"
+    timeout: 20000
+- assertVisible:
+    id: "seller-card-primary-action"
+    text: "Mark as Sold"
+- tapOn:
+    id: "seller-card-primary-action"
+- waitForAnimationToEnd
+
+# ── Name the real buyer ─────────────────────────────────────────────────────
+- assertVisible: "Who bought this item?"
+- assertVisible: "Ahmad Karimi"
+- tapOn: "Ahmad Karimi"
+- waitForAnimationToEnd
+- tapOn: "Confirm sold"
+
+# ── THE FIX, property 1: Undo is reachable, and the review sheet is not yet up
+# Before c7bbf3f both appeared in the same tick and the sheet's backdrop owned
+# the touch. Asserting the sheet ABSENT here is the part that actually pins the
+# bug: "Undo is in the hierarchy" was true even while it was unreachable.
+# TOAST WINDOW (run-268): `waitForAnimationToEnd` after a confirm waits out the
+# toast's ENTIRE in-sit-out animation — measured at 4.6s against a ~4s toast — so
+# anything asserted after it is a coin flip, and the Undo action had already gone.
+# Assert the ACTION first with `extendedWaitUntil` (it polls, so it catches the
+# toast as it appears, and it is stronger than the text: a toast that fired
+# without its action fails it), then the text in the same frame.
+# NOTHING BETWEEN THE WAIT AND THE TAP.
+#
+# run-268 measured the cost of getting this wrong: three ~1s assertions sat
+# between them, the tap's own element lookup took another ~3s, and by 17:21:00 —
+# six seconds after the toast appeared — Maestro tapped coordinates the toast had
+# already vacated. It reported `Tap on "Undo" COMPLETED`, no DELETE reached the
+# API (confirmed in the Rails access log) and the listing stayed sold. That is a
+# false COMPLETED, and it is also exactly what a real seller experiences.
+#
+# Two things came out of it: the app now gives this toast an 8s duration (A10 —
+# 4s was never enough for a human either), and the ORDER here is now
+# wait → tap, with every other claim asserted afterwards from durable state.
+# The "review sheet is not covering the toast" assertion moved to
+# ./mark_sold_with_buyer.yaml, which does NOT tap and can afford it.
+- extendedWaitUntil:
+    visible: "Undo"
+    timeout: 20000
+- tapOn: "Undo"
+- waitForAnimationToEnd
+
+# `.*Sale removed.*`, not `"Sale removed"`. Maestro anchors a pattern against a
+# node's WHOLE text and the copy is "Sale removed — stock restored."
+# (listing.sale.voidedSuccess), so the bare literal could never match — the
+# original line in undo_mark_sold.yaml had the same defect and it is fixed there
+# too.
+- extendedWaitUntil:
+    visible: ".*Sale removed.*"
+    timeout: 20000
+
+# The listing is genuinely back on the market — a real DELETE round trip, not
+# an optimistic local flip.
+- extendedWaitUntil:
+    visible: "QA Disposable reserved_buyer"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "seller-card-primary-action"
+      text: "Mark as Sold"
+    timeout: 20000
+
+# ── And the review invite was CANCELLED, not merely delayed ────────────────
+# The sale it would have invited a review for no longer exists. This is the
+# assertion that distinguishes "sequenced" from "cancelled": a fix that only
+# delayed the sheet would let it arrive here, inviting a review of a voided
+# sale.
+- extendedWaitUntil:
+    visible: "How was Ahmad Karimi as a buyer?"
+    timeout: 12000
+    optional: true
+- assertNotVisible: "How was Ahmad Karimi as a buyer?"

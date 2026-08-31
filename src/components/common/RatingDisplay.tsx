@@ -66,7 +66,16 @@ export function RatingDisplay({
         }}
       >
         {hasReviews
-          ? t("reviews.summary", { rating: formatNumber(avgRating), count: formatNumber(count) })
+          ? t("reviews.summary", {
+              rating: formatNumber(avgRating),
+              // `count` stays a NUMBER so i18next can pick _one/_other — passing
+              // formatNumber's STRING silently disabled plural selection and
+              // English read "(1 reviews)". `display` carries the localized
+              // digits so ps/fa keep Eastern Arabic-Indic numerals. Same fix as
+              // listing.stock.unitsCount (A3).
+              count,
+              display: formatNumber(count),
+            })
           : t("reviews.empty")}
       </Text>
     </View>

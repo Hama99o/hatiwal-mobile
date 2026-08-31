@@ -143,6 +143,14 @@ function CompactHeader({
             onChangeText={onSearchChange}
             placeholder={t("listing.searchPlaceholder")}
             returnKeyType="search"
+            // QA (card #296/SF-QA1): the only handle on this field was its
+            // TRANSLATED placeholder, so no Pashto/Dari flow could reach My
+            // Shop's search at all — which is why the sell flow had no RTL
+            // coverage on any screen behind it. The buyer feed's equivalent
+            // has had `browse-search-input` all along; this one is named to
+            // match. Additive, behaviour-neutral.
+            testID="my-listings-search-input"
+            accessibilityLabel={t("listing.searchPlaceholder")}
             style={{
               flex: 1,
               fontSize: 13,
@@ -161,6 +169,7 @@ function CompactHeader({
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
               accessibilityLabel={t("common.clear")}
+              testID="my-listings-search-clear"
             >
               <X size={14} color={colors.mutedForeground} />
             </Pressable>

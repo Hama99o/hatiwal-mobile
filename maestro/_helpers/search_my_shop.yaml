@@ -1,0 +1,67 @@
+appId: com.hatiwal.app
+---
+# NO `env:` DEFAULT BLOCK HERE (run-271). It had `QUERY: ""`, and that empty
+# default WON over the value each caller passes in its own `runFlow: env:` — the
+# helper typed nothing, the field stayed on its placeholder, and every caller
+# then failed looking for a listing the unfiltered list had not scrolled to.
+# Screenshot: qa/reports/run-271/seller/screens/held_quantity_refusal.png, search
+# box empty with the cursor in it.
+#
+# With no default declared, the caller's value is the only one there is. Every
+# caller passes QUERY; a caller that forgets will fail loudly on this step rather
+# than silently searching for nothing.
+# Type a query into My Shop's search field, deterministically.
+#
+# WHY THIS EXISTS (run-270). Eighteen flows did the same three steps by hand:
+#
+#     - tapOn: "Search my listings..."     <- the TRANSLATED placeholder
+#     - eraseText
+#     - inputText: "…"
+#
+# Two things are wrong with that shape, and both were observed on a device.
+#
+# 1. `eraseText` + `inputText` INTERLEAVE on a long previous query.
+#    multi_quantity_partial_sale failed with the field reading
+#    "…ear - Wholesaleh…" — the new text typed into a box the erase had not
+#    finished emptying — and then searched for a string nothing matches, landing
+#    on "No Active listings" with the fixture sitting right there untouched.
+#    The screenshot is the whole story:
+#    qa/reports/run-270/seller/screens/multi_quantity_partial_sale.png
+#
+# 2. The placeholder is translated ("Search my listings..." /
+#    "زما اعلانونه ولټوئ" / …), so none of those eighteen flows can run in ps or
+#    fa — which is a large part of why the seller side had no RTL coverage.
+#
+# Clearing via the field's own ✕ (`my-listings-search-clear`, which renders only
+# when there is something to clear) is atomic: one tap, one state change, nothing
+# to race. Both handles are testIDs, so this works in every locale.
+#
+# Usage:
+#   - runFlow:
+#       file: ../_helpers/search_my_shop.yaml
+#       env:
+#         QUERY: "Winter Gloves Wholesale Box - 15 Pairs"
+
+- extendedWaitUntil:
+    visible:
+      id: "my-listings-search-input"
+    timeout: 20000
+
+# Only when there IS something to clear — the ✕ is conditional on `search.length`.
+- runFlow:
+    when:
+      visible:
+        id: "my-listings-search-clear"
+    commands:
+      - tapOn:
+          id: "my-listings-search-clear"
+      - waitForAnimationToEnd
+
+- tapOn:
+    id: "my-listings-search-input"
+# Settle after the tap before typing: `inputText` can lose the FIRST character
+# when it starts while the field is still taking focus (QA_HANDBOOK §"inputText
+# can lose the first character").
+- waitForAnimationToEnd
+- inputText: ${QUERY}
+- waitForAnimationToEnd

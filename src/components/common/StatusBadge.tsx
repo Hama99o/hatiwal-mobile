@@ -10,6 +10,15 @@ export type ListingStatus = "draft" | "active" | "reserved" | "sold";
 interface StatusBadgeProps {
   status: ListingStatus;
   /**
+   * QA (card #296/SF-QA1): the badge's only handle was its translated label,
+   * and `"Sold"` / `"Active"` also appear on My Listings' filter tabs, in the
+   * More sheet and inside a status filter chip — so a flow asserting the
+   * listing's STATE could match something else entirely, or (as happened in
+   * run-267 twice) fail because the badge itself had scrolled out of view with
+   * no stable element to scroll back to. Additive and behaviour-neutral.
+   */
+  testID?: string;
+  /**
    * overlay — renders as a full-width strip pinned to the bottom of a
    * thumbnail container. The parent must have `position: relative` /
    * `overflow: hidden`. Used in ConversationRow and ListingCard overlays.
@@ -30,7 +39,7 @@ interface StatusBadgeProps {
  *   sold     → colors.overlay (translucent black, rgba(0,0,0,0.5))
  *   reserved → colors.reservedOverlay (translucent amber, rgba(180,83,9,0.85))
  */
-export function StatusBadge({ status, overlay = false }: StatusBadgeProps) {
+export function StatusBadge({ status, overlay = false, testID }: StatusBadgeProps) {
   const { t } = useTranslation();
   const colors = useColors();
 
@@ -55,6 +64,7 @@ export function StatusBadge({ status, overlay = false }: StatusBadgeProps) {
         accessibilityRole="text"
       >
         <Text
+          testID={testID}
           style={{
             fontSize:      9,
             fontWeight:    "800",
@@ -93,6 +103,7 @@ export function StatusBadge({ status, overlay = false }: StatusBadgeProps) {
       accessibilityRole="text"
     >
       <Text
+        testID={testID}
         style={{ color: accent.text, fontSize: 11, fontWeight: "600" }}
         numberOfLines={1}
       >

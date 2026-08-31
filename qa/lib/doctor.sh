@@ -145,7 +145,29 @@ API_CODE=$(curl -s -o /dev/null -m 8 -w '%{http_code}' "$API_URL_LOCAL/categorie
   || BLOCK "api $API_URL_LOCAL returned '$API_CODE'"
 # The URL must be reachable FROM THE EMULATOR, not just from this shell.
 # What the BUNDLE points at is what actually matters — Metro inlines it.
-BUNDLE_API=$(docker exec "$QA_METRO_CONTAINER" printenv EXPO_PUBLIC_API_URL 2>/dev/null)
+#
+# READ `.env` FIRST, NOT JUST THE CONTAINER ENVIRONMENT (run-268).
+#
+# `babel-preset-expo` inlines `process.env.EXPO_PUBLIC_*` from the project's
+# `.env` FILE, and `/app/.env` is bind-mounted from the host — so a `.env` value
+# WINS over the container's own environment variable. This check read only
+# `printenv`, which made it possible to "fix" the address with
+# `HOST_IP=10.0.2.2 docker compose up -d mobile`, see this step report
+# `bundle API is emulator-stable (http://10.0.2.2:3007/api/v1)`, and still have
+# the app talking to the LAN IP from `.env`. That is exactly what happened here:
+# the served bundle carried BOTH strings, and the Rails access log showed every
+# request arriving from `192.168.1.24` — a false OK on a provenance check, which
+# is the worst kind.
+#
+# So: prefer `.env`, and say which source the answer came from.
+BUNDLE_API=$(docker exec "$QA_METRO_CONTAINER" sh -c \
+  'grep -m1 -E "^[[:space:]]*EXPO_PUBLIC_API_URL=" /app/.env 2>/dev/null | cut -d= -f2- | tr -d "\"'"'"' \r"' 2>/dev/null)
+BUNDLE_API_SRC=".env (wins — babel inlines it)"
+if [ -z "$BUNDLE_API" ]; then
+  BUNDLE_API=$(docker exec "$QA_METRO_CONTAINER" printenv EXPO_PUBLIC_API_URL 2>/dev/null)
+  BUNDLE_API_SRC="container env (no .env override)"
+fi
+[ -n "$BUNDLE_API" ] && say "  bundle API source: $BUNDLE_API_SRC"
 case "$BUNDLE_API" in
   *10.0.2.2*) ok "bundle API is emulator-stable ($BUNDLE_API)";;
   "")         warn "could not read EXPO_PUBLIC_API_URL from the metro container";;
