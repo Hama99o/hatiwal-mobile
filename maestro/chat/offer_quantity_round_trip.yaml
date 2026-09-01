@@ -1,0 +1,106 @@
+appId: com.hatiwal.app
+---
+# SF-M11 — the offer-quantity round trip, on a real device.
+#
+# WHY THIS FLOW EXISTS. SF-M11 gave an offer a QUANTITY, and it is the number
+# that decides how many units a sale removes from stock. Before it, the buyer's
+# "how many" lived only in prose the composer generated, mark-sold opened at 1,
+# and a 3-unit agreement silently sold one unit while leaving two already-gone
+# units on the batch. It shipped with 22 unit tests and, until this flow, ZERO
+# device coverage — and this codebase has twice built a control on this exact
+# path that was never wired (see the `buyer` note in Conversation.tsx). Unit
+# tests cannot catch that; only driving the screens can.
+#
+# Fixture: "Wool Socks Bulk Pack - 12 Pairs" — seller-owned, active, quantity 12,
+# with NO pre-seeded conversation, added for this flow alone. It is deliberately
+# NOT the Phone Case fixture: that one carries a seeded conversation and an
+# unread-state helper, and two mutating flows sharing a listing is how they start
+# failing for each other's reasons.
+#
+# Conventions borrowed from offer_send_and_accept.yaml, which learned them the
+# hard way: the amount field has no visible label (use its testID); currency text
+# renders through Intl with a NON-BREAKING space, so a bare number never matches
+# and every amount assertion needs a leading `.*`; the accept button's real label
+# is "Accept offer"; and the reserve-after-accept sheet interpolates a
+# bidi-isolate-wrapped name, so it needs a regex, never an exact string.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Wool Socks Bulk Pack - 12 Pairs"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Wool Socks Bulk Pack - 12 Pairs"
+- waitForAnimationToEnd
+
+# ── BUYER: state a quantity, not just a price ────────────────────────────────
+- tapOn: "Make an Offer"
+- waitForAnimationToEnd
+- assertVisible: "Send Offer"
+
+# The quantity field must EXIST here. It renders only for a multi-unit listing
+# whose caller is wired to send the value, so its absence is precisely the
+# "built but never wired" failure this flow is here to catch.
+- assertVisible:
+    id: "offer-quantity-input"
+- tapOn:
+    id: "offer-amount-input"
+- inputText: "200"
+- tapOn:
+    id: "offer-quantity-input"
+- inputText: "3"
+- waitForAnimationToEnd
+
+# The read-back line the buyer commits to: "3 × AFN 200 = AFN 600".
+- assertVisible:
+    id: "offer-quantity-total"
+
+- tapOn: "Send Offer"
+- waitForAnimationToEnd
+
+# ── The bubble states the units, so the seller can SEE what was agreed ───────
+- assertVisible: "Your Offer"
+- assertVisible:
+    id: "offer-bubble-units"
+
+# ── SELLER: accept, then mark sold — the stepper must open on THREE ──────────
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- tapOn: "Wool Socks Bulk Pack - 12 Pairs"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "offer-bubble-units"
+- tapOn: ".*Accept.*"
+- waitForAnimationToEnd
+
+# A hold is OPTIONAL post-redesign, so decline the prompt: selling must never
+# require reserving first. The name is bidi-isolate wrapped — regex only.
+- runFlow:
+    when:
+      visible: ".*Reserve for.*"
+    commands:
+      - tapOn: "Not now"
+      - waitForAnimationToEnd
+
+- assertVisible: "Offer accepted"
+
+# THE POINT OF THE WHOLE FLOW: mark sold from the chat header, and the quantity
+# stepper opens on the 3 units this thread agreed — not on 1. Before SF-M11 this
+# sheet always opened at 1, so a 3-unit deal recorded one sale.
+- assertVisible: "Mark Sold"
+- tapOn: "Mark Sold"
+- waitForAnimationToEnd
+
+# Assert the STEPPER'S OWN VALUE, not a loose ".*3.*" that would match any 3 on
+# the screen (the price, a date, the stock pill) and pass even if the prefill
+# were broken. `buyer-picker-quantity` is the sheet's stepper; `-value-text` is
+# the number it is actually showing.
+- assertVisible:
+    id: "buyer-picker-quantity-value-text"
+    text: "3"
