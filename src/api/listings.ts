@@ -98,6 +98,21 @@ export interface Listing {
   address: string | null;
   latitude: number | null;
   longitude: number | null;
+  /**
+   * SAFETY-1 — how precise the coordinates above actually are.
+   *
+   * `"approximate"` on every PUBLIC view: the server snaps the point to a grid
+   * (~360m worst case) because publishing a private seller's exact home
+   * coordinate unauthenticated is a real safety exposure. `"exact"` only on the
+   * owner's own `my/listings` view, so the edit form round-trips the true point.
+   *
+   * A client that sees `"approximate"` must draw an AREA, never a pin — a pin
+   * makes a precise claim the data does not support. Absent on older payloads:
+   * treat a missing value as approximate, which is the safe reading.
+   */
+  locationPrecision?: "approximate" | "exact" | null;
+  /** Radius in METRES a client should draw for an approximate point. */
+  locationRadiusM?: number | null;
   thumbnailUrl: string | null;
   imageUrls?: string[];
   images?: string[];

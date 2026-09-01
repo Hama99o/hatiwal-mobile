@@ -407,3 +407,37 @@ describe("ListingMapSection — Get Directions interaction", () => {
     openURLSpy.mockRestore();
   });
 });
+
+// ── SAFETY-1: the buyer's map shows an AREA, never the seller's doorstep ─────
+//
+// The API used to ship a private seller's coordinate at six decimals (house
+// level) on the PUBLIC view, and this component drew it as an exact pin. The
+// server now snaps public coordinates to a ~500m grid; these tests pin the
+// client half, including the safe default — "no precision field" must mean
+// approximate, or a stale payload silently restores the exact pin.
+describe("ListingMapSection — location privacy", () => {
+  it("draws an area and says so when the point is approximate", () => {
+    render(
+      <ListingMapSection
+        latitude={34.5553}
+        longitude={69.2075}
+        location="Kabul"
+        radiusM={500}
+      />
+    );
+    expect(screen.getByTestId("listing-location-approximate")).toBeTruthy();
+    // The radius the map was actually GIVEN — a note beside a pin would still
+    // claim "approximate" while showing a doorstep.
+    expect(screen.getByTestId("map-canvas-stub").props["data-radius-km"]).toBe("0.5");
+  });
+
+  it("keeps an exact pin and no note when the caller passes no radius", () => {
+    // The owner's own view: their coordinate really is exact, and snapping it
+    // here would drag their pin onto a grid line.
+    render(
+      <ListingMapSection latitude={34.5553} longitude={69.2075} location="Kabul" />
+    );
+    expect(screen.queryByTestId("listing-location-approximate")).toBeNull();
+    expect(screen.getByTestId("map-canvas-stub").props["data-radius-km"]).toBe("0");
+  });
+});

@@ -156,7 +156,8 @@
     "showPhone": "Show phone number",
     "callSeller": "Call seller",
     "mapTapToInteract": "View full map",
-    "mapDone": "Close map"
+    "mapDone": "Close map",
+    "approximateLocation": "Approximate area — the exact address is shared in chat."
   },
   "ownerDetail": {
     "notFound": "Listing not found",

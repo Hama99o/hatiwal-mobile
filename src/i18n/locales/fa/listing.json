@@ -156,7 +156,8 @@
     "showPhone": "نمایش شماره تلفن",
     "callSeller": "تماس با فروشنده",
     "mapTapToInteract": "مشاهده نقشه کامل",
-    "mapDone": "بستن نقشه"
+    "mapDone": "بستن نقشه",
+    "approximateLocation": "منطقه تقریبی — نشانی دقیق در چت به اشتراک گذاشته می‌شود."
   },
   "ownerDetail": {
     "notFound": "آگهی یافت نشد",

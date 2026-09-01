@@ -22,15 +22,39 @@ interface Props {
   longitude: number;
   location?: string | null;
   address?: string | null;
+  /**
+   * SAFETY-1 — metres of uncertainty around the point, from the server's
+   * `location_radius_m`. When set, this section draws an AREA instead of a pin
+   * and says so in words.
+   *
+   * The public API used to ship the seller's coordinate at six decimals (house
+   * level) and this component rendered it as an exact pin — a private
+   * individual's home, published beside their name, photos and activity, with
+   * no auth. The server now snaps public coordinates to a grid; the pin has to
+   * stop claiming a precision the data no longer has.
+   *
+   * Undefined/0 means exact (the owner's own view) and keeps the pin.
+   */
+  radiusM?: number | null;
 }
 
 const PREVIEW_HEIGHT = 220;
 
-export function ListingMapSection({ latitude, longitude, location, address }: Props) {
+export function ListingMapSection({
+  latitude,
+  longitude,
+  location,
+  address,
+  radiusM,
+}: Props) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
   const dark = colors.isDark;
+  // MapCanvas takes kilometres; the server speaks metres. 0 keeps the exact-pin
+  // behaviour for the owner's own view, where the coordinate really is exact.
+  const approxRadiusKm = radiusM && radiusM > 0 ? radiusM / 1000 : 0;
+  const isApproximate = approxRadiusKm > 0;
   const { height: screenHeight } = useWindowDimensions();
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(
@@ -103,7 +127,7 @@ export function ListingMapSection({ latitude, longitude, location, address }: Pr
         {/* Map renders behind the Pressable overlay so gestures don't conflict */}
         <MapCanvas
           center={{ latitude, longitude }}
-          radiusKm={0}
+          radiusKm={approxRadiusKm}
           onCenterChange={() => {}}
           height={PREVIEW_HEIGHT}
           primaryColor={colors.primary}
@@ -161,6 +185,23 @@ export function ListingMapSection({ latitude, longitude, location, address }: Pr
         </View>
       )}
 
+        {/* SAFETY-1 — say that the area IS an area. Drawing a circle without
+            saying why reads as a rendering quirk; a buyer needs to know the pin
+            is not a doorstep, and a seller needs to know we are not publishing
+            theirs. Only shown when the server actually sent a radius. */}
+        {isApproximate && (
+          <Text
+            testID="listing-location-approximate"
+            style={{
+              fontSize: 12,
+              color: colors.mutedForeground,
+              textAlign: isRtl ? "right" : "left",
+            }}
+          >
+            {t("listing.detail.approximateLocation")}
+          </Text>
+        )}
+
       {/* ── Get Directions button ────────────────────────────────────── */}
       <Pressable
         onPress={handleDirections}
@@ -193,7 +234,7 @@ export function ListingMapSection({ latitude, longitude, location, address }: Pr
           {/* Full-screen interactive map */}
           <MapCanvas
             center={{ latitude, longitude }}
-            radiusKm={0}
+            radiusKm={approxRadiusKm}
             onCenterChange={() => {}}
             height={screenHeight}
             primaryColor={colors.primary}

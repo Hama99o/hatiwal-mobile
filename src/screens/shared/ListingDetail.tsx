@@ -713,6 +713,15 @@ export default function ListingDetailScreen() {
                 longitude={listing.longitude}
                 location={listing.location}
                 address={listing.address}
+                // SAFETY-1: the server states how precise its own coordinates are. A
+                // MISSING value is read as approximate (the safe default), so an older
+                // payload can never re-expose an exact pin — only an explicit "exact",
+                // which the API sends on the owner's own view alone, keeps the marker.
+                radiusM={
+                  listing.locationPrecision === "exact"
+                    ? null
+                    : (listing.locationRadiusM ?? 500)
+                }
               />
             </AnimatedSection>
           </>

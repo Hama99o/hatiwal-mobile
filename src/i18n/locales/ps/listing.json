@@ -156,7 +156,8 @@
     "showPhone": "د ټیلیفون شمیره وښایئ",
     "callSeller": "پلورونکي ته زنګ وهئ",
     "mapTapToInteract": "بشپړه نقشه وګورئ",
-    "mapDone": "نقشه بنده کړئ"
+    "mapDone": "نقشه بنده کړئ",
+    "approximateLocation": "نږدې سيمه — دقیقه پته په چټ کې شریکېږي."
   },
   "ownerDetail": {
     "notFound": "اعلان ونه موندل شو",

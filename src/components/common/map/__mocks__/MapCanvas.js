@@ -23,6 +23,11 @@ function MapCanvas(props) {
   // transform is never triggered inside a jest.mock factory context.
   return React.createElement("View", {
     testID: "map-canvas-stub",
+    // SAFETY-1: surfaced additively so a consumer suite can assert the caller
+    // asked for an AREA rather than an exact pin. Asserting the radius the map
+    // was actually GIVEN is what fails if the wiring is dropped — a note beside
+    // a pin would still read "approximate" while showing the seller's doorstep.
+    "data-radius-km": String(props.radiusKm ?? ""),
     style: { height: props.height || 210 },
   });
 }
