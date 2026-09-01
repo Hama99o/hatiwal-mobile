@@ -161,6 +161,42 @@ export default function MapCanvas({
   const colors = useColors();
   const { t, i18n } = useTranslation();
   const cameraRef = useRef<CameraRef>(null);
+  // Is this component still mounted? Needed because every camera method below is
+  // an ASYNC NATIVE call.
+  //
+  // `cameraRef.current?.` guards a null ref, but not what actually happens: the
+  // call is dispatched, the map unmounts (a sheet closes, a screen pops, a modal
+  // that owns it hides), and the native side then resolves the request against a
+  // view that is gone. React Native rejects it with
+  //
+  //   Uncaught (in promise): `reactTag` 2616 resolved to `view` null which is
+  //   null or a wrong type
+  //
+  // which surfaces as a red box — seen during a QA run right after a map screen
+  // was dismissed.
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+
+  /**
+   * Run a camera move, but only while the map is still on screen, and never let
+   * its rejection escape.
+   *
+   * Swallowing is correct here rather than lazy: the only way these reject is
+   * that the view the animation targeted no longer exists. A camera move on a
+   * screen the user has already left is not a failure anyone can act on, and
+   * surfacing it as an unhandled rejection buries real errors in noise.
+   */
+  const moveCamera = (run: () => unknown) => {
+    if (!mounted.current) return;
+    try {
+      const result = run();
+      if (result && typeof (result as Promise<unknown>).catch === "function") {
+        (result as Promise<unknown>).catch(() => {});
+      }
+    } catch {
+      /* native side already gone — see above */
+    }
+  };
   const zoomRef = useRef<number>(zoomForRadius(center, radiusKm, height));
   // Remember the last coordinate WE emitted so an external `center` change
   // (e.g. a "use my location" button) recenters the map, while our own pan/tap
@@ -187,11 +223,13 @@ export default function MapCanvas({
     const z = zoomForRadius(center, radiusKm, height);
     zoomRef.current = z;
     suppressRegion.current = true;
-    cameraRef.current?.easeTo({
-      center: [Number(center.longitude), Number(center.latitude)],
-      zoom: z,
-      duration: 350,
-    });
+    moveCamera(() =>
+      cameraRef.current?.easeTo({
+        center: [Number(center.longitude), Number(center.latitude)],
+        zoom: z,
+        duration: 350,
+      })
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.latitude, center.longitude, radiusKm, height]);
 
@@ -238,7 +276,9 @@ export default function MapCanvas({
     if (!isPicker) return;
     const [lng, lat] = e.nativeEvent.lngLat;
     suppressRegion.current = true;
-    cameraRef.current?.easeTo({ center: [lng, lat], zoom: zoomRef.current, duration: 250 });
+    moveCamera(() =>
+      cameraRef.current?.easeTo({ center: [lng, lat], zoom: zoomRef.current, duration: 250 })
+    );
     emit(lng, lat);
   };
 
@@ -258,7 +298,7 @@ export default function MapCanvas({
     const z = Math.min(19, Math.max(2, zoomRef.current + delta));
     zoomRef.current = z;
     suppressRegion.current = true;
-    cameraRef.current?.zoomTo(z, { duration: 200 });
+    moveCamera(() => cameraRef.current?.zoomTo(z, { duration: 200 }));
   };
 
   const zoomButtonStyle = {
