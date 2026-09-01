@@ -100,7 +100,26 @@ classify() {
   # A red box (LogBox) means the JS threw or logged an error. It is a real app
   # error even when an assertion happened to pass, and it covers the screen so
   # everything after it fails for the wrong reason.
-  grep -qiE "ReactNativeJS.*(Console Error|Uncaught Error)|LogBox" "$lc" 2>/dev/null && { echo app_error; return; }
+  # Widened after a red box slipped through. The owner photographed
+  #
+  #   Uncaught (in promise, id: 0) java.lang.Throwable: `reactTag` 2616 resolved
+  #   to `view` null which is null or a wrong type
+  #
+  # on the emulator mid-run, and this line did NOT catch it. What logcat actually
+  # carried was:
+  #
+  #   E ReactTagResolver: `reactTag` 2616 resolved to `view` null …
+  #   E ReactNativeJS: MapLibre Native [ERROR] [ReactTagResolver] `reactTag` 2616 …
+  #
+  # — "ReactNativeJS" present, but none of "Console Error", "Uncaught Error" or
+  # "LogBox". So the flow was filed as an ordinary assertion failure and the crash
+  # notice went unreported. Exactly one flow (create_listing_all_fields) hit it.
+  #
+  # A native-view rejection is the highest-value thing this scan can find, because
+  # a red box is an OVERLAY: Maestro asserts against the view hierarchy, so a flow
+  # can pass while the screen behind it shows a crash. It was found by a human
+  # watching the screen, which is not a scalable detector.
+  grep -qiE "ReactNativeJS.*(Console Error|Uncaught Error)|LogBox|ReactTagResolver|Uncaught \(in promise|MapLibre Native \[ERROR\]" "$lc" 2>/dev/null && { echo app_error; return; }
   grep -qiE "Could not connect to development server|Unable to load script|Metro" "$log" 2>/dev/null && { echo rig_fail; return; }
   [ "$code" = "124" ] && { echo rig_fail; return; }   # our timeout fired
   # Maestro says which step failed; an assertion/selector miss is the common case
