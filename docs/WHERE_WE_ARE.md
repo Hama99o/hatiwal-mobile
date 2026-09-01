@@ -345,3 +345,37 @@ directory**:
 This briefly looked like cells overwriting each other's evidence (only
 `en-light-*` and `fa-dark-*` names existed in the intended directory). They are
 not: every cell has its own full set, nested per run. Look there.
+
+### 7f. iOS is testable TODAY, for everything except native modules
+
+Corrects an overstatement of mine ("iOS is verified by nothing"). The QA rig runs
+on an Android emulator, so it cannot see iOS-only defects — but **Expo Go on the
+owner's iPhone verifies the whole JS layer on iOS**, and that is where this class
+of bug lives.
+
+Proven by the one that shipped: the Bazaar filter's "Set location & range" row was
+DEAD on iOS because iOS cannot present two `<Modal>`s at once (`FilterSheet` is
+one, `LocationRangePicker` is another). Android renders both, so the rig passed —
+including the 6-cell map matrix, which drives that very row. The owner found it on
+an iPhone in minutes, and confirmed the fix the same way: in Expo Go the picker
+now OPENS (the map inside it stays blank, because MapLibre is a native module Expo
+Go does not carry — a separate, expected limitation).
+
+So the practical split:
+
+| what | Expo Go on iPhone | needs an EAS build |
+|---|---|---|
+| modal presentation, navigation, layout, RTL, i18n, state | ✅ | |
+| MapLibre tiles actually rendering | | ✅ |
+| other native modules (secure store, image picker internals) | | ✅ |
+
+**Use Expo Go on an iPhone as the iOS smoke test before every release.** It is
+minutes of effort and it catches the entire presentation/navigation class that the
+Android rig is blind to by construction. Reserve the EAS build for what genuinely
+needs native code — which, for iOS, is still unproven: this will be the first
+Hatiwal build putting iOS on MapLibre rather than Apple Maps.
+
+Rule learned the hard way, now in two places (`MeetupSheet` stated it first):
+**sheets never stack as two simultaneous native `<Modal>`s.** Guard the outer one
+declaratively — `visible={mine && !childVisible}` — never with a pair of
+imperative open/close calls that can desync.
