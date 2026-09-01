@@ -271,6 +271,9 @@ export default function BrowseScreen() {
       setCoordinates(coords);
       setDistance(radiusKm);
       setLocation(label ?? `${coords.latitude.toFixed(3)}, ${coords.longitude.toFixed(3)}`);
+      // Close the picker; the filter sheet comes back on its own because
+      // `showFilters` was never cleared (see its `visible` prop).
+      setShowLocationPicker(false);
     },
     []
   );
@@ -508,7 +511,27 @@ export default function BrowseScreen() {
           activity, Deals. Filters apply live as they change, so its
           "Show results" action just closes the sheet. */}
       <FilterSheet
-        visible={showFilters}
+        // `&& !showLocationPicker` — iOS CANNOT PRESENT TWO MODALS AT ONCE.
+        //
+        // `FilterSheet` is a `<Modal>` and so is `LocationRangePicker`. On
+        // Android a Modal is just a view in the hierarchy, so opening the second
+        // over the first works — which is why this shipped looking fine and is
+        // confirmed working there. On iOS the second presentation is silently
+        // DROPPED while the first is up: the "Set location & range" row responds
+        // to nothing, which reads as a DISABLED control. Reported exactly that
+        // way from an iPhone.
+        //
+        // `MeetupSheet` already learned this and states the rule — "sheets never
+        // stack as two simultaneous native <Modal>s" — using this same
+        // declarative guard. Copied rather than reinvented: hiding the sheet via
+        // its `visible` prop cannot desync the way a pair of imperative
+        // open/close calls can, and the sheet reappears by itself when the picker
+        // closes, because `showFilters` is never cleared.
+        //
+        // The picker's other callers (ListingForm, EditProfile) are plain screens
+        // with nothing presented behind them — which is why the same picker
+        // always worked there and this looked map-specific.
+        visible={showFilters && !showLocationPicker}
         onClose={() => setShowFilters(false)}
         coordinates={coordinates}
         distance={distance}
