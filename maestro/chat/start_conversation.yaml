@@ -29,9 +29,16 @@ appId: com.hatiwal.app
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd
 # First message sheet opens
-- assertVisible: "Ask about this item..."
-- tapOn: "Ask about this item..."
-- inputText: "Hi, is this still available?"
+# "Contact Seller" opens the FirstMessageSheet (D2 start flow), NOT the thread.
+#
+# This flow asserted the THREAD composer's placeholder ("Ask about this item...")
+# straight after the tap, which is where this used to land before that sheet
+# existed — so it failed on a screen that was working correctly. The sheet is
+# titled "Message Seller", shows the listing + price, and PRE-FILLS the very
+# message this flow used to type ("Hi, is this still available?"), so the typing
+# step is gone too: typing into a pre-filled field appends to it.
+- assertVisible: "Message Seller"
+- assertVisible: "Hi, is this still available?"
 - tapOn: "Send Message"
 - waitForAnimationToEnd
 # Redirected to conversation thread
