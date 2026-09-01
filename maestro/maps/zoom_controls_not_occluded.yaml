@@ -13,7 +13,9 @@ appId: com.hatiwal.app
 # the screen and capture it; the finding lives in the screenshot.
 #
 # What to look for: both "+" and "−" fully clear of the bottom row, and the
-# attribution "ⓘ" not overlapped either.
+# attribution "ⓘ" clear of it too — that badge is a LICENCE CONDITION of the
+# OpenMapTiles data, so a covered one is a compliance problem, not a cosmetic
+# one. Both now share `controlsBottomInset`, on opposite corners.
 
 - runFlow: ../_helpers/login.yaml
 

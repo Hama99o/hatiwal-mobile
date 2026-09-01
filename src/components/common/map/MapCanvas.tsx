@@ -301,7 +301,14 @@ export default function MapCanvas({
         // contributors" on its source; this keeps MapLibre's control visible
         // so that credit actually reaches the screen. Never set this false.
         attribution
-        attributionPosition={{ bottom: 8, right: 8 }}
+        // Same clearance as the zoom controls, and for the same reason: in the
+        // fullscreen listing map the caller paints a "Get Directions" /
+        // "My Location" row across the bottom, and this badge sat underneath it.
+        // It cannot simply be moved or hidden — attribution is a LICENCE
+        // CONDITION of the OpenMapTiles-derived data, so "covered" is not an
+        // acceptable resting state for it. Opposite corner from the zoom stack,
+        // so the two never collide.
+        attributionPosition={{ bottom: controlsBottomInset, right: 8 }}
       >
         <Camera
           ref={cameraRef}
