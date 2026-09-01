@@ -92,11 +92,33 @@ export async function searchPlaces(query: string): Promise<GeocodeResult[]> {
 /** Turn coordinates into a readable place name (used after dropping a pin). */
 export async function reverseGeocode(
   latitude: number,
-  longitude: number
+  longitude: number,
+  options?: {
+    /**
+     * True when the result will be PERSISTED on a listing rather than shown
+     * once in this user's own UI.
+     *
+     * The header above asks for names in the user's chosen language, which is
+     * right for a label they read immediately (the filter row, the picker's own
+     * confirmation). It is wrong for a STORED address, because that string is
+     * then shown to every other viewer in whatever language its creator
+     * happened to be using: a real listing in production reads
+     * "لسمه ناحیه، کابل، کابل شاروالي." on the ENGLISH page, and another shows
+     * the city as "پاريس" — unreadable to two thirds of a three-locale
+     * audience, and a Dari buyer cannot tell a Pashto street name from a typo.
+     *
+     * So a stored address asks for English FIRST (the app's default language,
+     * per CLAUDE.md), with ps/fa as fallbacks so a place missing an English
+     * name still resolves instead of coming back empty. The city label shown in
+     * the UI stays localized — this only affects the free-text address.
+     */
+    canonical?: boolean;
+  }
 ): Promise<string | null> {
+  const lang = options?.canonical ? "en,ps,fa" : acceptLanguage();
   const url =
     `${NOMINATIM}/reverse?format=jsonv2&zoom=14&addressdetails=0` +
-    `&accept-language=${acceptLanguage()}&lat=${latitude}&lon=${longitude}`;
+    `&accept-language=${lang}&lat=${latitude}&lon=${longitude}`;
   try {
     const res = await fetch(url, { headers: nominatimHeaders() });
     if (!res.ok) return null;

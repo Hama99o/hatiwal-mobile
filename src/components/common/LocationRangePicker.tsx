@@ -228,7 +228,13 @@ export function LocationRangePicker({
     let label = selectedLabel;
     if (!label) {
       setConfirming(true);
-      label = await reverseGeocode(coords.latitude, coords.longitude);
+      // `canonical` in POINT mode only. Point mode is the listing form, whose
+      // label is SAVED and then read by buyers in all three locales; range mode
+      // is the browse filter, an ephemeral label this user reads once, which
+      // should stay in their own language.
+      label = await reverseGeocode(coords.latitude, coords.longitude, {
+        canonical: mode === "point",
+      });
       setConfirming(false);
     }
     onConfirm({ coords, radiusKm, label });

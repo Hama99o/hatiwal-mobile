@@ -266,6 +266,53 @@ describe("reverseGeocode", () => {
     expect(result).toBeNull();
   });
 
+  // A STORED address must not be frozen in its creator's language.
+  //
+  // Production has a listing whose address reads
+  // "لسمه ناحیه، کابل، کابل شاروالي." on the ENGLISH page, and another whose
+  // city is "پاريس" — each written in whatever language the seller's UI
+  // happened to be, then shown to every viewer. These two pin which call gets
+  // which language.
+  it("asks for ENGLISH first when the label will be stored (canonical)", async () => {
+    fetchSpy.mockImplementation(() =>
+      mockResponse(true, { display_name: "Kabul, Afghanistan" })
+    );
+
+    await reverseGeocode(34.5553, 69.2075, { canonical: true });
+
+    const url: string = fetchSpy.mock.calls[0][0];
+    expect(url).toContain("accept-language=en,ps,fa");
+  });
+
+  it("keeps asking in the USER's language for a label they only read once", async () => {
+    // Pashto UI: the browse filter's own row is ephemeral and belongs in the
+    // reader's language, so this path must NOT be forced to English. Asserted
+    // with a ps locale on purpose — under the suite's default English locale
+    // both paths produce the identical header, so an English-only test would
+    // pass whether the split worked or not.
+    const i18n = require("@/i18n").default;
+    const previous = i18n.language;
+    i18n.language = "ps";
+    try {
+      fetchSpy.mockImplementation(() =>
+        mockResponse(true, { display_name: "کابل" })
+      );
+
+      await reverseGeocode(34.5553, 69.2075);
+      const url: string = fetchSpy.mock.calls[0][0];
+      expect(url).toContain("accept-language=ps");
+      expect(url).not.toContain("accept-language=en");
+
+      // …while a STORED address stays English even for that same ps user.
+      fetchSpy.mockClear();
+      await reverseGeocode(34.5553, 69.2075, { canonical: true });
+      const stored: string = fetchSpy.mock.calls[0][0];
+      expect(stored).toContain("accept-language=en,ps,fa");
+    } finally {
+      i18n.language = previous;
+    }
+  });
+
   it("calls fetch with the correct lat/lon in the URL", async () => {
     fetchSpy.mockImplementation(() =>
       mockResponse(true, { display_name: "Kabul, Afghanistan" })
