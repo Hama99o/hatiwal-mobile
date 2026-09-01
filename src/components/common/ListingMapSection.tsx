@@ -65,6 +65,12 @@ export function ListingMapSection({
   );
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [mapModal, setMapModal] = useState(false);
+  // Measured, not hardcoded. The row holds two translated labels ("Get
+  // Directions" / "My Location"), and ps/fa wrap them onto two lines — a fixed
+  // offset that clears the row in English would still be covered in Pashto.
+  // The initial value already clears the English row, so the buttons are never
+  // occluded even on the first frame before onLayout fires.
+  const [actionRowHeight, setActionRowHeight] = useState(48);
 
   // Silently check permission and get location on mount if already granted
   useEffect(() => {
@@ -239,6 +245,9 @@ export function ListingMapSection({
             height={screenHeight}
             primaryColor={colors.primary}
             dark={dark}
+            // Clear the bottom action row: 40 is its own `bottom` offset, plus
+            // its measured height, plus breathing room.
+            controlsBottomInset={40 + actionRowHeight + 12}
             secondaryPin={userLocation ?? undefined}
             interactive
             gesturesEnabled
@@ -274,6 +283,7 @@ export function ListingMapSection({
 
           {/* Bottom action row */}
           <View
+            onLayout={(e) => setActionRowHeight(e.nativeEvent.layout.height)}
             style={{
               position: "absolute",
               bottom: 40,

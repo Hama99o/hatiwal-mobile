@@ -38,7 +38,15 @@ appId: com.hatiwal.app
       # and one of only 28 of 66 active listings that HAS coordinates —
       # ListingMapSection is gated on `!!latitude && !!longitude`, so tapping a
       # random feed card lands on a listing with no map about half the time.
-      MAP_LISTING_ID: "1058"
+      # A SEED-ASSIGNED ID, so it changes whenever the e2e data is rebuilt.
+      # It was "1058" and silently stopped existing after a reseed: the deep
+      # link then landed nowhere and the cell failed at `more-options-button`
+      # with nothing to suggest the id was the cause. Refresh it after a
+      # reseed with any active e2e listing that HAS coordinates:
+      #   bundle exec rails runner 'puts Listing.joins(:user)
+      #     .where("users.email LIKE ?", "%@hatiwal.test")
+      #     .where.not(latitude: nil).where(status: :active).first&.id'
+      MAP_LISTING_ID: "1083"
 - runFlow:
     file: _body_form.yaml
     env:

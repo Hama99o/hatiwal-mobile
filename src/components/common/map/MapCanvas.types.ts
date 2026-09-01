@@ -16,6 +16,16 @@ export interface MapCanvasProps {
   primaryColor: string;
   /** Whether the app is in dark mode (used to pick map tiles / styling). */
   dark: boolean;
+  /**
+   * Distance in px from the bottom edge for the zoom controls (default 10).
+   *
+   * Raise it when the caller paints its own chrome over the map. The
+   * fullscreen listing map draws a "Get Directions" / "My Location" row at
+   * the bottom and it covered both zoom buttons — reported from a device, and
+   * invisible to the flows, because Maestro reads visibility from the view
+   * hierarchy where an OCCLUDED element still counts as visible.
+   */
+  controlsBottomInset?: number;
   /** Optional secondary pin shown as a blue dot (e.g. user's current location). */
   secondaryPin?: MapCanvasCoords;
   /** When true, disables pin-drag/tap interaction. */

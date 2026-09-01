@@ -152,6 +152,7 @@ export default function MapCanvas({
   height,
   primaryColor,
   dark,
+  controlsBottomInset = 10,
   secondaryPin,
   readonly,
   interactive,
@@ -391,7 +392,21 @@ export default function MapCanvas({
       {/* Zoom +/- buttons (whenever gestures are active). Plain object styles —
           NEVER a function style on Pressable (NativeWind drops it). */}
       {gesturesOn && (
-        <View style={{ position: "absolute", bottom: 10, left: 10, gap: 6 }}>
+        /* `controlsBottomInset`, not a hardcoded 10: a caller that paints its own
+           chrome over the map (the fullscreen modal's "Get Directions" /
+           "My Location" row) would otherwise cover these buttons. Reported from a
+           device — and NO assertion caught it, because Maestro reads visibility
+           from the view hierarchy, where an OCCLUDED element still counts as
+           visible. Same blind spot as the dark-basemap bug: only looking finds
+           it. */
+        <View
+          style={{
+            position: "absolute",
+            bottom: controlsBottomInset,
+            left: 10,
+            gap: 6,
+          }}
+        >
           <Pressable
             onPress={(_e: GestureResponderEvent) => zoomBy(1)}
             style={zoomButtonStyle}

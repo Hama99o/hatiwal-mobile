@@ -1,0 +1,80 @@
+appId: com.hatiwal.app
+---
+# The fullscreen listing map's zoom controls must not sit UNDER its action row.
+#
+# Reported from a device: in the expanded map, "Get Directions" / "My Location"
+# covered both zoom buttons — "+" entirely, "−" half. The controls sat at
+# `bottom: 10` while the action row sits at `bottom: 40` and is full width.
+#
+# THIS FLOW'S CHECK IS VISUAL, deliberately. `assertVisible` cannot catch it:
+# Maestro reads visibility from the view hierarchy, and an element with another
+# view drawn on top of it is still "visible" there. Every map flow already
+# asserted both zoom ids and passed throughout. So the flow's job is to get to
+# the screen and capture it; the finding lives in the screenshot.
+#
+# What to look for: both "+" and "−" fully clear of the bottom row, and the
+# attribution "ⓘ" not overlapped either.
+
+- runFlow: ../_helpers/login.yaml
+
+# Navigate by TITLE, not by id and not by "the first card".
+#
+# maestro/mapqa deep-links `hatiwal://listing/<id>` for this, but ids are
+# assigned by the seed and CHANGE on every reseed — that flow's hardcoded 1058
+# stopped existing the moment the e2e data was rebuilt. Titles are stable across
+# reseeds and are never translated, so a title tap is locale-independent too.
+#
+# It must be a listing that actually HAS coordinates: one without them renders no
+# map section at all, which is why tapping the first card in the feed failed here.
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Toyota Corolla 2016 Automatic"
+    direction: DOWN
+    centerElement: true
+    timeout: 25000
+- tapOn: "Toyota Corolla 2016 Automatic"
+- extendedWaitUntil:
+    visible:
+      id: "more-options-button"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "listing-map-preview"
+    direction: DOWN
+    centerElement: true
+    timeout: 45000
+- waitForAnimationToEnd
+
+# Expand it — the fullscreen modal is the surface that draws its own action row
+# over the map, and therefore the one where the controls were buried.
+- tapOn:
+    id: "listing-map-preview"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "map-canvas"
+    timeout: 30000
+# MapLibre paints geometry first and SDF text a beat later, so one wait can
+# return in the gap and screenshot a half-drawn map.
+- waitForAnimationToEnd:
+    timeout: 20000
+
+# Both controls are in the hierarchy (this part a machine CAN check) …
+- assertVisible:
+    id: "map-zoom-in"
+- assertVisible:
+    id: "map-zoom-out"
+# … and the screenshot is where occlusion is actually judged.
+- takeScreenshot: /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/qa/reports/mapqa/zoom-controls-fullscreen
+
+# They must also still WORK from their new position.
+- tapOn:
+    id: "map-zoom-in"
+- waitForAnimationToEnd
+- tapOn:
+    id: "map-zoom-out"
+- waitForAnimationToEnd
+- takeScreenshot: /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/qa/reports/mapqa/zoom-controls-after-tap
