@@ -63,7 +63,17 @@ print(max(ns) if ns else 0)" 2>/dev/null)"
 # emulator tear down each other's on-device driver. The signature is a flow that
 # "fails" in ~0s having run nothing — which reads as an app failure and has
 # already produced whole runs of meaningless red. Serialize device access.
-DEVICE_LOCK="$REPORTS_DIR/.device.lock"
+# PER SESSION, not global. The lock exists so two Maestro instances never drive
+# ONE device — and each session has its OWN emulator (its own QA_SERIAL), so a
+# single shared file serialises devices that never contended in the first place.
+#
+# Global was not a small inefficiency: it made `fleet.sh` — whose entire purpose
+# is "run several QA sessions at once" — impossible. Session 2 sat on session 1's
+# lock until its own timeout fired (`up exit=124`, 30 minutes waiting), reporting
+# "another QA run is driving the emulator right now" about an emulator it was
+# never going to touch. Keyed by session, two devices run in parallel and the
+# original protection is unchanged for anyone sharing one.
+DEVICE_LOCK="$REPORTS_DIR/.device.${QA_SESSION:-1}.lock"
 
 hold_device_lock() {
   exec 9>"$DEVICE_LOCK"
