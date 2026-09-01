@@ -26,6 +26,26 @@ env:
 # "0 listings" and it looked exactly like a missing fixture. A seller flow cannot
 # tolerate that, so this helper checks WHO is signed in and switches accounts if
 # it is the wrong one.
+# STOP the app before launching it.
+#
+# A bare `launchApp` does not guarantee a fresh process: if the app is still
+# running, Android brings the existing activity forward and ALL JS state survives
+# — an open bottom sheet, applied browse filters, a half-finished form. Flows then
+# inherit whatever the previous flow left behind, which is exactly how a run
+# produces failures that have nothing to do with the flow being tested:
+#
+#   - listing_detail_report  → "profile-tab is visible" false, because the FILTERS
+#     sheet from an earlier flow was still covering the tab bar (screenshotted).
+#   - listing_detail_*       → assertions failing against a feed still filtered to
+#     "Electronics 5000-∞" by a flow that ran minutes earlier.
+#   - listing_detail_multi_quantity → landed on `login-email-input`, i.e. logged
+#     out mid-suite.
+#
+# `stopApp` kills the process, so the next launch is a genuine cold start. It does
+# NOT clear stored credentials the way `clearState: true` would, so the login below
+# still short-circuits when a session is already valid. Costs a few seconds per
+# flow; buys results that do not depend on execution order.
+- stopApp
 - launchApp
 
 # Both no-op when the app is already past that stage.
