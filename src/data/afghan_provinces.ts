@@ -58,3 +58,35 @@ export function getProvinceByValue(value?: string | null): Province | undefined 
   if (!value) return undefined;
   return AFGHAN_PROVINCES.find((p) => p.value === value);
 }
+
+/**
+ * The province whose capital is closest to a point.
+ *
+ * Exists so a dropped map pin can NAME its own province instead of leaving the
+ * profile self-contradictory: before this, confirming a pin in Herat while the
+ * province field still said "Kabul" saved both, and nothing reconciled them —
+ * the coarse field and the precise one disagreed with no way to tell which the
+ * seller meant.
+ *
+ * Capital-distance, not polygons: the dataset has capitals and this app only
+ * needs "which province is this roughly in", which capitals answer correctly for
+ * anywhere near a populated place. Real boundaries would be a shapefile and a
+ * point-in-polygon test for a question nobody asks that precisely.
+ *
+ * Equirectangular distance with a cos(lat) correction — Afghanistan spans ~9° of
+ * latitude, so ignoring the correction would skew east-west comparisons in the
+ * north. No need for haversine to rank 34 candidates.
+ */
+export function nearestProvince(lat: number, lng: number): Province | null {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  let best: Province | null = null;
+  let bestD = Infinity;
+  for (const p of AFGHAN_PROVINCES) {
+    const dLat = lat - p.lat;
+    const dLng = (lng - p.lng) * Math.cos(rad((lat + p.lat) / 2));
+    const d = dLat * dLat + dLng * dLng;
+    if (d < bestD) { bestD = d; best = p; }
+  }
+  return best;
+}

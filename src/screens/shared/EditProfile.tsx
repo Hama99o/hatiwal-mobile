@@ -39,7 +39,7 @@ import { authAPI } from "@/api/auth";
 import { setLanguage, SUPPORTED_LANGUAGES, type LanguageCode } from "@/i18n";
 import { useColors } from "@/hooks/useColors";
 import { ProvincePickerSheet } from "@/components/common/ProvincePickerSheet";
-import { AFGHAN_PROVINCES, getProvinceName } from "@/data/afghan_provinces";
+import { AFGHAN_PROVINCES, getProvinceName, nearestProvince } from "@/data/afghan_provinces";
 import { useLocalization } from "@/hooks/useLocalization";
 
 // ── Zod schema ────────────────────────────────────────────────────────────────
@@ -482,9 +482,22 @@ export default function EditProfileScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={t("profile.edit.fields.province")}
                       onPress={() => setProvincePickerVisible(true)}
+                      // A CHEVRON and a row layout. This control opens a sheet of
+                      // 34 provinces, but it was styled byte-for-byte like the
+                      // free-text City `Input` directly above it — same border,
+                      // radius, height and background, no icon, no affordance. A
+                      // picker that looks like a text field invites you to tap it
+                      // and start typing, and nothing happens. Reported as "the
+                      // UI/UX is not good", and it was.
+                      //
+                      // Same chevron the map row below uses, so the two
+                      // "this opens something" controls in this section read alike
+                      // and neither is mistakable for the one field you type into.
                       style={{
                         minHeight: 44,
-                        justifyContent: "center",
+                        flexDirection: isRtl ? "row-reverse" : "row",
+                        alignItems: "center",
+                        gap: 10,
                         paddingHorizontal: 12,
                         borderWidth: 1,
                         borderColor: colors.border,
@@ -494,12 +507,16 @@ export default function EditProfileScreen() {
                     >
                       <Text
                         style={{
+                          flex: 1,
                           color: shown ? colors.foreground : colors.mutedForeground,
                           textAlign: isRtl ? "right" : "left",
                         }}
                       >
                         {shown || t("profile.edit.fields.province")}
                       </Text>
+                      {isRtl
+                        ? <ChevronLeft size={18} color={colors.mutedForeground} />
+                        : <ChevronRight size={18} color={colors.mutedForeground} />}
                     </Pressable>
                     <ProvincePickerSheet
                       visible={provincePickerVisible}
@@ -738,7 +755,25 @@ export default function EditProfileScreen() {
         onConfirm={({ coords, label }) => {
           setValue("latitude", coords.latitude, { shouldDirty: true });
           setValue("longitude", coords.longitude, { shouldDirty: true });
-          if (label) setValue("city", label, { shouldDirty: true });
+
+          // City used to be OVERWRITTEN with `label`, which is a reverse-geocoded
+          // ADDRESS, not a city: confirming a pin in Kabul wrote
+          // "لسمه ناحیه، کابل، کابل شاروالي." into a field labelled "City", and it
+          // clobbered whatever the user had typed. Now: only fill it when EMPTY,
+          // and only with the first segment, which is the closest thing the
+          // geocoder gives to a locality.
+          if (label && !watch("city")) {
+            setValue("city", label.split(",")[0].trim(), { shouldDirty: true });
+          }
+
+          // …and name the province from the pin when it is not set. Before, the
+          // pin and the province could disagree with nothing to reconcile them —
+          // a point in Herat saved alongside province "Kabul". Only when empty, so
+          // a deliberate choice is never silently rewritten underneath the user.
+          if (!watch("province")) {
+            const p = nearestProvince(coords.latitude, coords.longitude);
+            if (p) setValue("province", p.value, { shouldDirty: true });
+          }
           setLocationPickerVisible(false);
         }}
       />
