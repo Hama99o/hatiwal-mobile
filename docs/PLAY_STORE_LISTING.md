@@ -159,7 +159,7 @@ All of these are **required** before you can publish, even to closed testing.
 
 ### Privacy policy  ✅ CONFIRMED LIVE
 ```
-https://hatiwal.multimagics.com/en/privacy
+https://hatiwal.com/en/privacy
 ```
 (Already deployed on the web app, returns 200. Covers account deletion + "we don't sell data".)
 
@@ -232,7 +232,7 @@ permission to simplify this declaration.
 - **App category:** Shopping
 - **Tags:** marketplace, classifieds, buy and sell, local
 - **Contact email:** a real support address you monitor
-- **Website:** `https://hatiwal.multimagics.com`
+- **Website:** `https://hatiwal.com`
 
 ---
 

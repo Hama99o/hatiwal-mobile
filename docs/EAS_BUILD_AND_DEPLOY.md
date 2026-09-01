@@ -36,7 +36,7 @@ That's it once the project is set up (it now is — see §2).
 | Project | `hatiwal-mobile` (`projectId: e75a387d-5ee9-460a-bbd5-2ba973529931`) |
 | Apple Team | `57DRRU3SP7` — MuhammadHammayoun SAFI (Individual) |
 | Bundle ID | `com.hatiwal.app` |
-| Backend API | `https://hatiwal-api.multimagics.com/api/v1` (production — used by **all** profiles) |
+| Backend API | `https://api.hatiwal.com/api/v1` (production — used by **all** profiles) |
 
 Hatiwal has **no web app and no online payment**; the mobile app is the only client.
 EAS builds the native `.ipa` on Expo's macOS servers, so you don't need a Mac.

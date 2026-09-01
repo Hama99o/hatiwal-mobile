@@ -43,7 +43,7 @@ function acceptLanguage(): string {
 function nominatimHeaders(): Record<string, string> {
   return {
     Accept: "application/json",
-    "User-Agent": "Hatiwal/1.0 (https://hatiwal.multimagics.com)",
+    "User-Agent": "Hatiwal/1.0 (https://hatiwal.com)",
     "Accept-Language": acceptLanguage(),
   };
 }
