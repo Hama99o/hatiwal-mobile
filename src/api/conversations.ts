@@ -192,6 +192,8 @@ export const conversationsAPI = {
      * seller. Omit for the default mixed inbox.
      */
     role?: "buying" | "selling";
+    /** Server-side search across the whole inbox, not just the loaded page. */
+    search?: string;
   }): Promise<ConversationsResponse> => {
     const query = new URLSearchParams();
     if (params?.pageNumber) query.append("page[number]", String(params.pageNumber));
@@ -199,6 +201,10 @@ export const conversationsAPI = {
     if (params?.listingId)  query.append("listing_id",   String(params.listingId));
     if (params?.archived !== undefined) query.append("archived", String(params.archived));
     if (params?.role)       query.append("role", params.role);
+    // Server-side inbox search (owner report, 2026-09-02: "it's not connected
+    // with backend, it's not search in db"). Matches the other party's name, the
+    // listing title, and any message body — see Conversation.matching.
+    if (params?.search)     query.append("search", params.search);
 
     const response = await http.get(`/conversations?${query}`);
     return {

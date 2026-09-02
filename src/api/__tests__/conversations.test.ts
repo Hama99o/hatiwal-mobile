@@ -92,6 +92,43 @@ describe("conversationsAPI.getConversations", () => {
     expect(capturedUrl).toContain("archived=true");
   });
 
+  // ── Server-side inbox search ────────────────────────────────────────────
+  //
+  // Owner, 2026-09-02: "I saw the message conversation search is not working,
+  // like it's not connected with backend, it's not search in db." He was right —
+  // the term never left the device. These pin that it now does.
+  it("sends the search term to the server", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/conversations", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({
+          conversations: [],
+          meta: { pagination: MOCK_PAGINATION },
+        });
+      })
+    );
+    await conversationsAPI.getConversations({ search: "kandahari rug" });
+    expect(capturedUrl).toContain("search=kandahari+rug");
+  });
+
+  it("omits the search param entirely when the term is empty", async () => {
+    let capturedUrl = "";
+    server.use(
+      http.get("http://localhost:3007/api/v1/conversations", ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({
+          conversations: [],
+          meta: { pagination: MOCK_PAGINATION },
+        });
+      })
+    );
+    await conversationsAPI.getConversations({ search: "" });
+    // An empty `search=` would make the server run a blank match instead of
+    // returning the plain inbox.
+    expect(capturedUrl).not.toContain("search=");
+  });
+
   it("passes archived=false query param when archived option is false", async () => {
     let capturedUrl = "";
     server.use(

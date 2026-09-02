@@ -6,7 +6,7 @@ import {
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from "react-native";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -109,6 +109,14 @@ export default function ConversationsScreen() {
   // and never touches the unread badge, which is always derived from the
   // unfiltered `allConversationsRef`.
   const [searchTerm, setSearchTerm] = useState("");
+  // ...and a settled copy of it for the SERVER query.
+  //
+  // Two-speed on purpose. `searchTerm` still narrows the loaded items instantly
+  // via `filterItems`, so typing feels immediate and keeps working offline;
+  // `debouncedSearchTerm` goes to the API once typing settles, which is what
+  // makes a match on page 3 findable at all. 400ms matches Browse, the screen
+  // that already did server-side search, rather than inventing a second delay.
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   // Bump to trigger UniversalList silent background refresh (no skeleton, no setItems([])).
   const [refreshKey, setRefreshKey] = useState(0);
@@ -188,13 +196,18 @@ export default function ConversationsScreen() {
   // `roleParam` (TASK-R517) is forwarded to the server so it stays correct
   // across infinite-scroll pages, and composes with both tabs (inbox/archived).
   const makeFetcher = useCallback(
-    (tab: TabMode, filterMode: FilterMode, roleParam: RoleMode) =>
+    (tab: TabMode, filterMode: FilterMode, roleParam: RoleMode, searchParam: string) =>
       async (query: ListQuery): Promise<ListFetchResult<Conversation>> => {
         const response = await conversationsAPI.getConversations({
           archived:   tab === "archived",
           pageNumber: query.page,
           pageSize:   query.perPage,
           role:       roleParam ?? undefined,
+          // Server-side search over the WHOLE inbox. Owner, 2026-09-02: "I saw
+          // the message conversation search is not working, it's not connected
+          // with backend, it's not search in db" — he was right; before this the
+          // term never left the device.
+          search:     searchParam || undefined,
         });
         const page = response.items;
 
@@ -358,6 +371,14 @@ export default function ConversationsScreen() {
   // state below. `filterConversations` trims internally too, so this always
   // matches exactly what `filterItems` filtered on.
   const trimmedSearchTerm = searchTerm.trim();
+
+  // ── Search debounce ──────────────────────────────────────────────────────
+  // Same 400ms as Browse. The trimmed term is what goes over the wire, so
+  // trailing spaces never produce a different query key or a wasted round trip.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchTerm(trimmedSearchTerm), 400);
+    return () => clearTimeout(timer);
+  }, [trimmedSearchTerm]);
   const hasSearchTerm = trimmedSearchTerm.length > 0;
 
   // config.id changes only when tab, filter, role, or resetKey changes —
@@ -369,9 +390,11 @@ export default function ConversationsScreen() {
   // refreshKey is passed separately so UniversalList silently re-fetches
   // without skeleton flash.
   const listConfig: UniversalListConfig<Conversation> = {
-    id:          `conversations-${tabMode}-${filter}-${role ?? "both"}-${resetKey}`,
+    // The DEBOUNCED term is part of the id, so a settled search re-fetches from
+    // the server; the raw term is not, so each keystroke does not reset the list.
+    id:          `conversations-${tabMode}-${filter}-${role ?? "both"}-${resetKey}-${debouncedSearchTerm}`,
     refreshKey,
-    fetcher:     makeFetcher(tabMode, filter, role),
+    fetcher:     makeFetcher(tabMode, filter, role, debouncedSearchTerm),
     perPage:     CONVERSATIONS_PAGE_SIZE,
     filterItems: (items) => filterConversations(items, searchTerm, t, formatCurrency),
     onPageInfoChange: setPageInfo,
