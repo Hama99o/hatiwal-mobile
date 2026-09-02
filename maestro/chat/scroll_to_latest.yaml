@@ -1,0 +1,107 @@
+appId: com.hatiwal.app
+---
+# THE NEWEST MESSAGE MUST BE VISIBLE WITHOUT A MANUAL DRAG — both after sending
+# one and after arriving on the thread fresh.
+#
+# Owner report, 2026-09-02, in two parts:
+#   "when we send message it did not scroll till it should… it scroll smal…
+#    I need to scrom manul to see it"
+#   "and where there are messages and you come to message page you need to scrol
+#    to see last message. I think the send message input and default message text
+#    proposal hide the latest message. That scroll might work but the TARGET
+#    might be wrong."
+#
+# Both were real and they had DIFFERENT causes (see Conversation.tsx):
+#   1. onScroll fired mid-animation (scrollEventThrottle 200ms) and wrote the
+#      near-bottom flag back to false, so no later layout pass was allowed to
+#      finish the scroll.
+#   2. paddingBottom is `bottomBarH + barLift`, and bottomBarH starts at 0 until
+#      the bar's onLayout — so an early scroll aimed at a content height that
+#      reserved no room for the composer or the QuickReplies chips, parking the
+#      newest bubble underneath them. The target was wrong, exactly as reported.
+#
+# This flow plants a UNIQUELY identifiable message so the assertion cannot pass
+# on some other thread's content, then checks it twice: right after sending, and
+# again after a cold start (the "come to the message page" case).
+#
+# NOTE ON WHAT THIS CAN AND CANNOT PROVE: Maestro's visibility is computed from
+# an element's own bounds, so it does NOT detect occlusion by the composer bar
+# sitting on top of it. A pass here proves the message is on screen; it does not
+# by itself prove it is UNCOVERED. qa/check_message_not_occluded.py compares the
+# real bounds afterwards, and the screenshots below are for eyes.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversations-search-bar"
+    timeout: 30000
+
+# A LIVE thread, found by name. Not `conversation-row-\d+` index 0: the inbox is
+# ordered by last_message_at and every sibling flow that sends a message
+# reorders it, which is how three chat flows ended up acting on whichever thread
+# happened to be newest (see mark_read_end_to_end's own note).
+- tapOn:
+    id: "conversations-search-bar"
+- inputText: "Phone Case"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
+- tapOn:
+    id: "conversation-row-\\d+"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Type a message..."
+    timeout: 30000
+
+# ── 1. after SENDING ───────────────────────────────────────────────────────
+- tapOn: "Type a message..."
+- inputText: "Scroll target check"
+- tapOn: "Send"
+- waitForAnimationToEnd
+# A second settle: the bubble measures, the bar re-measures, the keyboard moves.
+# The retry chain in scrollThreadToEnd runs to 460ms, so this is the window in
+# which the old code gave up half-way.
+- waitForAnimationToEnd
+- assertVisible: "Scroll target check"
+- takeScreenshot: scroll_to_latest-after-send
+
+# ── 2. after ARRIVING on the thread fresh ──────────────────────────────────
+# Cold start, so the thread mounts from scratch with bottomBarH back at 0 —
+# precisely the window where the target used to be computed too short.
+- launchApp:
+    stopApp: true
+- runFlow: ../_helpers/open_bundle.yaml
+- extendedWaitUntil:
+    visible:
+      id: "chat-tab"
+    timeout: 120000
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversations-search-bar"
+    timeout: 30000
+- tapOn:
+    id: "conversations-search-bar"
+- inputText: "Phone Case"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
+- tapOn:
+    id: "conversation-row-\\d+"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Type a message..."
+    timeout: 30000
+- waitForAnimationToEnd
+# NO scrolling between opening the thread and this assertion — that is the whole
+# point. If it needs a drag, this fails.
+- assertVisible: "Scroll target check"
+- takeScreenshot: scroll_to_latest-on-open

@@ -45,6 +45,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { BackButton } from "@/components/common/BackButton";
 import { ListingHeader } from "./conversation/ListingHeader";
+import {
+  isNearBottom,
+  shouldTrackScrollPosition,
+  scrollLockDeadline,
+} from "./conversation/threadScroll";
 import { ListingUnavailableNotice } from "./conversation/ListingUnavailableNotice";
 import { AgreedDealBanner } from "./conversation/AgreedDealBanner";
 import { MessageBubble } from "./conversation/MessageBubble";
@@ -355,6 +360,77 @@ export function ConversationScreen() {
   const inputRef = useRef<TextInput>(null);
   const isNearBottomRef = useRef(true);
   const isLoadingMoreRef = useRef(false);
+  // A programmatic scroll-to-bottom is IN FLIGHT until this timestamp.
+  //
+  // Without it, sending a message scrolled only PART of the way and the user had
+  // to finish by hand (owner report, 2026-09-02). The cause is a race between
+  // the two halves of the old design — `isNearBottomRef` as the sole gate, and
+  // ONE animated `scrollToEnd` from `onContentSizeChange`:
+  //
+  //   1. a send sets isNearBottomRef = true and appends the bubble
+  //   2. onContentSizeChange fires and starts an ANIMATED scrollToEnd
+  //   3. mid-animation, onScroll fires (scrollEventThrottle 200ms) and recomputes
+  //      isNearBottomRef from the CURRENT offset — still far from the bottom, so
+  //      the "< 120" test writes back FALSE
+  //   4. the thread's own late layout passes — the bubble's final height, an
+  //      offer/meetup card measuring, the bottom bar re-measuring as QuickReplies
+  //      appear, the keyboard opening — each change the content size again, but
+  //      the gate now says false, so nobody finishes the scroll
+  //
+  // The list therefore stopped wherever step 2's animation happened to reach.
+  // A tall last bubble (a meetup proposal or an offer card) is the worst case,
+  // which is why the proposal messages were the ones seen half-hidden.
+  const scrollLockUntilRef = useRef(0);
+
+  // Drive the thread to its TRUE bottom and hold it there across the late layout
+  // passes that follow an append.
+  //
+  // Three attempts, not one, and the last is UNANIMATED: an animation in flight
+  // can be clamped or superseded by a layout change (the keyboard opening, the
+  // bottom bar re-measuring, a tall bubble settling), while setting the offset
+  // directly cannot. The gate is held open for the whole window so onScroll
+  // cannot cancel it half-way, which is the bug this replaces.
+  const scrollThreadToEnd = useCallback((animated = true) => {
+    isNearBottomRef.current = true;
+    scrollLockUntilRef.current = scrollLockDeadline(Date.now());
+    const jump = (a: boolean) => flatListRef.current?.scrollToEnd({ animated: a });
+    jump(animated);
+    setTimeout(() => jump(animated), 140);
+    setTimeout(() => {
+      jump(false);
+      scrollLockUntilRef.current = 0;
+    }, 460);
+  }, []);
+
+  // RE-LAND the bottom whenever the bar's measured height changes.
+  //
+  // This is the other half of the owner's report ("when there are messages and
+  // you come to the message page you need to scroll to see the last message… the
+  // send message input and default message text proposal hide the latest
+  // message… the scroll might work but the TARGET might be wrong"). That reading
+  // is exactly right, and it is a different bug from the mid-flight cancel:
+  //
+  //   `bottomBarH` starts at 0 and is only learned from the bar's onLayout, so
+  //   the list's paddingBottom is 0 for the first frames. A scrollToEnd during
+  //   that window lands on a content height that does not yet reserve room for
+  //   the composer or the QuickReplies chips, so the newest bubble comes to rest
+  //   UNDERNEATH them — the scroll ran, the target was simply wrong.
+  //
+  //   Worse, once the bar reports ~120px the list is suddenly ~120px from its
+  //   new bottom, and the near-bottom test is `< 120` — so the flag flips to
+  //   false at almost exactly the bar's height and onContentSizeChange then
+  //   refuses to fix it. The two defects lined up to make the last message
+  //   reliably unreachable without a manual drag.
+  //
+  // Keying the effect on the measured height means the scroll happens when the
+  // real target is known, however late that is, and again whenever the bar grows
+  // or shrinks (QuickReplies appearing, the composer wrapping to a second line,
+  // the keyboard opening and moving barLift).
+  useEffect(() => {
+    if (bottomBarH <= 0) return;
+    if (!isNearBottomRef.current) return;
+    scrollThreadToEnd(false);
+  }, [bottomBarH, barLift, scrollThreadToEnd]);
   // TASK-D428: the "unread messages" divider boundary — a specific message
   // id, resolved ONCE from the first load's (conversation, messages) pair —
   // BEFORE markRead fires and zeroes conversation.unreadCount server-side —
@@ -442,12 +518,11 @@ export function ConversationScreen() {
       setMessages(ascendingMessages);
       setPage(1);
       setTotalPages(pagination.totalPages);
-      isNearBottomRef.current = true;
-      // Snap to bottom on initial load with delay to ensure layout is ready
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: false });
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100);
-      }, 100);
+      // Snap to bottom on open. Same retry chain every append path now uses —
+      // this hand-rolled pair of setTimeouts was the ONLY place that had one,
+      // which is why sends, having none, stopped short. Unanimated: animating
+      // here would visibly race through the whole thread on open.
+      scrollThreadToEnd(false);
       return { conversation: conv, messages: ascendingMessages };
     } catch {
       toast.error(t("chat.thread.loadFailed"));
@@ -533,9 +608,17 @@ export function ConversationScreen() {
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { contentSize, layoutMeasurement, contentOffset } = e.nativeEvent;
-      // Track whether user is near the bottom (latest messages)
-      isNearBottomRef.current =
-        contentSize.height - layoutMeasurement.height - contentOffset.y < 120;
+      // Track whether user is near the bottom (latest messages) — EXCEPT while
+      // a programmatic scroll-to-bottom is in flight. Those intermediate
+      // offsets are not where the user chose to be, and treating them as such
+      // is what cancelled the scroll half-way (see scrollLockUntilRef).
+      if (shouldTrackScrollPosition(Date.now(), scrollLockUntilRef.current)) {
+        isNearBottomRef.current = isNearBottom({
+          contentHeight: contentSize.height,
+          viewportHeight: layoutMeasurement.height,
+          offsetY: contentOffset.y,
+        });
+      }
       // Trigger load of older messages when scrolled near the top
       if (
         contentOffset.y < 80 &&
@@ -654,7 +737,7 @@ export function ConversationScreen() {
     };
     // Mark "at bottom" so onContentSizeChange scrolls to the true bottom once
     // the new bubble has rendered and the list re-measures.
-    isNearBottomRef.current = true;
+    scrollThreadToEnd();
     setMessages((prev) => [...prev, optimistic]);
 
     try {
@@ -728,7 +811,7 @@ export function ConversationScreen() {
         // when the real row arrives.
         offerQuantity: parsedQuantity.value,
       };
-      isNearBottomRef.current = true;
+      scrollThreadToEnd();
       setMessages((prev) => [...prev, optimistic]);
 
       try {
@@ -768,7 +851,7 @@ export function ConversationScreen() {
 
     try {
       const sent = await conversationsAPI.sendMessage(convId, body, "meetup_proposal");
-      isNearBottomRef.current = true;
+      scrollThreadToEnd();
       setMessages((prev) => [...prev, sent]);
       setMeetupSheetVisible(false);
       toast.success(t("chat.thread.meetupSent"));
@@ -792,7 +875,7 @@ export function ConversationScreen() {
           accepted ? "meetup_accepted" : "meetup_declined",
           proposal.id
         );
-        isNearBottomRef.current = true;
+        scrollThreadToEnd();
         setMessages((prev) => [...prev, sent]);
         toast.success(accepted ? t("chat.meetup.acceptedToast") : t("chat.meetup.declinedToast"));
       } catch {
@@ -819,7 +902,7 @@ export function ConversationScreen() {
           accepted ? "offer_accepted" : "offer_declined",
           offer.id
         );
-        isNearBottomRef.current = true;
+        scrollThreadToEnd();
         setMessages((prev) => [...prev, sent]);
         toast.success(accepted ? t("chat.offer.acceptedToast") : t("chat.offer.declinedToast"));
 
@@ -1048,7 +1131,7 @@ export function ConversationScreen() {
           counterOfferTarget.id,
           parsedQuantity.value ?? undefined
         );
-        isNearBottomRef.current = true;
+        scrollThreadToEnd();
         setMessages((prev) => [...prev, sent]);
         setCounterSheetVisible(false);
         setCounterOfferTarget(null);
@@ -1103,7 +1186,7 @@ export function ConversationScreen() {
         sender: { id: currentUser?.id ?? 0, name: currentUser?.fullName ?? "" },
         attachmentUrl: file.uri, // local URI so the bubble is tappable immediately
       };
-      isNearBottomRef.current = true;
+      scrollThreadToEnd();
       setMessages((prev) => [...prev, optimistic]);
 
       try {
@@ -1176,7 +1259,7 @@ export function ConversationScreen() {
         sender: { id: currentUser?.id ?? 0, name: currentUser?.fullName ?? "" },
         attachmentUrl: uri, // local URI for immediate preview
       };
-      isNearBottomRef.current = true;
+      scrollThreadToEnd();
       setMessages((prev) => [...prev, optimistic]);
 
       try {
@@ -1784,8 +1867,12 @@ export function ConversationScreen() {
           // rendered), but only when the user was already at the bottom and search
           // is not active (search may show older messages we don't want to jump past).
           onContentSizeChange={() => {
+            // Re-arm through the helper. A single animated scrollToEnd here was
+            // the half-scroll bug: every late measure that changes content size
+            // now gets the full retry chain, ending on an exact, unanimated
+            // landing at the true bottom.
             if (isNearBottomRef.current && !searchVisible) {
-              flatListRef.current?.scrollToEnd({ animated: true });
+              scrollThreadToEnd();
             }
           }}
           ListHeaderComponent={
