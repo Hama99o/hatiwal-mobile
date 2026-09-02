@@ -42,9 +42,16 @@ appId: com.hatiwal.app
 # ordered by last_message_at and every sibling flow that sends a message
 # reorders it, which is how three chat flows ended up acting on whichever thread
 # happened to be newest (see mark_read_end_to_end's own note).
+# ITS OWN thread, not the shared "Phone Case" one.
+#
+# This flow deliberately sends 6-8 filler messages, and doing that in a shared
+# thread is destructive: the outbound filler pushed Phone Case's latest INBOUND
+# message far into the history, and chat/mark_read_end_to_end then failed because
+# the mark-unread helper nulls read_at on that message — leaving the "Unread
+# messages" divider dozens of screens above the fold.
 - tapOn:
     id: "conversations-search-bar"
-- inputText: "Phone Case"
+- inputText: "QA Disposable scroll_to_latest"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible:
@@ -105,7 +112,7 @@ appId: com.hatiwal.app
     timeout: 30000
 - tapOn:
     id: "conversations-search-bar"
-- inputText: "Phone Case"
+- inputText: "QA Disposable scroll_to_latest"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible:

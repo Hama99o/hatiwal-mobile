@@ -22,9 +22,16 @@ appId: com.hatiwal.app
     timeout: 30000
 # A thread with real history, found by name — never `conversation-row-\d+` index
 # 0, which is whatever sibling flow sent a message most recently.
+# ITS OWN thread, not the shared "Phone Case" one.
+#
+# This flow deliberately sends 6-8 filler messages, and doing that in a shared
+# thread is destructive: the outbound filler pushed Phone Case's latest INBOUND
+# message far into the history, and chat/mark_read_end_to_end then failed because
+# the mark-unread helper nulls read_at on that message — leaving the "Unread
+# messages" divider dozens of screens above the fold.
 - tapOn:
     id: "conversations-search-bar"
-- inputText: "Phone Case"
+- inputText: "QA Disposable scroll_to_latest"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible:
