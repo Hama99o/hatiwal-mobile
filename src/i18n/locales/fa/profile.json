@@ -134,7 +134,12 @@
       "city": "شهر",
       "province": "استان",
       "setLocation": "موقعیت خود را روی نقشه تعیین کنید",
-      "locationSet": "موقعیت تعیین شد"
+      "locationSet": "موقعیت تعیین شد",
+      "whatsapp": "شماره واتس‌اپ",
+      "whatsappSameAsPhone": "همان شماره تلفن من",
+      "showPhonePublicly": "به خریداران اجازه بده تلفن و واتس‌اپ من را ببینند",
+      "showAddressPublicly": "شهر و ولایت من در پروفایلم نشان داده شود",
+      "visibilityNote": "این اطلاعات تماس خودتان است. موقعیت یک آگهی جداگانه، روی نقشه آن تعیین می‌شود."
     },
     "validation": {
       "firstnameRequired": "نام الزامی است",

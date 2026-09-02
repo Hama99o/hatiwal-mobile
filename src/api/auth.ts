@@ -16,6 +16,12 @@ export interface User {
   longitude: number | null;
   avatarUrl: string | null;
   preferredLanguage: "en" | "ps" | "fa";
+  /** A SEPARATE WhatsApp number — often a different SIM from `phone`. */
+  whatsappNumber?: string | null;
+  /** Gates BOTH phone and whatsapp in a listing's seller hash. Server default: true. */
+  showPhonePublicly?: boolean;
+  /** Gates the user's OWN city/province — never a listing's location. Server default: true. */
+  showAddressPublicly?: boolean;
   preferredTheme: "light" | "dark" | "system";
   sellerMode: boolean;
   status: string;
@@ -79,6 +85,9 @@ export interface RegisterParams {
    * permitted `preferred_language` on sign-up; the client simply never sent it.
    */
   preferredLanguage?: "en" | "ps" | "fa";
+  whatsappNumber?: string | null;
+  showPhonePublicly?: boolean;
+  showAddressPublicly?: boolean;
 }
 
 export const authAPI = {

@@ -134,7 +134,12 @@
       "city": "City",
       "province": "Province",
       "setLocation": "Set your location on map",
-      "locationSet": "Location set"
+      "locationSet": "Location set",
+      "whatsapp": "WhatsApp number",
+      "whatsappSameAsPhone": "Same as my phone number",
+      "showPhonePublicly": "Let buyers see my phone and WhatsApp",
+      "showAddressPublicly": "Show my city and province on my profile",
+      "visibilityNote": "This is your own contact info. A listing's location is set separately, on its map."
     },
     "validation": {
       "firstnameRequired": "First name is required",

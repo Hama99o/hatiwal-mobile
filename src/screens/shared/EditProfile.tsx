@@ -47,6 +47,11 @@ const schema = z.object({
   firstname: z.string().min(1, "firstnameRequired"),
   lastname: z.string().min(1, "lastnameRequired"),
   phone: z.string().max(20, "phoneTooLong").optional().or(z.literal("")),
+  // Often a DIFFERENT number from the account phone (a second SIM), so it is its
+  // own field rather than a flag on `phone`. 30 to match the column.
+  whatsappNumber: z.string().max(30, "whatsappTooLong").optional().or(z.literal("")),
+  showPhonePublicly: z.boolean(),
+  showAddressPublicly: z.boolean(),
   bio: z.string().max(500, "bioTooLong").optional().or(z.literal("")),
   city: z.string().optional().or(z.literal("")),
   province: z.string().optional().or(z.literal("")),
@@ -179,6 +184,9 @@ export default function EditProfileScreen() {
       firstname: "",
       lastname: "",
       phone: "",
+      whatsappNumber: "",
+      showPhonePublicly: true,
+      showAddressPublicly: true,
       bio: "",
       city: "",
       province: "",
@@ -212,6 +220,11 @@ export default function EditProfileScreen() {
       firstname: user.firstname ?? "",
       lastname: user.lastname ?? "",
       phone: user.phone ?? "",
+      whatsappNumber: user.whatsappNumber ?? "",
+      // Default TRUE when the server has not said otherwise, matching the
+      // column default — an undefined must never read as "hidden".
+      showPhonePublicly: user.showPhonePublicly ?? true,
+      showAddressPublicly: user.showAddressPublicly ?? true,
       bio: user.bio ?? "",
       city: user.city ?? "",
       province: user.province ?? "",
@@ -249,6 +262,9 @@ export default function EditProfileScreen() {
         firstname: values.firstname,
         lastname: values.lastname,
         phone: values.phone || undefined,
+        whatsappNumber: values.whatsappNumber || undefined,
+        showPhonePublicly: values.showPhonePublicly,
+        showAddressPublicly: values.showAddressPublicly,
         bio: values.bio || undefined,
         city: values.city || undefined,
         province: values.province || undefined,
@@ -401,6 +417,143 @@ export default function EditProfileScreen() {
             />
             <ErrorText message={errorMsg(errors.phone?.message)} />
           </FieldRow>
+
+          {/* WhatsApp — a SEPARATE number, because it often is one.
+            *
+            * Owner request, 2026-09-02: "add input… to add whatsapp number also…
+            * and give posibilites to add same number as whatapp option also".
+            * Hence both: a free field for a second SIM, and a one-tap copy for
+            * the common case where it is the same handset.
+            */}
+          <FieldRow>
+            <Label style={{ marginBottom: 6 }}>
+              {t("profile.edit.fields.whatsapp")}
+            </Label>
+            <Controller
+              control={control}
+              name="whatsappNumber"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <>
+                  <Input
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    testID="edit-profile-whatsapp-input"
+                    placeholder={t("profile.edit.fields.whatsapp")}
+                    keyboardType="phone-pad"
+                    error={!!errors.whatsappNumber}
+                    style={{ textAlign: isRtl ? "right" : "left" }}
+                    returnKeyType="next"
+                  />
+                  {/* Only offered when there IS a phone to copy and it has not
+                    * been copied already — a button that does nothing visible is
+                    * the complaint that got the province picker its chevron. */}
+                  {watch("phone") && value !== watch("phone") ? (
+                    <Pressable
+                      onPress={() =>
+                        setValue("whatsappNumber", watch("phone") ?? "", { shouldDirty: true })
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={t("profile.edit.fields.whatsappSameAsPhone")}
+                      testID="edit-profile-whatsapp-same-as-phone"
+                      style={{
+                        flexDirection: isRtl ? "row-reverse" : "row",
+                        alignItems: "center",
+                        gap: 6,
+                        minHeight: 44,
+                        marginTop: 6,
+                      }}
+                    >
+                      <Check size={14} color={colors.primary} />
+                      <Text style={{ fontSize: 13, color: colors.primary }}>
+                        {t("profile.edit.fields.whatsappSameAsPhone")}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </>
+              )}
+            />
+            <ErrorText message={errorMsg(errors.whatsappNumber?.message)} />
+          </FieldRow>
+
+          {/* Who can see this. Owner request, 2026-09-02: "show option to show
+            * number and address to people or not — I mean user address not list
+            * address its important". The note spells that distinction out, since
+            * it is the thing a seller would otherwise get wrong.
+            */}
+          <Separator />
+          <Controller
+            control={control}
+            name="showPhonePublicly"
+            render={({ field: { value, onChange } }) => (
+              <Pressable
+                onPress={() => onChange(!value)}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: value }}
+                accessibilityLabel={t("profile.edit.fields.showPhonePublicly")}
+                testID="edit-profile-show-phone-row"
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 12,
+                  minHeight: 48,
+                  paddingVertical: 8,
+                }}
+              >
+                <Text style={{ flex: 1, fontSize: 14, color: colors.foreground }}>
+                  {t("profile.edit.fields.showPhonePublicly")}
+                </Text>
+                <RNSwitch
+                  value={value}
+                  onValueChange={onChange}
+                  testID="edit-profile-show-phone-switch"
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.primaryForeground}
+                />
+              </Pressable>
+            )}
+          />
+          <Controller
+            control={control}
+            name="showAddressPublicly"
+            render={({ field: { value, onChange } }) => (
+              <Pressable
+                onPress={() => onChange(!value)}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: value }}
+                accessibilityLabel={t("profile.edit.fields.showAddressPublicly")}
+                testID="edit-profile-show-address-row"
+                style={{
+                  flexDirection: isRtl ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 12,
+                  minHeight: 48,
+                  paddingVertical: 8,
+                }}
+              >
+                <Text style={{ flex: 1, fontSize: 14, color: colors.foreground }}>
+                  {t("profile.edit.fields.showAddressPublicly")}
+                </Text>
+                <RNSwitch
+                  value={value}
+                  onValueChange={onChange}
+                  testID="edit-profile-show-address-switch"
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.primaryForeground}
+                />
+              </Pressable>
+            )}
+          />
+          <Text
+            style={{
+              fontSize: 12,
+              color: colors.mutedForeground,
+              textAlign: isRtl ? "right" : "left",
+              marginTop: 2,
+            }}
+          >
+            {t("profile.edit.fields.visibilityNote")}
+          </Text>
 
           <FieldRow>
             <Label style={{ marginBottom: 6 }}>
