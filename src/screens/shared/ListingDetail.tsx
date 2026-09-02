@@ -830,6 +830,7 @@ export default function ListingDetailScreen() {
           {listing.seller.phone ? (
             <SellerPhoneReveal
               phone={listing.seller.phone}
+              whatsappNumber={listing.seller.whatsappNumber}
               isOwnListing={isOwnListing}
               // SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.2.1, flagged for
               // feature-builder to resolve): reserved is now contactable via

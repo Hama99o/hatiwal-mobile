@@ -186,6 +186,16 @@ export interface Listing {
     name: string;
     city: string | null;
     phone?: string | null;
+    /**
+     * The seller's WhatsApp number, when they gave one AND left
+     * `show_phone_publicly` on — it rides the SAME switch as `phone`, because
+     * both reach the same person (ListingSerializer :detailed). Absent on the
+     * list views; only the detail view carries contact details.
+     *
+     * Distinct from `phone` on purpose: EditProfile offers a "same as my phone"
+     * shortcut precisely because the two are often, but not always, equal.
+     */
+    whatsappNumber?: string | null;
     verified?: boolean;
     avatarUrl?: string | null;
     /** Percentage of conversations replied within 24h. null = threshold not met. */

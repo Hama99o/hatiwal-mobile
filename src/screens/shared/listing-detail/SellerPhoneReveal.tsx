@@ -31,6 +31,18 @@ import { whatsappUrl } from "@/utils/whatsapp";
 
 interface SellerPhoneRevealProps {
   phone: string;
+  /**
+   * The seller's separate WhatsApp number, when they set one. The WhatsApp row
+   * prefers it and falls back to `phone`.
+   *
+   * This was the hole: the field, its "same as my phone" shortcut and its
+   * visibility switch all shipped, and the API has been sending
+   * `seller.whatsapp_number` on the detail view the whole time — but nothing
+   * READ it, so every WhatsApp link was built from `phone`. A seller whose
+   * WhatsApp is on a different number was silently sent buyers to the wrong
+   * one, which is the entire reason the field is separate from `phone`.
+   */
+  whatsappNumber?: string | null;
   isOwnListing: boolean;
   isContactable: boolean;
   authReturnTo: string;
@@ -38,6 +50,7 @@ interface SellerPhoneRevealProps {
 
 export function SellerPhoneReveal({
   phone,
+  whatsappNumber,
   isOwnListing,
   isContactable,
   authReturnTo,
@@ -69,7 +82,9 @@ export function SellerPhoneReveal({
   // to spot. See src/utils/whatsapp.ts for the number normalisation, which is
   // the part that actually breaks: wa.me takes digits only, and Afghan numbers
   // are written +93…, 0093…, 070… and 70… interchangeably.
-  const waUrl = whatsappUrl(phone);
+  // Prefer the dedicated number; fall back to the phone so a seller who never
+  // set one keeps the button they already had.
+  const waUrl = whatsappUrl(whatsappNumber?.trim() || phone);
   const handleWhatsApp = () => {
     if (waUrl) Linking.openURL(waUrl);
   };
@@ -80,6 +95,10 @@ export function SellerPhoneReveal({
         variant="outline"
         size="sm"
         onPress={handleReveal}
+        // A handle for the E2E flow. Without it a flow has to match the label,
+        // which is localized — so the same step would need three different
+        // strings and would break the moment the copy changed.
+        testID="seller-phone-reveal-button"
         style={{
           flexDirection: isRtl ? "row-reverse" : "row",
           alignItems: "center",

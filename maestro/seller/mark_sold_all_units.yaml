@@ -1,0 +1,138 @@
+appId: com.hatiwal.app
+---
+# Selling a WHOLE 200-unit batch in one tap — the quantity stepper's "All".
+#
+# Owner request, 2026-09-02, verbatim-ish: "if I have have a two hundred item and
+# all two hundred item has been sold? … we should have a button all also, so
+# that's how we can just, uh, help user to not top hundred time to have with this
+# number".
+#
+# WHY THIS FLOW EXISTS: the button shipped with 39 unit tests and no E2E. Nothing
+# in `maestro/` tapped a `-all` control — the only matches for `-all"` were
+# `my-listings-status-all`, an unrelated status tab. So the one thing the unit
+# tests cannot show was unproven: that a seller can actually reach this button on
+# a real listing and that the sale it commits is the whole batch.
+#
+# 200 UNITS ON PURPOSE. It is the number in the request, and it is the case the
+# button exists for: reaching it with "+" is 199 taps. A 3-unit fixture would
+# satisfy every assertion below while testing nothing about why this was asked
+# for.
+#
+# Its own disposable fixture ("QA Disposable quantity_all", reset to 200 units /
+# 0 sold / active on every seed), never the Phone Case or the offplatform batch:
+# this flow SELLS OUT its listing, and two flows drawing on one batch means
+# whichever runs second asserts against a stock it did not set.
+- runFlow:
+    file: ../_helpers/login_seller.yaml
+
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
+# browse-tab, NOT my-listings-tab: in seller mode the first tab IS the seller's
+# listings ("My Shop") and keeps the browse-tab testID, while the my-listings
+# route is declared `href: null` and never renders a button.
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 20000
+
+# By title. index 0 of My Listings is whatever was touched most recently, which
+# other flows change.
+- scrollUntilVisible:
+    element:
+      text: "QA Disposable quantity_all"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- tapOn: "QA Disposable quantity_all"
+- waitForAnimationToEnd
+
+# ── Prove the starting stock before selling anything ───────────────────────
+# If this is not 200 the seed did not reset, and every assertion after it would
+# be measuring an unknown batch. The owner badge reads the bare count before the
+# first sale and only switches to the "N of M left" progress phrasing afterwards
+# (MyListingDetail.tsx), which is what makes the post-sale assertion meaningful.
+- extendedWaitUntil:
+    visible:
+      id: "stock-badge-owner"
+    timeout: 20000
+- assertVisible: ".*200 in stock.*"
+
+# ── One tap to sell, no reserve first ──────────────────────────────────────
+# Mark sold is the PRIMARY action on a live listing (SF-M1), not an overflow item.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- tapOn:
+    id: "lifecycle-primary-action"
+- waitForAnimationToEnd
+- assertVisible: "Who bought this item?"
+
+# The off-platform path — cash, in person, to someone without the app, which is
+# the ordinary Afghan sale. The count is only askable once a buyer path is chosen.
+- tapOn:
+    id: "buyer-row-skip"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "buyer-picker-quantity"
+    timeout: 15000
+
+# ── The default is ONE, deliberately ──────────────────────────────────────
+# Asserted, not assumed: a seller once lost 49 of 50 units because a missing
+# quantity was read as the whole remainder, so "1 unless you say otherwise" is a
+# decision this flow guards rather than an implementation detail.
+#
+# `{id: …-value-text}`, never `…-value`: the value node is a wrapper whose text
+# lives on an unnamed child TextView, so `{id: …-value, text: "N"}` can never
+# match (see multi_quantity_offplatform_sale.yaml's note).
+- assertVisible:
+    id: "buyer-picker-quantity-value-text"
+    text: "1"
+
+# ── The whole batch, in ONE tap ────────────────────────────────────────────
+- assertVisible:
+    id: "buyer-picker-quantity-all"
+- tapOn:
+    id: "buyer-picker-quantity-all"
+- waitForAnimationToEnd
+# THE POINT OF THE FEATURE: 1 -> 200 without touching "+".
+- assertVisible:
+    id: "buyer-picker-quantity-value-text"
+    text: "200"
+
+# The ceiling holds. Tapping "+" at the max must not produce 201 — the stepper
+# routes every path through the same clamp, and this is the cheapest proof that
+# "All" went through it too rather than writing the number straight in.
+- tapOn:
+    id: "buyer-picker-quantity-increment"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "buyer-picker-quantity-value-text"
+    text: "200"
+
+- tapOn: "Confirm sold"
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+
+# ── The batch is gone, and the listing is SOLD ─────────────────────────────
+# Scroll UP first: the flow is parked at the bottom where it tapped the primary
+# action, and the badge row is section 2 — a bare assert here fails on a listing
+# whose stock is perfectly correct.
+- scrollUntilVisible:
+    element:
+      id: "listing-status-badge"
+    direction: UP
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "listing-status-badge"
+    timeout: 20000
+# Selling the last unit is what takes a listing terminal, so this is both the
+# stock assertion and the lifecycle one.
+- assertVisible: "Sold"
+- takeScreenshot: mark_sold_all_units

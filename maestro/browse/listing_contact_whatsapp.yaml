@@ -1,0 +1,83 @@
+appId: com.hatiwal.app
+---
+# Listing detail — the seller contact row: reveal the number, then Call AND WhatsApp.
+#
+# Owner request, 2026-09-02: "we have call seller bit we should have whatsapp
+# option also" / "and both andriod and phone should work".
+#
+# WHY THIS FLOW EXISTS: the feature shipped with unit tests and no E2E at all.
+# `grep -rln whatsapp maestro/` matched exactly one file — profile/contact_visibility
+# — and that one covers the EditProfile *field*, not the buyer-facing button. So
+# nothing checked that a buyer looking at a listing is actually offered WhatsApp.
+#
+# It also protects a hole found the same day: the seller's separate
+# `whatsapp_number` was being sent by the API and read by nobody, so every wa.me
+# link was built from `phone`. That specific substitution is asserted in
+# SellerPhoneReveal.whatsapp.test.tsx (the URL is not observable from here);
+# what this flow owns is that both rows are OFFERED and reachable.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+# Wait for the data, not the animation — switching tabs refires the query and
+# waitForAnimationToEnd does not wait on the network.
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+# index 0 with a real selector. A bare `tapOn: index:` has no selector and would
+# match whatever is first in the hierarchy, which is never the card.
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
+
+# ── The number is GATED behind a reveal ────────────────────────────────────
+#
+# Scroll, do not assert: the seller card sits below the photo carousel, the
+# price and the description, so on any viewport it starts off screen — and at
+# 360dp (a 400dp-tall window) it is several drags down. Four flows lost to
+# exactly this shape today; an assertVisible past the first screenful is a
+# scroll waiting to be written.
+- scrollUntilVisible:
+    element:
+      id: "seller-phone-reveal-button"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 30000
+# Neither contact row exists until the reveal is tapped — that is the gate, and
+# asserting it is what proves the number is not simply printed on the page.
+- assertNotVisible:
+    id: "seller-call-row"
+- assertNotVisible:
+    id: "seller-whatsapp-row"
+- tapOn:
+    id: "seller-phone-reveal-button"
+- waitForAnimationToEnd
+
+# ── Both options, side by side ─────────────────────────────────────────────
+# By testID, never by label: "Call seller" and "WhatsApp" are localized, and
+# this same flow has to keep working in ps and fa.
+- extendedWaitUntil:
+    visible:
+      id: "seller-call-row"
+    timeout: 20000
+- assertVisible:
+    id: "seller-whatsapp-row"
+- takeScreenshot: listing_contact_whatsapp
+
+# ── DELIBERATELY NOT TAPPING EITHER ROW ────────────────────────────────────
+#
+# Both hand off to another app: the call row opens `tel:` (the dialer) and the
+# WhatsApp row opens `https://wa.me/…`, which on an emulator with no WhatsApp
+# installed lands in Chrome or an app chooser. Tapping would leave the app under
+# test, and recovering means guessing which of those three things appeared —
+# precisely the brittleness the meetup flow's own comments warn about.
+#
+# The division of labour is deliberate: the URL each row builds (including the
+# +93 / 0093 / 070 / 70 normalisation, and the fallback to `phone` when no
+# WhatsApp number is set) is covered by whatsapp.test.ts and
+# SellerPhoneReveal.whatsapp.test.tsx, where it is directly observable. What
+# cannot be unit-tested is that a real buyer reaches these controls at all on a
+# real listing, and that is what this flow does.
