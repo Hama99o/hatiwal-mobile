@@ -13,6 +13,7 @@ import { Button } from "@/components/reusables/button";
 import { Input } from "@/components/reusables/input";
 import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
+import { useKeyboardHeight, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
 import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import type { MeetupCoords } from "./meetupBody";
 
@@ -35,6 +36,10 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
   const colors = useColors();
   const { isRtl } = useLocalization();
   const insets = useSafeAreaInsets();
+  // The sheet lifts ITSELF on Android. See the fix note on KeyboardAvoidingView
+  // below for why the KAV cannot do it there.
+  const keyboardHeight = useKeyboardHeight();
+  const androidLift = Platform.OS === "android" ? keyboardHeight : 0;
 
   const [place, setPlace] = useState("");
   const [time, setTime] = useState("");
@@ -91,18 +96,55 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
     >
       <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={handleClose} />
       <KeyboardAvoidingView
-        // Platform audit (2026-06-18):
-        //   iOS "padding" — lifts the sheet so the keyboard doesn't cover Place/Time
-        //   inputs. Android "height" — shrinks the KAV so the sheet layout recalculates
-        //   and the Propose button stays reachable. Both branches are intentional and
-        //   correct; no fallback is missing.
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        // Platform audit (2026-06-18) — the iOS half stands, the Android half did NOT.
+        //
+        //   iOS "padding" — lifts the sheet so the keyboard doesn't cover Place/Time.
+        //     Kept exactly as it was.
+        //
+        //   Android "height" — asserted to shrink the KAV "so the sheet layout
+        //     recalculates and the Propose button stays reachable". It does not, for
+        //     two independent reasons, and the audit's closing claim that "both
+        //     branches are intentional and correct; no fallback is missing" was wrong:
+        //
+        //     1. This KAV has NO height to shrink. The backdrop Pressable above it is
+        //        `flex: 1`, so it eats the column and the KAV is content-sized —
+        //        `justifyContent: "flex-end"` is what puts the sheet at the bottom,
+        //        not the KAV's height.
+        //     2. Even with a height, `behavior="height"` is unusable on Android under
+        //        the edge-to-edge that Expo SDK 54 enforces: the IME is an inset drawn
+        //        OVER a full-height window, `windowSoftInputMode="adjustResize"` no
+        //        longer shrinks anything, and the KAV computes its offset from numbers
+        //        that are wrong. That is measured, not inferred — see the header of
+        //        `useKeyboardVisible.ts`, which exists because the chat composer lost
+        //        four rounds to this same assumption. A native <Modal> is its own
+        //        window on top of that, so it would not inherit a resize anyway.
+        //
+        //   Evidence it was broken in practice: qa/reports/run-383's
+        //   chat/scroll_to_latest screenshot shows this sheet open with "Propose a
+        //   Meetup" and the "Place" LABEL visible while the place input, the whole Time
+        //   field and the Propose button sit behind Gboard — the flow failed with
+        //   `Element not found: Id matching regex: meetup-time-input` on a sheet that
+        //   had rendered correctly. A real user meets the same wall: type the place,
+        //   and there is no way to reach Time or Propose without dismissing the IME.
+        //
+        //   So on Android the sheet lifts itself by the keyboard's height (from the
+        //   event payload, the only source that is right under edge-to-edge) and the
+        //   KAV is left inert there.
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.keyboardView}
       >
         <View
           style={[
             styles.sheet,
-            { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 20) + 12 },
+            {
+              backgroundColor: colors.card,
+              borderTopColor: colors.border,
+              // With the keyboard up the safe-area inset is dead space — the IME
+              // covers the gesture bar — so keyboardSafeBottom drops it. Same
+              // helper the chat composer uses; not a second mechanism.
+              paddingBottom: keyboardSafeBottom(keyboardHeight > 0, insets.bottom, 20, 12),
+              marginBottom: androidLift,
+            },
           ]}
         >
           {/* Handle */}
