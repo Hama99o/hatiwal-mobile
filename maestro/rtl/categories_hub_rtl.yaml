@@ -41,8 +41,15 @@ appId: com.hatiwal.app
 # Category cards should render localized names
 - assertVisible: "برقی وسایل"
 
-# Back button returns to Browse
+# Back button returns to Browse.
+#
+# BY testID, never by the word "Back". The app renders no literal "Back"
+# anywhere: BackButton carries `accessibilityLabel={t("common.goBack")}` and
+# `testID="back_button"`, so in Pashto — which is the entire point of this flow —
+# the English word cannot match, and this failed with
+# `Element not found: Text matching regex: Back` on a button that was present and
+# correctly localized.
 - tapOn:
-    text: "Back"
+    id: "back_button"
 - waitForAnimationToEnd
 - assertVisible: "بازار"
