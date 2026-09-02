@@ -63,5 +63,30 @@ for i in $(seq 1 "$ATTEMPTS"); do
     0|1) break ;;                       # a real verdict — done
     *)   echo "  patient_flow: $FLOW unmeasured (exit $e), attempt $i/$ATTEMPTS" >&2 ;;
   esac
+
+  # STOP EARLY ON A DETERMINISTIC DEV-CLIENT CRASH.
+  #
+  # The Expo dev-menu FAB crash (expo.modules.devmenu.fab, "Cannot coerce value
+  # to an empty range") has no runtime kill switch — `showFab` gates the FAB's
+  # CONTENT while the position maths that throws runs above it — so when a flow
+  # reliably triggers it, retrying cannot change the outcome. See QA_HANDBOOK.
+  #
+  # rtl/chat_rtl hit it 4/4 on 2026-09-03 at ~510s each: ~35 minutes of a
+  # serialized rig spent re-reaching a verdict the handbook already records as
+  # correct and un-actionable ("it is not an app bug and must not be triaged as
+  # one"). Two attempts still distinguish a TRANSIENT bounds state (a wm-size
+  # change or a reloadApp landing badly, which a retry does clear) from a
+  # deterministic one; a third and fourth only cost wall-clock.
+  #
+  # Counted per classification, not per exit code, so an ordinary driver death
+  # keeps all its retries.
+  if [ "$e" -ge 2 ] && grep -qiE "devmenu\.fab|MovableFloatingActionButton" \
+       "$(ls -t qa/reports/run-*/*/"$(basename "$FLOW")".logcat 2>/dev/null | head -1)" 2>/dev/null; then
+    fab=$((${fab:-0} + 1))
+    if [ "$fab" -ge 2 ]; then
+      echo "  patient_flow: $FLOW crashed the dev-menu FAB ${fab}x — deterministic, not retrying" >&2
+      break
+    fi
+  fi
 done
 exit $e

@@ -98,7 +98,14 @@ What the rig does instead:
   FAB re-measures against the new window on the next cold start.
 - `classify()` labels it `rig_devclient_crash`, and `exit_from_results` /
   `tally.py` count it as UNMEASURED rather than a failed flow.
-- `qa/patient_flow.sh` retries it.
+- `qa/patient_flow.sh` retries it — but STOPS after the second FAB crash on the
+  same flow. Two attempts still separate a transient bounds state (a `wm size`
+  change, or a `reloadApp()` landing badly — a retry does clear those) from a
+  deterministic one. `rtl/chat_rtl` hit it 4/4 on 2026-09-03 at ~510s each:
+  ~35 minutes of a serialized rig spent re-reaching a verdict this section
+  already records as correct and un-actionable. The early stop is keyed on the
+  logcat CLASSIFICATION, not the exit code, so an ordinary driver death keeps
+  all four attempts.
 
 Language-switching flows are the most exposed, because `reloadApp()` restarts the
 app by design — `rtl/chat_rtl` hit it repeatedly and finished UNMEASURED after
