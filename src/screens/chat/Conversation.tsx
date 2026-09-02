@@ -727,6 +727,23 @@ export function ConversationScreen() {
         // Start-flow: no existing conversation yet
         setIsLoading(false);
       }
+
+      // RE-ARM the capture when this screen loses focus.
+      //
+      // The guard above is "once per screen VISIT", but the ref lived for the
+      // component's whole lifetime — and expo-router keeps this screen mounted
+      // when you navigate away. So re-entering a thread that became unread while
+      // you were gone showed NO divider: the ref was still true from the first
+      // visit, when there was nothing unread to mark.
+      //
+      // Found on device 2026-09-02 by chat/mark_read_end_to_end, which does
+      // exactly that — opens the thread, goes back, marks it unread, re-enters —
+      // and had been failing on `No visible element found: "Unread messages"`
+      // against a thread that really was unread. The screenshot showed both
+      // messages and no divider, which is what sent me looking here.
+      return () => {
+        hasCapturedUnreadBoundaryRef.current = false;
+      };
     }, [currentConversationId, load, markRead, currentUser?.id])
   );
 

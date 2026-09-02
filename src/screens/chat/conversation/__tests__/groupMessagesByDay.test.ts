@@ -279,3 +279,38 @@ describe("threadRowKey", () => {
     expect(threadRowKey({ type: "unread" })).toBe("unread");
   });
 });
+
+// ── The re-entry case (device finding, 2026-09-02) ────────────────────────
+//
+// chat/mark_read_end_to_end opens a thread, goes back, marks it unread, then
+// re-enters — and saw NO divider. The resolver was never the problem (these
+// cases prove it), so the bug was upstream: Conversation.tsx captured the
+// boundary once per component LIFETIME, and expo-router keeps the screen
+// mounted, so the re-entry reused the first visit's answer (nothing unread).
+// The capture now re-arms when the screen loses focus.
+describe("resolveUnreadBoundaryId — a single trailing unread message", () => {
+  const mk = (id: number, senderId: number) => ({
+    id,
+    kind: "text" as const,
+    body: `m${id}`,
+    sender: { id: senderId },
+    createdAt: new Date(2026, 0, 1, 10, id).toISOString(),
+  });
+
+  it("marks the LAST message when it is the only unread one", () => {
+    // The exact seeded shape: one outbound, then one inbound left unread.
+    const messages = [mk(1, 7), mk(2, 9)] as never[];
+    expect(resolveUnreadBoundaryId(messages, 1, 7)).toBe(2);
+  });
+
+  it("returns null when nothing is unread, however the thread looks", () => {
+    const messages = [mk(1, 7), mk(2, 9)] as never[];
+    expect(resolveUnreadBoundaryId(messages, 0, 7)).toBeNull();
+  });
+
+  it("ignores the viewer's OWN messages when counting back", () => {
+    // 3 unread but only 2 incoming — must not run off the start of the list.
+    const messages = [mk(1, 9), mk(2, 7), mk(3, 9)] as never[];
+    expect(resolveUnreadBoundaryId(messages, 3, 7)).toBe(1);
+  });
+});
