@@ -53,6 +53,22 @@ appId: com.hatiwal.app
 # onSavePublished button). The only near neighbours are listing.form.saveDraft
 # ("Save Draft") and the toast listing.form.saved ("Changes saved") — which this flow
 # asserts afterwards, and which is probably where "Save Changes" came from.
+# SCROLL to it first. This file's own header records the rule — "below the fold:
+# `tapOn` never scrolls to its target" — and this step was the one place that did
+# not follow it. Adding a photo GROWS the form (a thumbnail row appears above the
+# fields), which pushes the submit button off screen, so the tap failed with
+# `Element not found: Text matching regex: Save` on a button that had not moved
+# anywhere the user could not reach.
+#
+# visibilityPercentage 40 rather than the default 100: the button sits in a
+# sticky footer whose top edge can sit under the keyboard's shadow, and demanding
+# it be FULLY visible is how the same class of step failed elsewhere tonight.
+- scrollUntilVisible:
+    element:
+      text: "Save"
+    direction: DOWN
+    timeout: 20000
+    visibilityPercentage: 40
 - tapOn: "Save"
 - waitForAnimationToEnd
 # extendedWaitUntil, not assertVisible: this is a TOAST from toast.success in
