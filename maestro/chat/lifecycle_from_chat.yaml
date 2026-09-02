@@ -115,12 +115,27 @@ env:
     timeout: 15000
 - tapOn: "Not now"
 - waitForAnimationToEnd
-# StatusBadge in the pinned header updates to Sold
-- assertVisible: "Sold"
-# Sold is terminal — no lifecycle pill remains at all (never "Reserve", and
-# "Mark Sold" cannot re-fire on an already-sold listing).
+# THE LISTING STAYS LIVE, because this thread's listing is MULTI-UNIT.
+#
+# This asserted `"Sold"` and could never pass. The fixture is the Phone Case
+# (quantity 15) — chosen deliberately, since the steps above depend on its
+# seeded offer thread ("Who bought this item?" / "Ahmad Karimi" / "Agreed
+# price"). Selling one unit out of 15 CORRECTLY leaves the listing `active`:
+# that is the redesign's central rule (docs/SELL_FLOW_REDESIGN.md — a batch is
+# not a dead end after a partial sale), so the badge stays "Active" and the
+# "Mark Sold" pill stays available for the next unit.
+#
+# Verified against the database at the time of the failure: qty=15, sold=4,
+# available=11, status=active — the sale HAD recorded (the success toast above
+# passed), and the flow then demanded a state the app is right to refuse.
+#
+# So this now asserts what a partial sale on a batch actually means, which is a
+# more valuable check than the one it replaces: the pill must still be there,
+# because there is still stock to sell.
+- assertVisible: "Mark Sold"
+# Never "Reserve" from this header — SF-M2 removed it entirely (see the header
+# comment); a hold is placed from the composer's "+" menu instead.
 - assertNotVisible: "Reserve"
-- assertNotVisible: "Mark Sold"
 # The thread STAYS USABLE after the sale, and that is deliberate.
 #
 # These two lines used to assert the opposite — no composer, plus "This
