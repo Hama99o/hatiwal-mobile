@@ -76,7 +76,9 @@
       "viewTheirListings": "View their listings",
       "rateSeller": "Rate {{name}}",
       "rateSellerGenericName": "the seller"
-    }
+    },
+    "jumpToLatest": "Jump to latest",
+    "newMessages": "New messages"
   },
   "meetup": {
     "title": "Propose a Meetup",

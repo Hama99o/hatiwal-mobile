@@ -76,7 +76,9 @@
       "viewTheirListings": "د هغه/هغې نور توکي وګورئ",
       "rateSeller": "{{name}} ته نظر ورکړئ",
       "rateSellerGenericName": "پلورونکي"
-    }
+    },
+    "jumpToLatest": "تر وروستي ته ورشه",
+    "newMessages": "نوي پیغامونه"
   },
   "meetup": {
     "title": "د لیدنې وړاندیز",

@@ -76,7 +76,9 @@
       "viewTheirListings": "مشاهده سایر آگهی‌های او",
       "rateSeller": "به {{name}} نظر بدهید",
       "rateSellerGenericName": "فروشنده"
-    }
+    },
+    "jumpToLatest": "رفتن به آخرین پیام",
+    "newMessages": "پیام‌های جدید"
   },
   "meetup": {
     "title": "پیشنهاد ملاقات",

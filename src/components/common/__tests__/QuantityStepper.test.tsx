@@ -446,3 +446,45 @@ describe("QuantityStepper — the number has its own node (run-268)", () => {
     expect(screen.getByTestId("qty-input")).toBeTruthy();
   });
 });
+
+// ── The "All" shortcut (owner request, 2026-09-02) ──────────────────────────
+//
+// "what if I have two hundred item and all two hundred item has been sold? we
+// should have a button all also, so we can help user to not tap hundred time"
+describe("QuantityStepper — the All shortcut", () => {
+  it("jumps straight to max, so 200 units is one tap not 200", () => {
+    const onChange = jest.fn();
+    render(<QuantityStepper value={1} onChange={onChange} max={200} testID="q" />);
+    fireEvent.press(screen.getByTestId("q-all"));
+    expect(onChange).toHaveBeenCalledWith(200);
+  });
+
+  it("is hidden when there is no range to jump across (max === min)", () => {
+    render(<QuantityStepper value={1} onChange={() => {}} max={1} testID="q" />);
+    expect(screen.queryByTestId("q-all")).toBeNull();
+  });
+
+  it("can be opted out of", () => {
+    render(<QuantityStepper value={1} onChange={() => {}} max={50} showAll={false} testID="q" />);
+    expect(screen.queryByTestId("q-all")).toBeNull();
+  });
+
+  it("does not fire again once already at max", () => {
+    const onChange = jest.fn();
+    render(<QuantityStepper value={9} onChange={onChange} max={9} min={1} testID="q" />);
+    // Rendered (max > min) but inert at the ceiling.
+    fireEvent.press(screen.getByTestId("q-all"));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("names the count in its accessibility label, not a bare 'All'", () => {
+    render(<QuantityStepper value={1} onChange={() => {}} max={200} testID="q" />);
+    // t() is identity in tests, so the label is the key plus the formatted count.
+    expect(screen.getByTestId("q-all").props.accessibilityLabel).toContain("200");
+  });
+
+  it("respects a non-1 min when deciding to render", () => {
+    render(<QuantityStepper value={5} onChange={() => {}} min={5} max={5} testID="q" />);
+    expect(screen.queryByTestId("q-all")).toBeNull();
+  });
+});

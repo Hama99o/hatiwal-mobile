@@ -63,6 +63,7 @@ import { SafetyTipsSheet } from "@/components/common/SafetyTipsSheet";
 import { UserIdentity } from "@/components/common/UserIdentity";
 import { useConversationCable } from "@/hooks/useConversationCable";
 import { QuickReplies } from "@/components/common/QuickReplies";
+import { JumpToLatestButton } from "@/components/common/JumpToLatestButton";
 import { useComposerDraft } from "@/hooks/useComposerDraft";
 import { encodeMeetupBody, type MeetupCoords } from "./conversation/meetupBody";
 import {
@@ -384,6 +385,10 @@ export function ConversationScreen() {
   // Is a HUMAN dragging the list right now? Only a drag may change whether the
   // thread follows its newest message — see shouldTrackFromScrollEvent.
   const userDraggingRef = useRef(false);
+  // Mirrored from isNearBottomRef, and ONLY when it actually flips — scroll
+  // events fire several times a second and re-rendering the whole thread on each
+  // one would cost far more than the pill is worth.
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   // The list's own measurements, so the end offset can be COMPUTED rather than
   // delegated to scrollToEnd.
   //
@@ -404,8 +409,15 @@ export function ConversationScreen() {
   // bottom bar re-measuring, a tall bubble settling), while setting the offset
   // directly cannot. The gate is held open for the whole window so onScroll
   // cannot cancel it half-way, which is the bug this replaces.
+  /** Write the near-bottom truth in ONE place, ref and pill together. */
+  const setNearBottom = useCallback((next: boolean) => {
+    isNearBottomRef.current = next;
+    setShowJumpToLatest((shown) => (shown === !next ? shown : !next));
+  }, []);
+
   const scrollThreadToEnd = useCallback((animated = true) => {
     isNearBottomRef.current = true;
+    setShowJumpToLatest(false);
     scrollLockUntilRef.current = scrollLockDeadline(Date.now());
     const jump = (a: boolean) => {
       const content = contentHeightRef.current;
@@ -652,11 +664,13 @@ export function ConversationScreen() {
           scrollLockUntilRef.current
         )
       ) {
-        isNearBottomRef.current = isNearBottom({
-          contentHeight: contentSize.height,
-          viewportHeight: layoutMeasurement.height,
-          offsetY: contentOffset.y,
-        });
+        setNearBottom(
+          isNearBottom({
+            contentHeight: contentSize.height,
+            viewportHeight: layoutMeasurement.height,
+            offsetY: contentOffset.y,
+          })
+        );
       }
       // Trigger load of older messages when scrolled near the top
       if (
@@ -1976,19 +1990,23 @@ export function ConversationScreen() {
           // mistake, one layer down, that left the list 399px short.
           onScrollEndDrag={(e) => {
             if (!userDraggingRef.current) return;
-            isNearBottomRef.current = isNearBottom({
-              contentHeight: e.nativeEvent.contentSize.height,
-              viewportHeight: e.nativeEvent.layoutMeasurement.height,
-              offsetY: e.nativeEvent.contentOffset.y,
-            });
+            setNearBottom(
+              isNearBottom({
+                contentHeight: e.nativeEvent.contentSize.height,
+                viewportHeight: e.nativeEvent.layoutMeasurement.height,
+                offsetY: e.nativeEvent.contentOffset.y,
+              })
+            );
           }}
           onMomentumScrollEnd={(e) => {
             if (!userDraggingRef.current) return;
-            isNearBottomRef.current = isNearBottom({
-              contentHeight: e.nativeEvent.contentSize.height,
-              viewportHeight: e.nativeEvent.layoutMeasurement.height,
-              offsetY: e.nativeEvent.contentOffset.y,
-            });
+            setNearBottom(
+              isNearBottom({
+                contentHeight: e.nativeEvent.contentSize.height,
+                viewportHeight: e.nativeEvent.layoutMeasurement.height,
+                offsetY: e.nativeEvent.contentOffset.y,
+              })
+            );
             userDraggingRef.current = false;
           }}
           // Scroll to the true bottom AFTER the list re-measures (new bubble
@@ -2059,6 +2077,24 @@ export function ConversationScreen() {
           the keyboard top. That is arithmetic an intermediate view cannot eat, and
           it needs no KeyboardAvoidingView on either platform. The list is padded
           by this bar's measured height so the newest message is never hidden. */}
+      {/* "Come back to the newest message" — owner request, 2026-09-02: "when we
+        * scroll very up and we want to come the last message, it should show come
+        * to bottom or latest message… user should not [have to do it by hand]".
+        *
+        * Positioned from the bar's MEASURED height — the same number the list's
+        * container uses — so it sits just above the quick replies instead of on
+        * top of them. Hidden during search, where the newest message is not what
+        * the reader is looking for.
+        */}
+      {showJumpToLatest && !searchVisible ? (
+        <JumpToLatestButton
+          onPress={() => scrollThreadToEnd()}
+          bottom={bottomBarH + barLift + 12}
+          label={t("chat.thread.jumpToLatest")}
+          isRtl={isRtl}
+        />
+      ) : null}
+
       <View
         onLayout={(e) => setBottomBarH(e.nativeEvent.layout.height)}
         style={{ position: "absolute", left: 0, right: 0, bottom: barLift }}

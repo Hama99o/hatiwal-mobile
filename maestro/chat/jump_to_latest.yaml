@@ -1,0 +1,79 @@
+appId: com.hatiwal.app
+---
+# THE "COME BACK TO THE NEWEST MESSAGE" PILL.
+#
+# Owner request, 2026-09-02: "when we scroll very up and we want to come the last
+# message, it should show come to bottom or latest message… user should not [have
+# to do it by hand]".
+#
+# Asserts the three things that make it useful, in order:
+#   1. it is ABSENT when the thread is already at the bottom (otherwise it is
+#      permanent furniture, not an affordance)
+#   2. it APPEARS after scrolling up
+#   3. tapping it returns to the newest message — checked by asserting a message
+#      that was off screen a moment ago is visible again
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversations-search-bar"
+    timeout: 30000
+# A thread with real history, found by name — never `conversation-row-\d+` index
+# 0, which is whatever sibling flow sent a message most recently.
+- tapOn:
+    id: "conversations-search-bar"
+- inputText: "Phone Case"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
+- tapOn:
+    id: "conversation-row-\\d+"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Type a message..."
+    timeout: 30000
+
+# Give the thread enough length that scrolling up actually leaves the bottom.
+- repeat:
+    times: 5
+    commands:
+      - tapOn: "Type a message..."
+      - inputText: "jump pill fixture"
+      - tapOn: "Send"
+      - waitForAnimationToEnd
+
+# 1. At the bottom: NOT visible.
+- waitForAnimationToEnd
+- assertNotVisible:
+    id: "jump-to-latest"
+
+# 2. Scroll up — margin swipe at x=88%, clear of the centred bubbles and the
+# composer, the same gesture mapqa/_body_form.yaml had to adopt.
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: "88%, 30%"
+          end: "88%, 78%"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "jump-to-latest"
+    timeout: 20000
+
+# 3. Tap it and land back on the newest message.
+- tapOn:
+    id: "jump-to-latest"
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- assertVisible: "jump pill fixture"
+# ...and the pill retires itself once we are back at the bottom.
+- extendedWaitUntil:
+    notVisible:
+      id: "jump-to-latest"
+    timeout: 20000
+- takeScreenshot: jump_to_latest

@@ -74,6 +74,18 @@ export interface QuantityStepperProps {
    * other quantity-in-a-sentence in this app.
    */
   atMaxReason?: string;
+  /**
+   * Show the "All" shortcut that jumps straight to `max`.
+   *
+   * Owner request, 2026-09-02: "what if I have two hundred item and all two
+   * hundred item has been sold? we should have a button all also, so we can help
+   * user to not tap hundred time".
+   *
+   * Defaults to ON, since every caller of this stepper is a seller settling a
+   * quantity. It renders only when there is genuinely more than one unit to
+   * choose from — on a single-unit listing an "All" button is noise.
+   */
+  showAll?: boolean;
 }
 
 const DIMENSIONS: Record<
@@ -104,6 +116,7 @@ export function QuantityStepper({
   testID,
   accessibilityLabel,
   atMaxReason,
+  showAll = true,
 }: QuantityStepperProps) {
   const { t } = useTranslation();
   const { isRtl, formatNumber } = useLocalization();
@@ -180,6 +193,9 @@ export function QuantityStepper({
   // draft may momentarily read as anything, and the reason is about the
   // COMMITTED ceiling, not a keystroke in progress.
   const showAtMaxReason = !!atMaxReason && atMax && !editing;
+  // Only worth offering when there is a range to jump across. `max > min`, not
+  // `max > 1`: a caller with min 5 / max 5 has no choice to make either.
+  const showAllButton = showAll && max > min;
 
   return (
     <>
@@ -262,6 +278,37 @@ export function QuantityStepper({
         >
           <Plus size={dims.icon} color={incrementDisabled ? colors.mutedForeground : colors.foreground} />
         </Button>
+
+        {showAllButton ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onPress={() => {
+              if (disabled || value === max) return;
+              // Straight to the ceiling, through the same clamp as every other
+              // path so this can never emit an out-of-range value.
+              onChange(clampQuantity(max, min, max));
+            }}
+            disabled={disabled || atMax}
+            hitSlop={dims.hitSlop}
+            accessibilityRole="button"
+            // The count is in the label, not just "All" — a screen reader user
+            // otherwise cannot tell what "All" commits them to.
+            accessibilityLabel={`${t("common.all")} (${formatNumber(max)})`}
+            testID={testID ? `${testID}-all` : undefined}
+            style={{ minHeight: dims.button, paddingHorizontal: 10 }}
+          >
+            <Text
+              style={{
+                fontSize: dims.fontSize - 3,
+                fontWeight: "600",
+                color: disabled || atMax ? colors.mutedForeground : colors.primary,
+              }}
+            >
+              {t("common.all")}
+            </Text>
+          </Button>
+        ) : null}
       </View>
       {showAtMaxReason ? (
         <Text
