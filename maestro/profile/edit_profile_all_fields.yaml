@@ -118,13 +118,20 @@ appId: com.hatiwal.app
 
 # `profile.edit.saveButton` = "Save Changes"; a bare "Save" is anchored and
 # matches nothing.
+# BY testID, and no centerElement. The button is `profile.edit.saveButton`
+# ("Save Changes"), it swaps to "Saving…" mid-submit, and it sits in a STICKY
+# FOOTER — so there is no content below it to centre against and
+# `centerElement: true` can never satisfy. Failed as
+# `No visible element found: "Save Changes"` on a button pinned to the bottom
+# of the screen the whole time.
 - scrollUntilVisible:
     element:
-      text: "Save Changes"
+      id: "edit-profile-save-button"
     direction: DOWN
-    centerElement: true
+    visibilityPercentage: 40
     timeout: 20000
-- tapOn: "Save Changes"
+- tapOn:
+    id: "edit-profile-save-button"
 - waitForAnimationToEnd
 # NOT the toast. EditProfile's onSuccess raises toast.success(...) and then calls
 # router.replace("/(main)/(tabs)/profile") in the next statement (EditProfile.tsx

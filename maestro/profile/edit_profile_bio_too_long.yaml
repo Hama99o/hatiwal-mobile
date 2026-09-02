@@ -64,13 +64,20 @@ appId: com.hatiwal.app
 
 # The PROFILE form's button is `profile.edit.saveButton` = "Save Changes".
 # `common.save` ("Save") is the LISTING edit button — a different screen.
+# BY testID, and no centerElement. The button is `profile.edit.saveButton`
+# ("Save Changes"), it swaps to "Saving…" mid-submit, and it sits in a STICKY
+# FOOTER — so there is no content below it to centre against and
+# `centerElement: true` can never satisfy. Failed as
+# `No visible element found: "Save Changes"` on a button pinned to the bottom
+# of the screen the whole time.
 - scrollUntilVisible:
     element:
-      text: "Save Changes"
+      id: "edit-profile-save-button"
     direction: DOWN
-    centerElement: true
+    visibilityPercentage: 40
     timeout: 20000
-- tapOn: "Save Changes"
+- tapOn:
+    id: "edit-profile-save-button"
 - waitForAnimationToEnd
 # The real copy is `profile.edit.validation.bioTooLong` = "Bio must be 500
 # characters or less". Maestro matches the WHOLE string, so "Bio is too long"

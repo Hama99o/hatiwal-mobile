@@ -48,7 +48,8 @@ appId: com.hatiwal.app
 - eraseText
 - inputText: "Ahmad Updated"
 # Save
-- tapOn: "Save Changes"
+- tapOn:
+    id: "edit-profile-save-button"
 - waitForAnimationToEnd
 # NOT the toast, even with polling. EditProfile.tsx:267 raises it and then replaces the
 # screen in the next statement —

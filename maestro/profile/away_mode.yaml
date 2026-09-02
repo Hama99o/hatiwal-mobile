@@ -86,7 +86,8 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 - inputText: "2030-12-31"
 
 # Save
-- tapOn: "Save Changes"
+- tapOn:
+    id: "edit-profile-save-button"
 # NOT the toast. EditProfile raises toast.success(...) and calls
 # router.replace("/(main)/(tabs)/profile") in the very next statement, so the
 # message renders on a screen being torn down and no amount of polling can catch
@@ -155,7 +156,8 @@ appId: com.hatiwal.app  # was com.hatiwal.mobile — no such package; the flow d
 # Confirm the date field disappears
 - assertNotVisible: "Away until \\(YYYY-MM-DD\\)"
 
-- tapOn: "Save Changes"
+- tapOn:
+    id: "edit-profile-save-button"
 # Same reason as the first save: assert the durable consequence, not the toast.
 # Away is OFF now, so the banner must be GONE from the profile we land back on.
 - extendedWaitUntil:

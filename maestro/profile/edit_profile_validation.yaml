@@ -44,7 +44,8 @@ appId: com.hatiwal.app
 - tapOn:
     id: "edit-profile-firstname-input"
 - eraseText
-- tapOn: "Save Changes"
+- tapOn:
+    id: "edit-profile-save-button"
 - waitForAnimationToEnd
 # Validation error
 - assertVisible: "First name is required"
