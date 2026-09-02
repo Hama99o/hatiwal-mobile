@@ -41,15 +41,18 @@ appId: com.hatiwal.app
 # Category cards should render localized names
 - assertVisible: "برقی وسایل"
 
-# Back button returns to Browse.
+# Return to Browse by tapping ITS TAB — there is no back button here at all.
 #
-# BY testID, never by the word "Back". The app renders no literal "Back"
-# anywhere: BackButton carries `accessibilityLabel={t("common.goBack")}` and
-# `testID="back_button"`, so in Pashto — which is the entire point of this flow —
-# the English word cannot match, and this failed with
-# `Element not found: Text matching regex: Back` on a button that was present and
-# correctly localized.
+# Two wrong answers preceded this one. The flow first tapped the word "Back",
+# which the app renders in no locale; I then pointed it at `back_button`, the
+# shared BackButton's testID — but Categories is a top-level TAB, so it has no
+# back affordance of any kind, and that failed with
+# `Element not found: Id matching regex: back_button`.
+#
+# What a user actually does here is tap the Bazaar tab, so that is what this
+# asserts. By testID, because the tab's label is translated and this flow is
+# running in Pashto.
 - tapOn:
-    id: "back_button"
+    id: "browse-tab"
 - waitForAnimationToEnd
 - assertVisible: "بازار"
