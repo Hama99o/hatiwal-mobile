@@ -116,6 +116,22 @@ appId: com.hatiwal.app
 # "My Listings" and "Messages" appear as a side-by-side row
 # whose container is now flexDirection:row-reverse (RTL fix applied)
 # These are profile quick-action labels, not sidebar tab labels
+# ANCHOR THE SCROLL FIRST. Re-entering Profile after the mode switch keeps
+# whatever offset it had, and by this point the flow has scrolled down to
+# PERSONAL INFO and back up to the toggle — so a bare DOWN scroll can start below
+# the quick actions and travel away from them. That is how this failed with
+# `No visible element found: "زما اعلانونه"` on a screen that was rendering the
+# seller quick actions correctly.
+#
+# mode-toggle-button sits at the very top, so scrolling UP to it puts the list at
+# a known position before the DOWN scrolls below.
+- scrollUntilVisible:
+    element:
+      id: "mode-toggle-button"
+    direction: UP
+    visibilityPercentage: 40
+    timeout: 20000
+
 # Same again for the seller-mode set — four rows, one screen.
 - scrollUntilVisible:
     element:
