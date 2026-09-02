@@ -21,6 +21,7 @@ Exit 0 = uncovered. Exit 1 = covered (or not found), with the numbers.
 import re
 import subprocess
 import sys
+import time
 import xml.etree.ElementTree as ET
 
 TARGET = sys.argv[1] if len(sys.argv) > 1 else "Scroll target meetup place"
@@ -30,12 +31,36 @@ SERIAL = sys.argv[2] if len(sys.argv) > 2 else "emulator-5580"
 COMPOSER_HINTS = ("Type a message", "Send")
 
 
-def hierarchy(serial: str) -> ET.Element:
-    subprocess.run(["adb", "-s", serial, "shell", "uiautomator", "dump", "/sdcard/h.xml"],
-                   check=True, capture_output=True, timeout=60)
-    xml = subprocess.run(["adb", "-s", serial, "shell", "cat", "/sdcard/h.xml"],
-                         check=True, capture_output=True, timeout=60).stdout
-    return ET.fromstring(xml)
+def hierarchy(serial: str, attempts: int = 4) -> ET.Element:
+    """Dump the view hierarchy, retrying.
+
+    `uiautomator dump` is killed by the emulator under memory pressure — it came
+    back as exit 137 (SIGKILL) mid-run and took the whole measurement with it.
+    It is also transiently unavailable while the screen is still settling. So:
+    retry, and prefer `exec-out` piping straight to stdout over writing
+    /sdcard/h.xml and cat-ing it back, which is two chances to fail instead of
+    one.
+    """
+    last = ""
+    for i in range(attempts):
+        for cmd in (["adb", "-s", serial, "exec-out", "uiautomator", "dump", "/dev/tty"],
+                    ["adb", "-s", serial, "shell", "uiautomator", "dump", "/sdcard/h.xml"]):
+            try:
+                r = subprocess.run(cmd, capture_output=True, timeout=90)
+                out = r.stdout
+                if cmd[3] == "shell" and r.returncode == 0:
+                    out = subprocess.run(["adb", "-s", serial, "shell", "cat", "/sdcard/h.xml"],
+                                         capture_output=True, timeout=90).stdout
+                start = out.find(b"<?xml")
+                if start == -1:
+                    start = out.find(b"<hierarchy")
+                if start != -1:
+                    return ET.fromstring(out[start:].split(b"UI hierchary dumped")[0].strip())
+                last = (r.stderr or out)[:160].decode("utf-8", "replace")
+            except Exception as e:  # noqa: BLE001 — any failure is a retry
+                last = f"{type(e).__name__}: {e}"[:160]
+        time.sleep(4)
+    raise RuntimeError(f"could not read the hierarchy after {attempts} attempts: {last}")
 
 
 def bounds(node) -> tuple[int, int, int, int]:
@@ -48,7 +73,14 @@ def find(root, predicate):
 
 
 def main() -> int:
-    root = hierarchy(SERIAL)
+    try:
+        root = hierarchy(SERIAL)
+    except RuntimeError as e:
+        # A tooling failure is NOT a layout verdict. Say so explicitly rather
+        # than exiting non-zero and being read as "the message is covered".
+        print(f"  UNMEASURED  {e}")
+        return 2
+    root = root
     text_of = lambda n: (n.get("text") or "") + " " + (n.get("content-desc") or "")
 
     targets = find(root, lambda n: TARGET.lower() in text_of(n).lower())

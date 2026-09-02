@@ -252,3 +252,35 @@ resolve_device() {
   fi
   return 1
 }
+
+# ── The exit code MUST mean the flows' verdict ──────────────────────────────
+#
+# It did not. `qa.sh flow` and `qa.sh feature` ended on register.py, so the exit
+# status was the REPORTER's — 0 even for a flow the rig had just recorded as
+# [Failed]. An operator script that trusted `$?` therefore reported passes that
+# were failures; that is exactly what happened on 2026-09-02, when
+# chat/mark_read_end_to_end was reported as verified while its own log said
+# `[Failed] ... (No visible element found: "Unread messages")`.
+#
+# 0 = every flow passed. 1 = at least one failed. 2 = no results at all (the run
+# never produced a verdict — a driver death or a collision), which is NOT the
+# same as a failure and must not be read as one.
+exit_from_results() {
+  local rd="$1" n
+  n=$(python3 - "$rd/results.jsonl" <<'PYEOF'
+import json, pathlib, sys
+p = pathlib.Path(sys.argv[1])
+if not p.exists():
+    print("none"); raise SystemExit
+rows = [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+if not rows:
+    print("none"); raise SystemExit
+print(sum(1 for r in rows if r.get("result") != "pass"))
+PYEOF
+)
+  case "$n" in
+    none) warn "no results recorded — the run produced no verdict (driver death? collision?)"; return 2 ;;
+    0)    return 0 ;;
+    *)    warn "$n flow(s) failed — see the report"; return 1 ;;
+  esac
+}

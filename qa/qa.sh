@@ -151,7 +151,8 @@ import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
              run_feature "$f" "$RUN_DIR" "${flows[@]}"
            done
            step "report"; python3 "$HERE/lib/report.py" "$RUN_DIR"
-           step "flow register"; python3 "$HERE/lib/register.py" "$REPORTS_DIR" ;;
+           step "flow register"; python3 "$HERE/lib/register.py" "$REPORTS_DIR"
+             exit_from_results "$RUN_DIR" ;;
 
   feature) feat="${1:?feature name required}"
            QA_CMD=feature hold_device_lock
@@ -164,7 +165,8 @@ import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
            step "unit layer"
            bash "$0" jest "$feat" 2>&1 | tail -12
            step "report"; python3 "$HERE/lib/report.py" "$RUN_DIR"
-           step "flow register"; python3 "$HERE/lib/register.py" "$REPORTS_DIR" ;;
+           step "flow register"; python3 "$HERE/lib/register.py" "$REPORTS_DIR"
+             exit_from_results "$RUN_DIR" ;;
 
   all)     QA_CMD=all hold_device_lock
            require_rig || exit 1
@@ -177,7 +179,8 @@ import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
              run_feature "$f" "$RUN_DIR" "${flows[@]}"
            done
            step "report"; python3 "$HERE/lib/report.py" "$RUN_DIR"
-           step "flow register"; python3 "$HERE/lib/register.py" "$REPORTS_DIR" ;;
+           step "flow register"; python3 "$HERE/lib/register.py" "$REPORTS_DIR"
+             exit_from_results "$RUN_DIR" ;;
 
   flow)    spec="${1:?flow required, e.g. chat/send_message}"
            QA_CMD=flow hold_device_lock
@@ -188,7 +191,8 @@ import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
            step "SINGLE FLOW — $spec"
            run_feature "$(dirname "$spec")" "$RUN_DIR" "$f"
            python3 "$HERE/lib/report.py" "$RUN_DIR"
-           python3 "$HERE/lib/register.py" "$REPORTS_DIR" ;;
+           python3 "$HERE/lib/register.py" "$REPORTS_DIR"
+           exit_from_results "$RUN_DIR" ;;
 
   profile) # Simulate a different form factor on THIS session's device.
            #
