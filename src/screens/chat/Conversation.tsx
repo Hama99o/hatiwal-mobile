@@ -2222,8 +2222,22 @@ export function ConversationScreen() {
               { borderTopColor: colors.border, backgroundColor: colors.muted, paddingBottom: keyboardSafeBottom(keyboardVisible, insets.bottom, 12, 12) },
             ]}
           >
+            {/* SAY WHICH REASON. `canSend` is false for two very different ones —
+              * `isClosed` and `isBlocked` — and this bar used to announce
+              * "Conversation closed — replies disabled." for both. So blocking
+              * someone told you the CONVERSATION had closed, which is not what
+              * happened and is not something you can undo from here.
+              *
+              * Caught in qa/reports/run-386's block_from_conversation screenshot:
+              * the banner above the list correctly reads "You can't message this
+              * user." while this bar simultaneously claimed the conversation was
+              * closed. Both strings already exist in all three locales, so the
+              * blocked case reuses `chat.block.messagingUnavailable` rather than
+              * adding a fourth string that would need translating. */}
             <Text style={{ fontSize: 14, color: colors.mutedForeground, textAlign: "center" }}>
-              {t("chat.thread.closedInput")}
+              {isBlocked && !isClosed
+                ? t("chat.block.messagingUnavailable")
+                : t("chat.thread.closedInput")}
             </Text>
           </View>
         )}
