@@ -21,13 +21,21 @@ for d in sys.argv[1:]:
     rs = [json.loads(l) for l in f.read_text().splitlines() if l.strip()]
     c = collections.Counter(r.get("result", "MISSING") for r in rs)
     silent = [r for r in rs if r.get("result") == "pass" and (r.get("api_errors") or 0) > 0]
+    # A rig crash (the Expo dev-client FAB taking the app down) is not a verdict.
+    rig = [r for r in rs if r.get("kind") in ("rig_devclient_crash", "rig")]
     feats = ",".join(sorted({r.get("feature", "?") for r in rs}))
-    print(f"  {p.name:10} {c.get('pass',0):3} pass  {c.get('fail',0):3} fail"
+    fails = sum(1 for r in rs if r.get("result") != "pass" and r.get("kind") not in ("rig_devclient_crash", "rig"))
+    print(f"  {p.name:10} {c.get('pass',0):3} pass  {fails:3} fail  {len(rig):2} RIG"
           f"  {len(silent):2} SILENT  ({len(rs)} rows, {feats})")
     for k, v in c.items():
         if k not in ("pass", "fail"): print(f"      other result={k!r}: {v}")
     for r in rs:
-        if r.get("result") != "pass":
+        if r.get("result") == "pass":
+            continue
+        if r.get("kind") in ("rig_devclient_crash", "rig"):
+            # Say WHY it is not a verdict, so nobody triages it as an app bug.
+            print(f"      RIG   {r['feature']}/{r['flow']}  ({r['kind']}) — re-run, do not triage")
+        else:
             print(f"      FAIL  {r['feature']}/{r['flow']}")
     for r in silent:
         print(f"      SILENT {r['feature']}/{r['flow']}  api_errors={r['api_errors']}")

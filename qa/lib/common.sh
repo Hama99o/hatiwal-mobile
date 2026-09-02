@@ -275,7 +275,16 @@ if not p.exists():
 rows = [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
 if not rows:
     print("none"); raise SystemExit
-print(sum(1 for r in rows if r.get("result") != "pass"))
+# A RIG failure is not a flow verdict. classify() already labels the Expo
+# dev-client's FAB crash (`rig_devclient_crash`) — the "There was a problem
+# loading the project" screen — but the exit code was still counting it as a
+# failed flow, so chat_rtl was reported as an app/flow problem on 2026-09-02
+# when the app under test had been replaced by a crash screen.
+RIG_KINDS = {"rig_devclient_crash", "rig"}
+real = [r for r in rows if r.get("kind") not in RIG_KINDS]
+if not real:
+    print("none"); raise SystemExit
+print(sum(1 for r in real if r.get("result") != "pass"))
 PYEOF
 )
   case "$n" in
