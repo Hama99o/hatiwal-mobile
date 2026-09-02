@@ -2231,3 +2231,40 @@ own finding. FilterSheet has no flow touching its ids at all.
 reachable, do not reason about the layout — find a passing flow that types into
 it and then taps it. If none exists, the honest answer is "no coverage", not
 "probably fine".
+
+### The discriminator is `<Textarea>`, and it splits the seven perfectly
+
+Counting `<Textarea>` in each sheet lines up exactly with the verdicts reached
+independently from the flows:
+
+| Sheet | `<Textarea>` | Verdict, reached from flow evidence |
+|---|---|---|
+| OfferSheet | 0 | cleared |
+| BuyerPickerSheet | 0 | cleared |
+| SaleRowEditSheet | 0 | cleared |
+| FilterSheet | 0 | cleared |
+| ReportSheet | 1 | **affected** (pays for it with `hideKeyboard`) |
+| FirstMessageSheet | 1 | unproven — probe queued |
+| ReviewPromptSheet | 1 | unproven, same shape |
+
+Four zeros cleared, three ones not. That is a mechanism, not a coincidence:
+
+1. A `Textarea` is TALL, so it pushes the sheet's submit further down — past the
+   IME's top edge, where a short single-line `Input` leaves it above.
+2. A `Textarea` cannot be dismissed with `pressKey: Enter`, because Enter
+   inserts a NEWLINE there. So the one cheap escape hatch that works on every
+   other sheet is unavailable, which is why `report_listing` reaches for
+   `hideKeyboard` — a Back press — instead.
+
+Both compound with the content-sized KAV (`flex: 1` backdrop above it) that
+`behavior="height"` cannot shrink.
+
+**So the fix scope is three sheets, not seven** — ReportSheet, FirstMessageSheet,
+ReviewPromptSheet — identified by a one-line structural test. The four with no
+Textarea work and must be left alone: a lift they do not need is a regression
+risk for nothing.
+
+It also predicts the queued probe's result: FirstMessageSheet's "Send Message"
+should be UNREACHABLE with its Textarea focused. A probe with a prediction
+attached is worth more than one without, because a pass would falsify the rule
+rather than merely reassure.
