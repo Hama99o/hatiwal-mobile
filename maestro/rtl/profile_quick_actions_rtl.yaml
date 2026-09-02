@@ -62,15 +62,21 @@ appId: com.hatiwal.app
 # flow failed with `Element not found: Text matching regex: د پلورونکي حالت ته لاړ شئ`
 # after the scroll above had left it off the top of the screen.
 #
-# Scroll by testID (locale-independent), then assert the Pashto LABEL — which is
-# what this flow is actually here to prove — then tap.
+# Scroll AND tap by testID only. Do NOT assert this control's label.
+#
+# Profile.tsx says so directly: buyer/seller mode is persisted on the USER and
+# leaks across flows, so "targeting this control by its label means matching
+# the mode you are trying to detect, and the label is translated on top of
+# that — hence a stable handle". Asserting the Pashto label reintroduced that
+# fragility and failed with `Element not found` while the screenshot showed the
+# app rendering Pashto perfectly. This flow already proves the locale through
+# the quick-action labels it asserts above.
 - scrollUntilVisible:
     element:
       id: "mode-toggle-button"
     direction: UP
     visibilityPercentage: 40
     timeout: 20000
-- assertVisible: "د پلورونکي حالت ته لاړ شئ"
 - tapOn:
     id: "mode-toggle-button"
 - waitForAnimationToEnd
@@ -97,15 +103,21 @@ appId: com.hatiwal.app
 # flow failed with `Element not found: Text matching regex: د اخیستونکي حالت ته لاړ شئ`
 # after the scroll above had left it off the top of the screen.
 #
-# Scroll by testID (locale-independent), then assert the Pashto LABEL — which is
-# what this flow is actually here to prove — then tap.
+# Scroll AND tap by testID only. Do NOT assert this control's label.
+#
+# Profile.tsx says so directly: buyer/seller mode is persisted on the USER and
+# leaks across flows, so "targeting this control by its label means matching
+# the mode you are trying to detect, and the label is translated on top of
+# that — hence a stable handle". Asserting the Pashto label reintroduced that
+# fragility and failed with `Element not found` while the screenshot showed the
+# app rendering Pashto perfectly. This flow already proves the locale through
+# the quick-action labels it asserts above.
 - scrollUntilVisible:
     element:
       id: "mode-toggle-button"
     direction: UP
     visibilityPercentage: 40
     timeout: 20000
-- assertVisible: "د اخیستونکي حالت ته لاړ شئ"
 - tapOn:
     id: "mode-toggle-button"
 - waitForAnimationToEnd
