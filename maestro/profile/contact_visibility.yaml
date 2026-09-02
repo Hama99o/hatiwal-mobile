@@ -42,10 +42,27 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
-- assertVisible:
-    id: "edit-profile-show-phone-switch"
-- assertVisible:
-    id: "edit-profile-show-address-switch"
+# SCROLL to each switch. On a 400dp-tall viewport (720x1280@320dpi) the
+# visibility rows sit below the WhatsApp input, so `assertVisible` fails on
+# controls that are rendered and one drag away — this failed with
+# `Assertion is false: id: edit-profile-show-phone-switch is visible` right after
+# the scroll to the input above it had SUCCEEDED.
+#
+# Fourth instance of this shape in the small-screen pass, so it is the rule and
+# not the exception: on a short viewport, `assertVisible` on anything past the
+# first screenful is a scroll waiting to be written.
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-show-phone-switch"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-show-address-switch"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
 
 # ── 2. "same as my phone" ─────────────────────────────────────────────────
 # Give the phone a known value first, so the copy is observable rather than a
