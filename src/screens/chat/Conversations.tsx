@@ -133,7 +133,6 @@ export default function ConversationsScreen() {
   // anywhere" and "no matches in what's loaded so far, but more pages
   // exist" (search only ever filters what's already in memory).
   const [pageInfo, setPageInfo] = useState({ currentPage: 1, totalPages: 1 });
-  const hasUnloadedConversations = pageInfo.currentPage < pageInfo.totalPages;
 
   // ── Chip-row scroll affordance (review fix) ─────────────────────────────────
   // The read-state + role chip row can hold up to 5 chips plus a divider,
@@ -456,17 +455,14 @@ export default function ConversationsScreen() {
                 : t("chat.noConversations"),
     emptyDescription:
       hasSearchTerm
-        ? hasUnloadedConversations
-          // More pages exist beyond what's loaded — a "no matches" here would
-          // be misleadingly absolute (CR fix: the match could be sitting on
-          // an unloaded page), so make that explicit. `noMatchDescriptionPartial`
-          // is ONE translated sentence (review fix) rather than two
-          // separately-translated strings glued together in code with a
-          // hardcoded ASCII space — translators can order/punctuate it
-          // however their language needs, which `${a} ${b}` composition
-          // never allowed.
-          ? t("chat.search.noMatchDescriptionPartial")
-          : t("chat.search.noMatchDescription")
+        // No "…in loaded conversations only" caveat any more. It described the
+        // OLD client-side search, which filtered the pages already in memory —
+        // so a match on an unloaded page genuinely could exist and the hedge was
+        // honest. The server searches the whole inbox now (?search= ->
+        // Conversation.matching), so "no matches" IS absolute, and hedging a
+        // correct answer would send people paging for something that is not
+        // there.
+        ? t("chat.search.noMatchDescription")
         : tabMode === "archived"
           ? t("chat.archive.emptyDescription")
           : role === "selling"
