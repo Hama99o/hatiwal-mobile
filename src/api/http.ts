@@ -97,7 +97,22 @@ http.interceptors.response.use(
       useAuthStore.getState().clearUser();
       useAuthStore.getState().setBlockedNotice(blocked);
     } else if (httpStatus === 401) {
+      // CLEAR THE USER TOO, not just the headers.
+      //
+      // Found in the v1.0.4 production build by a parallel session and confirmed
+      // here. Clearing only the headers leaves the app in a state it cannot get
+      // out of: the auth store still says authenticated, so the tab bar and every
+      // screen render as logged in, while every request now goes out anonymous
+      // and 401s again. Profile shows "check your internet connection" forever
+      // and Retry can never recover it, because nothing about the session is
+      // wrong from the app's point of view — the headers are simply gone.
+      //
+      // This is also what auth.bootstrap.ts has always done on the same signal
+      // ("Only a definitive 401 means the token is dead — then truly log out"),
+      // so the interceptor was the inconsistent one. A dead token now lands the
+      // user on login, which is recoverable, instead of a shell that is not.
       await secureStorage.clearAuthHeaders();
+      useAuthStore.getState().clearUser();
     }
 
     return Promise.reject(error);
