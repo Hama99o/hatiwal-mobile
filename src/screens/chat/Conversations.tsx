@@ -536,7 +536,21 @@ export default function ConversationsScreen() {
           />
         </View>
 
-        {/* Inbox / Archived tab toggle */}
+        {/* Inbox / Archived tab toggle — HIDDEN while searching.
+          *
+          * Searching is its own mode, and on a small phone the chrome above this
+          * list eats the whole screen. Measured at 720x1280@320dpi (~400dp tall)
+          * with the keyboard up: search field + this toggle + the filter chip row
+          * + the FloatingTabBar overlaying the bottom edge left roughly 13dp of
+          * list — so a search could not show a single result, however well it
+          * matched (run-341, 2026-09-02, found by the small-screen pass).
+          *
+          * Both this toggle and the chip row below now collapse while a search
+          * term is present, which gives the results the room they need. Neither
+          * is useful mid-search anyway: the search already spans what you are
+          * looking for, and clearing it brings both straight back.
+          */}
+        {trimmedSearchTerm ? null : (
         <View
           style={{
             flexDirection:   isRtl ? "row-reverse" : "row",
@@ -593,6 +607,7 @@ export default function ConversationsScreen() {
             );
           })}
         </View>
+        )}
 
         {/* Combined filter chip row. Holds TWO independent groups in one
             horizontally-scrollable row so we never add a 4th always-visible
@@ -605,6 +620,8 @@ export default function ConversationsScreen() {
             in the Inbox. Scrolls rather than shrinking so neither group ever
             clips at narrow widths (e.g. 375px); the chevron hints below make
             the overflow discoverable instead of silently off-screen. */}
+        {/* ...and the chip row too, for the same reason — see the toggle above. */}
+        {trimmedSearchTerm ? null : (
         <View
           style={{ marginTop: 8 }}
           onLayout={(e) => {
@@ -688,6 +705,7 @@ export default function ConversationsScreen() {
             </View>
           )}
         </View>
+        )}
       </View>
 
       {/* ── List (UniversalList — FlashList-backed) ─────────────────────── */}
