@@ -2131,3 +2131,61 @@ blank label in three languages.
 same as a defect. Removing a control ON PURPOSE leaves exactly this trace, and
 the flows that guard the removal make the string look used. Check whether the
 citing flow asserts the string VISIBLE or ABSENT before believing either.
+
+## hideKeyboard popped Edit Profile — and the failure surfaced four steps later
+
+`contact_visibility` failed on `Assertion is false: "\+93700000123" is visible`,
+which reads like the "same as my phone" shortcut not copying the number. It was
+not. The `- hideKeyboard` after `inputText: "+93700000123"` is a BACK PRESS on
+Android, and it navigated Edit Profile back to Profile.
+
+Proven from run-398's own hierarchy dump at the failing step: no `edit-profile-*`
+node anywhere on screen, `"Switch to Seller Mode"` present.
+
+**The part worth remembering is how well it hid.** The next three commands all
+reported COMPLETED:
+
+```
+Tap on id: edit-profile-whatsapp-input          COMPLETED
+Erase text                                      COMPLETED
+Tap on id: edit-profile-whatsapp-same-as-phone  COMPLETED
+Assert that id: …same-as-phone is not visible   COMPLETED   ← passed for the WRONG reason
+Assert that "\+93700000123" is visible          FAILED
+```
+
+Maestro's view hierarchy lags a navigation, so those taps landed on a screen
+already on its way out. The `assertNotVisible` then passed because *nothing* was
+there, not because the control had retired itself — an assertion agreeing with
+you for the wrong reason is worse than one that fails. Only the fifth command
+failed, and it named a symptom four steps downstream of the cause.
+
+So: when an assertion fails on a value you are confident the app computes
+correctly, **check which SCREEN the hierarchy dump shows before debugging the
+value.** `screen-hierarchy/step-NNN-*.json` in the flow's debug directory
+answers it in one grep and would have saved the whole detour.
+
+### The lint rule was exempting exactly the case that broke
+
+`HIDEKEY` used to fire only on a `hideKeyboard` with *no typing before it*, on
+the theory that typing guarantees an IME to close. It does not: Maestro's
+`inputText` sets the value through the driver and does not reliably raise the
+soft keyboard. That exemption is precisely what let this through.
+
+It now flags every `hideKeyboard` whose reasoning is not written down above it —
+the same bar `CENTERELEM` uses — because static analysis cannot tell which
+screen a flow is on, and both kinds genuinely exist:
+
+- **Load-bearing:** `report_listing.yaml:60`, `publish_success.yaml:225`. Leaving
+  the IME up lets it swallow the submit tap while Maestro still reports
+  COMPLETED (it taps the element's bounds; the touch lands on the keyboard).
+  Both say so in a comment, and both pass.
+- **Screen-popping:** this one, undocumented.
+
+The ~22 inline sign-ins (`inputText: "Password123!"` then `hideKeyboard`) stay
+exempt by shape: Login is the root of the auth stack, so a stray Back pops
+nothing. Flagging them would make the rule 25 findings with 22 of them noise,
+and a rule nobody reads is how the real one hides.
+
+**The replacement is `pressKey: Enter` on a single-line input** — a real user
+action that blurs the field and closes the IME without touching the navigation
+stack. It does NOT work on a `Textarea`, where Enter inserts a newline.

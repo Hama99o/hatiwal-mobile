@@ -237,10 +237,55 @@ def check(path):
             if st and not st.startswith("#") and st != "- waitForAnimationToEnd":
                 prev = st
                 break
-        if not re.match(r'-?\s*(inputText|eraseText)\b', prev):
+        # TYPING BEFORE IT PROVES NOTHING — this rule used to exempt that case, and
+        # the exemption is what let contact_visibility through. It ran
+        # `inputText: "+93700000123"` and then `hideKeyboard` on Edit Profile,
+        # and the Back press popped the screen back to Profile. Proven from
+        # run-398's own hierarchy dump at the failing step: no `edit-profile-*`
+        # node anywhere, "Switch to Seller Mode" present. The next three
+        # commands still reported COMPLETED against the stale hierarchy, so the
+        # flow failed four steps later on an assertion that looked unrelated.
+        #
+        # Maestro's `inputText` sets the value through the driver and does not
+        # reliably raise the soft keyboard, so "typed, therefore an IME is up"
+        # was never sound.
+        #
+        # So: EVERY hideKeyboard is flagged, and the exemption is an explicit
+        # justification comment above it — the same convention CENTERELEM uses.
+        # login.yaml's is safe and says why, which is exactly the shape wanted.
+        # JUSTIFIED = the reasoning is written down immediately above it. Static
+        # analysis cannot tell which screen a flow is on, so it cannot tell a
+        # load-bearing hideKeyboard from a screen-popping one — and both exist:
+        #   * report_listing.yaml:60 and publish_success.yaml:225 need it,
+        #     because the IME swallows the submit tap while Maestro still
+        #     reports COMPLETED (it taps the element's bounds, the touch lands
+        #     on the keyboard). Both say so in a comment.
+        #   * contact_visibility.yaml:84 had no comment, and its Back press
+        #     popped Edit Profile to Profile.
+        # So the bar is the same one CENTERELEM uses: explain it, or fix it.
+        justified = any(
+            lines[k].strip().startswith("#")
+            and re.search(r'(?i)hideKeyboard|Back press|IME|keyboard', lines[k])
+            for k in range(max(0, i - 8), i - 1)
+        )
+        # THE LOGIN SHAPE IS EXEMPT, and only that one. `inputText: <password>`
+        # then hideKeyboard on the sign-in form is safe for a reason that does
+        # not generalise: Login is the root of the auth stack, so a stray Back
+        # pops nothing. ~22 flows do their sign-in inline like this and pass.
+        #
+        # Flagging them would make this rule 25 findings of which 22 are noise —
+        # and a rule that is mostly noise is one nobody reads, which is how the
+        # real one hides. Narrowed to the password shape rather than to "any
+        # typing", because "any typing" is precisely the exemption that let
+        # contact_visibility through.
+        login_shape = bool(re.search(r'(?i)password', prev))
+        if not justified and not login_shape:
             hits.append((i, "HIDEKEY",
-                         f'hideKeyboard after {prev[:30]!r} — no IME guaranteed, so this '
-                         f'is a Back press that pops the screen'))
+                         f'hideKeyboard after {prev[:30]!r} — on Android this is a BACK '
+                         f'PRESS with no IME guaranteed, so it can pop the screen; typing '
+                         f'first does not help (see contact_visibility / run-398). Use '
+                         f'`pressKey: Enter` on a single-line input, or justify it in a '
+                         f'comment saying why Back is safe here'))
 
     for i, raw in enumerate(lines, 1):
         l = raw.strip()
