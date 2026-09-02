@@ -141,10 +141,15 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-# UP, and no centerElement. `profile-edit-button` sits in the PERSONAL INFO
-# header row near the TOP of Profile, so:
-#   - `direction: DOWN` scrolls AWAY from it whenever Profile is parked below it
-#     (Profile retains its scroll offset across visits within a session), and
+# DOWN, and no centerElement.
+#
+# The defect here was ONLY `centerElement: true`, never the direction. Profile
+# renders hero -> stats grid -> quick actions -> PERSONAL INFO card, so from
+# the cold start every flow gets (login.yaml does stopApp + launchApp) this
+# button is BELOW the fold and DOWN is correct. Flipping it to UP made the
+# scroll travel away from the target and produced `No visible element found:
+# id: profile-edit-button` — a worse failure than the one it replaced.
+#
 #   - `centerElement: true` demands the scroll bring it to the MIDDLE, which is
 #     impossible for an element that near the top: there is not enough content
 #     above it to push it down. Maestro then burns the full timeout and fails on
@@ -153,12 +158,12 @@ appId: com.hatiwal.app
 # It is why this step was ORDER-DEPENDENT: edit_profile and
 # edit_profile_validation passed while edit_profile_all_fields and
 # edit_profile_province failed on the byte-identical block.
-# UP is correct from any starting offset, and 40 percent accepts the partially
-# visible row.
+# 40 percent accepts the partially visible row, which is what the impossible
+# centring was really failing on.
 - scrollUntilVisible:
     element:
       id: "profile-edit-button"
-    direction: UP
+    direction: DOWN
     visibilityPercentage: 40
     timeout: 25000
 - tapOn:
