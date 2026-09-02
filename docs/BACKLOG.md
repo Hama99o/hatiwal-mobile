@@ -1586,3 +1586,54 @@ bug reports: `qa.sh` exit codes now mean the flows' verdict (0/1/2/3, with
 resize and is now classified as a rig failure rather than an app assertion; the
 debug APK carries no JS (it comes from Metro), so an APK's date says nothing
 about what is running.
+
+## KB-1 — Lift the three `<Textarea>` sheets above the Android keyboard  ·  board #310  ·  To Do
+
+**Status:** not started · **Found:** 2026-09-03 QA session · **Owner:** unassigned
+
+ReportSheet, FirstMessageSheet and ReviewPromptSheet draw their submit button
+UNDER the soft keyboard on Android. Proven on MeetupSheet and fixed there
+(`d46c896`): each sheet's `KeyboardAvoidingView` is content-sized, because a
+`flex: 1` backdrop sits above it, so `behavior="height"` has nothing to shrink —
+and under the edge-to-edge Expo SDK 54 enforces, the IME is an inset drawn OVER a
+full-height window, so nothing moves on its own.
+
+**Scope is exactly these three.** Seven sheets share the broken layout; the four
+with no `<Textarea>` are cleared by passing flows that type into them and then tap
+their own submit (OfferSheet, BuyerPickerSheet, SaleRowEditSheet, FilterSheet).
+Those four must NOT be touched — a lift they do not need is a regression risk for
+nothing.
+
+**Why `<Textarea>` is the test:** it is tall, so it pushes the submit past the
+IME's top edge where a short single-line `Input` leaves it above; and it cannot be
+dismissed with `pressKey: Enter`, because Enter inserts a newline there. That is
+why `report_listing.yaml:60` reaches for `hideKeyboard` — a Back press — instead.
+A flow is currently paying for this defect.
+
+**Fix:** the house pattern already applied to the chat composer, MeetupSheet and
+EditProfile's sticky Save — `useKeyboardHeight()` + `keyboardBarLift()` +
+`keyboardSafeBottom()` from `src/hooks/useKeyboardVisible.ts`. Leave iOS's
+`behavior="padding"` alone; no Mac here to verify a change to it. Add testIDs to
+FirstMessageSheet while there — it has none, which is why nothing covers it.
+
+## WA-W1 — hatiwal-web has no WhatsApp contact button on listing detail  ·  board #311  ·  Backlog
+
+**Status:** not started · **Found:** 2026-09-03 QA session · **Owner:** unassigned
+
+Mobile offers Call AND WhatsApp on a listing. Web has the phone reveal with a
+`tel:` link and no WhatsApp option at all — no button, no util, no copy.
+
+A parity gap, not a bug: the owner asked for the button on mobile and for the
+FIELD on web edit, which shipped. Recorded rather than built unasked.
+
+Needs ~40 lines plus copy: a port of `src/utils/whatsapp.ts` (the +93 / 0093 /
+070 / 70 normalisation is the part that actually breaks), `listing.detail.
+whatsappSeller` in en/ps/fa taken verbatim from mobile, a `wa.me` anchor beside
+the `tel:` one preferring `seller.whatsappNumber` over `seller.phone`, and a
+Playwright test. No backend work — the API already sends `whatsapp_number` on the
+listing `:detailed` view, on the same visibility switch as the phone.
+
+**Watch out:** mobile shipped this half-wired — the field, its "same as my phone"
+shortcut and its visibility switch all worked while nothing READ
+`seller.whatsappNumber`, so every `wa.me` link used the phone instead (fixed in
+`2dfb5d3`). Wire the read, not just the write.
