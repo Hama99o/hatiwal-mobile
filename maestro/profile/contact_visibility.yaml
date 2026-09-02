@@ -82,6 +82,28 @@ appId: com.hatiwal.app
 - eraseText
 - inputText: "+93700000123"
 - hideKeyboard
+# CLEAR the WhatsApp field first, so the shortcut has something to do.
+#
+# It renders only while a phone exists AND the WhatsApp value DIFFERS from it —
+# deliberately, so it is never a no-op. A previous run of this flow SAVED
+# "+93700000123" into the WhatsApp field, so on the next run the two matched and
+# the control correctly hid itself; the flow then failed with `No visible element
+# found: id: edit-profile-whatsapp-same-as-phone` on an app behaving exactly as
+# designed.
+#
+# Fourth fixture-leak of this shape today (a soft-deleted conversation, a
+# consumed unread thread, a persisted seller_mode). The seed now resets
+# whatsapp_number too; this makes the flow independent of that as well.
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-whatsapp-input"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- tapOn:
+    id: "edit-profile-whatsapp-input"
+- eraseText
+- waitForAnimationToEnd
 - scrollUntilVisible:
     element:
       id: "edit-profile-whatsapp-same-as-phone"
