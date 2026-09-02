@@ -60,6 +60,7 @@ elsewhere), and the fix there is usually a `when:` conditional with real asserti
 inside it, not a hard assert.
 """
 import json, re, sys, glob, io, os
+import yaml
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -150,6 +151,47 @@ def block_range(lines, i):
 def check(path):
     hits = []
     lines = io.open(path, encoding="utf-8").read().split("\n")
+
+    # ── YAML TYPES: a timeout must be a NUMBER ──────────────────────────────
+    #
+    # Every other rule here reads the file as TEXT, so none of them can see a
+    # step that parses but parses WRONG. This one was written after a comment
+    # got concatenated onto the end of a `timeout:` line — no newline between
+    # them — which YAML happily read as the string "60000# ...but the marker is
+    # each mode's SEARCH BAR...". Maestro then refused the flow outright:
+    #
+    #   [Failed] categories_hub_rtl (Invalid timeout value '60000# ...'
+    #            in 'Assert that id: browse...'
+    #
+    # It was in two shared helpers reached by ~26 RTL and dark-mode flows, and
+    # nothing caught it: flow_lint passed (a text scan sees a fine-looking
+    # line), and `yaml.safe_load_all` passed too, because a quoted scalar IS
+    # valid YAML. Only running a flow found it.
+    #
+    # So: parse the file and assert the types of the numeric fields. Cheap, and
+    # it covers every generator of this class, not just a missing newline.
+    try:
+        docs = [d for d in yaml.safe_load_all(io.open(path, encoding="utf-8"))]
+    except Exception as e:
+        hits.append((1, "YAMLPARSE", f"does not parse as YAML: {e}"))
+        docs = []
+    for doc in docs:
+        if not isinstance(doc, list):
+            continue
+        for step in doc:
+            if not isinstance(step, dict):
+                continue
+            for cmd, body in step.items():
+                if not isinstance(body, dict):
+                    continue
+                for field in ("timeout", "index", "times", "visibilityPercentage",
+                              "maxRetries", "speed"):
+                    if field in body and not isinstance(body[field], (int, float)):
+                        hits.append((1, "BADTYPE",
+                                     f"{cmd}.{field} is {body[field]!r} "
+                                     f"({type(body[field]).__name__}), not a number — "
+                                     f"Maestro rejects the flow; a comment run onto the "
+                                     f"end of the line is the usual cause"))
     # Text this flow types. An assert on a PREFIX of something the flow itself sent
     # can never match the node holding the whole of it — message_long_text asserted
     # 27 characters of a 366-character message. The locale-file comparison below

@@ -22,7 +22,8 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible:
       id: "browse-tab"
-    timeout: 60000# ...but the marker is each mode's SEARCH BAR, not a listing card.
+    timeout: 60000
+# ...but the marker is each mode's SEARCH BAR, not a listing card.
 #
 # A card is only false-before/true-after when the landing screen HAS content, and
 # it does not always have any. run-380's contact_visibility died here after the
