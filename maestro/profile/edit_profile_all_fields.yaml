@@ -52,6 +52,19 @@ appId: com.hatiwal.app
     id: "edit-profile-lastname-input"
 - eraseText
 - inputText: "UpdatedLast"
+# DISMISS THE IME BEFORE SCROLLING DOWN THE FORM.
+#
+# At 360dp (a ~400dp-tall window) the keyboard leaves roughly 150dp of form
+# visible, and everything below is behind it. The next step has to bring the Bio
+# field into that strip AND land a tap on it — and a tap that lands on the
+# keyboard is reported COMPLETED by Maestro while the touch never reaches the
+# app (see report_listing.yaml:60's note).
+#
+# `pressKey: Enter`, not `hideKeyboard`: lastname is a single-line RNR Input, so
+# Enter blurs it and the IME closes without touching the navigation stack.
+# `hideKeyboard` is a Back press and popped a screen in contact_visibility.
+- pressKey: Enter
+- waitForAnimationToEnd
 
 # Clear and update bio. By testID: "Bio" is a NON-INTERACTIVE label above the
 # field (the input's placeholder is "Tell buyers a little about yourself…"), and it
@@ -60,7 +73,19 @@ appId: com.hatiwal.app
     element:
       id: "edit-profile-bio-input"
     direction: DOWN
-    centerElement: true
+    # NO centerElement. It failed at 360dp exactly as flow_lint's CENTERELEM rule
+    # predicts — "cannot be satisfied when the target has too little content
+    # below it; fails at 360dp while passing at 411dp" — timing out after 20s
+    # with `No visible element found: id: edit-profile-bio-input` on a field that
+    # was rendering perfectly. Centring needs room on BOTH sides, and with the
+    # keyboard covering the lower half of a 400dp window there is none below.
+    #
+    # 60, not the house 40: the note further down this file is right that
+    # "visible" is not "tappable" — a scroll that stops the instant the field
+    # enters the screen can leave it under the gesture bar, where the nav bar
+    # eats the tap. 60% keeps enough of the field clear of both edges to be hit,
+    # and the IME is down by now anyway.
+    visibilityPercentage: 60
     timeout: 20000
 - tapOn:
     id: "edit-profile-bio-input"
