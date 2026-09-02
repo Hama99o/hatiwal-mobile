@@ -22,16 +22,30 @@ appId: com.hatiwal.app
 - extendedWaitUntil:
     visible:
       id: "browse-tab"
-    timeout: 60000
-# `(seller-)?listing-card`, because the initial route depends on MODE. In buyer mode the
-# app comes back on the Bazaar feed (listing-card); in SELLER mode the first tab is My
-# Listings, which renders seller-listing-card. Maestro's id matching is an ANCHORED
-# regex, so a bare "listing-card" does NOT match "seller-listing-card" — and that is
-# exactly how my first version of this wait broke dark_mode/my_listings_dark, which
-# failed with "Assertion is false: id: listing-card is visible" on a screen full of
-# cards.
+    timeout: 60000# ...but the marker is each mode's SEARCH BAR, not a listing card.
+#
+# A card is only false-before/true-after when the landing screen HAS content, and
+# it does not always have any. run-380's contact_visibility died here after the
+# full 45s: the failure screenshot shows the app on My Shop in SELLER mode
+# reading "0 listings" over the "You haven't posted anything yet" empty state, so
+# `seller-listing-card` was unreachable by construction — the wait could never
+# have passed, however long it ran, and the flow's own subject (the WhatsApp
+# field and the two visibility switches) was never reached.
+#
+# That mattered twice over, because `login.yaml` calls `ensure_english` BEFORE
+# `ensure_buyer_mode`: the per-flow mode repair sits BEHIND this wait, so a
+# leaked `seller_mode = true` (left by an earlier flow that failed between its
+# two toggle presses) could not be repaired by the helper written to repair it.
+# The order cannot simply be swapped — `ensure_buyer_mode` gates on the English
+# label "Switch to Seller Mode" — so the barrier itself has to tolerate seller
+# mode and an empty shop.
+#
+# Both ids below are rendered by their screen's HEADER, so they survive an empty
+# list, cover either initial route, and are still absent on the Profile screen
+# the switch is made from — which is the property that made a card better than
+# `browse-tab` in the first place. Anchored-regex alternation matches either.
 - extendedWaitUntil:
     visible:
-      id: "(seller-)?listing-card"
+      id: "(browse-search-bar|my-listings-search-input)"
     timeout: 45000
 - waitForAnimationToEnd

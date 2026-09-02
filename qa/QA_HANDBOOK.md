@@ -1998,3 +1998,68 @@ out, something still dies — it stops the emulator being the automatic first vi
 The general lesson: when a component dies repeatedly with no error of its own,
 check whether something ELSE is killing it before treating it as unreliable. Five
 reboots went by before I looked at dmesg.
+
+## A restart barrier must not assume the landing screen has content
+
+`await_language_restart` / `await_theme_restart` exist to wait out the app
+restart that a language or theme switch triggers. The barrier has to be FALSE
+before the restart and TRUE after — a bare `browse-tab` wait is toothless
+because the tab bar is on screen throughout — so both helpers used to wait on
+`(seller-)?listing-card`.
+
+A card is the wrong marker, because **the landing screen is not guaranteed to
+have any.** `contact_visibility` burned the full 45s and failed with
+`Assertion is false: id: (seller-)?listing-card is visible` while the app sat on
+My Shop in seller mode reading *"0 listings / You haven't posted anything yet"*
+(`qa/reports/run-380/profile/screens/contact_visibility.png`). The QA buyer owns
+**zero** listings, so in seller mode that screen is empty by construction and no
+amount of waiting could have passed. The flow's actual subject — the WhatsApp
+field and the two visibility switches — was never reached.
+
+Both helpers now wait on `(browse-search-bar|my-listings-search-input)`: header
+controls, so they survive an empty list, they cover either mode's initial route,
+and they are still absent on the Profile screen the switch is made from.
+
+### Why that blocked the very helper written to fix it
+
+`login.yaml` runs `ensure_english` BEFORE `ensure_buyer_mode`, and
+`ensure_english` is what contains this barrier. So the per-flow mode repair sat
+*behind* the broken wait: a leaked seller mode could not be repaired by the
+helper whose entire job is repairing it. The order cannot just be swapped —
+`ensure_buyer_mode` gates on the English label `"Switch to Seller Mode"` — so
+the barrier itself had to tolerate seller mode and an empty shop.
+
+### Seller mode leaks on the DEVICE, and the seed cannot reach it
+
+`src/stores/mode.store.ts` hydrates the mode from **AsyncStorage** on boot and
+mirrors it to the server fire-and-forget (`authAPI.updateMe(...).catch(() =>
+null)`). After run-380 the DB read `seller_mode = false` while the device was
+plainly in seller mode — AsyncStorage won. So:
+
+- resetting `seller_mode` in the seed is **not** sufficient, and a green seed
+  check does not prove the device is in buyer mode;
+- `ensure_buyer_mode` in `login.yaml` is the only per-flow repair, which is why
+  nothing may be allowed to block it;
+- a flow that toggles the mode and fails between its two presses (this was
+  `profile_quick_actions_rtl`) leaves every later flow in the chain in seller
+  mode until that helper gets to run.
+
+## Maestro text matching is anchored — a COUNTED label needs `.*`
+
+`profile_quick_actions_rtl` failed with `No visible element found:
+"زما اعلانونه"` across several runs, and the mode toggle was blamed twice. It
+was neither. `Profile.tsx:306` renders that one row with a count:
+
+```jsx
+label={`${t("profile.quickActions.myListings")} (${user?.itemsActiveCount ?? 0})`}
+```
+
+so the on-screen text is `زما اعلانونه (0)` and the bare label matches nothing.
+Its three sibling labels carry no suffix, which is why only that row ever failed.
+Run-379's screenshot showed Profile correctly in seller mode — green tab bar,
+three tabs, `saved-tab` gone — while the step scrolled past the rendered quick
+actions to the bottom of the page hunting a string that cannot exist.
+
+**Before asserting a label, read how it is BUILT, not just what the locale file
+says.** A count, a badge or an interpolated name makes the locale string a
+prefix, not the text.

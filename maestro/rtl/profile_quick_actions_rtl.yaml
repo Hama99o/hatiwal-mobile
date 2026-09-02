@@ -125,6 +125,16 @@ appId: com.hatiwal.app
 #
 # mode-toggle-button sits at the very top, so scrolling UP to it puts the list at
 # a known position before the DOWN scrolls below.
+# ...AND MATCH IT AS A PREFIX, because the app renders a COUNT after this one
+# label and Maestro anchors its text regexes to the WHOLE string:
+#   Profile.tsx:306  label={`${t("profile.quickActions.myListings")} (${count})`}
+# so the on-screen text is "زما اعلانونه (0)" and the bare label matched nothing.
+# The anchor scroll above was NOT the fix and the mode switch was never at fault:
+# run-379's failure screenshot shows Profile in seller mode (green tab bar, three
+# tabs, `saved-tab` gone) with `buyer.seller_mode = true` in the DB, i.e. the
+# quick actions WERE rendering while this step scrolled past them to the bottom
+# hunting for a string that cannot exist. The three sibling labels here carry no
+# suffix, which is why only this row ever failed.
 - scrollUntilVisible:
     element:
       id: "mode-toggle-button"
@@ -135,7 +145,7 @@ appId: com.hatiwal.app
 # Same again for the seller-mode set — four rows, one screen.
 - scrollUntilVisible:
     element:
-      text: "زما اعلانونه"
+      text: "زما اعلانونه.*"
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
