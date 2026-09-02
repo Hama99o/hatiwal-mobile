@@ -835,6 +835,11 @@ export default function EditProfileScreen() {
           onPress={handleSubmit(onSubmit, onInvalid)}
           disabled={saveMutation.isPending}
           size="lg"
+          // A locale-independent handle. The label is `profile.edit.saveButton`
+          // ("Save Changes"), which no flow running in ps/fa can match — and it
+          // swaps to `profile.edit.saving` mid-submit, so even in English the text
+          // is not a stable selector.
+          testID="edit-profile-save-button"
           style={{ width: "100%" }}
         >
           {saveMutation.isPending ? (

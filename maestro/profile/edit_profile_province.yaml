@@ -79,13 +79,19 @@ appId: com.hatiwal.app
 - takeScreenshot: edit_profile_province-derived
 
 # ── 3. they survive a save + reload ────────────────────────────────────────
+# BY testID. This screen's button reads "Save Changes"
+# (profile.edit.saveButton), and Maestro's text match is anchored — so `text:
+# "Save"` never matches it. It also swaps to "Saving…" mid-submit, so the text is
+# not a stable handle even in English. Found at 360dp, but it would have failed at
+# any width; the small-screen run simply got there first.
 - scrollUntilVisible:
     element:
-      text: "Save"
+      id: "edit-profile-save-button"
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
-- tapOn: "Save"
+- tapOn:
+    id: "edit-profile-save-button"
 - waitForAnimationToEnd
 - launchApp:
     stopApp: true
