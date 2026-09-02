@@ -85,12 +85,25 @@ def main():
 
     # Strings left identical to English. Brand names and pure-interpolation
     # templates are legitimately identical, so only flag real sentences.
+    #
+    # The class below therefore has to include LANGUAGE-NEUTRAL SYMBOLS. It did
+    # not, so `chat.offer.quantityTotal` — '{{units}} × {{unitPrice}} = {{total}}',
+    # which has no words in it to translate — was reported for both ps and fa on
+    # every run. Those were the audit's only two findings, so a clean i18n state
+    # read as two defects and the next real one would have had to compete with
+    # them.
+    #
+    # Known limitation, left as it is rather than quietly widened: `\w` matches
+    # letters, so a genuinely untranslated SENTENCE ("Save changes" left in
+    # English) already slips through this check. What it really catches is
+    # strings carrying unusual punctuation. Worth redesigning deliberately; not
+    # worth pretending otherwise in passing.
     for name, other in (("ps", ps), ("fa", fa)):
         same = [
             k for k in set(en) & set(other)
             if isinstance(en[k], str) and en[k] == other[k]
             and len(en[k]) > 3
-            and not re.fullmatch(r"[\s{}\w.\-—|/]*", en[k].replace("{{", "").replace("}}", ""))
+            and not re.fullmatch(r"[\s{}\w.\-—|/×=+%:,()#&*]*", en[k].replace("{{", "").replace("}}", ""))
         ]
         if same:
             findings += 1
