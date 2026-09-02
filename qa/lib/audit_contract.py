@@ -121,6 +121,22 @@ def serializer_fields(fname):
         association :seller, blueprint: …
     """
     src = (API / "app/serializers" / fname).read_text()
+    # STRIP WHOLE-LINE COMMENTS FIRST. The `fields` regex below matches a RUN of
+    # `:symbol` tokens, and a run cannot cross a comment — so a wrapped `fields`
+    # list with an explanatory comment part-way down silently loses everything
+    # after the comment.
+    #
+    # That is not hypothetical: user_serializer.rb's `view :me` wraps over five
+    # lines with a two-line comment before its last three, and this audit
+    # therefore reported `whatsappNumber`, `showPhonePublicly` and
+    # `showAddressPublicly` as "declared, never emitted" while all three were
+    # emitted one line below the comment. An audit that cries wolf about a
+    # working feature is worse than no audit — it was the only finding in the
+    # run, so the whole report read as a real defect.
+    #
+    # Only lines whose FIRST non-space character is `#` are removed, so a `#`
+    # inside a string or an interpolation is untouched.
+    src = re.sub(r"^[ \t]*#[^\n]*\n", "", src, flags=re.M)
     out = set()
     for m in re.finditer(r"\bfields\s+((?::[a-z_0-9]+\s*,?\s*\n?\s*)+)", src):
         out |= set(re.findall(r":([a-z_0-9]+)", m.group(1)))
