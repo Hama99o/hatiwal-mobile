@@ -134,6 +134,30 @@ way to prove a bubble is not hidden behind the composer, since Maestro's
 visibility test uses an element's own bounds and cannot see occlusion — must run
 when the device is IDLE, between flows.
 
+## Never delete an AVD you did not create — `hatiwal_play` in particular
+
+`~/.android/avd/` is shared with other sessions and with hand-built devices. A
+tidy-up pass that removes anything not matching `qa_*` looks reasonable and is
+not:
+
+- **`hatiwal_play.avd`** (5.3GB) is deliberate state. It holds a signed-in Google
+  account that is an opted-in Play tester, plus the Play-Store-installed build, in
+  `userdata-qemu.img.qcow2`. Rebuilding it means re-downloading the 2.1GB
+  `google_apis_playstore` system image AND an interactive Google sign-in that
+  needs the owner present — it cannot be recreated unattended. Recorded
+  2026-09-02 at the request of the session that built it, which has paused that
+  testing to resume the next day.
+
+Killing an **emulator** is always fine (`adb -s emulator-NNNN emu kill`) — it is
+the AVD directory and the downloaded system image that must survive. Same
+principle as the shared working tree: if you did not create it, do not remove it.
+
+And check for other sessions before assuming an emulator is orphaned. `ListAgents`
+shows who is live; on 2026-09-02 a second emulator was killed as presumed debris
+and it belonged to a peer mid-test. Two emulators do not fit on this host
+(each ~4-4.6GB RSS, and doctor blocks flows under 4GB free), so the right move is
+to coordinate, not to reclaim.
+
 ## Never kill by process name on this machine
 
 Another project (edu-safi) runs its own QA rig here, with its own emulator, its own
