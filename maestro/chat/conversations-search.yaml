@@ -38,24 +38,54 @@ tags:
 - waitForAnimationToEnd
 - assertNotVisible:
     id: "conversations-search-clear"
-- assertVisible:
-    id: "conversation-row-\\d+"
+# Clearing the term refetches the UNFILTERED list, so these rows come back over
+# the network too. React Query usually serves them from cache — and "usually" is
+# exactly what makes a flow intermittent.
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
 
 # ── No-match: a nonsense term shows the localized empty state + "Clear search" ─
 - tapOn:
     id: "conversations-search-input"
 - inputText: "xzxzxzxz_no_such_conversation_xzxzxz"
+# SUBMIT, to put the soft keyboard away before asserting on the empty state.
+#
+# The empty-state action sits at the BOTTOM of the empty state, so with the IME
+# up it is off-screen — and Gboard makes it worse than a plain keyboard: run-382
+# failed here with `Assertion is false: "Clear search" is visible` on a screen
+# where the app was entirely correct (the screenshot shows the localized
+# `No matches for "xzxzxzxz…"` state, with the blue button's top edge just
+# visible under Gboard's expanded CLIPBOARD SUGGESTION panel, which covers the
+# bottom half of the display).
+#
+# `hideKeyboard` is NOT the tool: in this Maestro version it is a Back press with
+# no guaranteed IME, and on this screen that pops Messages back to Bazaar — the
+# rig's own lint warns about it, and it has already cost one flow today.
+# `pressKey: Enter` is a real user action instead: SearchBar passes
+# `returnKeyType="search"` to a single-line RNR Input, so submitting blurs it and
+# the keyboard goes away without touching the navigation stack.
+- pressKey: Enter
 - waitForAnimationToEnd
 - assertNotVisible:
     id: "conversation-row-\\d+"
-- assertVisible: "Clear search"
+# WAIT, do not assert. The search is now served by the API (`Conversation.matching`)
+# behind a 400ms debounce, so the empty state ARRIVES over the network —
+# waitForAnimationToEnd does not wait on the network. Waiting is for something
+# that will arrive; asserting is for something already there.
+- extendedWaitUntil:
+    visible: "Clear search"
+    timeout: 20000
 
 # The "Clear search" empty-state action also empties the field
 - tapOn: "Clear search"
 - waitForAnimationToEnd
 - assertNotVisible: "Clear search"
-- assertVisible:
-    id: "conversation-row-\\d+"
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
 
 # ── Search composes with the Unread filter (not a replacement for it) ───────
 - tapOn: "Unread"
@@ -70,13 +100,20 @@ tags:
 - tapOn:
     id: "conversations-search-input"
 - inputText: "xzxzxzxz_no_such_conversation_xzxzxz"
+- pressKey: Enter
 - waitForAnimationToEnd
-# The list-level search is instant/client-side (no debounce, TASK-Z684) and
 # `hasSearchTerm` always takes priority over the tab/filter empty copy, so a
 # nonsense term deterministically shows the no-match state — never the
 # "All caught up!" copy — regardless of which unread/read rows existed
 # before the search.
-- assertVisible: "Clear search"
+#
+# The claim that this search is "instant/client-side (no debounce, TASK-Z684)"
+# was true when this flow was written and is NOT true any more: the owner asked
+# for it to hit the database ("can we use search like when we type it should
+# check in db"), so it is a debounced API query now. Hence the wait.
+- extendedWaitUntil:
+    visible: "Clear search"
+    timeout: 20000
 
 # Clearing the field falls back to just the Unread filter — still composed,
 # not reset to "All".

@@ -538,9 +538,14 @@ export default function ConversationsScreen() {
           )}
         </View>
 
-        {/* ── Search — instant client-side filter by name / listing / last
-            message (TASK-Z684). Composes with the tab + filter rows below;
-            never touches the unread badge (derived from the unfiltered ref). */}
+        {/* ── Search — a DEBOUNCED SERVER query by name / listing / last message.
+            No longer the instant client-side filter of TASK-Z684: that could
+            only ever match the page already fetched, which is why it looked
+            broken on any account with more conversations than one page. The
+            term goes to the API (`Conversation.matching`) after 400ms and is
+            part of the query key, so results are cached per term.
+            Composes with the tab + filter rows below; never touches the unread
+            badge (derived from the unfiltered ref). */}
         <View style={{ marginTop: 12 }}>
           <SearchBar
             value={searchTerm}
