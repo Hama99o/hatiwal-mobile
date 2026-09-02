@@ -224,6 +224,29 @@ def check(path):
             if owner and owner.startswith("assert") and "lint: optional-ok" not in near:
                 hits.append((i, "TOOTHLESS", f"optional {owner} cannot fail"))
 
+        # centerElement: true is a SMALL-SCREEN hazard.
+        #
+        # It asks the scroll to bring the target to the MIDDLE, which is
+        # impossible when there is not enough content below it — Maestro then
+        # burns the whole timeout on an element plainly on screen. Whether it can
+        # be satisfied depends on VIEWPORT HEIGHT, so the same block passes at
+        # 411dp (571dp tall) and fails at 360dp (400dp tall): that is exactly how
+        # rtl/profile_rtl broke on 2026-09-02, and how 11 blocks scrolling to
+        # profile-edit-button were order-dependent before that.
+        #
+        # Not an error, because it is sometimes the right tool — _helpers/
+        # open_language_picker.yaml used it deliberately to keep a tap off the
+        # FloatingTabBar. But it needs a reason each time, so an UNCOMMENTED use
+        # is flagged. The safe alternative is to scroll PAST the target and back,
+        # which lands it near the top of the viewport at any height.
+        if re.search(r'^\s*centerElement:\s*true', l):
+            window = "\n".join(lines[max(0, i - 9):i])
+            if "centerElement" not in window or not re.search(r"#", window):
+                hits.append((i, "CENTERELEM",
+                             "centerElement:true cannot be satisfied when the target has "
+                             "too little content below it — fails at 360dp while passing "
+                             "at 411dp; scroll PAST it and back, or justify it in a comment"))
+
         if re.search(r'\$\{[^}]*\b(visible|selectorExists|exists)\s*\(', l):
             hits.append((i, "JSFUNC", "no such function in Maestro's JS sandbox"))
 
