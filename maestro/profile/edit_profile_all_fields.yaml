@@ -132,9 +132,20 @@ appId: com.hatiwal.app
 # polling can catch it. That replace happens ONLY in onSuccess, so landing back on
 # Profile is itself proof the save went through — and unlike the toast it is still
 # true a second later.
-- extendedWaitUntil:
-    visible:
+# SCROLL, do not just wait. Returning from the save lands on Profile at its own
+# scroll offset, and the edit button is below the fold from the top (hero ->
+# stats -> quick actions -> personal info). An `extendedWaitUntil: visible` polls
+# forever for something that will never come into view on its own — it failed
+# here with `Assertion is false: id: profile-edit-button is visible` while the
+# identical scroll 15 lines below succeeded.
+#
+# Waiting is for something that will ARRIVE. Scrolling is for something that is
+# already there.
+- scrollUntilVisible:
+    element:
       id: "profile-edit-button"
+    direction: DOWN
+    visibilityPercentage: 40
     timeout: 20000
 
 # Verify data persisted
