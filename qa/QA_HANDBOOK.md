@@ -70,6 +70,41 @@ Two traps if you write this check yourself: maestro names selectors `idRegex` /
 "matches" for a flow it is wrong about), and the failure MESSAGE also contains the
 selector text, so match on the key/value pair rather than grepping the raw file.
 
+## The Expo dev-menu FAB crash: root cause, and why you cannot switch it off
+
+Symptom: the app is replaced by **"There was a problem loading the project"** and
+the flow fails on whatever it was asserting — so it reads as a stale selector.
+The give-away is in logcat, not in the flow log:
+
+    java.lang.IllegalArgumentException: Cannot coerce value to an empty range
+    at expo.modules.devmenu.fab.FabUtilsKt.calculateTargetPosition
+    at expo.modules.devmenu.fab.MovableFloatingActionButtonKt$Mova…
+
+Root cause, traced 2026-09-02 in `node_modules/expo-dev-menu`: the movable FAB
+snaps itself to a screen edge via `calculateTargetPosition`, which ends in
+`Offset.coerceIn(maxX = bounds.x, maxY = bounds.y)`. `Float.coerceIn(min, max)`
+throws when `max < min`, so any moment where the window bounds are zero or
+smaller than the FAB — a `wm size` change, or an app restart from
+`reloadApp()` — takes the app down.
+
+**There is no runtime kill switch.** `showFab` (in
+`expo.modules.devmenu.sharedpreferences.xml`, default false) only gates an
+`AnimatedVisibility` around the FAB's CONTENT; the position maths runs regardless,
+above it. Setting the pref does not help.
+
+What the rig does instead:
+
+- `qa.sh profile <size>` force-stops the app after changing size/density, so the
+  FAB re-measures against the new window on the next cold start.
+- `classify()` labels it `rig_devclient_crash`, and `exit_from_results` /
+  `tally.py` count it as UNMEASURED rather than a failed flow.
+- `qa/patient_flow.sh` retries it.
+
+Language-switching flows are the most exposed, because `reloadApp()` restarts the
+app by design — `rtl/chat_rtl` hit it repeatedly and finished UNMEASURED after
+retries, which is the correct outcome: it is not an app bug and must not be
+triaged as one.
+
 ## Run flows against a BUNDLED apk
 
     ./qa/qa.sh build bundled     # embeds the JS; no Metro at runtime
