@@ -1,0 +1,74 @@
+appId: com.hatiwal.app
+---
+# PROBE — is FirstMessageSheet's Send button reachable with the keyboard up?
+#
+# This is a QUESTION, not a regression test. It lives in _diag because its whole
+# purpose is to convert one "unknown" into a "known"; if it fails it should be
+# replaced by a real flow next to the app fix, and if it passes it can be deleted.
+#
+# WHY IT IS WORTH ASKING. MeetupSheet was drawn under the IME because its
+# KeyboardAvoidingView is content-sized (a `flex: 1` backdrop above it), so
+# `behavior="height"` had nothing to shrink (d46c896). Seven sheets share that
+# layout, and four have since been CLEARED by finding a passing flow that types
+# into them and then taps their own submit — OfferSheet, BuyerPickerSheet,
+# SaleRowEditSheet and FilterSheet (filter_price_range types Min Price, then Max
+# Price with the IME already up, then taps "Show results", and passes).
+#
+# FirstMessageSheet cannot be cleared that way because NOTHING covers it. All
+# eleven flows mentioning it do so in a comment explaining that they avoid it —
+# benign, they steer around it because the sheet would cover the detail screen
+# they act on, but the upshot is zero coverage of the single action every
+# conversation on this marketplace starts with.
+#
+# And its shape is the risky one: a MULTILINE Textarea, then a note, then Send,
+# then Cancel — so the submit sits BELOW the focused input, which is exactly
+# where MeetupSheet's Time field and Propose button were. `pressKey: Enter`
+# cannot rescue it either: on a Textarea, Enter inserts a newline.
+#
+# It also has NO testIDs at all, which is why nothing targets it by id and why
+# every selector below is copy. That is worth fixing regardless of the answer.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+# index 0 WITH a selector — a bare index matches whatever is first in the
+# hierarchy, never the card.
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
+
+# The contact CTA is in the detail screen's bottom action bar, below the fold.
+- scrollUntilVisible:
+    element:
+      text: "Contact Seller"
+    direction: DOWN
+    visibilityPercentage: 60
+    timeout: 30000
+- tapOn: "Contact Seller"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Message Seller"
+    timeout: 20000
+
+# BASELINE: with no keyboard up, Send must be there. If this fails the probe is
+# wrong about the sheet, not the sheet about the keyboard — so it is asserted
+# separately rather than assumed.
+- assertVisible: "Send Message"
+- takeScreenshot: probe-first-message-closed-ime
+
+# ── THE QUESTION ───────────────────────────────────────────────────────────
+# Focus the Textarea, which raises the IME, and ask whether the submit below it
+# survives. A tap is NOT used: Maestro reports a tap on a keyboard-covered
+# element as COMPLETED while the touch never reaches the app, so a tap would
+# answer nothing. Visibility is the honest check.
+- tapOn: "Your message"
+- waitForAnimationToEnd
+- inputText: "Is this still available?"
+- waitForAnimationToEnd
+- takeScreenshot: probe-first-message-open-ime
+- assertVisible: "Send Message"
