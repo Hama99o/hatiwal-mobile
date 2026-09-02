@@ -157,7 +157,8 @@
     "callSeller": "تماس با فروشنده",
     "mapTapToInteract": "مشاهده نقشه کامل",
     "mapDone": "بستن نقشه",
-    "approximateLocation": "منطقه تقریبی — نشانی دقیق در چت به اشتراک گذاشته می‌شود."
+    "approximateLocation": "منطقه تقریبی — نشانی دقیق در چت به اشتراک گذاشته می‌شود.",
+    "whatsappSeller": "واتس‌اپ"
   },
   "ownerDetail": {
     "notFound": "آگهی یافت نشد",

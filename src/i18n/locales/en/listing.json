@@ -157,7 +157,8 @@
     "callSeller": "Call seller",
     "mapTapToInteract": "View full map",
     "mapDone": "Close map",
-    "approximateLocation": "Approximate area — the exact address is shared in chat."
+    "approximateLocation": "Approximate area — the exact address is shared in chat.",
+    "whatsappSeller": "WhatsApp"
   },
   "ownerDetail": {
     "notFound": "Listing not found",
