@@ -34,22 +34,45 @@ appId: com.hatiwal.app
           id: "profile-tab"
       - waitForAnimationToEnd
 
+# PAST IT, THEN BACK UP — instead of asking for it to be centred.
+#
+# The problem this solves is real and was solved with `centerElement: true` here
+# for good reason (kept verbatim below, because the reasoning still holds):
+#
+#   # centerElement HERE and almost nowhere else. Without it this row settles at
+#   # the very bottom of the viewport, under the FloatingTabBar that overlays that
+#   # edge, and Maestro taps an element's CENTRE — so the tap hit the tab bar and
+#   # the picker never opened. Two seller flows spent ~7 minutes each on that.
+#   #
+#   # It is NOT safe to apply broadly, which I learned by doing it to 161 sites and
+#   # breaking the Sign Out scroll: "Sign Out" and "Delete account" are the LAST
+#   # rows on Profile, so the list cannot scroll far enough to centre them and
+#   # `centerElement` times out on an element that is plainly on screen. Use it only
+#   # for a target with content BELOW it.
+#
+# ...and that last rule is exactly what broke at 360dp. The small-screen pass the
+# owner asked for (2026-09-02) failed here with
+# `No visible element found: id: language-row`, passing at 411dp. Cause: the
+# viewport is ~400dp tall at 720x1280@320dpi versus ~571dp at 1080x2400@420dpi,
+# so there is no longer enough content BELOW the language row to push it to the
+# middle. It becomes the Sign Out case, on a page that renders perfectly.
+#
+# Scrolling past it and then back UP satisfies the original intent on any screen
+# height without asking for a centring that may be impossible: the row ends up
+# near the TOP of the viewport, which is as far from the floating tab bar as it
+# can get.
+- scrollUntilVisible:
+    element:
+      id: "sign-out-button"
+    direction: DOWN
+    visibilityPercentage: 30
+    timeout: 20000
 - scrollUntilVisible:
     element:
       id: "language-row"
-    direction: DOWN
+    direction: UP
+    visibilityPercentage: 60
     timeout: 20000
-    # centerElement HERE and almost nowhere else. Without it this row settles at
-    # the very bottom of the viewport, under the FloatingTabBar that overlays that
-    # edge, and Maestro taps an element's CENTRE — so the tap hit the tab bar and
-    # the picker never opened. Two seller flows spent ~7 minutes each on that.
-    #
-    # It is NOT safe to apply broadly, which I learned by doing it to 161 sites and
-    # breaking the Sign Out scroll: "Sign Out" and "Delete account" are the LAST
-    # rows on Profile, so the list cannot scroll far enough to centre them and
-    # `centerElement` times out on an element that is plainly on screen. Use it only
-    # for a target with content BELOW it.
-    centerElement: true
 
 # The row is a toggle. If a previous step already expanded it, tapping again
 # would CLOSE it — so only tap when the options are not already showing.
