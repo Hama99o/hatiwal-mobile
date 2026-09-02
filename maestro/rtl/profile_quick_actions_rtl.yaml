@@ -44,9 +44,32 @@ appId: com.hatiwal.app
 # --- Buyer-mode RTL quick actions ---
 # Buyer mode is the default; verify the three single-column action rows are visible
 # These are profile quick-action labels (separate i18n keys, not sidebar tab labels)
-- assertVisible: "اعلانونه لټول"
-- assertVisible: "خوندي اعلانونه"
-- assertVisible: "پیغامونه"
+# SCROLL to each label. There are FOUR quick-action rows and they follow the
+# hero header and the stats grid, so even at 411dp the lower ones are below the
+# fold — this failed on the third (`Assertion is false: "پیغامونه" is visible`)
+# with the first two found. The rows render correctly in Pashto; they simply do
+# not all fit at once.
+#
+# Asserting each after a scroll still proves what this flow is for: that these
+# labels render in Pashto rather than English.
+- scrollUntilVisible:
+    element:
+      text: "اعلانونه لټول"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "خوندي اعلانونه"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "پیغامونه"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
 
 # NOW scroll down — the Pashto section header is the thing this proves.
 - scrollUntilVisible:
@@ -93,9 +116,25 @@ appId: com.hatiwal.app
 # "My Listings" and "Messages" appear as a side-by-side row
 # whose container is now flexDirection:row-reverse (RTL fix applied)
 # These are profile quick-action labels, not sidebar tab labels
-- assertVisible: "زما اعلانونه"
-- assertVisible: "پیغامونه"
-- assertVisible: "نوی اعلان پوسٹ کړئ"
+# Same again for the seller-mode set — four rows, one screen.
+- scrollUntilVisible:
+    element:
+      text: "زما اعلانونه"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "پیغامونه"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "نوی اعلان پوسٹ کړئ"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
 
 # Switch back to buyer mode
 # The mode toggle sits just under the avatar at the TOP of Profile, so scroll UP
