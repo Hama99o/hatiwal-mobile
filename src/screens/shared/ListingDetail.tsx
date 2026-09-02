@@ -147,6 +147,19 @@ export default function ListingDetailScreen() {
   const { width: winW, height: winH } = useWindowDimensions();
 
   // ── Local UI state ─────────────────────────────────────────────────────────
+  // Measured height of the sticky action bar, so the scroll content can clear it.
+  //
+  // It was a hardcoded 100. The bar is paddingTop 14 + a 50px minimum button +
+  // `max(insets.bottom, 16) + 12`, which is 92 on a device with no bottom inset
+  // but 124 on a gesture-navigation phone — and ~150 once the firm-price notice
+  // renders above the buttons on a non-negotiable listing. So the last 25-50px of
+  // the page sat BEHIND the bar on most modern phones.
+  //
+  // Same defect class the owner reported in chat on 2026-09-02 (the newest
+  // message hidden under the composer), found by auditing the other screens with
+  // an absolutely-positioned bottom bar. `|| 100` keeps the old constant as the
+  // pre-measurement fallback so there is no frame padded to zero.
+  const [actionBarH, setActionBarH] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [showMessageSheet, setShowMessageSheet] = useState(false);
@@ -501,7 +514,11 @@ export default function ListingDetailScreen() {
       {/* ── Scrollable content ───────────────────────────────────────────── */}
       <Animated.ScrollView
         style={styles.flex}
-        contentContainerStyle={{ paddingBottom: 100, paddingTop: insets.top }}
+        contentContainerStyle={{
+          // +20 so the last row of content is not flush against the bar's edge.
+          paddingBottom: (actionBarH || 100) + 20,
+          paddingTop: insets.top,
+        }}
         showsVerticalScrollIndicator={false}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
@@ -991,6 +1008,7 @@ export default function ListingDetailScreen() {
 
       {/* ── Sticky action bar ────────────────────────────────────────────── */}
       <View
+        onLayout={(e) => setActionBarH(e.nativeEvent.layout.height)}
         style={[
           styles.actionBar,
           {
