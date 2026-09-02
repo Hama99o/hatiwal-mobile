@@ -70,6 +70,43 @@ Two traps if you write this check yourself: maestro names selectors `idRegex` /
 "matches" for a flow it is wrong about), and the failure MESSAGE also contains the
 selector text, so match on the key/value pair rather than grepping the raw file.
 
+## Run flows against a BUNDLED apk
+
+    ./qa/qa.sh build bundled     # embeds the JS; no Metro at runtime
+
+Use this for any run whose result you intend to report. It freezes the code under
+test at build time, which removes two failure modes that produced false reports
+on 2026-09-02:
+
+- editing a source file hot-reloads into a flow that is MID-RUN, so its result
+  belongs to two versions of the code. One run received a briefly broken bundle
+  and reported an app failure that belonged to the person editing.
+- "which code did this pass?" had no answer, and an APK's mtime is not one — that
+  mtime was used to wrongly explain away an owner-reported bug as a stale build
+  while Metro was serving current code.
+
+`doctor` detects a bundled APK (via `apk-provenance.txt`), stops requiring Metro,
+and REMOVES the `adb reverse tcp:8081` rather than merely skipping it — an RN
+debug build still prefers the dev server when it can reach it, so leaving the
+forward in place would silently un-freeze the run.
+
+It stays a DEBUG build on purpose: `src/api/http.ts` throws at startup when a
+non-`__DEV__` build points at a local/http API, so a release APK can never run
+against local Rails. The trick is emptying the react plugin's
+`debuggableVariants` (the list of variants it SKIPS bundling for) behind
+`-PqaBundledDebug=true`.
+
+**`android/` is gitignored**, so that hook cannot be committed — Expo prebuild
+would erase it and the next "bundled" build would quietly produce a
+Metro-dependent APK. `qa/lib/app.sh` therefore injects it on every bundled build
+and REFUSES the build if it cannot, because a frozen-code guarantee that is not
+true is worse than none. Verified by deleting the hook and rebuilding: it came
+back and the bundle was embedded.
+
+`apk-provenance.txt` beside the APK records the commit, subject, bundled flag and
+the number of uncommitted files under `src/`/`app/` — so a run is attributable,
+and a build made from a dirty tree says so.
+
 ## The debug APK contains NO JavaScript — a "rebuild" does not ship a JS change
 
 `qa/lib/app.sh` builds a **debug** APK, and a debug build fetches its bundle from

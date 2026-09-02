@@ -34,6 +34,39 @@ app_build() {
   # local Rails (see this file's header).
   local gradle_args=(assembleDebug)
   if [ "${QA_BUNDLED:-0}" = "1" ]; then
+    # ENSURE the opt-in exists in build.gradle, every time.
+    #
+    # `android/` is GITIGNORED — Expo regenerates it on prebuild — so this hook
+    # cannot simply be committed; it would vanish on the next prebuild and the
+    # "bundled" build would silently produce an ordinary Metro-dependent APK,
+    # which is the worst outcome: a frozen-code guarantee that is not true.
+    # Patching it here, idempotently, keeps the source of truth in the tracked
+    # rig instead.
+    local gradle_file="$MOBILE_DIR/android/app/build.gradle"
+    if [ -f "$gradle_file" ] && ! grep -q "qaBundledDebug" "$gradle_file"; then
+      python3 - "$gradle_file" <<'PYEOF'
+import re, sys, pathlib
+p = pathlib.Path(sys.argv[1]); s = p.read_text()
+hook = """
+    // QA (injected by qa/lib/app.sh — android/ is gitignored, so this cannot be
+    // committed). Variants listed in `debuggableVariants` are NOT bundled, so
+    // emptying it embeds the JS in the debug APK while KEEPING __DEV__ true —
+    // which matters because src/api/http.ts throws when a non-__DEV__ build
+    // points at a local/http API.
+    if ((findProperty('qaBundledDebug') ?: 'false').toBoolean()) {
+        debuggableVariants = []
+    }
+"""
+m = re.search(r"^react \{\s*$", s, re.M)
+if not m:
+    print("  could not find the react block — bundled build would be a no-op", file=sys.stderr)
+    raise SystemExit(1)
+s = s[:m.end()] + hook + s[m.end():]
+p.write_text(s)
+PYEOF
+      [ $? -eq 0 ] && ok "injected the qaBundledDebug hook into android/app/build.gradle" \
+                   || { err "could not inject the bundling hook — refusing a build that would silently NOT be bundled"; return 1; }
+    fi
     gradle_args+=(-PqaBundledDebug=true)
     say "building BUNDLED debug APK (JS embedded — no Metro at runtime)…"
   else
