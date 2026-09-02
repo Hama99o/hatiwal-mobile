@@ -1561,3 +1561,28 @@ listed here only so this section's own ticket numbering is complete:
 - The **product-owner** agent owns this file: it reconciles status with the real code each run, grooms the next page(s) with full detail, assigns owners, and adds 1–3 new `💡 Idea` rows over time.
 - **feature-builder** picks a `⬜`/`🟡` page, sets it `🟡` + owner, builds it, then sets it ready for design.
 - **marketplace-designer** polishes, then product-owner flips it `✅`.
+
+### 2026-09-02 — owner-reported, built and shipped same day
+
+Raised directly by the owner while testing TestFlight 1.0.4, in the order they
+were reported. All committed; the ones marked *(build 15)* landed after build 14
+was cut and are not on his phone yet.
+
+| # | What | Where | State |
+|---|---|---|---|
+| 1 | Newest chat message hidden behind the composer + quick-reply bar | mobile | **fixed & device-measured** (build 14). List viewport now ends at the bar (437→2001) instead of running behind it; the newest message clears it by 144px. Three earlier timing fixes all failed on measurement — the working fix was structural. |
+| 2 | Language change reloaded 2-3× and reverted | mobile | **fixed, owner-confirmed** (build 14). setLanguage did not await the backend PATCH before restarting, so bootstrap read the stale value back and overwrote the choice. |
+| 3 | No gap between icon and text in ps/fa | mobile | **fixed** (build 14 + 15). 8 sites: `marginEnd`/`marginLeft` on rows that are manually reversed or natively flipped. An audit now reports ZERO physical horizontal margins in app code. |
+| 4 | "Jump to latest" for a scrolled-up thread | mobile | **shipped** (build 14). |
+| 5 | "All" button on the quantity stepper (200 units = 1 tap) | mobile | **shipped** (build 14), in the shared QuantityStepper so mark-sold / buyer picker / sales-row editor all get it. |
+| 6 | Edit Profile: remove the city input and province picker; the map pin is the only source | mobile | **shipped** *(build 15)*. His screenshot had City reading "Qarabagh, Kabul Province" beside a province of "پروان" — two editable sources for one fact. |
+| 7 | WhatsApp option beside "Call seller" | mobile | **shipped** *(build 15)*. `https://wa.me/` not `whatsapp://` — the scheme form needs an iOS plist entry and fails silently without one. |
+| 8 | A WhatsApp number field, and switches for showing phone / address | api + mobile + web | **shipped** *(build 15)*. Defaults ON, because both are already visible today; the new capability is saying no. Address visibility covers the USER's address only, never a listing's location. |
+| 9 | QA must pass on a small screen (360dp) | rig | **in progress** — blocked on host RAM (the rig requires 4GB free; another project's dev services hold ~4.6GB). A memory-aware chain is queued and starts by itself. |
+
+Rig defects found and fixed along the way, all of which had been producing false
+bug reports: `qa.sh` exit codes now mean the flows' verdict (0/1/2/3, with
+"unmeasured" distinct from "failed"); Expo's dev-menu FAB crashes on a window
+resize and is now classified as a rig failure rather than an app assertion; the
+debug APK carries no JS (it comes from Metro), so an APK's date says nothing
+about what is running.

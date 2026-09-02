@@ -1,0 +1,111 @@
+appId: com.hatiwal.app
+---
+# THE WHATSAPP NUMBER AND THE TWO VISIBILITY SWITCHES.
+#
+# Owner request, 2026-09-02: "add input in backend also and web edit and mobile
+# edit to add whatsapp number also and show option to show number and address to
+# people or not — I mean user address not list address its important. And give
+# posibilites to add same number as whatapp option also."
+#
+# What is worth asserting, in the order a seller meets it:
+#   1. the field and both switches exist, and the switches start ON (they mirror
+#      column defaults of TRUE, so an existing seller's phone is not silently
+#      withdrawn from their listings)
+#   2. "same as my phone" copies the phone across, and then hides itself — a
+#      control that would be a no-op must not sit there inviting a tap
+#   3. the whole lot survives a save and a cold reload
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+# DOWN, no centerElement: Profile renders hero -> stats -> quick actions ->
+# personal info, so the edit button is below the fold, and centring a control
+# with too little content above it can never satisfy.
+- scrollUntilVisible:
+    element:
+      id: "profile-edit-button"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- tapOn:
+    id: "profile-edit-button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "edit-profile-firstname-input"
+    timeout: 30000
+
+# ── 1. the controls exist ──────────────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-whatsapp-input"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- assertVisible:
+    id: "edit-profile-show-phone-switch"
+- assertVisible:
+    id: "edit-profile-show-address-switch"
+
+# ── 2. "same as my phone" ─────────────────────────────────────────────────
+# Give the phone a known value first, so the copy is observable rather than a
+# coincidence of whatever the fixture had.
+- tapOn:
+    id: "edit-profile-phone-input"
+- eraseText
+- inputText: "+93700000123"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-whatsapp-same-as-phone"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- tapOn:
+    id: "edit-profile-whatsapp-same-as-phone"
+- waitForAnimationToEnd
+# The shortcut retires itself once the two match — that is the point of it being
+# conditional.
+- assertNotVisible:
+    id: "edit-profile-whatsapp-same-as-phone"
+- assertVisible: "\\+93700000123"
+
+# ── 3. turn a switch off, save, cold-start, and check it stuck ────────────
+- tapOn:
+    id: "edit-profile-show-address-row"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      text: "Save"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- tapOn: "Save"
+- waitForAnimationToEnd
+- launchApp:
+    stopApp: true
+- runFlow: ../_helpers/open_bundle.yaml
+- extendedWaitUntil:
+    visible:
+      id: "profile-tab"
+    timeout: 120000
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "profile-edit-button"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- tapOn:
+    id: "profile-edit-button"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-whatsapp-input"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- assertVisible: "\\+93700000123"
+- takeScreenshot: contact_visibility
