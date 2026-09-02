@@ -30,7 +30,17 @@ appId: com.hatiwal.app
     id: "conversation-row-\\d+"
     index: 0
 - waitForAnimationToEnd
-- assertVisible: "Type a message..."
+# WAIT for the composer, do not assert it.
+#
+# The thread has to fetch before it can render an input, and a bare
+# `assertVisible` here races that fetch and loses under load — this flow failed
+# in run-299 with `Assertion is false: "Type a message..." is visible` on a
+# healthy thread (no block existed: Block.count was 0, and this flow unblocks
+# itself at the end), on a host that was taking ~3 minutes per flow with swap
+# 100% full. extendedWaitUntil can only ever wait longer, never less.
+- extendedWaitUntil:
+    visible: "Type a message..."
+    timeout: 30000
 # Tap block icon / button in the conversation participant bar
 - tapOn:
     id: "block-user-button"

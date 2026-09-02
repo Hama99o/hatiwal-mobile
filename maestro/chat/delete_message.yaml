@@ -41,7 +41,21 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Delete action sheet should be visible
-- assertVisible: "Delete message"
+# WAIT for the action sheet, do not assert it — it animates in.
+#
+# This flow failed in run-299 here (`Assertion is false: "Delete message" is
+# visible`) with the message itself sent and visible. Two things could produce
+# that, and both are now addressed:
+#
+#   - the sheet had not finished animating when the assert ran (fixed here), and
+#   - the bubble was sitting UNDERNEATH the composer bar, so the long press
+#     landed on the bar instead of the message and no sheet ever opened. That was
+#     a real app defect — the owner reported it independently on 2026-09-02 — and
+#     is fixed in Conversation.tsx (scrollThreadToEnd + the bar-height effect).
+#     maestro/chat/scroll_to_latest.yaml covers it directly.
+- extendedWaitUntil:
+    visible: "Delete message"
+    timeout: 20000
 
 # Tap delete
 - tapOn: "Delete message"

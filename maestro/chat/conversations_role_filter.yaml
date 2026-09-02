@@ -1,5 +1,21 @@
 appId: com.hatiwal.app
 ---
+#
+# ── WHY THE POSITIVE ASSERTIONS SCROLL (and what the negative ones do NOT prove)
+#
+# These two threads sit at positions 10 and 11 of a 24-thread seller inbox — the
+# seed adds six more Lenovo threads for the response-rate badge, which land at
+# 18-22 — so neither is ever on the first screen. Bare `assertVisible` therefore
+# failed on fixtures that were present and correct, which is how this flow failed
+# in run-299.
+#
+# The `assertNotVisible` assertions below are WEAKER than they look, and that is
+# left as-is deliberately rather than papered over: a row that was filtered out
+# and a row that is merely below the fold are indistinguishable to Maestro. They
+# pass either way. Proving real absence would mean exhausting the filtered list,
+# which Maestro cannot express directly. Treat them as a smoke check on the
+# filter, not as proof of exclusion — the positive, scrolled assertions are the
+# ones carrying weight here.
 # TASK-R517 — Chat inbox: Buying vs Selling role filter chips
 #
 # Uses login_seller.yaml (seller@hatiwal.test), the ONE E2E fixture account
@@ -40,8 +56,18 @@ appId: com.hatiwal.app
     id: "role-chip-buying"
 - assertVisible:
     id: "role-chip-selling"
-- assertVisible: "Lenovo ThinkPad Laptop Core i5 8GB"
-- assertVisible: "Mountain Bike 26-inch Steel Frame"
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Mountain Bike 26-inch Steel Frame"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
 # Per-row role hint (acceptance #5) — the mixed/unfiltered inbox is the ONE
 # place the pill is never redundant (every row's role differs), so at least
 # one `role-pill-<id>` must be on screen. Matched by testID regex, never by
@@ -56,28 +82,53 @@ appId: com.hatiwal.app
 - tapOn:
     id: "role-chip-selling"
 - waitForAnimationToEnd
-- assertVisible: "Lenovo ThinkPad Laptop Core i5 8GB"
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
 - assertNotVisible: "Mountain Bike 26-inch Steel Frame"
 
 # Tapping the active chip again deselects it — back to the mixed inbox.
 - tapOn:
     id: "role-chip-selling"
 - waitForAnimationToEnd
-- assertVisible: "Mountain Bike 26-inch Steel Frame"
+- scrollUntilVisible:
+    element:
+      text: "Mountain Bike 26-inch Steel Frame"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
 
 # Buying — narrows to the one thread where seller@hatiwal.test is the buyer.
 - tapOn:
     id: "role-chip-buying"
 - waitForAnimationToEnd
-- assertVisible: "Mountain Bike 26-inch Steel Frame"
+- scrollUntilVisible:
+    element:
+      text: "Mountain Bike 26-inch Steel Frame"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
 - assertNotVisible: "Lenovo ThinkPad Laptop Core i5 8GB"
 
 # Deselect back to the full inbox.
 - tapOn:
     id: "role-chip-buying"
 - waitForAnimationToEnd
-- assertVisible: "Lenovo ThinkPad Laptop Core i5 8GB"
-- assertVisible: "Mountain Bike 26-inch Steel Frame"
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Mountain Bike 26-inch Steel Frame"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
 
 # ── Role filter composes with the Archived tab (review fix) ────────────────
 # Selecting Selling, then switching to Archived, must keep the chip visible
@@ -100,7 +151,12 @@ appId: com.hatiwal.app
 - tapOn:
     id: "tab-inbox"
 - waitForAnimationToEnd
-- assertVisible: "Lenovo ThinkPad Laptop Core i5 8GB"
+- scrollUntilVisible:
+    element:
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
 - assertNotVisible: "Mountain Bike 26-inch Steel Frame"
 
 # Clean up the scope so this flow doesn't leak state into a later run.
