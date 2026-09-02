@@ -26,18 +26,28 @@ appId: com.hatiwal.app
 # happens to be most recent. It passes either way, and it destroys a fixture other
 # flows depend on: five flows later failed on a missing conversation because this
 # one had removed it. A destructive flow must target something it can afford to
-# lose. The Xiaomi thread is on a SOLD listing, so nothing that needs a working
-# composer, an offer or a meetup can be using it.
+# lose.
+#
+# It now owns a DISPOSABLE fixture rather than borrowing the shared Xiaomi
+# thread. "Safe to consume" was the wrong test: deleting is not consuming, and
+# `buyer_deleted_at` hid that thread from the buyer PERMANENTLY (stamped
+# 2026-09-01 17:54), so every subsequent run failed with
+# `No visible element found: "Xiaomi Redmi.*"` on an app that was working
+# correctly — it had been asked to delete a conversation and it stayed deleted.
+#
+# db/seeds/e2e.rb seeds "QA Disposable conversation_delete" with a thread, and
+# now CLEARS the delete/archive flags on every disposable conversation each seed,
+# so this flow is repeatable instead of single-use.
 #
 # Long-pressing the ROW opens the same action menu as its kebab
 # (ConversationRow has onLongPress), and needs no relational selector.
 - scrollUntilVisible:
     element:
-      text: "Xiaomi Redmi.*"
+      text: "QA Disposable conversation_delete"
     direction: DOWN
     timeout: 20000
 - longPressOn:
-    text: "Xiaomi Redmi.*"
+    text: "QA Disposable conversation_delete"
 - waitForAnimationToEnd
 - assertVisible:
     id: "conversation-action-menu"

@@ -45,8 +45,21 @@ appId: com.hatiwal.app
     id: "unread-badge-\\d+"
 
 # ── Step 2: open the unread conversation ────────────────────────────────────
+# Tap THE UNREAD ROW, not the first row in the list.
+#
+# `conversation-row-\\d+` with no index resolves to the FIRST match, i.e. the most
+# recent thread — which is not necessarily the one carrying unread messages. The
+# "Unread messages" divider exists only inside the thread that actually has
+# them, so on any inbox where the newest thread is already read this flow opened
+# a fully-read conversation and then failed with
+# `No visible element found: "Unread messages"` — a fixture-selection bug, not a
+# missing divider. That is precisely how it failed in run-299, where the buyer
+# had 12 threads and exactly ONE unread.
+#
+# The badge is a non-interactive child of the row's touchable, so pressing it
+# bubbles to the row and opens the right conversation.
 - tapOn:
-    id: "conversation-row-\\d+"
+    id: "unread-badge-\\d+"
     index: 0
 - waitForAnimationToEnd
 # Allow network roundtrip for mark_read PUT

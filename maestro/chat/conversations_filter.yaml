@@ -27,7 +27,33 @@ appId: com.hatiwal.app
 # The comment above claiming this was the documented way to branch was wrong for
 # 2.7.0. Text matching is an anchored regex, so plain alternation does the same
 # job natively: either alternative has to match the whole node text.
-- assertVisible: "All caught up!|No unread messages right now\\."
+# ...and the alternation was still the wrong SHAPE of fix, because it can only
+# ever match TEXT. The Unread tab is a MUTATING view: other flows in this same
+# suite (mark_read, conversation_read_status, mark_read_end_to_end) read threads,
+# and the seed supplies exactly ONE unread conversation between all of them. So
+# whether this tab shows a row or the empty state depends on flow ORDER, and
+# demanding the empty state makes this flow fail whenever it runs first — which
+# is exactly how it failed in run-299 while 10 sibling flows passed.
+#
+# The comment four lines up already conceded that either outcome is correct. So
+# branch on which one is actually on screen. `runFlow: when:` is native in 2.7.0
+# (mapqa/_body_form.yaml relies on it) and needs neither anyOf nor visible().
+- runFlow:
+    when:
+      visible:
+        id: "conversation-row-\\d+"
+    commands:
+      # Unread threads exist: the tab must list them, not claim to be empty.
+      - assertVisible:
+          id: "conversation-row-\\d+"
+      - assertNotVisible: "All caught up!|No unread messages right now\\."
+- runFlow:
+    when:
+      notVisible:
+        id: "conversation-row-\\d+"
+    commands:
+      # Nothing unread: the empty state is mandatory, not merely allowed.
+      - assertVisible: "All caught up!|No unread messages right now\\."
 # Switch to Read
 - tapOn: "Read"
 - waitForAnimationToEnd
