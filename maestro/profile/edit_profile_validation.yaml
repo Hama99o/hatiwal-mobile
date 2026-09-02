@@ -8,11 +8,25 @@ appId: com.hatiwal.app
 # Below the fold: `tapOn` never scrolls to its target, and both the profile screen
 # (stats, quick actions, settings, sign out) and a listing's owner detail (photo,
 # description, views chart, action row) are taller than a phone.
+# UP, and no centerElement. `profile-edit-button` sits in the PERSONAL INFO
+# header row near the TOP of Profile, so:
+#   - `direction: DOWN` scrolls AWAY from it whenever Profile is parked below it
+#     (Profile retains its scroll offset across visits within a session), and
+#   - `centerElement: true` demands the scroll bring it to the MIDDLE, which is
+#     impossible for an element that near the top: there is not enough content
+#     above it to push it down. Maestro then burns the full timeout and fails on
+#     an element that is plainly on screen. Same trap documented at length in
+#     mapqa/_body_form.yaml, which cost the Pashto cells three iterations.
+# It is why this step was ORDER-DEPENDENT: edit_profile and
+# edit_profile_validation passed while edit_profile_all_fields and
+# edit_profile_province failed on the byte-identical block.
+# UP is correct from any starting offset, and 40 percent accepts the partially
+# visible row.
 - scrollUntilVisible:
     element:
       id: "profile-edit-button"
-    direction: DOWN
-    centerElement: true
+    direction: UP
+    visibilityPercentage: 40
     timeout: 20000
 # By testID: "Edit" is `common.edit`, translated, and the profile screen also
 # carries "Edit Profile" on the AVATAR — which opens the photo picker rather than
