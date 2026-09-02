@@ -74,8 +74,19 @@ appId: com.hatiwal.app
     visible:
       id: "edit-profile-derived-province"
     timeout: 20000
-- assertVisible:
-    id: "edit-profile-derived-city"
+# SCROLL to the city line rather than asserting it is already on screen.
+#
+# Both derived lines render in the same block, but at 360dp the viewport is only
+# ~400dp tall and the second line falls below the fold — this failed with
+# `Assertion is false: id: edit-profile-derived-city is visible` while the
+# province line directly above it was found. Not an app defect: the value is
+# rendered, it is simply one line further down a short screen.
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-derived-city"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
 - takeScreenshot: edit_profile_province-derived
 
 # ── 3. they survive a save + reload ────────────────────────────────────────
@@ -118,5 +129,9 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
-- assertVisible:
-    id: "edit-profile-derived-city"
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-derived-city"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
