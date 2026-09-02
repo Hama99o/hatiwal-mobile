@@ -112,7 +112,10 @@ cmd="${1:-doctor}"; shift 2>/dev/null || true
 case "$cmd" in
   doctor)  bash "$HERE/lib/doctor.sh" ;;
 
-  build)   app_build ;;
+  build)   # `build bundled` EMBEDS the JS bundle, so flows run against frozen
+           # code instead of whatever Metro happens to be serving.
+           [ "${1:-}" = "bundled" ] && export QA_BUNDLED=1
+           app_build ;;
 
   up)      QA_CMD=up hold_device_lock
            # No argument => this SESSION's device (QA_AVD_n from qa.config.sh),

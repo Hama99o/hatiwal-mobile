@@ -105,16 +105,41 @@ else
 fi
 
 step "4/8 metro bundler"
-METRO_STATUS=$(curl -s -m 5 "http://localhost:$METRO_PORT/status" 2>/dev/null)
-if [ "$METRO_STATUS" = "packager-status:running" ]; then
-  ok "metro on :$METRO_PORT"
-  # A debug build loads its JS from Metro on localhost:8081 inside the device.
+# A BUNDLED APK carries its own JS and must NOT be handed Metro.
+#
+# `qa.sh build bundled` embeds assets/index.android.bundle, which is the whole
+# point: the code under test is frozen at build time, so a source edit cannot
+# hot-reload into a flow that is mid-run (that invalidated several runs on
+# 2026-09-02, one of them by delivering a briefly broken bundle). But an RN debug
+# build still PREFERS the dev server when it can reach it — so leaving the
+# `adb reverse` in place would quietly un-freeze it. The forward is therefore
+# actively REMOVED, not merely skipped, in case an earlier run set it up.
+APK_BUNDLED=0
+if [ -f "$MOBILE_DIR/android/app/build/outputs/apk/debug/apk-provenance.txt" ] \
+   && grep -q "^bundled: 1" "$MOBILE_DIR/android/app/build/outputs/apk/debug/apk-provenance.txt" 2>/dev/null; then
+  APK_BUNDLED=1
+fi
+
+if [ "$APK_BUNDLED" = "1" ]; then
+  ok "APK has its JS EMBEDDED — Metro not required for this run"
   if [ -n "${QA_SERIAL:-}" ]; then
-    adb_qa_t 25 reverse tcp:8081 "tcp:$METRO_PORT" >/dev/null 2>&1 \
-      && ok "adb reverse 8081 → host :$METRO_PORT" || warn "adb reverse failed"
+    adb_qa_t 25 reverse --remove tcp:8081 >/dev/null 2>&1 \
+      && ok "adb reverse 8081 removed — the app cannot fall back to live JS" \
+      || ok "no adb reverse to remove"
   fi
+  say "built from: $(grep -m1 '^commit:' "$MOBILE_DIR/android/app/build/outputs/apk/debug/apk-provenance.txt" | cut -c1-58)"
 else
-  BLOCK "metro not serving on :$METRO_PORT — a debug build has no JS without it"
+  METRO_STATUS=$(curl -s -m 5 "http://localhost:$METRO_PORT/status" 2>/dev/null)
+  if [ "$METRO_STATUS" = "packager-status:running" ]; then
+    ok "metro on :$METRO_PORT"
+    # A non-bundled debug build loads its JS from Metro on device-localhost:8081.
+    if [ -n "${QA_SERIAL:-}" ]; then
+      adb_qa_t 25 reverse tcp:8081 "tcp:$METRO_PORT" >/dev/null 2>&1 \
+        && ok "adb reverse 8081 → host :$METRO_PORT" || warn "adb reverse failed"
+    fi
+  else
+    BLOCK "metro not serving on :$METRO_PORT — an UNBUNDLED debug build has no JS without it"
+  fi
 fi
 
 # A COMPETING Metro is the nastiest failure mode found so far: the dev-client
