@@ -37,13 +37,30 @@ env:
 # Wait for the data, not the animation. Switching tabs refires the query and
 # waitForAnimationToEnd does not wait on the network, so this tap can land on a
 # list that has not rendered yet. Free when the row is already cached.
+# TARGET THE THREAD BY ITS LISTING, never `index: 0`.
+#
+# This tapped "whatever conversation is on top", and the inbox is ordered by last
+# message — so the fixture changed under the flow every time another flow sent a
+# message. That is the actual root cause of this flow's failures, and my first
+# attempt at fixing it (rewriting the final assertion) only addressed the symptom
+# that happened to surface that run: with a different thread on top it failed
+# EARLIER instead, on `"Ahmad Karimi"`.
+#
+# Every step below depends on ONE specific seeded thread — the multi-unit Phone
+# Case conversation with Ahmad Karimi and an accepted offer, which is what makes
+# "Who bought this item?", the buyer name and "Agreed price" appear. So name it.
+# Titles are stable across reseeds and are never translated.
 - extendedWaitUntil:
     visible:
       id: "conversation-row-\\d+"
     timeout: 20000
-- tapOn:
-    id: "conversation-row-\\d+"
-    index: 0
+- scrollUntilVisible:
+    element:
+      text: "Phone Case Silicone Clear.*"
+    direction: DOWN
+    timeout: 25000
+    centerElement: true
+- tapOn: "Phone Case Silicone Clear.*"
 - waitForAnimationToEnd
 # The pinned listing header is visible at the top of the thread
 - assertVisible: "View Listing"
