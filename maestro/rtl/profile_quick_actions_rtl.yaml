@@ -33,11 +33,13 @@ appId: com.hatiwal.app
 # t("profile.title") returns nothing, so this "screen header" does not exist and the
 # assertion could never pass in any language. `profile.info` (the PERSONAL INFO card
 # heading) IS rendered and IS translated, so it proves the same thing.
-- scrollUntilVisible:
-    element:
-      text: "شخصي معلومات"
-    direction: DOWN
-    timeout: 20000
+# ORDER MATTERS HERE.
+#
+# The quick-action rows sit ABOVE the PERSONAL INFO card (Profile renders hero ->
+# stats -> quick actions -> personal info), so they must be asserted while the
+# screen is still at its cold-start offset. Scrolling DOWN to PERSONAL INFO first
+# and then asserting them — which is what this flow used to do — asserts rows
+# that the scroll has just pushed off the top.
 
 # --- Buyer-mode RTL quick actions ---
 # Buyer mode is the default; verify the three single-column action rows are visible
@@ -46,8 +48,31 @@ appId: com.hatiwal.app
 - assertVisible: "خوندي اعلانونه"
 - assertVisible: "پیغامونه"
 
+# NOW scroll down — the Pashto section header is the thing this proves.
+- scrollUntilVisible:
+    element:
+      text: "شخصي معلومات"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+
 # --- Switch to seller mode and verify seller side-by-side row in RTL ---
-- tapOn: "د پلورونکي حالت ته لاړ شئ"
+# The mode toggle sits just under the avatar at the TOP of Profile, so scroll UP
+# to it before tapping — `mapqa/_body_form.yaml` documents the same thing. This
+# flow failed with `Element not found: Text matching regex: د پلورونکي حالت ته لاړ شئ`
+# after the scroll above had left it off the top of the screen.
+#
+# Scroll by testID (locale-independent), then assert the Pashto LABEL — which is
+# what this flow is actually here to prove — then tap.
+- scrollUntilVisible:
+    element:
+      id: "mode-toggle-button"
+    direction: UP
+    visibilityPercentage: 40
+    timeout: 20000
+- assertVisible: "د پلورونکي حالت ته لاړ شئ"
+- tapOn:
+    id: "mode-toggle-button"
 - waitForAnimationToEnd
 
 # Navigate back to profile tab to see seller content
@@ -67,7 +92,22 @@ appId: com.hatiwal.app
 - assertVisible: "نوی اعلان پوسٹ کړئ"
 
 # Switch back to buyer mode
-- tapOn: "د اخیستونکي حالت ته لاړ شئ"
+# The mode toggle sits just under the avatar at the TOP of Profile, so scroll UP
+# to it before tapping — `mapqa/_body_form.yaml` documents the same thing. This
+# flow failed with `Element not found: Text matching regex: د اخیستونکي حالت ته لاړ شئ`
+# after the scroll above had left it off the top of the screen.
+#
+# Scroll by testID (locale-independent), then assert the Pashto LABEL — which is
+# what this flow is actually here to prove — then tap.
+- scrollUntilVisible:
+    element:
+      id: "mode-toggle-button"
+    direction: UP
+    visibilityPercentage: 40
+    timeout: 20000
+- assertVisible: "د اخیستونکي حالت ته لاړ شئ"
+- tapOn:
+    id: "mode-toggle-button"
 - waitForAnimationToEnd
 
 # Reset to English

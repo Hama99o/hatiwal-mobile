@@ -2126,7 +2126,6 @@ export function ConversationScreen() {
               size="icon"
               onPress={handleStartConversation}
               disabled={!messageText.trim() || isStarting}
-              style={{ marginLeft: 8 }}
             >
               {isStarting ? (
                 <ActivityIndicator color={colors.primaryForeground} size="small" />
@@ -2184,7 +2183,6 @@ export function ConversationScreen() {
               size="icon"
               onPress={handleSend}
               disabled={!messageText.trim() || isSending}
-              style={{ marginLeft: 8 }}
               accessibilityLabel={t("chat.send")}
             >
               {isSending ? (
@@ -2458,7 +2456,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderTopWidth: 1,
-    gap: 4,
+    // `gap`, and nothing physical on the children.
+    //
+    // The send buttons carried `marginLeft: 8` on top of this. marginLeft is a
+    // PHYSICAL property — Yoga does not flip it for RTL, only marginStart/End are
+    // direction-aware — so in Pashto and Dari, where the button sits to the LEFT
+    // of the input, those 8px landed on its outer edge and the button was flush
+    // against the input. Same defect the owner reported for the Profile rows on
+    // 2026-09-02, in a 7th place the first audit missed because this row is a
+    // plain `row` (correctly relying on the native RTL flip) rather than a
+    // manually reversed one.
+    gap: 8,
   },
   textInput: {
     flex: 1,

@@ -33,7 +33,21 @@ appId: com.hatiwal.app
     direction: DOWN
     timeout: 20000
 # Edit profile
-- assertVisible: "ویرایش پروفایل"
+# The edit BUTTON in the card we just scrolled to — not "ویرایش پروفایل".
+#
+# That string is fa `profile.editProfile`, which is the AVATAR's
+# accessibilityLabel up in the hero header. This flow scrolls DOWN to the
+# PERSONAL INFO card first, so by then the avatar is off screen and the assertion
+# fails on an app that is rendering Dari perfectly. Profile.tsx documents exactly
+# this trap ("the avatar carries accessibilityLabel 'Edit Profile', so a flow
+# selecting that text hits the avatar").
+#
+# Asserting BOTH keeps the locale check honest: the testID proves the control is
+# on screen, and fa `common.edit` proves it is rendering in Dari rather than
+# English.
+- assertVisible:
+    id: "profile-edit-button"
+- assertVisible: "ویرایش"
 # Appearance
 # Appearance sits well down the profile screen and `assertVisible` does not scroll.
 - scrollUntilVisible:
