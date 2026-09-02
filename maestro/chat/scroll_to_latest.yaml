@@ -53,17 +53,20 @@ appId: com.hatiwal.app
     id: "conversations-search-bar"
 - inputText: "QA Disposable scroll_to_latest"
 - waitForAnimationToEnd
-# DISMISS THE KEYBOARD before looking for results.
+# NO hideKeyboard here. It is a BACK PRESS.
 #
-# At 360dp this is not optional. The 720x1280@320dpi viewport is ~400dp tall, and
-# with the keyboard up the Messages screen spends it all on chrome: search field,
-# Inbox/Archived tabs, the All/Unread/Read/Buying chips, and the FloatingTabBar
-# that overlays the bottom edge. Measured from run-341's screenshot, that leaves
-# roughly 13dp of list — so a matching row cannot be VISIBLE even when the search
-# has found it. The fixture was present and correct (listing 1224, conversation
-# 642) and the term was typed correctly; there was simply nowhere to draw it.
-- hideKeyboard
-- waitForAnimationToEnd
+# Maestro's hideKeyboard has no guaranteed IME to close, so on this screen it
+# popped Messages and left the app on Bazaar — run-355's screenshot shows the
+# Bazaar tab selected with a listing grid, and the flow then failed looking for a
+# conversation row that could not exist. qa/flow_lint.py warns about exactly this
+# ("no IME guaranteed, so this is a Back press that pops the screen") and I added
+# it anyway.
+#
+# It is also no longer needed. It was added because at 360dp the Messages chrome
+# (search field + Inbox/Archived tabs + filter chips + the FloatingTabBar) left
+# ~13dp of list with the keyboard up. The app now COLLAPSES the tabs and the chip
+# row while a search term is present, so the results have room without dismissing
+# anything.
 - extendedWaitUntil:
     visible:
       id: "conversation-row-\\d+"
@@ -125,17 +128,20 @@ appId: com.hatiwal.app
     id: "conversations-search-bar"
 - inputText: "QA Disposable scroll_to_latest"
 - waitForAnimationToEnd
-# DISMISS THE KEYBOARD before looking for results.
+# NO hideKeyboard here. It is a BACK PRESS.
 #
-# At 360dp this is not optional. The 720x1280@320dpi viewport is ~400dp tall, and
-# with the keyboard up the Messages screen spends it all on chrome: search field,
-# Inbox/Archived tabs, the All/Unread/Read/Buying chips, and the FloatingTabBar
-# that overlays the bottom edge. Measured from run-341's screenshot, that leaves
-# roughly 13dp of list — so a matching row cannot be VISIBLE even when the search
-# has found it. The fixture was present and correct (listing 1224, conversation
-# 642) and the term was typed correctly; there was simply nowhere to draw it.
-- hideKeyboard
-- waitForAnimationToEnd
+# Maestro's hideKeyboard has no guaranteed IME to close, so on this screen it
+# popped Messages and left the app on Bazaar — run-355's screenshot shows the
+# Bazaar tab selected with a listing grid, and the flow then failed looking for a
+# conversation row that could not exist. qa/flow_lint.py warns about exactly this
+# ("no IME guaranteed, so this is a Back press that pops the screen") and I added
+# it anyway.
+#
+# It is also no longer needed. It was added because at 360dp the Messages chrome
+# (search field + Inbox/Archived tabs + filter chips + the FloatingTabBar) left
+# ~13dp of list with the keyboard up. The app now COLLAPSES the tabs and the chip
+# row while a search term is present, so the results have room without dismissing
+# anything.
 - extendedWaitUntil:
     visible:
       id: "conversation-row-\\d+"
