@@ -128,13 +128,16 @@ export function CategoryPicker({ visible, selectedId, onSelect, onClose }: Categ
 
         {/* Header */}
         <View
-          style={[styles.header, { flexDirection: isRtl ? "row-reverse" : "row" }]}
+          // `gap` on the header rather than marginEnd on the back button: this
+          // row is manually reversed, so a directional margin sat on the wrong
+          // side of the chevron.
+          style={[styles.header, { flexDirection: isRtl ? "row-reverse" : "row", gap: 8 }]}
         >
           {step === "sub" ? (
             <Pressable
               onPress={handleBack}
               hitSlop={8}
-              style={[styles.backButton, { marginEnd: 8 }]}
+              style={styles.backButton}
               android_ripple={{ color: colors.muted, borderless: true }}
             >
               {isRtl ? (

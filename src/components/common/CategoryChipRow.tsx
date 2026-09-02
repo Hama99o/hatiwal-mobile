@@ -155,6 +155,12 @@ export function CategoryChipRow({
             justifyContent: "center",
             flexDirection: isRtl ? "row-reverse" : "row",
             alignItems: "center",
+            // `gap`, not marginEnd on the icon: on a manually reversed row a
+            // directional margin resolves from the WRITING direction, so the
+            // space landed on the icon's OUTER edge and the icon and label
+            // touched in ps/fa (owner report, 2026-09-02: "tags or chips were
+            // touching the card").
+            gap: 5,
           }}
           accessibilityRole="button"
           accessibilityState={{ selected: selectedId === null }}
@@ -164,7 +170,6 @@ export function CategoryChipRow({
             color={
               selectedId === null ? colors.primaryForeground : colors.mutedForeground
             }
-            style={{ marginEnd: 5 }}
           />
           <Text
             style={{
@@ -201,6 +206,8 @@ export function CategoryChipRow({
                 justifyContent: "center",
                 flexDirection: isRtl ? "row-reverse" : "row",
                 alignItems: "center",
+                // See the "All" chip above — `gap`, never a directional margin.
+                gap: 5,
               }}
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
@@ -209,7 +216,6 @@ export function CategoryChipRow({
                 <Text
                   style={{
                     fontSize: 14,
-                    marginEnd: 5,
                   }}
                 >
                   {cat.icon}

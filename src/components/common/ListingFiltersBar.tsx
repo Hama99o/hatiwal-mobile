@@ -235,12 +235,16 @@ export function ListingFiltersBar({
                     justifyContent: "center",
                     alignItems: "center",
                     flexDirection: isRtl ? "row-reverse" : "row",
+                    // `gap`, not marginEnd on the emoji: a directional margin on
+                    // a manually reversed row lands on the OUTER edge, so the
+                    // icon and label touched in ps/fa.
+                    gap: 4,
                   }}
                   accessibilityRole="button"
                   accessibilityState={{ selected: isActive }}
                 >
                   {cat.icon ? (
-                    <Text style={{ fontSize: 13, marginEnd: 4 }}>{cat.icon}</Text>
+                    <Text style={{ fontSize: 13 }}>{cat.icon}</Text>
                   ) : null}
                   <Text
                     style={{

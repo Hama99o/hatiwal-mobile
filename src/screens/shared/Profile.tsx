@@ -827,12 +827,19 @@ function SettingsSection({
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
             alignItems: "center",
+            // `gap`, NOT a directional margin on the child. This row is manually
+            // reversed, and marginEnd/marginStart resolve from the WRITING
+            // direction rather than from row-reverse — so the 10px landed on the
+            // icon's OUTER edge and the icon and label touched (owner report,
+            // 2026-09-02, Pashto). `gap` is direction-agnostic, and the pill row
+            // just below already used it.
+            gap: 10,
             paddingHorizontal: 16,
             paddingVertical: 10,
             minHeight: 48,
           }}
         >
-          <Sun size={16} color={colors.mutedForeground} style={{ marginEnd: 10 }} />
+          <Sun size={16} color={colors.mutedForeground} />
           <Text
             className="text-sm font-medium"
             style={{ color: colors.foreground, flex: 1 }}
@@ -901,12 +908,15 @@ function SettingsSection({
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
             alignItems: "center",
+            // See the Appearance row above: `gap`, never marginEnd, on a manually
+            // reversed row.
+            gap: 10,
             paddingHorizontal: 16,
             paddingVertical: 10,
             minHeight: 48,
           }}
         >
-          <Globe size={16} color={colors.mutedForeground} style={{ marginEnd: 10 }} />
+          <Globe size={16} color={colors.mutedForeground} />
           <Text
             className="text-sm font-medium"
             style={{ color: colors.foreground, flex: 1 }}
@@ -915,7 +925,9 @@ function SettingsSection({
           </Text>
           <Text
             className="text-sm"
-            style={{ color: colors.mutedForeground, marginEnd: 6 }}
+            // marginEnd dropped here too — the container's `gap` now spaces this
+            // from the chevron, in whichever direction the row runs.
+            style={{ color: colors.mutedForeground }}
           >
             {currentLangLabel}
           </Text>

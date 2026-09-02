@@ -4,6 +4,7 @@ import { I18nManager } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { reloadApp } from "@/lib/reloadApp";
 import { authAPI } from "@/api/auth";
+import { resolveLanguageFromUser } from "./resolveLanguage";
 import { enTranslations } from "./en";
 import { psTranslations } from "./ps";
 import { faTranslations } from "./fa";
@@ -69,25 +70,66 @@ export async function setLanguage(lang: LanguageCode): Promise<void> {
   } catch {
     // ignore persistence errors
   }
-  // Fire-and-forget backend sync — local storage is authoritative for the UI.
-  authAPI.updateMe({ preferredLanguage: lang }).catch(() => null);
+  // AWAIT the backend sync before restarting — bounded, so a slow network cannot
+  // hold the UI.
+  //
+  // It used to be fire-and-forget, immediately followed by reloadApp(). The
+  // restart tore down the JS context with the request still in flight, so the
+  // server kept the OLD preferredLanguage; auth.bootstrap then read that stale
+  // value back on the next launch and undid the change. That is the owner's
+  // "it reload 2 or 3 time and it stay in same lang" (2026-09-02).
+  //
+  // The 1500ms cap matters: without it a dead network would block the language
+  // change itself. If the PATCH loses the race, resolveLanguageFromUser still
+  // protects the choice on the next launch and pushes it again — so this await
+  // makes the server converge SOONER, it is not what makes the fix correct.
+  await Promise.race([
+    authAPI.updateMe({ preferredLanguage: lang }).catch(() => null),
+    new Promise((resolve) => setTimeout(resolve, 1500)),
+  ]);
   // Reload on ANY language change — RN's live label/direction update is janky
   // on Android (text sometimes stays in place); a restart applies it cleanly.
   if (changed) reloadApp();
 }
 
-/** Apply a language from the backend user object (no API sync — backend is the source). */
+/**
+ * Apply the backend user's language — but NEVER over an explicit local choice.
+ *
+ * This runs on every load (auth.bootstrap's validateToken callback) as well as
+ * after login/register, and it used to overwrite local storage with whatever the
+ * server held. That is what reverted a just-made language change and forced the
+ * extra restart the owner saw. The rule now lives in resolveLanguageFromUser,
+ * with tests; see that file's header for the full sequence.
+ */
 export async function applyLanguageFromUser(lang: LanguageCode): Promise<void> {
-  const flips = isRtlLanguage(lang) !== I18nManager.isRTL;
-  await i18n.changeLanguage(lang);
-  I18nManager.forceRTL(isRtlLanguage(lang));
+  let stored: LanguageCode | null = null;
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, lang);
+    stored = (await AsyncStorage.getItem(STORAGE_KEY)) as LanguageCode | null;
+  } catch {
+    // Unreadable storage counts as "no local choice", which keeps the old
+    // seed-from-server behaviour rather than stranding the app on the default.
+  }
+  const { apply, pushToBackend } = resolveLanguageFromUser(stored, lang);
+
+  if (pushToBackend) {
+    // The local choice is authoritative and the server is behind — usually
+    // because a language change restarted the app before its PATCH landed.
+    // Correct the server; do NOT touch the UI.
+    authAPI.updateMe({ preferredLanguage: pushToBackend }).catch(() => null);
+    return;
+  }
+  if (!apply) return;
+
+  const flips = isRtlLanguage(apply) !== I18nManager.isRTL;
+  await i18n.changeLanguage(apply);
+  I18nManager.forceRTL(isRtlLanguage(apply));
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, apply);
   } catch {
     // ignore
   }
-  // On login only reload when the direction actually flips (avoids a needless
-  // restart loop on the splash/login flow for same-direction languages).
+  // Only reload when the direction actually flips (avoids a needless restart on
+  // the splash/login flow for same-direction languages).
   if (flips) reloadApp();
 }
 
