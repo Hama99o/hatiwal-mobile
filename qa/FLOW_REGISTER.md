@@ -10,13 +10,13 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**168 of 256 flows passing** · 85 still need attention
+**169 of 256 flows passing** · 84 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 168 | green, and no backend error underneath |
-| FAIL-assert | 67 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-? | 17 | failed, cause unclear — read the log |
+| PASS | 169 | green, and no backend error underneath |
+| FAIL-assert | 65 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-? | 18 | failed, cause unclear — read the log |
 | (rig) | 2 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 1 | never executed |
 
@@ -30,7 +30,7 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state — mark-sold one-tap from the thread, place/release a hold with the buyer you're already talking to
 
-29/49 passing · 16 open
+30/49 passing · 15 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -52,7 +52,7 @@ bug class a user reports as "nothing happened".
 | `jump_to_latest` | PASS | run-367 | 190 | new | 2026-09-02: the jump-to-latest pill — absent at the bottom, appears after scrolling up, returns to the newest message, then retires itself. |
 | `lifecycle_from_chat` | PASS | run-362 | 254 | flow — toast race ("Listing marked as sold"); load-bearing wait, see audit_toasts note |  |
 | `mark_read` | PASS | run-299 | 171 | fixture | Same unrepliable-thread trap. |
-| `mark_read_end_to_end` | FAIL-? | run-360 | 191 | flow | 2026-09-02: asserted an unread badge exists then tapped conversation-row index 0 — the newest thread, not necessarily the unread one. The divider only exists inside a thread with unread messages. Now taps unread-badge, which bubbles to its own row. |
+| `mark_read_end_to_end` | PASS | run-377 | 214 | flow | 2026-09-02: asserted an unread badge exists then tapped conversation-row index 0 — the newest thread, not necessarily the unread one. The divider only exists inside a thread with unread messages. Now taps unread-badge, which bubbles to its own row. |
 | `meetup_decline` | FAIL-assert | run-299 | 414 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
 | `meetup_full_cycle` | FAIL-assert | run-299 | 483 | flow — both legs used index 0 (arbitrary listing, arbitrary thread); pinned to the seeded phone-case thread | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
 | `meetup_proposal` | PASS | run-299 | 229 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
@@ -216,9 +216,9 @@ bug class a user reports as "nothing happened".
 | `change_language_dari` | PASS | run-327 | 487 |  |  |
 | `change_language_english` | PASS | run-298 | 551 | flow — toothless restart wait; helper+nav fixed cb68fa4 |  |
 | `change_language_pashto` | PASS | run-326 | 189 |  |  |
-| `contact_visibility` | FAIL-assert ⟳stale | run-358 | 154 |  | [Failed] contact_visibility (2m 24s) (Assertion is false: id: edit-profile-show-phone-switch is visible) |
+| `contact_visibility` | FAIL-? ⟳stale | run-376 | 217 |  | [Failed] contact_visibility (3m 28s) (No visible element found: id: edit-profile-whatsapp-same-as-phone) |
 | `edit_profile` | PASS | run-324 | 147 | stale — toast assertion already replaced by durable name check |  |
-| `edit_profile_all_fields` | FAIL-assert ⟳stale | run-363 | 178 | flow | 2026-09-02: same DOWN+centerElement defect as edit_profile_province — see that row. Screen itself was healthy (run-298 screenshot shows Profile rendering correctly in dark mode). |
+| `edit_profile_all_fields` | FAIL-assert ⟳stale | run-374 | 501 | flow | 2026-09-02: same DOWN+centerElement defect as edit_profile_province — see that row. Screen itself was healthy (run-298 screenshot shows Profile rendering correctly in dark mode). |
 | `edit_profile_avatar` | PASS | run-298 | 169 |  |  |
 | `edit_profile_bio_too_long` | PASS ⟳stale | run-298 | 262 | flow — 520 chars do type; error renders above viewport; now scrolls UP cb68fa4 |  |
 | `edit_profile_province` | PASS | run-357 | 209 | flow | 2026-09-02: DOWN + centerElement:true on profile-edit-button, which sits near the TOP of Profile — DOWN scrolls away from it and centring is impossible with too little content above. ORDER-DEPENDENT (siblings passed on the identical block). Now UP + visibilityPercentage 40, applied to all 8 flows carrying it. |
@@ -403,9 +403,9 @@ bug class a user reports as "nothing happened".
 | `browse_rtl_pashto` | PASS | run-352 | 159 |  |  |
 | `buyer_picker_rtl` | PASS | run-289 | 549 |  |  |
 | `categories_hub_rtl` | PASS | run-354 | 156 | flow | 2026-09-02: tapped text "Back" in a flow whose whole purpose is Pashto. The app renders no literal "Back" — BackButton has accessibilityLabel t(common.goBack) (ps شاته ځه) and testID back_button. Now targets the testID. |
-| `chat_rtl` | FAIL | run-365 | 478 | flow? | 2026-09-02: expects ps common.send "لیږل", present verbatim. Same language-revert hypothesis as profile_rtl. |
+| `chat_rtl` | FAIL | run-373 | 477 | flow? | 2026-09-02: expects ps common.send "لیږل", present verbatim. Same language-revert hypothesis as profile_rtl. |
 | `listing_detail_rtl` | PASS | run-289 | 530 |  |  |
 | `my_listings_rtl` | PASS | run-289 | 218 |  |  |
-| `profile_quick_actions_rtl` | FAIL-assert ⟳stale | run-364 | 175 | flow? | 2026-09-02: expects ps profile.switchToSeller, present verbatim in the locale file. Same language-revert hypothesis as profile_rtl. |
+| `profile_quick_actions_rtl` | FAIL-? ⟳stale | run-375 | 220 | flow? | 2026-09-02: expects ps profile.switchToSeller, present verbatim in the locale file. Same language-revert hypothesis as profile_rtl. |
 | `profile_rtl` | PASS | run-353 | 480 | flow? | 2026-09-02: expects fa profile.editProfile "ویرایش پروفایل", which EXISTS verbatim in the locale file — so not a stale selector. Hypothesis: the language-revert bug (fixed 8097ab3) left the app in English after the switch, so no translated string could match. Re-running on a build with that fix. |
 | `sales_ledger_rtl` | PASS | run-289 | 547 |  |  |
