@@ -2189,3 +2189,38 @@ and a rule nobody reads is how the real one hides.
 **The replacement is `pressKey: Enter` on a single-line input** — a real user
 action that blurs the field and closes the IME without touching the navigation
 stack. It does NOT work on a `Textarea`, where Enter inserts a newline.
+
+## Which bottom sheets actually need the keyboard self-lift
+
+MeetupSheet's fix (d46c896) raised an obvious question: twelve screens use
+`behavior={Platform.OS === "ios" ? "padding" : "height"}`, and SEVEN are bottom
+sheets with inputs sharing MeetupSheet's exact layout — a `flex: 1` backdrop
+above a content-sized KAV, so `behavior="height"` has nothing to shrink.
+
+**A shared layout signature is not a shared defect.** Checked against the flows
+rather than rewritten on the strength of the signature, and three of the seven
+demonstrably work: a flow that TYPES into the sheet and then TAPS ITS SUBMIT,
+and passes, proves the submit was reachable with the IME up.
+
+| Sheet | Evidence | Verdict |
+|---|---|---|
+| OfferSheet | 5 passing flows type + submit (`listing_detail_offer`, `reserved_buyer`, …) | works at 411dp |
+| BuyerPickerSheet | 3 passing (`multi_quantity_partial_sale`, `sales_screen_correct_quantity`, …) | works at 411dp |
+| SaleRowEditSheet | 2 passing (`sales_screen_correct_quantity`, `sales_ledger_rtl`) | works at 411dp |
+| ReportSheet | `report_listing` types, then `hideKeyboard`, THEN submits — and its comment says the IME otherwise swallows the tap | AFFECTED, worked around in the flow |
+| FirstMessageSheet | no flow types into it and submits | unproven |
+| ReviewPromptSheet | no flow types into it and submits | unproven |
+| FilterSheet | no flow references its ids at all | unproven |
+
+So the count is one confirmed (ReportSheet, where a flow is paying for it with a
+Back press), three cleared, and three with no coverage either way — not seven
+broken. Whichever way they are fixed, the three cleared ones must not be
+"fixed": they work, and a lift they do not need is a regression risk for nothing.
+
+The three unproven ones are unproven because **nothing tests them**, which is its
+own finding. FilterSheet has no flow touching its ids at all.
+
+**Method worth reusing:** to decide whether a keyboard-adjacent control is
+reachable, do not reason about the layout — find a passing flow that types into
+it and then taps it. If none exists, the honest answer is "no coverage", not
+"probably fine".
