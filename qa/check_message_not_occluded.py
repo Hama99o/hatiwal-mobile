@@ -23,7 +23,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-TARGET = sys.argv[1] if len(sys.argv) > 1 else "Scroll target check"
+TARGET = sys.argv[1] if len(sys.argv) > 1 else "Scroll target meetup place"
 SERIAL = sys.argv[2] if len(sys.argv) > 2 else "emulator-5580"
 # The composer's placeholder is the most reliable handle on the bar: it is the
 # one node guaranteed present whenever a thread is message-able.

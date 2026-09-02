@@ -57,6 +57,23 @@ appId: com.hatiwal.app
     visible: "Type a message..."
     timeout: 30000
 
+# ── 0. MAKE THE THREAD LONG ENOUGH TO ACTUALLY SCROLL ──────────────────────
+#
+# Without this the test is worthless. The first run of this flow passed with the
+# newest message sitting 982px ABOVE the composer — because the re-seed had left
+# the thread short enough to fit on screen, so nothing had to scroll and the
+# assertion proved nothing. The owner's screenshot showed a LONG thread whose
+# last bubble was a tall PRICE OFFER / MEETUP PROPOSAL card, which is the worst
+# case for this bug: a tall bubble is exactly what an interrupted scroll leaves
+# half-covered.
+- repeat:
+    times: 6
+    commands:
+      - tapOn: "Type a message..."
+      - inputText: "filler to make the thread scroll"
+      - tapOn: "Send"
+      - waitForAnimationToEnd
+
 # ── 1. after SENDING ───────────────────────────────────────────────────────
 - tapOn: "Type a message..."
 - inputText: "Scroll target check"
@@ -105,3 +122,37 @@ appId: com.hatiwal.app
 # point. If it needs a drag, this fails.
 - assertVisible: "Scroll target check"
 - takeScreenshot: scroll_to_latest-on-open
+
+# ── 3. a TALL bubble last — the owner's actual case ────────────────────────
+#
+# A meetup proposal renders the tall card bubble from the report (place link +
+# time + timestamp). If any scroll stops short, this is the bubble that ends up
+# behind the composer, and it is what `check_message_not_occluded.py` is pointed
+# at afterwards.
+- tapOn:
+    id: "composer-plus-button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "composer-action-meetup"
+    timeout: 20000
+- tapOn:
+    id: "composer-action-meetup"
+- waitForAnimationToEnd
+- tapOn:
+    id: "meetup-place-input"
+- inputText: "Scroll target meetup place"
+- tapOn:
+    id: "meetup-time-input"
+- inputText: "Saturday at 3pm"
+- extendedWaitUntil:
+    visible:
+      id: "meetup-propose-submit"
+    timeout: 20000
+- tapOn:
+    id: "meetup-propose-submit"
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+# The tall card must be reachable with no drag.
+- assertVisible: "Scroll target meetup place"
+- takeScreenshot: scroll_to_latest-tall-bubble

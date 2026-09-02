@@ -1858,9 +1858,35 @@ export function ConversationScreen() {
           // styles.messageList plus clearance for the absolutely-positioned bottom
           // bar AND the keyboard beneath it, so the newest message is never covered.
           contentContainerStyle={[styles.messageList, { paddingBottom: bottomBarH + barLift }]}
-          // Disable maintainVisibleContentPosition during search so the filtered
-          // list doesn't jump when the query changes
-          maintainVisibleContentPosition={searchVisible ? undefined : { minIndexForVisible: 0 }}
+          // maintainVisibleContentPosition ONLY while prepending older messages.
+          //
+          // Its whole purpose is pagination: when a page of older messages is
+          // spliced in ABOVE the current view, this keeps what you were reading
+          // where it was. Left on permanently it does the opposite of what this
+          // thread needs — it anchors item 0 and actively resists every
+          // scroll-to-bottom. On iOS especially, where this maps to a native
+          // UIScrollView feature that adjusts contentOffset on any content change,
+          // it is a strong candidate for the owner's report that the thread would
+          // not follow its own newest message on TestFlight 1.0.4. The Android
+          // verification could not have caught it — the two platforms implement
+          // this prop differently.
+          //
+          // Still off during search, so a filtered list does not jump as the query
+          // changes.
+          maintainVisibleContentPosition={
+            isLoadingMore && !searchVisible ? { minIndexForVisible: 0 } : undefined
+          }
+          // iOS: keep OUR padding math authoritative.
+          //
+          // With the default "automatic" behaviour UIKit adds its own safe-area
+          // content insets on top of the contentContainer padding computed from the
+          // measured bar height. scrollToEnd then lands SHORT by roughly the
+          // home-indicator inset, leaving the newest bubble just under the composer
+          // — the reported symptom, and exactly the kind of thing that shows on an
+          // iPhone but not on the Android emulator this was verified on. Both props
+          // are no-ops on Android.
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
           scrollEventThrottle={200}
           onScroll={handleScroll}
           // Scroll to the true bottom AFTER the list re-measures (new bubble
