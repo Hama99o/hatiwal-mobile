@@ -107,8 +107,19 @@ happily reports results that mean nothing. Grep every log for that string before
 believing any of it.
 
 `qa.sh flow` / `qa.sh feature` now exit on the flows' verdict, not the
-reporter's: `0` all passed, `1` at least one failed, `2` no results recorded at
-all (driver death, collision). Treat `2` as "unmeasured", never as a failure.
+reporter's:
+
+| exit | meaning |
+|---:|---|
+| 0 | every flow passed |
+| 1 | at least one flow FAILED |
+| 2 | flows ran but no verdict was recorded — driver death, or two runs colliding |
+| 3 | PREFLIGHT blocked; nothing ran at all |
+
+Treat `2` and `3` as "unmeasured", never as failures. Both were reported as
+failures once, and both produced false bug reports: a preflight block ("app
+crashed or could not load its bundle on launch") was written up as a flow
+failure for a flow that never executed.
 
 Serialise with the same lock the fleet uses, and remember that a background chain
 started with plain `nohup` still dies if the parent's process group is killed —

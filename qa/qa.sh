@@ -87,6 +87,18 @@ hold_device_lock() {
   echo "pid=$$ cmd=${QA_CMD:-?} started=$(cat /proc/uptime | cut -d' ' -f1)" >&9
 }
 
+# Callers `require_rig || exit 3` — 3, not 1.
+#
+# A blocked preflight means NOT MEASURED, which is a different fact from a failed
+# flow, and conflating them produces false bug reports. On 2026-09-02 a sweep
+# reported chat/conversations_role_filter as a failure when the rig had actually
+# refused to run it ("app crashed or could not load its bundle on launch", with
+# the host under memory pressure) — the flow was never executed at all.
+#
+#   0 = every flow passed        (exit_from_results)
+#   1 = at least one flow failed (exit_from_results)
+#   2 = flows ran, no verdict recorded — driver death, or two runs colliding
+#   3 = preflight blocked, nothing ran
 require_rig() {
   bash "$HERE/lib/doctor.sh" > "$REPORTS_DIR/last-doctor.log" 2>&1 && return 0
   err "preflight failed — flow results would be meaningless"
@@ -142,7 +154,7 @@ print(' '.join(m['$feat'].get('jest',[])))")
            npx jest --watchAll=false $pats ;;
 
   smoke)   QA_CMD=smoke hold_device_lock
-           require_rig || exit 1
+           require_rig || exit 3
            RUN_DIR="$(new_run)"; step "SMOKE — every feature's fastest flows"
            for f in $(python3 -c "
 import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
@@ -156,7 +168,7 @@ import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
 
   feature) feat="${1:?feature name required}"
            QA_CMD=feature hold_device_lock
-           require_rig || exit 1
+           require_rig || exit 3
            RUN_DIR="$(new_run)"
            step "DEEP QA — $feat"
            mapfile -t flows < <(feature_flows "$feat" all | grep -v '^$')
@@ -169,7 +181,7 @@ import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
              exit_from_results "$RUN_DIR" ;;
 
   all)     QA_CMD=all hold_device_lock
-           require_rig || exit 1
+           require_rig || exit 3
            RUN_DIR="$(new_run)"; step "FULL SUITE — all features, all flows"
            for f in $(python3 -c "
 import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
@@ -186,7 +198,7 @@ import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
            QA_CMD=flow hold_device_lock
            f="$MOBILE_DIR/maestro/${spec%.yaml}.yaml"
            [ -f "$f" ] || die "no such flow: $f"
-           require_rig || exit 1
+           require_rig || exit 3
            RUN_DIR="$(new_run)"
            step "SINGLE FLOW — $spec"
            run_feature "$(dirname "$spec")" "$RUN_DIR" "$f"
