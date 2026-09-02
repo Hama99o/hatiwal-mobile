@@ -2063,3 +2063,41 @@ actions to the bottom of the page hunting a string that cannot exist.
 **Before asserting a label, read how it is BUILT, not just what the locale file
 says.** A count, a badge or an interpolated name makes the locale string a
 prefix, not the text.
+
+## The meetup sheet was unreachable — but only in the order no flow tested
+
+`chat/scroll_to_latest` failed with `Element not found: Id matching regex:
+meetup-time-input` (run-383). The app was rendering correctly: the screenshot
+shows the sheet open, "Propose a Meetup" and the "Place" label above the
+keyboard, the place input at its very edge, and the whole Time field and Propose
+button behind Gboard.
+
+**The condition is the ordering of the sheet and the IME**, and it is why four
+meetup flows have been green the whole time:
+
+| Order | What happened before d46c896 |
+|---|---|
+| Sheet opens first, IME arrives after (`meetup_proposal`, `meetup_validation`, `meetup_full_cycle`, `meetup_proposed_bubble_ui`) | `KeyboardAvoidingView behavior="height"` shrank the sheet and clipped it from the TOP. run-232 hit this as a `tapOn` on the heading coming back "not found". Submit stayed reachable, which is what the 2026-06-18 platform audit generalised from. |
+| **IME already up when the sheet opens** | Nothing moved: the sheet was drawn under the keyboard. Time and Propose unreachable. |
+
+The second row is the ORDINARY USER PATH — you are chatting, the keyboard is up,
+you tap + and Propose a Meetup — and no meetup flow exercised it. It surfaced
+only because `scroll_to_latest` types into the composer and deliberately never
+dismisses the IME (`hideKeyboard` is a Back press), so it arrives at the sheet
+with the keyboard already up.
+
+Two lessons, both cheap to apply:
+
+1. **A green flow can be green because of the order it happens to use.** Four
+   flows covering one sheet all opened it the same way, so they collectively
+   tested one of the two orders. When a control is keyboard-adjacent, ask which
+   order the flows establish, not just whether they pass.
+2. **Do not generalise a platform audit from the path in front of you.** The
+   audit's "both branches are intentional and correct; no fallback is missing"
+   was true for the order it was written against and false for the other one.
+
+Fixed in the app (d46c896), not worked around in the flow: Android lifts the
+sheet by the keyboard height via `useKeyboardHeight()` — the same house hook the
+chat composer uses — so both orders now produce one correct layout. iOS keeps
+`behavior="padding"`, untouched, because there is no Mac here to verify a change
+to it.

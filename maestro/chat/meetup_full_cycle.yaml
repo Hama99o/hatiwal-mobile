@@ -94,10 +94,17 @@ appId: com.hatiwal.app
 #   * `hideKeyboard` is BACK on Android — it dismissed the sheet's <Modal>, and
 #     the submit button came back "not found" because the sheet was gone.
 #   * tapping the "Propose a Meetup" heading to blur ALSO failed "not found":
-#     MeetupSheet has no ScrollView and uses KeyboardAvoidingView
-#     behavior="height" on Android, so the IME compresses the sheet and clips
-#     the heading out of the layout exactly when the keyboard is up.
-# MeetupSheet's own platform audit says the submit button stays reachable with
+#     MeetupSheet had no ScrollView and used KeyboardAvoidingView
+#     behavior="height" on Android, so the IME compressed the sheet and clipped
+#     the heading out of the layout exactly when the keyboard was up.
+#     SUPERSEDED by d46c896: the sheet now lifts itself by the keyboard height
+#     (behavior is undefined on Android), so it is no longer compressed and the
+#     heading stays in the layout. The reason not to dismiss the IME still
+#     stands — it is the Back press above, not the clipping.
+# The submit button is reachable with the keyboard up — since d46c896 because the
+# sheet sits ABOVE the IME, not because the old audit said so (its Android half
+# was wrong: it only held when the IME arrived AFTER the sheet, and this sheet
+# was unreachable in the other order). Either way, with
 # the keyboard up, so tap it directly. By ID, never by label: the label swaps to
 # "Sending…" while submitting. The assert makes a clipped button fail HERE.
 - assertVisible:

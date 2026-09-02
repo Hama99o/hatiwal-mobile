@@ -119,13 +119,28 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
         //        four rounds to this same assumption. A native <Modal> is its own
         //        window on top of that, so it would not inherit a resize anyway.
         //
-        //   Evidence it was broken in practice: qa/reports/run-383's
-        //   chat/scroll_to_latest screenshot shows this sheet open with "Propose a
-        //   Meetup" and the "Place" LABEL visible while the place input, the whole Time
-        //   field and the Propose button sit behind Gboard — the flow failed with
-        //   `Element not found: Id matching regex: meetup-time-input` on a sheet that
-        //   had rendered correctly. A real user meets the same wall: type the place,
-        //   and there is no way to reach Time or Propose without dismissing the IME.
+        //   WHEN IT BITES, precisely — it is conditional, and the condition is the
+        //   ordinary user path. `meetup_proposal` and `meetup_validation` have been
+        //   green throughout (run-299, today 09:48) because they open this sheet as
+        //   their FIRST action, with the IME down; the keyboard then arrives after the
+        //   sheet is laid out, and the KAV's response is to shrink the sheet and clip
+        //   it from the TOP — which is what run-232 saw when a tap on the "Propose a
+        //   Meetup" heading came back "not found", and what let that audit conclude
+        //   the submit button "stays reachable".
+        //
+        //   The broken case is the sheet opening while the keyboard is ALREADY UP:
+        //   you are chatting, the IME is up, you tap + and Propose a Meetup. No
+        //   meetup flow covered that path. `chat/scroll_to_latest` reaches it by
+        //   accident — it types into the composer and deliberately never dismisses
+        //   the IME — and failed with `Element not found: Id matching regex:
+        //   meetup-time-input`. qa/reports/run-383's screenshot shows why: the sheet
+        //   is open and correct, with "Propose a Meetup" and the "Place" LABEL above
+        //   the keyboard while the place input sits at its very edge and the whole
+        //   Time field and Propose button are behind it.
+        //
+        //   So: not "always unusable", and not flaky either — two different wrong
+        //   behaviours depending on which came up first. The lift below makes it one
+        //   correct behaviour in both orders.
         //
         //   So on Android the sheet lifts itself by the keyboard's height (from the
         //   event payload, the only source that is right under edge-to-edge) and the
