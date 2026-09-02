@@ -97,6 +97,14 @@ rig_healthy() {
 classify() {
   local code="$1" log="$2" lc="$3"
   grep -qiE "FATAL EXCEPTION|AndroidRuntime.*FATAL" "$lc" 2>/dev/null && { echo app_crash; return; }
+  # The Expo DEV CLIENT crashing is not the app failing. Its dev-menu FAB throws
+  # while computing a snap position after the window is resized
+  # (`expo.modules.devmenu.fab` / `MovableFloatingActionButton`), the screen
+  # becomes "There was a problem loading the project", and whatever the flow was
+  # asserting is then reported as an ordinary assertion failure against a screen
+  # that is not the app at all. Classify it as a RIG problem so it is re-run
+  # rather than triaged as a product bug.
+  grep -qiE "devmenu\.fab|MovableFloatingActionButton" "$lc" 2>/dev/null && { echo rig_devclient_crash; return; }
   # A red box (LogBox) means the JS threw or logged an error. It is a real app
   # error even when an assertion happened to pass, and it covers the screen so
   # everything after it fails for the wrong reason.

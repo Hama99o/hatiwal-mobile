@@ -232,6 +232,26 @@ import yaml;print(' '.join(yaml.safe_load(open('$MANIFEST'))['features']))"); do
                      ok "session $QA_SESSION ($QA_SERIAL) → restored to the AVD's own size/density" ;;
              *)      die "usage: [QA_SESSION=n] $0 profile small|phone|large|tablet|reset" ;;
            esac
+           # FORCE-STOP the app after any size/density change.
+           #
+           # Expo's dev-menu floating action button computes its snap position from
+           # the window bounds, and resizing under a RUNNING app leaves it with an
+           # inverted range:
+           #
+           #   java.lang.IllegalArgumentException: Cannot coerce value to an empty
+           #     range
+           #   at expo.modules.devmenu.fab.FabUtilsKt.calculateTargetPosition
+           #   at expo.modules.devmenu.fab.MovableFloatingActionButtonKt
+           #
+           # The app then shows "There was a problem loading the project", and every
+           # flow after it either asserts against a screen that is not the app or is
+           # blocked at preflight. That is a DEV-CLIENT bug, not a product one, and
+           # it cost two flows in the 2026-09-02 small-screen pass.
+           #
+           # A cold start recomputes the FAB against the new window, and every flow
+           # cold-starts anyway via _helpers/login.yaml, so stopping here is enough.
+           adb_qa_t 25 shell am force-stop com.hatiwal.app >/dev/null 2>&1 \
+             && ok "app force-stopped so the dev-menu FAB re-measures against the new window"
            say "dp width is what drives layout — re-run flows after changing it" ;;
 
   # ── Work claiming: N sessions, no feature tested twice ──────────────────
