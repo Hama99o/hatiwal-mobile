@@ -63,3 +63,27 @@ export function shouldTrackScrollPosition(now: number, lockUntil: number): boole
 export function scrollLockDeadline(now: number, lockMs = SCROLL_LOCK_MS): number {
   return now + lockMs;
 }
+
+/**
+ * May a scroll EVENT be read as the user choosing where to sit?
+ *
+ * Only if the user is actually dragging. This is the rule the time-based lock
+ * alone got wrong, measured on device (2026-09-02): the final unanimated jump
+ * cleared the lock in the same instant it fired, so the scroll event that jump
+ * produced — throttled by up to 200ms, and therefore arriving AFTER the lock had
+ * lifted — was recorded as user intent. `isNearBottom` was computed from a
+ * mid-flight offset, came out false, and the tall bubble's own later growth was
+ * then refused a scroll. The list finished 399px short of its end and a tall
+ * meetup/offer card sat 21px behind the composer, which is exactly the reported
+ * symptom.
+ *
+ * A programmatic scroll must never be able to say "the user wants to be here".
+ * Only a drag can.
+ */
+export function shouldTrackFromScrollEvent(
+  isUserDragging: boolean,
+  now: number,
+  lockUntil: number
+): boolean {
+  return isUserDragging && shouldTrackScrollPosition(now, lockUntil);
+}

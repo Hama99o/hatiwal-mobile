@@ -8,6 +8,7 @@
 import { describe, it, expect } from "@jest/globals";
 import {
   isNearBottom,
+  shouldTrackFromScrollEvent,
   shouldTrackScrollPosition,
   scrollLockDeadline,
   NEAR_BOTTOM_PX,
@@ -66,5 +67,31 @@ describe("shouldTrackScrollPosition", () => {
 describe("constants", () => {
   it("keeps the near-bottom threshold the screen was tuned against", () => {
     expect(NEAR_BOTTOM_PX).toBe(120);
+  });
+});
+
+// ── The device-measured bug: a programmatic scroll must not look like intent ──
+//
+// Measured on 2026-09-02: the list stopped 399px short of its end and a tall
+// meetup card sat 21px behind the composer, while Maestro reported the flow as
+// passed (its visibility test cannot see occlusion).
+describe("shouldTrackFromScrollEvent", () => {
+  it("ignores a scroll event that no drag produced — the 399px-short bug", () => {
+    // The final programmatic jump's own event, arriving after the lock lifted.
+    expect(shouldTrackFromScrollEvent(false, 2_000, 1_000)).toBe(false);
+  });
+
+  it("still ignores it while the lock is also held (belt and braces)", () => {
+    expect(shouldTrackFromScrollEvent(false, 1_000, 2_000)).toBe(false);
+  });
+
+  it("honours a real drag once no programmatic scroll is in flight", () => {
+    expect(shouldTrackFromScrollEvent(true, 2_000, 1_000)).toBe(true);
+  });
+
+  it("defers to the lock even during a drag started mid-jump", () => {
+    // A drag that begins while a jump is still settling must not have its
+    // mid-flight offsets recorded either.
+    expect(shouldTrackFromScrollEvent(true, 1_000, 2_000)).toBe(false);
   });
 });

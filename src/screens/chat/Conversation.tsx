@@ -47,7 +47,7 @@ import { BackButton } from "@/components/common/BackButton";
 import { ListingHeader } from "./conversation/ListingHeader";
 import {
   isNearBottom,
-  shouldTrackScrollPosition,
+  shouldTrackFromScrollEvent,
   scrollLockDeadline,
 } from "./conversation/threadScroll";
 import { ListingUnavailableNotice } from "./conversation/ListingUnavailableNotice";
@@ -381,6 +381,20 @@ export function ConversationScreen() {
   // A tall last bubble (a meetup proposal or an offer card) is the worst case,
   // which is why the proposal messages were the ones seen half-hidden.
   const scrollLockUntilRef = useRef(0);
+  // Is a HUMAN dragging the list right now? Only a drag may change whether the
+  // thread follows its newest message — see shouldTrackFromScrollEvent.
+  const userDraggingRef = useRef(false);
+  // The list's own measurements, so the end offset can be COMPUTED rather than
+  // delegated to scrollToEnd.
+  //
+  // Measured on device (2026-09-02): with a ~396px contentContainer paddingBottom
+  // in place, scrollToEnd landed ~399px short — as if the padding were not there
+  // — leaving a tall meetup card behind the composer. A manual swipe then moved
+  // the list exactly that far, proving the content really was that much longer.
+  // scrollToOffset with an offset we derive from the reported content size does
+  // not depend on whatever bookkeeping scrollToEnd was using.
+  const contentHeightRef = useRef(0);
+  const viewportHeightRef = useRef(0);
 
   // Drive the thread to its TRUE bottom and hold it there across the late layout
   // passes that follow an append.
@@ -393,13 +407,32 @@ export function ConversationScreen() {
   const scrollThreadToEnd = useCallback((animated = true) => {
     isNearBottomRef.current = true;
     scrollLockUntilRef.current = scrollLockDeadline(Date.now());
-    const jump = (a: boolean) => flatListRef.current?.scrollToEnd({ animated: a });
+    const jump = (a: boolean) => {
+      const content = contentHeightRef.current;
+      const viewport = viewportHeightRef.current;
+      if (content > 0 && viewport > 0) {
+        // The true end, padding included. Clamped at 0 for a thread shorter than
+        // the viewport, where any positive offset would scroll past the content.
+        flatListRef.current?.scrollToOffset({
+          offset: Math.max(0, content - viewport),
+          animated: a,
+        });
+        return;
+      }
+      // Before the first measurement lands there is nothing to compute from.
+      flatListRef.current?.scrollToEnd({ animated: a });
+    };
     jump(animated);
     setTimeout(() => jump(animated), 140);
+    setTimeout(() => jump(false), 460);
+    // A TALL last bubble (a meetup or offer card) measures in more than one pass,
+    // and on device the list finished 399px short without this. The lock is
+    // released AFTER the last jump, never in the same instant as one, so no jump's
+    // own scroll event can be mistaken for user intent.
+    setTimeout(() => jump(false), 900);
     setTimeout(() => {
-      jump(false);
       scrollLockUntilRef.current = 0;
-    }, 460);
+    }, 1200);
   }, []);
 
   // RE-LAND the bottom whenever the bar's measured height changes.
@@ -612,7 +645,13 @@ export function ConversationScreen() {
       // a programmatic scroll-to-bottom is in flight. Those intermediate
       // offsets are not where the user chose to be, and treating them as such
       // is what cancelled the scroll half-way (see scrollLockUntilRef).
-      if (shouldTrackScrollPosition(Date.now(), scrollLockUntilRef.current)) {
+      if (
+        shouldTrackFromScrollEvent(
+          userDraggingRef.current,
+          Date.now(),
+          scrollLockUntilRef.current
+        )
+      ) {
         isNearBottomRef.current = isNearBottom({
           contentHeight: contentSize.height,
           viewportHeight: layoutMeasurement.height,
@@ -1735,7 +1774,36 @@ export function ConversationScreen() {
       {/* Message list. No KeyboardAvoidingView on either platform — the bottom
           bar is absolutely anchored to the keyboard instead (see the block after
           this one), so nothing here has to react to the keyboard at all. */}
-      <View style={{ flex: 1 }}>
+      {/* THE LIST ENDS AT THE BAR — it does not run behind it.
+        *
+        * Owner, 2026-09-02: "the scroll should be until that section, not
+        * behind it… it should not hide by input send message and the default
+        * proposal".
+        *
+        * That is the right model, and it is what this screen was NOT doing. The
+        * list filled the whole screen (measured: y 437→2400), the bar was painted
+        * on top of it, and the newest messages were kept clear only by a
+        * contentContainer paddingBottom equal to the bar's height. Two things
+        * went wrong with that:
+        *
+        *   - anything that made the padding wrong, or any scroll that stopped
+        *     short of the content end, put real messages BEHIND the bar. Measured
+        *     on device: a meetup card's rows at y 2160-2291 with the chips row
+        *     starting at y 2004 — roughly 287px of the newest message hidden.
+        *   - `scrollToEnd` landed ~399px short, i.e. as if the padding were not
+        *     there at all, so the very case the padding existed for was the case
+        *     it failed.
+        *
+        * Shrinking the list's CONTAINER instead makes the whole class impossible:
+        * the ScrollView's viewport now ends exactly at the bar's top edge, so
+        * there is no region behind the bar for a message to be in, and the end of
+        * the scroll is the last message — no padding arithmetic to get wrong.
+        *
+        * marginBottom carries `barLift` as well as the measured height so it
+        * tracks the keyboard, which is what the absolutely-positioned bar was
+        * introduced to handle in the first place.
+        */}
+      <View style={{ flex: 1, marginBottom: bottomBarH + barLift }}>
         <FlatList
           // Lets a flow scroll THIS list rather than guessing at the screen.
           testID="messages-list"
@@ -1855,9 +1923,12 @@ export function ConversationScreen() {
               />
             );
           }}
-          // styles.messageList plus clearance for the absolutely-positioned bottom
-          // bar AND the keyboard beneath it, so the newest message is never covered.
-          contentContainerStyle={[styles.messageList, { paddingBottom: bottomBarH + barLift }]}
+          // No bar clearance here any more — the CONTAINER above stops at the
+          // bar's top edge, so the content needs nothing but its own breathing
+          // room (styles.messageList's paddingVertical). Padding the content to
+          // clear an overlay was the mechanism that failed; see the comment on
+          // the wrapper.
+          contentContainerStyle={styles.messageList}
           // maintainVisibleContentPosition ONLY while prepending older messages.
           //
           // Its whole purpose is pagination: when a page of older messages is
@@ -1889,10 +1960,42 @@ export function ConversationScreen() {
           automaticallyAdjustContentInsets={false}
           scrollEventThrottle={200}
           onScroll={handleScroll}
+          onLayout={(e) => {
+            viewportHeightRef.current = e.nativeEvent.layout.height;
+          }}
+          // The drag lifecycle is what makes "the user chose this position"
+          // meaningful. Kept true through the momentum phase, so a flick that
+          // coasts to a stop still counts as the user's choice.
+          onScrollBeginDrag={() => {
+            userDraggingRef.current = true;
+          }}
+          // Both handlers are guarded on a drag HAVING happened, because
+          // onMomentumScrollEnd also fires at the end of a PROGRAMMATIC animated
+          // scroll on Android. An interrupted one would otherwise write its
+          // mid-flight offset back as the user's chosen position — the same
+          // mistake, one layer down, that left the list 399px short.
+          onScrollEndDrag={(e) => {
+            if (!userDraggingRef.current) return;
+            isNearBottomRef.current = isNearBottom({
+              contentHeight: e.nativeEvent.contentSize.height,
+              viewportHeight: e.nativeEvent.layoutMeasurement.height,
+              offsetY: e.nativeEvent.contentOffset.y,
+            });
+          }}
+          onMomentumScrollEnd={(e) => {
+            if (!userDraggingRef.current) return;
+            isNearBottomRef.current = isNearBottom({
+              contentHeight: e.nativeEvent.contentSize.height,
+              viewportHeight: e.nativeEvent.layoutMeasurement.height,
+              offsetY: e.nativeEvent.contentOffset.y,
+            });
+            userDraggingRef.current = false;
+          }}
           // Scroll to the true bottom AFTER the list re-measures (new bubble
           // rendered), but only when the user was already at the bottom and search
           // is not active (search may show older messages we don't want to jump past).
-          onContentSizeChange={() => {
+          onContentSizeChange={(_w, h) => {
+            contentHeightRef.current = h;
             // Re-arm through the helper. A single animated scrollToEnd here was
             // the half-scroll bug: every late measure that changes content size
             // now gets the full retry chain, ending on an exact, unanimated

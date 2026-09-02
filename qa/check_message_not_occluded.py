@@ -28,7 +28,15 @@ TARGET = sys.argv[1] if len(sys.argv) > 1 else "Scroll target meetup place"
 SERIAL = sys.argv[2] if len(sys.argv) > 2 else "emulator-5580"
 # The composer's placeholder is the most reliable handle on the bar: it is the
 # one node guaranteed present whenever a thread is message-able.
+# The bar is NOT just the composer. The quick-reply chips sit ABOVE the input and
+# are part of the same bottom bar, so the bar's top edge is the topmost of them.
+#
+# Taking the composer input's top alone under-reported the occlusion badly: it
+# said a tall meetup card was 22px behind the bar when the chips row began 192px
+# higher and the card was really ~287px behind. A measurement tool that flatters
+# the result is worse than none.
 COMPOSER_HINTS = ("Type a message", "Send")
+CHIP_HINTS = ("still available", "lowest price", "Is this", "When can")
 
 
 def hierarchy(serial: str, attempts: int = 4) -> ET.Element:
@@ -95,7 +103,17 @@ def main() -> int:
     if not bars:
         print("  SKIP  no composer bar on screen — is this a message-able thread?")
         return 1
-    bar_top = min(bounds(n)[1] for n in bars)
+    composer_top = min(bounds(n)[1] for n in bars)
+    # Include the quick-reply chips and any horizontal scroller sitting between
+    # them and the composer — all of it occludes the thread.
+    chips = [n for h in CHIP_HINTS for n in find(root, lambda n, h=h: h.lower() in text_of(n).lower())]
+    scrollers = [n for n in root.iter("node")
+                 if "HorizontalScrollView" in (n.get("class") or "")
+                 and bounds(n)[1] > 0.6 * max(bounds(x)[3] for x in root.iter("node"))]
+    tops = [composer_top] + [bounds(n)[1] for n in chips + scrollers]
+    bar_top = min(tops)
+    if bar_top < composer_top:
+        print(f"  (bar starts at the chips row {bar_top}, not the composer {composer_top})")
 
     print(f"  message {TARGET!r} bottom edge = {t_bottom}")
     print(f"  composer bar top edge        = {bar_top}")
