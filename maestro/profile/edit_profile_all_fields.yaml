@@ -87,42 +87,17 @@ appId: com.hatiwal.app
 # touch, and the sheet never opens. A probe with a single clean tap and no guard at
 # all sat 20s waiting for a sheet that never came, while the hierarchy showed the
 # trigger present, clickable and enabled. The picker was never at fault.
-- scrollUntilVisible:
-    element:
-      id: "edit-profile-province-picker"
-    direction: DOWN
-    centerElement: true
-    timeout: 20000
-- tapOn:
-    id: "edit-profile-province-picker"
-- waitForAnimationToEnd
-# The sheet did not open and the flow failed on "Element not found: province-search-input"
-# — the testID is there (ProvincePickerSheet.tsx:111), so the TAP was lost. This flow
-# types into several fields first, and scrollUntilVisible stops as soon as its target is
-# in the hierarchy, which can still be behind the keyboard: Maestro then reports the tap
-# completed while the touch lands on the IME.
+# THE PROVINCE PICKER IS GONE — the pin is the only source of location now.
 #
-# Retry once rather than dismiss the keyboard — hideKeyboard is Back on this pushed screen
-# and would leave EditProfile entirely (send_message_offline and price_drop_after_edit both
-# lost their screen to it). A second tap, with the sheet as the gate, costs nothing when
-# the first one worked.
-# NO retap guard here. I added one and it was superstition: the first tap was
-# missing the trigger entirely (see the nav-bar note above), so the retap aimed at
-# the same dead coordinates and achieved nothing — while making the failure look
-# like a flaky sheet. With the trigger centred, one tap is enough; if it ever is
-# not, the wait below fails honestly instead of being papered over.
-- extendedWaitUntil:
-    visible:
-      id: "province-search-input"
-    timeout: 20000
-- tapOn:
-    id: "province-search-input"
-- inputText: "Herat"
-- waitForAnimationToEnd
-- tapOn:
-    id: "province-option"
-    index: 0
-- waitForAnimationToEnd
+# Owner, 2026-09-02: "in user edit input should be removed for province and
+# address, we should only select the map… because we can have one address and a
+# different province". His screenshot had City reading "Qarabagh, Kabul Province,
+# Afghanistan" next to a province of "پروان" (Parwan) — two editable sources for
+# one fact, contradicting each other.
+#
+# City and province are now DERIVED from the confirmed pin and shown read-only,
+# so there is nothing here to type into or choose from. maestro/profile/
+# edit_profile_province.yaml covers the derivation.
 
 # `profile.edit.saveButton` = "Save Changes"; a bare "Save" is anchored and
 # matches nothing.

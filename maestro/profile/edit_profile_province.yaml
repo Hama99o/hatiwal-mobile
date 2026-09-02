@@ -1,51 +1,28 @@
 appId: com.hatiwal.app
 ---
-# The profile's PROVINCE field — edge cases for a plain optional text input.
+# LOCATION IS DERIVED FROM THE PIN — there is no city input and no province picker.
 #
-# This replaces edit_profile_province_picker_deep.yaml, which drove a picker sheet
-# that does not exist. `ProvincePickerSheet.tsx` is imported by nothing (recorded
-# as UI-030), and EditProfile renders province as an ordinary TextInput whose
-# placeholder is the word "Province" — which is why `tapOn: "Province"` appeared to
-# work and then the expected list of Kabul/Kandahar never came.
+# Owner, 2026-09-02: "in user edit input should be removed for province and
+# address, we should only select the map so it will be good, because we can have
+# one address and a different province, so fix this logic".
 #
-# What is actually worth testing here, given `province: z.string().optional()`:
-#   - a typed value persists across a save and a reload
-#   - clearing it is allowed (it is optional, so empty must not block saving)
-#   - a long value is accepted rather than silently truncated or rejected
-
+# His screenshot showed why: the City field read "Qarabagh, Kabul Province,
+# Afghanistan" while the province picker below it said "پروان" (Parwan). Two
+# independently editable sources for one fact, with nothing reconciling them — and
+# in an app whose premise is meeting nearby, a province that disagrees with the
+# coordinates is worse than no province at all.
+#
+# This flow replaces the one that drove that picker. What is worth asserting now:
+#   1. neither manual control exists any more
+#   2. confirming a pin fills BOTH city and province, read-only
+#   3. the derived values survive a save and a reload
 - runFlow: ../_helpers/login.yaml
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Edit Profile"
-    direction: DOWN
-    timeout: 20000
-# The edit-screen button by testID. `tapOn: "Edit Profile"` hit the AVATAR, whose
-# accessibilityLabel is that exact string — so instead of navigating it opened the
-# Android photo PICKER, which then sat over the app and poisoned every later flow
-# (away_mode, edit_profile_all_fields, edit_profile_province all failed underneath
-# it). Profile.tsx warns about the collision in a comment; this is the id it means.
-# DOWN, and no centerElement.
-#
-# The defect here was ONLY `centerElement: true`, never the direction. Profile
-# renders hero -> stats grid -> quick actions -> PERSONAL INFO card, so from
-# the cold start every flow gets (login.yaml does stopApp + launchApp) this
-# button is BELOW the fold and DOWN is correct. Flipping it to UP made the
-# scroll travel away from the target and produced `No visible element found:
-# id: profile-edit-button` — a worse failure than the one it replaced.
-#
-#   - `centerElement: true` demands the scroll bring it to the MIDDLE, which is
-#     impossible for an element that near the top: there is not enough content
-#     above it to push it down. Maestro then burns the full timeout and fails on
-#     an element that is plainly on screen. Same trap documented at length in
-#     mapqa/_body_form.yaml, which cost the Pashto cells three iterations.
-# It is why this step was ORDER-DEPENDENT: edit_profile and
-# edit_profile_validation passed while edit_profile_all_fields and
-# edit_profile_province failed on the byte-identical block.
-# 40 percent accepts the partially visible row, which is what the impossible
-# centring was really failing on.
+# DOWN, and no centerElement — the edit button sits below the fold (Profile
+# renders hero -> stats -> quick actions -> personal info) and centring a control
+# with too little content above it can never satisfy.
 - scrollUntilVisible:
     element:
       id: "profile-edit-button"
@@ -55,88 +32,73 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-edit-button"
 - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "edit-profile-firstname-input"
+    timeout: 30000
 
-# ── A typed province persists ────────────────────────────────────────────────
-# By testID, not the placeholder. "Province" is `profile.edit.fields.province`,
-# so the text selector only worked while the app happened to be in English.
-# Province is a PICKER now, not a free-text field (UI-041): typed provinces
-# arrived as "Kabul"/"kabul"/typos and nothing could filter by them. Tap the row,
-# search, take the first match.
-# centerElement, because "visible" is not the same as "tappable". Without it the
-# scroll stops the instant the row enters the screen, which left this trigger at
-# bounds [87,2251][993,2366] on a 1080x2400 device — centre y~2308, inside the
-# gesture/nav bar's bottom ~130px. Maestro taps the centre, the nav bar eats the
-# touch, and the sheet never opens. A probe with a single clean tap and no guard at
-# all sat 20s waiting for a sheet that never came, while the hierarchy showed the
-# trigger present, clickable and enabled. The picker was never at fault.
-- scrollUntilVisible:
-    element:
-      id: "edit-profile-province-picker"
-    direction: DOWN
-    centerElement: true
-    timeout: 20000
-- tapOn:
+# ── 1. the manual controls are gone ────────────────────────────────────────
+- assertNotVisible:
+    id: "edit-profile-city-input"
+- assertNotVisible:
     id: "edit-profile-province-picker"
-- waitForAnimationToEnd
-# Same guard as edit_profile_all_fields, which failed here with "Element not found:
-# province-search-input" on a testID that exists: the tap can be swallowed by the keyboard
-# left up from the fields above, since scrollUntilVisible stops as soon as its target is in
-# the hierarchy. Retry once and gate on the sheet, rather than reaching for hideKeyboard —
-# that is Back on this pushed screen and would leave EditProfile.
-# NO retap guard here. I added one and it was superstition: the first tap was
-# missing the trigger entirely (see the nav-bar note above), so the retap aimed at
-# the same dead coordinates and achieved nothing — while making the failure look
-# like a flaky sheet. With the trigger centred, one tap is enough; if it ever is
-# not, the wait below fails honestly instead of being papered over.
-- extendedWaitUntil:
-    visible:
-      id: "province-search-input"
-    timeout: 20000
-- tapOn:
-    id: "province-search-input"
-- inputText: "Kandahar"
-- waitForAnimationToEnd
-- tapOn:
-    id: "province-option"
-    index: 0
-- waitForAnimationToEnd
+
+# ── 2. the pin fills both ──────────────────────────────────────────────────
 - scrollUntilVisible:
     element:
-      text: "Save Changes"
+      id: "edit-profile-location-row"
     direction: DOWN
-    centerElement: true
+    visibilityPercentage: 40
     timeout: 20000
-- tapOn: "Save Changes"
-- waitForAnimationToEnd
-# NOT the toast. EditProfile's onSuccess raises toast.success(...) and then calls
-# router.replace("/(main)/(tabs)/profile") in the next statement (EditProfile.tsx
-# 267-269), so the message renders on a screen being torn down and no amount of
-# polling can catch it. That replace happens ONLY in onSuccess, so landing back on
-# Profile is itself proof the save went through — and unlike the toast it is still
-# true a second later.
+- tapOn:
+    id: "edit-profile-location-row"
 - extendedWaitUntil:
     visible:
-      id: "profile-edit-button"
+      id: "location-confirm"
+    timeout: 60000
+- assertVisible:
+    id: "map-canvas"
+# MapLibre paints geometry first and SDF text a beat later, so one settle can
+# return in the gap between the two.
+- waitForAnimationToEnd:
+    timeout: 30000
+- waitForAnimationToEnd:
     timeout: 20000
+- tapOn:
+    id: "location-confirm"
+- waitForAnimationToEnd
 
-# Reopen and confirm it was stored, not just echoed in the form.
+# Both derived rows must now be present. They are read-only Text, not inputs —
+# a disabled input looks editable and invites a tap that does nothing.
+- extendedWaitUntil:
+    visible:
+      id: "edit-profile-derived-province"
+    timeout: 20000
+- assertVisible:
+    id: "edit-profile-derived-city"
+- takeScreenshot: edit_profile_province-derived
+
+# ── 3. they survive a save + reload ────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      text: "Save"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- tapOn: "Save"
+- waitForAnimationToEnd
+- launchApp:
+    stopApp: true
+- runFlow: ../_helpers/open_bundle.yaml
+- extendedWaitUntil:
+    visible:
+      id: "profile-tab"
+    timeout: 120000
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      text: "Edit Profile"
-    direction: DOWN
-    timeout: 20000
-# The edit-screen button by testID. `tapOn: "Edit Profile"` hit the AVATAR, whose
-# accessibilityLabel is that exact string — so instead of navigating it opened the
-# Android photo PICKER, which then sat over the app and poisoned every later flow
-# (away_mode, edit_profile_all_fields, edit_profile_province all failed underneath
-# it). Profile.tsx warns about the collision in a comment; this is the id it means.
-# Partial visibility, for the reason spelled out at the first occurrence
-# of this block above: centerElement can never satisfy on this button.
-- scrollUntilVisible:
-    element:
       id: "profile-edit-button"
     direction: DOWN
     visibilityPercentage: 40
@@ -146,34 +108,9 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      text: "Kandahar"
+      id: "edit-profile-derived-province"
     direction: DOWN
+    visibilityPercentage: 40
     timeout: 20000
-
-# ── Clearing it is allowed — the field is optional ───────────────────────────
-# A required-field error here would be a real bug: nothing in the schema demands
-# a province, and a seller who moves should be able to remove it.
-# lint: searchtap-ok — this tap is on the EDIT PROFILE screen, after the province
-# picker sheet has closed and the value has been saved; it taps the saved value to
-# erase it. The province-search-input is long gone, so there is nothing to collide
-# with.
-- tapOn: "Kandahar"
-- eraseText
-- scrollUntilVisible:
-    element:
-      text: "Save Changes"
-    direction: DOWN
-    centerElement: true
-    timeout: 20000
-- tapOn: "Save Changes"
-- waitForAnimationToEnd
-# NOT the toast. EditProfile's onSuccess raises toast.success(...) and then calls
-# router.replace("/(main)/(tabs)/profile") in the next statement (EditProfile.tsx
-# 267-269), so the message renders on a screen being torn down and no amount of
-# polling can catch it. That replace happens ONLY in onSuccess, so landing back on
-# Profile is itself proof the save went through — and unlike the toast it is still
-# true a second later.
-- extendedWaitUntil:
-    visible:
-      id: "profile-edit-button"
-    timeout: 20000
+- assertVisible:
+    id: "edit-profile-derived-city"

@@ -38,7 +38,6 @@ import { LocationRangePicker } from "@/components/common/LocationRangePicker";
 import { authAPI } from "@/api/auth";
 import { setLanguage, SUPPORTED_LANGUAGES, type LanguageCode } from "@/i18n";
 import { useColors } from "@/hooks/useColors";
-import { ProvincePickerSheet } from "@/components/common/ProvincePickerSheet";
 import { AFGHAN_PROVINCES, getProvinceName, nearestProvince } from "@/data/afghan_provinces";
 import { useLocalization } from "@/hooks/useLocalization";
 
@@ -153,7 +152,6 @@ export default function EditProfileScreen() {
   const qc = useQueryClient();
 
   const [locationPickerVisible, setLocationPickerVisible] = React.useState(false);
-  const [provincePickerVisible, setProvincePickerVisible] = React.useState(false);
 
   // Fetch current user data
   const { data: user, isLoading } = useQuery({
@@ -228,6 +226,8 @@ export default function EditProfileScreen() {
   const latitude = watch("latitude");
   const longitude = watch("longitude");
   const city = watch("city");
+  // Watched for the read-only derived display under the map row.
+  const province = watch("province");
   const selectedLanguage = watch("preferredLanguage");
   const isAwayToggle = watch("isAwayToggle");
   const awayUntilDate = watch("awayUntilDate");
@@ -435,106 +435,26 @@ export default function EditProfileScreen() {
             icon={<MapPin size={15} color={colors.mutedForeground} />}
           />
 
-          <FieldRow>
-            <Label style={{ marginBottom: 6 }}>
-              {t("profile.edit.fields.city")}
-            </Label>
-            <Controller
-              control={control}
-              name="city"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <Input
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  testID="edit-profile-city-input"
-                  placeholder={t("profile.edit.fields.city")}
-                  style={{ textAlign: isRtl ? "right" : "left" }}
-                  returnKeyType="next"
-                />
-              )}
-            />
-          </FieldRow>
+          {/* NO city input and NO province picker — the PIN is the only source.
+            *
+            * Owner, 2026-09-02: "in user edit input should be removed for province
+            * and address, we should only select the map… because we can have one
+            * address and a different province, so fix this logic".
+            *
+            * He is right, and his screenshot proved it: the City field read
+            * "Qarabagh, Kabul Province, Afghanistan" while the province picker
+            * said "پروان" (Parwan). Two independently editable sources for one
+            * fact, and nothing reconciling them — so the data could contradict
+            * itself, and in an app whose whole premise is meeting nearby, a
+            * province that disagrees with the coordinates is worse than no
+            * province at all.
+            *
+            * Both are now DERIVED from the confirmed pin (see onConfirm below) and
+            * shown read-only underneath the map row, so what will be saved is
+            * visible without being separately editable.
+            */}
 
-          <FieldRow>
-            <Label style={{ marginBottom: 6 }}>
-              {t("profile.edit.fields.province")}
-            </Label>
-            <Controller
-              control={control}
-              name="province"
-              render={({ field: { value, onChange } }) => {
-                // Picker, not free text (UI-041). Typed provinces arrive as "Kabul",
-                // "kabul", "Kabol" and typos, and nothing can group or filter by province
-                // afterwards - which matters in an app whose premise is meeting nearby.
-                // ProvincePickerSheet already held all 34 provinces with ps/fa names and
-                // capital coordinates; it was simply never wired to a screen.
-                //
-                // Legacy free-text values are NOT discarded: an unmatched value is still
-                // shown as-is, so nobody's saved province disappears. Choosing from the
-                // picker normalises it to Province.value.
-                const match = AFGHAN_PROVINCES.find((p) => p.value === value);
-                const shown = match ? getProvinceName(match, i18n.language) : value;
-                return (
-                  <>
-                    <Pressable
-                      testID="edit-profile-province-picker"
-                      accessibilityRole="button"
-                      accessibilityLabel={t("profile.edit.fields.province")}
-                      onPress={() => setProvincePickerVisible(true)}
-                      // A CHEVRON and a row layout. This control opens a sheet of
-                      // 34 provinces, but it was styled byte-for-byte like the
-                      // free-text City `Input` directly above it — same border,
-                      // radius, height and background, no icon, no affordance. A
-                      // picker that looks like a text field invites you to tap it
-                      // and start typing, and nothing happens. Reported as "the
-                      // UI/UX is not good", and it was.
-                      //
-                      // Same chevron the map row below uses, so the two
-                      // "this opens something" controls in this section read alike
-                      // and neither is mistakable for the one field you type into.
-                      style={{
-                        minHeight: 44,
-                        flexDirection: isRtl ? "row-reverse" : "row",
-                        alignItems: "center",
-                        gap: 10,
-                        paddingHorizontal: 12,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: 8,
-                        backgroundColor: colors.card,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          flex: 1,
-                          color: shown ? colors.foreground : colors.mutedForeground,
-                          textAlign: isRtl ? "right" : "left",
-                        }}
-                      >
-                        {shown || t("profile.edit.fields.province")}
-                      </Text>
-                      {isRtl
-                        ? <ChevronLeft size={18} color={colors.mutedForeground} />
-                        : <ChevronRight size={18} color={colors.mutedForeground} />}
-                    </Pressable>
-                    <ProvincePickerSheet
-                      visible={provincePickerVisible}
-                      selectedValue={value || null}
-                      onSelect={(province) => {
-                        onChange(province.value);
-                        setProvincePickerVisible(false);
-                      }}
-                      onClose={() => setProvincePickerVisible(false)}
-                    />
-                  </>
-                );
-              }}
-            />
-          </FieldRow>
-
-          {/* Map pin picker row */}
-          <Separator />
+          {/* Map pin picker row — the ONE location control */}
           <Pressable
             onPress={() => setLocationPickerVisible(true)}
             // QA: a locale-independent handle — the row's own copy is translated
@@ -549,7 +469,6 @@ export default function EditProfileScreen() {
               borderRadius: 8,
               paddingHorizontal: 12,
               paddingVertical: 12,
-              marginTop: 12,
               backgroundColor: latitude != null ? colors.primaryAlpha : "transparent",
             }}
           >
@@ -571,6 +490,42 @@ export default function EditProfileScreen() {
               ? <ChevronLeft size={18} color={colors.mutedForeground} />
               : <ChevronRight size={18} color={colors.mutedForeground} />}
           </Pressable>
+
+          {/* What the pin resolved to — read-only, so it can be seen but not
+            * contradicted. Derived values shown as plain text rather than in
+            * disabled inputs, which look editable and invite a tap that does
+            * nothing (the same complaint that got the province picker its chevron).
+            */}
+          {latitude != null ? (
+            <View style={{ marginTop: 10, gap: 2 }}>
+              <Text
+                testID="edit-profile-derived-province"
+                style={{
+                  fontSize: 12,
+                  color: colors.mutedForeground,
+                  textAlign: isRtl ? "right" : "left",
+                }}
+              >
+                {`${t("profile.edit.fields.province")}: ${
+                  (() => {
+                    const m = AFGHAN_PROVINCES.find((x) => x.value === province);
+                    return m ? getProvinceName(m, i18n.language) : province || "—";
+                  })()
+                }`}
+              </Text>
+              <Text
+                testID="edit-profile-derived-city"
+                style={{
+                  fontSize: 12,
+                  color: colors.mutedForeground,
+                  textAlign: isRtl ? "right" : "left",
+                }}
+                numberOfLines={2}
+              >
+                {`${t("profile.edit.fields.city")}: ${city || "—"}`}
+              </Text>
+            </View>
+          ) : null}
         </FormSection>
 
         {/* ── Section 4: Away Mode ─────────────────────────────── */}
@@ -756,24 +711,23 @@ export default function EditProfileScreen() {
           setValue("latitude", coords.latitude, { shouldDirty: true });
           setValue("longitude", coords.longitude, { shouldDirty: true });
 
-          // City used to be OVERWRITTEN with `label`, which is a reverse-geocoded
-          // ADDRESS, not a city: confirming a pin in Kabul wrote
-          // "لسمه ناحیه، کابل، کابل شاروالي." into a field labelled "City", and it
-          // clobbered whatever the user had typed. Now: only fill it when EMPTY,
-          // and only with the first segment, which is the closest thing the
-          // geocoder gives to a locality.
-          if (label && !watch("city")) {
+          // ALWAYS derive both from the pin — it is now the only source.
+          //
+          // These used to be filled "only when empty", to avoid clobbering what
+          // the user had typed into the City field and chosen in the province
+          // picker. Both of those controls are gone, so there is nothing to
+          // preserve and everything to reconcile: the pin decides, every time.
+          //
+          // City takes the label's FIRST segment, which is the closest thing the
+          // reverse geocoder gives to a locality — the whole label is an address
+          // ("لسمه ناحیه، کابل، کابل شاروالي."), not a city.
+          if (label) {
             setValue("city", label.split(",")[0].trim(), { shouldDirty: true });
           }
-
-          // …and name the province from the pin when it is not set. Before, the
-          // pin and the province could disagree with nothing to reconcile them —
-          // a point in Herat saved alongside province "Kabul". Only when empty, so
-          // a deliberate choice is never silently rewritten underneath the user.
-          if (!watch("province")) {
-            const p = nearestProvince(coords.latitude, coords.longitude);
-            if (p) setValue("province", p.value, { shouldDirty: true });
-          }
+          // Province from the pin's nearest provincial capital, so it can no
+          // longer contradict the coordinates.
+          const p = nearestProvince(coords.latitude, coords.longitude);
+          if (p) setValue("province", p.value, { shouldDirty: true });
           setLocationPickerVisible(false);
         }}
       />
