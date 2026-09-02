@@ -67,6 +67,16 @@ appId: com.hatiwal.app
 # ── 2. "same as my phone" ─────────────────────────────────────────────────
 # Give the phone a known value first, so the copy is observable rather than a
 # coincidence of whatever the fixture had.
+# Scroll to it — the phone input is the FIRST field of the Contact section and
+# this flow has already scrolled down past it to reach the WhatsApp controls.
+# Same class as edit_profile_all_fields' failure: tapping without scrolling
+# asserts that two fields are neighbours, and they are not.
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-phone-input"
+    direction: UP
+    visibilityPercentage: 40
+    timeout: 20000
 - tapOn:
     id: "edit-profile-phone-input"
 - eraseText

@@ -69,6 +69,23 @@ appId: com.hatiwal.app
 
 # Clear and update phone
 # `auth.phone` = "Phone Number" — anchored matching needs the full label.
+# SCROLL BACK UP to the phone input.
+#
+# This used to tap it directly, which worked while phone and bio were adjacent in
+# the Contact section. They are not any more: the WhatsApp number, its "same as
+# my phone" shortcut, the two visibility switches and their explanatory note now
+# sit BETWEEN them (owner request, 2026-09-02), so after the scroll down to the
+# bio the phone input is well above the fold and the tap failed with
+# `Element not found: Id matching regex: edit-profile-phone-input`.
+#
+# A flow that taps without scrolling is asserting that two fields are neighbours.
+# That is an assumption about layout, and layout changes.
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-phone-input"
+    direction: UP
+    visibilityPercentage: 40
+    timeout: 20000
 - tapOn:
     id: "edit-profile-phone-input"
 - eraseText
