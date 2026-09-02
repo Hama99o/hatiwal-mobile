@@ -2101,3 +2101,33 @@ sheet by the keyboard height via `useKeyboardHeight()` — the same house hook t
 chat composer uses — so both orders now produce one correct layout. iOS keeps
 `behavior="padding"`, untouched, because there is no Mac here to verify a change
 to it.
+
+## audit_labels' two DEAD keys are explained — do not re-investigate
+
+`audit_labels` reports exactly two, and both are Sell-Flow-Redesign leftovers:
+
+- `listing.markReserved` — "Mark as Reserved". SF-M1 removed the reserve-first
+  step from every listing surface, so nothing renders it. Four flows now assert
+  its ABSENCE (`draft_lifecycle`, `sell_without_reserving`, and the comments in
+  `lifecycle_reserve` / `reserved_buyer` / `full_marketplace_cycle`), which is
+  the redesign's central claim: selling never requires reserving first.
+- `listing.activate` — "Make active". Renamed to "Release hold", and its
+  condition widened from `status === "reserved"` to
+  `sale?.status === "reserved" || heldUnits > 0`. `lifecycle_reactivate` asserts
+  "Release hold" visible AND "Make active" not visible.
+
+So the audit is CORRECT — the keys really are unrendered — and the flows citing
+them are correct too, because they assert absence. Nothing to fix in either.
+
+Deleting the six entries (two keys × en/ps/fa) would be safe: the dynamic `t()`
+prefixes in the app are `listing.filter.`, `listing.status.`,
+`profile.edit.language.`, `onboarding.slides.`, `report.reasons.`,
+`report.status.` and `safety.meetup.tips.` — none is a bare `listing.`, so
+neither key can be reached by a constructed key. Left in place deliberately:
+it is cosmetic, and a dead key costs nothing while a wrongly-deleted one costs a
+blank label in three languages.
+
+**The transferable point:** an audit finding of "rendered by nothing" is not the
+same as a defect. Removing a control ON PURPOSE leaves exactly this trace, and
+the flows that guard the removal make the string look used. Check whether the
+citing flow asserts the string VISIBLE or ABSENT before believing either.
