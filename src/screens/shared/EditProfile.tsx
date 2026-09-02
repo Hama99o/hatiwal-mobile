@@ -14,9 +14,10 @@
  * All UI from react-native-reusables. Colors via useColors(). RTL via isRtl.
  * Toast feedback via sonner-native. No raw Alert.alert.
  */
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, ScrollView, Pressable, ActivityIndicator, Switch as RNSwitch } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardHeight, keyboardBarLift, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -153,6 +154,17 @@ export default function EditProfileScreen() {
   const { isRtl } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  // This screen is one long form with a STICKY footer, so it owns the same
+  // problem the chat composer does: Android does not resize for the keyboard.
+  const keyboardHeight = useKeyboardHeight();
+  const keyboardVisible = keyboardHeight > 0;
+  // Container height now, and while the keyboard was closed. The pair tells
+  // keyboardBarLift whether the OS already shrank the window — measured, not
+  // assumed per platform.
+  const [rootH, setRootH] = useState(0);
+  const rootBaselineH = useRef(0);
+  if (keyboardHeight === 0 && rootH > 0) rootBaselineH.current = rootH;
+  const barLift = keyboardBarLift(keyboardHeight, rootBaselineH.current, rootH);
   const router = useRouter();
   const qc = useQueryClient();
 
@@ -318,7 +330,10 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View
+      style={{ flex: 1, backgroundColor: colors.background }}
+      onLayout={(e) => setRootH(e.nativeEvent.layout.height)}
+    >
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
         keyboardShouldPersistTaps="handled"
@@ -815,7 +830,26 @@ export default function EditProfileScreen() {
 
       </ScrollView>
 
-      {/* ── Sticky Save Button ─────────────────────────────────── */}
+      {/* ── Sticky Save Button ─────────────────────────────────────
+        *
+        * IT LIFTS ITSELF ONTO THE KEYBOARD. `position: absolute; bottom: 0` in a
+        * screen full of text inputs, with no keyboard handling at all, put Save
+        * BEHIND the IME the moment any field was focused — and because it is
+        * absolutely positioned, scrolling the ScrollView cannot bring it back.
+        * So: type your phone number, and there is no way to reach Save without
+        * dismissing the keyboard first.
+        *
+        * Caught by edit_profile_all_fields (`No visible element found: id:
+        * edit-profile-save-button`, run-396): the screenshot shows the numeric
+        * keypad up over the bottom half of a correctly-rendered form, with the
+        * button nowhere on screen. The testID was present in the app and in the
+        * APK — it was never a selector problem.
+        *
+        * Under the edge-to-edge Expo SDK 54 enforces, the IME is an inset drawn
+        * OVER a full-height window and `adjustResize` no longer shrinks
+        * anything, so nothing moves on its own. Same hook and same helpers as
+        * the chat composer, which lost four rounds to this before being
+        * measured rather than assumed (see useKeyboardVisible.ts). */}
       <View
         style={{
           position: "absolute",
@@ -823,9 +857,14 @@ export default function EditProfileScreen() {
           left: 0,
           right: 0,
           padding: 16,
+          // Lift by whatever the OS did NOT absorb — self-correcting, so a
+          // platform or window mode that DOES resize gets no double gap.
+          transform: [{ translateY: -barLift }],
           // Clear the Android system nav bar — Math.max keeps the existing
-          // 32pt minimum on devices with no bottom inset.
-          paddingBottom: Math.max(insets.bottom, 32) + 12,
+          // 32pt minimum on devices with no bottom inset. Dropped while the
+          // keyboard is up, because the IME covers that space and reserving for
+          // it is dead height between the button and the keys.
+          paddingBottom: keyboardSafeBottom(keyboardVisible, insets.bottom, 32, 12),
           backgroundColor: colors.background,
           borderTopWidth: 1,
           borderTopColor: colors.border,
