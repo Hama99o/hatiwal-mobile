@@ -46,6 +46,19 @@ for i in $(seq 1 "$ATTEMPTS"); do
   fi
   QA_SESSION="${QA_SESSION:-1}" nice -n 10 timeout 1500 ./qa/qa.sh flow "$FLOW"
   e=$?
+  # A DEAD DEVICE is not a verdict, even though the rig reports it as exit 1.
+  #
+  # When the emulator disappears mid-flow, Maestro fails with "Device
+  # emulator-NNNN was requested, but it is not connected" and the run is filed as
+  # an ordinary failure. On 2026-09-02 the host's OOM killer took the emulator
+  # (and Chrome) three times, and each time a queue of flows reported exit 1 —
+  # real-looking failures that measured nothing. So: before trusting a 1, check
+  # the device is still there.
+  if [ "$e" = "1" ] && ! adb devices 2>/dev/null | grep -q emulator; then
+    echo "  patient_flow: device vanished during $FLOW — not a verdict, retrying" >&2
+    e=2
+  fi
+
   case $e in
     0|1) break ;;                       # a real verdict — done
     *)   echo "  patient_flow: $FLOW unmeasured (exit $e), attempt $i/$ATTEMPTS" >&2 ;;
