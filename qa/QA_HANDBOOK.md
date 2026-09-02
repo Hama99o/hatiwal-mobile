@@ -70,6 +70,59 @@ Two traps if you write this check yourself: maestro names selectors `idRegex` /
 "matches" for a flow it is wrong about), and the failure MESSAGE also contains the
 selector text, so match on the key/value pair rather than grepping the raw file.
 
+## The debug APK contains NO JavaScript — a "rebuild" does not ship a JS change
+
+`qa/lib/app.sh` builds a **debug** APK, and a debug build fetches its bundle from
+Metro at runtime (`adb reverse tcp:8081 → host :$METRO_PORT`, Metro being the
+Docker `mobile` service on :3008). The APK is a native shell.
+
+So:
+
+- **A JS/TSX change needs no `qa.sh build` at all.** It is live on the device as
+  soon as Metro serves it. `assembleDebug` will say `UP-TO-DATE` and that is
+  correct, not a failure.
+- **An APK's mtime tells you nothing about which JS is running.** On 2026-09-02
+  an owner-reported bug was explained away as "you are testing a 10-day-old
+  build" because the APK was dated 08-23. It was the wrong explanation: the JS
+  was current, the fix really was insufficient, and the real cause was found only
+  after that detour.
+- **To find out what is actually running, ask Metro**, not the APK:
+
+  ```bash
+  curl -s "http://localhost:3008/node_modules/expo-router/entry.bundle?platform=android&dev=true" \
+    -o /tmp/b.js && grep -c mySymbolName /tmp/b.js   # 22MB, takes ~30s
+  ```
+
+  Grep for a symbol the change introduced AND one it removed — a hit on the new
+  one and a zero on the old one is proof. (`/index.bundle` is not the entry point
+  here; it returns an UnableToResolveError.)
+- Rebuild only for native changes: a new native module, app.json/plugin changes,
+  Android manifest or Gradle edits.
+
+## Two runs on one device void BOTH — and the exit code is the verdict now
+
+The rig detects a second run (`another QA run is driving the emulator right
+now`) but the flows still produce log files, so a script that reads exit codes
+happily reports results that mean nothing. Grep every log for that string before
+believing any of it.
+
+`qa.sh flow` / `qa.sh feature` now exit on the flows' verdict, not the
+reporter's: `0` all passed, `1` at least one failed, `2` no results recorded at
+all (driver death, collision). Treat `2` as "unmeasured", never as a failure.
+
+Serialise with the same lock the fleet uses, and remember that a background chain
+started with plain `nohup` still dies if the parent's process group is killed —
+use `setsid`.
+
+## Maestro and `uiautomator` cannot both drive the device
+
+`adb shell uiautomator dump` returns nothing (or is SIGKILLed, exit 137, under
+memory pressure) while a flow holds the accessibility driver. Any hierarchy or
+bounds measurement — e.g. `qa/check_message_not_occluded.py`, which is the only
+way to prove a bubble is not hidden behind the composer, since Maestro's
+visibility test uses an element's own bounds and cannot see occlusion — must run
+when the device is IDLE, between flows.
+
 ## Never kill by process name on this machine
 
 Another project (edu-safi) runs its own QA rig here, with its own emulator, its own
