@@ -134,6 +134,25 @@ way to prove a bubble is not hidden behind the composer, since Maestro's
 visibility test uses an element's own bounds and cannot see occlusion — must run
 when the device is IDLE, between flows.
 
+## Use `qa/patient_flow.sh` in a chain, not bare `qa.sh flow`
+
+A chain of bare `qa.sh flow` calls loses one flow to every transient resource
+dip, and on this host the dips are self-inflicted: an `npx jest` or `npx tsc` run
+beside the chain drops free RAM below doctor's 4GB floor, and that flow comes
+back exit 3 having never run. On 2026-09-02 that cost the same three flows three
+times over before the pattern was obvious.
+
+    ./qa/patient_flow.sh chat/scroll_to_latest      # waits, retries, reboots
+
+It waits for room before each attempt, boots a device if one vanished mid-chain,
+and retries on exit 2 (ran, no verdict) and exit 3 (preflight blocked) — never on
+0 or 1, so a real pass or failure returns immediately. The exit code is still the
+verdict.
+
+**And do not run jest, tsc or a bundle fetch while flows are running.** Each is
+1-2GB, which is exactly the margin the rig needs. Do the code work, then the
+flows.
+
 ## Never delete an AVD you did not create — `hatiwal_play` in particular
 
 `~/.android/avd/` is shared with other sessions and with hand-built devices. A
