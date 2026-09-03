@@ -60,7 +60,26 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 
-- tapOn: "Mark as Sold"
+# SF-M1: "Mark as Sold" is NOT in the More sheet any more, and this flow was
+# still tapping it by text — `Element not found: Text matching regex: Mark as
+# Sold` (run-291). `useListingLifecycle` pushes `key: "sold"` into `moreActions`
+# only `if (isLive && isExpired)`; on a live listing selling is the ONE-TAP
+# PRIMARY action, which is the whole point of the Sell Flow Redesign ("never
+# build a UI that requires reserving before selling"). The same correction is
+# already recorded in seller/multi_quantity_offplatform_sale.yaml.
+#
+# By testID, and scrolled to: the owner detail screen runs photos -> badges ->
+# stats -> views chart -> location, so the lifecycle row is below the fold and
+# `tapOn` never scrolls.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- waitForAnimationToEnd
+- tapOn:
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
 
 - assertVisible: "Who bought this item?"
