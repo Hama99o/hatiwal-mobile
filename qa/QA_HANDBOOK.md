@@ -2304,3 +2304,41 @@ It also predicts the queued probe's result: FirstMessageSheet's "Send Message"
 should be UNREACHABLE with its Textarea focused. A probe with a prediction
 attached is worth more than one without, because a pass would falsify the rule
 rather than merely reassure.
+
+## A background child can hold the rig lock after your script exits
+
+Cost: **four hours of dead queue time** on 2026-09-03, and the symptom is silence
+— every queued pass sits in `flock` and writes nothing, so it looks like a slow
+run rather than a stall.
+
+The pattern that caused it, in a diagnostic script that took the lock with
+`exec 9>/tmp/hatiwal-qa-final.lock; flock 9`:
+
+```bash
+( docker compose logs -f --tail 0 web | grep -aiE "block" ) > api.log &
+APILOG=$!
+...
+kill $APILOG          # kills the SUBSHELL only
+```
+
+`kill $!` kills the subshell, not the pipeline members inside it. `docker compose
+logs -f` and its `grep` survived, and — because they inherited **fd 9** — they
+kept the lock's open file description alive. The lock belongs to the open file
+description, not to the process that called `flock`, so it was never released.
+`fuser -v /tmp/hatiwal-qa-final.lock` showed a `docker` and a `grep` still on it
+after the script had exited.
+
+**Three ways to avoid it, cheapest first:**
+
+1. **Close the fd in the child**: `( ... ) 9>&- &` — the child cannot hold a lock
+   it does not have.
+2. **Kill the process GROUP**, not the pid: start the child with `setsid` and
+   `kill -- -$PID`, or use `pkill -P $PID` to take its children too.
+3. **Do not hold the rig lock while tailing anything with `-f`.** Capture logs
+   before or after the locked section, or snapshot with `logs --since` instead of
+   following.
+
+**Diagnosing a silent queue:** `fuser -v` on the lock file names the holder
+immediately. A queued script blocked this way sits in `do_wait` (bash waiting on
+its `flock` child) with an empty output file — check the lock before assuming a
+flow is merely slow.
