@@ -48,26 +48,18 @@ appId: com.hatiwal.app
 - inputText: "UpdatedFirst"
 
 # Clear and update last name
-# SCROLL BEFORE TAPPING, even though Last Name is the very next field.
+# PUT THE KEYBOARD AWAY BEFORE TAPPING, even though Last Name is the very next
+# field. At 360dp the IME covers about half the window, so this field sits behind
+# it — and Maestro taps an element's BOUNDS, reporting COMPLETED while the touch
+# lands on the keys. run-431 and run-437 both show the result: focus never left
+# First Name, so the erase+input overwrote it and the screenshot has
+# "UpdatedLast" in the FIRST NAME box.
 #
-# At 360dp the IME covers roughly the bottom half, so after First Name is typed
-# this field is behind it — and Maestro taps an element's BOUNDS, reporting
-# COMPLETED while the touch lands on the keys. run-431 shows the result: focus
-# never left First Name, so the erase+input overwrote it and the screenshot has
-# "UpdatedLast" sitting in the FIRST NAME box. Every later step then measured a
-# form that had never advanced.
-#
-# No `visibilityPercentage` can prevent this: Maestro's "visible" comes from the
-# view hierarchy, which has no concept of the IME, so a field under the keyboard
-# is reported perfectly visible. The scroll is what fixes it — the drag clears
-# the keyboard (EditProfile sets keyboardDismissMode="on-drag") and leaves the
-# field genuinely hittable.
-- scrollUntilVisible:
-    element:
-      id: "edit-profile-lastname-input"
-    direction: DOWN
-    visibilityPercentage: 60
-    timeout: 20000
+# A `scrollUntilVisible` here did NOT work and could not have: it is a no-op when
+# the target is already "visible", and Maestro's visibility ignores the IME
+# entirely, so it scrolled zero pixels and the app's on-drag dismissal never
+# fired. The drag has to be unconditional — see the helper.
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
 - tapOn:
     id: "edit-profile-lastname-input"
 - eraseText
@@ -120,6 +112,9 @@ appId: com.hatiwal.app
     # and the IME is down by now anyway.
     visibilityPercentage: 60
     timeout: 20000
+# Keyboard away again — Last Name has just been typed, so the IME is back up and
+# Bio is below it.
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
 - tapOn:
     id: "edit-profile-bio-input"
 - eraseText
@@ -138,6 +133,10 @@ appId: com.hatiwal.app
 #
 # A flow that taps without scrolling is asserting that two fields are neighbours.
 # That is an assumption about layout, and layout changes.
+# Keyboard away before hunting upwards: with the IME up, the drag that
+# scrollUntilVisible issues starts inside the focused Bio Textarea, which
+# consumes it (the failure mapqa/_body_form.yaml documents).
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
 - scrollUntilVisible:
     element:
       id: "edit-profile-phone-input"

@@ -1,0 +1,42 @@
+appId: com.hatiwal.app
+---
+# Puts the soft keyboard away by DRAGGING the screen, on any screen whose
+# scroll view sets `keyboardDismissMode="on-drag"` (EditProfile does).
+#
+# WHY A HELPER, AND WHY A DRAG
+#
+# The three obvious ways to dismiss an IME are all unavailable on a form:
+#   * `hideKeyboard` is a BACK PRESS on Android. It popped Edit Profile straight
+#     back to Profile, and the flow then ran four more commands against a stale
+#     hierarchy before failing somewhere unrelated (contact_visibility, run-398).
+#   * `pressKey: Enter` SUBMITS. On Edit Profile it fired PUT /users/me with the
+#     form half-filled and `router.replace`d to Profile — proven by the database
+#     holding the two fields typed before the keypress and the SEEDED value for
+#     the one typed after (run-427).
+#   * `scrollUntilVisible` does not help, because it is a NO-OP when the target
+#     is already "visible" — and Maestro's visibility comes from the view
+#     hierarchy, which has NO concept of the IME. A field under the keyboard is
+#     reported perfectly visible, so Maestro scrolls zero pixels, no drag
+#     happens, `on-drag` never fires and the keyboard stays. That is exactly why
+#     adding a scroll before the tap changed nothing (run-437 is byte-identical
+#     to run-431: "UpdatedLast" sitting in the FIRST NAME box, because the tap on
+#     Last Name was swallowed and focus never moved).
+#
+# So the drag has to be UNCONDITIONAL. `swipe` always moves, whatever the
+# hierarchy thinks is visible.
+#
+# GEOMETRY, and why these numbers work at BOTH widths:
+#   * x = 88% keeps the drag in the right-hand margin, clear of the centred
+#     inputs — the same trick mapqa/_body_form.yaml uses, for the same reason (a
+#     drag starting on a focused TextInput can be consumed by it).
+#   * y from 42% to 30% stays ABOVE the keyboard on both profiles. At 360dp
+#     (720x1280) the IME starts around 54% of the window; at 411dp it starts
+#     lower still. Ending at 30% keeps the whole gesture on the form.
+#   * The travel is small on purpose. It only has to be a DRAG, not a scroll —
+#     the point is to trigger the dismiss, not to move the form somewhere
+#     specific, and a long drag would relocate the fields the caller is about to
+#     scroll to.
+- swipe:
+    start: "88%, 42%"
+    end: "88%, 30%"
+- waitForAnimationToEnd
