@@ -13,6 +13,25 @@ appId: com.hatiwal.app
 # primary action plus a "More" overflow sheet, and Edit lives inside that sheet
 # (useListingLifecycle moreActions, key "edit"). Scrolling My Shop for a bare "Edit"
 # could only ever fail — publish_success says the same thing in its own comment.
+# FILTER TO ACTIVE FIRST, then take index 0.
+#
+# This flow edits a PUBLISHED listing — its whole ending is the "Save" button
+# that only a published listing has (`common.save`; a draft shows
+# `listing.form.saveDraft` = "Save Draft" instead). But it took index 0 of My
+# Listings unfiltered, and index 0 is whatever was touched MOST RECENTLY.
+#
+# So any flow that creates a draft before this one puts that draft at the top and
+# this one edits it: the form then shows "Save Draft", the anchored `text: "Save"`
+# correctly does not match it, and the failure reads as a missing button. That is
+# exactly what run-459 did — `create_listing` (which ends on Save Draft) ran
+# immediately before it in the same pass, and the hierarchy at the failing step
+# had "Save Draft" and no standalone "Save".
+#
+# The Active tab makes the flow state its own precondition instead of inheriting
+# whatever ran before it, which is what `index: 0` really means.
+- tapOn:
+    id: "my-listings-status-active"
+- waitForAnimationToEnd
 - scrollUntilVisible:
     element:
       id: "seller-listing-card"
