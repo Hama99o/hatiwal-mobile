@@ -246,26 +246,19 @@ appId: com.hatiwal.app
 - assertVisible: "I sell quality items in Kabul."
 - assertVisible: "+93700000001"
 
-# SCROLL to the derived city — it is in the LOCATION section, below Identity,
-# Contact and Bio, so it is off the fold when the screen re-opens at the top.
-# run-439's hierarchy dump at this step contains no `edit-profile-derived-city`,
-# no `edit-profile-derived-province` and no "Set your location" at all: the whole
-# section was outside the viewport. The only "Kabul" in the tree was the BIO
-# text, which is why the four assertions above it passed and this one did not.
+# NO derived-city assertion here — I added one and it was wrong twice over.
 #
-# Sixth instance of this shape today, so it is the rule: an `assertVisible` is a
-# claim about the VIEWPORT, not about the app. It surfaced only now because the
-# flow had never got this far before — not a regression from the keyboard work.
-- scrollUntilVisible:
-    element:
-      id: "edit-profile-derived-city"
-    direction: DOWN
-    visibilityPercentage: 40
-    timeout: 20000
-- waitForAnimationToEnd
-# `.*Kabul.*`, not a bare "Kabul": Maestro anchors text to the WHOLE node, and
-# the derived rows render composite strings — this flow's own note upstream
-# records a real one reading "Qarabagh, Kabul Province, Afghanistan". The claim
-# worth making is that the pin resolved into Kabul, not that the label is exactly
-# that one word.
-- assertVisible: ".*Kabul.*"
+# This flow never SETS a location: it has no pin-picker steps at all, so the
+# LOCATION section is still on its empty state ("Set your location") and
+# `edit-profile-derived-city` / `-province` do not render. run-458's hierarchy
+# dump at that step has `edit-profile-location-row` and "Set your location"
+# present and neither derived row — the state I was asserting cannot exist here.
+#
+# And the matcher I relaxed it to, `.*Kabul.*`, is satisfied by this flow's own
+# BIO text ("I sell quality items in Kabul."). So without the scroll in front of
+# it, it would have passed on the wrong node — a false green, which is worse
+# than the red it replaced.
+#
+# The coverage belongs to profile/edit_profile_province.yaml, which sets the pin
+# and asserts both derived rows, and which passes at BOTH widths. Duplicating it
+# here would add nothing and re-assert state this flow does not create.
