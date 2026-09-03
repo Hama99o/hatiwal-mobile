@@ -27,6 +27,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  useWindowDimensions,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -88,6 +89,24 @@ export function ReportSheet({
   // The sheet lifts ITSELF on Android — see the note on KeyboardAvoidingView below.
   const keyboardHeight = useKeyboardHeight();
   const androidLift = Platform.OS === "android" ? keyboardHeight : 0;
+  // CAP THE SHEET TO WHAT IS LEFT ABOVE THE KEYBOARD.
+  //
+  // The lift alone was not enough here, and the reason is this sheet's shape: a
+  // ScrollView of six reason rows plus a Textarea, with a PINNED footer holding
+  // Submit and Cancel. `styles.sheet` caps it at a static `maxHeight: "88%"` of
+  // the screen, which does not shrink when the IME appears — so the sheet stays
+  // tall, the lift moves it up, and the pinned footer lands UNDER the keyboard.
+  //
+  // Measured, not guessed: run-4xx's screenshot at 411dp shows the sheet filling
+  // the screen with the typed note visible, the Textarea clipped at the keyboard's
+  // edge, and Submit and Cancel gone from the hierarchy entirely — while the same
+  // sheet with no keyboard has both present.
+  //
+  // 88% of the REMAINING height keeps the original proportion on a roomy window
+  // (where androidLift is 0, this is exactly the old value) and shrinks the sheet
+  // to fit once the keyboard is up, which is what keeps the footer on screen.
+  const { height: windowH } = useWindowDimensions();
+  const sheetMaxHeight = Math.max(240, (windowH - androidLift) * 0.88);
 
   const [selectedReason, setSelectedReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
@@ -242,6 +261,8 @@ export function ReportSheet({
             // MeetupSheet and the chat composer use.
             paddingBottom: keyboardSafeBottom(keyboardHeight > 0, insets.bottom, 16, 12),
             marginBottom: androidLift,
+            // Overrides the static 88% in styles.sheet — see sheetMaxHeight.
+            maxHeight: sheetMaxHeight,
           },
         ]}
       >
