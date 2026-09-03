@@ -27,6 +27,16 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
+# WAIT FOR THE LAYOUT TO SETTLE BEFORE TAPPING.
+#
+# EditProfile sets keyboardDismissMode="on-drag", so the scroll above may have
+# put the keyboard away — and the keyboard sliding out reflows the whole form
+# while it goes. Without this wait, Maestro reads the target's bounds mid-flight
+# and the touch lands wherever that spot ends up: on this screen that can be the
+# sticky Save button, which saves and `router.replace`s to Profile. run-438
+# failed exactly so — the assertion four steps later reported a missing phone
+# number while the app was sitting on Profile.
+- waitForAnimationToEnd
 - tapOn:
     id: "profile-edit-button"
 - waitForAnimationToEnd
@@ -77,6 +87,16 @@ appId: com.hatiwal.app
     direction: UP
     visibilityPercentage: 40
     timeout: 20000
+# WAIT FOR THE LAYOUT TO SETTLE BEFORE TAPPING.
+#
+# EditProfile sets keyboardDismissMode="on-drag", so the scroll above may have
+# put the keyboard away — and the keyboard sliding out reflows the whole form
+# while it goes. Without this wait, Maestro reads the target's bounds mid-flight
+# and the touch lands wherever that spot ends up: on this screen that can be the
+# sticky Save button, which saves and `router.replace`s to Profile. run-438
+# failed exactly so — the assertion four steps later reported a missing phone
+# number while the app was sitting on Profile.
+- waitForAnimationToEnd
 - tapOn:
     id: "edit-profile-phone-input"
 - eraseText
@@ -125,6 +145,16 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
+# WAIT FOR THE LAYOUT TO SETTLE BEFORE TAPPING.
+#
+# EditProfile sets keyboardDismissMode="on-drag", so the scroll above may have
+# put the keyboard away — and the keyboard sliding out reflows the whole form
+# while it goes. Without this wait, Maestro reads the target's bounds mid-flight
+# and the touch lands wherever that spot ends up: on this screen that can be the
+# sticky Save button, which saves and `router.replace`s to Profile. run-438
+# failed exactly so — the assertion four steps later reported a missing phone
+# number while the app was sitting on Profile.
+- waitForAnimationToEnd
 - tapOn:
     id: "edit-profile-whatsapp-input"
 - eraseText
@@ -135,6 +165,16 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
+# WAIT FOR THE LAYOUT TO SETTLE BEFORE TAPPING.
+#
+# EditProfile sets keyboardDismissMode="on-drag", so the scroll above may have
+# put the keyboard away — and the keyboard sliding out reflows the whole form
+# while it goes. Without this wait, Maestro reads the target's bounds mid-flight
+# and the touch lands wherever that spot ends up: on this screen that can be the
+# sticky Save button, which saves and `router.replace`s to Profile. run-438
+# failed exactly so — the assertion four steps later reported a missing phone
+# number while the app was sitting on Profile.
+- waitForAnimationToEnd
 - tapOn:
     id: "edit-profile-whatsapp-same-as-phone"
 - waitForAnimationToEnd
@@ -159,6 +199,16 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
+# WAIT FOR THE LAYOUT TO SETTLE BEFORE TAPPING.
+#
+# EditProfile sets keyboardDismissMode="on-drag", so the scroll above may have
+# put the keyboard away — and the keyboard sliding out reflows the whole form
+# while it goes. Without this wait, Maestro reads the target's bounds mid-flight
+# and the touch lands wherever that spot ends up: on this screen that can be the
+# sticky Save button, which saves and `router.replace`s to Profile. run-438
+# failed exactly so — the assertion four steps later reported a missing phone
+# number while the app was sitting on Profile.
+- waitForAnimationToEnd
 - tapOn:
     id: "edit-profile-save-button"
 - waitForAnimationToEnd
@@ -178,6 +228,16 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
+# WAIT FOR THE LAYOUT TO SETTLE BEFORE TAPPING.
+#
+# EditProfile sets keyboardDismissMode="on-drag", so the scroll above may have
+# put the keyboard away — and the keyboard sliding out reflows the whole form
+# while it goes. Without this wait, Maestro reads the target's bounds mid-flight
+# and the touch lands wherever that spot ends up: on this screen that can be the
+# sticky Save button, which saves and `router.replace`s to Profile. run-438
+# failed exactly so — the assertion four steps later reported a missing phone
+# number while the app was sitting on Profile.
+- waitForAnimationToEnd
 - tapOn:
     id: "profile-edit-button"
 - waitForAnimationToEnd

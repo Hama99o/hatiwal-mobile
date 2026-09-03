@@ -29,6 +29,9 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
+# Settle wait — EditProfile dismisses the keyboard on drag, and the keyboard
+# sliding out reflows the form while it goes (see contact_visibility / run-438).
+- waitForAnimationToEnd
 - tapOn:
     id: "profile-edit-button"
 - waitForAnimationToEnd
@@ -50,6 +53,9 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
+# Settle wait — EditProfile dismisses the keyboard on drag, and the keyboard
+# sliding out reflows the form while it goes (see contact_visibility / run-438).
+- waitForAnimationToEnd
 - tapOn:
     id: "edit-profile-location-row"
 - extendedWaitUntil:
@@ -101,6 +107,9 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
+# Settle wait — EditProfile dismisses the keyboard on drag, and the keyboard
+# sliding out reflows the form while it goes (see contact_visibility / run-438).
+- waitForAnimationToEnd
 - tapOn:
     id: "edit-profile-save-button"
 - waitForAnimationToEnd
@@ -120,6 +129,9 @@ appId: com.hatiwal.app
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
+# Settle wait — EditProfile dismisses the keyboard on drag, and the keyboard
+# sliding out reflows the form while it goes (see contact_visibility / run-438).
+- waitForAnimationToEnd
 - tapOn:
     id: "profile-edit-button"
 - waitForAnimationToEnd
