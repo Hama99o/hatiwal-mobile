@@ -26,6 +26,7 @@ import {
 } from "react-native";
 import Animated, { ZoomIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardHeight, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
 import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
 import { X, CheckCircle2, Clock, Info } from "lucide-react-native";
@@ -70,6 +71,9 @@ export function ReviewPromptSheet({
   const { isRtl } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  // The sheet lifts ITSELF on Android — see the note on KeyboardAvoidingView below.
+  const keyboardHeight = useKeyboardHeight();
+  const androidLift = Platform.OS === "android" ? keyboardHeight : 0;
   const reduceMotion = useReduceMotion();
 
   const [step, setStep] = useState<Step>("form");
@@ -109,13 +113,38 @@ export function ReviewPromptSheet({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={styles.fill}        // Platform audit superseded — the Android half of
+        // `behavior={... : "height"}` never worked here, for the same two reasons
+        // it did not work in MeetupSheet (fixed there in d46c896, verified 7/7 at
+        // both widths):
+        //   1. this KAV has no height to shrink — the backdrop above it is
+        //      `flex: 1`, so the KAV is content-sized;
+        //   2. under the edge-to-edge Expo SDK 54 enforces, the IME is an inset
+        //      drawn OVER a full-height window and
+        //      `windowSoftInputMode="adjustResize"` no longer shrinks anything,
+        //      so `behavior="height"` computes its offset from wrong numbers.
+        //      See the header of `useKeyboardVisible.ts`, which exists because
+        //      the chat composer lost four rounds to this same assumption.
+        // A native <Modal> is its own window on top of that, so it would not
+        // inherit a resize anyway.
+        //
+        // So Android lifts the sheet by the keyboard's height, from the event
+        // payload — the only source that is right under edge-to-edge. iOS keeps
+        // "padding", untouched: there is no Mac here to verify a change to it.
+        behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={onClose} />
 
         <View
           style={[
             styles.sheet,
-            { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 16) + 12 },
+            {
+              backgroundColor: colors.card,
+              // Lift by the keyboard's height on Android, and drop the safe-area
+              // inset while the IME covers the gesture bar — the same pair
+              // MeetupSheet and the chat composer use.
+              paddingBottom: keyboardSafeBottom(keyboardHeight > 0, insets.bottom, 16, 12),
+              marginBottom: androidLift,
+            },
           ]}
         >
           <View style={styles.handleContainer}>

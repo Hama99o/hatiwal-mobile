@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardHeight, keyboardSafeBottom } from "@/hooks/useKeyboardVisible";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { toast } from "@/lib/toast";
@@ -69,6 +70,9 @@ export function FirstMessageSheet({
   const { isRtl, formatCurrency, formatNumber } = useLocalization();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  // The sheet lifts ITSELF on Android — see the note on KeyboardAvoidingView below.
+  const keyboardHeight = useKeyboardHeight();
+  const androidLift = Platform.OS === "android" ? keyboardHeight : 0;
   const router = useRouter();
 
   // SF-M6: qty>1 on a multi-unit listing states unit×qty=total IN WRITING —
@@ -140,10 +144,42 @@ export function FirstMessageSheet({
         //   Android "height" — shrinks the KAV so the bottom sheet recalculates its
         //   layout and the Send button stays visible above the keyboard. Was previously
         //   `undefined` which left the keyboard overlapping the message input on Android.
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        // Platform audit superseded — the Android half of
+        // `behavior={... : "height"}` never worked here, for the same two reasons
+        // it did not work in MeetupSheet (fixed there in d46c896, verified 7/7 at
+        // both widths):
+        //   1. this KAV has no height to shrink — the backdrop above it is
+        //      `flex: 1`, so the KAV is content-sized;
+        //   2. under the edge-to-edge Expo SDK 54 enforces, the IME is an inset
+        //      drawn OVER a full-height window and
+        //      `windowSoftInputMode="adjustResize"` no longer shrinks anything,
+        //      so `behavior="height"` computes its offset from wrong numbers.
+        //      See the header of `useKeyboardVisible.ts`, which exists because
+        //      the chat composer lost four rounds to this same assumption.
+        // A native <Modal> is its own window on top of that, so it would not
+        // inherit a resize anyway.
+        //
+        // So Android lifts the sheet by the keyboard's height, from the event
+        // payload — the only source that is right under edge-to-edge. iOS keeps
+        // "padding", untouched: there is no Mac here to verify a change to it.
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.kvContainer}
       >
-        <View style={[styles.sheet, { backgroundColor: colors.card }]}>
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: colors.card,
+              // Lift by the keyboard's height on Android. Without this the
+              // sheet is drawn UNDER the IME: run-442's screenshot shows it
+              // clipped mid listing-preview, with the Textarea, the note, Send
+              // and Cancel all behind the keys — so the first message to a
+              // seller is typed into a field the buyer cannot see, with no
+              // reachable Send. Same pair MeetupSheet uses (verified 7/7).
+              marginBottom: androidLift,
+            },
+          ]}
+        >
           {/* Drag handle */}
           <View style={styles.handleContainer}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
@@ -265,7 +301,9 @@ export function FirstMessageSheet({
             <Text style={{ color: colors.mutedForeground }}>{t("common.cancel")}</Text>
           </Button>
 
-          <View style={{ height: Math.max(insets.bottom, 8) + 12 }} />
+          {/* Bottom breathing room. Drops the safe-area inset while the IME
+              covers the gesture bar — reserving for it there is dead space. */}
+          <View style={{ height: keyboardSafeBottom(keyboardHeight > 0, insets.bottom, 8, 12) }} />
         </View>
       </KeyboardAvoidingView>
     </Modal>
