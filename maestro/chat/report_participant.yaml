@@ -124,9 +124,36 @@ appId: com.hatiwal.app
 # Not an app fault: the run that failed here HAD filed the report — a Report row
 # for User 288 existed in the database at the moment of the failure. The submit
 # worked and only the check was wrong.
+# A SUCCESSFUL REPORT OPENS THE "ALSO BLOCK?" PROMPT, and that prompt is the
+# strongest success signal available — it only exists on the success path
+# (report.block.title / .body), whereas the toast is a 3-second thing that this
+# dialog appears over.
+#
+# That is what actually failed here, twice. The flow waited for the toast while
+# the app was showing "Block this user? / Do you also want to block this user so
+# they can't contact you or see your listings?" — a screenshot at the failing
+# step shows the report sheet CLOSED and the dialog up, which means the submit
+# had already succeeded. I first read the empty Report table as proof the submit
+# had failed; it was not — this script re-seeds before each width, and the seed
+# had cleared the row.
 - extendedWaitUntil:
-    visible: "Report submitted.*|.*already reported.*"
-    timeout: 15000
+    visible: "Block this user?"
+    timeout: 20000
+- assertVisible: ".*also want to block this user.*"
+
+# Decline it: this flow tests REPORTING. Blocking has its own coverage
+# (report_user_then_block.yaml), and accepting here would leave a Block row that
+# strands every later conversation flow on the "You can't message this user."
+# notice — the leak that cost several runs earlier today.
+- tapOn: "Not now"
+- waitForAnimationToEnd
+
+# The toast may still be on screen behind the dialog, and may not — optional on
+# purpose, with the durable assertion above carrying the verdict.
+  # lint: optional-ok — a 3s toast the dialog above appears over.
+- assertVisible:
+    text: "Report submitted.*|.*already reported.*"
+    optional: true
 
 # ── Duplicate report (422) shows friendly error toast ────────────────────────
 # Re-open a fresh conversation and attempt to report the same user again.
