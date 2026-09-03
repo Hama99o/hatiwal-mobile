@@ -245,4 +245,27 @@ appId: com.hatiwal.app
 - assertVisible: "UpdatedLast"
 - assertVisible: "I sell quality items in Kabul."
 - assertVisible: "+93700000001"
-- assertVisible: "Kabul"
+
+# SCROLL to the derived city — it is in the LOCATION section, below Identity,
+# Contact and Bio, so it is off the fold when the screen re-opens at the top.
+# run-439's hierarchy dump at this step contains no `edit-profile-derived-city`,
+# no `edit-profile-derived-province` and no "Set your location" at all: the whole
+# section was outside the viewport. The only "Kabul" in the tree was the BIO
+# text, which is why the four assertions above it passed and this one did not.
+#
+# Sixth instance of this shape today, so it is the rule: an `assertVisible` is a
+# claim about the VIEWPORT, not about the app. It surfaced only now because the
+# flow had never got this far before — not a regression from the keyboard work.
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-derived-city"
+    direction: DOWN
+    visibilityPercentage: 40
+    timeout: 20000
+- waitForAnimationToEnd
+# `.*Kabul.*`, not a bare "Kabul": Maestro anchors text to the WHOLE node, and
+# the derived rows render composite strings — this flow's own note upstream
+# records a real one reading "Qarabagh, Kabul Province, Afghanistan". The claim
+# worth making is that the pin resolved into Kabul, not that the label is exactly
+# that one word.
+- assertVisible: ".*Kabul.*"
