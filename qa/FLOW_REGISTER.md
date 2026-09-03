@@ -10,13 +10,13 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**168 of 256 flows passing** · 85 still need attention
+**172 of 258 flows passing** · 83 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 168 | green, and no backend error underneath |
+| PASS | 172 | green, and no backend error underneath |
 | FAIL-assert | 66 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-? | 18 | failed, cause unclear — read the log |
+| FAIL-? | 16 | failed, cause unclear — read the log |
 | (rig) | 2 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 1 | never executed |
 
@@ -30,35 +30,35 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state — mark-sold one-tap from the thread, place/release a hold with the buyer you're already talking to
 
-29/49 passing · 16 open
+28/49 passing · 15 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `archive_conversation` | PASS | run-299 | 200 |  |  |
-| `block_from_conversation` | PASS | run-320 | 152 | flow | 2026-09-02: bare assertVisible on the composer right after opening a thread raced the thread's own fetch (host was ~3min/flow, swap full). NOT a stale block — Block.count was 0 and this flow unblocks itself. Now extendedWaitUntil. |
+| `block_from_conversation` | FAIL-assert | run-436 | 204 | app? | 2026-09-03 UNRESOLVED — board #312. Fails at its last check: after unblocking, the composer does not return within 15s. Instrumented run proved the BLOCK works (blocks 0->1 with the POST) and that the UI stays fully blocked. Ruled out: leaked fixture, the blocked-copy bug (502fc36 verified working), the !otherParticipant early return, and an unanswered confirm dialog. Leading candidate: the shield is disabled while a mutation isPending, so the tap is swallowed while Maestro reports COMPLETED. |
 | `chat_older_messages_pagination` | PASS | run-299 | 185 |  |  |
 | `composer_draft` | PASS | run-299 | 229 | flow | Tapped a title that was sitting in the search box, so the tap hit the input. |
 | `conversation_archive` | PASS | run-299 | 198 |  |  |
-| `conversation_delete` | PASS | run-319 | 145 | flow | 2026-09-02: soft-DELETED its own fixture. Targeted the shared Xiaomi thread as "safe because SOLD"; the delete stamped buyer_deleted_at (09-01 17:54) so not_deleted_for hid it from the buyer for good and every later run failed. App was correct. Now owns "QA Disposable conversation_delete"; the seed clears delete/archive flags on disposable convos each run. |
+| `conversation_delete` | PASS | run-384 | 146 | flow | 2026-09-02: soft-DELETED its own fixture. Targeted the shared Xiaomi thread as "safe because SOLD"; the delete stamped buyer_deleted_at (09-01 17:54) so not_deleted_for hid it from the buyer for good and every later run failed. App was correct. Now owns "QA Disposable conversation_delete"; the seed clears delete/archive flags on disposable convos each run. |
 | `conversation_read_status` | PASS | run-299 | 211 | fixture | mark_unread needs an INBOUND message; index 0 was QA debris with none. Pinned via helper. |
-| `conversations-search` | FAIL-assert | run-382 | 174 |  | [Failed] Conversations list search — narrow, no-match empty state + Clear search, composes with Unread filter  |
+| `conversations-search` | PASS | run-407 | 213 |  |  |
 | `conversations_empty_state` | PASS | run-299 | 135 |  |  |
-| `conversations_filter` | PASS | run-302 | 156 | flow | 2026-09-02: asserted the "All caught up!" EMPTY state on the Unread tab, which 3 sibling flows mutate and the seed gives exactly ONE unread. Order-dependent. Now branches with runFlow: when (native in 2.7.0). |
+| `conversations_filter` | PASS | run-385 | 149 | flow | 2026-09-02: asserted the "All caught up!" EMPTY state on the Unread tab, which 3 sibling flows mutate and the seed gives exactly ONE unread. Order-dependent. Now branches with runFlow: when (native in 2.7.0). |
 | `conversations_list` | PASS | run-299 | 191 |  |  |
 | `conversations_role_filter` | PASS | run-361 | 224 | flow | 2026-09-02: asserted 2 listings on screen at once; they sit at positions 10-11 of a 24-thread seller inbox (the seed adds 6 badge threads at 18-22). Positive asserts now scroll. NB the assertNotVisible ones are weak by nature — filtered-out and below-the-fold are indistinguishable to Maestro; documented in the flow. |
 | `dead_end_notice_absent_when_active` | PASS | run-299 | 189 | flow — helper ran before the inbox appeared; the helper now waits (fixes 3 callers) |  |
 | `dead_end_notice_sold` | FAIL-assert | run-299 | 205 | new flow (added 27-Aug) — conversation-row not visible; awaiting first triage pass | [Failed] dead_end_notice_sold (3m 12s) (Assertion is false: id: conversation-row-\d+ is visible) |
-| `delete_message` | PASS | run-301 | 156 | app+flow | 2026-09-02: failed on "Delete message" with the message sent and visible. Cause was the APP — the bubble sat behind the composer bar so the long press hit the bar and no sheet opened. Fixed structurally in 61ad571 (list ends at the bar). Flow also now waits for the sheet's animation. |
-| `jump_to_latest` | PASS | run-367 | 190 | new | 2026-09-02: the jump-to-latest pill — absent at the bottom, appears after scrolling up, returns to the newest message, then retires itself. |
+| `delete_message` | PASS | run-387 | 158 | app+flow | 2026-09-02: failed on "Delete message" with the message sent and visible. Cause was the APP — the bubble sat behind the composer bar so the long press hit the bar and no sheet opened. Fixed structurally in 61ad571 (list ends at the bar). Flow also now waits for the sheet's animation. |
+| `jump_to_latest` | PASS | run-420 | 214 | new | 2026-09-02: the jump-to-latest pill — absent at the bottom, appears after scrolling up, returns to the newest message, then retires itself. |
 | `lifecycle_from_chat` | PASS | run-362 | 254 | flow — toast race ("Listing marked as sold"); load-bearing wait, see audit_toasts note |  |
 | `mark_read` | PASS | run-299 | 171 | fixture | Same unrepliable-thread trap. |
 | `mark_read_end_to_end` | PASS | run-381 | 183 | flow | 2026-09-02: asserted an unread badge exists then tapped conversation-row index 0 — the newest thread, not necessarily the unread one. The divider only exists inside a thread with unread messages. Now taps unread-badge, which bubbles to its own row. |
 | `meetup_decline` | FAIL-assert | run-299 | 414 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
-| `meetup_full_cycle` | FAIL-assert | run-299 | 483 | flow — both legs used index 0 (arbitrary listing, arbitrary thread); pinned to the seeded phone-case thread | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
-| `meetup_proposal` | PASS | run-299 | 229 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
-| `meetup_proposed_bubble_ui` | PASS | run-299 | 240 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
+| `meetup_full_cycle` | FAIL-assert ⟳stale | run-299 | 483 | flow — both legs used index 0 (arbitrary listing, arbitrary thread); pinned to the seeded phone-case thread | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
+| `meetup_proposal` | PASS | run-422 | 160 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
+| `meetup_proposed_bubble_ui` | PASS ⟳stale | run-299 | 240 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
 | `meetup_respond` | PASS | run-299 | 419 | flow | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
-| `meetup_validation` | PASS | run-299 | 221 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
+| `meetup_validation` | PASS | run-423 | 162 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
 | `message_long_text` | PASS | run-299 | 261 | flow | Asserted 27 chars of the 366-char message it sent. Now spans both ends. |
 | `offer_counter_flow` | FAIL-? | run-299 | 196 | flow — inherited a pushed Create Listing form from the previous flow; login helpers now cold-restart | Tapped seller-only "Counter" as the buyer who sent the offer. Now switches to the seller. |
 | `offer_in_existing_thread` | PASS | run-299 | 203 | flow — tap raced the composer Modal; 7 sites now wait for the sheet's contents |  |
@@ -71,7 +71,7 @@ bug class a user reports as "nothing happened".
 | `reserve_after_accept` | FAIL-assert | s2/run-142 | 188 |  | [Failed] reserve_after_accept (2m 43s) (Element not found: Text matching regex: Make an Offer) |
 | `reserve_after_buyer_accepts_counter` | FAIL-assert | s2/run-142 | 202 | flow | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
 | `reserved_sold_dead_end_notice` | FAIL-assert ⚠slow | s2/run-142 | 568 | flow | Five logins could not fit FLOW_TIMEOUT=600; split into three flows, only this one mutates. |
-| `scroll_to_latest` | PASS | run-368 | 283 | new | 2026-09-02: covers the owner's report that the newest message could not be reached without a manual drag. NOTE: a Maestro pass here proves nothing on its own — its visibility test uses an element's own bounds and cannot see occlusion, and it passed the BROKEN build. Verify with qa/check_message_not_occluded.py. |
+| `scroll_to_latest` | PASS | run-421 | 295 | app | 2026-09-03 SOLVED: the meetup sheet was drawn UNDER the Android keyboard, so Time and Propose were unreachable when the sheet opened with the IME already up — the ordinary path, which no meetup flow covered. Fixed d46c896; PASS at BOTH widths after the rebuild. Its earlier 600s timeout at 360dp was a SYMPTOM of the same bug (dead waits), not a ceiling that needed raising. |
 | `send_message` | PASS | run-283 | 171 |  |  |
 | `send_message_double_tap` | PASS | s2/run-142 | 209 |  |  |
 | `send_message_empty` | PASS | s2/run-142 | 202 |  |  |
@@ -133,7 +133,7 @@ bug class a user reports as "nothing happened".
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
 
-27/41 passing · 13 open
+28/42 passing · 13 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -141,13 +141,14 @@ bug class a user reports as "nothing happened".
 | `browse_listings` | PASS | run-284 | 182 |  |  |
 | `browse_sort_most_viewed` | PASS | run-284 | 185 |  | AxiosError AxiosError |
 | `browse_sort_nearest` | PASS | run-284 | 174 |  |  |
-| `categories_hub` | PASS | run-351 | 201 |  |  |
+| `categories_hub` | PASS | run-409 | 183 |  |  |
 | `clear_all_filters` | PASS | run-284 | 180 |  |  |
 | `filter_active_sellers` | PASS | run-284 | 179 |  |  |
-| `filter_by_category` | PASS | run-348 | 196 |  |  |
+| `filter_by_category` | PASS | run-408 | 173 |  |  |
 | `filter_condition` | PASS | run-284 | 180 |  |  |
 | `filter_price_range` | PASS | run-284 | 189 |  |  |
 | `full_marketplace_cycle` | FAIL-assert ⚠slow | run-284 | 594 | flow — doubled search (missing eraseText) + inherited price filter emptied the feed; fixed | Four taps with the same search-box collision; three now erase and re-search first. |
+| `listing_contact_whatsapp` | PASS | run-425 | 188 |  |  |
 | `listing_detail` | PASS | run-284 | 177 |  |  |
 | `listing_detail_held_units_transparency` | PASS | run-284 | 415 |  |  |
 | `listing_detail_multi_quantity` | FAIL-assert | run-284 | 126 | flow — scroll stopped at the clipped bottom row so the price row never showed; centred. API data verified correct | [Failed] listing_detail_multi_quantity (1m 50s) (Element not found: Id matching regex: login-email-input) |
@@ -191,13 +192,13 @@ bug class a user reports as "nothing happened".
 | `blocked_users` | PASS | run-298 | 188 |  |  |
 | `change_language_dari` | PASS | run-327 | 487 |  |  |
 | `change_language_english` | PASS | run-298 | 551 | flow — toothless restart wait; helper+nav fixed cb68fa4 |  |
-| `change_language_pashto` | PASS | run-326 | 189 |  |  |
-| `contact_visibility` | FAIL-assert | run-380 | 167 | flow | 2026-09-02 SOLVED, flow bug, b20007e: died in `await_language_restart`, whose restart barrier waited on `(seller-)?listing-card`. The QA buyer owns ZERO listings, so in seller mode My Shop is empty by construction and the wait could never pass (run-380 screenshot: '0 listings / You haven't posted anything yet'). It also blocked its own repair — login.yaml runs ensure_english BEFORE ensure_buyer_mode. Barrier now waits on (browse-search-bar&#124;my-listings-search-input). NOT an app bug. |
-| `edit_profile` | PASS ⟳stale | run-324 | 147 | stale — toast assertion already replaced by durable name check |  |
-| `edit_profile_all_fields` | FAIL-? ⟳stale | run-378 | 244 | flow | 2026-09-02 SOLVED, flow bug, 2a6ba70: asserted text 'Save' against a button reading 'Save Changes' (anchored regex), which also swaps to 'Saving…' mid-submit. Now targets `edit-profile-save-button` by testID, centerElement dropped. 5 sibling profile flows carried the same defect and were converted with it. NOT an app bug. |
+| `change_language_pashto` | PASS | run-391 | 194 |  |  |
+| `contact_visibility` | FAIL-? | run-440 | 236 | flow | 2026-09-03: the failing assertion named the copied number but the cause was navigation. hideKeyboard is a Back press and popped Edit Profile to Profile; the next THREE commands reported COMPLETED against a stale hierarchy, so the assertNotVisible before it passed for the WRONG reason. Replaced with pressKey:Enter, which turned out to SUBMIT the form — both removed. Green at 360dp once the keypress was gone; now unstable again from my keyboardDismissMode=on-drag reflowing the form mid-scroll (board #313). NOT an app bug. |
+| `edit_profile` | PASS | run-441 | 200 | stale — toast assertion already replaced by durable name check |  |
+| `edit_profile_all_fields` | FAIL-assert ⟳stale | run-439 | 294 | flow+app | 2026-09-03: FOUR causes, two of them app bugs. (1) asserted text 'Save' on a button reading 'Save Changes'; (2) centerElement on the sticky save button; (3) APP — the sticky Save sat BEHIND the keyboard (d8edc9e), verified visually at 360dp; (4) APP — the keyboard swallowed the tap on the NEXT field, so 'UpdatedLast' landed in the First Name box (e36a6b4, keyboardDismissMode=on-drag). Also a pre-existing viewport assumption on the final derived-city assertion (no scroll). MY OWN regressions along the way: a pressKey:Enter that SUBMITTED the form (608ddda, reverted) and a scrollUntilVisible that is a no-op when the target is already 'visible'. Flow-side stability still open — board #313. |
 | `edit_profile_avatar` | PASS | run-298 | 169 |  |  |
 | `edit_profile_bio_too_long` | PASS ⟳stale | run-298 | 262 | flow — 520 chars do type; error renders above viewport; now scrolls UP cb68fa4 |  |
-| `edit_profile_province` | PASS | run-357 | 209 | flow | 2026-09-02: DOWN + centerElement:true on profile-edit-button, which sits near the TOP of Profile — DOWN scrolls away from it and centring is impossible with too little content above. ORDER-DEPENDENT (siblings passed on the identical block). Now UP + visibilityPercentage 40, applied to all 8 flows carrying it. |
+| `edit_profile_province` | PASS ⟳stale | run-433 | 240 | flow | 2026-09-02: DOWN + centerElement:true on profile-edit-button, which sits near the TOP of Profile — DOWN scrolls away from it and centring is impossible with too little content above. ORDER-DEPENDENT (siblings passed on the identical block). Now UP + visibilityPercentage 40, applied to all 8 flows carrying it. |
 | `edit_profile_validation` | PASS ⟳stale | run-298 | 181 |  |  |
 | `hidden_listings` | FAIL-assert | run-298 | 195 |  | [Failed] hidden_listings (3m 6s) (Assertion is false: "No hidden listings" is visible) |
 | `language_persists_across_tabs` | PASS | run-298 | 248 |  |  |
@@ -218,13 +219,14 @@ bug class a user reports as "nothing happened".
 
 ## `seller` — One-tap Mark sold from any live listing (never reserve-first) + the Sales ledger (edit/void a row, reviewed-sale refusal, outside-buyer rows, undo-after-sold)
 
-8/17 passing · 9 open
+9/18 passing · 9 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `held_quantity_refusal` | FAIL-assert | run-285 | 216 |  | [Failed] held_quantity_refusal (3m 25s) (Assertion is false: "Winter Gloves Wholesale Box - 15 Pairs" is visib |
 | `listing_actions_sheet` | FAIL-assert | run-285 | 235 |  | [Failed] listing_actions_sheet (3m 45s) (Element not found: Id matching regex: browse-tab) |
 | `listing_conversations` | FAIL-? | run-285 | 391 |  | [Failed] listing_conversations (6m 20s) (No visible element found: "Men Winter Jacket XL Black") |
+| `mark_sold_all_units` | PASS | run-426 | 220 |  |  |
 | `mark_sold_with_buyer` | PASS | run-285 | 171 |  |  |
 | `multi_quantity_offplatform_sale` | FAIL-? | run-285 | 154 |  | [Failed] multi_quantity_offplatform_sale (2m 24s) (No visible element found: "QA Disposable offplatform_units" |
 | `multi_quantity_partial_sale` | PASS | run-285 | 230 | fixed | Found UI-008 (HIGH): typed 3, sold all 15 — pre-filled field appended, clamp silently swallowed it, listing retired. Fixed with selectTextOnFocus + a destructive over-stock hint; same fix applied to the web dialog. Also UI-009 ("15 of 15 left" before any sale). Flow itself needed: explicit seller login (login_seller.yaml lands in the dev-client launcher; login.yaml ignores an EMAIL override when a session exists), scrollUntilVisible on `lifecycle-more-action`, and the review prompt instead of the racing toast. run-020 green, 0 api errors, DB confirms 3 sold / 12 left / still active. |
@@ -264,7 +266,7 @@ bug class a user reports as "nothing happened".
 | `block_prevents_message` | PASS | run-292 | 234 |  |  |
 | `block_user` | FAIL-? | run-292 | 192 |  | [Failed] block_user (3m 2s) (No visible element found: "Wool Blanket Handmade King Size") |
 | `block_user_hides_listings` | PASS | run-292 | 223 |  |  |
-| `report_listing` | FAIL-? | run-292 | 180 | fixture | RIG-004; also gained the duplicate-rule assertion for listings, which nothing covered. |
+| `report_listing` | FAIL-? | run-447 | 136 | fixture | RIG-004; also gained the duplicate-rule assertion for listings, which nothing covered. |
 | `report_listing_no_reason` | FAIL-? | run-292 | 182 |  | [Failed] report_listing_no_reason (2m 53s) (No visible element found: "Wool Blanket Handmade King Size") |
 | `report_user` | PASS | run-292 | 197 | fixture | RIG-004 part 2: retargeted to ahmad (36) so it cannot collide intra-cycle. |
 | `report_user_from_profile` | PASS | run-292 | 198 | fixture | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
@@ -272,12 +274,12 @@ bug class a user reports as "nothing happened".
 
 ## `saved` — Save / unsave a listing, saved tab, sold-while-saved
 
-5/8 passing · 3 open
+6/8 passing · 2 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `save_from_browse_feed` | PASS | run-286 | 171 |  |  |
-| `save_listing` | FAIL-? | run-286 | 146 |  | [Failed] save_listing (2m 17s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `save_listing` | PASS | run-395 | 185 |  |  |
 | `save_multiple_listings` | PASS | run-286 | 146 |  |  |
 | `saved_empty_state` | PASS | run-286 | 108 |  |  |
 | `saved_listing_goes_sold` | FAIL-assert | run-286 | 385 |  | [Failed] saved_listing_goes_sold (6m 16s) (Element not found: Id matching regex: seller-card-primary-action) |
@@ -313,7 +315,7 @@ bug class a user reports as "nothing happened".
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `listing_create_multi_photos` | PASS | s2/run-286 | 283 | flow | Asserted the reorder hint with nothing selected; hint needs selectedIdx !== -1. |
-| `listing_edit_add_photos` | PASS | run-325 | 209 | flow | 2026-09-02: never scrolled to its own Save button, which adding a photo pushes below the fold — the rule this file's own header states. Now scrolls at visibilityPercentage 40. |
+| `listing_edit_add_photos` | PASS | run-388 | 210 | flow | 2026-09-02: never scrolled to its own Save button, which adding a photo pushes below the fold — the rule this file's own header states. Now scrolls at visibilityPercentage 40. |
 | `listing_gallery_no_photo` | FAIL-assert | s2/run-286 | 197 |  | [Failed] listing_gallery_no_photo (3m 6s) (Assertion is false: "No photo" is visible) |
 | `listing_gallery_swipe` | PASS | s2/run-286 | 147 |  |  |
 
@@ -395,17 +397,17 @@ bug class a user reports as "nothing happened".
 
 ## `rtl` — Pashto + Dari right-to-left layout across main screens
 
-8/10 passing · 0 open
+9/10 passing · 0 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `browse_rtl_dari` | PASS | run-289 | 218 |  |  |
-| `browse_rtl_pashto` | PASS | run-352 | 159 |  |  |
+| `browse_rtl_pashto` | PASS | run-410 | 195 |  |  |
 | `buyer_picker_rtl` | PASS | run-289 | 549 |  |  |
-| `categories_hub_rtl` | PASS | run-354 | 156 | flow | 2026-09-02: tapped text "Back" in a flow whose whole purpose is Pashto. The app renders no literal "Back" — BackButton has accessibilityLabel t(common.goBack) (ps شاته ځه) and testID back_button. Now targets the testID. |
-| `chat_rtl` | FAIL | run-373 | 477 | flow? | 2026-09-02: expects ps common.send "لیږل", present verbatim. Same language-revert hypothesis as profile_rtl. |
-| `listing_detail_rtl` | PASS | run-289 | 530 |  |  |
+| `categories_hub_rtl` | PASS | run-412 | 195 | flow | 2026-09-02: tapped text "Back" in a flow whose whole purpose is Pashto. The app renders no literal "Back" — BackButton has accessibilityLabel t(common.goBack) (ps شاته ځه) and testID back_button. Now targets the testID. |
+| `chat_rtl` | FAIL | run-403 | 516 | flow? | 2026-09-02: expects ps common.send "لیږل", present verbatim. Same language-revert hypothesis as profile_rtl. |
+| `listing_detail_rtl` | PASS | run-416 | 226 |  |  |
 | `my_listings_rtl` | PASS | run-289 | 218 |  |  |
-| `profile_quick_actions_rtl` | FAIL-? ⟳stale | run-379 | 188 | flow | 2026-09-02 SOLVED, flow bug, b20007e: the language-revert hypothesis was WRONG, and so was the mode-toggle one. Profile.tsx:306 renders this row as `${t('…myListings')} (${count})`, so the text is 'زما اعلانونه (0)' and Maestro's anchored regex could not match the bare label — the three sibling labels carry no suffix, which is why only this row failed. run-379's screenshot shows Profile correctly in seller mode (green tab bar, three tabs, saved-tab gone). Matched as a prefix now. NOT an app bug. |
-| `profile_rtl` | PASS | run-353 | 480 | flow? | 2026-09-02: expects fa profile.editProfile "ویرایش پروفایل", which EXISTS verbatim in the locale file — so not a stale selector. Hypothesis: the language-revert bug (fixed 8097ab3) left the app in English after the switch, so no translated string could match. Re-running on a build with that fix. |
+| `profile_quick_actions_rtl` | PASS | run-405 | 245 | flow | 2026-09-02 SOLVED, flow bug, b20007e: the language-revert hypothesis was WRONG, and so was the mode-toggle one. Profile.tsx:306 renders this row as `${t('…myListings')} (${count})`, so the text is 'زما اعلانونه (0)' and Maestro's anchored regex could not match the bare label — the three sibling labels carry no suffix, which is why only this row failed. run-379's screenshot shows Profile correctly in seller mode (green tab bar, three tabs, saved-tab gone). Matched as a prefix now. NOT an app bug. |
+| `profile_rtl` | PASS | run-411 | 481 | flow? | 2026-09-02: expects fa profile.editProfile "ویرایش پروفایل", which EXISTS verbatim in the locale file — so not a stale selector. Hypothesis: the language-revert bug (fixed 8097ab3) left the app in English after the switch, so no translated string could match. Re-running on a build with that fix. |
 | `sales_ledger_rtl` | PASS | run-289 | 547 |  |  |
