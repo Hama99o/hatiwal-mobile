@@ -10,8 +10,10 @@ import {
   View,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Platform,
+  useWindowDimensions,
   KeyboardAvoidingView,
 } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -73,6 +75,21 @@ export function FirstMessageSheet({
   // The sheet lifts ITSELF on Android — see the note on KeyboardAvoidingView below.
   const keyboardHeight = useKeyboardHeight();
   const androidLift = Platform.OS === "android" ? keyboardHeight : 0;
+  // HOW MUCH ROOM IS LEFT once the sheet has been lifted onto the keyboard.
+  //
+  // The lift alone is not enough on a small screen. At 360dp the window is
+  // ~640dp tall and the IME takes ~345dp of it, leaving under 300dp — and this
+  // sheet is taller than that (header + listing preview + label + an 80dp-min
+  // Textarea + note + Send + Cancel). Lifting a sheet that does not FIT just
+  // pushes its top off the screen instead of under the keyboard: run-446, with
+  // the lift in place, still had no "Message Seller" header in the hierarchy
+  // while `first-message-send` was present — the title had been clipped away.
+  //
+  // So the content is capped and scrolls inside the cap. `maxHeight` rather than
+  // a fixed height, so on a roomy window nothing changes at all and the sheet
+  // stays exactly as tall as its content.
+  const { height: windowH } = useWindowDimensions();
+  const contentMaxHeight = Math.max(200, windowH - androidLift - 24);
   const router = useRouter();
 
   // SF-M6: qty>1 on a multi-unit listing states unit×qty=total IN WRITING —
@@ -179,6 +196,17 @@ export function FirstMessageSheet({
               marginBottom: androidLift,
             },
           ]}
+        >
+          {/* CAPPED AND SCROLLABLE — see contentMaxHeight above. `bounces={false}`
+              so it does not rubber-band on a window where everything already fits,
+              and `keyboardShouldPersistTaps="handled"` so a tap on Send while the
+              Textarea is focused reaches the button instead of just dismissing the
+              keyboard. */}
+        <ScrollView
+          style={{ maxHeight: contentMaxHeight }}
+          bounces={false}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           {/* Drag handle */}
           <View style={styles.handleContainer}>
@@ -304,6 +332,7 @@ export function FirstMessageSheet({
           {/* Bottom breathing room. Drops the safe-area inset while the IME
               covers the gesture bar — reserving for it there is dead space. */}
           <View style={{ height: keyboardSafeBottom(keyboardHeight > 0, insets.bottom, 8, 12) }} />
+        </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
