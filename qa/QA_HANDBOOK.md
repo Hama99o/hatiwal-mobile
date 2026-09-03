@@ -114,7 +114,32 @@ triaged as one.
 
 ## Run flows against a BUNDLED apk
 
-    ./qa/qa.sh build bundled     # embeds the JS; no Metro at runtime
+    ./qa/qa.sh build bundled     # embeds the JS as a FALLBACK
+
+**CORRECTION (2026-09-03): "no Metro at runtime" is not what happens.** The APK
+does embed the JS, but this is an expo-dev-client build and its launcher offers
+NO way to open an embedded bundle — the whole screen is `npx expo start`, a
+dev-server URL field, Connect, and "Fetch development servers" (verified by
+screenshot at 360dp, with the list scrolled to its end). `_helpers/open_bundle.yaml`
+therefore connects to `10.0.2.2:3008`, and `qa/lib/flows.sh`'s own launcher
+recovery deep-links to the same address. So the app under test runs METRO'S JS,
+from the working tree, and the embedded bundle is a fallback that never loads.
+
+What that means for a result:
+
+- It is still a real test of the CURRENT SOURCE, which is usually what you want.
+- But the FREEZE this section promises is not in force. Its stated purpose — an
+  edit cannot hot-reload into a flow that is mid-run — does not hold, so editing
+  a file under `src/` while a pass is running can still split a result across two
+  versions of the code.
+- And `apk-provenance.txt` records what the APK CONTAINS, not what the app RAN.
+  Quoting it as "this build carries commit X" overstates it; the honest claim is
+  "the working tree was at X".
+
+To actually freeze the code you would need a build without expo-dev-client (a
+release variant), which the rig does not currently produce — and which the
+skill's own rule forbids pointing at production data, so it would need a
+release build configured against localhost.
 
 Use this for any run whose result you intend to report. It freezes the code under
 test at build time, which removes two failure modes that produced false reports
