@@ -57,18 +57,31 @@ appId: com.hatiwal.app
 
 # BASELINE: with no keyboard up, Send must be there. If this fails the probe is
 # wrong about the sheet, not the sheet about the keyboard — so it is asserted
-# separately rather than assumed.
-- assertVisible: "Send Message"
+# separately rather than assumed. This PASSED in run-434/435.
+- assertVisible:
+    id: "first-message-send"
 - takeScreenshot: probe-first-message-closed-ime
 
 # ── THE QUESTION ───────────────────────────────────────────────────────────
 # Focus the Textarea, which raises the IME, and ask whether the submit below it
-# survives. A tap is NOT used: Maestro reports a tap on a keyboard-covered
-# element as COMPLETED while the touch never reaches the app, so a tap would
-# answer nothing. Visibility is the honest check.
-- tapOn: "Your message"
+# survives. A tap on the submit is NOT used: Maestro reports a tap on a
+# keyboard-covered element as COMPLETED while the touch never reaches the app,
+# so tapping would answer nothing. Visibility is the honest check.
+#
+# BY testID. The first version aimed at the localized "Your message" LABEL,
+# because this sheet had no testIDs at all. That tap did not land on the field:
+# run-434/435 both ended on the LISTING DETAIL screen with the Expo dev-menu
+# element inspector up ("Tap something to inspect it"), sheet gone — so the
+# final assertion measured nothing, and the failure could easily have been
+# misread as confirming the bug. A label is not a handle.
+- tapOn:
+    id: "first-message-input"
 - waitForAnimationToEnd
 - inputText: "Is this still available?"
 - waitForAnimationToEnd
+# PROVE THE SHEET IS STILL OPEN before asking about the submit — otherwise a
+# dismissed sheet looks exactly like an occluded button.
+- assertVisible: "Message Seller"
 - takeScreenshot: probe-first-message-open-ime
-- assertVisible: "Send Message"
+- assertVisible:
+    id: "first-message-send"

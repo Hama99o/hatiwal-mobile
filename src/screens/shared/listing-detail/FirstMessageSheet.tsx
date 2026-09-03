@@ -215,7 +215,14 @@ export function FirstMessageSheet({
           >
             {t("listing.detail.yourMessage")}
           </Text>
+          {/* testIDs, because this sheet had NONE — the reason nothing covers the
+              action every conversation on this marketplace starts with, and the
+              reason a probe had to aim at the localized "Your message" LABEL
+              instead of the field. That tap landed somewhere else entirely and
+              the run measured nothing (run-434/435). A label is not a handle:
+              it is copy, it moves, and it is translated three ways. */}
           <Textarea
+            testID="first-message-input"
             value={message}
             onChangeText={setMessage}
             placeholder={t("listing.detail.defaultMessage")}
@@ -243,6 +250,9 @@ export function FirstMessageSheet({
             onPress={handleSend}
             disabled={mutation.isPending || !message.trim()}
             style={{ marginTop: 16 }}
+            // The label swaps to `common.loading` while sending, so the words
+            // cannot identify this button for its whole lifetime.
+            testID="first-message-send"
           >
             <Text style={{ fontWeight: "600" }}>
               {mutation.isPending
