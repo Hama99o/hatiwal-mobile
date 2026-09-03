@@ -53,6 +53,32 @@ appId: com.hatiwal.app
 - tapOn: "Fraud or scam"
 - waitForAnimationToEnd
 
+# ── TYPE THE OPTIONAL NOTE, and check Submit survives the keyboard ──────────
+#
+# This flow used to submit WITHOUT ever raising the IME, so it never tested the
+# thing that actually broke on this sheet's siblings: ReportSheet is one of the
+# three <Textarea> sheets whose submit was drawn under the Android keyboard,
+# lifted in 19c9791. MeetupSheet and FirstMessageSheet are verified; this sheet
+# had NO keyboard coverage at all, and the only evidence it was affected is that
+# report_listing.yaml pays for it with a `hideKeyboard` before submitting and
+# says so in a comment.
+#
+# By placeholder, because this Textarea has no testID. It should get one — the
+# same gap FirstMessageSheet had (74ab884) — but that needs a rebuild, and the
+# placeholder answers the question now. `report.notePlaceholder` is
+# "Describe the issue in more detail..." and the tap happens BEFORE any typing,
+# so the placeholder is still on screen to match.
+- tapOn: "Describe the issue in more detail..."
+- waitForAnimationToEnd
+- inputText: "Asked me to pay a deposit before meeting."
+- waitForAnimationToEnd
+
+# THE CHECK. With the note field focused the IME is up, and before the lift the
+# submit sat behind it. Asserted rather than just tapped, because Maestro reports
+# a tap on a keyboard-covered element as COMPLETED while the touch lands on the
+# keys — so tapping alone would prove nothing.
+- assertVisible: "Submit Report"
+
 # `report.submit` = "Submit Report" — capital R.
 - tapOn: "Submit Report"
 - waitForAnimationToEnd
