@@ -140,5 +140,22 @@ appId: com.hatiwal.app
 - tapOn: "Got it"
 - waitForAnimationToEnd
 
-# Back on the (now Sold) listing detail
+# Back on the (now Sold) listing detail.
+#
+# SCROLL BACK UP FIRST. The status badge is section 2 of MyListingDetail, and by
+# this point the flow is parked at the BOTTOM — it tapped the primary action
+# down there and then worked through the review sheet. run-447's hierarchy dump
+# at this step has "Location" present and no `listing-status-badge` at all: the
+# badge was simply off the top of the screen on a listing that had sold
+# perfectly. The same correction is already recorded in
+# seller/multi_quantity_offplatform_sale.yaml (run-269).
+#
+# Seventh instance of this shape today, so it is the rule: an `assertVisible` is
+# a claim about the VIEWPORT, not about the app.
+- scrollUntilVisible:
+    element:
+      id: "listing-status-badge"
+    direction: UP
+    timeout: 20000
+- waitForAnimationToEnd
 - assertVisible: "Sold"
