@@ -337,6 +337,26 @@ export default function EditProfileScreen() {
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
         keyboardShouldPersistTaps="handled"
+        // DRAGGING THE FORM PUTS THE KEYBOARD AWAY.
+        //
+        // Standard behaviour for a long form on both platforms, and the reason
+        // it is here: on a 360dp screen the IME covers roughly the bottom half,
+        // so after typing one field the NEXT field is behind it. You can still
+        // scroll to it — but the keyboard stays up and keeps covering whatever
+        // you scroll to, so reaching the far end of this form means dismissing
+        // the keyboard by hand between fields.
+        //
+        // It also removes a whole class of test fragility that cost several
+        // rounds tonight: Maestro's notion of "visible" comes from the view
+        // hierarchy, which has NO concept of the IME. A field can be reported
+        // 100% visible and still be under the keyboard, and a tap on it is
+        // reported COMPLETED while the touch lands on the keys — which is
+        // exactly how run-431 typed "UpdatedLast" into the FIRST NAME field
+        // (the tap on Last Name was swallowed, so focus never moved). No
+        // `visibilityPercentage` can guard against that, because the occluder
+        // is invisible to the hierarchy. With on-drag, the scroll that brings a
+        // field into view is also what clears the keyboard off it.
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
 
