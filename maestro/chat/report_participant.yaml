@@ -68,6 +68,22 @@ appId: com.hatiwal.app
 # placeholder answers the question now. `report.notePlaceholder` is
 # "Describe the issue in more detail..." and the tap happens BEFORE any typing,
 # so the placeholder is still on screen to match.
+# SCROLL TO IT FIRST. The note field lives in the sheet's SCROLLABLE content
+# while Submit sits in a PINNED footer, so at 360dp the footer is on screen and
+# the field is not: run-460's hierarchy has "Why are you reporting", "Fraud or
+# scam", "Submit Report" and "Cancel" all present, and no "Describe the issue".
+# Eighth instance of this shape today — an assertVisible (or a tapOn) is a claim
+# about the VIEWPORT, not about the app.
+#
+# 60% so the field is properly hittable rather than just peeking in at an edge,
+# where the pinned footer or the sheet's own rim can eat the touch.
+- scrollUntilVisible:
+    element:
+      text: "Describe the issue in more detail..."
+    direction: DOWN
+    visibilityPercentage: 60
+    timeout: 20000
+- waitForAnimationToEnd
 - tapOn: "Describe the issue in more detail..."
 - waitForAnimationToEnd
 - inputText: "Asked me to pay a deposit before meeting."
