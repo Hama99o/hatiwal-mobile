@@ -33,9 +33,33 @@ appId: com.hatiwal.app
 # `mode-toggle-button` (Profile.tsx) and the tab ids from
 # app/(main)/(tabs)/_layout.tsx, honoured in FloatingTabBar.tsx.
 
-- tapOn:
-    id: "profile-tab"
-- waitForAnimationToEnd
+# GUARDED, RETRIED TAP on the profile tab.
+#
+# A single tap here is flaky and when it misses, the 30s gate below fails and
+# takes the whole flow with it — this helper runs in ~200 flows, so a missed tap
+# reads as ~200 different bugs. It happened three times in a row on 2026-09-03
+# (edit_profile_avatar@360, browse_rtl_pashto@360, and the run before them), each
+# failing on `"Switch to .*" is visible` while the app sat on My Shop.
+#
+# Proven not to be the app: tapping the same tab BY HAND on the stalled device
+# opened Profile immediately, with "Switch to Buyer Mode" on screen. The toggle
+# was there and the tab was hittable; the tap simply had not registered.
+#
+# Each iteration is gated on the toggle NOT yet being visible, so once Profile is
+# up the remaining taps do nothing — a second tap on an already-open Profile is
+# harmless, but the guard keeps this cheap. Same shape mapqa/_body_form.yaml uses
+# for the same tab bar, whose own note says to tap up to three times and let the
+# tab set decide when to stop.
+- repeat:
+    times: 3
+    commands:
+      - runFlow:
+          when:
+            notVisible: "Switch to .*"
+          commands:
+            - tapOn:
+                id: "profile-tab"
+            - waitForAnimationToEnd
 
 # The profile screen can come up in its ERROR state — "Something went wrong / We
 # couldn't load the data" with a Retry button — when the profile fetch fails
