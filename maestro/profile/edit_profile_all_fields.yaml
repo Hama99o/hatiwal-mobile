@@ -52,19 +52,32 @@ appId: com.hatiwal.app
     id: "edit-profile-lastname-input"
 - eraseText
 - inputText: "UpdatedLast"
-# DISMISS THE IME BEFORE SCROLLING DOWN THE FORM.
+# NO IME DISMISSAL HERE, and specifically NOT an Enter keypress.
 #
-# At 360dp (a ~400dp-tall window) the keyboard leaves roughly 150dp of form
-# visible, and everything below is behind it. The next step has to bring the Bio
-# field into that strip AND land a tap on it — and a tap that lands on the
-# keyboard is reported COMPLETED by Maestro while the touch never reaches the
-# app (see report_listing.yaml:60's note).
+# On THIS screen Enter SUBMITS THE FORM. Proven from the run-427 timeline:
+#   02:36:19  Press Enter key        (right after inputText "UpdatedLast")
+#   02:36:23  PUT /api/v1/users/me   <- the save
+# and the database afterwards held firstname="UpdatedFirst",
+# lastname="UpdatedLast" but bio="E2E test account." — the SEEDED bio. So the
+# save captured the form exactly as of the keypress, before the bio was typed.
+# `saveMutation.onSuccess` then does `router.replace(...)` to Profile, so every
+# later command ran against a stale hierarchy and reported COMPLETED until a
+# scroll finally failed on the settled Profile screen, several steps from the
+# cause. contact_visibility failed the same way at 411dp; its earlier 360dp pass
+# was luck, not evidence.
 #
-# `pressKey: Enter`, not `hideKeyboard`: lastname is a single-line RNR Input, so
-# Enter blurs it and the IME closes without touching the navigation stack.
-# `hideKeyboard` is a Back press and popped a screen in contact_visibility.
-- pressKey: Enter
-- waitForAnimationToEnd
+# `hideKeyboard` is not the answer either — that is a Back press, and it popped
+# this same screen once already.
+#
+# So the IME stays UP and the scrolls do the work: scrollUntilVisible moves the
+# ScrollView regardless of the keyboard, and a visibilityPercentage that keeps
+# the field clear of both edges keeps it tappable. The 360dp failure this was
+# originally added for was `centerElement: true`, removed separately — that was
+# the real cause, and dismissing the keyboard was never needed to fix it.
+#
+# An Enter keypress REMAINS CORRECT on a search field (conversations-search,
+# green at both widths), where there is no form to submit. The rule is about
+# FORMS, not about the key.
 
 # Clear and update bio. By testID: "Bio" is a NON-INTERACTIVE label above the
 # field (the input's placeholder is "Tell buyers a little about yourself…"), and it

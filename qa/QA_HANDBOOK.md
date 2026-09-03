@@ -2197,6 +2197,42 @@ and a rule nobody reads is how the real one hides.
 action that blurs the field and closes the IME without touching the navigation
 stack. It does NOT work on a `Textarea`, where Enter inserts a newline.
 
+### CORRECTION: Enter is NOT safe on a form with a submit action
+
+The paragraph above was written after `conversations-search`, where it is right
+and remains green at both widths — a search field has nothing to submit. Applied
+to **Edit Profile it SUBMITS THE FORM**, and both flows changed that way broke:
+
+    run-427 timeline
+      02:36:19  Press Enter key        (right after inputText "UpdatedLast")
+      02:36:23  PUT /api/v1/users/me   <- the save
+
+and the database afterwards held `firstname="UpdatedFirst"`,
+`lastname="UpdatedLast"`, `bio="E2E test account."` — the SEEDED bio. The save
+captured the form exactly as of the keypress, before the bio was typed. That is
+proof, not inference: the flow's own bio text never reached the server.
+
+`saveMutation.onSuccess` then does `router.replace(...)` to Profile, so this
+lands in the same trap as the `hideKeyboard` Back press — later commands report
+COMPLETED against a stale hierarchy and the first real failure is several steps
+downstream of the cause. `contact_visibility` failed identically at 411dp; its
+earlier 360dp pass was luck, and taking that pass as evidence is what let the
+mistake stand for a whole queue leg.
+
+**So the rule is about FORMS, not about the key:**
+
+| Field | `pressKey: Enter` |
+|---|---|
+| a search box (`conversations-search`) | correct — nothing to submit, green at both widths |
+| a `Textarea` | useless — Enter inserts a newline |
+| **any input on a screen with a save/submit** | **NO — it submits and navigates** |
+
+On a form, leave the IME up and let `scrollUntilVisible` do the work: it moves
+the ScrollView regardless of the keyboard, and a `visibilityPercentage` that
+keeps the target clear of both edges keeps it tappable. Both Edit Profile flows
+now do exactly that, and the 360dp failure the dismissal was added for turned out
+to be `centerElement: true` all along.
+
 ## Which bottom sheets actually need the keyboard self-lift
 
 MeetupSheet's fix (d46c896) raised an obvious question: twelve screens use

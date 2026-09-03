@@ -81,24 +81,32 @@ appId: com.hatiwal.app
     id: "edit-profile-phone-input"
 - eraseText
 - inputText: "+93700000123"
-# SUBMIT to dismiss the IME. This was `hideKeyboard`, which on Android is a BACK
-# PRESS, and here it popped Edit Profile back to Profile.
+# NO IME DISMISSAL HERE, and specifically NOT an Enter keypress.
 #
-# Proven from run-398's own hierarchy dump at the failing step: not one
-# `edit-profile-*` node on screen, "Switch to Seller Mode" present. What made it
-# hard to read is that the next THREE commands still reported COMPLETED —
-# Maestro's hierarchy lagged the navigation, so it tapped the whatsapp input,
-# erased it and tapped the same-as-phone shortcut against a screen already on
-# its way out. `assertNotVisible: same-as-phone` then passed for the wrong
-# reason (the control was not there because NOTHING was there), and the flow
-# finally failed four steps later on `"\+93700000123" is visible` — an
-# assertion that looks unrelated to the cause.
+# On THIS screen Enter SUBMITS THE FORM. Proven from the run-427 timeline:
+#   02:36:19  Press Enter key        (right after inputText "UpdatedLast")
+#   02:36:23  PUT /api/v1/users/me   <- the save
+# and the database afterwards held firstname="UpdatedFirst",
+# lastname="UpdatedLast" but bio="E2E test account." — the SEEDED bio. So the
+# save captured the form exactly as of the keypress, before the bio was typed.
+# `saveMutation.onSuccess` then does `router.replace(...)` to Profile, so every
+# later command ran against a stale hierarchy and reported COMPLETED until a
+# scroll finally failed on the settled Profile screen, several steps from the
+# cause. contact_visibility failed the same way at 411dp; its earlier 360dp pass
+# was luck, not evidence.
 #
-# The phone field is a single-line RNR Input, so Enter blurs it and the keyboard
-# goes without touching the navigation stack. The IME still has to be dismissed
-# — leaving it up lets it swallow a later tap while Maestro reports COMPLETED
-# (see report_listing.yaml:60's note) — so this is a replacement, not a removal.
-- pressKey: Enter
+# `hideKeyboard` is not the answer either — that is a Back press, and it popped
+# this same screen once already.
+#
+# So the IME stays UP and the scrolls do the work: scrollUntilVisible moves the
+# ScrollView regardless of the keyboard, and a visibilityPercentage that keeps
+# the field clear of both edges keeps it tappable. The 360dp failure this was
+# originally added for was `centerElement: true`, removed separately — that was
+# the real cause, and dismissing the keyboard was never needed to fix it.
+#
+# An Enter keypress REMAINS CORRECT on a search field (conversations-search,
+# green at both widths), where there is no form to submit. The rule is about
+# FORMS, not about the key.
 # CLEAR the WhatsApp field first, so the shortcut has something to do.
 #
 # It renders only while a phone exists AND the WhatsApp value DIFFERS from it —
