@@ -36,9 +36,36 @@ appId: com.hatiwal.app
     visible:
       id: "more-options-button"
     timeout: 20000
-- tapOn:
-    id: "more-options-button"
-- waitForAnimationToEnd
+# GUARDED, RETRIED TAP. `more-options-button` is an icon-only control overlaid on
+# the photo carousel, and the carousel can swallow the touch — Maestro still
+# reports the tap COMPLETED, because it taps the element's BOUNDS. run-453 is the
+# clean demonstration: at the failing step `more-options-button` and the listing
+# title were both present while `listing-actions-sheet`, "Share" and "Report"
+# were all absent. The sheet had never opened, and the flow blamed a missing
+# "Report" — a symptom two steps downstream of the cause.
+#
+# Each iteration is gated on the sheet still being CLOSED, so once it opens the
+# remaining attempts do nothing — without that guard a second tap would toggle it
+# shut again. Same shape mapqa/_body_form.yaml uses for its flaky mode toggle.
+- repeat:
+    times: 3
+    commands:
+      - runFlow:
+          when:
+            notVisible:
+              id: "listing-actions-sheet"
+          commands:
+            - tapOn:
+                id: "more-options-button"
+            - waitForAnimationToEnd
+            - waitForAnimationToEnd
+
+# Only now insist on it: three guarded attempts have had their chance, so a
+# failure here is real rather than a race.
+- extendedWaitUntil:
+    visible:
+      id: "listing-actions-sheet"
+    timeout: 20000
 - tapOn: "Report"
 - waitForAnimationToEnd
 # Bottom sheet opens
