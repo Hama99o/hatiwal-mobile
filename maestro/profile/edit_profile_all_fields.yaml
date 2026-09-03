@@ -84,9 +84,10 @@ appId: com.hatiwal.app
 # `hideKeyboard` is not the answer either — that is a Back press, and it popped
 # this same screen once already.
 #
-# So the IME stays UP and the scrolls do the work: scrollUntilVisible moves the
-# ScrollView regardless of the keyboard, and a visibilityPercentage that keeps
-# the field clear of both edges keeps it tappable. The 360dp failure this was
+# The IME is put down by an explicit DRAG instead (see the helper). An earlier
+# version of this note claimed the scrolls could just do the work with the
+# keyboard up — that is true at 411dp and false at 360dp, where the swipe starts
+# on the keyboard and the form does not move. The 360dp failure this was
 # originally added for was `centerElement: true`, removed separately — that was
 # the real cause, and dismissing the keyboard was never needed to fix it.
 #
@@ -97,6 +98,19 @@ appId: com.hatiwal.app
 # Clear and update bio. By testID: "Bio" is a NON-INTERACTIVE label above the
 # field (the input's placeholder is "Tell buyers a little about yourself…"), and it
 # sits below the fold where `tapOn` cannot reach it.
+# KEYBOARD DOWN BEFORE THE SCROLL, not before the tap.
+#
+# I had this dismissal after the scroll and it could not help: at 360dp the IME
+# covers roughly the bottom half, so `scrollUntilVisible` swipes from a screen
+# CENTRE that is on the keyboard, the gesture goes to the IME instead of the
+# ScrollView, and the form barely moves. run-461's hierarchy at the failing step
+# shows exactly that: both name fields and the CONTACT header present, the bio
+# and phone inputs not — the form had crawled a little and stalled.
+#
+# The phone scroll further down already had the right order. This is the same
+# fix, and it is the same lesson as `mapqa/_body_form.yaml`: a drag that starts
+# on something which consumes it moves nothing.
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
 - scrollUntilVisible:
     element:
       id: "edit-profile-bio-input"
@@ -117,7 +131,6 @@ appId: com.hatiwal.app
     timeout: 20000
 # Keyboard away again — Last Name has just been typed, so the IME is back up and
 # Bio is below it.
-- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
 - tapOn:
     id: "edit-profile-bio-input"
 - eraseText
