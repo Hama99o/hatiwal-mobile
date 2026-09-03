@@ -114,7 +114,19 @@ appId: com.hatiwal.app
 # stays strict. This step only needs the submit to have been answered at all.
 # (The alternative is a seed that clears reports for the e2e pair. That is a backend
 # change with its own tests and belongs in its own commit, not in a QA sweep.)
-- assertVisible: "Report submitted.*|.*already reported.*"
+# extendedWaitUntil, not assertVisible: this is a TOAST, and a single check right
+# after the tap races it in BOTH directions — `waitForAnimationToEnd` returns
+# when the screen goes still, which can be before the submit's response has even
+# arrived, and the toast then lives only ~3s once it does. The same correction is
+# already recorded on the toast steps in rate_buyer_after_sale.yaml and
+# multi_quantity_offplatform_sale.yaml.
+#
+# Not an app fault: the run that failed here HAD filed the report — a Report row
+# for User 288 existed in the database at the moment of the failure. The submit
+# worked and only the check was wrong.
+- extendedWaitUntil:
+    visible: "Report submitted.*|.*already reported.*"
+    timeout: 15000
 
 # ── Duplicate report (422) shows friendly error toast ────────────────────────
 # Re-open a fresh conversation and attempt to report the same user again.
