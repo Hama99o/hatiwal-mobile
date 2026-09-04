@@ -140,7 +140,24 @@ export interface Conversation {
   buyer?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
   seller?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
   otherParticipant?: { id: number; name: string; city: string | null; verified?: boolean; avatarUrl?: string | null };
+  /**
+   * A block exists in EITHER direction, so messaging is impossible. Named for
+   * the fact, not for who did it — the API computes it as
+   * `current_user.blocked?(other) || other.blocked?(current_user)`.
+   * Use it to gate sending, never to label an "unblock" control.
+   */
   blockedWithParticipant?: boolean;
+  /**
+   * I am the blocker, so I can undo it. The distinction matters: unblocking is
+   * only MY block to remove (BlocksController#destroy deletes
+   * `current_user.blocked_users` and nothing else), so offering "unblock" off
+   * the OR above produced a button that deleted nothing, answered 204, briefly
+   * re-enabled the composer and then lost it again on the next load (card 312).
+   *
+   * Optional because the field is newer than the clients that read this type;
+   * fall back to `blockedWithParticipant` when it is absent.
+   */
+  blockedByMe?: boolean;
   lastMessageBody?: string | null;
   lastMessageKind?: Message["kind"] | null;
   /** True when the last message was retracted (soft-deleted) by its author. */

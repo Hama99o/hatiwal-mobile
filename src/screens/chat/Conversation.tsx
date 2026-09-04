@@ -198,7 +198,12 @@ export function ConversationScreen() {
   // (Photo / File / Propose meetup / Make an offer).
   const [actionsSheetVisible, setActionsSheetVisible] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(conversationId);
+  // TWO FACTS, NOT ONE. `isBlocked` is the OR of both directions and answers
+  // "can anyone send here?"; `blockedByMe` answers "is this mine to undo?".
+  // They were the same boolean until card 312, which is what let the ShieldBan
+  // offer "unblock" for a block the viewer had not placed and could not remove.
   const [isBlocked, setIsBlocked] = useState(false);
+  const [blockedByMe, setBlockedByMe] = useState(false);
   const [reportSheetVisible, setReportSheetVisible] = useState(false);
   // Safety tips sheet is hoisted here (single instance) rather than owned by
   // MeetupSheet, so opening it never stacks a second native <Modal> on top of
@@ -558,6 +563,10 @@ export function ConversationScreen() {
       // Seed the block state from the server so the ShieldBan toggle reflects
       // reality on first load (otherwise it always shows "not blocked" until tapped).
       setIsBlocked(conv.blockedWithParticipant ?? false);
+      // Falls back to the OR when the API has not been updated yet, which keeps
+      // the old (over-eager) behaviour rather than silently showing no control
+      // at all against an older backend.
+      setBlockedByMe(conv.blockedByMe ?? conv.blockedWithParticipant ?? false);
       // Backend returns newest-first → reverse so FlatList shows oldest→newest
       const ascendingMessages = [...items].reverse();
       setMessages(ascendingMessages);
@@ -1377,6 +1386,7 @@ export function ConversationScreen() {
     mutationFn: (userId: number) => usersAPI.blockUser(userId),
     onSuccess: () => {
       setIsBlocked(true);
+      setBlockedByMe(true);
       toast.success(t("chat.block.blockSuccess"));
     },
     onError: () => toast.error(t("chat.block.blockFailed")),
@@ -1385,7 +1395,13 @@ export function ConversationScreen() {
   const unblockMutation = useMutation({
     mutationFn: (userId: number) => usersAPI.unblockUser(userId),
     onSuccess: () => {
-      setIsBlocked(false);
+      setBlockedByMe(false);
+      // NOT unconditionally false: the other person may still be blocking ME,
+      // and removing my block does not lift theirs. Re-deriving from the server
+      // is what settles it, so the composer is only restored when the thread is
+      // genuinely open again — the flicker-then-vanish in card 312 came from
+      // asserting `false` here and being corrected a moment later.
+      if (currentConversationId) void load(currentConversationId);
       toast.success(t("chat.block.unblockSuccess"));
     },
     onError: () => toast.error(t("chat.block.unblockFailed")),
@@ -1393,7 +1409,7 @@ export function ConversationScreen() {
 
   const handleBlockToggle = useCallback(() => {
     if (!otherParticipant) return;
-    if (isBlocked) {
+    if (blockedByMe) {
       unblockMutation.mutate(otherParticipant.id);
     } else {
       confirmAlert(
@@ -1409,7 +1425,7 @@ export function ConversationScreen() {
         ]
       );
     }
-  }, [otherParticipant, isBlocked, blockMutation, unblockMutation, t]);
+  }, [otherParticipant, blockedByMe, blockMutation, unblockMutation, t]);
 
   // ── Quick-reply chip insert ──────────────────────────────────────────────
   // Appends the selected phrase to the current draft (with a leading space if
@@ -1619,7 +1635,7 @@ export function ConversationScreen() {
             disabled={blockMutation.isPending || unblockMutation.isPending}
             hitSlop={8}
             style={styles.navAction}
-            accessibilityLabel={isBlocked ? t("chat.block.unblockUser") : t("chat.block.blockUser")}
+            accessibilityLabel={blockedByMe ? t("chat.block.unblockUser") : t("chat.block.blockUser")}
             // The report button beside this one has had a testID all along; this
             // one did not, so every flow that blocks from a thread failed on
             // "Element not found: Id matching regex: block-user-button" while the
@@ -1627,7 +1643,7 @@ export function ConversationScreen() {
             // because that label is localized and flipped by isBlocked.
             testID="block-user-button"
           >
-            <ShieldBan size={18} color={isBlocked ? colors.destructive : colors.mutedForeground} />
+            <ShieldBan size={18} color={blockedByMe ? colors.destructive : colors.mutedForeground} />
           </Pressable>
         )}
 
