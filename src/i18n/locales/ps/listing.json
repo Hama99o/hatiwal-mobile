@@ -260,6 +260,8 @@
   "sale": {
     "reservedFor": "د {{name}} لپاره ریزرو شوی",
     "soldTo": "{{name}} ته خرڅ شو",
+    "soldNoBuyer": "خرڅ شوی — پیرودونکی ثبت نه دی شوی",
+    "reservedNoBuyer": "ریزرو شوی — پیرودونکی ثبت نه دی شوی",
     "messageBuyer": "{{name}} ته پیغام ورکړئ",
     "finalPrice": "موافقه شویه بیه",
     "noBuyerRecorded": "د پیرودونکي معلومات نشته",

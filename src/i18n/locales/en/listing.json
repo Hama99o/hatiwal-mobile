@@ -260,6 +260,8 @@
   "sale": {
     "reservedFor": "Reserved for {{name}}",
     "soldTo": "Sold to {{name}}",
+    "soldNoBuyer": "Sold — buyer not recorded",
+    "reservedNoBuyer": "Reserved — buyer not recorded",
     "messageBuyer": "Message {{name}}",
     "finalPrice": "Agreed price",
     "noBuyerRecorded": "Buyer info unavailable",

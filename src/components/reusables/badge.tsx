@@ -75,11 +75,33 @@ export function Badge({
     >
       {Icon ? <Icon size={11} color={textColorMap[variant]} /> : null}
       <Text
+        // A BADGE IS ONE LINE, and the `height: 20` above says so. Without this
+        // the label is free to wrap, and then the second line is CLIPPED by that
+        // fixed height — the owner reported it as "the chips inside are touching
+        // or hiding a little bit" (2026-09-04), seen at 360dp as a stock chip
+        // reading "9 of 15 left" with "left" sliced off.
+        //
+        // It also fixes the cause, not just the symptom. Yoga sizes a flex item
+        // by asking Text "how tall are you at width W?"; a wrappable Text answers
+        // "28px, two lines", so a chip that does NOT fit in the row's remaining
+        // space gets squeezed into it instead of being moved down — which is why
+        // the parent's existing `flexWrap: "wrap"` (MyListingDetail.tsx:335,
+        // SellerListingCard.tsx:262) looked like it was doing nothing. Pinned to
+        // one line, Text reports its true single-line width, the chip no longer
+        // fits, and flexWrap finally moves it to its own full-width line.
+        //
+        // `flexShrink` is the backstop for a label too long even on its own line
+        // — it ellipsizes rather than overflowing the card. That matters most in
+        // ps/fa, whose translations run wider than the English these widths were
+        // eyeballed against, and for the widest label this app builds:
+        // "13 available · 2 held for Ahmad".
+        numberOfLines={1}
         style={{
           color: textColorMap[variant],
           fontSize: 11,
           fontWeight: "700",
           lineHeight: 14,
+          flexShrink: 1,
         }}
       >
         {String(label)}

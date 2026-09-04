@@ -260,6 +260,8 @@
   "sale": {
     "reservedFor": "برای {{name}} رزرو شد",
     "soldTo": "به {{name}} فروخته شد",
+    "soldNoBuyer": "فروخته شده — خریدار ثبت نشده",
+    "reservedNoBuyer": "رزرو شده — خریدار ثبت نشده",
     "messageBuyer": "پیام به {{name}}",
     "finalPrice": "قیمت توافق‌شده",
     "noBuyerRecorded": "معلومات خریدار موجود نیست",

@@ -259,7 +259,26 @@ export function SellerListingCard({ listing, onMutated, viewMode = "list" }: Sel
           {/* In the grid the badge sits over the photo; a 112dp thumbnail cannot
               hold it, so in the row it leads the details instead. Either way the
               seller sees lifecycle state without opening anything. */}
-          <View style={{ flexDirection: rowDirection, alignItems: "center", gap: 8 }}>
+          {/* WRAPS, because three chips do not fit one 360dp card row. This row
+              holds a price, a stock chip and a status chip, and on a small screen
+              the third was pushed straight off the card's right edge and clipped
+              by its overflow — "Active" rendered as "Acti". MyListingDetail's
+              equivalent row (line 335) already wrapped; this one was the copy
+              that did not, which is why the defect showed on the LIST and not on
+              the detail screen. Widest real case: "AFN 800 each" +
+              "9 of 15 left" + "Active", and wider again in ps/fa. */}
+          <View
+            style={{
+              flexDirection: rowDirection,
+              alignItems: "center",
+              flexWrap: "wrap",
+              // columnGap/rowGap rather than `gap: 8`: once this wraps, a uniform
+              // 8dp would open a visible trench between the two chip lines inside
+              // a card whose whole text block is only ~64dp tall.
+              columnGap: 8,
+              rowGap: 4,
+            }}
+          >
             <PriceTag price={listing.price} currency={listing.currency} size="md" perUnit={listing.multiUnit === true} />
             {/* Remaining stock, right beside the price. This screen showed NO count at
                 all, which is why a seller reported "the count did not change when I sell
@@ -342,9 +361,21 @@ export function SellerListingCard({ listing, onMutated, viewMode = "list" }: Sel
               numberOfLines={1}
               testID="seller-card-sale-line"
             >
-              {listing.sale.status === "sold"
-                ? t("listing.sale.soldTo", { name: listing.sale.buyer?.name || t("listing.sale.noBuyerRecorded") })
-                : t("listing.sale.reservedFor", { name: listing.sale.buyer?.name || t("listing.sale.noBuyerRecorded") })}
+              {/* A MISSING BUYER NEEDS ITS OWN SENTENCE, not a sentence poured
+                  into a name slot. Passing `noBuyerRecorded` ("Buyer info
+                  unavailable") as {{name}} produced "Sold to Buyer info
+                  unavailable" on screen (owner report, 2026-09-04), and the RTL
+                  locales came out ungrammatical rather than merely clumsy:
+                  fa read "به معلومات خریدار موجود نیست فروخته شد" and ps
+                  "د پیرودونکي معلومات نشته ته خرڅ شو" — the postposition landed
+                  after a clause instead of a name. */}
+              {listing.sale.buyer?.name
+                ? listing.sale.status === "sold"
+                  ? t("listing.sale.soldTo", { name: listing.sale.buyer.name })
+                  : t("listing.sale.reservedFor", { name: listing.sale.buyer.name })
+                : listing.sale.status === "sold"
+                  ? t("listing.sale.soldNoBuyer")
+                  : t("listing.sale.reservedNoBuyer")}
             </Text>
           )}
 

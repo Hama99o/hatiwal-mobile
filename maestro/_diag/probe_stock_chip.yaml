@@ -1,0 +1,37 @@
+appId: com.hatiwal.app
+---
+# The seller CARD's chip row at 360dp — the row that overflowed.
+#
+# BEFORE (08:12): the stock chip's label wrapped inside a 20dp-tall Badge and
+# "left" was sliced off ("9 of 15 le\nft").
+# AFTER the Badge fix (08:20): the label held one line, but the row still did not
+# wrap, so the third chip was pushed off the card and clipped — "Active" rendered
+# as "Acti".
+#
+# "Steel Thermos Flask 1L - Bulk Batch" is the fixture that reaches the widest
+# branch of StockBadge: 15 units with 6 sold gives "9 of 15 left" rather than the
+# short "N in stock", beside a per-unit price and a status chip.
+- runFlow: ../_helpers/login_seller.yaml
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "my-listings-search-input"
+    timeout: 20000
+- tapOn:
+    id: "my-listings-search-input"
+- inputText: "Steel Thermos"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: ".*Steel Thermos.*"
+    timeout: 20000
+# BOTH chips must be present on the CARD, with the keyboard still up — the card
+# sits above the IME at this height. Maestro reads the view hierarchy, so neither
+# assertion proves nothing is clipped (a clipped node still reports its full
+# string); they prove the labels exist as single nodes, and the screenshot is the
+# real verdict.
+- assertVisible: ".*9 of 15 left.*"
+- assertVisible: "Active"
+- takeScreenshot: stock-chip-after

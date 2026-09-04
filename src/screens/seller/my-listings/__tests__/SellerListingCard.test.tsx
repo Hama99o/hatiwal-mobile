@@ -901,7 +901,25 @@ describe("SellerListingCard — compact sale line (TASK-R418)", () => {
         })
       )
     ).not.toThrow();
-    expect(screen.getByText("listing.sale.reservedFor")).toBeTruthy();
+    // `reservedNoBuyer`, NOT `reservedFor` with a placeholder name. This used to
+    // interpolate "Buyer info unavailable" into {{name}}, which rendered as
+    // "Sold to Buyer info unavailable" and, in fa/ps, put the postposition after
+    // a clause instead of a name. The no-buyer case gets its own sentence now.
+    expect(screen.getByText("listing.sale.reservedNoBuyer")).toBeTruthy();
+    expect(screen.queryByText("listing.sale.reservedFor")).toBeNull();
+  });
+
+  it("uses the no-buyer SOLD sentence when a completed sale has no buyer", () => {
+    // The sold half of the same defect — the string the owner actually saw was
+    // "Sold to Buyer info unavailable", on a sold multi-unit listing.
+    renderCard(
+      makeListing({
+        status: "sold",
+        sale: sale({ status: "sold", buyer: undefined as unknown as ListingSale["buyer"] }),
+      })
+    );
+    expect(screen.getByText("listing.sale.soldNoBuyer")).toBeTruthy();
+    expect(screen.queryByText("listing.sale.soldTo")).toBeNull();
   });
 });
 

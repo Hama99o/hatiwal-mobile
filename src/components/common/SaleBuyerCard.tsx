@@ -69,9 +69,19 @@ export function SaleBuyerCard({ listing }: SaleBuyerCardProps) {
   // disagreed with StatusBadge's documented sold -> secondary/secondaryForeground).
   const accent = getStatusAccent(isSold ? "sold" : "reserved", colors);
 
-  const headline = isSold
-    ? t("listing.sale.soldTo", { name: buyerName })
-    : t("listing.sale.reservedFor", { name: buyerName });
+  // The HEADLINE branches on whether a buyer is actually known, rather than
+  // interpolating the "unavailable" placeholder into {{name}} — that produced
+  // "Sold to Buyer info unavailable", and in fa/ps a sentence where the
+  // postposition attached to a clause instead of a name. `buyerName` above is
+  // still the right fallback for the UserIdentity row below, which needs some
+  // string in its name slot; a HEADLINE needs a whole sentence instead.
+  const headline = sale.buyer?.name
+    ? isSold
+      ? t("listing.sale.soldTo", { name: sale.buyer.name })
+      : t("listing.sale.reservedFor", { name: sale.buyer.name })
+    : isSold
+      ? t("listing.sale.soldNoBuyer")
+      : t("listing.sale.reservedNoBuyer");
 
   const showFinalPrice = sale.finalPrice != null && Number(sale.finalPrice) !== Number(listing.price);
   // SF-M5 — this card shows only the LATEST sale; once a second exists, the
