@@ -45,6 +45,36 @@ appId: com.hatiwal.app
       # whole flow with "Element not found: Connect" whenever the launcher showed
       # a remembered-server row instead of the URL field.
       #
+      # ── DEEP LINK FIRST, because driving the launcher's UI cannot work ──
+      #
+      # `hatiwal://expo-development-client/?url=…` is the dev client's own
+      # entry point: it loads that bundle directly and never renders the
+      # launcher's server picker. One step, no keyboard, no layout dependency.
+      #
+      # WHY IT HAD TO REPLACE THE TAPS. When the launcher does not auto-discover
+      # the server it falls back to a manual URL field, PRE-FILLED with the last
+      # server used — so "10.0.2.2:3008" is on screen as INPUT TEXT and the
+      # "already listed" fast path below matches it, taps the FIELD, and only
+      # raises the keyboard. Connect then sits under the IME on a 360dp screen,
+      # and none of the three ways out work there: the header tap does not
+      # dismiss the Android IME (verified by screenshot, twice), `pressKey:
+      # Enter` does not submit this field (noted below), and `hideKeyboard` is
+      # Back — which on the LAUNCHER closes the activity and exits the app.
+      #
+      # Cost of getting this wrong: 18 flows in run-480 and every single-flow
+      # retry after it, each reported as `Assertion is false: "Development
+      # Build" is not visible`, which reads as an app that will not boot.
+      #
+      # The taps below are KEPT as a fallback for a dev-client build that does
+      # not register the scheme; they are all optional, so when the deep link
+      # works they match nothing.
+      - openLink: "hatiwal://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A3008"
+      - waitForAnimationToEnd
+      - extendedWaitUntil:
+          notVisible: "Development Build"
+          timeout: 120000
+          optional: true
+
       # Fast path: our own server is already listed — just open it.
       - runFlow:
           when:
@@ -93,6 +123,34 @@ appId: com.hatiwal.app
                 text: "Connect"
                 optional: true
             - waitForAnimationToEnd
+      # ── WHICHEVER BRANCH RAN, DISMISS THE IME AND PRESS CONNECT ─────────
+      #
+      # The launcher PRE-FILLS its URL field with the last server it used, so
+      # "10.0.2.2:3008" can be on screen as INPUT TEXT rather than as a
+      # discovered server row. The fast path above then matches that text and
+      # taps the FIELD — which only focuses it and raises the keyboard — while
+      # the `notVisible` branch is skipped for the same reason. Connect is never
+      # pressed and the app never leaves the launcher.
+      #
+      # That is exactly what happened once Metro's container was restarted and
+      # the launcher stopped auto-discovering the server: 18 consecutive failures
+      # in run-480, then again in runs 482 and 483, every one reported as
+      # `Assertion is false: "Development Build" is not visible` — which reads as
+      # an app that will not boot. A screenshot showed the truth: the URL sitting
+      # in the field with the keyboard over the Connect button.
+      #
+      # Both steps are optional and idempotent: if a branch already connected the
+      # launcher is gone and neither matches. The header tap is the IME dismissal
+      # that cannot exit the app — see the long note above on why hideKeyboard
+      # (Back) and pressKey Enter are both unusable here.
+      - tapOn:
+          text: "Development Build"
+          optional: true
+      - waitForAnimationToEnd
+      - tapOn:
+          text: "Connect"
+          optional: true
+      - waitForAnimationToEnd
       # Metro transforms the bundle on first request — this can take a while.
       - extendedWaitUntil:
           notVisible: "Development Build"
