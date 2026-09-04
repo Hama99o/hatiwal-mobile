@@ -105,6 +105,87 @@ apk_is_bundled() {
   grep -q '^bundled: 1' "$PROVENANCE" 2>/dev/null
 }
 
+# ── TAKE TURNS WITH THE OTHER PROJECT'S SUITE ───────────────────────────────
+#
+# Owner instruction, 2026-09-05: "you should work your time, and he should work
+# his … so both should continue." Taken literally: alternate, do not compete.
+#
+# WHY IT MATTERS FOR CORRECTNESS, not just politeness. emulator-5584 runs another
+# project's Maestro suite. With both emulators driving flows at once this host
+# hit load 10.9 of 16 cores with swap FULLY exhausted (1G/1G), and the same chat
+# flows that took 162s alone took 7m33s — long enough that assertions fired
+# before the list had rendered. The end-of-flow screenshot showed the
+# conversation rows present and correct while the flow had already failed on
+# `id: conversation-row-\d+ is visible`. That is a FALSE RED: it would have sent
+# the morning triage hunting an app bug that does not exist.
+#
+# So: if their suite is mid-run, wait for it. Capped, because the owner also said
+# "make sure it didn't stop" — after the cap we proceed anyway and accept the
+# slower run rather than idle the night away.
+foreign_suite_running() {
+  ps -eo args 2>/dev/null | grep -q "maestro --device emulator-5584"
+}
+
+yield_to_foreign_suite() {
+  local waited=0 cap=1800
+  while foreign_suite_running; do
+    [ $waited -eq 0 ] && say "yielding: the other project's suite is running on emulator-5584 — waiting so neither run is slowed into false failures"
+    sleep 60; waited=$((waited + 60))
+    if [ $waited -ge $cap ]; then
+      say "waited ${waited}s for emulator-5584 — proceeding anyway so the night does not stall"
+      return 0
+    fi
+  done
+  [ $waited -gt 0 ] && say "emulator-5584 finished after ${waited}s — taking our turn"
+  return 0
+}
+
+# ── REBUILD ONLY WHEN NATIVE CODE MOVED ─────────────────────────────────────
+#
+# The APK is NOT what carries the JS under test. This dev-client build loads its
+# bundle from Metro at 10.0.2.2:3008 (see open_bundle.yaml), and Metro serves the
+# WORKING TREE — so a JS fix committed at 3am is under test on the next flow with
+# no rebuild at all. `bundled: 1` in the provenance is misleading here: the
+# launcher has no embedded-bundle entry to use it.
+#
+# So a rebuild is only worth its cost — an emulator stop, ~2min of Gradle, a boot
+# — when something NATIVE changed. Rebuilding on every commit instead would stop
+# the device several times a night for nothing, and each stop is a window in
+# which nothing is being tested.
+native_changed() {
+  local from="$1"
+  [ -n "$from" ] || return 1
+  git diff --name-only "$from" HEAD -- \
+      android/ ios/ package.json package-lock.json app.config.ts app.config.js app.json \
+      2>/dev/null | grep -q .
+}
+
+rebuild_if_stale() {
+  local head_sha apk_sha
+  head_sha=$(git rev-parse HEAD 2>/dev/null)
+  apk_sha=$(apk_commit)
+  [ -n "$apk_sha" ] && [ "${head_sha:0:12}" = "${apk_sha:0:12}" ] && return 0
+
+  if ! native_changed "$apk_sha"; then
+    return 0   # JS-only drift: Metro already serves it
+  fi
+
+  # REFUSE to stop anything we cannot prove is ours. Skipping the rebuild costs
+  # only staleness; killing another project's emulator costs them their work.
+  if ! device_is_ours; then
+    say "SKIP REBUILD — $OURS_SERIAL is not $QA_AVD; refusing to stop a device that is not ours"
+    return 0
+  fi
+
+  say "REBUILD (native change) apk=${apk_sha:0:8} head=${head_sha:0:8} — stopping ONLY $OURS_SERIAL; untouched: $(foreign_devices)"
+  ./qa/qa.sh down >>"$LOG" 2>&1
+  sleep 20
+  ./qa/qa.sh build bundled >>"$LOG" 2>&1 || say "REBUILD FAILED — continuing on the previous APK"
+  ./qa/qa.sh up >>"$LOG" 2>&1
+  sleep 10
+  ensure_metro
+}
+
 # ── METRO MUST BE UP AND WARM ───────────────────────────────────────────────
 #
 # The APK says `bundled: 1`, and doctor concludes "Metro not required" — that is
@@ -165,6 +246,21 @@ wait_for_agent() {
   done
 }
 
+# ── DO NOT BARGE IN ON A RUN THAT IS ALREADY GOING ──────────────────────────
+# Two Maestro instances on one emulator interleave taps and produce failures that
+# belong to neither.
+say "waiting for any in-flight pass to finish before taking the device…"
+waited=0
+# OUR device only. A bare "maestro" pattern also matches the other project's
+# suite on emulator-5584, which would idle this driver every time they test —
+# yielding to them is handled deliberately per-pass, not by stalling startup.
+while pgrep -f "maestro --device $OURS_SERIAL" >/dev/null 2>&1; do
+  sleep 30; waited=$((waited + 30))
+  [ $((waited % 600)) -eq 0 ] && say "still waiting for the running pass (${waited}s)"
+done
+say "device free after ${waited}s"
+ensure_metro
+
 cycle=0
 while [ ! -f "$STOP_FILE" ]; do
   cycle=$((cycle + 1))
@@ -179,6 +275,7 @@ while [ ! -f "$STOP_FILE" ]; do
     feature="${pair##*:}"
 
     wait_for_agent
+    yield_to_foreign_suite
     rebuild_if_stale
     ./qa/qa.sh profile "$profile" >>"$LOG" 2>&1
     printf '%s/%s\n' "$profile" "$feature" > "$PASS_MARKER"
