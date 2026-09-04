@@ -13,6 +13,7 @@
  */
 
 import React from "react";
+import { Dimensions } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 
 // Tab bar reads the mode only for the accent color; fix it to buyer.
@@ -115,6 +116,53 @@ describe("FloatingTabBar — tab visibility (guest/mode security)", () => {
     expect(screen.getByLabelText("Saved")).toBeTruthy();
     expect(screen.getByLabelText("Chats")).toBeTruthy();
     expect(screen.getByLabelText("Me")).toBeTruthy();
+  });
+
+  describe("narrow screens", () => {
+    // The defect: at 360dp the primary nav read "Categ…". Five tabs share
+    // ~328dp there, so a tab is ~66dp; minus the pill's 20dp of horizontal
+    // padding and the item's 4dp, the label had ~42dp for text needing ~56dp at
+    // 10.5pt. Dari's "دسته‌بندی‌ها" truncated the same way. The fix trims the
+    // pill's padding and the font ONLY below 380dp, so the 411dp reference
+    // device is untouched.
+    const widthOf = (title: string) => {
+      const node = screen.getByText(title);
+      const flat = [node.props.style].flat(3).filter(Boolean) as Record<string, unknown>[];
+      return flat.reduce<number | undefined>(
+        (acc, layer) => (typeof layer.fontSize === "number" ? layer.fontSize : acc),
+        undefined,
+      );
+    };
+
+    it("shrinks the label font below 380dp", () => {
+      jest.spyOn(Dimensions, "get").mockReturnValue({
+        width: 360, height: 640, scale: 2, fontScale: 1,
+      });
+      render(
+        <FloatingTabBar
+          {...makeProps([
+            { name: "browse", title: "Bazaar", focused: true },
+            { name: "categories", title: "Categories" },
+          ])}
+        />
+      );
+      expect(widthOf("Categories")).toBe(9.5);
+    });
+
+    it("leaves the 411dp reference device alone", () => {
+      jest.spyOn(Dimensions, "get").mockReturnValue({
+        width: 411, height: 914, scale: 2.625, fontScale: 1,
+      });
+      render(
+        <FloatingTabBar
+          {...makeProps([
+            { name: "browse", title: "Bazaar", focused: true },
+            { name: "categories", title: "Categories" },
+          ])}
+        />
+      );
+      expect(widthOf("Categories")).toBe(10.5);
+    });
   });
 
   it("renders a label for every tab (active tab highlighted, Apple-News style)", () => {

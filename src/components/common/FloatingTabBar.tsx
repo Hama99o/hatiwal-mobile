@@ -21,7 +21,7 @@
  */
 
 import React from "react";
-import { View, Pressable, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
@@ -46,6 +46,15 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const { isRtl } = useLocalization();
   const insets = useSafeAreaInsets();
   const isSeller = useModeStore((s) => s.mode) === "seller";
+  // LIVE width, not a module-level snapshot — this has to survive a rotation,
+  // and the map layer already learned that lesson the hard way (MapCanvas's
+  // "sized from a width captured at import time is wrong after any rotation").
+  //
+  // 380 is the threshold because the tabs fit at 411dp (the reference device)
+  // and do not at 360dp, which is the common small Android. See the note on the
+  // pill below for the arithmetic.
+  const { width: windowWidth } = useWindowDimensions();
+  const compact = windowWidth < 380;
 
   // Buyer → blue `primary`; seller → emerald `seller`. The soft alpha tint sits
   // behind the active tab so the current screen + the active role are both clear.
@@ -141,6 +150,19 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
               <View
                 style={[
                   styles.itemInner,
+                  // NARROW SCREENS GET THE PADDING BACK AS LABEL ROOM.
+                  //
+                  // At 360dp five tabs share ~328dp, so a tab is ~66dp; minus
+                  // this pill's 20dp of horizontal padding and the item's 4dp,
+                  // the label is left ~42dp for text that needs ~56dp at
+                  // 10.5pt. The result on device was a primary nav item reading
+                  // "Categ…" — and the same for Dari's "دسته‌بندی‌ها" (Pashto's
+                  // "ډلې" is short enough to be fine either way).
+                  //
+                  // Trimming the pill rather than the text: the pill is only the
+                  // active-tab highlight, so 6dp still reads as a capsule while
+                  // returning 8dp per side to the label.
+                  compact ? { paddingHorizontal: 6 } : null,
                   // Active tab sits in a soft accent-tinted pill.
                   isFocused ? { backgroundColor: accentAlpha } : null,
                 ]}
@@ -164,6 +186,9 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                   numberOfLines={1}
                   style={[
                     styles.label,
+                    // The last point of headroom, and only where it is needed:
+                    // padding alone still left "Categories" ~2dp short.
+                    compact ? { fontSize: 9.5 } : null,
                     { color: contentColor, fontWeight: isFocused ? "700" : "500" },
                   ]}
                 >
