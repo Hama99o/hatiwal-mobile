@@ -105,38 +105,46 @@ apk_is_bundled() {
   grep -q '^bundled: 1' "$PROVENANCE" 2>/dev/null
 }
 
-# ── TAKE TURNS WITH THE OTHER PROJECT'S SUITE ───────────────────────────────
+# ── BACK OFF ON HOST PRESSURE, NOT ON THE OTHER PROJECT'S EXISTENCE ─────────
 #
-# Owner instruction, 2026-09-05: "you should work your time, and he should work
-# his … so both should continue." Taken literally: alternate, do not compete.
+# Owner instruction: "you should work your time, and he should work his … so both
+# should continue." BOTH — so waiting for their suite to end is the wrong reading:
+# it ran continuously for over 90 minutes and this driver produced nothing in that
+# window, which is the "it stopped" the owner explicitly warned against.
 #
-# WHY IT MATTERS FOR CORRECTNESS, not just politeness. emulator-5584 runs another
-# project's Maestro suite. With both emulators driving flows at once this host
-# hit load 10.9 of 16 cores with swap FULLY exhausted (1G/1G), and the same chat
-# flows that took 162s alone took 7m33s — long enough that assertions fired
-# before the list had rendered. The end-of-flow screenshot showed the
-# conversation rows present and correct while the flow had already failed on
-# `id: conversation-row-\d+ is visible`. That is a FALSE RED: it would have sent
-# the morning triage hunting an app bug that does not exist.
+# What actually caused the false failures earlier was RESOURCE EXHAUSTION, not
+# concurrency: load 10.9 of 16 cores with swap fully consumed (1G/1G), where chat
+# flows took 7m33s against 162s solo and assertions fired before the UI rendered.
+# At load ~6 with 11G free the same two suites coexist fine. So the gate measures
+# the thing that actually breaks runs.
 #
-# So: if their suite is mid-run, wait for it. Capped, because the owner also said
-# "make sure it didn't stop" — after the cap we proceed anyway and accept the
-# slower run rather than idle the night away.
-foreign_suite_running() {
-  ps -eo args 2>/dev/null | grep -q "maestro --device emulator-5584"
+# LOAD_CEILING 9 of 16 cores leaves headroom for a flow's own spikes without
+# tipping into swap; MIN_FREE_GB 3 is the point below which this host started
+# swapping, and swap death is what OOM-killed an emulator in an earlier session.
+LOAD_CEILING=9
+MIN_FREE_GB=3
+
+host_is_pressured() {
+  local load free
+  load=$(awk '{print int($1)}' /proc/loadavg)
+  free=$(free -g | awk '/Mem:/{print $7}')
+  [ "${load:-0}" -ge "$LOAD_CEILING" ] || [ "${free:-99}" -le "$MIN_FREE_GB" ]
 }
 
-yield_to_foreign_suite() {
-  local waited=0 cap=1800
-  while foreign_suite_running; do
-    [ $waited -eq 0 ] && say "yielding: the other project's suite is running on emulator-5584 — waiting so neither run is slowed into false failures"
+# Capped at 10 minutes, not 30: a long back-off is indistinguishable from a
+# stalled night, and proceeding under load costs some slow flows whereas waiting
+# costs ALL of them.
+wait_for_headroom() {
+  local waited=0 cap=600
+  while host_is_pressured; do
+    [ $waited -eq 0 ] && say "backing off: load $(cut -d' ' -f1 /proc/loadavg), $(free -g | awk '/Mem:/{print $7}')G free — running now would produce false failures"
     sleep 60; waited=$((waited + 60))
     if [ $waited -ge $cap ]; then
-      say "waited ${waited}s for emulator-5584 — proceeding anyway so the night does not stall"
+      say "host still busy after ${waited}s — proceeding anyway so the night does not stall"
       return 0
     fi
   done
-  [ $waited -gt 0 ] && say "emulator-5584 finished after ${waited}s — taking our turn"
+  [ $waited -gt 0 ] && say "headroom back after ${waited}s"
   return 0
 }
 
@@ -272,7 +280,7 @@ while [ ! -f "$STOP_FILE" ]; do
     feature="${pair##*:}"
 
     wait_for_agent
-    yield_to_foreign_suite
+    wait_for_headroom
     rebuild_if_stale
 
     # ── SEED BEFORE EVERY PASS, not once per cycle ──────────────────────────
