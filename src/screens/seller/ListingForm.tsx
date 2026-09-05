@@ -70,6 +70,7 @@ import { listingsAPI, Listing } from "@/api/listings";
 import { Category } from "@/api/categories";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
+import { useKeyboardHeight } from "@/hooks/useKeyboardVisible";
 
 import { Text } from "@/components/reusables/text";
 import { Input } from "@/components/reusables/input";
@@ -196,6 +197,10 @@ export default function ListingFormScreen() {
   const categoryName = useCategoryName();
   const { isRtl, formatNumber } = useLocalization();
   const colors = useColors();
+  // KB-3: IME height from the keyboard EVENT. Android only — iOS keeps the
+  // KeyboardAvoidingView "padding" behaviour, which works there.
+  const keyboardHeight = useKeyboardHeight();
+  const androidKeyboard = Platform.OS === "android" ? keyboardHeight : 0;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   // TASK-P736 (review fix, visual hierarchy) — `status` is an OPTIONAL hint
@@ -1181,15 +1186,25 @@ export default function ListingFormScreen() {
       style={styles.flex}
       // Platform audit (2026-06-18):
       //   iOS "padding" — lifts the scroll view so keyboard doesn't cover inputs.
-      //   Android "height" — shrinks the KAV height so the ScrollView recalculates
-      //   and the submit bar remains reachable while typing. Was previously `undefined`
-      //   (KAV did nothing on Android, leaving the keyboard overlapping the form).
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      //   Android `undefined` — REVISED 2026-09-05 (KB-3). "height" is UNUSABLE under
+      //   Expo SDK 54 / RN 0.81 edge-to-edge. The 2026-06-18 note here assumed the KAV
+      //   could shrink and the ScrollView would recalculate; it cannot. The IME is an
+      //   inset drawn OVER a full-height window, so the root view's height stays the
+      //   FULL screen height with the keyboard open and "height" computes its offset
+      //   from wrong numbers — measured on device, see src/hooks/useKeyboardVisible.ts.
+      //   On a 360dp phone that means: type into Price, and Category / Condition /
+      //   quantity / location sit behind the keyboard with no lift and no scroll.
+      //   MeetupSheet, FirstMessageSheet, ReviewPromptSheet and ReportSheet were all
+      //   migrated off "height" earlier in this family; this form was missed.
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
         ref={scrollRef}
         style={styles.flex}
-        contentContainerStyle={styles.content}
+        // Bottom padding grows by the keyboard height so a field near the end of the
+          // form can be SCROLLED clear of the IME. Without it the content simply ends
+          // behind the keyboard and there is nowhere to scroll to.
+          contentContainerStyle={[styles.content, { paddingBottom: 40 + androidKeyboard }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
