@@ -8,6 +8,37 @@ appId: com.hatiwal.app
 # flows want — so the extra hop to Login lives here rather than in
 # skip_onboarding.yaml.
 - runFlow: skip_onboarding.yaml
+
+# WAIT FOR THE TAB BAR TO EXIST BEFORE TAPPING A TAB IN IT.
+#
+# Both taps below are `optional: true`, which is right — but it also means that if
+# the tab bar has not mounted yet, BOTH silently do nothing, this helper returns
+# "successfully" from guest Bazaar, and the caller's sign-in guard then finds no
+# form and skips signing in.
+#
+# That is not the same failure as a slow-rendering LOGIN screen (the wait at the
+# end of this file covers that one). The evidence separates them cleanly:
+#   * slow login screen  -> ends ON the login screen, empty form, no banner
+#   * this one           -> ends on guest BAZAAR, tab bar reading
+#                           Bazaar / Categories / Login
+# run-496's offer_send_and_decline is the second kind, and it ran AFTER the
+# end-of-file wait was added — which is how this hole was found. It failed at
+# login.yaml's `assertNotVisible: "Login"`, so the loud failure was already
+# working; it just had nothing to fix the cause.
+#
+# This helper's own header already describes the shape — "a broken form when the
+# truth is the app never left guest Bazaar. create_listing_multi_quantity burned
+# 4m23s that way in cycle 6" — and the retry below was the previous attempt at it.
+# A retry does not help when the tab bar is simply not up yet; a wait does.
+#
+# Optional, because a caller can legitimately arrive already on the login screen
+# (no tab bar at all) — this must give the bar a chance, never demand it.
+- extendedWaitUntil:
+    visible:
+      id: "profile-tab"
+    timeout: 20000
+    optional: true
+
 # The guest tab, by testID. Its label is `auth.login` — translated — so in Pashto
 # or Dari this optional tap silently did nothing, the app never reached the login
 # screen, and every caller then failed at its auth gate. `profile-tab` is the same
