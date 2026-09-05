@@ -24,6 +24,26 @@ appId: com.hatiwal.app
 - assertVisible: "Inbox"
 - assertVisible: "Archived"
 
+# WAIT FOR THE LIST, NOT JUST FOR THE CHROME.
+#
+# The asserts above are the screen's furniture — a title, a tab — and they render
+# before the conversations request comes back. This flow then long-pressed a row
+# that did not exist yet.
+#
+# Proven, not guessed: conversation_archive's hierarchy dump at its failing step
+# (run-496, debug-conversation_archive/.../screen-hierarchy/step-083-*.json) holds
+# `conversations-search-bar`, `conversations-filter-chip-row` and the whole tab
+# bar — and ZERO `conversation-row-*` nodes. Its own end-of-flow screenshot, three
+# minutes later, shows three rows. The testID was never wrong: it is a template
+# literal, `conversation-row-${item.id}` at ConversationRow.tsx:209.
+#
+# chat_older_messages_pagination already does exactly this and passed in the same
+# run — the pattern is the suite's, this flow just was not using it.
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
+
 # Long-press first conversation row to open the action menu. testID is keyed
 # off the conversation's stable database id, not render position — match any
 # id (regex) and take the first (topmost) row.

@@ -1,4 +1,12 @@
-# Pending rig fixes — queued for the next quiet window
+# Pending rig fixes
+
+**Fix 6 and fix 4 are APPLIED (2026-09-05, commit below). Fixes 1, 2, 3, 5 remain queued.**
+
+Applied mid-pass, deliberately, with the boundary recorded so run-496 stays
+attributable: the first **30 offer_send_and_accept** flows of run-496 ran with the OLD helpers;
+everything after that flow ran with the fixes. Both edits target the login
+helper and two flows that had already run, so nothing in flight was rewritten
+underneath itself.
 
 Written 2026-09-05 while the `chat` pass was in flight. **None of these are
 applied yet**, deliberately: `qa/qa.sh` is executing right now (bash re-reads a

@@ -17,6 +17,22 @@ appId: com.hatiwal.app
 - assertVisible:
     id: "tab-inbox"
 
+# WAIT FOR THE LIST, NOT JUST FOR THE CHROME.
+#
+# "Messages" and `tab-inbox` above are the screen's furniture — they render before
+# the conversations request comes back, so long-pressing a row here was a race.
+# This flow won it in run-496; its sibling conversation_archive lost, and that
+# one's hierarchy dump at the failing step proves the shape: search bar, filter
+# chip row and the whole tab bar present, ZERO `conversation-row-*` nodes.
+#
+# chat_older_messages_pagination already waits like this and passed in the same
+# run. The testID was never wrong — it is a template literal,
+# `conversation-row-${item.id}` at ConversationRow.tsx:209.
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
+
 # ── Long-press the first conversation row to open the action menu ──────
 - longPressOn:
     index: 0

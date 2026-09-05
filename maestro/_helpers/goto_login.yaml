@@ -31,10 +31,51 @@ appId: com.hatiwal.app
           id: "profile-tab"
           optional: true
       - waitForAnimationToEnd
-# NO hard wait for the form here. This helper is also called on a WARM, already
+# NO *HARD* WAIT for the form here. This helper is also called on a WARM, already
 # authenticated app, where the login screen correctly never appears — asserting it
 # made listing_actions_sheet fail at 104s on `login-email-input is visible` for an
 # app that was simply already signed in. The retry above is what fixes the silent
-# miss; callers that genuinely need the form (login.yaml) already gate their
-# sign-in on it being on screen, and fail with a clear message if it is not.
+# miss.
+#
+# CORRECTED 2026-09-05: this note used to end "callers that genuinely need the
+# form (login.yaml) already gate their sign-in on it being on screen, and fail
+# with a clear message if it is not." The first half is true; the second is not,
+# and the difference is the whole bug. login.yaml's gate is
+# `when: visible: {id: login-email-input}` — when that is false it SKIPS the
+# sign-in block SILENTLY and returns success. The flow then carries on
+# unauthenticated and dies somewhere unrelated: on `profile-tab`, on
+# `"Switch to .*"`, on a conversation row a guest can never see.
+#
+# Measured in run-495/496, not theorised. The end-of-flow screenshots are
+# unambiguous — the login screen with an EMPTY form and NO error banner, i.e.
+# nothing was ever typed. (A genuine network failure looks different: fields
+# FILLED, red "No connection" banner. See the discriminator table at the end of
+# qa/PENDING_RIG_FIXES.md.) And the backend was never at fault: every
+# POST /api/v1/auth/sign_in that a flow actually submitted returned 200 in
+# ~950ms.
+#
+# login.yaml's own header records this identical failure SHAPE from a different
+# cause — the guard once read the translated placeholder "Email", so it was false
+# in Pashto and Dari and "nine flows burned ~7m30s each on that". That was the
+# locale cause. This is the timing cause, left behind.
 - waitForAnimationToEnd
+
+# So: give the form a CHANCE to appear, without ever demanding it.
+#
+# This is deliberately NOT the hard wait described above. Two guards keep it from
+# repeating that mistake:
+#   1. it only runs when `profile-display-name` (Profile.tsx:684) is absent, so an
+#      authenticated app — which lands on Profile — skips it outright and pays
+#      nothing. That matters at ~250 flows per cycle.
+#   2. `optional: true`, so "no form ever appeared" stays a legitimate outcome
+#      rather than a failure.
+- runFlow:
+    when:
+      notVisible:
+        id: "profile-display-name"
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: "login-email-input"
+          timeout: 15000
+          optional: true
