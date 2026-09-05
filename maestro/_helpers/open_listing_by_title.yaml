@@ -31,6 +31,26 @@ env:
 - inputText: "${TITLE}"
 - waitForAnimationToEnd
 
+# PUT THE KEYBOARD AWAY BEFORE TAPPING ANYTHING.
+#
+# This is the defect that made reserved_buyer and listing_conversations fail in
+# run-490, and the end-of-flow screenshot is unambiguous: the app still on the
+# BROWSE screen, one result card rendered, and the IME covering the lower half of
+# it. The card tap landed on the keyboard, Maestro reported it COMPLETED — a tap
+# on a covered element always is — the app never navigated, and the flow then
+# failed on a detail-screen button that was never going to be there.
+#
+# `hideKeyboard` is Android's Back, which is why this file's siblings warn about
+# it. It is SAFE HERE and nowhere else in this helper: we have just typed, so the
+# IME is definitely up, and the first Back with an IME up closes the IME without
+# reaching the app. flow_lint's HIDEKEY rule encodes exactly that condition —
+# typing before it.
+#
+# The search filters live as you type (the screenshot shows the result while the
+# field still has focus), so dismissing costs no results.
+- hideKeyboard
+- waitForAnimationToEnd
+
 # WAIT ON THE CARD, NOT ON THE TITLE — and this is the whole correctness argument
 # for the helper.
 #

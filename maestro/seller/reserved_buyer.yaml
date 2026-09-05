@@ -51,6 +51,14 @@ appId: com.hatiwal.app
     id: "browse-search-input"
 - inputText: "QA Disposable reserved_buyer"
 - waitForAnimationToEnd
+# DISMISS THE IME BEFORE TAPPING THE RESULT. run-490 failed this flow on a
+# detail-screen button that was never reached: the end-of-flow screenshot shows
+# the app still on BROWSE with the keyboard covering the result card. The tap
+# landed on the keyboard and Maestro reported it COMPLETED, because a tap on a
+# covered element always is. Safe here specifically because we have just typed,
+# so the IME is up and Back closes it without reaching the app (flow_lint HIDEKEY).
+- hideKeyboard
+- waitForAnimationToEnd
 - extendedWaitUntil:
     visible:
       id: "listing-card"

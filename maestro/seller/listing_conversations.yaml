@@ -28,25 +28,32 @@ appId: com.hatiwal.app
 - eraseText
 - inputText: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
+# THE SCROLL CANNOT BE RELIED ON TO DISMISS THE IME, and that is what broke this
+# flow in run-490.
+#
+# The note that used to sit here said no dismissal was needed because
+# `scrollUntilVisible` performs a scroll gesture and a scroll dismisses the
+# keyboard. Both halves are true; the conclusion is not. scrollUntilVisible is a
+# NO-OP when the target is ALREADY VISIBLE — and after a search that filters to
+# one result, it always is. No gesture happens, the IME stays up, and the tap
+# below lands on the keyboard. Maestro reports that tap COMPLETED, because a tap
+# on a covered element always is, so the flow sails on and fails later at
+# "Make an Offer" on a screen it never left. The end-of-flow screenshot shows
+# exactly that: BROWSE, one result card, keyboard over it.
+#
+# The search already filters to a single result, so the scroll earned nothing.
+# Dropped entirely rather than kept as insurance — a scroll that never runs is
+# not insurance, it is the thing that hid the problem.
+#
+# Dismissal is by DRAG, not `hideKeyboard`. The old note is right that Back is
+# dangerous here: if a scroll HAD dismissed the IME, Back reaches the app and
+# exits it — that really happened, and the failure screenshot was the Android app
+# drawer. A margin drag moves the screen whether or not the IME is up and sends no
+# key event at all, so it is correct in both states.
 - extendedWaitUntil:
     visible: "Men Winter Jacket XL Black"
     timeout: 30000
-- scrollUntilVisible:
-    element:
-      text: "Men Winter Jacket XL Black"
-    direction: DOWN
-    # 20s, not 8s: this is a scroll down the whole feed to one seeded title, and 8s ran
-    # out on a loaded device — offer_send_and_accept and offer_send_and_decline both
-    # reported "No visible element found" with the title present in the hierarchy,
-    # which is what a scroll running out of TIME rather than out of list looks like.
-    timeout: 20000
-# NO hideKeyboard here, deliberately. `scrollUntilVisible` above performs a SCROLL
-# gesture, which already dismisses the IME on Android — so by this point there is no
-# keyboard left to consume a Back press, and `hideKeyboard` becomes a plain Back.
-# I added one here anyway while fixing a genuine keyboard problem in
-# create_listing_with_condition (which has no scroll between its inputText and the
-# tap, so it needs one) and it pressed Back out of the app entirely: the failure
-# screenshot is the Android app drawer.
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
 # By CARD testID, not the title. The title is sitting in the search box from the step
 # above, and that input is higher in the hierarchy than the results — so an anchored
 # text match lands on the SEARCH FIELD, the tap does nothing, and the flow carries on
