@@ -265,9 +265,6 @@ cycle=0
 while [ ! -f "$STOP_FILE" ]; do
   cycle=$((cycle + 1))
   say "═══ CYCLE $cycle ═══  ours=$OURS_SERIAL($QA_AVD)  left alone: $(foreign_devices)"
-  # Seed BETWEEN cycles only. Mid-cycle it would reset fixtures under a feature
-  # that is asserting against them.
-  ./qa/qa.sh seed >>"$LOG" 2>&1 && say "seed reset ok"
 
   for pair in "${PAIRS[@]}"; do
     [ -f "$STOP_FILE" ] && { say "stop file seen — exiting cleanly"; exit 0; }
@@ -277,6 +274,32 @@ while [ ! -f "$STOP_FILE" ]; do
     wait_for_agent
     yield_to_foreign_suite
     rebuild_if_stale
+
+    # ── SEED BEFORE EVERY PASS, not once per cycle ──────────────────────────
+    #
+    # Several flows CONSUME their fixture: conversation_delete deletes its
+    # listing, conversation_archive archives its thread, mark_sold_all_units
+    # sells out its 200-unit batch. A per-cycle seed therefore guarantees false
+    # failures the second time a feature runs — and this schedule runs chat at
+    # `small`, then again at `phone`, then again at `large` inside ONE cycle.
+    #
+    # Observed: `conversation_delete` failed on "No visible element found: QA
+    # Disposable conversation_delete" while the fixture for
+    # `conversation_archive` was simply gone from the database. Both look like
+    # app bugs in a triage queue and neither is one.
+    #
+    # Seeding here is safe because passes are sequential and the reset only
+    # touches e2e accounts (`db:seed:reset_e2e`). It must NOT move earlier: the
+    # rig's own guidance is to reset between runs, never underneath one, and the
+    # first restart tonight seeded while a queued pass still held the device —
+    # wiping fixtures out from under flows that were mid-assertion.
+    if ./qa/qa.sh seed >>"$LOG" 2>&1; then
+      :
+    else
+      # LOUD, because a silent seed failure turns the next pass into a wall of
+      # false reds that reads exactly like a broken app.
+      say "SEED FAILED before $profile/$feature — results from this pass are suspect"
+    fi
     ./qa/qa.sh profile "$profile" >>"$LOG" 2>&1
     printf '%s/%s\n' "$profile" "$feature" > "$PASS_MARKER"
 
