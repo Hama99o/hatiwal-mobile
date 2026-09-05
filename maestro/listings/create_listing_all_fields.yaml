@@ -29,6 +29,26 @@ appId: com.hatiwal.app
     id: "listing-form-title-input"
 - inputText: "Samsung Galaxy S22 Used"
 
+# PUT THE KEYBOARD AWAY BETWEEN FIELDS — by DRAG, not Back, and not by scrolling.
+#
+# run-491 failed this flow on `Element not found: listing-form-description-input`
+# six runs in a row. The id is CORRECT — it exists in src/ — and the screenshot of
+# a sibling flow shows why: at 360dp the IME takes ~45% of the window, so the next
+# field sits behind it.
+#
+# Neither obvious remedy works here:
+#   * `hideKeyboard` is Android's Back. This flow's own note further down says it
+#     pops this pushed screen, and the handbook records the same thing.
+#   * scrolling is not enough either — the handbook's rule is that
+#     `scrollUntilVisible` stops at "visible", which is NOT the same as
+#     "tappable". A field can be in the hierarchy, reported visible, and still be
+#     under the keyboard, and Maestro will report the tap COMPLETED while the
+#     touch lands on the keys.
+#
+# The margin drag dismisses the IME with no key event at all, so there is nothing
+# to reach the app and nothing to pop the screen.
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
+
 # Description
 # The INPUT by testID — see the note on the title field.
 - tapOn:
