@@ -11,17 +11,19 @@ appId: com.hatiwal.app
 # A KNOWN listing owned by seller@hatiwal.test, because Step 2 declines the offer
 # and only the RECIPIENT can decline. Index 0 is whatever the feed ranks first; on
 # another seller's listing the test seller never sees the conversation.
-- scrollUntilVisible:
-    element:
-      text: "Men Winter Jacket XL Black"
-    direction: DOWN
-    centerElement: true
-    # 20s, not 8s: this is a scroll down the whole feed to one seeded title, and 8s ran
-    # out on a loaded device — offer_send_and_accept and offer_send_and_decline both
-    # reported "No visible element found" with the title present in the hierarchy,
-    # which is what a scroll running out of TIME rather than out of list looks like.
-    timeout: 20000
-- tapOn: "Men Winter Jacket XL Black"
+# SEARCH, DO NOT SCROLL. Reaching a seeded title by scrolling the feed is a
+# race against the fixture count, and run-489 lost it here: "No visible element
+# found: Men Winter Jacket XL Black" while the listing was present and active in
+# the database and the feed rendered normally. The timeout had already been
+# raised 8s -> 20s for this same symptom; with 98 seeded listings the next bump
+# would only postpone it. Search is O(1) in feed size.
+#
+# The helper taps the RESULT CARD by testID, never by the title — once typed,
+# the title is also the search input's own text.
+- runFlow:
+    file: ../_helpers/open_listing_by_title.yaml
+    env:
+      TITLE: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
 # NO "Contact Seller" tap first. "Make an Offer" is a SIBLING of "Contact
 # Seller" directly on ListingDetail.tsx — tapping Contact Seller navigates
