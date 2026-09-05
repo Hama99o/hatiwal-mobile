@@ -1,5 +1,24 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
+# ⚠️  DO NOT RUN THIS ON THIS MACHINE WHILE THE edu EMULATOR IS UP.
+#
+# MEASURED 2026-09-05, not guessed. Three emulators do not fit:
+#     2 emulators  ->  8.4G available, flows average 156s (= the quiet baseline)
+#     3 emulators  ->  1.6G available, swap 2.0G/2.0G EXHAUSTED, and
+#                      emulator-5580 (session 1, the PRIMARY tester) went
+#                      `offline` — killed. Session 1 had to reboot it mid-pass.
+# Stopping this session returned the host to 6.8G available and session 1
+# recovered on its own ("emulator recovered — continuing").
+#
+# So on THIS host the real limit is TWO emulators, and one of those belongs to
+# another project (qa_edu_phone on 5584) which the owner asked to keep running.
+# That leaves exactly one for Hatiwal. A second Hatiwal tester is only viable
+# when 5584 is down, or on a machine with more RAM.
+#
+# The script below is correct and can be reused — the constraint is the box, not
+# the code. Check `free -g` first: it needs ~4G headroom AFTER booting.
+# ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # SECOND QA TESTER — runs beside qa/overnight.sh, on its own emulator.
 #
 # Owner request 2026-09-05: "launch two QA tester so they can do it faster".
