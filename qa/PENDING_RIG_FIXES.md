@@ -1,6 +1,6 @@
 # Pending rig fixes
 
-**Fix 6 and fix 4 are APPLIED (2026-09-05, commit below). Fixes 1, 2, 3, 5 remain queued.**
+**The identity-switch fix (login.yaml + login_seller.yaml, from run-497 flow 11) is APPLIED. Fix 6 and fix 4 are APPLIED (2026-09-05, commit below). Fixes 1, 2, 3, 5 remain queued.**
 
 Applied mid-pass, deliberately, with the boundary recorded so run-496 stays
 attributable: the first **30 offer_send_and_accept** flows of run-496 ran with the OLD helpers;
@@ -199,7 +199,21 @@ Observed: `meetup_respond` and `conversations_role_filter` are the first kind;
 
 ---
 
-## OPEN CANDIDATE (not filed): listing detail shows a bare "no entry" pill and NO action row, on an ACTIVE listing
+## RESOLVED — NOT AN APP BUG: the bare "no entry" pill was the OWNER notice
+
+**Closed 2026-09-05.** The app was viewing its OWN listing, so `ownListingNotice`
+is correct behaviour. Proof, in one step: the API reports that listing as
+`status=active`, `negotiable=true`, `seller="Omar Noori"`, and
+`listingAvailability.ts` makes the branches exhaustive — a non-owner buyer on a
+live listing MUST get the Message/Offer row, and the generic "unavailable"
+fallback is unreachable for a live status. The only branch that can draw a lone
+`Ban` pill with no action row is `isOwnListing`. So the flow was running as the
+owner, which is the identity-switch bug now fixed in login.yaml — no product
+defect, no card filed. The guest hypothesis below was wrong.
+
+Original write-up kept for the reasoning trail:
+
+### (superseded) OPEN CANDIDATE: listing detail shows a bare "no entry" pill and NO action row, on an ACTIVE listing
 
 **Status: unattributed. Do NOT file this as an app bug until the device check
 below is done.** Three plausible causes have already been ruled out, which is

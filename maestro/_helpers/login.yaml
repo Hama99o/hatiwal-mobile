@@ -88,6 +88,39 @@ env:
 # is why it kept being read as a stale selector.
 #
 # "Omar Noori" is seller@hatiwal.test; the buyer is "Ahmad Karimi" (db/seeds/e2e.rb).
+
+# THE WHOLE CHECK BELOW IS GATED ON `profile-tab` BEING VISIBLE — SO WAIT FOR IT.
+#
+# Without this the gate is evaluated the instant the app comes up, and a tab bar
+# that has not mounted yet reads as "no profile-tab", which skips the ENTIRE
+# wrong-account check. The flow then runs as whoever the previous flow left
+# signed in — and the comment above spells out exactly what that looks like:
+# "it reports as a missing button, which is why it kept being read as a stale
+# selector."
+#
+# That is measured, not theoretical. run-497's seller pass and run-496's chat
+# pass produced a whole family of it: reserved_buyer, listing_conversations and
+# reserve_after_accept each log in via THIS helper as the buyer, open a
+# seller-owned listing, and fail on "Make an Offer" not existing. The API says
+# those listings are status=active, negotiable=true, seller="Omar Noori", and
+# listingAvailability.ts says a non-owner buyer MUST get the Message/Offer row —
+# so the only branch that can render instead is `isOwnListing`, i.e. the app was
+# the OWNER. reserve_after_accept's screenshot is that branch: a lone Ban pill
+# where the action row belongs.
+#
+# Same bug shape as the two already fixed in goto_login.yaml this session (a
+# `when:` clause racing a screen that is still mounting), and the same shape of
+# fix: give the thing a chance to exist before deciding it does not.
+#
+# `optional: true` — a signed-OUT app sits on the login screen with no tab bar at
+# all, and that is a legitimate state the sign-in block below handles. This must
+# give the bar a chance, never demand it.
+- extendedWaitUntil:
+    visible:
+      id: "profile-tab"
+    timeout: 20000
+    optional: true
+
 - runFlow:
     when:
       visible:

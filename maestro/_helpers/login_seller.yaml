@@ -74,6 +74,30 @@ env:
 
 # ── Wrong account? Sign out first. ──────────────────────────────────────────
 # "Ahmad Karimi" is buyer@hatiwal.test; the seller is "Omar Noori" (db/seeds/e2e.rb).
+
+# WAIT FOR THE TAB BAR — the check below is gated on it being visible.
+#
+# The mirror of the fix applied to login.yaml this session. Evaluated cold, a tab
+# bar that has not mounted yet reads as "no profile-tab" and the ENTIRE
+# wrong-account check is skipped, so the flow runs as whoever the previous flow
+# left signed in. In login.yaml's direction that produced a family of "Make an
+# Offer does not exist" failures where the buyer was actually the listing's owner
+# (run-496 / run-497); this direction fails the same way with the roles swapped.
+#
+# Note the OTHER cause this file already documents at its head: `profile-tab` can
+# also be invisible because it is COVERED — "the FILTERS sheet from an earlier
+# flow was still covering the tab bar (screenshotted)". A wait does not help that
+# one, and it does not need to: the `launchApp: stopApp: true` above already
+# starts a fresh process. The wait is only for the mount race.
+#
+# `optional: true` — a signed-OUT app has no tab bar at all, and the sign-in
+# block below is what handles that.
+- extendedWaitUntil:
+    visible:
+      id: "profile-tab"
+    timeout: 20000
+    optional: true
+
 - runFlow:
     when:
       visible:
