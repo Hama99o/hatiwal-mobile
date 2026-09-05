@@ -10,17 +10,18 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**64 of 258 flows passing** · 193 still need attention
+**69 of 258 flows passing** · 188 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 64 | green, and no backend error underneath |
-| FAIL-assert | 83 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 69 | green, and no backend error underneath |
+| SILENT | 1 | **assertions passed while the API errored** — the app told the user nothing |
+| FAIL-assert | 80 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-crash | 1 | the app crashed (FATAL EXCEPTION in logcat) |
-| FAIL-? | 20 | failed, cause unclear — read the log |
+| FAIL-? | 18 | failed, cause unclear — read the log |
 | (rig) | 1 | rig broke mid-run — result meaningless, re-run |
-| UNTESTED | 88 | never executed |
+| UNTESTED | 87 | never executed |
 
 ### Definition of done
 
@@ -128,7 +129,7 @@ bug class a user reports as "nothing happened".
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
-5/30 passing · 24 open
+4/30 passing · 25 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -140,7 +141,7 @@ bug class a user reports as "nothing happened".
 | `change_language_english` | FAIL-assert | s2/run-156 | 455 | flow — toothless restart wait; helper+nav fixed cb68fa4 | [Failed] change_language_english (7m 17s) (Assertion is false: "Me" is visible) |
 | `change_language_pashto` | FAIL-assert | s2/run-156 | 453 |  | [Failed] change_language_pashto (7m 15s) (Assertion is false: "Me" is visible) |
 | `contact_visibility` | PASS | run-466 | 210 | flow | 2026-09-03: the failing assertion named the copied number but the cause was navigation. hideKeyboard is a Back press and popped Edit Profile to Profile; the next THREE commands reported COMPLETED against a stale hierarchy, so the assertNotVisible before it passed for the WRONG reason. Replaced with pressKey:Enter, which turned out to SUBMIT the form — both removed. Green at 360dp once the keypress was gone; now unstable again from my keyboardDismissMode=on-drag reflowing the form mid-scroll (board #313). NOT an app bug. |
-| `edit_profile` | PASS | run-441 | 200 | stale — toast assertion already replaced by durable name check |  |
+| `edit_profile` | FAIL-assert | s2/run-156 | 460 | stale — toast assertion already replaced by durable name check | [Failed] edit_profile (7m 21s) (Assertion is false: "Me" is visible) |
 | `edit_profile_all_fields` | FAIL-? ⟳stale | run-467 | 170 | flow+app | 2026-09-03: FOUR causes, two of them app bugs. (1) asserted text 'Save' on a button reading 'Save Changes'; (2) centerElement on the sticky save button; (3) APP — the sticky Save sat BEHIND the keyboard (d8edc9e), verified visually at 360dp; (4) APP — the keyboard swallowed the tap on the NEXT field, so 'UpdatedLast' landed in the First Name box (e36a6b4, keyboardDismissMode=on-drag). Also a pre-existing viewport assumption on the final derived-city assertion (no scroll). MY OWN regressions along the way: a pressKey:Enter that SUBMITTED the form (608ddda, reverted) and a scrollUntilVisible that is a no-op when the target is already 'visible'. Flow-side stability still open — board #313. |
 | `edit_profile_avatar` | FAIL-assert | run-472 | 145 |  | [Failed] edit_profile_avatar (2m 16s) (Assertion is false: "Switch to .*" is visible) |
 | `edit_profile_bio_too_long` | FAIL-assert | s2/run-156 | 464 | flow — 520 chars do type; error renders above viewport; now scrolls UP cb68fa4 | [Failed] edit_profile_bio_too_long (7m 20s) (Assertion is false: "Me" is visible) |
@@ -165,59 +166,59 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state — mark-sold one-tap from the thread, place/release a hold with the buyer you're already talking to
 
-16/49 passing · 22 open
+25/49 passing · 23 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `archive_conversation` | PASS | s2/run-285 | 159 |  |  |
-| `block_from_conversation` | FAIL-assert | run-436 | 204 | app? | 2026-09-03 UNRESOLVED — board #312. Fails at its last check: after unblocking, the composer does not return within 15s. Instrumented run proved the BLOCK works (blocks 0->1 with the POST) and that the UI stays fully blocked. Ruled out: leaked fixture, the blocked-copy bug (502fc36 verified working), the !otherParticipant early return, and an unanswered confirm dialog. Leading candidate: the shield is disabled while a mutation isPending, so the tap is swallowed while Maestro reports COMPLETED. |
-| `chat_older_messages_pagination` | PASS | s2/run-285 | 144 |  |  |
-| `composer_draft` | PASS | s2/run-285 | 169 | flow | Tapped a title that was sitting in the search box, so the tap hit the input. |
-| `conversation_archive` | PASS | s2/run-285 | 158 |  |  |
-| `conversation_delete` | FAIL-? ⟳stale | s2/run-285 | 150 | flow | 2026-09-02: soft-DELETED its own fixture. Targeted the shared Xiaomi thread as "safe because SOLD"; the delete stamped buyer_deleted_at (09-01 17:54) so not_deleted_for hid it from the buyer for good and every later run failed. App was correct. Now owns "QA Disposable conversation_delete"; the seed clears delete/archive flags on disposable convos each run. |
-| `conversation_read_status` | PASS | s2/run-285 | 165 | fixture | mark_unread needs an INBOUND message; index 0 was QA debris with none. Pinned via helper. |
-| `conversations-search` | FAIL-assert ⟳stale | s2/run-285 | 173 |  | [Failed] Conversations list search — narrow, no-match empty state + Clear search, composes with Unread filter  |
-| `conversations_empty_state` | PASS | s2/run-285 | 138 |  |  |
-| `conversations_filter` | PASS ⟳stale | s2/run-285 | 178 | flow | 2026-09-02: asserted the "All caught up!" EMPTY state on the Unread tab, which 3 sibling flows mutate and the seed gives exactly ONE unread. Order-dependent. Now branches with runFlow: when (native in 2.7.0). |
-| `conversations_list` | PASS | s2/run-285 | 148 |  |  |
-| `conversations_role_filter` | FAIL-assert ⟳stale | s2/run-285 | 194 | flow | 2026-09-02: asserted 2 listings on screen at once; they sit at positions 10-11 of a 24-thread seller inbox (the seed adds 6 badge threads at 18-22). Positive asserts now scroll. NB the assertNotVisible ones are weak by nature — filtered-out and below-the-fold are indistinguishable to Maestro; documented in the flow. |
-| `dead_end_notice_absent_when_active` | PASS | s2/run-285 | 197 | flow — helper ran before the inbox appeared; the helper now waits (fixes 3 callers) |  |
-| `dead_end_notice_sold` | FAIL-assert | s2/run-285 | 164 | new flow (added 27-Aug) — conversation-row not visible; awaiting first triage pass | [Failed] dead_end_notice_sold (2m 33s) (Assertion is false: id: conversation-row-\d+ is visible) |
-| `delete_message` | PASS ⟳stale | s2/run-285 | 169 | app+flow | 2026-09-02: failed on "Delete message" with the message sent and visible. Cause was the APP — the bubble sat behind the composer bar so the long press hit the bar and no sheet opened. Fixed structurally in 61ad571 (list ends at the bar). Flow also now waits for the sheet's animation. |
-| `jump_to_latest` | UNTESTED | — |  | new | 2026-09-02: the jump-to-latest pill — absent at the bottom, appears after scrolling up, returns to the newest message, then retires itself. |
-| `lifecycle_from_chat` | PASS ⟳stale | s2/run-285 | 314 | flow — toast race ("Listing marked as sold"); load-bearing wait, see audit_toasts note |  |
-| `mark_read` | PASS | s2/run-285 | 174 | fixture | Same unrepliable-thread trap. |
-| `mark_read_end_to_end` | FAIL-? ⟳stale | s2/run-285 | 199 | flow | 2026-09-02: asserted an unread badge exists then tapped conversation-row index 0 — the newest thread, not necessarily the unread one. The divider only exists inside a thread with unread messages. Now taps unread-badge, which bubbles to its own row. |
-| `meetup_decline` | FAIL-assert | s2/run-285 | 179 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
-| `meetup_full_cycle` | FAIL-assert ⟳stale | s2/run-285 | 210 | flow — both legs used index 0 (arbitrary listing, arbitrary thread); pinned to the seeded phone-case thread | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
-| `meetup_proposal` | FAIL-assert ⟳stale | s2/run-285 | 196 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
-| `meetup_proposed_bubble_ui` | FAIL-assert ⟳stale | s2/run-285 | 192 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
-| `meetup_respond` | FAIL-assert | s2/run-285 | 194 | flow | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
-| `meetup_validation` | FAIL-assert ⟳stale | s2/run-285 | 188 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
-| `message_long_text` | PASS | s2/run-285 | 214 | flow | Asserted 27 chars of the 366-char message it sent. Now spans both ends. |
-| `offer_counter_flow` | FAIL-? | s2/run-285 | 160 | flow — inherited a pushed Create Listing form from the previous flow; login helpers now cold-restart | Tapped seller-only "Counter" as the buyer who sent the offer. Now switches to the seller. |
-| `offer_in_existing_thread` | PASS | s2/run-285 | 168 | flow — tap raced the composer Modal; 7 sites now wait for the sheet's contents |  |
-| `offer_quantity_round_trip` | FAIL-? | s2/run-285 | 158 |  | [Failed] offer_quantity_round_trip (2m 28s) (No visible element found: "Wool Socks Bulk Pack - 12 Pairs") |
-| `offer_send_and_accept` | FAIL-? | s2/run-285 | 160 | flow — scroll not centred and 8s timeout; centred + 20s | [Failed] offer_send_and_accept (2m 30s) (No visible element found: "Men Winter Jacket XL Black") |
-| `offer_send_and_decline` | FAIL-assert | s2/run-142 | 196 | flow | Same wrong-session bug for "Decline"; also asserted "Pending", which no offer bubble renders. |
-| `place_and_release_hold` | UNTESTED | — |  |  |  |
-| `quick_replies` | FAIL-assert | s2/run-142 | 197 | rig — emulator died at 0% CPU idle (external load), not a flow verdict | Exception in thread "Thread-5" java.io.IOException: Command failed (shell,v2,raw:pm list packages --user 0 dev |
-| `report_participant` | FAIL-assert | run-478 | 202 | fixture | RIG-004: Report is unique per reporter+target and nothing cleared them. First submit now tolerant. |
-| `reserve_after_accept` | FAIL-assert | s2/run-142 | 188 |  | [Failed] reserve_after_accept (2m 43s) (Element not found: Text matching regex: Make an Offer) |
-| `reserve_after_buyer_accepts_counter` | FAIL-assert | s2/run-142 | 202 | flow | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
-| `reserved_sold_dead_end_notice` | FAIL-assert | s2/run-142 | 568 | flow | Five logins could not fit FLOW_TIMEOUT=600; split into three flows, only this one mutates. |
-| `scroll_to_latest` | UNTESTED | — |  | app | 2026-09-03 SOLVED: the meetup sheet was drawn UNDER the Android keyboard, so Time and Propose were unreachable when the sheet opened with the IME already up — the ordinary path, which no meetup flow covered. Fixed d46c896; PASS at BOTH widths after the rebuild. Its earlier 600s timeout at 360dp was a SYMPTOM of the same bug (dead waits), not a ceiling that needed raising. |
-| `send_message` | PASS | s2/run-142 | 189 |  |  |
-| `send_message_double_tap` | PASS | s2/run-142 | 209 |  |  |
-| `send_message_empty` | PASS | s2/run-142 | 202 |  |  |
-| `send_message_offline` | FAIL-assert ⚠1 | s2/run-142 | 245 | flow | hideKeyboard is Back on Android and popped the conversation; "Send" was on another screen. |
-| `send_message_whitespace` | PASS | s2/run-142 | 203 |  |  |
-| `send_multiple_messages` | PASS | s2/run-142 | 237 |  |  |
-| `send_photo` | FAIL-assert | s2/run-142 | 221 | flow | Asserted "common.close" — a t() KEY copied from a Jest test. |
-| `start_conversation` | FAIL-? | s2/run-142 | 6 | fixture | RIG-005: Wool Blanket had drifted to sold, so it left the browsable feed. Re-seeded. |
-| `start_conversation_and_reply` | FAIL-? | s2/run-142 | 5 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
-| `unread_badge_survives_navigation` | UNTESTED | — |  |  |  |
-| `view_other_profile_from_conversation` | FAIL-? | s2/run-142 | 7 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
+| `archive_conversation` | PASS | run-489 | 226 |  |  |
+| `block_from_conversation` | FAIL-assert | run-489 | 177 | app-bug | 2026-09-05 CAUSE FOUND, board BLK-2. The block SUCCEEDS server-side (INSERT+COMMIT in the API log; endpoint returns 204 by hand) while the app shows "Could not block user. Try again." 401s in the same window and devise rotates the token per request; http.ts clears the session on any 401. Load-sensitive: passed at 147s on a quiet host. Supersedes the older #312 note. |
+| `chat_older_messages_pagination` | SILENT ⚠1 | run-489 | 201 |  | AxiosError  |
+| `composer_draft` | PASS | run-489 | 195 | flow | Tapped a title that was sitting in the search box, so the tap hit the input. |
+| `conversation_archive` | PASS | run-489 | 179 |  |  |
+| `conversation_delete` | FAIL-? | run-489 | 169 | flow | 2026-09-02: soft-DELETED its own fixture. Targeted the shared Xiaomi thread as "safe because SOLD"; the delete stamped buyer_deleted_at (09-01 17:54) so not_deleted_for hid it from the buyer for good and every later run failed. App was correct. Now owns "QA Disposable conversation_delete"; the seed clears delete/archive flags on disposable convos each run. |
+| `conversation_read_status` | PASS | run-489 | 188 | fixture | mark_unread needs an INBOUND message; index 0 was QA debris with none. Pinned via helper. |
+| `conversations-search` | PASS | run-489 | 223 |  |  |
+| `conversations_empty_state` | FAIL-assert | run-489 | 180 |  | [Failed] conversations_empty_state (2m 41s) (Element not found: Id matching regex: register-email-input) |
+| `conversations_filter` | PASS | run-489 | 221 | flow | 2026-09-02: asserted the "All caught up!" EMPTY state on the Unread tab, which 3 sibling flows mutate and the seed gives exactly ONE unread. Order-dependent. Now branches with runFlow: when (native in 2.7.0). |
+| `conversations_list` | PASS | run-489 | 165 |  |  |
+| `conversations_role_filter` | FAIL-assert | run-489 | 227 | flow | 2026-09-02: asserted 2 listings on screen at once; they sit at positions 10-11 of a 24-thread seller inbox (the seed adds 6 badge threads at 18-22). Positive asserts now scroll. NB the assertNotVisible ones are weak by nature — filtered-out and below-the-fold are indistinguishable to Maestro; documented in the flow. |
+| `dead_end_notice_absent_when_active` | FAIL-assert | run-489 | 192 | flow — helper ran before the inbox appeared; the helper now waits (fixes 3 callers) | [Failed] dead_end_notice_absent_when_active (2m 53s) (Assertion is false: "Switch to .*" is visible) |
+| `dead_end_notice_sold` | FAIL-assert | run-489 | 195 | new flow (added 27-Aug) — conversation-row not visible; awaiting first triage pass | [Failed] dead_end_notice_sold (2m 55s) (Assertion is false: "Switch to .*" is visible) |
+| `delete_message` | FAIL-assert | run-489 | 192 | app+flow | 2026-09-02: failed on "Delete message" with the message sent and visible. Cause was the APP — the bubble sat behind the composer bar so the long press hit the bar and no sheet opened. Fixed structurally in 61ad571 (list ends at the bar). Flow also now waits for the sheet's animation. |
+| `jump_to_latest` | FAIL-assert | run-489 | 177 | flow-bug fixed | 2026-09-05 "Switch to .*" was OFF-SCREEN on a scrolled profile, not missing — the app was signed in and healthy in the screenshot. ensure_buyer_mode now scrolls UP to recover it (UP matters: a previous fix used a DOWN scroll and carried the toggle further away). |
+| `lifecycle_from_chat` | PASS | run-489 | 316 | flow — toast race ("Listing marked as sold"); load-bearing wait, see audit_toasts note |  |
+| `mark_read` | PASS | run-489 | 215 | fixture | Same unrepliable-thread trap. |
+| `mark_read_end_to_end` | FAIL-assert | run-489 | 201 | flow | 2026-09-02: asserted an unread badge exists then tapped conversation-row index 0 — the newest thread, not necessarily the unread one. The divider only exists inside a thread with unread messages. Now taps unread-badge, which bubbles to its own row. |
+| `meetup_decline` | PASS | run-489 | 376 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
+| `meetup_full_cycle` | FAIL-assert | run-489 | 177 | flow — both legs used index 0 (arbitrary listing, arbitrary thread); pinned to the seeded phone-case thread | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
+| `meetup_proposal` | PASS | run-489 | 229 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
+| `meetup_proposed_bubble_ui` | PASS | run-489 | 256 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
+| `meetup_respond` | FAIL-assert | run-489 | 381 | flow | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
+| `meetup_validation` | PASS | run-489 | 231 | flow | CONFIRMED reload artefact (`Destroying ReactContext` in logcat). UI-043 withdrawn. Inline-error coverage (place/time required) kept intact. 1bdaa76 919aeb2 |
+| `message_long_text` | PASS | run-489 | 258 | flow | Asserted 27 chars of the 366-char message it sent. Now spans both ends. |
+| `offer_counter_flow` | FAIL-? ⟳stale | run-489 | 204 | flow-bug fixed | 2026-09-05 scroll-to-title; searches inline and taps the card BY testID — after typing, the title is also the search input's own text, so a text tap can hit the field (flow_lint SEARCHTAP). |
+| `offer_in_existing_thread` | FAIL-assert | run-489 | 219 | flow — tap raced the composer Modal; 7 sites now wait for the sheet's contents | [Failed] offer_in_existing_thread (3m 24s) (Assertion is false: "Send Offer" is visible) |
+| `offer_quantity_round_trip` | FAIL-? | run-489 | 203 |  | [Failed] offer_quantity_round_trip (3m 8s) (No visible element found: "Wool Socks Bulk Pack - 12 Pairs") |
+| `offer_send_and_accept` | FAIL-? | run-489 | 206 | flow-bug fixed | 2026-09-05 scroll-to-title lost its race with a 98-listing feed (timeout had already gone 8s->20s). Now uses _helpers/open_listing_by_title.yaml, the same search sequence that keeps browse/listing_detail_held_units_transparency green. |
+| `offer_send_and_decline` | FAIL-? | run-489 | 199 | flow-bug fixed | 2026-09-05 same scroll-to-title cause as offer_send_and_accept; wired to _helpers/open_listing_by_title.yaml. |
+| `place_and_release_hold` | PASS | run-489 | 183 |  |  |
+| `quick_replies` | FAIL-assert | run-489 | 225 | rig — emulator died at 0% CPU idle (external load), not a flow verdict | Exception in thread "Thread-5" java.io.IOException: Command failed (shell,v2,raw:pm list packages --user 0 dev |
+| `report_participant` | FAIL-assert | run-489 | 262 | flow-bug | 2026-09-05 NOT an app bug. A Report is unique per reporter+target and one from an e2e account existed at 02:48, created AFTER that pass's 02:42 seed, so the flow's FIRST submit already took the duplicate path — and ReportSheet offers "Block this user?" from inside onSuccess, making everything after it unreachable (RIG-004). reset_e2e clears reports BETWEEN passes, which cannot help one created DURING one. FIX: delete its own report row first, or target a user no other flow reports. |
+| `reserve_after_accept` | FAIL-? | run-489 | 201 | flow-bug fixed | 2026-09-05 same scroll-to-title cause; wired to _helpers/open_listing_by_title.yaml. |
+| `reserve_after_buyer_accepts_counter` | FAIL-assert | run-489 | 213 | flow | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
+| `reserved_sold_dead_end_notice` | PASS | run-489 | 376 | flow | Five logins could not fit FLOW_TIMEOUT=600; split into three flows, only this one mutates. |
+| `scroll_to_latest` | PASS | run-489 | 404 | app | 2026-09-03 SOLVED: the meetup sheet was drawn UNDER the Android keyboard, so Time and Propose were unreachable when the sheet opened with the IME already up — the ordinary path, which no meetup flow covered. Fixed d46c896; PASS at BOTH widths after the rebuild. Its earlier 600s timeout at 360dp was a SYMPTOM of the same bug (dead waits), not a ceiling that needed raising. |
+| `send_message` | PASS | run-489 | 201 |  |  |
+| `send_message_double_tap` | PASS | run-489 | 204 |  |  |
+| `send_message_empty` | PASS | run-489 | 197 |  |  |
+| `send_message_offline` | FAIL-assert | run-489 | 222 | flow | hideKeyboard is Back on Android and popped the conversation; "Send" was on another screen. |
+| `send_message_whitespace` | PASS | run-489 | 207 |  |  |
+| `send_multiple_messages` | PASS | run-489 | 241 |  |  |
+| `send_photo` | PASS | run-489 | 229 | flow | Asserted "common.close" — a t() KEY copied from a Jest test. |
+| `start_conversation` | FAIL-? | run-489 | 195 | fixture | RIG-005: Wool Blanket had drifted to sold, so it left the browsable feed. Re-seeded. |
+| `start_conversation_and_reply` | PASS | run-489 | 219 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
+| `unread_badge_survives_navigation` | FAIL-assert | run-489 | 163 |  | [Failed] unread_badge_survives_navigation (2m 27s) (Element not found: Id matching regex: conversation-action- |
+| `view_other_profile_from_conversation` | PASS | run-489 | 199 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
 
 ## `seller` — One-tap Mark sold from any live listing (never reserve-first) + the Sales ledger (edit/void a row, reviewed-sale refusal, outside-buyer rows, undo-after-sold)
 
@@ -285,7 +286,7 @@ bug class a user reports as "nothing happened".
 | `block_prevents_message` | UNTESTED | — |  |  |  |
 | `block_user` | UNTESTED | — |  |  |  |
 | `block_user_hides_listings` | UNTESTED | — |  |  |  |
-| `report_listing` | FAIL-assert | run-454 | 220 | fixture | RIG-004; also gained the duplicate-rule assertion for listings, which nothing covered. |
+| `report_listing` | UNTESTED | — |  | fixture | RIG-004; also gained the duplicate-rule assertion for listings, which nothing covered. |
 | `report_listing_no_reason` | UNTESTED | — |  |  |  |
 | `report_user` | UNTESTED | — |  | fixture | RIG-004 part 2: retargeted to ahmad (36) so it cannot collide intra-cycle. |
 | `report_user_from_profile` | UNTESTED | — |  | fixture | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
@@ -323,9 +324,9 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `pending_reviews_nudge` | FAIL-assert | run-452 | 184 |  | [Failed] pending_reviews_nudge (2m 51s) (Assertion is false: id: seller-listing-card is visible) |
+| `pending_reviews_nudge` | UNTESTED | — |  |  |  |
 | `profile_reviews_empty_state` | UNTESTED | — |  |  |  |
-| `rate_buyer_after_sale` | FAIL-? | run-455 | 535 |  | [Failed] rate_buyer_after_sale (7m 58s) |
+| `rate_buyer_after_sale` | UNTESTED | — |  |  |  |
 
 ## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
 
