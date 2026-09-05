@@ -196,3 +196,68 @@ they need different fixes:
 
 Observed: `meetup_respond` and `conversations_role_filter` are the first kind;
 `report_user` is the second. Do not fix one by reaching for the other's cause.
+
+---
+
+## OPEN CANDIDATE (not filed): listing detail shows a bare "no entry" pill and NO action row, on an ACTIVE listing
+
+**Status: unattributed. Do NOT file this as an app bug until the device check
+below is done.** Three plausible causes have already been ruled out, which is
+exactly why the remaining one must be confirmed rather than assumed.
+
+**What was seen.** run-496 `reserve_after_accept`, end-of-flow screenshot: the
+listing detail for "Men Winter Jacket XL Black" (AFN 3,500) renders correctly —
+gallery 1/3, price, title, "Clothes & Fashion", Kandahar, 8 views, Description —
+and the bottom action area is a single wide pill containing a centred `Ban`
+(no-entry) glyph and **no readable label**. The flow then failed on
+`Element not found: Text matching regex: Make an Offer`.
+
+The step-093 hierarchy dump agrees: the detail screen's text is all present
+(title, price, category, location, views, "Description") and there is **no action
+button of any kind** — nothing matching offer / contact / message / cta.
+
+`ListingDetail.tsx` has three branches that can render `Ban` + a label:
+`isOwnListing` -> `listing.detail.ownListingNotice`, the generic fallback ->
+`listing.detail.unavailableNotice`, and a sold listing routes to
+`ListingUnavailableActions` instead (which draws no Ban pill).
+
+**Ruled out, each by checking:**
+
+| Hypothesis | Checked | Result |
+|---|---|---|
+| Missing translation, so the label renders empty | all 3 locales | present — en "This is your listing" / "This item is no longer available", plus ps and fa |
+| Listing is sold, i.e. a legitimate dead end | API, live | `status=active`, `qty=1`, `sold=None` — and a sold listing would render `ListingUnavailableActions`, not a Ban pill |
+| Buyer had blocked the seller earlier in the pass (block_from_conversation, block_user and report_user_then_block all ran before it) | `GET /api/v1/blocks` as the buyer | `{"users":[]}` — no block |
+| Flow ran as the listing's OWNER, making the notice correct | flow order | `login.yaml` (buyer) is line 74, the offer tap line 95, `login_seller.yaml` only line 108 — so the buyer should have been active, and steps 026-046 (sign-out -> onboarding -> login form -> notification permission) show a real fresh sign-in happened |
+
+**The remaining hypothesis** is that the app was a GUEST at that moment — a
+guest viewing an active listing would fall through to the generic branch. If so
+there are two things to fix, one in each layer: the auth path (why a guest), and
+the copy — telling a guest "This item is no longer available" about a live
+listing is misleading, where "Log in to message the seller" is the useful
+message.
+
+**To confirm, on an idle device:** open an active listing not owned by you, as
+(a) the buyer and (b) a guest, and read the bottom action area each time. If the
+guest sees the Ban pill on a live listing, that is a real product defect and
+should get a FlowApp card; if the buyer sees a proper Message/Offer row, the flow
+failure is purely the auth path and belongs to fix 6's family.
+
+---
+
+## Confirmed working: `_helpers/open_listing_by_title.yaml`
+
+Worth recording, because it de-risks the pending rollout. It is ALREADY wired
+into three chat flows (`offer_send_and_accept`, `offer_send_and_decline`,
+`reserve_after_accept`) and it **does its job**: `reserve_after_accept`'s
+screenshot is the correct listing detail for the requested title. Those three
+flows fail AFTER the helper, on the action row above — not on reaching the
+listing.
+
+Contrast `reserve_after_buyer_accepts_counter`, which does its own search and
+tap: its screenshot is the browse screen with the query typed, one result card
+rendered, and **the IME covering the lower half of that card** — the exact defect
+the helper's `dismiss_keyboard_by_drag` + wait-on-`listing-card` +
+tap-by-testID sequence exists to prevent.
+
+So the rollout is safe to proceed with: the pattern is proven on this very run.
