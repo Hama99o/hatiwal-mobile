@@ -57,7 +57,19 @@ appId: com.hatiwal.app
 # `hideKeyboard` is Android's Back and is unsafe in general, but SAFE at exactly
 # this point: we have just typed, so the IME is definitely up and Back closes it
 # without reaching the app. flow_lint's HIDEKEY rule encodes that precondition.
-- hideKeyboard
+# CORRECTED 2026-09-05: this was `hideKeyboard`, and that EXITED THE APP.
+# hideKeyboard is Android's Back. It is safe only while the IME is definitely up,
+# and after `inputText` on this screen it often is NOT — the field can lose focus
+# on its own. Back then reaches the app and pops out of it. The proof is
+# browse/listing_detail_held_units_transparency's failure screenshot from
+# run-494: the ANDROID HOME SCREEN, on a flow that had passed twice before this
+# change. The repo already carried that warning and I rolled the mistake into ten
+# flows anyway.
+#
+# The margin drag sends NO key event, so it cannot reach the app whether or not
+# the IME is up. That is the whole reason _helpers/dismiss_keyboard_by_drag.yaml
+# exists.
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
 - waitForAnimationToEnd
 - waitForAnimationToEnd
 - extendedWaitUntil:
