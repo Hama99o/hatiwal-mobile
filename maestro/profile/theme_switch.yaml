@@ -46,6 +46,24 @@ appId: com.hatiwal.app
 # is what that race looks like when a flow needs to stay on the profile screen.
 - runFlow: ../_helpers/await_theme_restart.yaml
 - waitForAnimationToEnd
+# SCROLL TO IT — it is below the fold on a 360dp Profile screen, not missing.
+# Verified present: Profile.tsx:872 renders testID={`theme-option-${value}`}, so
+# `theme-option-light` is a real id — run-493 reported it "not found" because the
+# Appearance row sits under the avatar and mode blocks.
+# Guarded, so an already-visible target costs nothing. DOWN, because the Profile
+# screen puts this section under the avatar / mode / appearance blocks.
+- runFlow:
+    when:
+      notVisible:
+        id: "theme-option-light"
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: "theme-option-light"
+          direction: DOWN
+          timeout: 20000
+          centerElement: false
+      - waitForAnimationToEnd
 # Switch to Light theme
 - tapOn:
     id: "theme-option-light"

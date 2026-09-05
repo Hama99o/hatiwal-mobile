@@ -7,6 +7,23 @@ appId: com.hatiwal.app
     id: "profile-tab"
 - waitForAnimationToEnd
 
+# SCROLL TO IT — it is below the fold on a 360dp Profile screen, not missing.
+# Verified present: profile.json:58 has "activeListings": "Active Listings".
+# The stats block renders below the fold, so the assertion fired against a screen
+# that had it, just not on view.
+# Guarded, so an already-visible target costs nothing. DOWN, because the Profile
+# screen puts this section under the avatar / mode / appearance blocks.
+- runFlow:
+    when:
+      notVisible: "Active Listings"
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: "Active Listings"
+          direction: DOWN
+          timeout: 20000
+          centerElement: false
+      - waitForAnimationToEnd
 # Stats section visible
 # The stat label is "Active Listings", not a bare "Listings".
 - assertVisible: "Active Listings"
