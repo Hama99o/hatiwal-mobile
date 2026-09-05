@@ -1,0 +1,62 @@
+appId: com.hatiwal.app
+env:
+  # Overridden per caller: `runFlow: {file: ../_helpers/open_listing_by_title.yaml,
+  # env: {TITLE: "Wool Socks Bulk Pack - 12 Pairs"}}`. A default keeps the helper
+  # runnable on its own while debugging.
+  TITLE: "Men Winter Jacket XL Black"
+---
+# Open a listing from the BAZAAR FEED by its exact title, without scrolling.
+#
+# WHY THIS EXISTS. Flows used to reach a seeded listing with
+# `scrollUntilVisible: {text: <title>, direction: DOWN}`, which is a race against
+# the size of the feed — and it is a race the suite keeps losing as fixtures
+# accumulate. In run-489, SIX flows failed with "No visible element found:
+# <title>" while every one of those listings was present and active in the
+# database and the feed rendered normally in the screenshots:
+#
+#   offer_counter_flow, offer_send_and_accept, offer_send_and_decline
+#       -> "Men Winter Jacket XL Black"   (id 1947, active)
+#   reserve_after_accept                -> "Traditional Kandahari Carpet 3x5"
+#   reserve_after_buyer_accepts_counter -> "Wool Socks Bulk Pack - 12 Pairs"
+#
+# offer_counter_flow's timeout had ALREADY been raised from 8s to 20s for this
+# exact symptom, with a note explaining that a scroll running out of TIME looks
+# identical to a missing element. The seed now leaves 98 listings, so every added
+# fixture lengthens the scroll and the next bump only postpones the failure.
+# Search is O(1) in feed size.
+#
+# PRECONDITION: the caller is already on the Bazaar feed (browse tab).
+- tapOn:
+    id: "browse-search-input"
+- inputText: "${TITLE}"
+- waitForAnimationToEnd
+
+# WAIT ON THE CARD, NOT ON THE TITLE — and this is the whole correctness argument
+# for the helper.
+#
+# The title is now also the SEARCH INPUT's own text, so `visible: "${TITLE}"`
+# would be satisfied by the field the caller just typed into, EVEN IF THE SEARCH
+# RETURNED NOTHING. That turns an empty result set into a green wait followed by a
+# tap on whatever card happens to be there — a false pass, which is worse than the
+# failure it replaces. Waiting for `listing-card` proves a RESULT exists.
+#
+# (This is the same trap that swallowed 18 flows tonight on the dev-client
+# launcher, whose URL field was pre-filled with the very string the flow was
+# looking for. flow_lint's SEARCHTAP rule encodes it.)
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+
+# index 0 is the match because the query is the EXACT FULL TITLE, so the result
+# list is this one listing. By testID rather than by text, for the reason above.
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
+
+# Prove we opened the intended listing before the caller acts on it. On the DETAIL
+# screen there is no search field, so the title can only be the listing's own —
+# and a wrong listing fails HERE rather than three steps later on a button that
+# merely looks missing.
+- assertVisible: "${TITLE}"
