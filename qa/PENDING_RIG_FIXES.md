@@ -108,3 +108,67 @@ causes worth fixing:
 Combined with fix 3 above, the aim is that a pass which loses Metro or its login
 reports `env_fail` and says so, instead of contributing rows that read like
 product defects.
+
+---
+
+## 6. `_helpers/login.yaml` skips signing in when the login screen is slow — THE BIG ONE
+
+This is the single highest-value fix in this file. It plausibly accounts for a
+large share of failures across **every** feature, not just chat.
+
+**The mechanism**, read straight off the helper:
+
+```yaml
+- runFlow: goto_login.yaml          # ends in waitForAnimationToEnd — does NOT
+                                    # wait for the login form to exist
+- runFlow:
+    when:
+      visible:
+        id: "login-email-input"     # evaluated IMMEDIATELY
+    commands:                       # ...so if the form has not rendered yet,
+      - tapOn: {id: "login-email-input"}   # this whole block is SKIPPED,
+      ...                                  # silently, and the flow carries on
+                                           # UNAUTHENTICATED
+- extendedWaitUntil:
+    visible: {id: "profile-tab"}    # then waits 60s for a signed-in tab bar
+    timeout: 60000                  # that can never appear for a guest
+```
+
+**The file already documents this exact failure shape from a different cause** —
+the guard used to read the translated placeholder "Email", so it was false in
+Pashto and Dari, "the whole sign-in block was skipped, and the gate below then
+waited 60s for a tab bar that could never appear. Nine flows burned ~7m30s each
+on that." The locale cause was fixed. The TIMING cause was not.
+
+**Evidence it is happening now**, from run-495/496:
+- `Completed 401` on `/users/me`, `/categories`, `/listings`,
+  `/users/saved_searches` — the app making authenticated calls while genuinely
+  logged out.
+- Screenshots ending on the guest tab bar (Bazaar / Categories / Login) or an
+  empty login form with no error banner.
+- Flows failing on `profile-tab is visible`, on `"Switch to .*"` (login.yaml's
+  own post-login mode check), and on row/data assertions that require a session.
+
+**Ruled out, by checking rather than assuming:**
+- *Bad credentials / the inputText truncation.* Every recent `POST
+  /api/v1/auth/sign_in` in the API log returns **200 OK in ~950ms**. When the
+  flow actually submits, it works.
+- *A dead or unreachable API.* Same 200s, and the log's most recent entries are
+  live conversations requests completing in ~257ms.
+- *`goto_login.yaml` tapping the wrong tab for a guest.* It taps `profile-tab`,
+  and that IS the guest Login tab — `app/(main)/(tabs)/_layout.tsx` swaps only
+  the title (`isAuthenticated ? sidebar.profile : auth.login`) and keeps the
+  testID. This helper is correct.
+
+**Fix:** make the login screen's arrival a precondition instead of a guess —
+`extendedWaitUntil: {visible: {id: "login-email-input"}, timeout: 20000}` at the
+end of `goto_login.yaml` (optional there, since a warm authenticated app never
+shows the form), and in `login.yaml` make the skip explicit: if
+`login-email-input` is absent, assert that a signed-in handle IS present, so a
+flow fails at the point of the real problem rather than 60 seconds later on a
+tab bar.
+
+> Note on log timestamps, which cost one wrong conclusion here: Rails logs in
+> **UTC** (`+0000`) while the file mtime is local (+2). "Last sign_in at 13:31"
+> next to an mtime of 15:35 looks like a two-hour-dead log and is in fact the
+> same minute. Convert before concluding the API went quiet.
