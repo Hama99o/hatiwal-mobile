@@ -25,9 +25,48 @@ env:
 # fixture lengthens the scroll and the next bump only postpones the failure.
 # Search is O(1) in feed size.
 #
-# PRECONDITION: the caller is already on the Bazaar feed (browse tab).
+# NO PRECONDITION — this helper puts itself on the Bazaar feed.
+#
+# It used to say "PRECONDITION: the caller is already on the Bazaar feed", and
+# that footgun bit immediately on rollout: listing_detail_save_unsave calls this
+# straight after `login.yaml`, and login.yaml ENDS ON THE PROFILE SCREEN — its
+# last steps are `ensure_english` and `ensure_buyer_mode`, both of which work the
+# profile's mode toggle. So `browse-search-input` was not on screen at all.
+#
+# That also corrects this file's own diagnosis of those flows. Their
+# "No visible element found: <listing title>" was blamed on the feed growing too
+# long for `scrollUntilVisible` — true for some callers, but for the
+# straight-after-login ones the flow was simply standing on the WRONG SCREEN, and
+# no scroll timeout would ever have fixed it.
+#
+# A helper that silently requires a screen its callers do not guarantee is worse
+# than one that costs a tap, so: reach the feed, then insist on the search input
+# rather than failing three steps later on a card that was never going to render.
+- runFlow:
+    when:
+      notVisible:
+        id: "browse-search-input"
+    commands:
+      - tapOn:
+          id: "browse-tab"
+          optional: true
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "browse-search-input"
+    timeout: 20000
+
 - tapOn:
     id: "browse-search-input"
+# LET THE FIELD TAKE FOCUS BEFORE TYPING.
+#
+# `tapOn` returns before the input is focused, and `inputText` then types into
+# nothing for a few characters. Measured in run-495: two flows lost ~11 LEADING
+# characters each — "Honda CG 125 Motorbike 2021" arrived as "5 Motorbike 2021",
+# and "Sony 55 inch 4K Smart TV" as "nch 4K Smart TV". Both still matched by
+# luck, because the search does partial matching and the tail was distinctive;
+# a shorter title would have matched the wrong listing or nothing at all.
+- waitForAnimationToEnd
 - inputText: "${TITLE}"
 - waitForAnimationToEnd
 

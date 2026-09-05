@@ -14,13 +14,21 @@ appId: com.hatiwal.app
 # A NAMED seeded listing, not "the first card": it does not depend on feed
 # ordering, it is active, and it belongs to seller@hatiwal.test — so the buyer
 # running this flow sees the contact affordance rather than their own listing.
-- scrollUntilVisible:
-    element:
-      text: "Wool Blanket Handmade King Size"
-    direction: DOWN
-    centerElement: true
-    timeout: 15000
-- tapOn: "Wool Blanket Handmade King Size"
+# Search instead of scrolling. This pair — scrollUntilVisible on the title, then
+# tapOn that same title — is the pattern that produced "No visible element
+# found: Wool Blanket Handmade King Size" while the listing was active in the database and
+# the feed rendered fine. The seed now leaves ~98 listings, so every fixture
+# added lengthens the scroll and a raised timeout only postpones it; search is
+# O(1) in feed size. The helper also dismisses the IME before tapping and taps
+# the RESULT CARD by testID, because once typed the title is also the search
+# input's own text.
+#
+# Proven in run-496, not assumed: the helper was already wired into
+# reserve_after_accept and its screenshot is the correct listing detail.
+- runFlow:
+    file: ../_helpers/open_listing_by_title.yaml
+    env:
+      TITLE: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 # The assertion IS the check — "we are on the listing detail". The tap that used
 # to precede it opened the FirstMessageSheet, whose own title is "Message Seller"
@@ -66,13 +74,21 @@ appId: com.hatiwal.app
 # button exists — it is a listing-detail control and the flow had just returned to
 # Bazaar via the tab. The heart it wants is on the detail screen, so the listing
 # has to be opened again, the same way it was the first time.
-- scrollUntilVisible:
-    element:
-      text: "Wool Blanket Handmade King Size"
-    direction: DOWN
-    centerElement: true
-    timeout: 15000
-- tapOn: "Wool Blanket Handmade King Size"
+# Search instead of scrolling. This pair — scrollUntilVisible on the title, then
+# tapOn that same title — is the pattern that produced "No visible element
+# found: Wool Blanket Handmade King Size" while the listing was active in the database and
+# the feed rendered fine. The seed now leaves ~98 listings, so every fixture
+# added lengthens the scroll and a raised timeout only postpones it; search is
+# O(1) in feed size. The helper also dismisses the IME before tapping and taps
+# the RESULT CARD by testID, because once typed the title is also the search
+# input's own text.
+#
+# Proven in run-496, not assumed: the helper was already wired into
+# reserve_after_accept and its screenshot is the correct listing detail.
+- runFlow:
+    file: ../_helpers/open_listing_by_title.yaml
+    env:
+      TITLE: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 - assertVisible: "Contact Seller"
 # Unsave it

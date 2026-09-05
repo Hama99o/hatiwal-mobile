@@ -63,13 +63,21 @@ appId: com.hatiwal.app
     visible:
       text: "AFN.*"
     timeout: 40000
-- scrollUntilVisible:
-    element:
-      text: "Phone Case Silicone Clear - Wholesale"
-    direction: DOWN
-    centerElement: true
-    timeout: 30000
-- tapOn: "Phone Case Silicone Clear - Wholesale"
+# Search instead of scrolling. This pair — scrollUntilVisible on the title, then
+# tapOn that same title — is the pattern that produced "No visible element
+# found: Phone Case Silicone Clear - Wholesale" while the listing was active in the database and
+# the feed rendered fine. The seed now leaves ~98 listings, so every fixture
+# added lengthens the scroll and a raised timeout only postpones it; search is
+# O(1) in feed size. The helper also dismisses the IME before tapping and taps
+# the RESULT CARD by testID, because once typed the title is also the search
+# input's own text.
+#
+# Proven in run-496, not assumed: the helper was already wired into
+# reserve_after_accept and its screenshot is the correct listing detail.
+- runFlow:
+    file: ../_helpers/open_listing_by_title.yaml
+    env:
+      TITLE: "Phone Case Silicone Clear - Wholesale"
 - waitForAnimationToEnd
 - assertVisible: "Phone Case Silicone Clear - Wholesale"
 
@@ -116,13 +124,21 @@ appId: com.hatiwal.app
 
 - tapOn: "Back"
 - waitForAnimationToEnd
-- scrollUntilVisible:
-    element:
-      text: "Wool Blanket Handmade King Size"
-    direction: DOWN
-    centerElement: true
-    timeout: 30000
-- tapOn: "Wool Blanket Handmade King Size"
+# Search instead of scrolling. This pair — scrollUntilVisible on the title, then
+# tapOn that same title — is the pattern that produced "No visible element
+# found: Wool Blanket Handmade King Size" while the listing was active in the database and
+# the feed rendered fine. The seed now leaves ~98 listings, so every fixture
+# added lengthens the scroll and a raised timeout only postpones it; search is
+# O(1) in feed size. The helper also dismisses the IME before tapping and taps
+# the RESULT CARD by testID, because once typed the title is also the search
+# input's own text.
+#
+# Proven in run-496, not assumed: the helper was already wired into
+# reserve_after_accept and its screenshot is the correct listing detail.
+- runFlow:
+    file: ../_helpers/open_listing_by_title.yaml
+    env:
+      TITLE: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 - assertVisible: "Wool Blanket Handmade King Size"
 - assertNotVisible:
