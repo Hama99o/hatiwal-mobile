@@ -21,17 +21,36 @@ appId: com.hatiwal.app
 # other offer flows (accept answers "Not now", which does not reserve it). The
 # Lenovo is not reusable: reserved_sold_dead_end_notice marks it reserved then sold,
 # which closes offers on it.
-- scrollUntilVisible:
-    element:
-      text: "Men Winter Jacket XL Black"
-    direction: DOWN
-    centerElement: true
-    # 20s, not 8s: this is a scroll down the whole feed to one seeded title, and 8s ran
-    # out on a loaded device — offer_send_and_accept and offer_send_and_decline both
-    # reported "No visible element found" with the title present in the hierarchy,
-    # which is what a scroll running out of TIME rather than out of list looks like.
+# SEARCH, DO NOT SCROLL. Scrolling the whole feed to one title is a race against
+# the fixture count, and it is a race this flow keeps losing: the timeout here was
+# already raised from 8s to 20s for exactly this symptom, and in run-489 the 20s
+# ran out too — "No visible element found: Men Winter Jacket XL Black" while the
+# listing was present and active in the database (id 1947, owner
+# seller@hatiwal.test) and the feed was rendering normally in the screenshot.
+#
+# The seed now leaves 98 listings, so every added fixture makes this scroll longer
+# and the next timeout bump is only a delay before the same failure. Searching is
+# O(1) in feed size and is already the pattern two other flows use
+# (report_user_then_block, listing_detail_held_units_transparency), so this is not
+# a new idea — just applying the one that does not rot.
+#
+# The flow's subject is the offer counter cycle, not feed scrolling, so nothing of
+# value is lost.
+- tapOn:
+    id: "browse-search-input"
+- inputText: "Men Winter Jacket XL Black"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Men Winter Jacket XL Black"
     timeout: 20000
-- tapOn: "Men Winter Jacket XL Black"
+# BY testID, not by the title. The title is now also the SEARCH INPUT's own text,
+# so a text tap can land on the field instead of the result — which is precisely
+# how the dev-launcher URL field swallowed 18 flows earlier tonight. index 0 is
+# safe here because the query is the exact full title, so the result list is this
+# listing.
+- tapOn:
+    id: "listing-card"
+    index: 0
 - waitForAnimationToEnd
 # NO "Contact Seller" tap first. "Make an Offer" is a SIBLING of "Contact
 # Seller" directly on ListingDetail.tsx — tapping Contact Seller navigates
@@ -77,6 +96,8 @@ appId: com.hatiwal.app
 - tapOn:
     id: "chat-tab"
 - waitForAnimationToEnd
+# lint: searchtap-ok — this is the CONVERSATIONS list, not the search results. No
+# search field is on screen here, so the title can only match the thread's row.
 - tapOn: "Men Winter Jacket XL Black"
 - waitForAnimationToEnd
 # Prove we are in the right thread before acting on it, so a wrong thread fails here
