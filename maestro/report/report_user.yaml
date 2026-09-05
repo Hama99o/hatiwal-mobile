@@ -28,6 +28,26 @@ appId: com.hatiwal.app
 - tapOn:
     id: "browse-search-input"
 - inputText: "Samsung Galaxy S24 Ultra"
+# PUT THE KEYBOARD AWAY BEFORE TAPPING THE RESULT.
+#
+# Typing into a search box leaves the IME covering the lower half of the screen,
+# and a result card that lands behind it cannot be tapped — Maestro reports the
+# tap COMPLETED regardless, because a tap on a covered element always is, so the
+# flow continues on a screen it never left and fails later somewhere unrelated.
+# That is exactly how seller/reserved_buyer failed in run-490: end-of-flow
+# screenshot showing BROWSE, one result card, keyboard over it, and the reported
+# failure three steps later on "Make an Offer".
+#
+# Latent rather than certain — browse/listing_detail_held_units_transparency
+# carries this same shape and passes, because its card happens to land above the
+# IME. At 360dp the keyboard takes roughly half the window, so the margin is thin
+# and the failure is a matter of which result row you get.
+#
+# `hideKeyboard` is Android's Back and is unsafe in general, but SAFE at exactly
+# this point: we have just typed, so the IME is definitely up and Back closes it
+# without reaching the app. flow_lint's HIDEKEY rule encodes that precondition.
+- hideKeyboard
+- waitForAnimationToEnd
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible:
