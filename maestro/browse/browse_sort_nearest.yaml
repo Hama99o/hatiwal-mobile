@@ -44,6 +44,24 @@ appId: com.hatiwal.app
           when:
             notVisible: "Nearest first"
           commands:
+            # TWO y VALUES PER ITERATION, because one fixed percentage cannot
+            # serve both viewports — and that is exactly how this failed.
+            #
+            # run-494 at 360dp: the Sort chip row sits at y ~= 944/1280 = 74%, so a
+            # swipe at 68% lands on the "Sort" HEADING above it. The scroller never
+            # moves, "Nearest first" never arrives, and the flow reports it not
+            # visible while it is rendered and merely off-screen to the right — the
+            # screenshot still shows "Newest first / Oldest first / Price: low to...".
+            # 68% was measured on the 411dp sheet, where it is correct.
+            #
+            # scrollUntilVisible direction: RIGHT is NOT the fix: it swipes at the
+            # screen CENTRE (~50%), which on this sheet is over the price inputs.
+            # listings/listing_status_counts and my_listings_filter_tabs both record
+            # that same finding.
+            - swipe:
+                start: "85%, 74%"
+                end: "20%, 74%"
+            - waitForAnimationToEnd
             - swipe:
                 start: "85%, 68%"
                 end: "20%, 68%"
