@@ -87,6 +87,38 @@ appId: com.hatiwal.app
 # scrollUntilVisible only ever scrolls DOWN, it scrolled the toggle AWAY and then
 # could not find it: "No visible element found: id: mode-toggle-button", in flows
 # where a bare assertVisible on the same id passed.
+# ── AND IF THE PROFILE IS SCROLLED, BRING THE TOGGLE BACK ──────────────────
+#
+# The toggle sits just under the avatar, so it is on screen on a FRESH profile —
+# but not on a profile someone has already scrolled. run-489 caught exactly that:
+# delete_message, jump_to_latest and dead_end_notice_sold all failed on
+# `"Switch to .*" is visible` while the screenshot showed a perfectly healthy,
+# signed-in profile scrolled down to Appearance / Language / Privacy, in seller
+# mode. Re-tapping the profile tab does not reset the scroll — this app draws its
+# own FloatingTabBar rather than using the navigator's scroll-to-top behaviour.
+#
+# direction: UP, which is the whole point. The note above records an earlier fix
+# that used a bare scrollUntilVisible and made things WORSE, because that only
+# ever scrolls DOWN and so carried the toggle further away. Scrolling UP can only
+# move toward the top of the list, where the toggle lives.
+#
+# Optional and conditional: on the common path the toggle is already visible, the
+# `when` guard fails, and this costs nothing.
+- runFlow:
+    when:
+      notVisible: "Switch to .*"
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: "Switch to .*"
+          direction: UP
+          timeout: 20000
+          # Not centered: the toggle sits near the very top, and asking Maestro to
+          # centre an element that cannot be centred is how CENTERELEM failures
+          # happen at 360dp.
+          centerElement: false
+      - waitForAnimationToEnd
+
 - extendedWaitUntil:
     visible: "Switch to .*"
     timeout: 30000
