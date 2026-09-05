@@ -2367,3 +2367,34 @@ after the script had exited.
 immediately. A queued script blocked this way sits in `do_wait` (bash waiting on
 its `flock` child) with an empty output file — check the lock before assuming a
 flow is merely slow.
+
+## "Does this testID exist?" — how to ask it without getting a false NO
+
+Deciding flow-bug vs app-bug usually starts with grepping the app for the failing
+selector. That check produced a WRONG answer twice in one night, and both times
+the wrong answer pointed at a large, destructive fix.
+
+**1. testIDs are often TEMPLATE LITERALS.**
+
+    grep -rn 'testID="language-option-en"' src/     # finds nothing
+    src/screens/shared/Profile.tsx:967  testID={`language-option-${code}`}
+
+18 flows use `language-option-*`. On the strength of the first grep they looked
+like stale selectors, and "fixing" them would have rewritten 18 working flows to
+use an id that does not exist. Always search BOTH forms:
+
+    grep -rnE 'testID=(\{`|")<prefix>' src/ --include=*.tsx
+
+**2. Never grep a selector copied out of a TRUNCATED log line.**
+
+`sold_quantity_reconciliation` reported `Id matching regex:
+listing-form-quantity-reopen`, and grep found zero definitions — because the
+summary command that printed it had a `cut -c1-50` in it. The real assertion is
+on `listing-form-quantity-reopen-note`, which exists (ListingForm.tsx:1673). Read
+the id from the flow file or the untruncated log, never from a formatted summary.
+
+**The failure mode both share:** "the selector does not exist" is a licence to
+change many files at once, so it is exactly the conclusion that deserves a second
+look. "The element exists but is unreachable" — behind the keyboard, below the
+fold, on a screen the flow never reached — is the far more common truth, and it
+is a one-flow fix.
