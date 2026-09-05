@@ -229,5 +229,29 @@ appId: com.hatiwal.app
 
 # Landed back on the SAME owner detail — never Browse — showing the
 # refreshed price and the still-Active status.
+# SCROLL BACK UP BEFORE ASSERTING. Saving the edit returns to the listing detail
+# at whatever scroll offset it held, and both of the things checked below — the
+# title and the status badge — live at the TOP of that screen.
+#
+# run-490 failed here on `"Publish Success Test Item" is visible` and the
+# screenshot showed a perfectly healthy owner-detail screen: map, "Manage
+# Listing", "Mark as Sold", "View Conversations". The title was simply above the
+# viewport. Identical in shape to the ensure_buyer_mode failure earlier tonight,
+# where "Switch to ..." was off-screen rather than missing.
+#
+# Guarded, so the common case where the screen is already at the top costs
+# nothing; UP, because the target is above us and a DOWN scroll would carry it
+# further away.
+- runFlow:
+    when:
+      notVisible: "Publish Success Test Item"
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: "Publish Success Test Item"
+          direction: UP
+          timeout: 20000
+          centerElement: false
+      - waitForAnimationToEnd
 - assertVisible: "Publish Success Test Item"
 - assertVisible: "Active"

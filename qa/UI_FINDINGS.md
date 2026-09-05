@@ -2583,3 +2583,27 @@ screenshots the tab in question is **the one the flow last tapped**, which fits.
 Confirming it needs a screenshot of the bar with no recent tap, which no current
 flow produces. Worth one probe next session; not worth changing a component whose
 code already documents a deliberate fix for the same symptom.
+
+## UI-0xx (OBSERVATION, not a confirmed defect) — owner detail: content scrolls under the status bar at 360dp
+
+Seen in run-490 `seller/listing_actions_sheet` at 360dp: the "Active" and
+"Expires in 31 days" chips render across the system clock, and the floating back
+button overlaps "AFN 5,000".
+
+**Checked before reporting, and the obvious explanation is wrong.** My first
+reading was that a photo-less listing collapses the gallery to zero height and
+lets the first row start at y=0 — `contentContainerStyle` on
+`MyListingDetail.tsx:318` sets only `paddingBottom: 120`, with no top inset,
+while the back button correctly uses `insets.top + 4`. But `ListingGallery`
+renders its no-photo placeholder at the full `heroHeight`, so the content is not
+starting at the top; the page is simply **scrolled past** a full-bleed gallery.
+
+So this is the intended edge-to-edge behaviour — a hero that runs under the
+status bar, with a floating control over it — and what the screenshot catches is
+mid-scroll text passing beneath the clock. Whether text should get a scrim there
+is a DESIGNER'S CALL, not a bug I should fix unattended at 6am.
+
+Left for a human: on a small screen the chips are the first thing under the
+clock, and they are unreadable in that moment. A gradient scrim behind the top
+inset, or a top padding on the scroll content, would both address it — but both
+change a deliberate look.
