@@ -10,18 +10,18 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**76 of 258 flows passing** · 181 still need attention
+**102 of 258 flows passing** · 153 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 76 | green, and no backend error underneath |
+| PASS | 102 | green, and no backend error underneath |
 | SILENT | 1 | **assertions passed while the API errored** — the app told the user nothing |
-| FAIL-assert | 90 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-assert | 87 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-crash | 1 | the app crashed (FATAL EXCEPTION in logcat) |
-| FAIL-? | 19 | failed, cause unclear — read the log |
-| (rig) | 1 | rig broke mid-run — result meaningless, re-run |
-| UNTESTED | 69 | never executed |
+| FAIL-? | 17 | failed, cause unclear — read the log |
+| (rig) | 3 | rig broke mid-run — result meaningless, re-run |
+| UNTESTED | 46 | never executed |
 
 ### Definition of done
 
@@ -33,36 +33,36 @@ bug class a user reports as "nothing happened".
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
 
-1/42 passing · 41 open
+11/42 passing · 26 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `browse_all_categories` | FAIL-assert | s3/run-108 | 272 |  | AxiosError |
-| `browse_listings` | FAIL-assert | s3/run-108 | 249 |  | [Failed] browse_listings (3m 42s) (Assertion is false: "Development Build" is not visible) |
-| `browse_sort_most_viewed` | FAIL-assert | s3/run-108 | 257 |  | AxiosError AxiosError |
-| `browse_sort_nearest` | FAIL-assert | s3/run-108 | 251 |  | [Failed] browse_sort_nearest (3m 46s) (Assertion is false: "Development Build" is not visible) |
-| `categories_hub` | FAIL-assert | s3/run-108 | 262 |  | [Failed] categories_hub (3m 49s) (Assertion is false: "Development Build" is not visible) |
-| `clear_all_filters` | UNTESTED | — |  |  |  |
-| `filter_active_sellers` | UNTESTED | — |  |  |  |
-| `filter_by_category` | UNTESTED | — |  |  |  |
-| `filter_condition` | UNTESTED | — |  |  |  |
-| `filter_price_range` | UNTESTED | — |  |  |  |
-| `full_marketplace_cycle` | UNTESTED | — |  | flow — doubled search (missing eraseText) + inherited price filter emptied the feed; fixed | Four taps with the same search-box collision; three now erase and re-search first. |
-| `listing_contact_whatsapp` | UNTESTED | — |  |  |  |
-| `listing_detail` | UNTESTED | — |  |  |  |
-| `listing_detail_held_units_transparency` | UNTESTED | — |  |  |  |
-| `listing_detail_multi_quantity` | UNTESTED | — |  | flow — scroll stopped at the clipped bottom row so the price row never showed; centred. API data verified correct |  |
-| `listing_detail_offer` | UNTESTED | — |  |  |  |
-| `listing_detail_offer_invalid` | UNTESTED | — |  |  |  |
-| `listing_detail_price_drop_badge` | UNTESTED | — |  | flow — asserted the drop badge on a listing with no drop; retargeted to the seeded Lenovo |  |
-| `listing_detail_quantity_intent` | UNTESTED | — |  |  |  |
-| `listing_detail_report` | UNTESTED | — |  | fixture | RIG-004 tolerance; covers the detail-screen entry point. |
-| `listing_detail_reserved_contactable` | UNTESTED | — |  |  |  |
-| `listing_detail_save_unsave` | UNTESTED | — |  | flow — asserted a global 'No saved items yet' it does not own; now asserts this listing is gone |  |
-| `listing_detail_saves_count` | UNTESTED | — |  | flow — tapped the save TOGGLE blind and unsaved it, so savesCount hit 0; now state-aware |  |
-| `listing_detail_share` | UNTESTED | — |  |  |  |
-| `listing_detail_similar` | UNTESTED | — |  |  |  |
-| `listing_detail_sold_recovery` | UNTESTED | — |  | flow — cold-start deep link discarded by startup nav; waits for settle + re-fires. See UI_FINDINGS | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
+| `browse_all_categories` | PASS | run-494 | 201 |  | AxiosError |
+| `browse_listings` | PASS | run-494 | 145 |  |  |
+| `browse_sort_most_viewed` | FAIL-assert ⟳stale | run-494 | 155 | flow — chip strip. Labels are NOT stale (browse.json still has sort.mostViewed/nearest, FilterSheet SORT_OPTIONS renders 5 chips in a horizontal ScrollView). The blind `repeat 6x swipe 85%->20% @74%/68%` is not scrolling that strip at all: 6 iterations move ~2800dp, five chips need ~200. Replace with scrollUntilVisible direction:RIGHT. NOT yet verified on device. | AxiosError AxiosError |
+| `browse_sort_nearest` | FAIL-assert ⟳stale | run-494 | 152 | flow — same chip strip as browse_sort_most_viewed. Extra wrinkle: `nearest` is NOT in SORT_OPTIONS; it is a separate chip (FilterSheet:409) that acquires location on tap, so it may also need a location fixture. | [Failed] browse_sort_nearest (2m 19s) (Assertion is false: "Nearest first" is visible) |
+| `categories_hub` | PASS | run-494 | 156 |  |  |
+| `clear_all_filters` | PASS | run-494 | 159 |  |  |
+| `filter_active_sellers` | PASS | run-494 | 148 |  |  |
+| `filter_by_category` | PASS | run-494 | 144 |  |  |
+| `filter_condition` | PASS | run-494 | 149 |  |  |
+| `filter_price_range` | PASS | run-494 | 159 |  |  |
+| `full_marketplace_cycle` | FAIL-assert | run-494 | 532 | flow — doubled search (missing eraseText) + inherited price filter emptied the feed; fixed | Four taps with the same search-box collision; three now erase and re-search first. |
+| `listing_contact_whatsapp` | FAIL-? | run-494 | 231 |  | [Failed] listing_contact_whatsapp (3m 31s) (No visible element found: id: seller-phone-reveal-button) |
+| `listing_detail` | FAIL-? | run-494 | 201 | flow — the scroll race. `open_listing_by_title.yaml` is the fix; GATED behind confirming the ten reverted-hideKeyboard flows. | [Failed] listing_detail (3m 4s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `listing_detail_held_units_transparency` | FAIL-assert ⟳stale | run-494 | 226 | REVERT CONFIRMED — no longer exits the app (run-494 fails on `listing-card` not visible, not the Android home screen). The hideKeyboard->drag revert worked here. Remaining failure is the scroll race. | [Failed] listing_detail_held_units_transparency (3m 29s) (Assertion is false: id: listing-card is visible) |
+| `listing_detail_multi_quantity` | FAIL-assert | run-494 | 222 | flow — scroll stopped at the clipped bottom row so the price row never showed; centred. API data verified correct | [Failed] listing_detail_multi_quantity (3m 21s) (Assertion is false: "AFN.*" is visible) |
+| `listing_detail_offer` | FAIL-? | run-494 | 549 | rig — adb/dadb connection lost mid-flow (AndroidDriver.close stack). Emulator died in this pass; re-run before triaging. | [Failed] listing_detail_offer (8m 46s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `listing_detail_offer_invalid` | (rig) | run-494 | 602 |  |  |
+| `listing_detail_price_drop_badge` | FAIL-? | run-494 | 241 | flow — scroll race (Lenovo ThinkPad Laptop Core i5 8GB). Gated on open_listing_by_title rollout. | [Failed] listing_detail_price_drop_badge (3m 34s) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8 |
+| `listing_detail_quantity_intent` | FAIL-? | run-494 | 283 | flow — scroll race (Phone Case Silicone Clear - Wholesale). Gated on open_listing_by_title rollout. | [Failed] listing_detail_quantity_intent (3m 57s) (No visible element found: "Phone Case Silicone Clear - Whole |
+| `listing_detail_report` | FAIL-? | run-494 | 223 | flow — scroll race, same as listing_detail. Gated on open_listing_by_title rollout. | RIG-004 tolerance; covers the detail-screen entry point. |
+| `listing_detail_reserved_contactable` | PASS | run-494 | 165 |  |  |
+| `listing_detail_save_unsave` | FAIL-? | run-494 | 151 | flow — scroll race, same as listing_detail. Gated on open_listing_by_title rollout. | [Failed] listing_detail_save_unsave (2m 18s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `listing_detail_saves_count` | FAIL-assert | run-494 | 178 | flow — tapped the save TOGGLE blind and unsaved it, so savesCount hit 0; now state-aware | [Failed] listing_detail_saves_count (2m 44s) (Assertion is false: "Saved by.*" is visible) |
+| `listing_detail_share` | PASS | run-494 | 156 |  |  |
+| `listing_detail_similar` | FAIL-? | run-494 | 180 |  | [Failed] listing_detail_similar (2m 44s) |
+| `listing_detail_sold_recovery` | (rig) | run-494 |  | rig — 'emulator died and could not be rebooted'. Host disk was 98% full and swap exhausted; pruned 2026-09-05. Re-run. | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
 | `listing_detail_sold_state` | UNTESTED | — |  | flow — same cold-start deep-link loss; fixed alongside sold_recovery |  |
 | `listing_detail_views_count` | UNTESTED | — |  |  |  |
 | `not_interested` | UNTESTED | — |  |  |  |
@@ -78,95 +78,58 @@ bug class a user reports as "nothing happened".
 | `user_profile_empty_listings` | UNTESTED | — |  | flow — index 0 of a recency-ordered inbox reached Fatima (owns a listing); now targets Ahmad | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
 | `user_profile_listing_grid` | UNTESTED | — |  | flow | Grid sits below the profile header; assertVisible does not scroll. Added both ways. |
 | `user_profile_stats` | UNTESTED | — |  | flow — asserted a "Message" button the profile has never had (contact is per-listing by design) | Hardcoded "2024"; member_since renders "August 2026" as one node. Year-shaped pattern. |
-| `view_mode_toggle` | UNTESTED | — |  | flow | HOLLOW: every tap optional, only assertion was the always-present tab label. Rewritten. |
+| `view_mode_toggle` | UNTESTED | — |  | REVERT CONFIRMED — PASSED in run-494 after the hideKeyboard->drag revert. | HOLLOW: every tap optional, only assertion was the always-present tab label. Rewritten. |
 
 ## `listings` — Seller create/edit/delete + the 3-state lifecycle (Draft/Live/Sold) — Mark sold is always the one-tap primary, no Reserved tab
 
-10/40 passing · 29 open
+14/40 passing · 25 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `create_listing` | PASS | run-468 | 214 |  |  |
-| `create_listing_all_fields` | FAIL-assert | s2/run-151 | 260 | STALE — already retargeted off tapOn "Kabul" (comment at :85 records it); awaiting re-run | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
-| `create_listing_category_search` | PASS | s2/run-151 | 271 |  |  |
-| `create_listing_currency_eur` | FAIL-assert | s2/run-151 | 314 | flow | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
-| `create_listing_currency_usd` | (rig) ⚠slow | s2/run-151 | 852 | flow | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
-| `create_listing_draft_discard` | PASS | s2/run-151 | 243 |  |  |
-| `create_listing_draft_restore` | FAIL-assert | s2/run-151 | 259 | flow | "Draft saved" is a toast from toast.success; a bare assert races it. Now polls. |
-| `create_listing_full_publish` | PASS | s2/run-151 | 363 |  | AxiosError |
-| `create_listing_multi_quantity` | PASS | s2/run-151 | 252 | fixed | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
-| `create_listing_price_edges` | PASS | s2/run-151 | 305 |  |  |
-| `create_listing_publish_blocked` | FAIL-assert | s2/run-151 | 264 | flow | Touched the form before the location sheet closed; the helper allows 45s for it. |
-| `create_listing_publish_direct` | FAIL-assert | s2/run-151 | 235 |  | [Failed] create_listing_publish_direct (3m 37s) (Assertion is false: "Cover" is visible) |
-| `create_listing_publish_requirements` | FAIL-assert | s2/run-151 | 276 |  | [Failed] create_listing_publish_requirements (4m 16s) (Assertion is false: "A live listing needs at least one  |
-| `create_listing_quantity_edges` | FAIL-assert | s2/run-151 | 255 | flow | Field maps empty to 1, so eraseText appends. Blur-then-focus lets selectTextOnFocus replace. |
-| `create_listing_title_edges` | PASS | s2/run-151 | 271 | env | Login gate timed out at 60s under host load; flow never ran its own steps. |
-| `create_listing_validation` | PASS | s2/run-151 | 233 |  |  |
-| `create_listing_with_condition` | FAIL-assert | s2/run-151 | 231 | flow | Tapped a title sitting in the search box, so the tap hit the input. Card testID now. |
-| `create_listing_with_photos` | PASS | run-471 | 382 |  |  |
-| `delete_listing` | FAIL-assert | s2/run-151 | 211 | flow | Toast unwaitable: onDeleted does router.replace, so it fires on a dying screen. Asserts the outcome. |
-| `draft_lifecycle` | FAIL-assert | s2/run-151 | 260 | flow | Never confirmed the native publish dialog; now via confirm_dialog (android:id/button1). |
-| `edit_listing` | FAIL-? | s2/run-151 | 224 |  | [Failed] edit_listing (3m 29s) (No visible element found: "Edit") |
-| `edit_listing_all_fields` | FAIL-? | s2/run-151 | 221 | flow | Reached for lifecycle-more-action (detail-only) from the list. Card ⋮ route now. |
-| `edit_listing_discard` | FAIL-? | s2/run-151 | 220 | STALE — run-252 executed the old route (commands.json proves it); already fixed | Same detail-control-from-the-list mistake; identical opening in four flows. |
-| `edit_listing_quantity` | FAIL-assert | s2/run-151 | 197 |  | [Failed] edit_listing_quantity (3m) (Assertion is false: "QA Phone Cases Bulk 15" is visible) |
-| `edit_listing_remove_photo` | FAIL-? | s2/run-151 | 220 | flow | Phantom "Remove" confirm (removePhoto has no dialog); also needed a photo to exist. |
-| `edit_listing_reorder_photos` | FAIL-? | s2/run-151 | 211 | flow — optional gallery tap no-opped silently; now by testID. Fixed 34e713a | HOLLOW: one tap only selects. Now two taps, asserts the hint clears, attaches 2 photos. |
-| `expired_listing_badge` | FAIL-assert | s2/run-151 | 216 | flow — tab switch refires the request; nothing waited for the list. Fixed 34e713a | No expired listing existed at all; expires_at was never seeded. Fixture added. |
-| `lifecycle_publish` | FAIL-assert | s2/run-151 | 161 | fixture | Draft tab index 0 was a photoless QA draft, so publish was blocked. Seeded "Ready To Publish Draft". |
-| `lifecycle_reactivate` | FAIL-? | s2/run-151 | 470 | flow | Detail control with the card sheet already open; sheet offers listing-action-activate. |
-| `lifecycle_reserve` | FAIL-assert | s2/run-151 | 222 |  | [Failed] lifecycle_reserve (3m 24s) (Element not found: Text matching regex: Mark as Reserved) |
-| `lifecycle_sold` | FAIL-? | s2/run-151 | 498 |  | [Failed] lifecycle_sold (8m) (No visible element found: id: lifecycle-primary-action) |
-| `lifecycle_unpublish` | FAIL-? | s2/run-151 | 232 |  | [Failed] lifecycle_unpublish (3m 34s) (No visible element found: id: lifecycle-more-action) |
-| `listing_analytics_sparkline` | FAIL-assert | s2/run-151 | 213 | flow | Analytics does not render for a draft ({!isDraft}); needed the Active tab, not just a scroll. |
-| `listing_conversations_list` | PASS | s2/run-151 | 213 | flow | Tapped "chats"; the card renders "{{count}} chats". |
-| `listing_renew_flow` | FAIL-assert | s2/run-151 | 223 | flow — same missing wait as expired_listing_badge. Fixed 34e713a | Needed the expired fixture; nothing to renew before it existed. |
-| `listing_status_counts` | FAIL-assert | s2/run-151 | 230 | flow — swipe fix already present; tab taps now by testID (SOLD badge collided). Verdict stale | "Sold" is the last tab in a horizontal scroller; scrollUntilVisible swipes at screen centre. |
-| `my_listing_detail_view` | FAIL-assert | s2/run-151 | 209 | flow | Same draft-gated analytics; Active tab first. |
-| `my_listings_filter_tabs` | FAIL-assert | s2/run-151 | 211 | flow — same; executed step was pre-swipe scrollUntilVisible. Verdict stale | Same clipped last tab; coordinate swipe across the row. |
-| `my_listings_search` | FAIL-assert | s2/run-151 | 220 | flow | Asserted a bare "No"; now asserts the absence of cards instead of empty-state copy. |
-| `price_drop_after_edit` | FAIL-? | s2/run-151 | 212 | flow | hideKeyboard is Back and popped the edit form — first of the five sites the handbook predicted. |
-
-## `profile` — Profile view/edit, language + theme switch, stats, blocked users
-
-4/30 passing · 25 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `account_delete_and_restore` | FAIL-assert | s2/run-156 | 207 |  | [Failed] account_delete_and_restore (3m 8s) (Assertion is false: "Bazaar" is visible) |
-| `account_delete_cancel` | FAIL-assert | s2/run-156 | 460 |  | [Failed] account_delete_cancel (7m 19s) (Assertion is false: "Me" is visible) |
-| `away_mode` | FAIL-assert | s2/run-156 | 466 | app+flow — away row was untappable (no Pressable/testID); fixed cb68fa4 (live via Metro, no rebuild) | [Failed] away_mode (7m 27s) (Assertion is false: "Me" is visible) |
-| `blocked_users` | FAIL-assert | s2/run-156 | 457 |  | [Failed] blocked_users (7m 18s) (Assertion is false: "Me" is visible) |
-| `change_language_dari` | FAIL-assert | s2/run-156 | 458 |  | [Failed] change_language_dari (7m 18s) (Assertion is false: "Me" is visible) |
-| `change_language_english` | FAIL-assert | s2/run-156 | 455 | flow — toothless restart wait; helper+nav fixed cb68fa4 | [Failed] change_language_english (7m 17s) (Assertion is false: "Me" is visible) |
-| `change_language_pashto` | FAIL-assert | s2/run-156 | 453 |  | [Failed] change_language_pashto (7m 15s) (Assertion is false: "Me" is visible) |
-| `contact_visibility` | PASS | run-466 | 210 | flow | 2026-09-03: the failing assertion named the copied number but the cause was navigation. hideKeyboard is a Back press and popped Edit Profile to Profile; the next THREE commands reported COMPLETED against a stale hierarchy, so the assertNotVisible before it passed for the WRONG reason. Replaced with pressKey:Enter, which turned out to SUBMIT the form — both removed. Green at 360dp once the keypress was gone; now unstable again from my keyboardDismissMode=on-drag reflowing the form mid-scroll (board #313). NOT an app bug. |
-| `edit_profile` | FAIL-assert | s2/run-156 | 460 | stale — toast assertion already replaced by durable name check | [Failed] edit_profile (7m 21s) (Assertion is false: "Me" is visible) |
-| `edit_profile_all_fields` | FAIL-? ⟳stale | run-467 | 170 | flow+app | 2026-09-03: FOUR causes, two of them app bugs. (1) asserted text 'Save' on a button reading 'Save Changes'; (2) centerElement on the sticky save button; (3) APP — the sticky Save sat BEHIND the keyboard (d8edc9e), verified visually at 360dp; (4) APP — the keyboard swallowed the tap on the NEXT field, so 'UpdatedLast' landed in the First Name box (e36a6b4, keyboardDismissMode=on-drag). Also a pre-existing viewport assumption on the final derived-city assertion (no scroll). MY OWN regressions along the way: a pressKey:Enter that SUBMITTED the form (608ddda, reverted) and a scrollUntilVisible that is a no-op when the target is already 'visible'. Flow-side stability still open — board #313. |
-| `edit_profile_avatar` | FAIL-assert | run-472 | 145 |  | [Failed] edit_profile_avatar (2m 16s) (Assertion is false: "Switch to .*" is visible) |
-| `edit_profile_bio_too_long` | FAIL-assert | s2/run-156 | 464 | flow — 520 chars do type; error renders above viewport; now scrolls UP cb68fa4 | [Failed] edit_profile_bio_too_long (7m 20s) (Assertion is false: "Me" is visible) |
-| `edit_profile_province` | FAIL-assert | s2/run-156 | 468 | flow | 2026-09-02: DOWN + centerElement:true on profile-edit-button, which sits near the TOP of Profile — DOWN scrolls away from it and centring is impossible with too little content above. ORDER-DEPENDENT (siblings passed on the identical block). Now UP + visibilityPercentage 40, applied to all 8 flows carrying it. |
-| `edit_profile_validation` | FAIL-assert | s2/run-156 | 468 |  | [Failed] edit_profile_validation (7m 25s) (Assertion is false: "Me" is visible) |
-| `hidden_listings` | FAIL-assert | s2/run-156 | 463 |  | [Failed] hidden_listings (7m 19s) (Assertion is false: "Me" is visible) |
-| `language_persists_across_tabs` | FAIL-assert | s2/run-156 | 463 |  | [Failed] language_persists_across_tabs (7m 20s) (Assertion is false: "Me" is visible) |
-| `language_switch_all_screens` | FAIL-assert | s2/run-156 | 454 | flow — asserted Profile content while restart left app on feed; reordered cb68fa4 | [Failed] language_switch_all_screens (7m 16s) (Assertion is false: "Me" is visible) |
-| `profile_stats_verify` | FAIL-assert | s2/run-156 | 463 | rig — killed mid-flow (no failure reason, 7m45s); feature-timeout truncation, re-run | Same hardcoded year. |
-| `recently_viewed` | FAIL-assert | s2/run-156 | 157 | flow+app — row had no testID; added profile-row-recently-viewed. Fixed 34e713a | [Failed] recently_viewed (2m 18s) (Assertion is false: "Buy and sell locally in Afghanistan" is visible) |
-| `recently_viewed_empty_state` | FAIL-assert | s2/run-156 | 160 |  | [Failed] recently_viewed_empty_state (2m 20s) (Assertion is false: "Buy and sell locally in Afghanistan" is vi |
-| `seller_mode_toggle` | PASS | s2/run-156 | 187 |  |  |
-| `theme_switch` | FAIL-assert | s2/run-156 | 168 |  | [Failed] theme_switch (2m 28s) (Element not found: Id matching regex: theme-option-light) |
-| `transaction_stats_hidden_when_zero` | FAIL-assert | s2/run-156 | 157 |  | [Failed] transaction_stats_hidden_when_zero (2m 16s) (Assertion is false: "Buy and sell locally in Afghanistan |
-| `transaction_stats_own_profile` | FAIL-assert | s2/run-156 | 183 |  | [Failed] transaction_stats_own_profile (2m 41s) (Assertion is false: "Items Bought" is visible) |
-| `transaction_stats_public_profile` | FAIL-assert | s2/run-156 | 170 | flow — vacuous assertNotVisible on the dead soldItems key; removed | [Failed] transaction_stats_public_profile (2m 30s) (Assertion is false: id: transaction-stats-badge is visible |
-| `transaction_stats_seller_own_profile` | PASS | s2/run-156 | 205 |  |  |
-| `user_profile_sold_tab` | FAIL-? | s2/run-156 | 168 | flow | Same ${visible()} problem. |
-| `view_profile` | FAIL-assert | s2/run-156 | 178 |  | [Failed] view_profile (2m 38s) (Assertion is false: "Edit Profile" is visible) |
-| `view_profile_error` | PASS | s2/run-156 | 188 |  | AxiosError |
-| `view_seller_profile_from_profile` | FAIL-assert | s2/run-156 | 177 |  | [Failed] view_seller_profile_from_profile (2m 37s) (Assertion is false: "Switch to .*" is visible) |
+| `create_listing` | PASS | run-491 | 215 |  |  |
+| `create_listing_all_fields` | FAIL-assert | run-492 | 217 | STALE — already retargeted off tapOn "Kabul" (comment at :85 records it); awaiting re-run | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
+| `create_listing_category_search` | FAIL-assert | run-491 | 176 |  | [Failed] create_listing_category_search (2m 40s) (Assertion is false: "Electronics" is visible) |
+| `create_listing_currency_eur` | FAIL-assert | run-491 | 167 | flow | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
+| `create_listing_currency_usd` | PASS | run-491 | 226 | flow | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
+| `create_listing_draft_discard` | FAIL-assert | run-491 | 171 |  | [Failed] create_listing_draft_discard (2m 35s) (Assertion is false: "Discard changes?" is visible) |
+| `create_listing_draft_restore` | FAIL-assert | run-491 | 208 | flow | "Draft saved" is a toast from toast.success; a bare assert races it. Now polls. |
+| `create_listing_full_publish` | FAIL-assert | run-491 | 244 |  | AxiosError |
+| `create_listing_multi_quantity` | FAIL-assert | run-491 | 207 | fixed | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
+| `create_listing_price_edges` | PASS | run-491 | 199 |  |  |
+| `create_listing_publish_blocked` | FAIL-assert | run-491 | 222 | flow | Touched the form before the location sheet closed; the helper allows 45s for it. |
+| `create_listing_publish_direct` | PASS | run-491 | 256 |  |  |
+| `create_listing_publish_requirements` | PASS | run-491 | 181 |  |  |
+| `create_listing_quantity_edges` | FAIL-assert | run-491 | 204 | flow | Field maps empty to 1, so eraseText appends. Blur-then-focus lets selectTextOnFocus replace. |
+| `create_listing_title_edges` | PASS | run-491 | 207 | env | Login gate timed out at 60s under host load; flow never ran its own steps. |
+| `create_listing_validation` | PASS | run-491 | 188 |  |  |
+| `create_listing_with_condition` | FAIL-assert | run-491 | 231 | flow | Tapped a title sitting in the search box, so the tap hit the input. Card testID now. |
+| `create_listing_with_photos` | PASS | run-491 | 211 |  |  |
+| `delete_listing` | FAIL-assert | run-491 | 180 | flow | Toast unwaitable: onDeleted does router.replace, so it fires on a dying screen. Asserts the outcome. |
+| `draft_lifecycle` | FAIL-assert | run-491 | 219 | flow | Never confirmed the native publish dialog; now via confirm_dialog (android:id/button1). |
+| `edit_listing` | FAIL-assert | run-491 | 193 |  | [Failed] edit_listing (2m 55s) (Element not found: Id matching regex: listing-form-price-input) |
+| `edit_listing_all_fields` | FAIL-assert | run-491 | 204 | flow | Reached for lifecycle-more-action (detail-only) from the list. Card ⋮ route now. |
+| `edit_listing_discard` | FAIL-assert | run-491 | 211 | STALE — run-252 executed the old route (commands.json proves it); already fixed | Same detail-control-from-the-list mistake; identical opening in four flows. |
+| `edit_listing_quantity` | FAIL-assert | run-491 | 215 |  | [Failed] edit_listing_quantity (3m 17s) (Element not found: Id matching regex: listing-form-price-input) |
+| `edit_listing_remove_photo` | FAIL-assert | run-491 | 219 | flow | Phantom "Remove" confirm (removePhoto has no dialog); also needed a photo to exist. |
+| `edit_listing_reorder_photos` | FAIL-assert | run-491 | 232 | flow — optional gallery tap no-opped silently; now by testID. Fixed 34e713a | HOLLOW: one tap only selects. Now two taps, asserts the hint clears, attaches 2 photos. |
+| `expired_listing_badge` | FAIL-assert | run-491 | 165 | flow — tab switch refires the request; nothing waited for the list. Fixed 34e713a | No expired listing existed at all; expires_at was never seeded. Fixture added. |
+| `lifecycle_publish` | PASS | run-491 | 171 | fixture | Draft tab index 0 was a photoless QA draft, so publish was blocked. Seeded "Ready To Publish Draft". |
+| `lifecycle_reactivate` | PASS | run-491 | 211 | flow | Detail control with the card sheet already open; sheet offers listing-action-activate. |
+| `lifecycle_reserve` | FAIL-assert ⟳stale | run-491 | 211 |  | [Failed] lifecycle_reserve (3m 16s) (Element not found: Text matching regex: Contact Seller) |
+| `lifecycle_sold` | PASS | run-491 | 174 |  |  |
+| `lifecycle_unpublish` | PASS | run-491 | 174 |  |  |
+| `listing_analytics_sparkline` | FAIL-assert | run-491 | 167 | flow | Analytics does not render for a draft ({!isDraft}); needed the Active tab, not just a scroll. |
+| `listing_conversations_list` | PASS | run-491 | 153 | flow | Tapped "chats"; the card renders "{{count}} chats". |
+| `listing_renew_flow` | FAIL-assert | run-491 | 165 | flow — same missing wait as expired_listing_badge. Fixed 34e713a | Needed the expired fixture; nothing to renew before it existed. |
+| `listing_status_counts` | FAIL-assert | run-491 | 180 | flow — swipe fix already present; tab taps now by testID (SOLD badge collided). Verdict stale | "Sold" is the last tab in a horizontal scroller; scrollUntilVisible swipes at screen centre. |
+| `my_listing_detail_view` | FAIL-assert | run-491 | 165 | flow | Same draft-gated analytics; Active tab first. |
+| `my_listings_filter_tabs` | PASS | run-491 | 160 | flow — same; executed step was pre-swipe scrollUntilVisible. Verdict stale | Same clipped last tab; coordinate swipe across the row. |
+| `my_listings_search` | FAIL-assert | run-491 | 177 | flow | Asserted a bare "No"; now asserts the absence of cards instead of empty-state copy. |
+| `price_drop_after_edit` | FAIL-assert | run-491 | 195 | flow | hideKeyboard is Back and popped the edit form — first of the five sites the handbook predicted. |
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state — mark-sold one-tap from the thread, place/release a hold with the buyer you're already talking to
 
-25/49 passing · 20 open
+25/49 passing · 19 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -205,7 +168,7 @@ bug class a user reports as "nothing happened".
 | `quick_replies` | FAIL-assert | run-489 | 225 | rig — emulator died at 0% CPU idle (external load), not a flow verdict | Exception in thread "Thread-5" java.io.IOException: Command failed (shell,v2,raw:pm list packages --user 0 dev |
 | `report_participant` | FAIL-assert | run-489 | 262 | flow-bug | 2026-09-05 NOT an app bug. A Report is unique per reporter+target and one from an e2e account existed at 02:48, created AFTER that pass's 02:42 seed, so the flow's FIRST submit already took the duplicate path — and ReportSheet offers "Block this user?" from inside onSuccess, making everything after it unreachable (RIG-004). reset_e2e clears reports BETWEEN passes, which cannot help one created DURING one. FIX: delete its own report row first, or target a user no other flow reports. |
 | `reserve_after_accept` | FAIL-? ⟳stale | run-489 | 201 | flow-bug fixed | 2026-09-05 same scroll-to-title cause; wired to _helpers/open_listing_by_title.yaml. |
-| `reserve_after_buyer_accepts_counter` | FAIL-assert | run-489 | 213 | flow | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
+| `reserve_after_buyer_accepts_counter` | FAIL-assert ⟳stale | run-489 | 213 | flow | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
 | `reserved_sold_dead_end_notice` | PASS | run-489 | 376 | flow | Five logins could not fit FLOW_TIMEOUT=600; split into three flows, only this one mutates. |
 | `scroll_to_latest` | PASS | run-489 | 404 | app | 2026-09-03 SOLVED: the meetup sheet was drawn UNDER the Android keyboard, so Time and Propose were unreachable when the sheet opened with the IME already up — the ordinary path, which no meetup flow covered. Fixed d46c896; PASS at BOTH widths after the rebuild. Its earlier 600s timeout at 360dp was a SYMPTOM of the same bug (dead waits), not a ceiling that needed raising. |
 | `send_message` | PASS | run-489 | 201 |  |  |
@@ -220,22 +183,42 @@ bug class a user reports as "nothing happened".
 | `unread_badge_survives_navigation` | FAIL-assert | run-489 | 163 |  | [Failed] unread_badge_survives_navigation (2m 27s) (Element not found: Id matching regex: conversation-action- |
 | `view_other_profile_from_conversation` | PASS | run-489 | 199 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
 
-## `rtl` — Pashto + Dari right-to-left layout across main screens
+## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
-0/10 passing · 10 open
+14/30 passing · 14 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `browse_rtl_dari` | UNTESTED | — |  |  |  |
-| `browse_rtl_pashto` | FAIL-assert | run-473 | 145 |  | [Failed] browse_rtl_pashto (2m 16s) (Assertion is false: "Switch to .*" is visible) |
-| `buyer_picker_rtl` | UNTESTED | — |  |  |  |
-| `categories_hub_rtl` | UNTESTED | — |  | flow | 2026-09-02: tapped text "Back" in a flow whose whole purpose is Pashto. The app renders no literal "Back" — BackButton has accessibilityLabel t(common.goBack) (ps شاته ځه) and testID back_button. Now targets the testID. |
-| `chat_rtl` | UNTESTED | — |  | flow? | 2026-09-02: expects ps common.send "لیږل", present verbatim. Same language-revert hypothesis as profile_rtl. |
-| `listing_detail_rtl` | FAIL-crash | run-474 | 146 |  | [Failed] listing_detail_rtl (2m 16s) (Assertion is false: "Switch to .*" is visible) |
-| `my_listings_rtl` | UNTESTED | — |  |  |  |
-| `profile_quick_actions_rtl` | UNTESTED | — |  | flow | 2026-09-02 SOLVED, flow bug, b20007e: the language-revert hypothesis was WRONG, and so was the mode-toggle one. Profile.tsx:306 renders this row as `${t('…myListings')} (${count})`, so the text is 'زما اعلانونه (0)' and Maestro's anchored regex could not match the bare label — the three sibling labels carry no suffix, which is why only this row failed. run-379's screenshot shows Profile correctly in seller mode (green tab bar, three tabs, saved-tab gone). Matched as a prefix now. NOT an app bug. |
-| `profile_rtl` | UNTESTED | — |  | flow? | 2026-09-02: expects fa profile.editProfile "ویرایش پروفایل", which EXISTS verbatim in the locale file — so not a stale selector. Hypothesis: the language-revert bug (fixed 8097ab3) left the app in English after the switch, so no translated string could match. Re-running on a build with that fix. |
-| `sales_ledger_rtl` | UNTESTED | — |  |  |  |
+| `account_delete_and_restore` | FAIL-assert | run-493 | 171 |  | [Failed] account_delete_and_restore (2m 37s) (Element not found: Id matching regex: register-email-input) |
+| `account_delete_cancel` | FAIL-? | run-493 | 217 |  | [Failed] account_delete_cancel (3m 18s) (No visible element found: "Delete account") |
+| `away_mode` | PASS | run-493 | 239 | app+flow — away row was untappable (no Pressable/testID); fixed cb68fa4 (live via Metro, no rebuild) |  |
+| `blocked_users` | PASS | run-493 | 179 |  |  |
+| `change_language_dari` | FAIL-assert | run-493 | 186 |  | [Failed] change_language_dari (2m 46s) (Assertion is false: id: language-option-en is visible) |
+| `change_language_english` | PASS | run-493 | 278 | flow — toothless restart wait; helper+nav fixed cb68fa4 |  |
+| `change_language_pashto` | FAIL-assert | run-493 | 174 |  | [Failed] change_language_pashto (2m 35s) (Assertion is false: "Language" is visible) |
+| `contact_visibility` | FAIL-assert | run-493 | 215 | flow | 2026-09-03: the failing assertion named the copied number but the cause was navigation. hideKeyboard is a Back press and popped Edit Profile to Profile; the next THREE commands reported COMPLETED against a stale hierarchy, so the assertNotVisible before it passed for the WRONG reason. Replaced with pressKey:Enter, which turned out to SUBMIT the form — both removed. Green at 360dp once the keypress was gone; now unstable again from my keyboardDismissMode=on-drag reflowing the form mid-scroll (board #313). NOT an app bug. |
+| `edit_profile` | PASS | run-493 | 183 | stale — toast assertion already replaced by durable name check |  |
+| `edit_profile_all_fields` | FAIL-assert | run-493 | 309 | flow+app | 2026-09-03: FOUR causes, two of them app bugs. (1) asserted text 'Save' on a button reading 'Save Changes'; (2) centerElement on the sticky save button; (3) APP — the sticky Save sat BEHIND the keyboard (d8edc9e), verified visually at 360dp; (4) APP — the keyboard swallowed the tap on the NEXT field, so 'UpdatedLast' landed in the First Name box (e36a6b4, keyboardDismissMode=on-drag). Also a pre-existing viewport assumption on the final derived-city assertion (no scroll). MY OWN regressions along the way: a pressKey:Enter that SUBMITTED the form (608ddda, reverted) and a scrollUntilVisible that is a no-op when the target is already 'visible'. Flow-side stability still open — board #313. |
+| `edit_profile_avatar` | FAIL-assert | run-493 | 213 |  | [Failed] edit_profile_avatar (3m 15s) (Assertion is false: id: avatar-picker is visible) |
+| `edit_profile_bio_too_long` | PASS | run-493 | 341 | flow — 520 chars do type; error renders above viewport; now scrolls UP cb68fa4 |  |
+| `edit_profile_province` | FAIL-assert | run-493 | 276 | flow | 2026-09-02: DOWN + centerElement:true on profile-edit-button, which sits near the TOP of Profile — DOWN scrolls away from it and centring is impossible with too little content above. ORDER-DEPENDENT (siblings passed on the identical block). Now UP + visibilityPercentage 40, applied to all 8 flows carrying it. |
+| `edit_profile_validation` | PASS | run-493 | 215 |  |  |
+| `hidden_listings` | PASS | run-493 | 216 |  |  |
+| `language_persists_across_tabs` | PASS | run-493 | 336 |  |  |
+| `language_switch_all_screens` | PASS | run-493 | 387 | flow — asserted Profile content while restart left app on feed; reordered cb68fa4 |  |
+| `profile_stats_verify` | FAIL-assert ⟳stale | run-493 | 205 | rig — killed mid-flow (no failure reason, 7m45s); feature-timeout truncation, re-run | Same hardcoded year. |
+| `recently_viewed` | PASS | run-493 | 190 | flow+app — row had no testID; added profile-row-recently-viewed. Fixed 34e713a |  |
+| `recently_viewed_empty_state` | PASS | run-493 | 176 |  |  |
+| `seller_mode_toggle` | PASS | run-493 | 193 |  |  |
+| `theme_switch` | FAIL-assert ⟳stale | run-493 | 214 |  | [Failed] theme_switch (3m 17s) (Element not found: Id matching regex: theme-option-light) |
+| `transaction_stats_hidden_when_zero` | PASS | run-493 | 161 |  |  |
+| `transaction_stats_own_profile` | FAIL-assert | run-493 | 204 |  | [Failed] transaction_stats_own_profile (3m 7s) (Assertion is false: "Items Bought" is visible) |
+| `transaction_stats_public_profile` | FAIL-assert | run-493 | 205 | flow — vacuous assertNotVisible on the dead soldItems key; removed | [Failed] transaction_stats_public_profile (3m 8s) (Assertion is false: id: transaction-stats-badge is visible) |
+| `transaction_stats_seller_own_profile` | FAIL-assert | run-493 | 211 |  | [Failed] transaction_stats_seller_own_profile (3m 15s) (Assertion is false: "Sold" is visible) |
+| `user_profile_sold_tab` | FAIL-assert | run-493 | 211 | flow | Same ${visible()} problem. |
+| `view_profile` | FAIL-assert | run-493 | 208 |  | [Failed] view_profile (3m 11s) (Assertion is false: "Language" is visible) |
+| `view_profile_error` | PASS | run-493 | 201 |  | AxiosError |
+| `view_seller_profile_from_profile` | FAIL-assert | run-493 | 194 |  | [Failed] view_seller_profile_from_profile (2m 59s) (Assertion is false: "Ahmad Karimi" is visible) |
 
 ## `saved` — Save / unsave a listing, saved tab, sold-while-saved
 
@@ -306,6 +289,23 @@ bug class a user reports as "nothing happened".
 | `saved_tab_dark` | FAIL-assert | s4/run-108 | 164 |  | [Failed] saved_tab_dark (2m 19s) (Element not found: Text matching regex: Appearance) |
 | `theme_light_all_screens` | FAIL-assert | s4/run-108 | 158 |  | [Failed] theme_light_all_screens (2m 14s) (Element not found: Text matching regex: Appearance) |
 | `theme_persists_after_navigate` | UNTESTED | — |  | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
+
+## `rtl` — Pashto + Dari right-to-left layout across main screens
+
+2/10 passing · 7 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_rtl_dari` | PASS | s2/run-495 | 313 |  |  |
+| `browse_rtl_pashto` | PASS | s2/run-495 | 517 |  |  |
+| `buyer_picker_rtl` | (rig) | s2/run-495 | 601 |  |  |
+| `categories_hub_rtl` | UNTESTED | — |  | flow | 2026-09-02: tapped text "Back" in a flow whose whole purpose is Pashto. The app renders no literal "Back" — BackButton has accessibilityLabel t(common.goBack) (ps شاته ځه) and testID back_button. Now targets the testID. |
+| `chat_rtl` | UNTESTED | — |  | flow? | 2026-09-02: expects ps common.send "لیږل", present verbatim. Same language-revert hypothesis as profile_rtl. |
+| `listing_detail_rtl` | FAIL-crash | run-474 | 146 |  | [Failed] listing_detail_rtl (2m 16s) (Assertion is false: "Switch to .*" is visible) |
+| `my_listings_rtl` | UNTESTED | — |  |  |  |
+| `profile_quick_actions_rtl` | UNTESTED | — |  | flow | 2026-09-02 SOLVED, flow bug, b20007e: the language-revert hypothesis was WRONG, and so was the mode-toggle one. Profile.tsx:306 renders this row as `${t('…myListings')} (${count})`, so the text is 'زما اعلانونه (0)' and Maestro's anchored regex could not match the bare label — the three sibling labels carry no suffix, which is why only this row failed. run-379's screenshot shows Profile correctly in seller mode (green tab bar, three tabs, saved-tab gone). Matched as a prefix now. NOT an app bug. |
+| `profile_rtl` | UNTESTED | — |  | flow? | 2026-09-02: expects fa profile.editProfile "ویرایش پروفایل", which EXISTS verbatim in the locale file — so not a stale selector. Hypothesis: the language-revert bug (fixed 8097ab3) left the app in English after the switch, so no translated string could match. Re-running on a build with that fix. |
+| `sales_ledger_rtl` | UNTESTED | — |  |  |  |
 
 ## `mode` — Buyer ↔ seller mode switch, tab bar, persistence
 
