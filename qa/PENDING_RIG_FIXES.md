@@ -55,3 +55,56 @@ against `EXPO_PUBLIC_API_URL`, or its final hierarchy shows the logged-out tab
 set, classify it `env_fail` and say so in `summary.md`. The evidence is already
 greppable — `grep -c 'Network Error' <flow>.logcat` separated run-495's flows
 correctly on the first try.
+
+---
+
+## 4. Chat flows assert server data without waiting for it
+
+**Proven, not inferred.** `conversation_archive`'s hierarchy dump at the failing
+step (`debug-conversation_archive/.../screen-hierarchy/step-083-*.json`) contains
+`conversations-search-bar`, `conversations-filter-chip-row` and the whole tab bar
+— and **zero** `conversation-row-*` nodes. The list simply had not arrived. Its
+own end-of-flow screenshot, three minutes later, shows three rows.
+
+The testID is right, and it is a template literal — `conversation-row-${item.id}`
+at `ConversationRow.tsx:209`. A first grep for `conversation-row` that stops at
+`head -6` returns only a seller *test file* and reads as "stale selector", which
+is exactly the trap the handbook warns about.
+
+**Fix:** replace `assertVisible: {id: "conversation-row-\\d+"}` with
+`extendedWaitUntil: {visible: {id: "conversation-row-\\d+"}, timeout: 20000}`
+before the first use of a row. `maestro/chat/chat_older_messages_pagination.yaml`
+already does exactly this and it PASSED in run-496 — the house pattern exists,
+these flows just do not use it.
+
+Affected (from run-496): `conversation_archive` (lines 31, 51, 76),
+`block_from_conversation`, `conversation_read_status`. Also audit
+`archive_conversation` (lines 23, 50, 55, 69, 80), `composer_draft` (52, 88) and
+`conversations_filter` (44, 48) — same pattern, they happened to win the race.
+
+**Do not edit these while a chat pass is running** — maestro reads each flow file
+as that flow starts, so an edit mid-pass changes flows that have not run yet and
+makes the pass unattributable.
+
+## 5. Environmental noise is being recorded as flow/app failures
+
+run-496 lost four flows in a row between 14:47 and 14:59:
+`conversations_empty_state` (dev client could not reach Metro at all —
+`java.net.SocketTimeoutException`, "There was a problem loading the project"),
+then `conversations_filter`, `conversations_list`, `conversations_role_filter`
+(all ending unauthenticated or on the login screen).
+
+Metro was verified healthy right after (`/status` 200, process up 14h35m) and a
+14:58 screenshot renders the app fine, so these were transient. Two contributing
+causes worth fixing:
+
+- **The host-pressure gate only runs BEFORE a pass.** A 49-flow chat pass takes
+  hours, and load moves a lot inside that window — including from work this agent
+  does on the host. The gate should be re-checked between flows, not once.
+- **`adb reverse tcp:8081 tcp:3008` had disappeared** by 15:00, though the driver
+  sets it at boot. Restored by hand. Worth re-asserting per pass (it is cheap and
+  idempotent) rather than once at startup.
+
+Combined with fix 3 above, the aim is that a pass which loses Metro or its login
+reports `env_fail` and says so, instead of contributing rows that read like
+product defects.
