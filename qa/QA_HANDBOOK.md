@@ -2398,3 +2398,22 @@ change many files at once, so it is exactly the conclusion that deserves a secon
 look. "The element exists but is unreachable" — behind the keyboard, below the
 fold, on a screen the flow never reached — is the far more common truth, and it
 is a one-flow fix.
+
+## Writing a commit message with an unquoted heredoc eats your backticks
+
+`a38ac07`'s message has holes in it — "goto_login.yaml's two  are both ." — because
+it was written with `git commit -F - <<MSG` (unquoted) so that a `$B` flow-count
+could be interpolated. Bash then ran every backtick-quoted identifier in the
+message as a command substitution: `` `tapOn: {id: profile-tab}` ``,
+`` `optional: true` ``, `` `assertNotVisible: "Login"` `` and
+`` `.*already reported.*` `` all vanished, leaving "command not found" on stderr
+and empty gaps in the commit.
+
+**Always use the quoted form** — `<<'MSG'` — which passes the body through
+literally. If a value has to be interpolated, compute it first and substitute it
+into the text (e.g. with python or `sed`) before feeding a quoted heredoc.
+
+The commit was already pushed when this was noticed, and it was left alone: the
+repo is shared with other agents, so a force-push to fix prose is a worse trade
+than a message with gaps. The full reasoning survived anyway, because it is also
+written as comments in `maestro/_helpers/goto_login.yaml`.
