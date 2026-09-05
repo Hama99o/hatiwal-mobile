@@ -172,3 +172,19 @@ tab bar.
 > **UTC** (`+0000`) while the file mtime is local (+2). "Last sign_in at 13:31"
 > next to an mtime of 15:35 looks like a two-hour-dead log and is in fact the
 > same minute. Convert before concluding the API went quiet.
+
+---
+
+## Triage rule: two login failures that look identical in the log
+
+Both end with the app on the login screen and both produce downstream failures
+about a missing signed-in handle. The end-of-flow SCREENSHOT separates them, and
+they need different fixes:
+
+| Screenshot | Meaning | Fix |
+|---|---|---|
+| Fields **empty**, no error banner | the sign-in block was **skipped** — the guard found no `login-email-input` and the flow carried on unauthenticated | fix 6 |
+| Fields **filled**, red "No connection" banner | the flow **did** submit and the request failed | fix 5 (host pressure) — the API itself answers `sign_in` 200 in ~950ms |
+
+Observed: `meetup_respond` and `conversations_role_filter` are the first kind;
+`report_user` is the second. Do not fix one by reaching for the other's cause.
