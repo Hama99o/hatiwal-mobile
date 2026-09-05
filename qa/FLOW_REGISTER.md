@@ -10,18 +10,18 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**69 of 258 flows passing** · 188 still need attention
+**76 of 258 flows passing** · 181 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 69 | green, and no backend error underneath |
+| PASS | 76 | green, and no backend error underneath |
 | SILENT | 1 | **assertions passed while the API errored** — the app told the user nothing |
-| FAIL-assert | 80 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-assert | 90 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-crash | 1 | the app crashed (FATAL EXCEPTION in logcat) |
-| FAIL-? | 18 | failed, cause unclear — read the log |
+| FAIL-? | 19 | failed, cause unclear — read the log |
 | (rig) | 1 | rig broke mid-run — result meaningless, re-run |
-| UNTESTED | 87 | never executed |
+| UNTESTED | 69 | never executed |
 
 ### Definition of done
 
@@ -166,13 +166,13 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state — mark-sold one-tap from the thread, place/release a hold with the buyer you're already talking to
 
-25/49 passing · 23 open
+25/49 passing · 20 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `archive_conversation` | PASS | run-489 | 226 |  |  |
 | `block_from_conversation` | FAIL-assert | run-489 | 177 | app-bug | 2026-09-05 CAUSE FOUND, board BLK-2. The block SUCCEEDS server-side (INSERT+COMMIT in the API log; endpoint returns 204 by hand) while the app shows "Could not block user. Try again." 401s in the same window and devise rotates the token per request; http.ts clears the session on any 401. Load-sensitive: passed at 147s on a quiet host. Supersedes the older #312 note. |
-| `chat_older_messages_pagination` | SILENT ⚠1 | run-489 | 201 |  | AxiosError  |
+| `chat_older_messages_pagination` | SILENT ⚠1 | run-489 | 201 |  | AxiosError |
 | `composer_draft` | PASS | run-489 | 195 | flow | Tapped a title that was sitting in the search box, so the tap hit the input. |
 | `conversation_archive` | PASS | run-489 | 179 |  |  |
 | `conversation_delete` | FAIL-? | run-489 | 169 | flow | 2026-09-02: soft-DELETED its own fixture. Targeted the shared Xiaomi thread as "safe because SOLD"; the delete stamped buyer_deleted_at (09-01 17:54) so not_deleted_for hid it from the buyer for good and every later run failed. App was correct. Now owns "QA Disposable conversation_delete"; the seed clears delete/archive flags on disposable convos each run. |
@@ -199,12 +199,12 @@ bug class a user reports as "nothing happened".
 | `offer_counter_flow` | FAIL-? ⟳stale | run-489 | 204 | flow-bug fixed | 2026-09-05 scroll-to-title; searches inline and taps the card BY testID — after typing, the title is also the search input's own text, so a text tap can hit the field (flow_lint SEARCHTAP). |
 | `offer_in_existing_thread` | FAIL-assert | run-489 | 219 | flow — tap raced the composer Modal; 7 sites now wait for the sheet's contents | [Failed] offer_in_existing_thread (3m 24s) (Assertion is false: "Send Offer" is visible) |
 | `offer_quantity_round_trip` | FAIL-? | run-489 | 203 |  | [Failed] offer_quantity_round_trip (3m 8s) (No visible element found: "Wool Socks Bulk Pack - 12 Pairs") |
-| `offer_send_and_accept` | FAIL-? | run-489 | 206 | flow-bug fixed | 2026-09-05 scroll-to-title lost its race with a 98-listing feed (timeout had already gone 8s->20s). Now uses _helpers/open_listing_by_title.yaml, the same search sequence that keeps browse/listing_detail_held_units_transparency green. |
-| `offer_send_and_decline` | FAIL-? | run-489 | 199 | flow-bug fixed | 2026-09-05 same scroll-to-title cause as offer_send_and_accept; wired to _helpers/open_listing_by_title.yaml. |
+| `offer_send_and_accept` | FAIL-? ⟳stale | run-489 | 206 | flow-bug fixed | 2026-09-05 scroll-to-title lost its race with a 98-listing feed (timeout had already gone 8s->20s). Now uses _helpers/open_listing_by_title.yaml, the same search sequence that keeps browse/listing_detail_held_units_transparency green. |
+| `offer_send_and_decline` | FAIL-? ⟳stale | run-489 | 199 | flow-bug fixed | 2026-09-05 same scroll-to-title cause as offer_send_and_accept; wired to _helpers/open_listing_by_title.yaml. |
 | `place_and_release_hold` | PASS | run-489 | 183 |  |  |
 | `quick_replies` | FAIL-assert | run-489 | 225 | rig — emulator died at 0% CPU idle (external load), not a flow verdict | Exception in thread "Thread-5" java.io.IOException: Command failed (shell,v2,raw:pm list packages --user 0 dev |
 | `report_participant` | FAIL-assert | run-489 | 262 | flow-bug | 2026-09-05 NOT an app bug. A Report is unique per reporter+target and one from an e2e account existed at 02:48, created AFTER that pass's 02:42 seed, so the flow's FIRST submit already took the duplicate path — and ReportSheet offers "Block this user?" from inside onSuccess, making everything after it unreachable (RIG-004). reset_e2e clears reports BETWEEN passes, which cannot help one created DURING one. FIX: delete its own report row first, or target a user no other flow reports. |
-| `reserve_after_accept` | FAIL-? | run-489 | 201 | flow-bug fixed | 2026-09-05 same scroll-to-title cause; wired to _helpers/open_listing_by_title.yaml. |
+| `reserve_after_accept` | FAIL-? ⟳stale | run-489 | 201 | flow-bug fixed | 2026-09-05 same scroll-to-title cause; wired to _helpers/open_listing_by_title.yaml. |
 | `reserve_after_buyer_accepts_counter` | FAIL-assert | run-489 | 213 | flow | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
 | `reserved_sold_dead_end_notice` | PASS | run-489 | 376 | flow | Five logins could not fit FLOW_TIMEOUT=600; split into three flows, only this one mutates. |
 | `scroll_to_latest` | PASS | run-489 | 404 | app | 2026-09-03 SOLVED: the meetup sheet was drawn UNDER the Android keyboard, so Time and Propose were unreachable when the sheet opened with the IME already up — the ordinary path, which no meetup flow covered. Fixed d46c896; PASS at BOTH widths after the rebuild. Its earlier 600s timeout at 360dp was a SYMPTOM of the same bug (dead waits), not a ceiling that needed raising. |
@@ -219,31 +219,6 @@ bug class a user reports as "nothing happened".
 | `start_conversation_and_reply` | PASS | run-489 | 219 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
 | `unread_badge_survives_navigation` | FAIL-assert | run-489 | 163 |  | [Failed] unread_badge_survives_navigation (2m 27s) (Element not found: Id matching regex: conversation-action- |
 | `view_other_profile_from_conversation` | PASS | run-489 | 199 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
-
-## `seller` — One-tap Mark sold from any live listing (never reserve-first) + the Sales ledger (edit/void a row, reviewed-sale refusal, outside-buyer rows, undo-after-sold)
-
-0/18 passing · 18 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `held_quantity_refusal` | UNTESTED | — |  |  |  |
-| `listing_actions_sheet` | UNTESTED | — |  |  |  |
-| `listing_conversations` | UNTESTED | — |  |  |  |
-| `mark_sold_all_units` | UNTESTED | — |  |  |  |
-| `mark_sold_with_buyer` | UNTESTED | — |  |  |  |
-| `multi_quantity_offplatform_sale` | UNTESTED | — |  |  |  |
-| `multi_quantity_partial_sale` | UNTESTED | — |  | fixed | Found UI-008 (HIGH): typed 3, sold all 15 — pre-filled field appended, clamp silently swallowed it, listing retired. Fixed with selectTextOnFocus + a destructive over-stock hint; same fix applied to the web dialog. Also UI-009 ("15 of 15 left" before any sale). Flow itself needed: explicit seller login (login_seller.yaml lands in the dev-client launcher; login.yaml ignores an EMAIL override when a session exists), scrollUntilVisible on `lifecycle-more-action`, and the review prompt instead of the racing toast. run-020 green, 0 api errors, DB confirms 3 sold / 12 left / still active. |
-| `publish_from_owner_detail` | UNTESTED | — |  |  |  |
-| `publish_success` | UNTESTED | — |  |  |  |
-| `reserved_buyer` | UNTESTED | — |  |  |  |
-| `sales_screen_correct_quantity` | UNTESTED | — |  |  |  |
-| `sales_screen_reviewed_sale_refusal` | UNTESTED | — |  |  |  |
-| `sales_screen_void_row` | UNTESTED | — |  |  |  |
-| `save_draft` | UNTESTED | — |  |  |  |
-| `sell_without_reserving` | UNTESTED | — |  |  |  |
-| `sold_quantity_reconciliation` | UNTESTED | — |  |  |  |
-| `undo_mark_sold` | UNTESTED | — |  |  |  |
-| `undo_mark_sold_with_buyer` | UNTESTED | — |  |  |  |
 
 ## `rtl` — Pashto + Dari right-to-left layout across main screens
 
@@ -276,6 +251,31 @@ bug class a user reports as "nothing happened".
 | `saved_pagination` | UNTESTED | — |  |  |  |
 | `unsave_from_browse_feed` | UNTESTED | — |  |  |  |
 | `unsave_listing` | UNTESTED | — |  |  |  |
+
+## `seller` — One-tap Mark sold from any live listing (never reserve-first) + the Sales ledger (edit/void a row, reviewed-sale refusal, outside-buyer rows, undo-after-sold)
+
+7/18 passing · 8 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `held_quantity_refusal` | FAIL-assert | run-490 | 254 |  | [Failed] held_quantity_refusal (3m 59s) (Assertion is false: "Winter Gloves Wholesale Box - 15 Pairs" is visib |
+| `listing_actions_sheet` | FAIL-assert | run-490 | 250 |  | [Failed] listing_actions_sheet (3m 55s) (Element not found: Id matching regex: browse-tab) |
+| `listing_conversations` | FAIL-assert ⟳stale | run-490 | 222 | flow-bug fixed | 2026-09-05 same IME cause. Its note claimed scrollUntilVisible dismisses the keyboard — true only if it scrolls, and it is a NO-OP when the target is already visible, which after a filtering search it always is. Dead scroll removed, margin drag used instead (Back is unsafe here — it exited the app once). |
+| `mark_sold_all_units` | PASS | run-490 | 211 |  |  |
+| `mark_sold_with_buyer` | PASS | run-490 | 187 |  |  |
+| `multi_quantity_offplatform_sale` | FAIL-? | run-490 | 167 |  | [Failed] multi_quantity_offplatform_sale (2m 31s) (No visible element found: "QA Disposable offplatform_units" |
+| `multi_quantity_partial_sale` | FAIL-assert | run-490 | 245 | fixed | Found UI-008 (HIGH): typed 3, sold all 15 — pre-filled field appended, clamp silently swallowed it, listing retired. Fixed with selectTextOnFocus + a destructive over-stock hint; same fix applied to the web dialog. Also UI-009 ("15 of 15 left" before any sale). Flow itself needed: explicit seller login (login_seller.yaml lands in the dev-client launcher; login.yaml ignores an EMAIL override when a session exists), scrollUntilVisible on `lifecycle-more-action`, and the review prompt instead of the racing toast. run-020 green, 0 api errors, DB confirms 3 sold / 12 left / still active. |
+| `publish_from_owner_detail` | FAIL-assert | run-490 | 272 |  | [Failed] publish_from_owner_detail (4m 17s) (Assertion is false: "Publish this listing?" is visible) |
+| `publish_success` | FAIL-assert ⟳stale | run-490 | 295 | flow-bug fixed | 2026-09-05 title asserted while the detail screen was scrolled past it; guarded UP scroll added. |
+| `reserved_buyer` | FAIL-assert ⟳stale | run-490 | 223 | flow-bug fixed | 2026-09-05 the IME covered the search result; the card tap landed on the keyboard (Maestro reports covered taps COMPLETED) so the app never left BROWSE and the failure surfaced later on 'Make an Offer'. hideKeyboard added after typing. |
+| `sales_screen_correct_quantity` | PASS | run-490 | 329 |  |  |
+| `sales_screen_reviewed_sale_refusal` | FAIL-assert | run-490 | 179 |  | [Failed] sales_screen_reviewed_sale_refusal (2m 43s) (Element not found: Id matching regex: seller-card-more-a |
+| `sales_screen_void_row` | PASS | run-490 | 322 |  |  |
+| `save_draft` | FAIL-assert | run-490 | 236 |  | [Failed] save_draft (3m 41s) (Assertion is false: "Create Listing" is visible) |
+| `sell_without_reserving` | PASS | run-490 | 267 |  |  |
+| `sold_quantity_reconciliation` | FAIL-assert | run-490 | 307 |  | [Failed] sold_quantity_reconciliation (4m 51s) (Assertion is false: id: listing-form-quantity-reopen-note is v |
+| `undo_mark_sold` | PASS | run-490 | 267 |  |  |
+| `undo_mark_sold_with_buyer` | PASS | run-490 | 193 |  |  |
 
 ## `report` — Report a listing or user, block, block side-effects
 
