@@ -10,18 +10,17 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**102 of 258 flows passing** · 153 still need attention
+**105 of 258 flows passing** · 150 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 102 | green, and no backend error underneath |
+| PASS | 105 | green, and no backend error underneath |
 | SILENT | 1 | **assertions passed while the API errored** — the app told the user nothing |
 | FAIL-assert | 87 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-crash | 1 | the app crashed (FATAL EXCEPTION in logcat) |
-| FAIL-? | 17 | failed, cause unclear — read the log |
+| FAIL-? | 21 | failed, cause unclear — read the log |
 | (rig) | 3 | rig broke mid-run — result meaningless, re-run |
-| UNTESTED | 46 | never executed |
+| UNTESTED | 40 | never executed |
 
 ### Definition of done
 
@@ -260,21 +259,6 @@ bug class a user reports as "nothing happened".
 | `undo_mark_sold` | PASS | run-490 | 267 |  |  |
 | `undo_mark_sold_with_buyer` | PASS | run-490 | 193 |  |  |
 
-## `report` — Report a listing or user, block, block side-effects
-
-0/8 passing · 8 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `block_prevents_message` | UNTESTED | — |  |  |  |
-| `block_user` | UNTESTED | — |  |  |  |
-| `block_user_hides_listings` | UNTESTED | — |  |  |  |
-| `report_listing` | UNTESTED | — |  | fixture | RIG-004; also gained the duplicate-rule assertion for listings, which nothing covered. |
-| `report_listing_no_reason` | UNTESTED | — |  |  |  |
-| `report_user` | UNTESTED | — |  | fixture | RIG-004 part 2: retargeted to ahmad (36) so it cannot collide intra-cycle. |
-| `report_user_from_profile` | UNTESTED | — |  | fixture | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
-| `report_user_then_block` | UNTESTED | — |  | fixture | Retargeted to maryam (40); now unblocks, which it never did. |
-
 ## `dark_mode` — Every main screen in dark theme + theme persistence
 
 0/8 passing · 8 open
@@ -290,6 +274,21 @@ bug class a user reports as "nothing happened".
 | `theme_light_all_screens` | FAIL-assert | s4/run-108 | 158 |  | [Failed] theme_light_all_screens (2m 14s) (Element not found: Text matching regex: Appearance) |
 | `theme_persists_after_navigate` | UNTESTED | — |  | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
 
+## `report` — Report a listing or user, block, block side-effects
+
+1/8 passing · 7 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `block_prevents_message` | UNTESTED | — |  |  |  |
+| `block_user` | FAIL-? | run-495 | 0 |  |  |
+| `block_user_hides_listings` | PASS | run-495 | 262 | PASS, but its logcat carries one `Network Error` line — worth watching, not a defect on its own. |  |
+| `report_listing` | FAIL-? | run-495 | 360 | rig — no cause line and its end-of-flow screenshot is a CORRUPT PNG (PIL: cannot identify image file), i.e. the flow was killed mid-screenshot. Re-run. | RIG-004; also gained the duplicate-rule assertion for listings, which nothing covered. |
+| `report_listing_no_reason` | FAIL-assert | run-495 | 239 | rig — same auth/timing family as report_user (asserts `profile-tab`, i.e. a signed-in tab bar, and does not get one). No Network Error in its own logcat, so re-run before triaging further. | [Failed] report_listing_no_reason (3m 39s) (Assertion is false: id: profile-tab is visible) |
+| `report_user` | FAIL-assert | run-495 | 232 | rig/env — login never completed. Screenshot is the LOGIN screen showing 'No connection. Check your internet and try again.' and the logcat carries `Network Error` against http://10.0.2.2:3007/api/v1. API verified healthy from the host (200 on listings and sign_in) and the emulator reaches the host (ping 0% loss), so this was a transient timeout — the driver started this pass while host load was ~13. NOT evidence about the hideKeyboard revert either way. | RIG-004 part 2: retargeted to ahmad (36) so it cannot collide intra-cycle. |
+| `report_user_from_profile` | FAIL-? | run-495 | 588 | rig — never opened the listing. The result card (Honda CG 125 Motorbike 2021) is rendered in the screenshot and the flow failed on `seller-profile-link` without tapping it. Also shows the inputText character drop: field holds '5 Motorbike 2021', leading 'Honda CG 12' dropped. open_listing_by_title.yaml's wait-on-listing-card + tap-by-testID is the pattern that fixes this. | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
+| `report_user_then_block` | FAIL-? | run-495 | 186 | rig — ran UNAUTHENTICATED. The end-of-flow screenshot's tab bar reads Bazaar / Categories / Login, so `seller-profile-link` (which DOES exist, ListingDetail.tsx:797) was never reachable. Also shows the inputText character drop: the search field holds 'nch 4K Smart TV' — the leading 'Sony 55 i' was dropped. | Retargeted to maryam (40); now unblocks, which it never did. |
+
 ## `rtl` — Pashto + Dari right-to-left layout across main screens
 
 2/10 passing · 7 open
@@ -301,7 +300,7 @@ bug class a user reports as "nothing happened".
 | `buyer_picker_rtl` | (rig) | s2/run-495 | 601 |  |  |
 | `categories_hub_rtl` | UNTESTED | — |  | flow | 2026-09-02: tapped text "Back" in a flow whose whole purpose is Pashto. The app renders no literal "Back" — BackButton has accessibilityLabel t(common.goBack) (ps شاته ځه) and testID back_button. Now targets the testID. |
 | `chat_rtl` | UNTESTED | — |  | flow? | 2026-09-02: expects ps common.send "لیږل", present verbatim. Same language-revert hypothesis as profile_rtl. |
-| `listing_detail_rtl` | FAIL-crash | run-474 | 146 |  | [Failed] listing_detail_rtl (2m 16s) (Assertion is false: "Switch to .*" is visible) |
+| `listing_detail_rtl` | UNTESTED | — |  |  |  |
 | `my_listings_rtl` | UNTESTED | — |  |  |  |
 | `profile_quick_actions_rtl` | UNTESTED | — |  | flow | 2026-09-02 SOLVED, flow bug, b20007e: the language-revert hypothesis was WRONG, and so was the mode-toggle one. Profile.tsx:306 renders this row as `${t('…myListings')} (${count})`, so the text is 'زما اعلانونه (0)' and Maestro's anchored regex could not match the bare label — the three sibling labels carry no suffix, which is why only this row failed. run-379's screenshot shows Profile correctly in seller mode (green tab bar, three tabs, saved-tab gone). Matched as a prefix now. NOT an app bug. |
 | `profile_rtl` | UNTESTED | — |  | flow? | 2026-09-02: expects fa profile.editProfile "ویرایش پروفایل", which EXISTS verbatim in the locale file — so not a stale selector. Hypothesis: the language-revert bug (fixed 8097ab3) left the app in English after the switch, so no translated string could match. Re-running on a build with that fix. |
@@ -328,17 +327,6 @@ bug class a user reports as "nothing happened".
 | `profile_reviews_empty_state` | UNTESTED | — |  |  |  |
 | `rate_buyer_after_sale` | UNTESTED | — |  |  |  |
 
-## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
-
-2/4 passing · 2 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `listing_create_multi_photos` | PASS | s2/run-286 | 283 | flow | Asserted the reorder hint with nothing selected; hint needs selectedIdx !== -1. |
-| `listing_edit_add_photos` | FAIL-assert | run-470 | 220 | flow | 2026-09-02: never scrolled to its own Save button, which adding a photo pushes below the fold — the rule this file's own header states. Now scrolls at visibilityPercentage 40. |
-| `listing_gallery_no_photo` | FAIL-assert | s2/run-286 | 197 |  | [Failed] listing_gallery_no_photo (3m 6s) (Assertion is false: "No photo" is visible) |
-| `listing_gallery_swipe` | PASS | s2/run-286 | 147 |  |  |
-
 ## `safety` — Safety tips on listing detail and in the meetup sheet
 
 0/2 passing · 2 open
@@ -357,29 +345,6 @@ bug class a user reports as "nothing happened".
 | `open_listing_deep_link` | UNTESTED | — |  |  |  |
 | `open_seller_deep_link` | UNTESTED | — |  |  |  |
 
-## `auth` — Sign up, login, logout, session persistence, guest gating
-
-15/16 passing · 1 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `confirm_email_prompt` | PASS | s2/run-285 | 140 |  |  |
-| `guest_browse` | PASS | s2/run-285 | 102 |  |  |
-| `guest_offer_redirect` | PASS | s2/run-285 | 157 |  |  |
-| `guest_save_redirect` | PASS | s2/run-285 | 158 |  |  |
-| `login` | FAIL-assert | run-469 | 220 |  | [Failed] login (3m 31s) (Assertion is false: "Development Build" is not visible) |
-| `login_deep` | PASS | s2/run-285 | 183 |  |  |
-| `login_empty_fields` | PASS | s2/run-285 | 93 |  | Request failed with status code Request failed with status code |
-| `login_navigate_to_register` | PASS | s2/run-285 | 89 |  |  |
-| `login_wrong_password` | PASS | s2/run-285 | 100 |  | Request failed with status code |
-| `logout` | PASS | s2/run-285 | 196 | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
-| `logout_cancel` | PASS | s2/run-285 | 194 |  |  |
-| `register_duplicate_email` | PASS | s2/run-285 | 119 | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
-| `register_navigate_to_login` | PASS | s2/run-285 | 92 |  |  |
-| `session_persist` | PASS | s2/run-285 | 121 |  |  |
-| `sign_up` | PASS | s2/run-285 | 150 |  |  |
-| `sign_up_validation` | PASS | s2/run-285 | 132 |  |  |
-
 ## `onboarding` — First-run experience
 
 0/1 passing · 1 open
@@ -387,6 +352,17 @@ bug class a user reports as "nothing happened".
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `first_run` | FAIL-redbox | s2/run-156 | 127 |  | [Failed] first_run (1m 47s) (Assertion is false: "Buy or sell — your choice" is visible) |
+
+## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
+
+2/4 passing · 1 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `listing_create_multi_photos` | PASS | s2/run-286 | 283 | flow | Asserted the reorder hint with nothing selected; hint needs selectedIdx !== -1. |
+| `listing_edit_add_photos` | PASS ⟳stale | s2/run-286 | 165 | flow | 2026-09-02: never scrolled to its own Save button, which adding a photo pushes below the fold — the rule this file's own header states. Now scrolls at visibilityPercentage 40. |
+| `listing_gallery_no_photo` | FAIL-assert | s2/run-286 | 197 |  | [Failed] listing_gallery_no_photo (3m 6s) (Assertion is false: "No photo" is visible) |
+| `listing_gallery_swipe` | PASS | s2/run-286 | 147 |  |  |
 
 ## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
 
@@ -400,6 +376,29 @@ bug class a user reports as "nothing happened".
 | `my_listings_pagination` | PASS | s2/run-156 | 202 |  |  |
 | `saved_pagination_deep` | PASS | s2/run-156 | 147 |  |  |
 | `search_pagination` | PASS | s2/run-156 | 161 |  |  |
+
+## `auth` — Sign up, login, logout, session persistence, guest gating
+
+16/16 passing · 0 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `confirm_email_prompt` | PASS | s2/run-285 | 140 |  |  |
+| `guest_browse` | PASS | s2/run-285 | 102 |  |  |
+| `guest_offer_redirect` | PASS | s2/run-285 | 157 |  |  |
+| `guest_save_redirect` | PASS | s2/run-285 | 158 |  |  |
+| `login` | PASS | s2/run-285 | 119 |  |  |
+| `login_deep` | PASS | s2/run-285 | 183 |  |  |
+| `login_empty_fields` | PASS | s2/run-285 | 93 |  | Request failed with status code Request failed with status code |
+| `login_navigate_to_register` | PASS | s2/run-285 | 89 |  |  |
+| `login_wrong_password` | PASS | s2/run-285 | 100 |  | Request failed with status code |
+| `logout` | PASS | s2/run-285 | 196 | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
+| `logout_cancel` | PASS | s2/run-285 | 194 |  |  |
+| `register_duplicate_email` | PASS | s2/run-285 | 119 | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
+| `register_navigate_to_login` | PASS | s2/run-285 | 92 |  |  |
+| `session_persist` | PASS | s2/run-285 | 121 |  |  |
+| `sign_up` | PASS | s2/run-285 | 150 |  |  |
+| `sign_up_validation` | PASS | s2/run-285 | 132 |  |  |
 
 ## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
 
