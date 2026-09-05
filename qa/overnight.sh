@@ -247,9 +247,22 @@ wait_for_agent() {
     [ $waited -eq 0 ] && say "agent is editing — holding off (its edits would hot-reload into a flow)"
     sleep 15; waited=$((waited + 15))
     # Never block the night forever on a marker somebody forgot to remove.
-    if [ $waited -ge 900 ]; then
-      say "edit marker held 15min — assuming it was left behind, continuing"
+    #
+    # 15 minutes was too short, measured on 2026-09-05: the agent held the marker
+    # for a device-verification session (three viewports, relaunch + login + shots
+    # at each), the cap expired mid-session, and the driver started run-495 onto a
+    # device whose window size the agent was changing under it — so the pass was
+    # discarded and the verification had to restart. A verification pass is the one
+    # thing the marker exists to protect, and it is inherently slower than a flow.
+    #
+    # An hour is still a real ceiling against a marker left behind by a crashed
+    # session, and the driver says loudly which case it thinks it is in.
+    if [ $waited -ge 3600 ]; then
+      say "edit marker held 60min — assuming it was left behind, continuing"
       rm -f "$EDIT_MARKER"; break
+    fi
+    if [ $waited -eq 900 ]; then
+      say "agent still editing after 15min — waiting (cap is 60min)"
     fi
   done
 }

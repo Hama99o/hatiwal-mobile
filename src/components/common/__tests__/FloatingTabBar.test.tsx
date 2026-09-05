@@ -118,26 +118,24 @@ describe("FloatingTabBar — tab visibility (guest/mode security)", () => {
     expect(screen.getByLabelText("Me")).toBeTruthy();
   });
 
-  describe("narrow screens", () => {
-    // The defect: at 360dp the primary nav read "Categ…". Five tabs share
-    // ~328dp there, so a tab is ~66dp; minus the pill's 20dp of horizontal
-    // padding and the item's 4dp, the label had ~42dp for text needing ~56dp at
-    // 10.5pt. Dari's "دسته‌بندی‌ها" truncated the same way. The fix trims the
-    // pill's padding and the font ONLY below 380dp, so the 411dp reference
-    // device is untouched.
-    const widthOf = (title: string) => {
-      const node = screen.getByText(title);
-      const flat = [node.props.style].flat(3).filter(Boolean) as Record<string, unknown>[];
-      return flat.reduce<number | undefined>(
-        (acc, layer) => (typeof layer.fontSize === "number" ? layer.fontSize : acc),
-        undefined,
-      );
-    };
+  describe("long labels never truncate, at any width", () => {
+    // The defect: at 360dp the primary nav read "Categ…", and Dari's
+    // "دسته‌بندی‌ها" truncated the same way.
+    //
+    // The FIRST fix was a `windowWidth < 380` breakpoint that dropped the label
+    // to 9.5pt, and these two tests used to assert exactly that — 9.5 at 360dp,
+    // 10.5 at 411dp. Both passed. The breakpoint was still wrong: on a device at
+    // 411dp, ABOVE the threshold and therefore "fine" by these tests, the tab
+    // read "Categor…". A width number cannot know how long a translated string
+    // is, so it was replaced by shrink-to-fit, which asks the platform.
+    //
+    // These tests are therefore about the CONTRACT, not a number: one line,
+    // allowed to shrink, with a floor. Asserting a rendered font size again
+    // would re-introduce exactly the false confidence described above — the
+    // shrinking happens in native layout, which does not run in Jest.
+    const labelProps = (title: string) => screen.getByText(title).props;
 
-    it("shrinks the label font below 380dp", () => {
-      jest.spyOn(Dimensions, "get").mockReturnValue({
-        width: 360, height: 640, scale: 2, fontScale: 1,
-      });
+    const renderBar = () =>
       render(
         <FloatingTabBar
           {...makeProps([
@@ -146,22 +144,39 @@ describe("FloatingTabBar — tab visibility (guest/mode security)", () => {
           ])}
         />
       );
-      expect(widthOf("Categories")).toBe(9.5);
+
+    it("lets every label shrink to fit rather than clipping it", () => {
+      renderBar();
+      for (const title of ["Bazaar", "Categories"]) {
+        const props = labelProps(title);
+        expect(props.numberOfLines).toBe(1);
+        expect(props.adjustsFontSizeToFit).toBe(true);
+        expect(props.minimumFontScale).toBe(0.8);
+      }
     });
 
-    it("leaves the 411dp reference device alone", () => {
-      jest.spyOn(Dimensions, "get").mockReturnValue({
-        width: 411, height: 914, scale: 2.625, fontScale: 1,
-      });
-      render(
-        <FloatingTabBar
-          {...makeProps([
-            { name: "browse", title: "Bazaar", focused: true },
-            { name: "categories", title: "Categories" },
-          ])}
-        />
-      );
-      expect(widthOf("Categories")).toBe(10.5);
+    it("keeps one base font size instead of a width breakpoint", () => {
+      // Same render at two very different widths must produce the same style —
+      // any width-conditional font here would be the old bug returning.
+      const sizeAt = (width: number) => {
+        jest.spyOn(Dimensions, "get").mockReturnValue({
+          width, height: 900, scale: 2, fontScale: 1,
+        });
+        const { unmount } = renderBar();
+        const flat = [labelProps("Categories").style].flat(3).filter(Boolean) as Record<
+          string,
+          unknown
+        >[];
+        const size = flat.reduce<number | undefined>(
+          (acc, layer) => (typeof layer.fontSize === "number" ? layer.fontSize : acc),
+          undefined,
+        );
+        unmount();
+        return size;
+      };
+      expect(sizeAt(360)).toBe(10.5);
+      expect(sizeAt(411)).toBe(10.5);
+      expect(sizeAt(448)).toBe(10.5);
     });
   });
 

@@ -21,7 +21,7 @@
  */
 
 import React from "react";
-import { View, Pressable, StyleSheet, useWindowDimensions } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
@@ -46,16 +46,6 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const { isRtl } = useLocalization();
   const insets = useSafeAreaInsets();
   const isSeller = useModeStore((s) => s.mode) === "seller";
-  // LIVE width, not a module-level snapshot — this has to survive a rotation,
-  // and the map layer already learned that lesson the hard way (MapCanvas's
-  // "sized from a width captured at import time is wrong after any rotation").
-  //
-  // 380 is the threshold because the tabs fit at 411dp (the reference device)
-  // and do not at 360dp, which is the common small Android. See the note on the
-  // pill below for the arithmetic.
-  const { width: windowWidth } = useWindowDimensions();
-  const compact = windowWidth < 380;
-
   // Buyer → blue `primary`; seller → emerald `seller`. The soft alpha tint sits
   // behind the active tab so the current screen + the active role are both clear.
   const accent = isSeller ? colors.seller : colors.primary;
@@ -162,7 +152,6 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                   // Trimming the pill rather than the text: the pill is only the
                   // active-tab highlight, so 6dp still reads as a capsule while
                   // returning 8dp per side to the label.
-                  compact ? { paddingHorizontal: 6 } : null,
                   // Active tab sits in a soft accent-tinted pill.
                   isFocused ? { backgroundColor: accentAlpha } : null,
                 ]}
@@ -182,13 +171,31 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
                   ) : null}
                 </View>
 
+                {/* SHRINK-TO-FIT, NOT A WIDTH BREAKPOINT.
+                    "Categories" is the long label (Dari's "دسته‌بندی‌ها" too) and
+                    it does not fit five tabs at 10.5pt on a narrow phone. The
+                    first fix here was `windowWidth < 380 ? 9.5pt`, and measuring
+                    it on device showed the threshold was simply WRONG: at 411dp
+                    — the reference phone, above the breakpoint — the tab still
+                    read "Categor…". Any single number is a guess about a string
+                    whose length changes with the locale.
+
+                    `adjustsFontSizeToFit` asks the platform instead: each label
+                    renders at 10.5pt wherever it fits and shrinks only itself,
+                    only as far as it must. Verified on device at 360 / 411 /
+                    448dp — "Categories" is whole at all three, and every other
+                    label stays 10.5pt.
+
+                    It also removes the one iOS behaviour change this fix used to
+                    carry: a `< 380` breakpoint silently caught iPhone SE and 13
+                    mini at 375pt, and there is no Mac here to look at what it
+                    did to them. Nothing is width-conditional now. */}
                 <Text
                   numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
                   style={[
                     styles.label,
-                    // The last point of headroom, and only where it is needed:
-                    // padding alone still left "Categories" ~2dp short.
-                    compact ? { fontSize: 9.5 } : null,
                     { color: contentColor, fontWeight: isFocused ? "700" : "500" },
                   ]}
                 >
@@ -233,7 +240,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 3,
     paddingVertical: 6,
-    paddingHorizontal: 10,
+    // 6, not 10 — and at EVERY width, which is the half of the fix that costs
+    // nothing. Trimming 8dp of pill padding per tab is what let "Categories"
+    // render whole at 411dp with no font change at all; the shrink-to-fit above
+    // then only has to do work on genuinely narrow phones. The pill is just the
+    // active-tab highlight, so 6 still reads as a capsule (minWidth 54 keeps it
+    // from collapsing around a short label like "Me").
+    paddingHorizontal: 6,
     // Fully rounded, not 18. The comment at the call site calls this a "pill" and
     // that was the intent, but the box is about 54x51 (22px icon + 3 gap + 10.5pt
     // label + 12 padding), so an 18px radius reads as a rounded SQUARE with four

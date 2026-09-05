@@ -103,10 +103,25 @@ export function ReportSheet({
   // sheet with no keyboard has both present.
   //
   // 88% of the REMAINING height keeps the original proportion on a roomy window
-  // (where androidLift is 0, this is exactly the old value) and shrinks the sheet
-  // to fit once the keyboard is up, which is what keeps the footer on screen.
+  // and shrinks the sheet to fit once the keyboard is up, which is what keeps the
+  // footer on screen.
+  //
+  // ANDROID ONLY, and the platform split is the point — "androidLift is 0 on iOS
+  // so the number is the same" is NOT true here. `styles.sheet`'s "88%" is a
+  // percentage of this View's PARENT, and on iOS that parent is a
+  // KeyboardAvoidingView with behavior="padding": when the IME opens it pads
+  // itself, so the parent box — and with it the 88% — already shrinks to the
+  // space above the keyboard. Overriding it with 88% of the whole WINDOW would
+  // hand the sheet a cap taller than the room it actually has, on precisely the
+  // devices (iPhone SE and other short screens) where the original bug's
+  // symptom — a footer under the keyboard — is most likely.
+  //
+  // There is no Mac here to look at what that does, so iOS keeps the value it
+  // has always had. This fix is for the Android path, which is where the defect
+  // was measured.
   const { height: windowH } = useWindowDimensions();
-  const sheetMaxHeight = Math.max(240, (windowH - androidLift) * 0.88);
+  const sheetMaxHeight =
+    Platform.OS === "android" ? Math.max(240, (windowH - androidLift) * 0.88) : "88%";
 
   const [selectedReason, setSelectedReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
