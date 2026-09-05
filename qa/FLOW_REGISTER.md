@@ -10,12 +10,12 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**101 of 258 flows passing** · 152 still need attention
+**99 of 258 flows passing** · 154 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 101 | green, and no backend error underneath |
-| FAIL-assert | 93 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 99 | green, and no backend error underneath |
+| FAIL-assert | 95 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-? | 18 | failed, cause unclear — read the log |
 | (rig) | 5 | rig broke mid-run — result meaningless, re-run |
@@ -28,55 +28,6 @@ screen looked correct while the request failed, which is precisely the
 bug class a user reports as "nothing happened".
 
 ## Flows
-
-## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
-
-11/42 passing · 26 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_all_categories` | PASS | run-494 | 201 |  | AxiosError |
-| `browse_listings` | PASS | run-494 | 145 |  |  |
-| `browse_sort_most_viewed` | FAIL-assert ⟳stale | run-494 | 155 | flow — chip strip. Labels are NOT stale (browse.json still has sort.mostViewed/nearest, FilterSheet SORT_OPTIONS renders 5 chips in a horizontal ScrollView). The blind `repeat 6x swipe 85%->20% @74%/68%` is not scrolling that strip at all: 6 iterations move ~2800dp, five chips need ~200. Replace with scrollUntilVisible direction:RIGHT. NOT yet verified on device. | AxiosError AxiosError |
-| `browse_sort_nearest` | FAIL-assert ⟳stale | run-494 | 152 | flow — same chip strip as browse_sort_most_viewed. Extra wrinkle: `nearest` is NOT in SORT_OPTIONS; it is a separate chip (FilterSheet:409) that acquires location on tap, so it may also need a location fixture. | [Failed] browse_sort_nearest (2m 19s) (Assertion is false: "Nearest first" is visible) |
-| `categories_hub` | PASS | run-494 | 156 |  |  |
-| `clear_all_filters` | PASS | run-494 | 159 |  |  |
-| `filter_active_sellers` | PASS | run-494 | 148 |  |  |
-| `filter_by_category` | PASS | run-494 | 144 |  |  |
-| `filter_condition` | PASS | run-494 | 149 |  |  |
-| `filter_price_range` | PASS | run-494 | 159 |  |  |
-| `full_marketplace_cycle` | FAIL-assert | run-494 | 532 | flow — doubled search (missing eraseText) + inherited price filter emptied the feed; fixed | Four taps with the same search-box collision; three now erase and re-search first. |
-| `listing_contact_whatsapp` | FAIL-? | run-494 | 231 |  | [Failed] listing_contact_whatsapp (3m 31s) (No visible element found: id: seller-phone-reveal-button) |
-| `listing_detail` | FAIL-? | run-494 | 201 | flow — converted to open_listing_by_title.yaml (search instead of scrolling a ~98-listing feed). Helper is proven in run-496 via reserve_after_accept. | [Failed] listing_detail (3m 4s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `listing_detail_held_units_transparency` | FAIL-assert ⟳stale | run-494 | 226 | REVERT CONFIRMED — no longer exits the app (run-494 fails on `listing-card` not visible, not the Android home screen). The hideKeyboard->drag revert worked here. Remaining failure is the scroll race. | [Failed] listing_detail_held_units_transparency (3m 29s) (Assertion is false: id: listing-card is visible) |
-| `listing_detail_multi_quantity` | FAIL-assert | run-494 | 222 | flow — scroll stopped at the clipped bottom row so the price row never showed; centred. API data verified correct | [Failed] listing_detail_multi_quantity (3m 21s) (Assertion is false: "AFN.*" is visible) |
-| `listing_detail_offer` | FAIL-? | run-494 | 549 | flow — converted to open_listing_by_title.yaml. | [Failed] listing_detail_offer (8m 46s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `listing_detail_offer_invalid` | (rig) | run-494 | 602 |  |  |
-| `listing_detail_price_drop_badge` | FAIL-? | run-494 | 241 | flow — scroll race (Lenovo ThinkPad Laptop Core i5 8GB). Gated on open_listing_by_title rollout. | [Failed] listing_detail_price_drop_badge (3m 34s) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8 |
-| `listing_detail_quantity_intent` | FAIL-? | run-494 | 283 | flow — both listing opens converted to open_listing_by_title.yaml. | [Failed] listing_detail_quantity_intent (3m 57s) (No visible element found: "Phone Case Silicone Clear - Whole |
-| `listing_detail_report` | FAIL-? | run-494 | 223 | flow — converted to open_listing_by_title.yaml. | RIG-004 tolerance; covers the detail-screen entry point. |
-| `listing_detail_reserved_contactable` | PASS | run-494 | 165 |  |  |
-| `listing_detail_save_unsave` | FAIL-? | run-494 | 151 | flow — CORRECTED DIAGNOSIS. Not a scroll-length problem: this flow calls the opener straight after login.yaml, and login.yaml ENDS ON THE PROFILE SCREEN (its last steps are ensure_english + ensure_buyer_mode, both working the profile's mode toggle). So the feed was never on screen and no scroll timeout could have helped. Now uses open_listing_by_title.yaml, which reaches the Bazaar feed itself. | [Failed] listing_detail_save_unsave (2m 18s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `listing_detail_saves_count` | FAIL-assert | run-494 | 178 | flow — tapped the save TOGGLE blind and unsaved it, so savesCount hit 0; now state-aware | [Failed] listing_detail_saves_count (2m 44s) (Assertion is false: "Saved by.*" is visible) |
-| `listing_detail_share` | PASS | run-494 | 156 |  |  |
-| `listing_detail_similar` | FAIL-? | run-494 | 180 |  | [Failed] listing_detail_similar (2m 44s) |
-| `listing_detail_sold_recovery` | (rig) | run-494 |  | rig — 'emulator died and could not be rebooted'. Host disk was 98% full and swap exhausted; pruned 2026-09-05. Re-run. | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
-| `listing_detail_sold_state` | UNTESTED | — |  | flow — same cold-start deep-link loss; fixed alongside sold_recovery |  |
-| `listing_detail_views_count` | UNTESTED | — |  |  |  |
-| `not_interested` | UNTESTED | — |  |  |  |
-| `saved_search_apply` | UNTESTED | — |  | flow — tapped the SHEET's "Clear" after closing the sheet; now the feed's clear-filters chip |  |
-| `scroll_to_top` | UNTESTED | — |  |  |  |
-| `search_empty_state` | UNTESTED | — |  |  |  |
-| `search_listings` | UNTESTED | — |  |  |  |
-| `search_with_filter` | UNTESTED | — |  |  |  |
-| `seller_profile` | UNTESTED | — |  |  |  |
-| `seller_profile_from_listing` | PASS | s2/run-141 | 237 |  |  |
-| `seller_response_rate_badge` | UNTESTED | — |  | flow — anchored pattern started mid-label; badge renders "82% reply rate · Usually responds…" as one Text |  |
-| `subcategory_drilldown` | UNTESTED | — |  | flow — chip reads "Subcategory: Phones & Tablets"; the two chip asserts still said "Phones" | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
-| `user_profile_empty_listings` | UNTESTED | — |  | flow — index 0 of a recency-ordered inbox reached Fatima (owns a listing); now targets Ahmad | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
-| `user_profile_listing_grid` | UNTESTED | — |  | flow | Grid sits below the profile header; assertVisible does not scroll. Added both ways. |
-| `user_profile_stats` | UNTESTED | — |  | flow — asserted a "Message" button the profile has never had (contact is per-listing by design) | Hardcoded "2024"; member_since renders "August 2026" as one node. Year-shaped pattern. |
-| `view_mode_toggle` | UNTESTED | — |  | REVERT CONFIRMED — PASSED in run-494 after the hideKeyboard->drag revert. | HOLLOW: every tap optional, only assertion was the always-present tab label. Rewritten. |
 
 ## `listings` — Seller create/edit/delete + the 3-state lifecycle (Draft/Live/Sold) — Mark sold is always the one-tap primary, no Reserved tab
 
@@ -127,7 +78,7 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state — mark-sold one-tap from the thread, place/release a hold with the buyer you're already talking to
 
-20/49 passing · 25 open
+20/49 passing · 23 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -151,7 +102,7 @@ bug class a user reports as "nothing happened".
 | `mark_read` | FAIL-assert | run-496 | 354 | flow — asserts the LOGIN tagline 'Buy and sell locally in Afghanistan' is visible and it is not. Needs its own read once the login helper is fixed; the session state it assumes is the thing currently unstable. | Same unrepliable-thread trap. |
 | `mark_read_end_to_end` | FAIL-assert | run-496 | 307 | flow — asserts "Today" (a message-list date divider) and does not get it. Downstream of the same session instability; re-run after the login helper fix before triaging further. | 2026-09-02: asserted an unread badge exists then tapped conversation-row index 0 — the newest thread, not necessarily the unread one. The divider only exists inside a thread with unread messages. Now taps unread-badge, which bubbles to its own row. |
 | `meetup_decline` | PASS | run-496 | 371 | flow | reload-corrupted in run-232, AND a real defect underneath: it tapped Decline on a proposal nothing seeds (grep meetup in e2e.rb = 0), and Decline needs `!isMine`. Now two-party via _helpers/propose_meetup. 1bdaa76 |
-| `meetup_full_cycle` | FAIL-? | run-496 | 210 | flow — converted to open_listing_by_title.yaml (was failing on "Phone Case Silicone Clear - Wholesale"). | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
+| `meetup_full_cycle` | FAIL-? ⟳stale | run-496 | 210 | flow — converted to open_listing_by_title.yaml (was failing on "Phone Case Silicone Clear - Wholesale"). | reload-corrupted in run-232, AND a real defect underneath: it relaunched as the same user and tried to accept its OWN bubble, which `!isMine` (MessageBubble.tsx) forbids. Now switches to the seller. 1bdaa76 |
 | `meetup_proposal` | PASS | run-496 | 226 | flow | CONFIRMED reload artefact — its logcat carries `Destroying ReactContext`: I saved a src/ file mid-run and the dev client reloaded. No app or flow defect known. Submit is now by ID anyway (the label swaps to "Sending…"). 1bdaa76 919aeb2 |
 | `meetup_proposed_bubble_ui` | PASS | run-496 | 270 | flow | PROVEN defect, no reload in its logcat: filled only the place, and the app rightly refuses without a time (handlePropose sets timeError). Now fills both. 1bdaa76 |
 | `meetup_respond` | FAIL-assert | run-496 | 387 | flow — login SKIPPED (PENDING_RIG_FIXES fix 6). End-of-flow screenshot is the login screen with an EMPTY form and no error banner, i.e. the sign-in block never ran. `conversations-search-bar` is not stale (Conversations.tsx:554) — the Chats tab does not exist at all for a guest, so the search bar cannot be there. | PROVEN defect, no reload in its logcat: Accept needs a proposal from the counterpart and nothing seeds one. Now two-party. 1bdaa76 |
@@ -159,7 +110,7 @@ bug class a user reports as "nothing happened".
 | `message_long_text` | PASS | run-496 | 211 | flow | Asserted 27 chars of the 366-char message it sent. Now spans both ends. |
 | `offer_counter_flow` | FAIL-assert | run-496 | 387 | GATE FLOW (hideKeyboard revert) — fails on `"Accept offer" is visible`, NOT the app-exit symptom, so the revert is not implicated. Copy is current (chat.json offer.accept = 'Accept offer'). Ran BEFORE fixes 6/4 landed; re-run. | 2026-09-05 scroll-to-title; searches inline and taps the card BY testID — after typing, the title is also the search input's own text, so a text tap can hit the field (flow_lint SEARCHTAP). |
 | `offer_in_existing_thread` | FAIL-assert | run-496 | 216 | flow — `"Send Offer"` not visible; copy is current (listing.json detail.sendOffer). Never reached the offer sheet. Ran before fix 6; re-run. | [Failed] offer_in_existing_thread (3m 21s) (Assertion is false: "Send Offer" is visible) |
-| `offer_quantity_round_trip` | FAIL-? | run-496 | 203 | flow — converted to open_listing_by_title.yaml (was failing on "Wool Socks Bulk Pack - 12 Pairs"). | [Failed] offer_quantity_round_trip (3m 7s) (No visible element found: "Wool Socks Bulk Pack - 12 Pairs") |
+| `offer_quantity_round_trip` | FAIL-? ⟳stale | run-496 | 203 | flow — converted to open_listing_by_title.yaml (was failing on "Wool Socks Bulk Pack - 12 Pairs"). | [Failed] offer_quantity_round_trip (3m 7s) (No visible element found: "Wool Socks Bulk Pack - 12 Pairs") |
 | `offer_send_and_accept` | FAIL-assert | run-496 | 187 | flow — `Make an Offer` text not found; copy is current in BOTH chat.json (offer.makeOffer) and listing.json (detail.makeOffer). Never reached the listing detail. Ran before fix 6; re-run. | 2026-09-05 scroll-to-title lost its race with a 98-listing feed (timeout had already gone 8s->20s). Now uses _helpers/open_listing_by_title.yaml, the same search sequence that keeps browse/listing_detail_held_units_transparency green. |
 | `offer_send_and_decline` | FAIL-assert | run-496 | 354 | flow — ran AFTER fix 6 and still ended LOGGED OUT, but on guest BAZAAR (tab bar Bazaar/Categories/Login), not on the login screen. That is a SECOND hole, now fixed: goto_login.yaml's two `tapOn profile-tab` are both optional, so if the tab bar has not mounted they silently no-op and the helper returns from guest Bazaar. A tab-bar wait was added ahead of them. Note the loud failure worked as intended — it died at login.yaml's `assertNotVisible: "Login"`, not 60s later on something unrelated. | 2026-09-05 same scroll-to-title cause as offer_send_and_accept; wired to _helpers/open_listing_by_title.yaml. |
 | `place_and_release_hold` | PASS | run-496 | 207 | PASS — first flow to run with fixes 6+4 in place. |  |
@@ -180,6 +131,55 @@ bug class a user reports as "nothing happened".
 | `start_conversation_and_reply` | PASS | run-496 | 230 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
 | `unread_badge_survives_navigation` | FAIL-assert | run-496 | 162 |  | [Failed] unread_badge_survives_navigation (2m 28s) (Element not found: Id matching regex: conversation-action- |
 | `view_other_profile_from_conversation` | PASS | run-496 | 200 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
+
+## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
+
+11/42 passing · 21 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_all_categories` | PASS | run-494 | 201 |  | AxiosError |
+| `browse_listings` | PASS | run-494 | 145 |  |  |
+| `browse_sort_most_viewed` | FAIL-assert ⟳stale | run-494 | 155 | flow — chip strip. Labels are NOT stale (browse.json still has sort.mostViewed/nearest, FilterSheet SORT_OPTIONS renders 5 chips in a horizontal ScrollView). The blind `repeat 6x swipe 85%->20% @74%/68%` is not scrolling that strip at all: 6 iterations move ~2800dp, five chips need ~200. Replace with scrollUntilVisible direction:RIGHT. NOT yet verified on device. | AxiosError AxiosError |
+| `browse_sort_nearest` | FAIL-assert ⟳stale | run-494 | 152 | flow — same chip strip as browse_sort_most_viewed. Extra wrinkle: `nearest` is NOT in SORT_OPTIONS; it is a separate chip (FilterSheet:409) that acquires location on tap, so it may also need a location fixture. | [Failed] browse_sort_nearest (2m 19s) (Assertion is false: "Nearest first" is visible) |
+| `categories_hub` | PASS | run-494 | 156 |  |  |
+| `clear_all_filters` | PASS | run-494 | 159 |  |  |
+| `filter_active_sellers` | PASS | run-494 | 148 |  |  |
+| `filter_by_category` | PASS | run-494 | 144 |  |  |
+| `filter_condition` | PASS | run-494 | 149 |  |  |
+| `filter_price_range` | PASS | run-494 | 159 |  |  |
+| `full_marketplace_cycle` | FAIL-assert | run-494 | 532 | flow — doubled search (missing eraseText) + inherited price filter emptied the feed; fixed | Four taps with the same search-box collision; three now erase and re-search first. |
+| `listing_contact_whatsapp` | FAIL-? | run-494 | 231 |  | [Failed] listing_contact_whatsapp (3m 31s) (No visible element found: id: seller-phone-reveal-button) |
+| `listing_detail` | FAIL-? ⟳stale | run-494 | 201 | flow — converted to open_listing_by_title.yaml (search instead of scrolling a ~98-listing feed). Helper is proven in run-496 via reserve_after_accept. | [Failed] listing_detail (3m 4s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `listing_detail_held_units_transparency` | FAIL-assert ⟳stale | run-494 | 226 | REVERT CONFIRMED — no longer exits the app (run-494 fails on `listing-card` not visible, not the Android home screen). The hideKeyboard->drag revert worked here. Remaining failure is the scroll race. | [Failed] listing_detail_held_units_transparency (3m 29s) (Assertion is false: id: listing-card is visible) |
+| `listing_detail_multi_quantity` | FAIL-assert | run-494 | 222 | flow — scroll stopped at the clipped bottom row so the price row never showed; centred. API data verified correct | [Failed] listing_detail_multi_quantity (3m 21s) (Assertion is false: "AFN.*" is visible) |
+| `listing_detail_offer` | FAIL-? ⟳stale | run-494 | 549 | flow — converted to open_listing_by_title.yaml. | [Failed] listing_detail_offer (8m 46s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `listing_detail_offer_invalid` | (rig) | run-494 | 602 |  |  |
+| `listing_detail_price_drop_badge` | FAIL-? | run-494 | 241 | flow — scroll race (Lenovo ThinkPad Laptop Core i5 8GB). Gated on open_listing_by_title rollout. | [Failed] listing_detail_price_drop_badge (3m 34s) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8 |
+| `listing_detail_quantity_intent` | FAIL-? ⟳stale | run-494 | 283 | flow — both listing opens converted to open_listing_by_title.yaml. | [Failed] listing_detail_quantity_intent (3m 57s) (No visible element found: "Phone Case Silicone Clear - Whole |
+| `listing_detail_report` | FAIL-? ⟳stale | run-494 | 223 | flow — converted to open_listing_by_title.yaml. | RIG-004 tolerance; covers the detail-screen entry point. |
+| `listing_detail_reserved_contactable` | PASS | run-494 | 165 |  |  |
+| `listing_detail_save_unsave` | FAIL-? ⟳stale | run-494 | 151 | flow — CORRECTED DIAGNOSIS. Not a scroll-length problem: this flow calls the opener straight after login.yaml, and login.yaml ENDS ON THE PROFILE SCREEN (its last steps are ensure_english + ensure_buyer_mode, both working the profile's mode toggle). So the feed was never on screen and no scroll timeout could have helped. Now uses open_listing_by_title.yaml, which reaches the Bazaar feed itself. | [Failed] listing_detail_save_unsave (2m 18s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `listing_detail_saves_count` | FAIL-assert | run-494 | 178 | flow — tapped the save TOGGLE blind and unsaved it, so savesCount hit 0; now state-aware | [Failed] listing_detail_saves_count (2m 44s) (Assertion is false: "Saved by.*" is visible) |
+| `listing_detail_share` | PASS | run-494 | 156 |  |  |
+| `listing_detail_similar` | FAIL-? | run-494 | 180 |  | [Failed] listing_detail_similar (2m 44s) |
+| `listing_detail_sold_recovery` | (rig) | run-494 |  | rig — 'emulator died and could not be rebooted'. Host disk was 98% full and swap exhausted; pruned 2026-09-05. Re-run. | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
+| `listing_detail_sold_state` | UNTESTED | — |  | flow — same cold-start deep-link loss; fixed alongside sold_recovery |  |
+| `listing_detail_views_count` | UNTESTED | — |  |  |  |
+| `not_interested` | UNTESTED | — |  |  |  |
+| `saved_search_apply` | UNTESTED | — |  | flow — tapped the SHEET's "Clear" after closing the sheet; now the feed's clear-filters chip |  |
+| `scroll_to_top` | UNTESTED | — |  |  |  |
+| `search_empty_state` | UNTESTED | — |  |  |  |
+| `search_listings` | UNTESTED | — |  |  |  |
+| `search_with_filter` | UNTESTED | — |  |  |  |
+| `seller_profile` | UNTESTED | — |  |  |  |
+| `seller_profile_from_listing` | PASS | s2/run-141 | 237 |  |  |
+| `seller_response_rate_badge` | UNTESTED | — |  | flow — anchored pattern started mid-label; badge renders "82% reply rate · Usually responds…" as one Text |  |
+| `subcategory_drilldown` | UNTESTED | — |  | flow — chip reads "Subcategory: Phones & Tablets"; the two chip asserts still said "Phones" | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
+| `user_profile_empty_listings` | UNTESTED | — |  | flow — index 0 of a recency-ordered inbox reached Fatima (owns a listing); now targets Ahmad | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
+| `user_profile_listing_grid` | UNTESTED | — |  | flow | Grid sits below the profile header; assertVisible does not scroll. Added both ways. |
+| `user_profile_stats` | UNTESTED | — |  | flow — asserted a "Message" button the profile has never had (contact is per-listing by design) | Hardcoded "2024"; member_since renders "August 2026" as one node. Year-shaped pattern. |
+| `view_mode_toggle` | UNTESTED | — |  | REVERT CONFIRMED — PASSED in run-494 after the hideKeyboard->drag revert. | HOLLOW: every tap optional, only assertion was the always-present tab label. Rewritten. |
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
@@ -218,6 +218,31 @@ bug class a user reports as "nothing happened".
 | `view_profile_error` | PASS | run-493 | 201 |  | AxiosError |
 | `view_seller_profile_from_profile` | FAIL-assert | run-493 | 194 |  | [Failed] view_seller_profile_from_profile (2m 59s) (Assertion is false: "Ahmad Karimi" is visible) |
 
+## `seller` — One-tap Mark sold from any live listing (never reserve-first) + the Sales ledger (edit/void a row, reviewed-sale refusal, outside-buyer rows, undo-after-sold)
+
+5/18 passing · 13 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `held_quantity_refusal` | FAIL-assert | run-497 | 253 | flow — "Winter Gloves Wholesale Box - 15 Pairs" not visible. That listing IS live (API: status=active, seller Omar Noori). Same scroll/wrong-screen family as the flows converted in 4e44fc0; convert it to open_listing_by_title.yaml next. | [Failed] held_quantity_refusal (4m) (Assertion is false: "Winter Gloves Wholesale Box - 15 Pairs" is visible) |
+| `listing_actions_sheet` | FAIL-assert | run-497 | 257 | flow — `Element not found: Id matching regex: browse-tab`, i.e. NO TAB BAR: the flow is standing on a pushed screen. _helpers/pop_to_tab_bar.yaml exists for exactly this and its header notes audit_structure found five flows doing it. Add that helper before the tab tap. | [Failed] listing_actions_sheet (3m 59s) (Element not found: Id matching regex: browse-tab) |
+| `listing_conversations` | FAIL-assert | run-497 | 222 | flow — IDENTITY-SWITCH bug, same as reserved_buyer: login.yaml as the buyer, then "Make an Offer" missing on a seller-owned active negotiable listing. Fixed at the helper (profile-tab wait before the wrong-account check). | 2026-09-05 same IME cause. Its note claimed scrollUntilVisible dismisses the keyboard — true only if it scrolls, and it is a NO-OP when the target is already visible, which after a filtering search it always is. Dead scroll removed, margin drag used instead (Back is unsafe here — it exited the app once). |
+| `mark_sold_all_units` | PASS | run-497 | 210 |  |  |
+| `mark_sold_with_buyer` | PASS | run-497 | 181 |  |  |
+| `multi_quantity_offplatform_sale` | FAIL-? | run-497 | 166 | flow — "QA Disposable offplatform_units" not visible. A DISPOSABLE fixture, so check it was actually seeded for this pass before treating it as a UI defect. | [Failed] multi_quantity_offplatform_sale (2m 32s) (No visible element found: "QA Disposable offplatform_units" |
+| `multi_quantity_partial_sale` | FAIL-assert | run-497 | 237 | flow — "The price for one item" not visible. Copy check needed in all 3 locales before triaging further. | Found UI-008 (HIGH): typed 3, sold all 15 — pre-filled field appended, clamp silently swallowed it, listing retired. Fixed with selectTextOnFocus + a destructive over-stock hint; same fix applied to the web dialog. Also UI-009 ("15 of 15 left" before any sale). Flow itself needed: explicit seller login (login_seller.yaml lands in the dev-client launcher; login.yaml ignores an EMAIL override when a session exists), scrollUntilVisible on `lifecycle-more-action`, and the review prompt instead of the racing toast. run-020 green, 0 api errors, DB confirms 3 sold / 12 left / still active. |
+| `publish_from_owner_detail` | FAIL-assert | run-497 | 271 | flow — "Publish this listing?" not visible (the publish confirm). Needs its own read; no Network Error, so not the auth family. | [Failed] publish_from_owner_detail (4m 18s) (Assertion is false: "Publish this listing?" is visible) |
+| `publish_success` | FAIL-assert | run-497 | 226 | flow — "Pick location on map" not visible. Likely the create-listing form's location step; no Network Error. | 2026-09-05 title asserted while the detail screen was scrolled past it; guarded UP scroll added. |
+| `reserved_buyer` | FAIL-assert | run-497 | 219 | GATE FLOW — gate satisfied (no app-exit symptom). Failure is the IDENTITY-SWITCH bug: it logs in via login.yaml as the buyer, opens a seller-owned listing and finds no "Make an Offer". The API says that listing is status=active, negotiable=true, seller="Omar Noori", and listingAvailability.ts requires a non-owner buyer to get the Message/Offer row — so the app was the OWNER. Root cause found and fixed: login.yaml's whole wrong-account check was gated on `when: visible: profile-tab` with no wait, so a tab bar still mounting skipped it. SEPARATELY, note this flow targets a RESERVED listing in its later legs: canOfferOnListing excludes `reserved` by design (SF-M3 §3.2), so any assertion of "Make an Offer" on a reserved listing is a flow bug regardless — check that before re-running. | 2026-09-05 the IME covered the search result; the card tap landed on the keyboard (Maestro reports covered taps COMPLETED) so the app never left BROWSE and the failure surfaced later on 'Make an Offer'. hideKeyboard added after typing. |
+| `sales_screen_correct_quantity` | FAIL-assert | run-497 | 325 |  | [Failed] sales_screen_correct_quantity (5m 11s) (Assertion is false: id: sales-tally is not visible) |
+| `sales_screen_reviewed_sale_refusal` | FAIL-assert | run-497 | 171 | flow — `seller-card-more-action` not found; the testID IS current (SellerListingCard.tsx:464), so this is a reach/timing failure, not selector rot. Ran AFTER the identity fix and shows no wrong-account signature. | [Failed] sales_screen_reviewed_sale_refusal (2m 37s) (Element not found: Id matching regex: seller-card-more-a |
+| `sales_screen_void_row` | PASS | run-497 | 317 |  |  |
+| `save_draft` | FAIL-assert | run-497 | 233 | flow — asserts "Create Listing" and does not get it; the copy IS current (listing.json `create` = "Create Listing"). Reach/timing, not stale copy. Post-identity-fix. | [Failed] save_draft (3m 40s) (Assertion is false: "Create Listing" is visible) |
+| `sell_without_reserving` | PASS | run-497 | 262 |  |  |
+| `sold_quantity_reconciliation` | FAIL-assert | run-497 | 298 | flow — `listing-form-quantity-reopen-note` not visible; testID IS current (ListingForm.tsx:1688). Reach/timing. Post-identity-fix. | [Failed] sold_quantity_reconciliation (4m 43s) (Assertion is false: id: listing-form-quantity-reopen-note is v |
+| `undo_mark_sold` | FAIL-assert | run-497 | 231 | flow — `location-confirm` not visible; testID IS current (LocationRangePicker.tsx:470). Reach/timing — the location sheet had not opened or had not rendered. Post-identity-fix. | [Failed] undo_mark_sold (3m 38s) (Assertion is false: id: location-confirm is visible) |
+| `undo_mark_sold_with_buyer` | PASS | run-497 | 190 |  |  |
+
 ## `saved` — Save / unsave a listing, saved tab, sold-while-saved
 
 0/8 passing · 8 open
@@ -232,31 +257,6 @@ bug class a user reports as "nothing happened".
 | `saved_pagination` | UNTESTED | — |  |  |  |
 | `unsave_from_browse_feed` | UNTESTED | — |  |  |  |
 | `unsave_listing` | UNTESTED | — |  |  |  |
-
-## `seller` — One-tap Mark sold from any live listing (never reserve-first) + the Sales ledger (edit/void a row, reviewed-sale refusal, outside-buyer rows, undo-after-sold)
-
-7/18 passing · 8 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `held_quantity_refusal` | FAIL-assert | run-490 | 254 | flow — "Winter Gloves Wholesale Box - 15 Pairs" not visible. That listing IS live (API: status=active, seller Omar Noori). Same scroll/wrong-screen family as the flows converted in 4e44fc0; convert it to open_listing_by_title.yaml next. | [Failed] held_quantity_refusal (3m 59s) (Assertion is false: "Winter Gloves Wholesale Box - 15 Pairs" is visib |
-| `listing_actions_sheet` | FAIL-assert | run-490 | 250 | flow — `Element not found: Id matching regex: browse-tab`, i.e. NO TAB BAR: the flow is standing on a pushed screen. _helpers/pop_to_tab_bar.yaml exists for exactly this and its header notes audit_structure found five flows doing it. Add that helper before the tab tap. | [Failed] listing_actions_sheet (3m 55s) (Element not found: Id matching regex: browse-tab) |
-| `listing_conversations` | FAIL-assert ⟳stale | run-490 | 222 | flow — IDENTITY-SWITCH bug, same as reserved_buyer: login.yaml as the buyer, then "Make an Offer" missing on a seller-owned active negotiable listing. Fixed at the helper (profile-tab wait before the wrong-account check). | 2026-09-05 same IME cause. Its note claimed scrollUntilVisible dismisses the keyboard — true only if it scrolls, and it is a NO-OP when the target is already visible, which after a filtering search it always is. Dead scroll removed, margin drag used instead (Back is unsafe here — it exited the app once). |
-| `mark_sold_all_units` | PASS | run-490 | 211 |  |  |
-| `mark_sold_with_buyer` | PASS | run-490 | 187 |  |  |
-| `multi_quantity_offplatform_sale` | FAIL-? | run-490 | 167 | flow — "QA Disposable offplatform_units" not visible. A DISPOSABLE fixture, so check it was actually seeded for this pass before treating it as a UI defect. | [Failed] multi_quantity_offplatform_sale (2m 31s) (No visible element found: "QA Disposable offplatform_units" |
-| `multi_quantity_partial_sale` | FAIL-assert | run-490 | 245 | flow — "The price for one item" not visible. Copy check needed in all 3 locales before triaging further. | Found UI-008 (HIGH): typed 3, sold all 15 — pre-filled field appended, clamp silently swallowed it, listing retired. Fixed with selectTextOnFocus + a destructive over-stock hint; same fix applied to the web dialog. Also UI-009 ("15 of 15 left" before any sale). Flow itself needed: explicit seller login (login_seller.yaml lands in the dev-client launcher; login.yaml ignores an EMAIL override when a session exists), scrollUntilVisible on `lifecycle-more-action`, and the review prompt instead of the racing toast. run-020 green, 0 api errors, DB confirms 3 sold / 12 left / still active. |
-| `publish_from_owner_detail` | FAIL-assert | run-490 | 272 | flow — "Publish this listing?" not visible (the publish confirm). Needs its own read; no Network Error, so not the auth family. | [Failed] publish_from_owner_detail (4m 17s) (Assertion is false: "Publish this listing?" is visible) |
-| `publish_success` | FAIL-assert ⟳stale | run-490 | 295 | flow — "Pick location on map" not visible. Likely the create-listing form's location step; no Network Error. | 2026-09-05 title asserted while the detail screen was scrolled past it; guarded UP scroll added. |
-| `reserved_buyer` | FAIL-assert ⟳stale | run-490 | 223 | GATE FLOW — gate satisfied (no app-exit symptom). Failure is the IDENTITY-SWITCH bug: it logs in via login.yaml as the buyer, opens a seller-owned listing and finds no "Make an Offer". The API says that listing is status=active, negotiable=true, seller="Omar Noori", and listingAvailability.ts requires a non-owner buyer to get the Message/Offer row — so the app was the OWNER. Root cause found and fixed: login.yaml's whole wrong-account check was gated on `when: visible: profile-tab` with no wait, so a tab bar still mounting skipped it. SEPARATELY, note this flow targets a RESERVED listing in its later legs: canOfferOnListing excludes `reserved` by design (SF-M3 §3.2), so any assertion of "Make an Offer" on a reserved listing is a flow bug regardless — check that before re-running. | 2026-09-05 the IME covered the search result; the card tap landed on the keyboard (Maestro reports covered taps COMPLETED) so the app never left BROWSE and the failure surfaced later on 'Make an Offer'. hideKeyboard added after typing. |
-| `sales_screen_correct_quantity` | PASS | run-490 | 329 |  |  |
-| `sales_screen_reviewed_sale_refusal` | FAIL-assert | run-490 | 179 |  | [Failed] sales_screen_reviewed_sale_refusal (2m 43s) (Element not found: Id matching regex: seller-card-more-a |
-| `sales_screen_void_row` | PASS | run-490 | 322 |  |  |
-| `save_draft` | FAIL-assert | run-490 | 236 |  | [Failed] save_draft (3m 41s) (Assertion is false: "Create Listing" is visible) |
-| `sell_without_reserving` | PASS | run-490 | 267 |  |  |
-| `sold_quantity_reconciliation` | FAIL-assert | run-490 | 307 |  | [Failed] sold_quantity_reconciliation (4m 51s) (Assertion is false: id: listing-form-quantity-reopen-note is v |
-| `undo_mark_sold` | PASS | run-490 | 267 |  |  |
-| `undo_mark_sold_with_buyer` | PASS | run-490 | 193 |  |  |
 
 ## `dark_mode` — Every main screen in dark theme + theme persistence
 
