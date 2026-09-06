@@ -17,6 +17,27 @@
 #
 # The script below is correct and can be reused — the constraint is the box, not
 # the code. Check `free -g` first: it needs ~4G headroom AFTER booting.
+#
+# ── SECOND MEASUREMENT, 2026-09-06: TWO IS ALSO TOO MANY ON THIS BOX ─────────
+# I ran this again with qa_edu_phone DOWN, reading the note above as "the slot is
+# free now". It is not enough. With only OUR two emulators up (5580 + 5582) and
+# the usual docker stack, the doctor reported:
+#
+#     WARN  swap 100% full — the emulator will thrash
+#     WARN  load 11 of 16 cores — expect slow, flaky flows
+#
+# and results were CORRUPTED rather than merely slow. Same 49 chat flows, same
+# APK, near-identical wall time (run-496 avg 267s/flow -> run-500 avg 274s/flow),
+# but passes fell 21 -> 9. 15 flows went PASS -> FAIL, and the failures name the
+# mechanism: `Assertion is false: "Login" is not visible` and `api: AxiosError`,
+# i.e. the app sat on the Login screen because auth timed out under thrash. Those
+# are FALSE failures — the rig re-ran clean afterwards (`buyer@hatiwal.test can
+# log in`, api 200) once 5582 was killed and available RAM went 10G -> 17G.
+#
+# So the real gate is SWAP, not the emulator count and not `free -g` alone:
+# if `free -h` shows swap anywhere near full with one emulator up, a second one
+# will not add throughput, it will invalidate BOTH sessions' verdicts. Do not
+# trust any pass/fail recorded while swap is exhausted — re-run it.
 # ─────────────────────────────────────────────────────────────────────────────
 # ─────────────────────────────────────────────────────────────────────────────
 # SECOND QA TESTER — runs beside qa/overnight.sh, on its own emulator.

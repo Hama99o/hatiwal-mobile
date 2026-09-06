@@ -8,9 +8,18 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      text: "Appearance"
+      text: "Language"
 # Profile renders `profile.language` = "Language". Nothing in the app uppercases
 # section titles, so "LANGUAGE" matched nothing.
+#
+# SCROLL TO "Language" ITSELF, NOT TO "Appearance" (fixed 2026-09-06, run-503).
+# `profile.theme` = "Appearance" renders at Profile.tsx:847, ABOVE
+# `profile.language` = "Language" at Profile.tsx:924. scrollUntilVisible stops
+# the moment its target appears, so scrolling to "Appearance" parked the list
+# with Language still below the fold and the assert underneath could never pass
+# — it failed on a clean rig with api_errors=0 while change_language_dari and
+# change_language_english passed in the same pass. Dari always scrolled to
+# "Language" directly; this flow was the odd one out.
 - assertVisible: "Language"
 # The option list is COLLAPSED on mount and its row is below the fold, so
 # tapping an option straight away could never work — the helper scrolls to the
