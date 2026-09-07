@@ -135,18 +135,37 @@ MIN_FREE_GB=3
 # the identical flows once swap was free; run-508 took 13h for 42 browse flows
 # (1117s each against a ~170s baseline).
 SWAP_FREE_MIN_MB=256
+SWAP_CHURN_KBPS=512
 
-swap_exhausted() {
-  local total freemb
+# OCCUPANCY IS NOT THRASH — both halves are required.
+#
+# A first cut of this gate tripped on `swap free < 256MB` alone and would have
+# halted the campaign for good: measured 2026-09-07 21:2x, this host sits at
+# swap 2.0G/2.0G used as its STEADY STATE (two emulators, 18 containers, two
+# Expo servers, Vite, Sidekiq) while paging only 0-164 KB/s — full, but calm,
+# and flows run fine. Full swap is where this box lives; it is the CHURN that
+# breaks verdicts.
+#
+# So require both: swap essentially full AND sustained paging. 512 KB/s is a
+# judgement call, not a measurement of the bad state — nobody sampled vmstat
+# while run-500 and run-508 were failing. It sits ~3x above the idle ceiling
+# observed above, so it will not fire on calm-but-full. If a future pass still
+# turns in mass "Login is not visible" failures with this gate quiet, sample
+# `vmstat 2 4` during it and lower the number to what you actually see.
+swap_thrashing() {
+  local total freemb churn
   total=$(free -m | awk '/^Swap:/{print $2}')
   [ "${total:-0}" -gt 0 ] || return 1        # no swap configured — not a factor
   freemb=$(free -m | awk '/^Swap:/{print $4}')
-  [ "${freemb:-99999}" -lt "$SWAP_FREE_MIN_MB" ]
+  [ "${freemb:-99999}" -lt "$SWAP_FREE_MIN_MB" ] || return 1
+  command -v vmstat >/dev/null 2>&1 || return 0   # can't measure churn — assume the worst
+  churn=$(vmstat 2 3 2>/dev/null | awk 'NR>3{s+=$7+$8; n++} END{print (n?int(s/n):0)}')
+  [ "${churn:-0}" -ge "$SWAP_CHURN_KBPS" ]
 }
 
 host_is_pressured() {
   local load free
-  swap_exhausted && return 0
+  swap_thrashing && return 0
   load=$(awk '{print int($1)}' /proc/loadavg)
   free=$(free -g | awk '/Mem:/{print $7}')
   [ "${load:-0}" -ge "$LOAD_CEILING" ] || [ "${free:-99}" -le "$MIN_FREE_GB" ]
@@ -168,12 +187,12 @@ wait_for_headroom() {
       # Hold for up to an hour, saying so every 10 minutes so this is never
       # mistaken for a stalled night, then give in rather than skip the night
       # entirely — but mark the pass so triage knows not to trust it.
-      if swap_exhausted && [ $waited -lt 3600 ]; then
+      if swap_thrashing && [ $waited -lt 3600 ]; then
         say "swap exhausted ($(free -m | awk '/^Swap:/{print $4}')MB free) after ${waited}s — still waiting; verdicts recorded now would be VOID"
         cap=$((cap + 600))
         continue
       fi
-      swap_exhausted \
+      swap_thrashing \
         && say "SUSPECT PASS — swap still exhausted after ${waited}s, proceeding anyway; treat every failure below as unproven" \
         || say "host still busy after ${waited}s — proceeding anyway so the night does not stall"
       return 0
