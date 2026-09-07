@@ -124,8 +124,29 @@ apk_is_bundled() {
 LOAD_CEILING=9
 MIN_FREE_GB=3
 
+# SWAP NEEDS ITS OWN GATE — added 2026-09-07 after three campaigns were voided.
+#
+# "Available" RAM stays HEALTHY-LOOKING while swap is exhausted, because the
+# kernel counts reclaimable page cache in it. On 2026-09-06/07 this host sat at
+# 10–12G available with load 7–13 — comfortably inside BOTH limits above — while
+# swap was 100% full and the emulator thrashed. The damage is not slowness, it is
+# WRONG VERDICTS: auth times out, the app sits on Login, and flows fail on
+# elements that are present and correct. run-500 scored 9/49 on chat and 24/49 on
+# the identical flows once swap was free; run-508 took 13h for 42 browse flows
+# (1117s each against a ~170s baseline).
+SWAP_FREE_MIN_MB=256
+
+swap_exhausted() {
+  local total freemb
+  total=$(free -m | awk '/^Swap:/{print $2}')
+  [ "${total:-0}" -gt 0 ] || return 1        # no swap configured — not a factor
+  freemb=$(free -m | awk '/^Swap:/{print $4}')
+  [ "${freemb:-99999}" -lt "$SWAP_FREE_MIN_MB" ]
+}
+
 host_is_pressured() {
   local load free
+  swap_exhausted && return 0
   load=$(awk '{print int($1)}' /proc/loadavg)
   free=$(free -g | awk '/Mem:/{print $7}')
   [ "${load:-0}" -ge "$LOAD_CEILING" ] || [ "${free:-99}" -le "$MIN_FREE_GB" ]
@@ -140,7 +161,21 @@ wait_for_headroom() {
     [ $waited -eq 0 ] && say "backing off: load $(cut -d' ' -f1 /proc/loadavg), $(free -g | awk '/Mem:/{print $7}')G free — running now would produce false failures"
     sleep 60; waited=$((waited + 60))
     if [ $waited -ge $cap ]; then
-      say "host still busy after ${waited}s — proceeding anyway so the night does not stall"
+      # Load and swap are NOT the same bet. Proceeding under load costs some slow
+      # flows — worth it, per the note above. Proceeding under swap exhaustion
+      # costs the VERDICTS, so waiting is strictly better than running: a void
+      # pass has to be re-run anyway AND it pollutes the register in the meantime.
+      # Hold for up to an hour, saying so every 10 minutes so this is never
+      # mistaken for a stalled night, then give in rather than skip the night
+      # entirely — but mark the pass so triage knows not to trust it.
+      if swap_exhausted && [ $waited -lt 3600 ]; then
+        say "swap exhausted ($(free -m | awk '/^Swap:/{print $4}')MB free) after ${waited}s — still waiting; verdicts recorded now would be VOID"
+        cap=$((cap + 600))
+        continue
+      fi
+      swap_exhausted \
+        && say "SUSPECT PASS — swap still exhausted after ${waited}s, proceeding anyway; treat every failure below as unproven" \
+        || say "host still busy after ${waited}s — proceeding anyway so the night does not stall"
       return 0
     fi
   done
