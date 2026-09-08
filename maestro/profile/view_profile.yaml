@@ -24,9 +24,16 @@ appId: com.hatiwal.app
 # description, views chart, action row) are taller than a phone.
 - scrollUntilVisible:
     element:
-      text: "Appearance"
+      text: "Language"
     direction: DOWN
     timeout: 20000
+# SCROLL TARGET FIXED 2026-09-08. This scrolled to "Appearance" and then asserted
+# "Language" two steps down. They are different rows and Appearance is the one
+# ABOVE: `profile.theme` = "Appearance" at Profile.tsx:847, `profile.language` =
+# "Language" at Profile.tsx:924. scrollUntilVisible stops the instant its target
+# appears, so the list parked with Language still below the fold and the assert
+# could never pass. Reproducible across BOTH clean cycles (run-507, run-518).
+# Identical defect to change_language_pashto, fixed in 6210d59.
 # "Appearance" (profile.theme) sits in the Preferences card near the BOTTOM of the
 # profile screen — below the stats, the quick actions, the pending-reviews nudge
 # and PERSONAL INFO — so asserting it on arrival fails on a screen that is
