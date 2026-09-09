@@ -96,8 +96,26 @@ emulator_boot() {
   # This was not theoretical: it silently consumed a 50-minute `feature browse`
   # run that produced zero results, and made `up tablet` claim another run was
   # in progress when nothing was.
+  # ── HEADLESS: opt-in with QA_HEADLESS=1 ────────────────────────────────
+  # Drops the emulator WINDOW only. Maestro does not need it — it reads the
+  # accessibility hierarchy and grabs screenshots over adb, both of which work
+  # exactly the same with no window — and it stops the emulator fighting the
+  # owner's desktop for a machine that is already oversubscribed.
+  #
+  # `-gpu` is passed AFTER `-no-window` and left at "host" on purpose. The trap
+  # here is that headless is widely assumed to imply software rendering; if the
+  # GPU flag is dropped, rendering falls to swiftshader, which burns host CPU —
+  # the very thing the comment above says caused "System UI isn't responding" on
+  # a busy box. Headless would then be SLOWER, not faster, and worst on the
+  # render-heavy screens (maps, gallery).
+  #
+  # Deliberately OPT-IN, not the default: the campaign has finally started
+  # producing trustworthy verdicts, and changing how the device boots underneath
+  # it would muddy the diagnosis of the emulator deaths still being chased.
+  local win=()
+  [ "${QA_HEADLESS:-0}" = "1" ] && win=(-no-window)
   setsid "$EMULATOR_BIN" -avd "$avd" -no-boot-anim -port "$QA_PORT" "${ro[@]}" \
-    -gpu "$gpu" -memory "$QA_EMU_MEMORY" -cores "$QA_EMU_CORES" \
+    "${win[@]}" -gpu "$gpu" -memory "$QA_EMU_MEMORY" -cores "$QA_EMU_CORES" \
     < /dev/null > "$REPORTS_DIR/emulator.log" 2>&1 9>&- &
 
   local waited=0
