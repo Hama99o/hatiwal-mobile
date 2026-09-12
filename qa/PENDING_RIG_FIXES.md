@@ -331,3 +331,46 @@ is on Profile with a tab bar that is merely late — Back would navigate away fr
 correct screen to fix a timing problem.
 
 `seller/listing_actions_sheet` has the wait inline already, as the worked example.
+
+---
+
+## 8. CANDIDATE APP BUG: unblock succeeds but the thread stays blocked
+
+**Not filed as a FlowApp card — the mechanism is not proven.** Recorded because
+the evidence is clean and it came off the first QUIET pass in days.
+
+**Evidence** (run-523 `block_from_conversation`, 188s, no SUSPECT PASS, no
+rig_fail anywhere in the pass):
+
+- step-081 asserted the **"User unblocked"** toast — so the unblock request
+  succeeded and the app said so.
+- step-082's hierarchy still shows **"You can't message this user."** and no
+  `Type a message...` composer.
+- The server was clean at that moment, checked directly:
+  `GET /api/v1/blocks` -> `{"users":[]}`, and **0 of 8** conversations report
+  `blockedWithParticipant` or `blockedByMe`.
+
+So the block really was lifted, and the UI did not follow.
+
+**Mechanism candidate.** `unblockMutation.onSuccess` sets `blockedByMe` false and
+then calls `load(currentConversationId)` **exactly once**, with no retry.
+`isBlocked` — the flag that renders the banner and hides the composer — is
+re-derived *only* from that fetch (`Conversation.tsx:565`,
+`setIsBlocked(conv.blockedWithParticipant ?? false)`). If that single request
+races the unblock's commit and comes back `true`, nothing re-fetches again and
+the thread stays blocked until the user navigates away.
+
+The single-shot refetch is deliberate: the code comment explains that asserting
+`false` optimistically caused the flicker-then-vanish in card 312. That reasoning
+is sound — but "ask the server once, immediately" trades one race for another.
+
+**Cannot be proven from the artifacts:** the flow's `.logcat` does not record API
+traffic, so there is no record of what that fetch returned.
+
+**To confirm, cheaply:** re-run the flow and, on failure, navigate out of the
+thread and back in. If the composer returns, the single-shot refetch is the bug.
+
+**Suggested fix if confirmed:** have the unblock endpoint return the updated
+conversation block state and use it directly — no second round trip and no race.
+Failing that, invalidate the conversation query so React Query refetches, rather
+than one manual `load()`.
