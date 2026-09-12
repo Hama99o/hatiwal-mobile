@@ -1,6 +1,6 @@
 # Pending rig fixes
 
-**The identity-switch fix (login.yaml + login_seller.yaml, from run-497 flow 11) is APPLIED. Fix 6 and fix 4 are APPLIED (2026-09-05, commit below). Fixes 1, 2, 3, 5 remain queued.**
+**The identity-switch fix (login.yaml + login_seller.yaml, from run-497 flow 11) was applied on 2026-09-05 and is REOPENED as of 2026-09-13 — run-526 shows the owner notice on screen in five flows, with the TextView itself in the logcat. See "REOPENED 2026-09-13" below; it is the largest single cause of failure in the campaign. Fix 4 is APPLIED. Fixes 1, 2, 3, 5 remain queued.**
 
 Applied mid-pass, deliberately, with the boundary recorded so run-496 stays
 attributable: the first **30 offer_send_and_accept** flows of run-496 ran with the OLD helpers;
@@ -215,6 +215,60 @@ That strengthens the mechanism and simultaneously explains why it must NOT be
 filed yet: an intermittent failure needs the navigate-away-and-back check to
 distinguish "the UI never recovers" from "the UI recovered a moment later". Keep
 watching it across passes and count the failure rate.
+
+---
+
+## REOPENED 2026-09-13: the identity switch is NOT fixed, and here is the proof
+
+The section below closed this on 2026-09-05 with "the identity-switch bug now
+fixed in login.yaml". run-526 (2026-09-13) shows the same thing, and this time
+the evidence is direct rather than inferred. From `offer_counter_flow.logcat`:
+
+```
+Maestro : Skipping invisible child: ... packageName: com.hatiwal.app;
+className: android.widget.TextView; text: This is your listing;
+boundsInScreen: Rect(258, 1180 - 510, 1180); ... visible: false
+```
+
+The owner notice is ON SCREEN. Not inferred from "the only branch that can draw a
+lone Ban pill" — the string itself is in the log, in FIVE flows:
+offer_counter_flow, offer_quantity_round_trip, offer_send_and_accept,
+offer_send_and_decline, reserve_after_accept.
+
+**That also kills the guest hypothesis for good.** A guest renders the generic
+`unavailableNotice` ("This item is no longer available"). The log says
+`ownListingNotice`, so there WAS a currentUser and it was the seller. No card.
+
+Verified the same pass, so the fixture is not in question:
+
+| Checked | Result |
+|---|---|
+| listing 3210 via API as the buyer | `status=active`, `negotiable=true`, `available_units=1`, `held_units=0`, `expired=false`, price 3500.0 — matches the screenshot |
+| owner of 3210 | seller id **420** (Omar Noori) |
+| the buyer's own listings (`/my/listings`) | **zero** — so this is not a same-title listing owned by the buyer |
+| `GET /blocks` as the buyer | `{"users":[]}` |
+
+`isOwnListing = !!currentUser && currentUser.id === listing.seller?.id`
+(ListingDetail.tsx:472). The notice fired, so currentUser.id was 420 — the app
+was signed in as **Omar Noori**, while the flow had run `login.yaml`
+(`EMAIL: buyer@hatiwal.test`, id 419) and its guard had visibly worked: step-027
+`scrollUntilVisible-sign-out-button`, step-044 `login-email-input`. It signed out
+and reached the login form, and still ended up on the seller.
+
+**This is the single largest cause of failure in the campaign** — six STABLE FAIL
+flows (0/5–0/6 each) that are not app bugs and not timing:
+offer_counter_flow, offer_quantity_round_trip, offer_send_and_accept,
+offer_send_and_decline, reserve_after_accept, reserve_after_buyer_accepts_counter.
+
+**Not edited here:** `login.yaml` belongs to the 7d84539 session (see fixes 7
+and 9). It needs its owner, and it needs re-verifying rather than re-closing —
+the 09-05 entry closed it without a run that proved the switch had taken.
+
+**Retracting my own fix.** I had added `extendedWaitUntil visible "Make an
+Offer" timeout 20000` to these flows, reading an absent button as a slow one.
+The button was absent because the app was RIGHT to hide it. A longer wait could
+never have helped. Second time in one session I treated a state problem as a
+timing problem (the other: the publish confirm dialog).
 
 ---
 
