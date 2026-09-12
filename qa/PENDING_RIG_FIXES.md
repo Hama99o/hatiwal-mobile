@@ -460,3 +460,29 @@ the "Make an Offer" waits in six flows, the role-chip horizontal scroll, the
 corrected offline assertion, the start_conversation conversion, and the 2x
 timeout for account-switching flows. Judge the work there — and by failure SHAPE
 first, since a pass rate alone hid this for two runs.
+
+### Seller confirms the same thing chat did
+
+run-524 (seller, quiet box, zero SUSPECT PASS): **5 pass / 13 fail of 18 = 27%**.
+run-516, four days earlier: **5 pass / 13 fail = 27%**. Identical, like chat's
+55% was identical across run-521 and run-523.
+
+Two features, two pairs of runs, same totals each time. These suites fail on a
+STABLE set of causes — they are not noisy, and they are not primarily
+contention-driven. That is good news for this campaign's method: a fix that
+removes a cause should move the number, and nothing else should.
+
+Almost every seller fix landed DURING run-524, so the flows that ran before it
+could not benefit. The next seller pass is the verdict on: the tab-bar wait in
+listing_actions_sheet (already showing progress — it now fails much later, at
+"Listing published!"), the action-bar wait in listing_conversations, the dialog
+wait in publish_from_owner_detail, the sheet wait in multi_quantity_partial_sale,
+and the search_my_shop conversions in mark_sold_all_units and
+multi_quantity_offplatform_sale.
+
+One family to watch there: THREE flows now fail around publishing —
+listing_actions_sheet at "Listing published!", publish_from_owner_detail at the
+confirm dialog, and sell_without_reserving at "Publish". publish_success PASSES,
+so the publish path itself works; the three are almost certainly the same
+async-assert shape, but that should be confirmed from evidence rather than
+assumed because it is convenient.
