@@ -187,7 +187,17 @@ appId: com.hatiwal.app
 # as the button behind it, so a text tap matches both, lands on the scrim and dismisses
 # the dialog without publishing — the helper's own comment documents that, and
 # lifecycle_publish already uses it.
-- assertVisible: "Publish this listing?"
+# WAIT for the dialog — a native confirmAlert is not an animation.
+#
+# `waitForAnimationToEnd` above returns as soon as the UI settles; it does not
+# wait for a dialog the OS is still putting up. run-524 failed here on a QUIET box
+# (load ~4.5, one emulator, zero SUSPECT PASS) and the copy is CURRENT —
+# listing.json `confirmPublish` = "Publish this listing?" — so this is timing, not
+# a stale string. publish_success PASSED in the same pass, so publishing itself
+# works.
+- extendedWaitUntil:
+    visible: "Publish this listing?"
+    timeout: 15000
 - runFlow: ../_helpers/confirm_dialog.yaml
 - waitForAnimationToEnd
 

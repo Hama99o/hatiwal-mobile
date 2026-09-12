@@ -193,7 +193,15 @@ appId: com.hatiwal.app
 - assertVisible:
     id: "buyer-picker-quantity"
 # And the final-price field says out loud that it is per item.
-- assertVisible: "The price for one item"
+# WAIT for the hint — the buyer-picker sheet fills in progressively.
+#
+# run-524 failed here on a quiet box while the copy is CURRENT
+# (buyerPicker.json `finalPricePerUnitHint` = "The price for one item"), so it is
+# the sheet still rendering rather than a renamed string. The quantity control
+# asserted just above can be present before this hint is.
+- extendedWaitUntil:
+    visible: "The price for one item"
+    timeout: 15000
 
 # Sell three of them. SF-M9 (FlowApp #298): the field is now the shared
 # QuantityStepper, not a raw Input — tap the tap-to-edit VALUE to swap in the
