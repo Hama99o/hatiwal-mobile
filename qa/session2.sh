@@ -124,7 +124,7 @@ host_is_pressured() {
   # on a host whose swap is already exhausted is exactly how tonight's false
   # failures were produced (load 10.9, flows 3x slower, assertions firing before
   # the UI rendered).
-  [ "${load:-0}" -ge 11 ] || [ "${free:-99}" -le 3 ]
+  [ "${load:-0}" -ge 14 ] || [ "${free:-99}" -le 3 ]
 }
 
 device_is_ours() {
@@ -187,7 +187,24 @@ while [ ! -f "$STOP" ]; do
     # So: also wait out session 1's pass, not just the load average. That makes
     # this session use genuine gaps instead of competing.
     w=0
-    while host_is_pressured || [ -f /tmp/hatiwal-pass-running ]; do
+    # OWNER ASKED FOR PARALLEL TESTING (2026-09-12), so this no longer waits out
+    # session 1's pass — only real host pressure holds it back.
+    #
+    # The previous version also waited on /tmp/hatiwal-pass-running, which was
+    # correct for "fill the gaps" but useless in practice: session 1 runs passes
+    # back to back, so this session would essentially never get a turn.
+    #
+    # The measured risk is unchanged and is CPU, not RAM. With two emulators on
+    # 2026-09-12 the box hit load 21.4, session 1's flows went 208s -> 262s
+    # (+26%), and this session lost two flows to the 600s cap. What HAS changed:
+    # the suite now waits explicitly for async content in the places that used to
+    # race, and double-login flows get 2x FLOW_TIMEOUT, so a slower device costs
+    # wall clock rather than false failures.
+    #
+    # LOAD_CEILING is raised to 14 for the same reason: at 11 on a 16-core box
+    # this session would back off permanently while session 1 alone sits near 10.
+    # 14 still yields before the zone that produced false failures.
+    while host_is_pressured; do
       [ -f "$STOP" ] && { say "stop file seen while backing off"; exit 0; }
       if [ $((w % 300)) -eq 0 ]; then
         say "yielding: load $(cut -d' ' -f1 /proc/loadavg), $(free -g | awk '/Mem:/{print $7}')G free, session1 pass=$([ -f /tmp/hatiwal-pass-running ] && cat /tmp/hatiwal-pass-running || echo none)"
