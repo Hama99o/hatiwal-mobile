@@ -423,3 +423,40 @@ and then could not find it" failure noted at login_seller.yaml:334.
 
 Two flows lost to it in a single clean pass, and it will hit any flow that
 reaches `login_seller.yaml` with Profile left scrolled.
+
+---
+
+## Measurement note: the clean pass scored the SAME as the contended one
+
+run-523 ran on a quiet box — load ~5-8, one emulator, **zero SUSPECT PASS lines**
+— and finished **27 pass / 22 fail of 49 = 55%**.
+
+run-521, which ran through the contention window at load 17-25, finished
+**27 pass / 22 fail = 55%**. Identical.
+
+**This corrects an expectation recorded earlier in this campaign.** When run-521
+came in at 55% it was written up as "not comparable, degraded by contention",
+with the implication that a quiet box would score better. It did not. The honest
+reading is that **contention was never the main driver of the failure count** —
+it cost wall-clock (16065s vs a ~208s/flow baseline) and two `rig_fail` timeouts,
+but the failures themselves were waiting underneath either way.
+
+The overlap confirms it: **19 of 22 failures are the same flows in both runs.**
+The three that differ each have an explanation, and none of them is "the box was
+busy":
+
+| Only failed in run-521 | Only failed in run-523 |
+|---|---|
+| meetup_respond, send_message, send_message_double_tap | block_from_conversation, conversation_delete, meetup_decline |
+
+Two of the run-521-only three (`send_message`, `send_message_double_tap`) were
+`rig_fail` timeouts in that run and PASSED cleanly in run-523, which is the one
+place contention did show up.
+
+**What this means for reading the next pass.** Nothing shipped in this campaign
+had landed when run-523 started, so 55% is the BASELINE, not a verdict on the
+fixes. run-524 is the first pass carrying them: the listing-opener conversions,
+the "Make an Offer" waits in six flows, the role-chip horizontal scroll, the
+corrected offline assertion, the start_conversation conversion, and the 2x
+timeout for account-switching flows. Judge the work there — and by failure SHAPE
+first, since a pass rate alone hid this for two runs.
