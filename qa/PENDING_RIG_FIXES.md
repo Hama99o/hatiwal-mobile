@@ -534,3 +534,51 @@ pending fix is still needed and should not be dropped because a pass went green.
 pass.** The six "Make an Offer" waits, the role-chip scroll, the corrected offline
 assertion, `start_conversation`'s conversion and the 2x timeout all sit later in
 the alphabet. Judge them when those flows run, not on this prefix.
+
+---
+
+## Two testers, measured properly this time: the cost is +5%, not +26%
+
+The owner asked for parallel testing again, so session 2 was relaunched on
+2026-09-12 and measured against a recorded baseline. **The naive reading and the
+controlled reading disagree, and the controlled one is right.**
+
+Naive (session 1's own flows, before vs after the launch):
+
+```
+before session 2:  10 flows, mean 194s
+with session 2:     5 flows, mean 234s      -> looks like +21%
+```
+
+Controlled (the SAME flows compared against run-523, which had no second tester):
+
+```
+before session 2:  10 flows   523: 198s  ->  526: 194s   =  -2%
+with session 2:     5 flows   523: 223s  ->  526: 234s   =  +5%
+```
+
+The apparent +21% is almost entirely **flow difficulty**: those five flows took
+223s in run-523 as well, with nothing else running. The real cost of the second
+emulator is about **+5%**, and session 1 has produced **zero rig_fail rows**.
+
+**This also corrects the earlier figure in this file.** The "+26%" recorded when
+session 2 was first stopped came from the same flawed first-N-vs-last-N
+comparison, so it overstated the cost. What genuinely justified stopping it then
+was the *independent* evidence: load 21.4, and two flows lost outright to the
+600s cap. Those were real; the percentage was not measured properly.
+
+**Conditions are also materially different now.** Load is sitting at ~9.9 on 16
+cores rather than 21, the suite now waits explicitly for async content wherever
+it used to race, and double-login flows have 2x FLOW_TIMEOUT — so a slower device
+costs wall clock instead of manufacturing failures.
+
+**Session 2 is producing real coverage**, not noise: `browse_rtl_dari` and
+`browse_rtl_pashto` both PASS at 411dp — a viewport and a locale direction
+session 1 never exercises.
+
+**The tripwire stands unchanged**: stop session 2 if session 1's same-flow cost
+exceeds roughly +20%, or if session 1 produces any `rig_fail` row.
+
+**Method note worth keeping:** never compare "first N vs last N" within a run to
+judge load. Flows run alphabetically and the tail is heavier. Compare the same
+flow across runs, or the number is difficulty wearing a contention costume.
