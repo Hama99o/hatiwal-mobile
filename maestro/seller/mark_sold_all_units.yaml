@@ -39,12 +39,26 @@ appId: com.hatiwal.app
 
 # By title. index 0 of My Listings is whatever was touched most recently, which
 # other flows change.
-- scrollUntilVisible:
-    element:
-      text: "QA Disposable quantity_all"
-    direction: DOWN
-    visibilityPercentage: 40
-    timeout: 20000
+# SEARCH My Shop instead of scrolling it.
+#
+# The fixture is NOT missing — checked against the API during run-524: the seller
+# has 36 listings, 11 of them "QA Disposable ...", and QA Disposable quantity_all is present and
+# `active`. The flow is already guarded properly (extendedWaitUntil on
+# seller-listing-card), so this was a scroll running out of TIME, not a seeding
+# problem. Thirty-six cards at 20s is the same race the Bazaar feed lost, and every
+# fixture added makes it worse; search is O(1) in list size.
+#
+# _helpers/search_my_shop.yaml is the house helper for exactly this — it waits for
+# my-listings-search-input, clears any previous query, and types. held_quantity_refusal
+# already uses it.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "quantity_all"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "QA Disposable quantity_all"
+    timeout: 30000
 - tapOn: "QA Disposable quantity_all"
 - waitForAnimationToEnd
 
