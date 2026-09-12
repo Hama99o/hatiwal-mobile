@@ -100,6 +100,19 @@ env:
 # the IME is up. That is the whole reason _helpers/dismiss_keyboard_by_drag.yaml
 # exists.
 - runFlow: dismiss_keyboard_by_drag.yaml
+# AND SUBMIT THE SEARCH, because the drag alone does not close the IME here.
+#
+# dismiss_keyboard_by_drag is a 12%-tall swipe inside the content area — it
+# dismisses only where the list opts into `keyboardDismissMode="on-drag"`, and the
+# Bazaar grid does not. run-521's offer_quantity_round_trip screenshot is the
+# proof: query typed, one result card rendered, and the KEYBOARD still covering
+# its lower half, which is where Maestro aims a tap (element centre).
+#
+# `pressKey: Enter` on a search field commits the query and closes the IME, and —
+# unlike `hideKeyboard`, which is Android BACK — it cannot walk out of the app if
+# the field has quietly lost focus. That distinction is why this file stopped
+# using hideKeyboard on 2026-09-05 after it exited to the home screen.
+- pressKey: Enter
 - waitForAnimationToEnd
 
 # WAIT ON THE CARD, NOT ON THE TITLE — and this is the whole correctness argument
@@ -125,6 +138,38 @@ env:
     id: "listing-card"
     index: 0
 - waitForAnimationToEnd
+
+# PROVE WE ACTUALLY NAVIGATED — the title alone cannot.
+#
+# This helper used to end on `assertVisible: "${TITLE}"` and call that proof,
+# reasoning that "on the DETAIL screen there is no search field, so the title can
+# only be the listing's own". The reasoning has a hole, and run-521 walked
+# straight through it: if the card tap does NOT navigate, the title is STILL
+# visible — as the card. The assert passes, this helper reports success, and the
+# caller then fails several steps later on a button that was never going to be
+# there. A false pass is worse than the failure it replaces.
+#
+# `browse-search-input` is the honest discriminator: it exists on the Bazaar feed
+# and nowhere else, so its ABSENCE is what "we left the feed" means.
+#
+# One retry first, because the single observed cause is recoverable: the IME was
+# still up and swallowed the tap (see the note above the dismissal).
+- runFlow:
+    when:
+      visible:
+        id: "browse-search-input"
+    commands:
+      - runFlow: dismiss_keyboard_by_drag.yaml
+      - pressKey: Enter
+      - waitForAnimationToEnd
+      - tapOn:
+          id: "listing-card"
+          index: 0
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    notVisible:
+      id: "browse-search-input"
+    timeout: 10000
 
 # Prove we opened the intended listing before the caller acts on it. On the DETAIL
 # screen there is no search field, so the title can only be the listing's own —
