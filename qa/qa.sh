@@ -76,6 +76,23 @@ print(max(ns) if ns else 0)" 2>/dev/null)"
 DEVICE_LOCK="$REPORTS_DIR/.device.${QA_SESSION:-1}.lock"
 
 hold_device_lock() {
+  # START THE ADB SERVER BEFORE OPENING THE LOCK FD.
+  #
+  # `exec 9>` creates a descriptor that every child INHERITS, and the adb server
+  # is a long-lived daemon that adb auto-starts on first use. If that first use
+  # happens while this lock is held, the daemon inherits fd 9 and keeps the flock
+  # alive for as long as it runs — long after the qa.sh that took it has exited.
+  #
+  # Measured 2026-09-12: the driver sat blocked for ~28 minutes on
+  # "another QA run is driving the emulator right now" with NO other QA run
+  # anywhere. `fuser -v` on the lock named the holder outright:
+  #
+  #   adb  19267  F....  (adb -L tcp:5037 fork-server server)
+  #
+  # `adb kill-server && adb start-server` released it instantly and the pass
+  # resumed. Starting the daemon here means it is already up before fd 9 exists,
+  # so it has nothing to inherit.
+  adb start-server >/dev/null 2>&1 || true
   exec 9>"$DEVICE_LOCK"
   if ! flock -n 9; then
     err "another QA run is driving the emulator right now"

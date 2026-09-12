@@ -2503,3 +2503,42 @@ ls -l qa/overnight.sh               # CONFIRM the x bit survived
 
 And never chain the `mv` after a patch step that can fail — a failed patch once
 `mv`-ed an unmodified copy over the original.
+
+## "another QA run is driving the emulator" with no other QA run — it is the adb server
+
+Symptom, seen 2026-09-12: the driver sat for ~28 minutes on
+
+```
+FAIL  another QA run is driving the emulator right now
+      two Maestro instances on one device kill each other's driver.
+      waiting for it to finish (Ctrl-C to give up)…
+```
+
+with exactly one `overnight.sh`, one emulator, and no second session anywhere.
+
+`hold_device_lock()` takes the lock with `exec 9>"$DEVICE_LOCK"`, and **every
+child inherits fd 9**. The adb server is a long-lived daemon that adb auto-starts
+on first use — so if that first use lands while the lock is held, the daemon
+inherits the descriptor and holds the flock for as long as it lives, long after
+the `qa.sh` that took the lock has exited.
+
+**Diagnose by asking who actually holds it** rather than guessing:
+
+```bash
+fuser -v qa/reports/.device.<session>.lock
+#   USER      PID  ACCESS COMMAND
+#   hama99o  19267 F....  adb        <-- the adb SERVER, not a QA run
+```
+
+**Release it:**
+
+```bash
+adb kill-server && adb start-server     # emulators survive; adb reconnects
+```
+
+Safe when no flow is mid-run — and if the driver is blocked on this lock, none is.
+Killing the adb *server* is not the same as killing an emulator; `adb devices`
+comes straight back.
+
+Fixed at the source by starting the daemon inside `hold_device_lock()` **before**
+fd 9 is opened, so it has nothing to inherit.
