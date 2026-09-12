@@ -2448,3 +2448,27 @@ kill <pid>            # then re-check, and kill -9 only if it survives
 Always identify the AVD by name on the PID first. On this host `qa_phone` is
 session 1's device and killing it stops the campaign; only ever target the AVD you
 actually started.
+
+## results.jsonl records the failure CLASS in `kind`, not in `result`
+
+A row that the rig classified as a rig failure still reads `"result": "fail"`:
+
+```json
+{"feature":"chat","flow":"scroll_to_latest","result":"fail","kind":"rig_fail", ...}
+```
+
+So `[r for r in rows if r["result"] == "rig_fail"]` returns NOTHING and the pass
+looks free of rig failures, while `grep -c rig_fail results.jsonl` says 4. Both
+were run against run-521 within a minute of each other and disagreed; the grep was
+right.
+
+Filter on `kind`:
+
+```python
+rig  = [r for r in rows if r.get("kind") == "rig_fail"]          # env/timeout
+appy = [r for r in rows if r.get("kind") == "app_bug_or_flow"]   # worth triaging
+```
+
+Values seen: `app_bug_or_flow`, `rig_fail`, `unknown`, and absent on passes.
+A `kind` of `rig_fail` means the flow never got a fair run — re-run it on a quiet
+box rather than triaging it as a defect.
