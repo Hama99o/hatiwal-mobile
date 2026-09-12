@@ -70,6 +70,49 @@ Two traps if you write this check yourself: maestro names selectors `idRegex` /
 "matches" for a flow it is wrong about), and the failure MESSAGE also contains the
 selector text, so match on the key/value pair rather than grepping the raw file.
 
+## 37% of the suite is FLAKY — a single run is not evidence about a fix
+
+`./qa/qa.sh flaky [feature]` groups every flow's history by `flow_sha` and reports
+whether its verdict is worth anything:
+
+```
+stable fail  59   stable pass  37   FLAKY  58  (37% of the suite)
+```
+
+**FLAKY means the flow returned different verdicts from BYTE-IDENTICAL yaml.** For
+those 58 flows a single run says nothing at all, in either direction.
+
+This was found the expensive way. run-526 read as 15 pass / 5 fail = 76% against a
+55% baseline and looked like the campaign's fixes landing. Like-for-like against
+run-523 on the 25 flows both ran:
+
+| | flow | yaml |
+|---|---|---|
+| FAIL→PASS | block_from_conversation, conversation_delete, mark_read_end_to_end, meetup_full_cycle | unchanged |
+| PASS→FAIL | lifecycle_from_chat, meetup_respond | unchanged |
+
+Six flows changed verdict and **not one of them had been edited** — the helpers were
+unchanged too (`git log` on `_helpers/`, because `flow_sha` covers the flow file only;
+`commands.json` is the authoritative record, see the section above). The rate moved 21
+points on pure noise. `meetup_full_cycle` is 1/6 at that same sha, so its "pass" was the
+one-in-six draw, not the listing-opener conversion it would have been credited to.
+
+**So:**
+
+- Judge a fix ONLY on a flow that `qa.sh flaky` calls STABLE FAIL (0/N). There, any
+  pass is signal. Most of this campaign's targets are in that list.
+- Never quote the pass RATE as evidence for anything. Quote which flows changed, and
+  whether their inputs changed.
+- A flaky flow needs 3+ consecutive runs before you may call it fixed.
+- "1/7 pass" is NOT the same failure mode as "4/7 pass". The first is a real, nearly
+  deterministic defect with a rare lucky path — worth fixing. The second is a race.
+
+It also killed a standing hypothesis. "The publish family fails while `publish_success`
+passes" rested on run-524, the ONLY run in six where `publish_success` passed. There is
+no passing control: the whole seller publish family fails together, while the
+`listings` create-and-publish flows (`create_listing_full_publish`,
+`create_listing_publish_requirements`, `lifecycle_unpublish`) pass 4/4.
+
 ## The Expo dev-menu FAB crash: root cause, and why you cannot switch it off
 
 Symptom: the app is replaced by **"There was a problem loading the project"** and

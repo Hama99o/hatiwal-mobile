@@ -152,10 +152,17 @@ appId: com.hatiwal.app
 # touch lands on the keyboard. `hideKeyboard` is NOT the fix on a pushed screen — it is
 # Back, and it pops the screen. Scroll-then-tap is: see qa/QA_HANDBOOK.md, "hideKeyboard".
 - waitForAnimationToEnd
-- tapOn: "Publish"
+# By testID, NOT the text "Publish". The dialog's confirm button carries the same
+# word as the button behind it, so a text tap is ambiguous the moment the dialog
+# is up: Maestro resolves the two matches to one point, which lands either on the
+# scrim (dialog closes, nothing published) or on the confirm button (publishes
+# before we look). BOTH outcomes are in the run history, which is why this flow
+# was 0/6. draft_lifecycle and lifecycle_publish already tap this button by id
+# and do not show the failure. MyListingDetail.tsx:529.
+- tapOn:
+    id: "lifecycle-primary-action"
 - waitForAnimationToEnd
 - assertVisible: "Publish this listing?"
-# The dialog's confirm button says "Publish" — and so does the button behind it.
 - runFlow: ../_helpers/confirm_dialog.yaml
 - waitForAnimationToEnd
 # extendedWaitUntil, not assertVisible: this is a TOAST. It lives ~3s, so a

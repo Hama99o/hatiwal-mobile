@@ -195,15 +195,31 @@ appId: com.hatiwal.app
 # listing.json `confirmPublish` = "Publish this listing?" — so this is timing, not
 # a stale string. publish_success PASSED in the same pass, so publishing itself
 # works.
-- extendedWaitUntil:
-    visible: "Publish this listing?"
-    timeout: 15000
-- runFlow: ../_helpers/confirm_dialog.yaml
+# The dialog may ALREADY BE GONE by the time we look, so this is optional.
+# The Publish button on the EDIT FORM has no testID (ListingForm.tsx:1174), so
+# the tap above has to go by text — and "Publish" also names the dialog's own
+# confirm button. Maestro resolves the two matches to a single point, which
+# lands either on the scrim (dialog closes, nothing published) or on the confirm
+# button (publishes before this step runs). run-524 is the second case: the
+# end-of-flow screenshot is the success sheet with the listing ACTIVE, i.e. the
+# app did exactly the right thing and the flow failed anyway, waiting 15s for a
+# dialog it had already answered itself.
+#
+# So do not assert the dialog at all. Answer it if it is there, and let the
+# SUCCESS SHEET be the assertion — that is the outcome we actually care about,
+# and it is a true negative if publishing really failed.
+- runFlow:
+    when:
+      visible: "Publish this listing?"
+    commands:
+      - runFlow: ../_helpers/confirm_dialog.yaml
 - waitForAnimationToEnd
 
 # ── 3) Success sheet appears on the SAME listing; dismiss it ─────────────────
 
-- assertVisible: "Your listing is live!"
+- extendedWaitUntil:
+    visible: "Your listing is live!"
+    timeout: 20000
 - assertVisible: "Owner Detail Publish Regression Item"
 - tapOn: "Done"
 - waitForAnimationToEnd

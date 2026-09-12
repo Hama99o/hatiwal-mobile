@@ -450,6 +450,12 @@ print(' '.join(sorted(yaml.safe_load(open('$MANIFEST'))['features'])))
   # are too old to trust.
   coverage) python3 "$HERE/lib/coverage.py" ;;
 
+  # Which flows can give a trustworthy verdict at all. run-526 read as 15/5 =
+  # 76% against a 55% baseline and was entirely noise: every flow that changed
+  # verdict had byte-identical yaml in both runs. 37% of the suite is flaky, so
+  # a single run is not evidence about a fix unless the flow is STABLE FAIL.
+  flaky)   python3 "$HERE/lib/flakiness.py" "${2:-}" ;;
+
   # Re-run ONLY the failing flows whose file has changed since that verdict.
   # `flow_sha` makes it exact, so a handful of stale rows no longer costs a
   # whole feature at ~4 minutes per unchanged flow.
