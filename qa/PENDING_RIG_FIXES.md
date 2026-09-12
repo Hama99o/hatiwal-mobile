@@ -199,6 +199,25 @@ Observed: `meetup_respond` and `conversations_role_filter` are the first kind;
 
 ---
 
+## Candidate 8 UPDATE: block_from_conversation PASSED on re-run — it is INTERMITTENT
+
+**run-526 (chat, quiet box): `block_from_conversation` PASSED in 171s.** In
+run-523 it failed with the unblock succeeding and the thread still showing "You
+can't message this user." with no composer.
+
+Nothing was changed in that flow or in `Conversation.tsx` between the two runs, so
+this is not a fix — **it is proof the failure is intermittent**, which is what the
+single-shot-refetch hypothesis predicts: `unblockMutation.onSuccess` calls
+`load()` exactly once with no retry, so it only fails when that one request races
+the unblock's commit.
+
+That strengthens the mechanism and simultaneously explains why it must NOT be
+filed yet: an intermittent failure needs the navigate-away-and-back check to
+distinguish "the UI never recovers" from "the UI recovered a moment later". Keep
+watching it across passes and count the failure rate.
+
+---
+
 ## RESOLVED — NOT AN APP BUG: the bare "no entry" pill was the OWNER notice
 
 **Closed 2026-09-05.** The app was viewing its OWN listing, so `ownListingNotice`
@@ -486,3 +505,32 @@ confirm dialog, and sell_without_reserving at "Publish". publish_success PASSES,
 so the publish path itself works; the three are almost certainly the same
 async-assert shape, but that should be confirmed from evidence rather than
 assumed because it is convenient.
+
+---
+
+## run-526: the first pass carrying the campaign's fixes — and a caution about reading it
+
+Like-for-like on the seven flows run-526 had completed, against run-523:
+
+```
+run-523   5 pass / 2 fail
+run-526   7 pass / 0 fail
+```
+
+**Neither of the two that flipped was fixed by this campaign**, and that is worth
+stating plainly rather than banking as a win:
+
+| flow | 523 | 526 | was it fixed here? |
+|---|---|---|---|
+| `block_from_conversation` | fail | pass | **No** — this is candidate bug 8, deliberately left unfiled and untouched |
+| `conversation_delete` | fail | pass | **No** — explicitly NOT converted; it scrolls the CONVERSATIONS list and needs the conversations search bar, not search_my_shop |
+
+Both are therefore **intermittent**, not repaired. That is useful in two
+directions: it confirms candidate 8 is a race rather than a permanent broken
+state, and it warns that `conversation_delete`'s scroll sometimes wins — so its
+pending fix is still needed and should not be dropped because a pass went green.
+
+**None of the campaign's actual fixes has been exercised yet at this point in the
+pass.** The six "Make an Offer" waits, the role-chip scroll, the corrected offline
+assertion, `start_conversation`'s conversion and the 2x timeout all sit later in
+the alphabet. Judge them when those flows run, not on this prefix.
