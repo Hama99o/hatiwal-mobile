@@ -54,6 +54,26 @@ appId: com.hatiwal.app
 - assertVisible: "All"
 - assertVisible:
     id: "role-chip-buying"
+
+# BRING "Selling" INTO VIEW — the chip row scrolls HORIZONTALLY.
+#
+# `role-chip-selling` is not a stale testID: Conversations.tsx renders
+# `testID={`role-chip-${key}`}` and line 704 branches on `key === "selling"`, so
+# the chip exists. It is simply OFF SCREEN. run-523's end-of-flow screenshot shows
+# the row at 360dp reading "All · Unread · Read · Buying ›" with the chevron
+# indicating more to the right, and assertVisible is a claim about what is ON
+# SCREEN, not about what exists in the tree.
+#
+# Same shape as browse_sort_most_viewed / browse_sort_nearest, whose sort chips
+# live in the same kind of horizontal ScrollView. scrollUntilVisible scrolls the
+# scrollable that contains the target, and is a NO-OP once the element is already
+# visible — so this costs nothing on a wider screen where "Selling" is in view
+# from the start.
+- scrollUntilVisible:
+    element:
+      id: "role-chip-selling"
+    direction: RIGHT
+    timeout: 10000
 - assertVisible:
     id: "role-chip-selling"
 - scrollUntilVisible:
