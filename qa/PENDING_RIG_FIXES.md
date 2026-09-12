@@ -374,3 +374,52 @@ thread and back in. If the composer returns, the single-shot refetch is the bug.
 conversation block state and use it directly — no second round trip and no race.
 Failing that, invalidate the conversation query so React Query refetches, rather
 than one manual `load()`.
+
+---
+
+## 9. FOR THE login_seller.yaml OWNER: the mode gate at line 342 does not scroll
+
+**Not applied here — `login_seller.yaml` belongs to the session that committed
+7d84539, and the proven fix already exists in a sibling helper, so this is a copy
+rather than a design problem.**
+
+**Symptom** (run-523, a clean pass — load ~8, zero SUSPECT PASS, zero rig_fail):
+
+```
+Assertion is false: "Switch to .*" is visible
+```
+
+in `meetup_decline` (396s) and `meetup_full_cycle` (477s).
+
+**It is not a missing toggle.** The screen-hierarchy dump at the failing step is
+the Profile screen scrolled DOWN into its settings section — `ACTIVITY`,
+`Appearance`, `Blocked Users`, `Hidden Listings`, `Language`, `My Reports`. The
+mode toggle lives at the TOP of Profile, so it is simply above the viewport.
+
+**The file already predicts this.** Its own comment at line 118 says the gate
+"does not scroll either", and `login.yaml:141` repeats it. There IS an UP scroll
+at line 127 — but it targets `profile-display-name` inside the wrong-account
+branch, and that branch is skipped when the right account is already signed in.
+The gate at line 342 then runs against whatever scroll position the previous flow
+left behind, because the tab navigator keeps Profile mounted.
+
+**The fix is already written and working**, in `_helpers/ensure_buyer_mode.yaml`
+around line 114 — scroll UP to the toggle before gating on it:
+
+```yaml
+- scrollUntilVisible:
+    element:
+      text: "Switch to .*"
+    direction: UP
+    timeout: 20000
+    # NOT centerElement: the toggle sits near the very top and cannot be
+    # centred, which is how CENTERELEM failures are manufactured.
+```
+
+`direction: UP` is the whole point, and that helper's comment records why: an
+earlier attempt used a bare `scrollUntilVisible`, which only ever scrolls DOWN
+and so carried the toggle further away — exactly the "scrolled the toggle AWAY
+and then could not find it" failure noted at login_seller.yaml:334.
+
+Two flows lost to it in a single clean pass, and it will hit any flow that
+reaches `login_seller.yaml` with Profile left scrolled.
