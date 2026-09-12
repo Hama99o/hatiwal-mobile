@@ -2417,3 +2417,34 @@ The commit was already pushed when this was noticed, and it was left alone: the
 repo is shared with other agents, so a force-push to fix prose is a worse trade
 than a message with gaps. The full reasoning survived anyway, because it is also
 written as comments in `maestro/_helpers/goto_login.yaml`.
+
+## `adb emu kill` can report OK and leave the emulator running
+
+Observed 2026-09-12 while shutting the second tester down. The command answered:
+
+```
+OK: killing emulator, bye bye
+OK
+```
+
+and the emulator was **still running 25 minutes later** — `qa_phone4`, pid 516731,
+**226% CPU and 3.6GB RSS**, the single largest consumer on the box. `adb devices`
+kept listing `emulator-5582`, and `adb -s emulator-5582 shell getprop
+sys.boot_completed` still answered `1`.
+
+The cost was not just wasted CPU: session 1's flow times were being read as
+"not recovering after the contention was removed", when the contention had never
+actually been removed. Two conclusions were nearly drawn from that.
+
+**So never trust the OK.** After `adb emu kill`, verify and follow up:
+
+```bash
+ps -eo pid,pcpu,cmd | grep qemu-system | grep -v grep     # which AVDs are really up
+# confirm the AVD name on the PID before killing it:
+ps -p <pid> -o cmd= | grep -o '\-avd [a-z_0-9]*'
+kill <pid>            # then re-check, and kill -9 only if it survives
+```
+
+Always identify the AVD by name on the PID first. On this host `qa_phone` is
+session 1's device and killing it stops the campaign; only ever target the AVD you
+actually started.
