@@ -275,3 +275,59 @@ the helper's `dismiss_keyboard_by_drag` + wait-on-`listing-card` +
 tap-by-testID sequence exists to prevent.
 
 So the rollout is safe to proceed with: the pattern is proven on this very run.
+
+---
+
+## 7. FOR THE login.yaml OWNER: 134 flows tap a tab the instant the helper returns
+
+**Not applied here — `login.yaml` / `login_seller.yaml` belong to the session that
+committed 7d84539, and this is a one-line change in each rather than something to
+race over.** Flagged because the blast radius is large and the symptom is
+misleading.
+
+**The shape**, counted across `maestro/`:
+
+```
+- runFlow: ../_helpers/login.yaml          # or login_seller.yaml
+- tapOn:
+    id: "browse-tab"                       # or profile-tab, chat-tab, ...
+```
+
+**134 flows** do exactly this — more than half the suite.
+
+**The symptom when it loses the race** (run-522, `seller/listing_actions_sheet`,
+on its first action):
+
+```
+Element not found: Id matching regex: browse-tab
+```
+
+which reads like a dead testID and is not: `browse-tab` is declared in
+`app/(main)/(tabs)/_layout.tsx` and every other flow taps it happily. The tab bar
+just had not mounted yet. This is the same class already fixed three times in
+this campaign — a `when:`/tap racing a screen that is still coming up — and it is
+why "Element not found: <a testID that plainly exists>" should be read as a
+timing failure until proven otherwise.
+
+**The fix, at the source rather than in 134 files:** end both login helpers by
+waiting for the tab bar.
+
+```yaml
+- extendedWaitUntil:
+    visible:
+      id: "browse-tab"
+    timeout: 20000
+    optional: true
+```
+
+`browse-tab` is the right probe because every tab bar renders it whichever tab is
+selected — `_helpers/pop_to_tab_bar.yaml` already uses it for that reason.
+`optional: true` keeps a caller that legitimately ends elsewhere unaffected.
+
+**Do NOT reach for `pop_to_tab_bar.yaml` here.** It recovers by pressing BACK up
+to twice, and Back has already exited this app to the Android home screen once in
+this campaign (the hideKeyboard revert, 2026-09-05). After a login helper the app
+is on Profile with a tab bar that is merely late — Back would navigate away from a
+correct screen to fix a timing problem.
+
+`seller/listing_actions_sheet` has the wait inline already, as the worked example.

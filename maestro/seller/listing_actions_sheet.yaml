@@ -17,6 +17,28 @@ appId: com.hatiwal.app
 #      device/simulator so a silent no-op would just hang here).
 
 - runFlow: ../_helpers/login_seller.yaml
+
+# WAIT FOR THE TAB BAR BEFORE TAPPING A TAB IN IT.
+#
+# This flow failed in run-522 on its very first action:
+#   Element not found: Id matching regex: browse-tab
+# which reads like a missing testID and is not — `browse-tab` is declared in
+# app/(main)/(tabs)/_layout.tsx and every other flow taps it happily. The tab bar
+# simply had not mounted yet when the tap was attempted, one step after
+# login_seller.yaml returned.
+#
+# Deliberately a WAIT and not _helpers/pop_to_tab_bar.yaml, even though that
+# helper exists for "no tab bar" and its header notes audit_structure found five
+# flows in this shape. pop_to_tab_bar recovers by pressing BACK up to twice, and
+# Back is the gesture that has already exited this app to the Android home screen
+# once in this campaign (see the hideKeyboard revert of 2026-09-05). Here the app
+# is on Profile with a tab bar that is merely late, so Back would navigate away
+# from a correct screen to fix a timing problem. A wait costs nothing when the bar
+# is already up and fails loudly, at this line, when it truly is not.
+- extendedWaitUntil:
+    visible:
+      id: "browse-tab"
+    timeout: 20000
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
