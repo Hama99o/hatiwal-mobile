@@ -10,12 +10,12 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**141 of 258 flows passing** · 110 still need attention
+**142 of 258 flows passing** · 109 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 141 | green, and no backend error underneath |
-| FAIL-assert | 73 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 142 | green, and no backend error underneath |
+| FAIL-assert | 72 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-? | 34 | failed, cause unclear — read the log |
 | (rig) | 7 | rig broke mid-run — result meaningless, re-run |
@@ -78,7 +78,7 @@ bug class a user reports as "nothing happened".
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state — mark-sold one-tap from the thread, place/release a hold with the buyer you're already talking to
 
-26/49 passing · 18 open
+27/49 passing · 16 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -117,20 +117,20 @@ bug class a user reports as "nothing happened".
 | `quick_replies` | FAIL-assert | run-521 | 291 | flow — asserts the full quick-reply text "Is this still available? Please let me know.". Check that exact string in all 3 locales before treating it as a UI defect. | Exception in thread "Thread-5" java.io.IOException: Command failed (shell,v2,raw:pm list packages --user 0 dev |
 | `report_participant` | FAIL-assert | run-521 | 339 | flow — asserts `.*already reported.*`, i.e. it expects a PRIOR report to exist. Fixture-order dependency, not a UI defect: whether it passes depends on whether report_user ran successfully first, and report_user failed this pass. Re-run after the auth fixes. | 2026-09-05 NOT an app bug. A Report is unique per reporter+target and one from an e2e account existed at 02:48, created AFTER that pass's 02:42 seed, so the flow's FIRST submit already took the duplicate path — and ReportSheet offers "Block this user?" from inside onSuccess, making everything after it unreachable (RIG-004). reset_e2e clears reports BETWEEN passes, which cannot help one created DURING one. FIX: delete its own report row first, or target a user no other flow reports. |
 | `reserve_after_accept` | FAIL-assert | run-521 | 330 | HELPER FIX CONFIRMED — ran as flow #35 of run-521, i.e. WITH the fixed open_listing_by_title.yaml, and its final hierarchy is the DETAIL screen (AFN 3,500, Clothes & Fashion, Kandahar, Description) with NO browse-search-input. So the helper navigated correctly and the false pass is gone. The remaining failure is "Make an Offer" absent ON the detail screen, which is the wrong-account bug (owner sees ownListingNotice, not the offer row) — tracked by the session that owns login.yaml (see 7d84539). | 2026-09-05 same scroll-to-title cause; wired to _helpers/open_listing_by_title.yaml. |
-| `reserve_after_buyer_accepts_counter` | FAIL-assert | run-521 | 365 | flow — converted to open_listing_by_title.yaml with the EXACT full title ("Toyota Corolla 2016 Automatic", not the "Toyota Corolla" prefix it used, because the helper asserts the title it is given). It was re-implementing the helper inline and carried both defects the helper was fixed for; its own screenshot shows the IME covering the result card. | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
+| `reserve_after_buyer_accepts_counter` | FAIL-assert ⟳stale | run-521 | 365 | flow — converted to open_listing_by_title.yaml with the EXACT full title ("Toyota Corolla 2016 Automatic", not the "Toyota Corolla" prefix it used, because the helper asserts the title it is given). It was re-implementing the helper inline and carried both defects the helper was fixed for; its own screenshot shows the IME covering the result card. | Older fixture, far down a paginating feed; 8s scroll budget. Now searches. |
 | `reserved_sold_dead_end_notice` | (rig) | run-521 | 603 | flow | Five logins could not fit FLOW_TIMEOUT=600; split into three flows, only this one mutates. |
 | `scroll_to_latest` | (rig) | run-521 | 605 | app | 2026-09-03 SOLVED: the meetup sheet was drawn UNDER the Android keyboard, so Time and Propose were unreachable when the sheet opened with the IME already up — the ordinary path, which no meetup flow covered. Fixed d46c896; PASS at BOTH widths after the rebuild. Its earlier 600s timeout at 360dp was a SYMPTOM of the same bug (dead waits), not a ceiling that needed raising. |
 | `send_message` | (rig) | run-521 | 604 |  | AxiosError |
 | `send_message_double_tap` | (rig) | run-521 | 603 |  |  |
 | `send_message_empty` | PASS | run-521 | 548 |  | AxiosError |
 | `send_message_offline` | FAIL-? | run-521 | 504 | flow — NOT a listing-opener case, checked before converting: it taps `chat-tab` first and scrolls to the title in the CONVERSATION list, so it opens a thread, not a listing from the feed. Its "No visible element found: Lenovo ThinkPad..." is about the conversation list. Needs a wait on the conversation row, or a fixture check. | hideKeyboard is Back on Android and popped the conversation; "Send" was on another screen. |
-| `send_message_whitespace` | PASS | run-515 | 212 |  |  |
-| `send_multiple_messages` | PASS | run-515 | 241 |  |  |
-| `send_photo` | FAIL-assert | run-515 | 243 | flow | Asserted "common.close" — a t() KEY copied from a Jest test. |
-| `start_conversation` | FAIL-? | run-515 | 212 | fixture | RIG-005: Wool Blanket had drifted to sold, so it left the browsable feed. Re-seeded. |
-| `start_conversation_and_reply` | PASS | run-515 | 232 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
-| `unread_badge_survives_navigation` | FAIL-assert | run-515 | 166 |  | [Failed] unread_badge_survives_navigation (2m 31s) (Element not found: Id matching regex: conversation-action- |
-| `view_other_profile_from_conversation` | PASS | run-515 | 209 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
+| `send_message_whitespace` | PASS | run-521 | 564 |  |  |
+| `send_multiple_messages` | PASS | run-521 | 544 |  |  |
+| `send_photo` | PASS | run-521 | 310 | flow | Asserted "common.close" — a t() KEY copied from a Jest test. |
+| `start_conversation` | FAIL-? | run-521 | 226 | fixture | RIG-005: Wool Blanket had drifted to sold, so it left the browsable feed. Re-seeded. |
+| `start_conversation_and_reply` | PASS | run-521 | 241 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
+| `unread_badge_survives_navigation` | FAIL-assert | run-521 | 174 |  | [Failed] unread_badge_survives_navigation (2m 35s) (Element not found: Id matching regex: conversation-action- |
+| `view_other_profile_from_conversation` | PASS | run-521 | 231 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
 
