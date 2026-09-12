@@ -92,6 +92,18 @@ appId: com.hatiwal.app
 
 # "Make an Offer" is a sibling of "Contact Seller" directly on the listing
 # detail page -- no need to open the thread first.
+# WAIT FOR THE ACTION BAR, DO NOT TAP INTO IT.
+#
+# Same readiness race the offer flows hit in run-523, on a clean box: the listing
+# detail is OPEN — gallery, price, view count, and no browse-search-input, so the
+# opener worked — but the action row has not rendered yet. Crucially the OWNER
+# notice is absent too, which rules out the wrong-account explanation: every
+# branch is simply unrendered, because the action area gates on the viewer being
+# resolved (`viewerKnown: !!currentUser`) while the listing's own data lands
+# first. So the page looks complete and has no buttons.
+- extendedWaitUntil:
+    visible: "Make an Offer"
+    timeout: 20000
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
 - assertVisible: "Send Offer"
