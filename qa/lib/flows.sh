@@ -317,9 +317,33 @@ EOF_IDS
 
     stop_geo_pump() { [ -n "${geo_pump:-}" ] && kill "$geo_pump" 2>/dev/null; geo_pump=""; }
 
+    # A FLOW THAT SWITCHES ACCOUNTS NEEDS MORE THAN 600s.
+    #
+    # Measured 2026-09-12 on a QUIET box (load ~7, one emulator, zero SUSPECT
+    # PASS lines): reserved_sold_dead_end_notice and scroll_to_latest both hit the
+    # 600s cap in run-523 — and both hit it in run-521 too. The SAME two flows,
+    # twice, while their neighbours passed in 282-354s. So it is not the host.
+    #
+    # Neither is hung. reserved_sold_dead_end_notice runs BOTH login helpers,
+    # login_seller.yaml then login.yaml, and its debug screenshots reach step-125
+    # — the SECOND login's notification prompt. Each helper is a cold stopApp +
+    # launchApp + bundle load + onboarding skip + sign-out scroll + sign-in +
+    # permission dialog + mode check; two of those plus the flow's own work does
+    # not fit in ten minutes here. scroll_to_latest is the same story by another
+    # route: it sends seven messages, then cold-restarts the app with a 120s wait.
+    #
+    # Raising FLOW_TIMEOUT globally would hide genuinely hung flows, so the budget
+    # is widened only where the cost is visible IN THE FLOW: referencing both
+    # login helpers means an account switch. 20 flows match today, and the test
+    # reads the flow rather than consulting a list that would rot.
+    local flow_timeout="$FLOW_TIMEOUT"
+    if grep -q "login\.yaml" "$flow" 2>/dev/null && grep -q "login_seller\.yaml" "$flow" 2>/dev/null; then
+      flow_timeout=$(( FLOW_TIMEOUT * 2 ))
+    fi
+
     run_maestro() {
       local extra="$1"
-      timeout "$FLOW_TIMEOUT" "$MAESTRO" ${QA_SERIAL:+--device "$QA_SERIAL"} test $extra "$flow" \
+      timeout "$flow_timeout" "$MAESTRO" ${QA_SERIAL:+--device "$QA_SERIAL"} test $extra "$flow" \
         --format JUNIT --output "$out/$name.xml" \
         --debug-output "$out/debug-$name" \
         --env EMAIL="$QA_BUYER_EMAIL" --env PASSWORD="$QA_PASSWORD" \
