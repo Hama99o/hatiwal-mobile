@@ -51,6 +51,25 @@ appId: com.hatiwal.app
 
 # Description
 # The INPUT by testID — see the note on the title field.
+# SCROLL TO THE FIELD FIRST — the keyboard is up from the title.
+#
+# run-525 failed here on a QUIET box with
+# "Element not found: Id matching regex: listing-form-description-input", and that testID is
+# CURRENT (ListingForm.tsx). The field is simply below the fold: typing the title
+# raises the IME, which takes roughly half the window at 360dp, and the form is
+# long.
+#
+# The proof is the sibling that PASSES: create_listing.yaml reaches the same field
+# via `scrollUntilVisible` first, and its own comment calls this "the sixth place
+# in this app where a keyboard hid a control". This flow tapped straight through.
+#
+# No centerElement — a field near the end of a form cannot be centred, which is
+# how CENTERELEM findings are manufactured.
+- scrollUntilVisible:
+    element:
+      id: "listing-form-description-input"
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     id: "listing-form-description-input"
 - inputText: "Excellent condition, minor scratches on back. All accessories included."

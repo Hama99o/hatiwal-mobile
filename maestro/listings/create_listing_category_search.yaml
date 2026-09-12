@@ -25,8 +25,15 @@ appId: com.hatiwal.app
 # Search for a category
 - tapOn: "Search categories..."
 - inputText: "Elect"
-- waitForAnimationToEnd
-- assertVisible: "Electronics"
+# WAIT FOR THE FILTER, NOT FOR AN ANIMATION.
+#
+# `waitForAnimationToEnd` returns when the UI settles; filtering a category list
+# is a data operation and is not covered by it. run-525 failed here on a quiet box
+# with `Assertion is false: "Electronics" is visible`, and "Electronics" is not
+# stale copy — it comes from the API's categories, not from i18n.
+- extendedWaitUntil:
+    visible: "Electronics"
+    timeout: 15000
 # Search something that doesn't exist
 - eraseText
 - inputText: "xyznotacategory"
