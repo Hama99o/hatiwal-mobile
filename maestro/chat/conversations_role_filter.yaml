@@ -55,25 +55,30 @@ appId: com.hatiwal.app
 - assertVisible:
     id: "role-chip-buying"
 
-# BRING "Selling" INTO VIEW — the chip row scrolls HORIZONTALLY.
+# BRING "Selling" INTO VIEW — by swiping INSIDE the chip row, not with a bare
+# directional scroll.
 #
-# `role-chip-selling` is not a stale testID: Conversations.tsx renders
-# `testID={`role-chip-${key}`}` and line 704 branches on `key === "selling"`, so
-# the chip exists. It is simply OFF SCREEN. run-523's end-of-flow screenshot shows
-# the row at 360dp reading "All · Unread · Read · Buying ›" with the chevron
-# indicating more to the right, and assertVisible is a claim about what is ON
-# SCREEN, not about what exists in the tree.
+# `role-chip-selling` is not stale: Conversations.tsx renders
+# `testID={`role-chip-${key}`}` and line 704 branches on key === "selling". At
+# 360dp the row reads "All · Unread · Read · Buying ›" and Selling sits off the
+# right edge, so assertVisible — a claim about what is ON SCREEN — fails.
 #
-# Same shape as browse_sort_most_viewed / browse_sort_nearest, whose sort chips
-# live in the same kind of horizontal ScrollView. scrollUntilVisible scrolls the
-# scrollable that contains the target, and is a NO-OP once the element is already
-# visible — so this costs nothing on a wider screen where "Selling" is in view
-# from the start.
-- scrollUntilVisible:
-    element:
-      id: "role-chip-selling"
-    direction: RIGHT
-    timeout: 10000
+# CORRECTED 2026-09-13. The first attempt here was
+# `scrollUntilVisible: {element: {id: role-chip-selling}, direction: RIGHT}`, and
+# it made things WORSE. run-526's end-of-flow screenshot is a CONVERSATION THREAD
+# — message bubbles, the composer, a "Mark Sold" header — so the gesture did not
+# merely fail to find the chip: an unanchored directional swipe landed on a
+# conversation row and OPENED it, after which the chips genuinely did not exist.
+# The asserts just above (Messages, All, role-chip-buying) had all passed, so the
+# flow was on the list until that step ran.
+#
+# Anchoring the swipe to the chip row's own testID keeps the gesture inside the
+# scroller, where it cannot reach a conversation row.
+- swipe:
+    from:
+      id: "conversations-filter-chip-row"
+    direction: LEFT
+- waitForAnimationToEnd
 - assertVisible:
     id: "role-chip-selling"
 - scrollUntilVisible:
