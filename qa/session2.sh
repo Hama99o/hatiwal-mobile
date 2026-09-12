@@ -10,10 +10,24 @@
 # Stopping this session returned the host to 6.8G available and session 1
 # recovered on its own ("emulator recovered — continuing").
 #
-# So on THIS host the real limit is TWO emulators, and one of those belongs to
-# another project (qa_edu_phone on 5584) which the owner asked to keep running.
-# That leaves exactly one for Hatiwal. A second Hatiwal tester is only viable
-# when 5584 is down, or on a machine with more RAM.
+# So on THIS host the real limit is TWO emulators, and one of those belonged to
+# another project (qa_edu_phone on 5584).
+#
+# UPDATED 2026-09-12, and the first conclusion was only half right. 5584 went
+# away and RAM freed up (11G available, swap idle), so a second tester finally
+# booted — and it still did not pay off, because the binding constraint here is
+# CPU, not memory. With both testers up: load 21.4 on 16 cores, two
+# qemu-system-x86 at 181% and 158% plus Metro at 148%, session 1's flows slowed
+# 208s -> 262s (+26%), the slowest hitting 405s against a 600s timeout, and this
+# session lost buyer_picker_rtl to that timeout outright.
+#
+# Session 1 recorded no rig_fail rows, so nothing had broken yet — but a slower
+# device is what turns assertions into races, and that is the exact failure class
+# this campaign spends its time removing.
+#
+# So: "more RAM" is NOT the signal to start this session. Spare CORES are. The
+# gate below now waits out session 1's pass as well as the load average, so this
+# session runs in real gaps rather than competing for the same cores.
 #
 # The script below is correct and can be reused — the constraint is the box, not
 # the code. Check `free -g` first: it needs ~4G headroom AFTER booting.
@@ -149,9 +163,35 @@ while [ ! -f "$STOP" ]; do
     waited=0
     while [ -f "$EDIT_MARKER" ] && [ $waited -lt 900 ]; do sleep 15; waited=$((waited+15)); done
 
+    # YIELD FOR AS LONG AS IT TAKES — no escape hatch.
+    #
+    # This used to give up after 600s and run anyway, which contradicted this
+    # file's own stated design ("this session is the OPTIONAL one, so it is the
+    # one that should yield when the box is full"). Measured 2026-09-12, with
+    # both testers up on a 16-core host:
+    #
+    #   load 21.4, two qemu-system-x86 at 181% and 158% CPU plus Metro at 148%
+    #   session 1's flows slowed from 208s (first 20) to 262s (last 10) — +26%
+    #   slowest reached 405s against a 600s timeout, and session 2 had already
+    #   lost buyer_picker_rtl to that timeout
+    #
+    # Session 1 produced no rig_fail rows, so nothing had broken YET — but a
+    # slower device is precisely what turns assertions into races, which is the
+    # failure class this campaign has spent days removing. Manufacturing that
+    # noise to gain a second viewport is a bad trade.
+    #
+    # THE BINDING CONSTRAINT ON THIS HOST IS CPU, NOT RAM. There was 11G free the
+    # whole time. A second tester needs spare CORES, and while session 1 is
+    # mid-pass there are none.
+    #
+    # So: also wait out session 1's pass, not just the load average. That makes
+    # this session use genuine gaps instead of competing.
     w=0
-    while host_is_pressured && [ $w -lt 600 ]; do
-      [ $w -eq 0 ] && say "backing off: load $(cut -d' ' -f1 /proc/loadavg), $(free -g | awk '/Mem:/{print $7}')G free"
+    while host_is_pressured || [ -f /tmp/hatiwal-pass-running ]; do
+      [ -f "$STOP" ] && { say "stop file seen while backing off"; exit 0; }
+      if [ $((w % 300)) -eq 0 ]; then
+        say "yielding: load $(cut -d' ' -f1 /proc/loadavg), $(free -g | awk '/Mem:/{print $7}')G free, session1 pass=$([ -f /tmp/hatiwal-pass-running ] && cat /tmp/hatiwal-pass-running || echo none)"
+      fi
       sleep 60; w=$((w+60))
     done
 
