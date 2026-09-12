@@ -65,6 +65,27 @@ appId: com.hatiwal.app
 # offer button is then left behind on the screen we came from. That is why
 # this failed with "Element not found: Text matching regex: Make an Offer".
 # offer_send_and_accept.yaml has always done it this way and passes.
+# WAIT FOR THE ACTION BAR, DO NOT TAP INTO IT.
+#
+# run-523 (a clean pass: load ~8, zero SUSPECT PASS, zero rig_fail) failed this
+# flow on `Element not found: Text matching regex: Make an Offer` while the
+# listing detail was plainly OPEN — the screen-hierarchy dump at the failing step
+# has the gallery ("1 / 3"), the price (AFN 3,500), "75 views" and the date, and
+# NO browse-search-input, so navigation had succeeded.
+#
+# What the dump does NOT have is any action row at all: no "Make an Offer", no
+# "Contact Seller", and no owner notice either. That rules out the ownership and
+# sold branches — every branch was still unrendered. The action area waits on the
+# VIEWER being resolved (`viewerKnown: !!currentUser`, threadAvailability.ts /
+# ListingDetail), and the listing's own data arrives first, so there is a window
+# where the page looks complete and has no buttons.
+#
+# So wait for the control instead of racing it. If the viewer genuinely should
+# not see it — owner, reserved, sold — this fails with the same message it would
+# have anyway, just after giving the screen a fair chance.
+- extendedWaitUntil:
+    visible: "Make an Offer"
+    timeout: 20000
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
 - assertVisible: "Send Offer"
