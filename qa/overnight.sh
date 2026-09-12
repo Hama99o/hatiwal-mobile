@@ -187,14 +187,34 @@ wait_for_headroom() {
       # Hold for up to an hour, saying so every 10 minutes so this is never
       # mistaken for a stalled night, then give in rather than skip the night
       # entirely — but mark the pass so triage knows not to trust it.
-      if swap_thrashing && [ $waited -lt 3600 ]; then
-        say "swap exhausted ($(free -m | awk '/^Swap:/{print $4}')MB free) after ${waited}s — still waiting; verdicts recorded now would be VOID"
+      # LOAD NOW GETS THE SAME PATIENCE AS SWAP, AND THE SAME WARNING.
+      #
+      # The note above this function argued that "proceeding under load costs some
+      # slow flows whereas waiting costs ALL of them", so load escaped after 10
+      # minutes while swap held for an hour. Measured 2026-09-12, that trade does
+      # not hold. This driver proceeded at load ~17, the box then climbed to 24.9
+      # (shared with another agent's chrome-headless, ffmpeg and Rails), and
+      # run-522's seller pass came back 0 of 8 — it cost ALL of them anyway, plus
+      # hours of wall clock and a triage pass over numbers that meant nothing.
+      # run-521 said the same thing more quietly: 66% at flow 29, 55% by the end,
+      # four rig_fails, 310s per flow against a ~208s baseline.
+      #
+      # So hold up to an hour for EITHER condition, and if we do give in, say
+      # SUSPECT PASS in both cases. Proceeding is meant to keep the night moving,
+      # not to pretend the numbers are sound: an unmarked contended pass is worse
+      # than no pass at all, because the next reader triages it as app bugs.
+      if [ $waited -lt 3600 ]; then
+        if swap_thrashing; then
+          say "swap exhausted ($(free -m | awk '/^Swap:/{print $4}')MB free) after ${waited}s — still waiting; verdicts recorded now would be VOID"
+        else
+          say "host busy (load $(cut -d' ' -f1 /proc/loadavg)) after ${waited}s — still waiting; verdicts recorded now would be suspect"
+        fi
         cap=$((cap + 600))
         continue
       fi
       swap_thrashing \
         && say "SUSPECT PASS — swap still exhausted after ${waited}s, proceeding anyway; treat every failure below as unproven" \
-        || say "host still busy after ${waited}s — proceeding anyway so the night does not stall"
+        || say "SUSPECT PASS — host still busy (load $(cut -d' ' -f1 /proc/loadavg)) after ${waited}s, proceeding anyway; treat every failure below as unproven"
       return 0
     fi
   done
