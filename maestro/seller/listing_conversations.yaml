@@ -68,6 +68,16 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 
+# WAIT FOR THE ACTION BAR, DO NOT TAP INTO IT.
+#
+# Same readiness race the chat offer flows hit in run-523 and this flow hit in
+# run-524 on a quiet box: the listing detail is open but the action row has not
+# rendered, because it gates on the viewer being resolved (`viewerKnown:
+# !!currentUser`) while the listing's own data arrives first. The page looks
+# complete and has no buttons.
+- extendedWaitUntil:
+    visible: "Make an Offer"
+    timeout: 20000
 - tapOn: "Make an Offer"
 - waitForAnimationToEnd
 - assertVisible: "Send Offer"
