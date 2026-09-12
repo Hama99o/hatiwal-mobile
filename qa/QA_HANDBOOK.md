@@ -2472,3 +2472,34 @@ appy = [r for r in rows if r.get("kind") == "app_bug_or_flow"]   # worth triagin
 Values seen: `app_bug_or_flow`, `rig_fail`, `unknown`, and absent on passes.
 A `kind` of `rig_fail` means the flow never got a fair run — re-run it on a quiet
 box rather than triaging it as a defect.
+
+## Patching a script that is currently executing — carry the mode across
+
+Renaming is the right way: `mv` swaps the directory entry while the running
+process keeps its open inode, so a mid-execution script is never read half-old
+and half-new. The trap is the FILE MODE.
+
+On 2026-09-12 `qa/overnight.sh` was patched this way and landed as 0644. The
+driver then could not start at all:
+
+```
+timeout: failed to run command './qa/overnight.sh': Permission denied
+```
+
+and since it is launched with `setsid nohup ... &`, that failure was **silent** —
+the shell printed "Done" and the campaign simply stopped, with nothing in the log
+explaining why. The commit recorded `mode change 100644 => 100755` in reverse, so
+it would have reached every clone.
+
+The replacement file was created by python's `open(path, "w")`, which makes a new
+file at the default 0644 when the path does not already exist.
+
+```bash
+cp -p qa/overnight.sh /tmp/x        # -p so the copy starts with the right mode
+# ...patch /tmp/x...
+bash -n /tmp/x && mv /tmp/x qa/overnight.sh
+ls -l qa/overnight.sh               # CONFIRM the x bit survived
+```
+
+And never chain the `mv` after a patch step that can fail — a failed patch once
+`mv`-ed an unmodified copy over the original.
