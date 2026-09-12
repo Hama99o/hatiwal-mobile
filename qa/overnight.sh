@@ -378,6 +378,10 @@ while [ ! -f "$STOP_FILE" ]; do
     ./qa/qa.sh profile "$profile" >>"$LOG" 2>&1
     printf '%s/%s\n' "$profile" "$feature" > "$PASS_MARKER"
 
+    # Snapshot the run dirs BEFORE the pass so we can identify the one this pass
+    # actually created, rather than guessing by mtime further down.
+    runs_before=$(ls -d qa/reports/run-* 2>/dev/null | sort)
+
     started=$(date +%s)
     ./qa/qa.sh feature "$feature" >>"$LOG" 2>&1
     rc=$?
@@ -395,7 +399,35 @@ while [ ! -f "$STOP_FILE" ]; do
     # rows, are `pass`, `fail` and `rig_fail` — so the red pattern names
     # rig_fail explicitly rather than relying on it matching "fail" (it would
     # not: the anchored quote makes "rig_fail" a different string).
-    run_dir=$(ls -dt qa/reports/run-* 2>/dev/null | head -1)
+    # THE RUN DIR MUST BE THE ONE THIS PASS CREATED — never "the newest by mtime".
+    #
+    # This was `ls -dt qa/reports/run-* | head -1`, which reports whatever was
+    # touched most recently. When a pass ABORTS before creating its own run dir —
+    # a failed claim, a failed preflight, rc=3 — that hands back the PREVIOUS
+    # run's directory, and its counts get written to the status file and the log
+    # under the NEW feature's name. Observed 2026-09-09:
+    #
+    #   DONE small/chat  pass=16 fail=9  rc=3  79s  run-519
+    #
+    # 79s for a chat pass that normally takes 3-4h, and run-519 was created
+    # 2026-09-08 by the browse pass that died with the emulator — its
+    # results.jsonl holds 25 BROWSE rows. So browse verdicts were reported as
+    # chat. FLOW_REGISTER.md itself survives this — it is regenerated from the
+    # rows, and each row carries its own `feature`, so it still files them under
+    # browse. The damage is to overnight-status.tsv and this log, which are the
+    # FIRST thing an agent reads when deciding what to triage: a pass that tested
+    # NOTHING appeared as a completed chat pass with plausible numbers, and the
+    # 79s runtime was the only tell.
+    #
+    # `comm -13` = lines only in "after", i.e. genuinely new directories. If the
+    # pass created none, say so loudly and record zeros rather than borrowing a
+    # stale run's numbers — "nothing was tested" must never look like a result.
+    runs_after=$(ls -d qa/reports/run-* 2>/dev/null | sort)
+    run_dir=$(comm -13 <(printf '%s\n' "$runs_before") <(printf '%s\n' "$runs_after") | tail -1)
+    if [ -z "$run_dir" ]; then
+      say "NO RUN DIR for $profile/$feature (rc=$rc, ${elapsed}s) — the pass aborted before creating one; nothing was tested and no verdicts are recorded"
+      run_dir="none"
+    fi
     pass=0; fail=0
     if [ -f "$run_dir/results.jsonl" ]; then
       pass=$(grep -c '"result": *"pass"'   "$run_dir/results.jsonl" 2>/dev/null || true)
