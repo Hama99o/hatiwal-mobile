@@ -13,13 +13,25 @@ appId: com.hatiwal.app
 # A NAMED seeded listing, not "the first card": it does not depend on feed
 # ordering, it is active, and it belongs to seller@hatiwal.test — so the buyer
 # running this flow sees the contact affordance rather than their own listing.
-- scrollUntilVisible:
-    element:
-      text: "Wool Blanket Handmade King Size"
-    direction: DOWN
-    centerElement: true
-    timeout: 15000
-- tapOn: "Wool Blanket Handmade King Size"
+# Open the listing through the shared helper.
+#
+# This scrolled the FEED for a title while standing on the PROFILE screen:
+# login.yaml ends with ensure_english + ensure_buyer_mode, both of which work the
+# profile's mode toggle, and nothing here taps browse-tab. So the scroll searched
+# a screen that has no listings and reported
+# "No visible element found: Wool Blanket Handmade King Size" — which reads like a
+# missing fixture and is really a flow standing in the wrong place. The listing is
+# active and present; run-523 failed on exactly this.
+#
+# Identical to the footgun found in listing_detail_save_unsave. The helper reaches
+# the Bazaar feed itself (taps browse-tab when browse-search-input is absent, then
+# waits for it), searches instead of scrolling, closes the IME with pressKey:
+# Enter, taps the result card by testID, and proves it navigated by asserting
+# browse-search-input is GONE.
+- runFlow:
+    file: ../_helpers/open_listing_by_title.yaml
+    env:
+      TITLE: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 # The assertion IS the check — "we are on the listing detail". The tap that used
 # to precede it opened the FirstMessageSheet, whose own title is "Message Seller"

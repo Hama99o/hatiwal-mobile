@@ -66,8 +66,26 @@ appId: com.hatiwal.app
     visible: "Failed to send message. Please try again."
     timeout: 30000
 
-# And the message must NOT be sitting in the thread looking delivered.
-- assertNotVisible: "QA offline send — this must not appear to succeed"
+# AND THE DRAFT MUST SURVIVE — which is the same requirement, stated correctly.
+#
+# This was `assertNotVisible` on the message text, and it CONTRADICTED the comment
+# three lines above it: "What must never happen is the composer clearing with the
+# message apparently sent." Asserting the text is nowhere on screen demands
+# precisely that clearing.
+#
+# run-523 failed here (5m 8s) and the app was RIGHT. Its end-of-flow screenshot,
+# taken with the airplane-mode icon in the status bar, shows the text still in the
+# COMPOSER INPUT and the thread's last message unchanged at 6:39 PM — the send did
+# not go through and the user's typing was preserved. Maestro matches text
+# ANYWHERE on screen, so `assertNotVisible` could not tell "sitting in the thread
+# looking delivered" from "still in the input box", and failed on the correct
+# behaviour.
+#
+# The send having failed is already proven by the error toast asserted directly
+# above. What is worth guarding here is the other half of the contract: the draft
+# is still there to retry. A cleared composer would fail this line, which is the
+# regression the original comment was reaching for.
+- assertVisible: "QA offline send — this must not appear to succeed"
 
 # ── Restore the network — unconditionally ────────────────────────────────────
 - setAirplaneMode: disabled
