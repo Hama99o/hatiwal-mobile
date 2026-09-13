@@ -10,10 +10,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
 import { Text } from "@/components/reusables/text";
-import { Input } from "@/components/reusables/input";
 import { Button } from "@/components/reusables/button";
 import { Separator } from "@/components/reusables/separator";
-import { Check, Search, X } from "lucide-react-native";
+import { Check, X } from "lucide-react-native";
+import { SearchBar } from "@/components/common/SearchBar";
 import { useColors } from "@/hooks/useColors";
 import {
   AFGHAN_PROVINCES,
@@ -97,23 +97,24 @@ export function ProvincePickerSheet({
 
         <Separator className="mb-3" />
 
-        {/* Search */}
-        <View
-          style={[
-            styles.searchRow,
-            { flexDirection: isRtl ? "row-reverse" : "row" },
-          ]}
-        >
-          <Search size={16} color={colors.mutedForeground} />
-          <Input
-            value={search}
-            onChangeText={setSearch}
-            testID="province-search-input"
-            placeholder={t("listing.form.searchProvinces")}
-            className="flex-1"
-            style={{ textAlign: isRtl ? "right" : "left" }}
-          />
-        </View>
+        {/* Search — the SHARED SearchBar.
+
+            Same R15 duplication CategoryPicker just shed (968c814): this was
+            composing its own `Search` icon + `Input` side by side, so the icon
+            sat OUTSIDE the field while Browse and Conversations render the same
+            control with it inside a muted container.
+
+            `inputTestID` keeps `province-search-input` exactly where it was —
+            ProvincePickerSheet.test.tsx addresses the input by that id. */}
+        <SearchBar
+          value={search}
+          onChangeText={setSearch}
+          placeholder={t("listing.form.searchProvinces")}
+          testID="province-search"
+          inputTestID="province-search-input"
+          clearTestID="province-search-clear"
+          containerStyle={styles.searchRow}
+        />
 
         {/* List */}
         <ScrollView
