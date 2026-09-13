@@ -10,15 +10,15 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**130 of 259 flows passing** · 120 still need attention
+**132 of 265 flows passing** · 124 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 130 | green, and no backend error underneath |
-| FAIL-assert | 96 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 132 | green, and no backend error underneath |
+| FAIL-assert | 103 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-crash | 1 | the app crashed (FATAL EXCEPTION in logcat) |
-| FAIL-? | 4 | failed, cause unclear — read the log |
+| FAIL-? | 1 | failed, cause unclear — read the log |
 | (rig) | 8 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 18 | never executed |
 
@@ -32,7 +32,7 @@ bug class a user reports as "nothing happened".
 
 ## `listings` — Seller create/edit/delete + the 3-state lifecycle (Draft/Live/Sold) — Mark sold is always the one-tap primary, no Reserved tab
 
-16/41 passing · 21 open
+17/41 passing · 22 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -63,20 +63,20 @@ bug class a user reports as "nothing happened".
 | `edit_listing_quantity` | FAIL-assert | run-535 | 198 |  | [Failed] edit_listing_quantity (3m 1s) (Element not found: Id matching regex: listing-form-price-input) |
 | `edit_listing_remove_photo` | FAIL-assert | run-535 | 185 | flow (arbitrary card, not a fixture) — NOT the off-screen family, and the app was RIGHT. It opened the FIRST `seller-listing-card`, which in run-528 was listing 3317 "Laptop HP": status DRAFT with exactly ONE photo. On a draft the toolbar is [Save Draft | Publish], never the single [Save] this flow taps (`isPublished = existingListing.status !== "draft"`, ListingForm.tsx:451), and removing the only photo empties the gallery — the end-of-flow screenshot is precisely that toolbar over an empty Photos section. Card order is not a fixture: the DB is re-seeded between cycles (the seller's id moved 420 -> 423 -> 426 inside a few hours). Converted to search_my_shop for "School Backpack Bulk Restock - 20 Bags" — ACTIVE with THREE photos (API-checked) and referenced by NO other flow, so mutating its photos cannot disturb another fixture, unlike the Lenovo ThinkPad which the seeder uses as the price-drop target. |
 | `edit_listing_reorder_photos` | FAIL-assert | run-535 | 197 | flow (arbitrary card, not a fixture) — NOT the off-screen family, and the app was RIGHT. It opened the FIRST `seller-listing-card`, which in run-528 was listing 3317 "Laptop HP": status DRAFT with exactly ONE photo. On a draft the toolbar is [Save Draft | Publish], never the single [Save] this flow taps (`isPublished = existingListing.status !== "draft"`, ListingForm.tsx:451), and removing the only photo empties the gallery — the end-of-flow screenshot is precisely that toolbar over an empty Photos section. Card order is not a fixture: the DB is re-seeded between cycles (the seller's id moved 420 -> 423 -> 426 inside a few hours). Converted to search_my_shop for "School Backpack Bulk Restock - 20 Bags" — ACTIVE with THREE photos (API-checked) and referenced by NO other flow, so mutating its photos cannot disturb another fixture, unlike the Lenovo ThinkPad which the seeder uses as the price-drop target. |
-| `expired_listing_badge` | FAIL-assert ⟳stale | run-528 | 197 | flow (below the fold) — the fixture and the app are BOTH right. The API says listing 3279 "Expired Winter Coat Size L" is expired=true (expires_at 2026-09-10), and the `assertVisible: "Expired"` two lines above PASSED, so the flow is on the right listing. "Renew" is the PRIMARY ACTION label on the owner detail's Manage Listing row (useListingLifecycle.ts:475 — the same button that reads "Publish" for a draft and "Mark as Sold" for a live listing), which sits below the gallery, price, analytics and the map. assertVisible means ON SCREEN. Added scrollUntilVisible DOWN. | No expired listing existed at all; expires_at was never seeded. Fixture added. |
-| `lifecycle_publish` | PASS | run-528 | 213 | fixture | Draft tab index 0 was a photoless QA draft, so publish was blocked. Seeded "Ready To Publish Draft". |
-| `lifecycle_reactivate` | PASS | run-528 | 257 | flow | Detail control with the card sheet already open; sheet offers listing-action-activate. |
-| `lifecycle_reserve` | FAIL-assert | run-528 | 265 | rig/helper (racing the action bar) — NOT a removed path, and NOT the identity switch. Both hypotheses checked and killed: the flow's own header documents SF-M2 and says it was already REWRITTEN to place the hold from the chat thread, and the owner-notice probe does NOT hit in run-528. The failing string is not even in this file — `Contact Seller` comes from `_helpers/open_thread_from_listing.yaml:20`, a BARE tapOn. The contact row is gated on the VIEWER resolving while the listing's own data arrives first, so there is a window where the page looks complete and has no buttons. Added an extendedWaitUntil in the HELPER (note: helper edits are invisible to flow_sha — attribute via git log). Four of the helper's six callers already pass with the bare tap, so the wait costs them nothing; it is lifecycle_reserve 0/5 and meetup_full_cycle 1/6 that keep landing in the window. | [Failed] lifecycle_reserve (4m 3s) (Element not found: Text matching regex: Contact Seller) |
-| `lifecycle_sold` | PASS | run-528 | 213 |  |  |
-| `lifecycle_unpublish` | PASS | run-528 | 218 |  |  |
-| `listing_analytics_sparkline` | FAIL-assert | run-528 | 200 | TRIAGED, not yet fixed. Fails at step-69 on `"No views yet in the last 7 days" is visible` — analytics sits well down the owner detail (seen below the fold in publish_from_owner_detail's screenshot), so this is probably the below-the-fold case, but it needs its own evidence. | Analytics does not render for a draft ({!isDraft}); needed the Active tab, not just a scroll. |
-| `listing_conversations_list` | PASS | run-528 | 184 | flow | Tapped "chats"; the card renders "{{count}} chats". |
-| `listing_renew_flow` | FAIL-assert | run-528 | 193 | TRIAGED, not yet fixed. Fails at step-66 on `"Renew" is visible` — same string and almost certainly the same cause as expired_listing_badge, where "Renew" is the PRIMARY ACTION label on the owner detail's Manage Listing row (useListingLifecycle.ts:475), below the map. Left until its own screenshot confirms it, rather than assumed from the sibling. | Needed the expired fixture; nothing to renew before it existed. |
-| `listing_status_counts` | FAIL-assert | run-528 | 221 | TRIAGED, not yet fixed. Fails at step-79 on `"All" is visible`. NOT the tab-bar case — run-528's sibling screenshot shows the filter row rendering "All 40 / Draft 9 / Active 27 / Expired 1" normally, so the chips exist. Needs its own screenshot before a fix. | "Sold" is the last tab in a horizontal scroller; scrollUntilVisible swipes at screen centre. |
-| `my_listing_detail_view` | FAIL-assert | run-528 | 200 | flow | Same draft-gated analytics; Active tab first. |
-| `my_listings_filter_tabs` | PASS | run-528 | 198 | flow — same; executed step was pre-swipe scrollUntilVisible. Verdict stale | Same clipped last tab; coordinate swipe across the row. |
-| `my_listings_search` | FAIL-assert ⟳stale | run-528 | 218 | flow (the IME covers the TAB BAR) — a fifth face of "rendered but not on screen", and the first that is not a form field. "My Shop" is the BOTTOM TAB's label (sidebar.myListings — the string does not exist anywhere else in the app; src/ mentions it only in comments and a Storybook story). It fails at the SECOND of the flow's two identical asserts, after `eraseText` clears the search — eraseText does NOT dismiss the keyboard, so the tab bar stays covered. run-528's screenshot is that screen: search focused, keypad over the lower half, one card visible. Fixed with `pressKey: Enter` (never hideKeyboard, which is BACK on Android). Checked the spread first: exactly one flow asserts a tab label after typing. | Asserted a bare "No"; now asserts the absence of cards instead of empty-state copy. |
-| `price_drop_after_edit` | FAIL-assert | run-528 | 241 | flow | hideKeyboard is Back and popped the edit form — first of the five sites the handbook predicted. |
+| `expired_listing_badge` | PASS | run-535 | 164 | flow (below the fold) — the fixture and the app are BOTH right. The API says listing 3279 "Expired Winter Coat Size L" is expired=true (expires_at 2026-09-10), and the `assertVisible: "Expired"` two lines above PASSED, so the flow is on the right listing. "Renew" is the PRIMARY ACTION label on the owner detail's Manage Listing row (useListingLifecycle.ts:475 — the same button that reads "Publish" for a draft and "Mark as Sold" for a live listing), which sits below the gallery, price, analytics and the map. assertVisible means ON SCREEN. Added scrollUntilVisible DOWN. | No expired listing existed at all; expires_at was never seeded. Fixture added. |
+| `lifecycle_publish` | PASS | run-535 | 179 | fixture | Draft tab index 0 was a photoless QA draft, so publish was blocked. Seeded "Ready To Publish Draft". |
+| `lifecycle_reactivate` | PASS | run-535 | 279 | flow | Detail control with the card sheet already open; sheet offers listing-action-activate. |
+| `lifecycle_reserve` | FAIL-assert | run-535 | 312 | rig/helper (racing the action bar) — NOT a removed path, and NOT the identity switch. Both hypotheses checked and killed: the flow's own header documents SF-M2 and says it was already REWRITTEN to place the hold from the chat thread, and the owner-notice probe does NOT hit in run-528. The failing string is not even in this file — `Contact Seller` comes from `_helpers/open_thread_from_listing.yaml:20`, a BARE tapOn. The contact row is gated on the VIEWER resolving while the listing's own data arrives first, so there is a window where the page looks complete and has no buttons. Added an extendedWaitUntil in the HELPER (note: helper edits are invisible to flow_sha — attribute via git log). Four of the helper's six callers already pass with the bare tap, so the wait costs them nothing; it is lifecycle_reserve 0/5 and meetup_full_cycle 1/6 that keep landing in the window. | [Failed] lifecycle_reserve (4m 43s) (Assertion is false: "Contact Seller" is visible) |
+| `lifecycle_sold` | PASS | run-535 | 179 |  |  |
+| `lifecycle_unpublish` | FAIL-assert | run-535 | 179 |  | [Failed] lifecycle_unpublish (2m 43s) (Assertion is false: id: profile-tab is visible) |
+| `listing_analytics_sparkline` | FAIL-assert | run-535 | 178 | TRIAGED, not yet fixed. Fails at step-69 on `"No views yet in the last 7 days" is visible` — analytics sits well down the owner detail (seen below the fold in publish_from_owner_detail's screenshot), so this is probably the below-the-fold case, but it needs its own evidence. | Analytics does not render for a draft ({!isDraft}); needed the Active tab, not just a scroll. |
+| `listing_conversations_list` | PASS | run-535 | 157 | flow | Tapped "chats"; the card renders "{{count}} chats". |
+| `listing_renew_flow` | FAIL-assert | run-535 | 174 | TRIAGED, not yet fixed. Fails at step-66 on `"Renew" is visible` — same string and almost certainly the same cause as expired_listing_badge, where "Renew" is the PRIMARY ACTION label on the owner detail's Manage Listing row (useListingLifecycle.ts:475), below the map. Left until its own screenshot confirms it, rather than assumed from the sibling. | Needed the expired fixture; nothing to renew before it existed. |
+| `listing_status_counts` | FAIL-assert | run-535 | 208 | TRIAGED, not yet fixed. Fails at step-79 on `"All" is visible`. NOT the tab-bar case — run-528's sibling screenshot shows the filter row rendering "All 40 / Draft 9 / Active 27 / Expired 1" normally, so the chips exist. Needs its own screenshot before a fix. | "Sold" is the last tab in a horizontal scroller; scrollUntilVisible swipes at screen centre. |
+| `my_listing_detail_view` | FAIL-assert | run-535 | 190 | flow | Same draft-gated analytics; Active tab first. |
+| `my_listings_filter_tabs` | PASS | run-535 | 175 | flow — same; executed step was pre-swipe scrollUntilVisible. Verdict stale | Same clipped last tab; coordinate swipe across the row. |
+| `my_listings_search` | PASS | run-535 | 176 | flow (the IME covers the TAB BAR) — a fifth face of "rendered but not on screen", and the first that is not a form field. "My Shop" is the BOTTOM TAB's label (sidebar.myListings — the string does not exist anywhere else in the app; src/ mentions it only in comments and a Storybook story). It fails at the SECOND of the flow's two identical asserts, after `eraseText` clears the search — eraseText does NOT dismiss the keyboard, so the tab bar stays covered. run-528's screenshot is that screen: search focused, keypad over the lower half, one card visible. Fixed with `pressKey: Enter` (never hideKeyboard, which is BACK on Android). Checked the spread first: exactly one flow asserts a tab label after typing. | Asserted a bare "No"; now asserts the absence of cards instead of empty-state copy. |
+| `price_drop_after_edit` | FAIL-assert | run-535 | 291 | flow | hideKeyboard is Back and popped the edit form — first of the five sites the handbook predicted. |
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state — mark-sold one-tap from the thread, place/release a hold with the buyer you're already talking to
 
@@ -133,6 +133,43 @@ bug class a user reports as "nothing happened".
 | `start_conversation_and_reply` | PASS | run-533 | 232 |  | Parsing Failed at /home/hama99o/Apps/Personal/Hatiwal/hatiwal-mobile/maestro/_helpers/open_bundle.yaml:216:41 |
 | `unread_badge_survives_navigation` | FAIL-assert | run-533 | 159 |  | [Failed] unread_badge_survives_navigation (2m 25s) (Element not found: Id matching regex: conversation-action- |
 | `view_other_profile_from_conversation` | PASS | run-533 | 201 | flow | "Member since" is own-profile only (Profile.tsx); public profile shows a "Joined" tile. |
+
+## `profile` — Profile view/edit, language + theme switch, stats, blocked users
+
+9/30 passing · 14 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `account_delete_and_restore` | FAIL-assert | run-536 | 203 | TRIAGED, not fixed — 0/8, different cause from its sibling. Fails at step-59 on `tapOn id: register-email-input`, i.e. while trying to register a fresh account, not on the delete control. Needs its own screenshot. | [Failed] account_delete_and_restore (3m 5s) (No visible element found: id: register-confirm-password-input) **2026-09-14 triage — 0/15 at EVERY sha, and NOT the auth.subtitle anchor change.** It fails inside the REGISTER FORM at a DIFFERENT FIELD each run (register-confirm-password-input in run-536 and run-518, register-email-input in run-529) — a varying field is the signature of a timing/IME problem, not a missing element. **centerElement is NOT the cause**: all five flows that scroll to register-confirm-password-input use `centerElement: true`, and three of them pass (sign_up 3/8, sign_up_validation 3/7, register_duplicate_email 3/7) — if centring the last field were unsatisfiable they would all be 0/N. sign_up has an IDENTICAL register field sequence (firstname, lastname, phone, email, password, confirm) and still passes ~37%, so the form itself is not the differentiator. At 37% the odds of 0/15 by chance are ~0.1%, so this is genuinely worse than its twin, not unlucky. UNTESTED HYPOTHESIS: it runs inside the `profile` feature late in a long session where the host is busier, while sign_up runs early in `auth`. NEEDS its own screenshot + hierarchy dump. DO NOT PATCH the scroll. |
+| `account_delete_cancel` | PASS | run-536 | 218 | flow (centerElement on the LAST element) — 0/8, and the cause is one word. `scrollUntilVisible` used `centerElement: true` on "Delete account", which sits at the very BOTTOM of Profile. An element at the END of a scroll container cannot be centred — nothing below it to scroll past — so the constraint is unsatisfiable and the scroll burns its whole timeout on a control that is already on screen. run-529's screenshot shows "Delete account" plainly visible above the tab bar. The copy is current too (profile.json:160). Commit 66c3093 names this exact trap. CONTROL GROUP, and why this is a one-flow change: auth/logout, auth/logout_cancel and auth/login_deep all scroll to "Sign Out" with centerElement and are 4/4 each — Sign Out has "Delete account" below it, so it CAN be centred. Dropped centerElement here only. |  |
+| `away_mode` | PASS | run-536 | 216 | app+flow — away row was untappable (no Pressable/testID); fixed cb68fa4 (live via Metro, no rebuild) |  |
+| `blocked_users` | PASS | run-536 | 172 |  |  |
+| `change_language_dari` | PASS | run-536 | 177 |  |  |
+| `change_language_english` | FAIL-assert | run-536 | 426 | rig (our own 600s cap), NOT a verdict — and deliberately not fixed. Durations creep: 278, 431, 578, 241, 572, then 601 in run-529, where it was recorded kind=rig_fail. Language flows call reloadApp() (applyLanguageFromUser on a direction change), which is why English is far slower than its Dari sibling at 172-208s. The in-flow marker exists — it runs `_helpers/await_language_restart.yaml` — but 26 flows carry that marker and doubling the cap for all of them to cover one flow's occasional timeout would make every genuinely hung flow burn 20 minutes instead of 10. The cost here is throughput, not correctness: cap timeouts classify as rig_fail and qa.sh flaky already excludes them, so no verdict is harmed. Left alone on purpose. | [Failed] change_language_english (6m 51s) (Assertion is false: id: language-option-en is visible) |
+| `change_language_pashto` | FAIL-assert | run-536 | 426 |  | [Failed] change_language_pashto (6m 50s) (Assertion is false: id: language-option-en is visible) |
+| `contact_visibility` | FAIL-assert | run-536 | 425 | 3/9 — FLAKY, so NOT a verdict target, and its own comment already names the cause: `edit-profile-whatsapp-same-as-phone` renders only while a phone exists AND the WhatsApp value DIFFERS from it, so a previous run that SAVED the matching value makes the control correctly hide itself. Self-interference across runs, not a selector problem — the flow already carries an eraseText mitigation and it still recurred in run-529 (step-107, the scroll ran its full timeout). Needs the fixture reset to be made reliable, not another wait. | 2026-09-03: the failing assertion named the copied number but the cause was navigation. hideKeyboard is a Back press and popped Edit Profile to Profile; the next THREE commands reported COMPLETED against a stale hierarchy, so the assertNotVisible before it passed for the WRONG reason. Replaced with pressKey:Enter, which turned out to SUBMIT the form — both removed. Green at 360dp once the keypress was gone; now unstable again from my keyboardDismissMode=on-drag reflowing the form mid-scroll (board #313). NOT an app bug. |
+| `edit_profile` | (rig) | run-536 | 601 | stale — toast assertion already replaced by durable name check |  |
+| `edit_profile_all_fields` | FAIL-assert | run-536 | 432 | flow (bio below the fold) — 0/6, and the two asserts ABOVE the failing one are the diagnosis: `"UpdatedFirst"` and `"UpdatedLast"` PASS because First and Last Name sit at the TOP of the re-opened edit form, then `"I sell quality items in Kabul."` fails because the Bio field is further down. assertVisible means ON SCREEN. Died at step-126 in run-529. Added scrollUntilVisible to `edit-profile-bio-input` by id (stable) before asserting the bio TEXT (the thing under test), direction DOWN, no centerElement. | 2026-09-03: FOUR causes, two of them app bugs. (1) asserted text 'Save' on a button reading 'Save Changes'; (2) centerElement on the sticky save button; (3) APP — the sticky Save sat BEHIND the keyboard (d8edc9e), verified visually at 360dp; (4) APP — the keyboard swallowed the tap on the NEXT field, so 'UpdatedLast' landed in the First Name box (e36a6b4, keyboardDismissMode=on-drag). Also a pre-existing viewport assumption on the final derived-city assertion (no scroll). MY OWN regressions along the way: a pressKey:Enter that SUBMITTED the form (608ddda, reverted) and a scrollUntilVisible that is a no-op when the target is already 'visible'. Flow-side stability still open — board #313. |
+| `edit_profile_avatar` | FAIL-assert | run-536 | 426 |  | [Failed] edit_profile_avatar (6m 51s) (Assertion is false: id: language-option-en is visible) |
+| `edit_profile_bio_too_long` | FAIL-assert | run-536 | 421 | flow — 520 chars do type; error renders above viewport; now scrolls UP cb68fa4 | [Failed] edit_profile_bio_too_long (6m 50s) (Assertion is false: id: language-option-en is visible) |
+| `edit_profile_province` | FAIL-assert | run-536 | 424 | flow | 2026-09-02: DOWN + centerElement:true on profile-edit-button, which sits near the TOP of Profile — DOWN scrolls away from it and centring is impossible with too little content above. ORDER-DEPENDENT (siblings passed on the identical block). Now UP + visibilityPercentage 40, applied to all 8 flows carrying it. |
+| `edit_profile_validation` | FAIL-assert | run-536 | 428 |  | [Failed] edit_profile_validation (6m 55s) (Assertion is false: id: language-option-en is visible) |
+| `hidden_listings` | FAIL-assert | run-536 | 429 |  | [Failed] hidden_listings (6m 55s) (Assertion is false: id: language-option-en is visible) |
+| `language_persists_across_tabs` | PASS | run-536 | 554 |  |  |
+| `language_switch_all_screens` | FAIL-assert | run-536 | 165 | flow — asserted Profile content while restart left app on feed; reordered cb68fa4 | [Failed] language_switch_all_screens (2m 31s) (Assertion is false: id: language-option-en is visible) |
+| `profile_stats_verify` | FAIL-assert | run-536 | 159 | TRIAGED, not fixed — `No visible element found: "Active Listings"` after a guarded scrollUntilVisible with centerElement:false, so NOT the centerElement trap. The copy exists (profile.json:58) but Profile.tsx does not reference `activeListings` at all, and transaction_stats_hidden_when_zero PASSED in the same run — so a conditional-render hypothesis is live and this needs its own screenshot before a fix. | Same hardcoded year. |
+| `recently_viewed` | PASS | run-536 | 171 | flow+app — row had no testID; added profile-row-recently-viewed. Fixed 34e713a |  |
+| `recently_viewed_empty_state` | PASS | run-536 | 163 |  |  |
+| `seller_mode_toggle` | PASS | run-529 | 214 |  |  |
+| `theme_switch` | FAIL-? ⟳stale | run-529 | 236 | flow (wrong screen after the restart) — the theme switch WORKED; the flow lost its place. run-529's end-of-flow screenshot is the BAZAAR FEED IN DARK MODE. Theme switches restart the app (theme.store.ts:26 -> reloadApp -> RNRestart) and it returns on the feed — the flow's own comment says exactly that — but everything after the restart hunts `theme-option-light`, which lives on PROFILE (Profile.tsx:872). Nothing navigated back, so the scroll was looking for a Profile control on the browse screen. Added `_helpers/goto_profile_tab.yaml`. NOTE the selector is CURRENT and a literal grep misses it: `testID={`theme-option-${value}`}` is a TEMPLATE LITERAL — I nearly filed my first stale selector on it. Checked the spread: mapqa/_set_locale_theme.yaml only MENTIONS await_theme_restart in a comment explaining why it does not use it, and it taps profile-tab explicitly. One flow, not a sweep. | [Failed] theme_switch (3m 37s) (No visible element found: id: theme-option-light) |
+| `transaction_stats_hidden_when_zero` | PASS ⟳stale | run-529 | 179 |  |  |
+| `transaction_stats_own_profile` | FAIL-assert ⟳stale | run-529 | 223 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] transaction_stats_own_profile (3m 22s) (Assertion is false: "Items Bought" is visible) |
+| `transaction_stats_public_profile` | FAIL-assert | run-529 | 279 | flow — vacuous assertNotVisible on the dead soldItems key; removed | [Failed] transaction_stats_public_profile (4m 21s) (Assertion is false: id: transaction-stats-badge is visible |
+| `transaction_stats_seller_own_profile` | FAIL-assert ⟳stale | run-529 | 218 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] transaction_stats_seller_own_profile (3m 19s) (Assertion is false: "Switch to .*" is visible) |
+| `user_profile_sold_tab` | FAIL-assert | run-529 | 226 | flow | Same ${visible()} problem. |
+| `view_profile` | FAIL-assert ⟳stale | run-529 | 233 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] view_profile (3m 35s) (Assertion is false: "Edit Profile" is visible) |
+| `view_profile_error` | PASS | run-529 | 287 |  | AxiosError |
+| `view_seller_profile_from_profile` | FAIL-assert ⟳stale | run-529 | 228 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] view_seller_profile_from_profile (3m 29s) (Assertion is false: "Ahmad Karimi" is visible) |
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
 
@@ -234,43 +271,6 @@ bug class a user reports as "nothing happened".
 | `seller_mode_tab_bar_changes` | UNTESTED | — |  |  |  |
 | `seller_views_own_listing_buyer_mode` | UNTESTED | — |  | flow | Searched the feed for "seller"; search matches titles, so it found nothing. |
 
-## `profile` — Profile view/edit, language + theme switch, stats, blocked users
-
-14/30 passing · 4 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `account_delete_and_restore` | FAIL-assert ⟳stale | run-529 | 188 | TRIAGED, not fixed — 0/8, different cause from its sibling. Fails at step-59 on `tapOn id: register-email-input`, i.e. while trying to register a fresh account, not on the delete control. Needs its own screenshot. | [Failed] account_delete_and_restore (2m 47s) (Element not found: Id matching regex: register-email-input) |
-| `account_delete_cancel` | FAIL-? ⟳stale | run-529 | 244 | flow (centerElement on the LAST element) — 0/8, and the cause is one word. `scrollUntilVisible` used `centerElement: true` on "Delete account", which sits at the very BOTTOM of Profile. An element at the END of a scroll container cannot be centred — nothing below it to scroll past — so the constraint is unsatisfiable and the scroll burns its whole timeout on a control that is already on screen. run-529's screenshot shows "Delete account" plainly visible above the tab bar. The copy is current too (profile.json:160). Commit 66c3093 names this exact trap. CONTROL GROUP, and why this is a one-flow change: auth/logout, auth/logout_cancel and auth/login_deep all scroll to "Sign Out" with centerElement and are 4/4 each — Sign Out has "Delete account" below it, so it CAN be centred. Dropped centerElement here only. | [Failed] account_delete_cancel (3m 41s) (No visible element found: "Delete account") |
-| `away_mode` | PASS | run-529 | 256 | app+flow — away row was untappable (no Pressable/testID); fixed cb68fa4 (live via Metro, no rebuild) |  |
-| `blocked_users` | PASS | run-529 | 200 |  |  |
-| `change_language_dari` | PASS | run-529 | 208 |  |  |
-| `change_language_english` | (rig) | run-529 | 601 | rig (our own 600s cap), NOT a verdict — and deliberately not fixed. Durations creep: 278, 431, 578, 241, 572, then 601 in run-529, where it was recorded kind=rig_fail. Language flows call reloadApp() (applyLanguageFromUser on a direction change), which is why English is far slower than its Dari sibling at 172-208s. The in-flow marker exists — it runs `_helpers/await_language_restart.yaml` — but 26 flows carry that marker and doubling the cap for all of them to cover one flow's occasional timeout would make every genuinely hung flow burn 20 minutes instead of 10. The cost here is throughput, not correctness: cap timeouts classify as rig_fail and qa.sh flaky already excludes them, so no verdict is harmed. Left alone on purpose. |  |
-| `change_language_pashto` | PASS | run-529 | 213 |  |  |
-| `contact_visibility` | FAIL-? | run-529 | 546 | 3/9 — FLAKY, so NOT a verdict target, and its own comment already names the cause: `edit-profile-whatsapp-same-as-phone` renders only while a phone exists AND the WhatsApp value DIFFERS from it, so a previous run that SAVED the matching value makes the control correctly hide itself. Self-interference across runs, not a selector problem — the flow already carries an eraseText mitigation and it still recurred in run-529 (step-107, the scroll ran its full timeout). Needs the fixture reset to be made reliable, not another wait. | 2026-09-03: the failing assertion named the copied number but the cause was navigation. hideKeyboard is a Back press and popped Edit Profile to Profile; the next THREE commands reported COMPLETED against a stale hierarchy, so the assertNotVisible before it passed for the WRONG reason. Replaced with pressKey:Enter, which turned out to SUBMIT the form — both removed. Green at 360dp once the keypress was gone; now unstable again from my keyboardDismissMode=on-drag reflowing the form mid-scroll (board #313). NOT an app bug. |
-| `edit_profile` | PASS | run-529 | 199 | stale — toast assertion already replaced by durable name check |  |
-| `edit_profile_all_fields` | FAIL-assert ⟳stale | run-529 | 321 | flow (bio below the fold) — 0/6, and the two asserts ABOVE the failing one are the diagnosis: `"UpdatedFirst"` and `"UpdatedLast"` PASS because First and Last Name sit at the TOP of the re-opened edit form, then `"I sell quality items in Kabul."` fails because the Bio field is further down. assertVisible means ON SCREEN. Died at step-126 in run-529. Added scrollUntilVisible to `edit-profile-bio-input` by id (stable) before asserting the bio TEXT (the thing under test), direction DOWN, no centerElement. | 2026-09-03: FOUR causes, two of them app bugs. (1) asserted text 'Save' on a button reading 'Save Changes'; (2) centerElement on the sticky save button; (3) APP — the sticky Save sat BEHIND the keyboard (d8edc9e), verified visually at 360dp; (4) APP — the keyboard swallowed the tap on the NEXT field, so 'UpdatedLast' landed in the First Name box (e36a6b4, keyboardDismissMode=on-drag). Also a pre-existing viewport assumption on the final derived-city assertion (no scroll). MY OWN regressions along the way: a pressKey:Enter that SUBMITTED the form (608ddda, reverted) and a scrollUntilVisible that is a no-op when the target is already 'visible'. Flow-side stability still open — board #313. |
-| `edit_profile_avatar` | PASS | run-529 | 219 |  |  |
-| `edit_profile_bio_too_long` | PASS | run-529 | 357 | flow — 520 chars do type; error renders above viewport; now scrolls UP cb68fa4 |  |
-| `edit_profile_province` | PASS | run-529 | 348 | flow | 2026-09-02: DOWN + centerElement:true on profile-edit-button, which sits near the TOP of Profile — DOWN scrolls away from it and centring is impossible with too little content above. ORDER-DEPENDENT (siblings passed on the identical block). Now UP + visibilityPercentage 40, applied to all 8 flows carrying it. |
-| `edit_profile_validation` | PASS | run-529 | 247 |  |  |
-| `hidden_listings` | PASS | run-529 | 231 |  |  |
-| `language_persists_across_tabs` | PASS | run-529 | 352 |  |  |
-| `language_switch_all_screens` | PASS | run-529 | 355 | flow — asserted Profile content while restart left app on feed; reordered cb68fa4 |  |
-| `profile_stats_verify` | FAIL-? | run-529 | 235 | TRIAGED, not fixed — `No visible element found: "Active Listings"` after a guarded scrollUntilVisible with centerElement:false, so NOT the centerElement trap. The copy exists (profile.json:58) but Profile.tsx does not reference `activeListings` at all, and transaction_stats_hidden_when_zero PASSED in the same run — so a conditional-render hypothesis is live and this needs its own screenshot before a fix. | Same hardcoded year. |
-| `recently_viewed` | PASS ⟳stale | run-529 | 199 | flow+app — row had no testID; added profile-row-recently-viewed. Fixed 34e713a |  |
-| `recently_viewed_empty_state` | PASS ⟳stale | run-529 | 184 |  |  |
-| `seller_mode_toggle` | PASS | run-529 | 214 |  |  |
-| `theme_switch` | FAIL-? ⟳stale | run-529 | 236 | flow (wrong screen after the restart) — the theme switch WORKED; the flow lost its place. run-529's end-of-flow screenshot is the BAZAAR FEED IN DARK MODE. Theme switches restart the app (theme.store.ts:26 -> reloadApp -> RNRestart) and it returns on the feed — the flow's own comment says exactly that — but everything after the restart hunts `theme-option-light`, which lives on PROFILE (Profile.tsx:872). Nothing navigated back, so the scroll was looking for a Profile control on the browse screen. Added `_helpers/goto_profile_tab.yaml`. NOTE the selector is CURRENT and a literal grep misses it: `testID={`theme-option-${value}`}` is a TEMPLATE LITERAL — I nearly filed my first stale selector on it. Checked the spread: mapqa/_set_locale_theme.yaml only MENTIONS await_theme_restart in a comment explaining why it does not use it, and it taps profile-tab explicitly. One flow, not a sweep. | [Failed] theme_switch (3m 37s) (No visible element found: id: theme-option-light) |
-| `transaction_stats_hidden_when_zero` | PASS ⟳stale | run-529 | 179 |  |  |
-| `transaction_stats_own_profile` | FAIL-assert ⟳stale | run-529 | 223 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] transaction_stats_own_profile (3m 22s) (Assertion is false: "Items Bought" is visible) |
-| `transaction_stats_public_profile` | FAIL-assert | run-529 | 279 | flow — vacuous assertNotVisible on the dead soldItems key; removed | [Failed] transaction_stats_public_profile (4m 21s) (Assertion is false: id: transaction-stats-badge is visible |
-| `transaction_stats_seller_own_profile` | FAIL-assert ⟳stale | run-529 | 218 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] transaction_stats_seller_own_profile (3m 19s) (Assertion is false: "Switch to .*" is visible) |
-| `user_profile_sold_tab` | FAIL-assert | run-529 | 226 | flow | Same ${visible()} problem. |
-| `view_profile` | FAIL-assert ⟳stale | run-529 | 233 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] view_profile (3m 35s) (Assertion is false: "Edit Profile" is visible) |
-| `view_profile_error` | PASS | run-529 | 287 |  | AxiosError |
-| `view_seller_profile_from_profile` | FAIL-assert ⟳stale | run-529 | 228 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] view_seller_profile_from_profile (3m 29s) (Assertion is false: "Ahmad Karimi" is visible) |
-
 ## `report` — Report a listing or user, block, block side-effects
 
 0/8 passing · 4 open
@@ -286,35 +286,6 @@ bug class a user reports as "nothing happened".
 | `report_user_from_profile` | FAIL-assert | run-532 | 203 | TRIAGED run-532 — same as report_user: fails on `id: seller-profile-link`, a detail-screen step, not the feed opening. Left alone pending its own screenshot. | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
 | `report_user_then_block` | FAIL-assert | run-532 | 210 | rig — ran UNAUTHENTICATED. The end-of-flow screenshot's tab bar reads Bazaar / Categories / Login, so `seller-profile-link` (which DOES exist, ListingDetail.tsx:797) was never reachable. Also shows the inputText character drop: the search field holds 'nch 4K Smart TV' — the leading 'Sony 55 i' was dropped. | Retargeted to maryam (40); now unblocks, which it never did. |
 
-## `dark_mode` — Every main screen in dark theme + theme persistence
-
-4/8 passing · 4 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_dark` | PASS | s2/run-535 | 242 |  |  |
-| `chat_dark` | PASS | s2/run-535 | 267 |  |  |
-| `listing_detail_dark` | FAIL-assert | s2/run-535 | 272 |  | [Failed] listing_detail_dark (4m 8s) (Assertion is false: "Seller" is visible) |
-| `my_listings_dark` | PASS | s2/run-535 | 367 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed |  |
-| `profile_dark` | FAIL-assert | s2/run-535 | 370 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
-| `saved_tab_dark` | FAIL-assert | s2/run-535 | 353 |  | [Failed] saved_tab_dark (5m 3s) (Assertion is false: id: (browse-search-bar|my-listings-search-input) is visib |
-| `theme_light_all_screens` | PASS | s2/run-535 | 442 |  |  |
-| `theme_persists_after_navigate` | FAIL-assert | s2/run-535 | 497 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
-
-## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
-
-4/7 passing · 3 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `create_listing_map_pin` | FAIL-assert | s2/run-535 | 480 |  | [Failed] create_listing_map_pin (7m) (Assertion is false: "Switch to .*" is visible) |
-| `filter_map_default_kabul` | PASS | s2/run-535 | 573 |  |  |
-| `filter_map_location_denied` | PASS | s2/run-535 | 564 |  |  |
-| `filter_map_use_my_location` | PASS | s2/run-535 | 266 |  |  |
-| `filter_map_use_my_location_granted` | PASS | s2/run-535 | 190 |  |  |
-| `map_location_outside_afghanistan` | FAIL-assert | s2/run-535 | 196 |  | [Failed] map_location_outside_afghanistan (3m 5s) (No visible element found: "Enter price") |
-| `zoom_controls_not_occluded` | FAIL-assert | s2/run-535 | 146 |  | [Failed] zoom_controls_not_occluded (2m 15s) (Assertion is false: "Switch to Seller Mode" is visible) |
-
 ## `reviews` — Double-blind reviews after a sold transaction
 
 0/3 passing · 3 open
@@ -324,6 +295,35 @@ bug class a user reports as "nothing happened".
 | `pending_reviews_nudge` | UNTESTED | — |  |  |  |
 | `profile_reviews_empty_state` | UNTESTED | — |  |  |  |
 | `rate_buyer_after_sale` | UNTESTED | — |  |  |  |
+
+## `dark_mode` — Every main screen in dark theme + theme persistence
+
+5/8 passing · 3 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_dark` | PASS | s2/run-536 | 260 |  |  |
+| `chat_dark` | PASS | s2/run-536 | 311 |  |  |
+| `listing_detail_dark` | FAIL-assert | s2/run-536 | 234 |  | [Failed] listing_detail_dark (3m 26s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `my_listings_dark` | PASS | s2/run-536 | 243 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed |  |
+| `profile_dark` | FAIL-assert | s2/run-536 | 245 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
+| `saved_tab_dark` | FAIL-assert | s2/run-536 | 214 |  | [Failed] saved_tab_dark (3m 17s) (Assertion is false: id: (browse-search-bar|my-listings-search-input) is visi |
+| `theme_light_all_screens` | PASS | s2/run-536 | 239 |  |  |
+| `theme_persists_after_navigate` | PASS | s2/run-536 | 290 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
+
+## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
+
+5/7 passing · 2 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `create_listing_map_pin` | FAIL-assert | s2/run-536 | 346 |  | [Failed] create_listing_map_pin (5m 24s) (Element not found: Text matching regex: Save Draft) |
+| `filter_map_default_kabul` | PASS | s2/run-536 | 228 |  |  |
+| `filter_map_location_denied` | PASS | s2/run-536 | 235 |  |  |
+| `filter_map_use_my_location` | PASS | s2/run-536 | 221 |  |  |
+| `filter_map_use_my_location_granted` | PASS | s2/run-536 | 199 |  |  |
+| `map_location_outside_afghanistan` | PASS | s2/run-536 | 241 |  |  |
+| `zoom_controls_not_occluded` | FAIL-assert | s2/run-536 | 176 |  | [Failed] zoom_controls_not_occluded (2m 40s) (No visible element found: "Toyota Corolla 2016 Automatic") |
 
 ## `safety` — Safety tips on listing detail and in the meetup sheet
 
@@ -369,6 +369,19 @@ bug class a user reports as "nothing happened".
 | `listing_edit_add_photos` | PASS | run-531 | 427 | flow | 2026-09-02: never scrolled to its own Save button, which adding a photo pushes below the fold — the rule this file's own header states. Now scrolls at visibilityPercentage 40. |
 | `listing_gallery_no_photo` | PASS | run-531 | 497 |  |  |
 | `listing_gallery_swipe` | PASS | run-531 | 401 |  |  |
+
+## `newfeatures` — Pakistan expansion — category search, PKR, Urdu (the CURRENT work)
+
+6/6 passing · 0 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `_open_category_picker` | PASS | s2/run-537 | 484 |  |  |
+| `category_search_clear_restores` | PASS | s2/run-537 | 162 |  |  |
+| `category_search_empty_state` | PASS | s2/run-537 | 155 |  |  |
+| `category_search_finds_subcategory` | PASS | s2/run-537 | 168 |  |  |
+| `category_search_parent_still_drills` | PASS | s2/run-537 | 156 |  |  |
+| `category_search_urdu_name` | PASS | s2/run-537 | 165 |  |  |
 
 ## `auth` — Sign up, login, logout, session persistence, guest gating
 
