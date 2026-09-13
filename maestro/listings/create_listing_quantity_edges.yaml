@@ -127,6 +127,17 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 # Still on the form, with the listing unsaved — a quantity of 1000 must not go
 # through, and the seller must not be left guessing.
+#
+# SCROLL THE HEADING BACK ON SCREEN FIRST. "Create Listing" is a heading INSIDE
+# the scroll view, not a fixed header, and by now the flow has scrolled down to
+# the quantity field and Save Draft — so it is above the viewport, and
+# assertVisible means ON SCREEN. run-528 died here at step-84. The form really is
+# still open; that is what this line is trying to say, and it was right.
+- scrollUntilVisible:
+    element:
+      text: "Create Listing"
+    direction: UP
+    timeout: 20000
 - assertVisible: "Create Listing"
 # ...and the flow now PROVES the second half of that sentence. The field carried no
 # inline error until today, so the only feedback was the generic "Please check the

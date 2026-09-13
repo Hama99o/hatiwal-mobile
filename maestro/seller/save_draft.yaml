@@ -175,6 +175,18 @@ appId: com.hatiwal.app
 - assertNotVisible: "Location is required — buyers filter listings by area"
 
 # Never created — still on the create form.
+#
+# SCROLL THE HEADING BACK ON SCREEN FIRST — same cause as
+# create_listing_quantity_edges and create_listing_publish_blocked. run-527's
+# end-of-flow screenshot is this form scrolled to Title/Price showing
+# "Title is required (max 150 characters)" with the numeric keypad up, so the
+# heading is off the top. It is a heading inside the scroll view, not a fixed
+# header, and assertVisible means ON SCREEN.
+- scrollUntilVisible:
+    element:
+      text: "Create Listing"
+    direction: UP
+    timeout: 20000
 - assertVisible: "Create Listing"
 
 # ── 3) The pin-less draft round trip: edit still shows no pin; Publish   ────

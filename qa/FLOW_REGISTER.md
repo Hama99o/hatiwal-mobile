@@ -10,12 +10,12 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**151 of 258 flows passing** · 103 still need attention
+**152 of 258 flows passing** · 102 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 151 | green, and no backend error underneath |
-| FAIL-assert | 76 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 152 | green, and no backend error underneath |
+| FAIL-assert | 75 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-? | 24 | failed, cause unclear — read the log |
 | (rig) | 3 | rig broke mid-run — result meaningless, re-run |
@@ -31,7 +31,7 @@ bug class a user reports as "nothing happened".
 
 ## `listings` — Seller create/edit/delete + the 3-state lifecycle (Draft/Live/Sold) — Mark sold is always the one-tap primary, no Reserved tab
 
-20/40 passing · 19 open
+21/40 passing · 16 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -43,15 +43,15 @@ bug class a user reports as "nothing happened".
 | `create_listing_draft_discard` | FAIL-assert | run-528 | 206 |  | [Failed] create_listing_draft_discard (3m 5s) (Assertion is false: "Discard changes?" is visible) |
 | `create_listing_draft_restore` | FAIL-assert | run-528 | 298 | flow | "Draft saved" is a toast from toast.success; a bare assert races it. Now polls. |
 | `create_listing_full_publish` | PASS | run-528 | 289 |  | AxiosError |
-| `create_listing_multi_quantity` | FAIL-assert | run-528 | 237 | flow (heading off screen) — the flow taps the inert "Create Listing" HEADING to blur a field, which is the right trick: `hideKeyboard` is BACK on Android and a dirty form intercepts BACK as "Discard changes?" (run-034). But the heading sits INSIDE the scroll view, not in a fixed header, so once the form has scrolled and the keypad covers the lower half it is off the top — and `tapOn` never scrolls. run-528 died at step-75 on `Element not found: Text matching regex: Create Listing`, a heading that is present and correct. Added scrollUntilVisible direction UP before BOTH heading taps. Kept the tap, not hideKeyboard. | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
+| `create_listing_multi_quantity` | FAIL-assert ⟳stale | run-528 | 237 | flow (heading off screen) — the flow taps the inert "Create Listing" HEADING to blur a field, which is the right trick: `hideKeyboard` is BACK on Android and a dirty form intercepts BACK as "Discard changes?" (run-034). But the heading sits INSIDE the scroll view, not in a fixed header, so once the form has scrolled and the keypad covers the lower half it is off the top — and `tapOn` never scrolls. run-528 died at step-75 on `Element not found: Text matching regex: Create Listing`, a heading that is present and correct. Added scrollUntilVisible direction UP before BOTH heading taps. Kept the tap, not hideKeyboard. | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
 | `create_listing_price_edges` | PASS | run-528 | 241 |  |  |
-| `create_listing_publish_blocked` | FAIL-assert | run-517 | 221 | flow (heading off screen) — same cause, assert instead of tap. Died at step-96 on `"Create Listing" is visible`, the check that the form is STILL OPEN after a blocked publish. By then the flow has scrolled down to reach Publish, so the heading is above the viewport and assertVisible means ON SCREEN. The line above it (`assertNotVisible: "Your listing is live!"`) already proves the form is open, so this was never about state. Added scrollUntilVisible direction UP before it. | Touched the form before the location sheet closed; the helper allows 45s for it. |
-| `create_listing_publish_direct` | PASS | run-517 | 248 |  |  |
-| `create_listing_publish_requirements` | PASS | run-517 | 190 |  |  |
-| `create_listing_quantity_edges` | FAIL-assert | run-517 | 204 | flow | Field maps empty to 1, so eraseText appends. Blur-then-focus lets selectTextOnFocus replace. |
-| `create_listing_title_edges` | PASS | run-517 | 206 | env | Login gate timed out at 60s under host load; flow never ran its own steps. |
-| `create_listing_validation` | PASS | run-517 | 177 |  |  |
-| `create_listing_with_condition` | FAIL-assert | run-517 | 453 | flow | Tapped a title sitting in the search box, so the tap hit the input. Card testID now. |
+| `create_listing_publish_blocked` | FAIL-assert ⟳stale | run-528 | 269 | flow (heading off screen) — same cause, assert instead of tap. Died at step-96 on `"Create Listing" is visible`, the check that the form is STILL OPEN after a blocked publish. By then the flow has scrolled down to reach Publish, so the heading is above the viewport and assertVisible means ON SCREEN. The line above it (`assertNotVisible: "Your listing is live!"`) already proves the form is open, so this was never about state. Added scrollUntilVisible direction UP before it. | Touched the form before the location sheet closed; the helper allows 45s for it. |
+| `create_listing_publish_direct` | PASS | run-528 | 305 |  |  |
+| `create_listing_publish_requirements` | PASS | run-528 | 225 |  |  |
+| `create_listing_quantity_edges` | FAIL-assert | run-528 | 247 | flow (heading inside the scroll view) — died at step-84 on the LATE `"Create Listing"` assert (line 130, not the one at line 27), the check that the form is still open after Save Draft refuses quantity 1000. By then the flow has scrolled to the quantity field, so the heading is above the viewport. Third flow of this face, after create_listing_multi_quantity and create_listing_publish_blocked. Added scrollUntilVisible UP. | Field maps empty to 1, so eraseText appends. Blur-then-focus lets selectTextOnFocus replace. |
+| `create_listing_title_edges` | PASS | run-528 | 252 | env | Login gate timed out at 60s under host load; flow never ran its own steps. |
+| `create_listing_validation` | PASS | run-528 | 212 |  |  |
+| `create_listing_with_condition` | PASS | run-528 | 517 | PASS in run-528 (517s) at sha 55325c0659f3 — UNCHANGED since August, so this is NOT a campaign fix and is not claimable. Its four prior failures span three different kinds (app_bug_or_flow, rig_fail at 602s, app_error), i.e. environment-sensitive rather than stably broken. Now 1/4 once the rig_fail row is excluded. A reminder that STABLE FAIL is provisional: 0/4 can become 1/5 with no edit at all. | Tapped a title sitting in the search box, so the tap hit the input. Card testID now. |
 | `create_listing_with_photos` | PASS | run-517 | 214 |  |  |
 | `delete_listing` | PASS | run-517 | 196 | flow | Toast unwaitable: onDeleted does router.replace, so it fires on a dying screen. Asserts the outcome. |
 | `draft_lifecycle` | FAIL-assert | run-517 | 251 | flow | Never confirmed the native publish dialog; now via confirm_dialog (android:id/button1). |
@@ -237,7 +237,7 @@ bug class a user reports as "nothing happened".
 | `sales_screen_correct_quantity` | FAIL-assert | run-527 | 381 |  | [Failed] sales_screen_correct_quantity (6m) (Assertion is false: id: sales-tally is not visible) |
 | `sales_screen_reviewed_sale_refusal` | FAIL-assert | run-527 | 209 | flow — `seller-card-more-action` not found; the testID IS current (SellerListingCard.tsx:464), so this is a reach/timing failure, not selector rot. Ran AFTER the identity fix and shows no wrong-account signature. | [Failed] sales_screen_reviewed_sale_refusal (3m 7s) (Element not found: Id matching regex: seller-card-more-ac |
 | `sales_screen_void_row` | PASS | run-527 | 381 |  |  |
-| `save_draft` | FAIL-assert | run-527 | 283 | flow — asserts "Create Listing" and does not get it; the copy IS current (listing.json `create` = "Create Listing"). Reach/timing, not stale copy. Post-identity-fix. | [Failed] save_draft (4m 21s) (Assertion is false: "Create Listing" is visible) |
+| `save_draft` | FAIL-assert | run-527 | 283 | flow (heading inside the scroll view) — died at step-107 on the LATE `"Create Listing"` assert (line 178). The file has four occurrences including an assertNotVisible, so the message alone could not say which; the screenshot settled it — the form is scrolled to Title/Price showing "Title is required (max 150 characters)" with the numeric keypad up, which is the validation section at line 178, not the fresh form at line 122. Added scrollUntilVisible UP. Fourth flow of this face. | [Failed] save_draft (4m 21s) (Assertion is false: "Create Listing" is visible) |
 | `sell_without_reserving` | PASS | run-527 | 318 |  |  |
 | `sold_quantity_reconciliation` | FAIL-assert ⟳stale | run-527 | 356 | flow (IME covers the field) — the app and the fixture are BOTH correct, checked before touching the flow. `showQuantityReopenNote = hasMultipleUnits && willReopenOnSave(...)` (ListingForm.tsx:481) needs a SOLD listing, and the API says listing 3274 "QA SF-M7 Reconcile Batch" is status=sold, quantity=5, sales_count=1 — so typing 8 yields exactly the "3 available" the next line asserts. The note IS rendered; it is simply not ON SCREEN. Typing into the quantity field raises the NUMERIC KEYPAD and the form ends up back at the top — run-527's screenshot is this form showing Photos and the Title with the keypad covering everything below, and the note sits directly under the quantity field. Added scrollUntilVisible DOWN with centerElement so it lands ABOVE the keypad (not hideKeyboard, which is Back on Android and would pop the form). | [Failed] sold_quantity_reconciliation (5m 34s) (Assertion is false: id: listing-form-quantity-reopen-note is v |
 | `undo_mark_sold` | PASS | run-527 | 319 | flow — `location-confirm` not visible; testID IS current (LocationRangePicker.tsx:470). Reach/timing — the location sheet had not opened or had not rendered. Post-identity-fix. |  |
@@ -381,7 +381,7 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `first_run` | PASS | s2/run-527 | 355 |  |  |
+| `first_run` | PASS | s2/run-529 | 357 |  |  |
 
 ## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
 
@@ -389,12 +389,12 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `browse_pagination` | PASS | s2/run-527 | 199 |  |  |
-| `conversations_pagination` | PASS | s2/run-527 | 202 |  | AxiosError |
-| `filter_combined_pagination` | PASS | s2/run-527 | 219 | flow — assertNotVisible on dead copy (vacuous); now asserts a cross-category listing is absent |  |
-| `my_listings_pagination` | PASS | s2/run-527 | 284 |  |  |
-| `saved_pagination_deep` | PASS | s2/run-527 | 235 |  |  |
-| `search_pagination` | PASS | s2/run-527 | 217 |  |  |
+| `browse_pagination` | PASS | s2/run-529 | 195 |  |  |
+| `conversations_pagination` | PASS | s2/run-529 | 200 |  | AxiosError |
+| `filter_combined_pagination` | PASS | s2/run-529 | 217 | flow — assertNotVisible on dead copy (vacuous); now asserts a cross-category listing is absent |  |
+| `my_listings_pagination` | PASS | s2/run-529 | 292 |  |  |
+| `saved_pagination_deep` | PASS | s2/run-529 | 243 |  |  |
+| `search_pagination` | PASS | s2/run-529 | 241 |  |  |
 
 ## `rtl` — Pashto + Dari right-to-left layout across main screens
 
