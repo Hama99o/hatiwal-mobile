@@ -28,7 +28,7 @@ appId: com.hatiwal.app
 # Account" — so an exact-match selector on "Create Account" can never find it.
 - tapOn:
     id: "go-to-register"
-- assertVisible: "Buy and sell locally in Afghanistan"
+- assertVisible: "Buy and sell locally.*"
 - tapOn:
     id: "register-firstname-input"
 - inputText: "Delete"

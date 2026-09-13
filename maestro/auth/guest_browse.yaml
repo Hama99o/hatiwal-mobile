@@ -25,7 +25,7 @@ appId: com.hatiwal.app
       - waitForAnimationToEnd
       - extendedWaitUntil:
           visible:
-            text: "Skip|Bazaar|Me|Email|Buy and sell locally in Afghanistan"
+            text: "Skip|Bazaar|Me|Email|Buy and sell locally.*"
           timeout: 120000
 - runFlow: ../_helpers/goto_login.yaml
 # NOT "Welcome to Hatiwal": the onboarding carousel's FIRST SLIDE and the login
@@ -39,7 +39,7 @@ appId: com.hatiwal.app
 # has rendered at all. guest_browse failed exactly that way after passing minutes
 # earlier — neither screen was up yet.
 - extendedWaitUntil:
-    visible: "Buy and sell locally in Afghanistan"
+    visible: "Buy and sell locally.*"
     timeout: 60000
 # By testID: this chip's label is localized and was renamed to "Go to Bazaar",
 # so tapping the old text would miss.

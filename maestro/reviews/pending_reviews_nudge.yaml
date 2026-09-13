@@ -39,7 +39,7 @@ env:
 # has rendered at all. guest_browse failed exactly that way after passing minutes
 # earlier — neither screen was up yet.
 - extendedWaitUntil:
-    visible: "Buy and sell locally in Afghanistan"
+    visible: "Buy and sell locally.*"
     timeout: 60000
 - tapOn:
     id: "login-email-input"

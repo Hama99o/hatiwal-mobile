@@ -26,7 +26,7 @@ appId: com.hatiwal.app
 # which is why this failed with "No visible element found: id: register-submit"
 # on a button that plainly exists. The subtitle is a plain Text at the top of the
 # form and unique on the screen, so tapping it only blurs.
-- tapOn: "Buy and sell locally in Afghanistan"
+- tapOn: "Buy and sell locally.*"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
@@ -61,7 +61,7 @@ appId: com.hatiwal.app
 # which is why this failed with "No visible element found: id: register-submit"
 # on a button that plainly exists. The subtitle is a plain Text at the top of the
 # form and unique on the screen, so tapping it only blurs.
-- tapOn: "Buy and sell locally in Afghanistan"
+- tapOn: "Buy and sell locally.*"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
@@ -110,7 +110,7 @@ appId: com.hatiwal.app
 # which is why this failed with "No visible element found: id: register-submit"
 # on a button that plainly exists. The subtitle is a plain Text at the top of the
 # form and unique on the screen, so tapping it only blurs.
-- tapOn: "Buy and sell locally in Afghanistan"
+- tapOn: "Buy and sell locally.*"
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:

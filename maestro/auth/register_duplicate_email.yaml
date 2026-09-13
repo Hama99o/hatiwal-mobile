@@ -22,7 +22,7 @@ appId: com.hatiwal.app
 # has rendered at all. guest_browse failed exactly that way after passing minutes
 # earlier — neither screen was up yet.
 - extendedWaitUntil:
-    visible: "Buy and sell locally in Afghanistan"
+    visible: "Buy and sell locally.*"
     timeout: 60000
 # The login screen renders this as ONE Text — "Don't have an account? Create
 # Account" — so an exact-match selector on "Create Account" can never find it.

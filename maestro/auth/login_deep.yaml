@@ -18,7 +18,7 @@ appId: com.hatiwal.app
 # has rendered at all. guest_browse failed exactly that way after passing minutes
 # earlier — neither screen was up yet.
 - extendedWaitUntil:
-    visible: "Buy and sell locally in Afghanistan"
+    visible: "Buy and sell locally.*"
     timeout: 60000
 - tapOn: "Sign In"
 - waitForAnimationToEnd
@@ -98,7 +98,7 @@ appId: com.hatiwal.app
 # screen the app had no reason to show. Navigate there explicitly.
 - runFlow: ../_helpers/goto_login.yaml
 - extendedWaitUntil:
-    visible: "Buy and sell locally in Afghanistan"
+    visible: "Buy and sell locally.*"
     timeout: 60000
 
 # Re-login

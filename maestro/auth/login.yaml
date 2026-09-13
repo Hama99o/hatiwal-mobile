@@ -17,9 +17,9 @@ appId: com.hatiwal.app
 # has rendered at all. guest_browse failed exactly that way after passing minutes
 # earlier — neither screen was up yet.
 - extendedWaitUntil:
-    visible: "Buy and sell locally in Afghanistan"
+    visible: "Buy and sell locally.*"
     timeout: 60000
-- assertVisible: "Buy and sell locally in Afghanistan"
+- assertVisible: "Buy and sell locally.*"
 - tapOn:
     id: "login-email-input"
 - inputText: "buyer@hatiwal.test"
