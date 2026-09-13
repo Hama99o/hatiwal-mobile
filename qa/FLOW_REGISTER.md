@@ -10,12 +10,12 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**149 of 258 flows passing** · 106 still need attention
+**150 of 258 flows passing** · 105 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 149 | green, and no backend error underneath |
-| FAIL-assert | 78 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 150 | green, and no backend error underneath |
+| FAIL-assert | 77 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-? | 25 | failed, cause unclear — read the log |
 | (rig) | 2 | rig broke mid-run — result meaningless, re-run |
@@ -183,7 +183,7 @@ bug class a user reports as "nothing happened".
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
-16/30 passing · 10 open
+17/30 passing · 9 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -199,16 +199,16 @@ bug class a user reports as "nothing happened".
 | `edit_profile_all_fields` | FAIL-assert ⟳stale | run-529 | 321 | flow (bio below the fold) — 0/6, and the two asserts ABOVE the failing one are the diagnosis: `"UpdatedFirst"` and `"UpdatedLast"` PASS because First and Last Name sit at the TOP of the re-opened edit form, then `"I sell quality items in Kabul."` fails because the Bio field is further down. assertVisible means ON SCREEN. Died at step-126 in run-529. Added scrollUntilVisible to `edit-profile-bio-input` by id (stable) before asserting the bio TEXT (the thing under test), direction DOWN, no centerElement. | 2026-09-03: FOUR causes, two of them app bugs. (1) asserted text 'Save' on a button reading 'Save Changes'; (2) centerElement on the sticky save button; (3) APP — the sticky Save sat BEHIND the keyboard (d8edc9e), verified visually at 360dp; (4) APP — the keyboard swallowed the tap on the NEXT field, so 'UpdatedLast' landed in the First Name box (e36a6b4, keyboardDismissMode=on-drag). Also a pre-existing viewport assumption on the final derived-city assertion (no scroll). MY OWN regressions along the way: a pressKey:Enter that SUBMITTED the form (608ddda, reverted) and a scrollUntilVisible that is a no-op when the target is already 'visible'. Flow-side stability still open — board #313. |
 | `edit_profile_avatar` | PASS | run-529 | 219 |  |  |
 | `edit_profile_bio_too_long` | PASS | run-529 | 357 | flow — 520 chars do type; error renders above viewport; now scrolls UP cb68fa4 |  |
-| `edit_profile_province` | FAIL-assert | run-518 | 260 | flow | 2026-09-02: DOWN + centerElement:true on profile-edit-button, which sits near the TOP of Profile — DOWN scrolls away from it and centring is impossible with too little content above. ORDER-DEPENDENT (siblings passed on the identical block). Now UP + visibilityPercentage 40, applied to all 8 flows carrying it. |
-| `edit_profile_validation` | PASS | run-518 | 199 |  |  |
-| `hidden_listings` | PASS | run-518 | 198 |  |  |
-| `language_persists_across_tabs` | PASS | run-518 | 290 |  |  |
-| `language_switch_all_screens` | PASS | run-518 | 310 | flow — asserted Profile content while restart left app on feed; reordered cb68fa4 |  |
-| `profile_stats_verify` | FAIL-? | run-518 | 200 | rig — killed mid-flow (no failure reason, 7m45s); feature-timeout truncation, re-run | Same hardcoded year. |
-| `recently_viewed` | PASS | run-518 | 175 | flow+app — row had no testID; added profile-row-recently-viewed. Fixed 34e713a |  |
-| `recently_viewed_empty_state` | PASS | run-518 | 168 |  |  |
+| `edit_profile_province` | PASS | run-529 | 348 | flow | 2026-09-02: DOWN + centerElement:true on profile-edit-button, which sits near the TOP of Profile — DOWN scrolls away from it and centring is impossible with too little content above. ORDER-DEPENDENT (siblings passed on the identical block). Now UP + visibilityPercentage 40, applied to all 8 flows carrying it. |
+| `edit_profile_validation` | PASS | run-529 | 247 |  |  |
+| `hidden_listings` | PASS | run-529 | 231 |  |  |
+| `language_persists_across_tabs` | PASS | run-529 | 352 |  |  |
+| `language_switch_all_screens` | PASS | run-529 | 355 | flow — asserted Profile content while restart left app on feed; reordered cb68fa4 |  |
+| `profile_stats_verify` | FAIL-? | run-529 | 235 | TRIAGED, not fixed — `No visible element found: "Active Listings"` after a guarded scrollUntilVisible with centerElement:false, so NOT the centerElement trap. The copy exists (profile.json:58) but Profile.tsx does not reference `activeListings` at all, and transaction_stats_hidden_when_zero PASSED in the same run — so a conditional-render hypothesis is live and this needs its own screenshot before a fix. | Same hardcoded year. |
+| `recently_viewed` | PASS | run-529 | 199 | flow+app — row had no testID; added profile-row-recently-viewed. Fixed 34e713a |  |
+| `recently_viewed_empty_state` | PASS | run-529 | 184 |  |  |
 | `seller_mode_toggle` | PASS | run-518 | 187 |  |  |
-| `theme_switch` | FAIL-? | run-518 | 213 |  | [Failed] theme_switch (3m 19s) (No visible element found: id: theme-option-light) |
+| `theme_switch` | FAIL-? | run-518 | 213 | flow (wrong screen after the restart) — the theme switch WORKED; the flow lost its place. run-529's end-of-flow screenshot is the BAZAAR FEED IN DARK MODE. Theme switches restart the app (theme.store.ts:26 -> reloadApp -> RNRestart) and it returns on the feed — the flow's own comment says exactly that — but everything after the restart hunts `theme-option-light`, which lives on PROFILE (Profile.tsx:872). Nothing navigated back, so the scroll was looking for a Profile control on the browse screen. Added `_helpers/goto_profile_tab.yaml`. NOTE the selector is CURRENT and a literal grep misses it: `testID={`theme-option-${value}`}` is a TEMPLATE LITERAL — I nearly filed my first stale selector on it. Checked the spread: mapqa/_set_locale_theme.yaml only MENTIONS await_theme_restart in a comment explaining why it does not use it, and it taps profile-tab explicitly. One flow, not a sweep. | [Failed] theme_switch (3m 19s) (No visible element found: id: theme-option-light) |
 | `transaction_stats_hidden_when_zero` | PASS | run-518 | 157 |  |  |
 | `transaction_stats_own_profile` | FAIL-assert | run-518 | 192 |  | [Failed] transaction_stats_own_profile (2m 57s) (Assertion is false: "Items Bought" is visible) |
 | `transaction_stats_public_profile` | FAIL-assert | run-518 | 200 | flow — vacuous assertNotVisible on the dead soldItems key; removed | [Failed] transaction_stats_public_profile (3m 5s) (Assertion is false: id: transaction-stats-badge is visible) |
@@ -381,7 +381,7 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `first_run` | PASS | s2/run-529 | 357 |  |  |
+| `first_run` | PASS | s2/run-530 | 326 |  |  |
 
 ## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
 
@@ -389,12 +389,12 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `browse_pagination` | PASS | s2/run-529 | 195 |  |  |
-| `conversations_pagination` | PASS | s2/run-529 | 200 |  | AxiosError |
-| `filter_combined_pagination` | PASS | s2/run-529 | 217 | flow — assertNotVisible on dead copy (vacuous); now asserts a cross-category listing is absent |  |
-| `my_listings_pagination` | PASS | s2/run-529 | 292 |  |  |
-| `saved_pagination_deep` | PASS | s2/run-529 | 243 |  |  |
-| `search_pagination` | PASS | s2/run-529 | 241 |  |  |
+| `browse_pagination` | PASS | s2/run-530 | 246 |  |  |
+| `conversations_pagination` | PASS | s2/run-530 | 241 |  | AxiosError |
+| `filter_combined_pagination` | PASS | s2/run-530 | 275 | flow — assertNotVisible on dead copy (vacuous); now asserts a cross-category listing is absent |  |
+| `my_listings_pagination` | PASS | s2/run-530 | 270 |  |  |
+| `saved_pagination_deep` | PASS | s2/run-530 | 283 |  |  |
+| `search_pagination` | PASS | s2/run-530 | 260 |  |  |
 
 ## `rtl` — Pashto + Dari right-to-left layout across main screens
 

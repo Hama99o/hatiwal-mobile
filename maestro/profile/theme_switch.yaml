@@ -46,6 +46,18 @@ appId: com.hatiwal.app
 # is what that race looks like when a flow needs to stay on the profile screen.
 - runFlow: ../_helpers/await_theme_restart.yaml
 - waitForAnimationToEnd
+# GO BACK TO PROFILE. The comment above already says the restart "returns on the
+# Bazaar feed" — and everything below this line looks for `theme-option-light`,
+# which lives on PROFILE (Profile.tsx:872). Nothing navigated back, so the scroll
+# was hunting a Profile control on the browse screen and could never find it.
+#
+# run-529's end-of-flow screenshot is the Bazaar feed IN DARK MODE: the theme
+# switch itself worked perfectly, the flow just lost its place. That is why the
+# row reads kind=unknown rather than a normal assertion failure — classify()
+# matches "Assertion is false|Element not found|not visible", and a
+# scrollUntilVisible timeout says "No visible element found", which none of those
+# catch.
+- runFlow: ../_helpers/goto_profile_tab.yaml
 # SCROLL TO IT — it is below the fold on a 360dp Profile screen, not missing.
 # Verified present: Profile.tsx:872 renders testID={`theme-option-${value}`}, so
 # `theme-option-light` is a real id — run-493 reported it "not found" because the

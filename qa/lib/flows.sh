@@ -131,7 +131,13 @@ classify() {
   grep -qiE "Could not connect to development server|Unable to load script|Metro" "$log" 2>/dev/null && { echo rig_fail; return; }
   [ "$code" = "124" ] && { echo rig_fail; return; }   # our timeout fired
   # Maestro says which step failed; an assertion/selector miss is the common case
-  grep -qiE "Assertion is false|Element not found|not visible" "$log" 2>/dev/null && { echo app_bug_or_flow; return; }
+  # "No visible element found" is what a scrollUntilVisible TIMEOUT says, and it
+  # matches none of the three patterns above — "not visible" does not appear in
+  # it. Those rows were landing in `unknown`, which reads like something exotic
+  # and is triaged last; they are ordinary assertion-class failures. run-529 had
+  # two (profile_stats_verify, theme_switch) and both turned out to be a flow
+  # looking at the wrong screen.
+  grep -qiE "Assertion is false|Element not found|not visible|No visible element found" "$log" 2>/dev/null && { echo app_bug_or_flow; return; }
   echo "unknown"
 }
 
