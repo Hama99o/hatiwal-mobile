@@ -15,9 +15,9 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 | Status | Count | Meaning |
 |---|---:|---|
 | PASS | 148 | green, and no backend error underneath |
-| FAIL-assert | 87 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-assert | 89 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 18 | failed, cause unclear — read the log |
+| FAIL-? | 16 | failed, cause unclear — read the log |
 | (rig) | 2 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 2 | never executed |
 
@@ -87,7 +87,7 @@ bug class a user reports as "nothing happened".
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
 
-23/42 passing · 14 open
+23/42 passing · 13 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -122,14 +122,14 @@ bug class a user reports as "nothing happened".
 | `not_interested` | PASS | run-530 | 212 |  |  |
 | `saved_search_apply` | FAIL-assert | run-530 | 248 | TRIAGED — 0/3 on `"Saved search" is visible`. Needs its own screenshot; not yet investigated. | [Failed] saved_search_apply (3m 39s) (Assertion is false: "Saved search" is visible) |
 | `scroll_to_top` | PASS | run-530 | 216 |  |  |
-| `search_empty_state` | FAIL-assert | run-530 | 215 | flow (IME over the results area + inherited filters) — `"No listings found" is visible` fails because that copy renders in the RESULTS AREA, exactly where the keyboard sits after typing. run-530's screenshot: query in the box, filter chips, a small gap, keypad over everything below. THE CONTROL: search_listings allows 30s on this same string and still times out, so the element never becomes VISIBLE, only present — waiting cannot fix it. Added drag + `pressKey: Enter` (never Back, which this flow's sibling notes CANCELS the search). Also added clear_browse_filters: the screenshot shows it searching under "1 filter active" (Electronics, Within 5 km) inherited from an earlier flow, and the two browse flows that already open that way are search_listings and full_marketplace_cycle. | [Failed] search_empty_state (3m 8s) (Assertion is false: "No listings found" is visible) |
-| `search_listings` | FAIL-assert | run-530 | 351 | flow (IME over the results area) — same cause as search_empty_state and the CONTROL that proves it is not a timing problem: this flow already allows `extendedWaitUntil ... timeout: 30000` on "No listings found" and still times out, so the element is present but never ON SCREEN. It already clears filters, so filters are not the cause either. Added drag + `pressKey: Enter` after the query. | [Failed] search_listings (5m 22s) (Assertion is false: "No listings found" is visible) |
+| `search_empty_state` | FAIL-assert ⟳stale | run-530 | 215 | flow (IME over the results area + inherited filters) — `"No listings found" is visible` fails because that copy renders in the RESULTS AREA, exactly where the keyboard sits after typing. run-530's screenshot: query in the box, filter chips, a small gap, keypad over everything below. THE CONTROL: search_listings allows 30s on this same string and still times out, so the element never becomes VISIBLE, only present — waiting cannot fix it. Added drag + `pressKey: Enter` (never Back, which this flow's sibling notes CANCELS the search). Also added clear_browse_filters: the screenshot shows it searching under "1 filter active" (Electronics, Within 5 km) inherited from an earlier flow, and the two browse flows that already open that way are search_listings and full_marketplace_cycle. | [Failed] search_empty_state (3m 8s) (Assertion is false: "No listings found" is visible) |
+| `search_listings` | FAIL-assert ⟳stale | run-530 | 351 | flow (IME over the results area) — same cause as search_empty_state and the CONTROL that proves it is not a timing problem: this flow already allows `extendedWaitUntil ... timeout: 30000` on "No listings found" and still times out, so the element is present but never ON SCREEN. It already clears filters, so filters are not the cause either. Added drag + `pressKey: Enter` after the query. | [Failed] search_listings (5m 22s) (Assertion is false: "No listings found" is visible) |
 | `search_with_filter` | PASS | run-530 | 324 |  |  |
-| `seller_profile` | FAIL-? | run-508 | 156 | TRIAGED — `No visible element found: "Wool Blanket Handmade King Size"`, the same feed-scroll shape as the three listing_detail flows. 1/3. Check whether it asserts anything about the FEED CARD before converting to the search helper: listing_detail_multi_quantity and listing_detail_price_drop_badge both do, and converting them would destroy what they test. | [Failed] seller_profile (2m 22s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `seller_profile_from_listing` | PASS | run-508 | 162 |  |  |
-| `seller_response_rate_badge` | FAIL-? ⚠slow | run-508 | 39235 | flow — anchored pattern started mid-label; badge renders "82% reply rate · Usually responds…" as one Text | [Failed] seller_response_rate_badge (10h 53m 40s) (No visible element found: "Phone Case.*") |
+| `seller_profile` | FAIL-assert | run-530 | 256 | flow — converted to `_helpers/open_listing_by_title.yaml` after the shape check I queued last tick came back clean: scroll -> tap, NO feed-card assertion, so it only needs the listing OPEN. Failed with `No visible element found: "Wool Blanket Handmade King Size"` while the listing is active and in the feed (API 3366). Scrolling a virtualised grid for one title is the fragile part, and centerElement compounds it. | [Failed] seller_profile (3m 37s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `seller_profile_from_listing` | PASS | run-530 | 327 |  |  |
+| `seller_response_rate_badge` | FAIL-assert | run-530 | 290 | flow — converted for the same reason: it taps the card and then asserts "Usually responds within..." on the LISTING DETAIL, nothing about the feed card. Note the search term changed from the partial regex `Phone Case.*` to the FULL title "Phone Case Silicone Clear - Wholesale" (API 3360), because the helper types it into the search box rather than matching it on screen. | [Failed] seller_response_rate_badge (4m) (No visible element found: "Phone Case.*") |
 | `subcategory_drilldown` | PASS | run-508 | 172 | flow — chip reads "Subcategory: Phones & Tablets"; the two chip asserts still said "Phones" | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
-| `user_profile_empty_listings` | FAIL-? | run-508 | 162 | flow — index 0 of a recency-ordered inbox reached Fatima (owns a listing); now targets Ahmad | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
+| `user_profile_empty_listings` | FAIL-? | run-508 | 162 | TRIAGED — NOT convertible, and the reason matters: `No visible element found: ".*Ahmad Karimi.*"` looks like the same feed-scroll failure, but it is not a feed scroll at all. It walks the CONVERSATIONS list for a PERSON'S NAME and then asserts "Type a message...", a chat composer. Sending it through a listing-search helper would be nonsense. Needs its own look at how that list is reached. | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
 | `user_profile_listing_grid` | PASS | run-508 | 162 | flow | Grid sits below the profile header; assertVisible does not scroll. Added both ways. |
 | `user_profile_stats` | PASS | run-508 | 153 | flow — asserted a "Message" button the profile has never had (contact is per-listing by design) | Hardcoded "2024"; member_since renders "August 2026" as one node. Year-shaped pattern. |
 | `view_mode_toggle` | PASS | run-508 | 190 | REVERT CONFIRMED — PASSED in run-494 after the hideKeyboard->drag revert. | HOLLOW: every tap optional, only assertion was the always-present tab label. Rewritten. |
@@ -398,7 +398,7 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `first_run` | PASS | s2/run-530 | 326 |  |  |
+| `first_run` | PASS | s2/run-531 | 551 |  |  |
 
 ## `pagination` — Infinite scroll across browse, search, saved, chat, my-listings
 
