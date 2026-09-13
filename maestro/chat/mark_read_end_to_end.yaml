@@ -94,6 +94,31 @@ appId: com.hatiwal.app
 - assertVisible: "Let's confirm the meetup time"
 # A message sent right now always lands under "Today" — proves the day
 # separator renders even when the rest of the seeded thread is much older.
+# SCROLL UP TO THE DAY SEPARATOR BEFORE ASSERTING IT.
+#
+# `assertVisible` means ON SCREEN, and after sending a message the thread is
+# pinned to the BOTTOM. The "Today" separator sits above the FIRST message of
+# today, so on any thread with more than a screenful of today's messages it is
+# above the viewport — present in the hierarchy, not visible.
+#
+# run-533's end-of-flow screenshot is exactly that: the thread open and
+# rendering (2:15 PM, 2:28 PM, 3:03 PM, 3:20 PM), the "Unread messages" divider
+# plainly visible, and NO "Today" separator on screen. The day separator was
+# never missing; the assertion was looking at the wrong part of the thread.
+#
+# That also explains the 3/16 record at this sha: it passed only on the runs
+# where the thread happened to be short enough for "Today" to fit on screen,
+# which depends on how many messages earlier flows left behind.
+#
+# The scroll is the same idiom this file already uses a few lines below for the
+# "Unread messages" divider. No centerElement: the separator can be the topmost
+# element in the list, and centring something with nothing above it is
+# unsatisfiable.
+- scrollUntilVisible:
+    element:
+      text: "Today"
+    direction: UP
+    timeout: 20000
 - assertVisible: "Today"
 # DR-BLOCKER regression guard: sending a new message must never move or hide
 # the divider that was already resolved when the thread was opened.
