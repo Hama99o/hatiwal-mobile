@@ -164,7 +164,16 @@ appId: com.hatiwal.app
 - tapOn: "Spam"
 # `report.submit` = "Submit Report" — capital R.
 - tapOn: "Submit Report"
-- waitForAnimationToEnd
+# NO waitForAnimationToEnd here, and NOT a bare assertVisible. "already reported"
+# is a TOAST: it lives ~3s, so a single check is a race and any wait in FRONT of
+# it spends the very window it is waiting for. extendedWaitUntil polls from the
+# instant of the tap — same treatment as listing_actions_sheet's
+# "Listing published!" toast.
+#
+# THE BACKEND IS NOT THE PROBLEM. run-526's Rails log shows
+# POST /api/v1/reports -> 201 Created at 23:27:16 UTC, then -> 422 Unprocessable
+# at 23:27:50: exactly the duplicate this section exists to test. The 422 fired
+# and the flow still went red, purely on this check.
 # "Already reported" friendly toast
 # Maestro matches the FULL string as a regex, so this PREFIX of the real copy
 # never matched it — the app was showing more than the flow asked for.
@@ -172,4 +181,6 @@ appId: com.hatiwal.app
 # alone only matches when the asserted text is a PREFIX of the real copy — and
 # this text sits in the MIDDLE of it. My first pass at these appended one `.*`
 # to all of them, which fixed the prefixes and left these three unmatchable.
-- assertVisible: ".*already reported.*"
+- extendedWaitUntil:
+    visible: ".*already reported.*"
+    timeout: 10000

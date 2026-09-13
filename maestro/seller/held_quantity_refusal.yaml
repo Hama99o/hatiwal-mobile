@@ -176,6 +176,21 @@ appId: com.hatiwal.app
 - tapOn: "Save"
 - waitForAnimationToEnd
 
+# SCROLL BACK UP before looking for the title. Saving returns to the owner
+# detail, which KEEPS the scroll position this flow left it at — down at the
+# quantity field — and the title lives at the top. `assertVisible` (and so
+# extendedWaitUntil) means ON SCREEN, so 30s of polling could never find it:
+# run-527's end-of-flow screenshot is that screen scrolled to the bottom, showing
+# the map, "Manage Listing" and "View Conversations".
+#
+# The save had SUCCEEDED. The API says listing 3246 is active, quantity 15,
+# held_units 10 — exactly what the asserts below expect. Nothing was wrong but
+# where the screen was pointing.
+- scrollUntilVisible:
+    element:
+      text: "Winter Gloves Wholesale Box - 15 Pairs"
+    direction: UP
+    timeout: 20000
 - extendedWaitUntil:
     visible: "Winter Gloves Wholesale Box - 15 Pairs"
     timeout: 30000

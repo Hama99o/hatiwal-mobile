@@ -42,6 +42,29 @@ save the full run for between cycles. And when a `rig_fail` appears, check `upti
 before anything else — the machine also hosts another project's rig, so load is not
 always self-inflicted, but it usually is.
 
+## The in-flight guard matched ITSELF, and blocked three fixes for nothing
+
+`ps -eo cmd | grep -o "maestro/[a-z_]*/[a-z_0-9]*\.yaml"` also matches **the
+shell command you are running right now**, because your own `sed`/`python`
+invocation carries the flow path in its command line. So the guard reports the
+very flow you are about to edit as "in flight" every time. It cost three fixes
+two ticks of delay before the pattern was obvious — the flow named was always
+exactly the one being edited, never a neighbour.
+
+Filter to the processes that actually run flows:
+
+```bash
+ps -eo pid,args \
+  | grep -E "\.maestro/bin/maestro|maestro\.cli\.AppKt" \
+  | grep -v grep \
+  | grep -oE "maestro/[a-z_]+/[a-z_0-9]+\.yaml" | sort -u
+```
+
+Worth keeping the rule it guards, though: editing a flow mid-run does not corrupt
+that run (maestro parses the yaml at launch and writes `commands.json` then), but
+`flow_sha` is computed when the RESULT is written, so the verdict is filed
+against the new file — the stale-verdict trap in the section below.
+
 ## `flow_sha` does not mean "as executed" — check `commands.json`
 
 `emit_result.py` hashes the .yaml when it WRITES the record, which is after the flow

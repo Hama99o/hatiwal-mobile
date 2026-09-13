@@ -175,6 +175,18 @@ appId: com.hatiwal.app
 
 # ── 3) Back on My Shop — the Active card also shows exactly two controls ────
 
+# POP FIRST. Publishing lands on the listing's OWNER DETAIL, a PUSHED screen with
+# no tab bar, so tapping a tab from here fails with "Element not found: Id
+# matching regex: browse-tab" — a testID that is present and correct, just not on
+# this screen. The helper backs out until the bar is there (8961e02 did the same
+# for other flows).
+#
+# run-527 died HERE, and the step number is the whole point: step-118, the tap
+# below, NOT the identical one at the top of this flow. By then the listing had
+# been created and PUBLISHED — the end-of-flow screenshot is its owner detail
+# reading "Listing Actions Sheet Test Item", AFN 5,000, Active, posted today. The
+# publish and its "Listing published!" toast are both behind us.
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
