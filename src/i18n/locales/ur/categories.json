@@ -1,0 +1,17 @@
+{
+  "hubTitle": "زمرہ جات",
+  "itemCount_one": "{{count}} اشتہار",
+  "itemCount_other": "{{count}} اشتہارات",
+  "itemCount": "{{count}} اشتہارات",
+  "itemCountZero": "کوئی اشتہار نہیں",
+  "empty": {
+    "title": "ابھی تک کوئی زمرہ نہیں",
+    "description": "زمرے شامل کیے جانے کے بعد یہاں ظاہر ہوں گے۔"
+  },
+  "browseAll": "تمام زمرے دیکھیں",
+  "viewAll": "سب دیکھیں",
+  "subcategories": "ذیلی زمرے",
+  "allIn": "{{name}} میں سب",
+  "tapToExpand": "ذیلی زمرے دیکھنے کے لیے دبائیں",
+  "collapseSubcategories": "ذیلی زمرے بند کریں"
+}

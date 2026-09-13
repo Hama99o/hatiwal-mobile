@@ -1,0 +1,30 @@
+{
+  "promptSellerTitle": "خریدار کے طور پر {{name}} کیسے رہے؟",
+  "promptBuyerTitle": "بیچنے والے کے طور پر {{name}} کیسے رہے؟",
+  "ratingLabel": "آپ کی درجہ بندی",
+  "commentLabel": "تبصرہ شامل کریں (اختیاری)",
+  "commentPlaceholder": "بتائیں کہ ملاقات اور سودا کیسا رہا…",
+  "submit": "جائزہ جمع کریں",
+  "skip": "ابھی نہیں",
+  "thanks": "شکریہ! آپ کا جائزہ شائع ہو گیا۔",
+  "sectionTitle": "درجہ بندی اور جائزے",
+  "summary_one": "{{rating}} ({{display}} جائزہ)",
+  "summary_other": "{{rating}} ({{display}} جائزے)",
+  "summary": "{{rating}} ({{display}} جائزے)",
+  "viewAll": "تمام جائزے دیکھیں",
+  "asSeller": "بیچنے والے کے طور پر",
+  "asBuyer": "خریدار کے طور پر",
+  "empty": "ابھی تک کوئی جائزہ نہیں",
+  "emptyDescription": "جائزے کامیاب لین دین کے بعد ظاہر ہوتے ہیں۔",
+  "blindNotice": "جائزے اُس وقت تک نجی رہتے ہیں جب تک آپ دونوں ایک دوسرے کو درجہ بندی نہ دے دیں — اس سے درجہ بندی ایماندار رہتی ہے۔",
+  "pendingTitle": "اپنے حالیہ سودوں کی درجہ بندی کریں",
+  "reportReview": "اس جائزے کی اطلاع دیں",
+  "starAccessibilityLabel": "5 میں سے {{count}} ستارے",
+  "submittedPendingTitle": "جائزہ محفوظ ہو گیا",
+  "submittedPendingBody": "شکریہ! آپ کا جائزہ اُس وقت ظاہر ہوگا جب {{name}} بھی اپنا جائزہ جمع کر دیں (یا خودبخود 14 دن کے اندر)۔",
+  "gotIt": "سمجھ گیا",
+  "myReviewsTitle": "میرے جائزے",
+  "errors": {
+    "generic": "آپ کا جائزہ جمع نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔"
+  }
+}

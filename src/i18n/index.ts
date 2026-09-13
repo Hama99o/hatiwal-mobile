@@ -8,11 +8,13 @@ import { resolveLanguageFromUser } from "./resolveLanguage";
 import { enTranslations } from "./en";
 import { psTranslations } from "./ps";
 import { faTranslations } from "./fa";
+import { urTranslations } from "./ur";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "en", label: "English" },
   { code: "ps", label: "پښتو" },
   { code: "fa", label: "دری" },
+  { code: "ur", label: "اردو" },
 ] as const;
 
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"];
@@ -25,6 +27,7 @@ i18n.use(initReactI18next).init({
     en: { translation: enTranslations },
     ps: { translation: psTranslations },
     fa: { translation: faTranslations },
+    ur: { translation: urTranslations },
   },
   lng: DEFAULT_LANG,
   fallbackLng: "en",
@@ -34,7 +37,9 @@ i18n.use(initReactI18next).init({
   compatibilityJSON: "v4",
 });
 
-export const RTL_LANGUAGES = ["ps", "fa"];
+// Urdu is written in Nastaliq, right-to-left — it belongs here with Pashto
+// and Dari. Leaving it out would render an RTL language in an LTR layout.
+export const RTL_LANGUAGES = ["ps", "fa", "ur"];
 
 export function isRtlLanguage(lang: string): boolean {
   return RTL_LANGUAGES.includes(lang);
