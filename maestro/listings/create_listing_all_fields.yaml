@@ -76,6 +76,23 @@ appId: com.hatiwal.app
 
 # Price
 # The INPUT by testID — see the note on the title field.
+#
+# SCROLL UP TO IT FIRST. Price sits ABOVE description in the form
+# (ListingForm.tsx: price ~1400, description ~1785), and the step before this one
+# scrolls DOWN to the description — which leaves the price field above the
+# viewport. `tapOn` does not scroll, so it failed with "Element not found: Id
+# matching regex: listing-form-price-input" on a testID that is present and
+# correct, just off the top.
+#
+# This is the failure MOVING, which is the point: run-525 died one field earlier,
+# on listing-form-description-input, and the scroll added there fixed it. Same
+# treatment, opposite direction, because we are now travelling back up the form.
+- scrollUntilVisible:
+    element:
+      id: "listing-form-price-input"
+    direction: UP
+    centerElement: true
+    timeout: 20000
 - tapOn:
     id: "listing-form-price-input"
 - inputText: "18000"

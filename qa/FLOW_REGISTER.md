@@ -15,8 +15,8 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 | Status | Count | Meaning |
 |---|---:|---|
 | PASS | 150 | green, and no backend error underneath |
-| FAIL-assert | 76 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-redbox | 2 | a red box / JS console error appeared — real app error |
+| FAIL-assert | 77 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-? | 24 | failed, cause unclear — read the log |
 | (rig) | 3 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 2 | never executed |
@@ -35,11 +35,11 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `create_listing` | PASS | run-525 | 275 | PASS (run-525, 275s) — and it is the reference: it scrolls to each field before tapping, which is exactly what its three failing siblings were missing. |  |
-| `create_listing_all_fields` | FAIL-assert ⟳stale | run-525 | 239 | flow — FIXED. Failed with "Element not found" on a testID that is CURRENT (ListingForm.tsx): the field is simply below the fold once typing the title raises the IME, which takes about half the window at 360dp. The sibling that PASSES, create_listing.yaml, reaches the same field via scrollUntilVisible first and its own comment calls this "the sixth place in this app where a keyboard hid a control". Added the same scroll (no centerElement — a field near the end of a form cannot be centred). | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
+| `create_listing` | PASS | run-528 | 267 | PASS (run-525, 275s) — and it is the reference: it scrolls to each field before tapping, which is exactly what its three failing siblings were missing. |  |
+| `create_listing_all_fields` | FAIL-assert ⟳stale | run-525 | 239 | flow — the description scroll WORKED and the failure MOVED one field. run-525 died on `listing-form-description-input`; run-528 dies on `listing-form-price-input`, which is a different field and a different direction. Price sits ABOVE description in the form (ListingForm.tsx: price ~1400, description ~1785), so scrolling DOWN to the description leaves price above the viewport, and the price `tapOn` had no scroll at all — `tapOn` never scrolls. Added scrollUntilVisible direction UP with centerElement. Still 0/7, but one field further along. | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
 | `create_listing_category_search` | FAIL-assert ⟳stale | run-525 | 209 | flow — FIXED. Typed "Elect" then asserted "Electronics" after only a waitForAnimationToEnd, but FILTERING a category list is a data operation, not an animation. "Electronics" is not stale copy either — it comes from the API's categories, not i18n. Converted to extendedWaitUntil (15s). | [Failed] create_listing_category_search (3m 2s) (Assertion is false: "Electronics" is visible) |
-| `create_listing_currency_eur` | FAIL-assert ⟳stale | run-525 | 220 | flow — FIXED. Failed with "Element not found" on a testID that is CURRENT (ListingForm.tsx): the field is simply below the fold once typing the title raises the IME, which takes about half the window at 360dp. The sibling that PASSES, create_listing.yaml, reaches the same field via scrollUntilVisible first and its own comment calls this "the sixth place in this app where a keyboard hid a control". Added the same scroll (no centerElement — a field near the end of a form cannot be centred). | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
-| `create_listing_currency_usd` | FAIL-assert ⟳stale | run-525 | 255 | flow — FIXED. Failed with "Element not found" on a testID that is CURRENT (ListingForm.tsx): the field is simply below the fold once typing the title raises the IME, which takes about half the window at 360dp. The sibling that PASSES, create_listing.yaml, reaches the same field via scrollUntilVisible first and its own comment calls this "the sixth place in this app where a keyboard hid a control". Added the same scroll (no centerElement — a field near the end of a form cannot be centred). | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
+| `create_listing_currency_eur` | FAIL-assert ⟳stale | run-525 | 220 | flow — **FIXED, CONFIRMED**. Second fix of this campaign that holds. sha 198aa2244b02 FAILED five consecutive runs (498, 502, 506, 517, 525); commit 66c3093 (scroll to the field the keyboard covers) changed it to sha d1b204d29bd0; run-528 PASSED at 252s. Trustworthy because the flow was STABLE FAIL 0/5. | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
+| `create_listing_currency_usd` | FAIL-assert ⟳stale | run-525 | 255 | PASS in run-528 (272s) at the new sha 51c4e9ae9adf, but NOT claimable: at the old sha it was 1/5 — it had already passed once in run-517 — so it is FLAKY and a single pass proves nothing. Needs 3+ consecutive runs before the same fix can be credited here. | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
 | `create_listing_draft_discard` | PASS | run-517 | 158 |  |  |
 | `create_listing_draft_restore` | FAIL-assert | run-517 | 209 | flow | "Draft saved" is a toast from toast.success; a bare assert races it. Now polls. |
 | `create_listing_full_publish` | PASS | run-517 | 237 |  | AxiosError |
@@ -220,7 +220,7 @@ bug class a user reports as "nothing happened".
 
 ## `seller` — One-tap Mark sold from any live listing (never reserve-first) + the Sales ledger (edit/void a row, reviewed-sale refusal, outside-buyer rows, undo-after-sold)
 
-6/18 passing · 8 open
+7/18 passing · 6 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -236,12 +236,12 @@ bug class a user reports as "nothing happened".
 | `reserved_buyer` | FAIL-assert | run-527 | 265 | flow — WRONG ACCOUNT, proven from logcat 2026-09-08. Corrects the earlier "never reached the listing detail" verdict: it DOES reach it, as the OWNER. The hierarchy dump holds `text: This is your listing` 105-140x per run across offer_counter_flow / offer_quantity_round_trip / offer_send_and_accept / offer_send_and_decline / reserve_after_accept / reserve_after_buyer_accepts_counter and seller/{listing_conversations,reserved_buyer}. So the app is signed in as seller@hatiwal.test while a buyer leg runs, isOwnListing is true, and canOfferOnListing correctly hides Make an Offer (ListingDetail.tsx:1120) — the APP IS RIGHT. Fixture is innocent: `Men Winter Jacket XL Black` is `user: seller`, `status: :active`, and the seed never sets `negotiable` so it defaults true. offer_send_and_accept fails BEFORE its own login_seller leg, so the dumps are the buyer leg, not the legitimate seller one. offer_in_existing_thread passes because it works inside an existing thread and never opens a listing detail. REPRODUCIBLE in both clean cycles (run-504..507, run-515..518), so 8a91b71's profile-tab wait did not close it. PROVEN 2026-09-12 from Maestro's step-screenshot trace (debug-<flow>/.maestro/tests/*/screenshots, one PNG per EXECUTED step). offer_send_and_accept ran: step-015/016 dev-menu, step-027 scrollUntilVisible sign-out-button, step-034 tapOn Skip (onboarding, in ps/fa), step-044 assertCondition login-email-input, step-048 Don't allow, step-098 Make an Offer (fail). The guard DID detect the wrong account and entered the sign-out branch at 027 — but there is NO tapOnElement sign-out-button and NO android:id/button1 between 027 and 034, so the scroll found nothing, `when: visible: sign-out-button` was FALSE and the tap was SILENTLY SKIPPED. No sign-out means no login form, so the sign-in block's `when: visible: login-email-input` gate at 044 was also false and skipped — the flow carried on as the seller and died 60 steps later. Note the ordering: login.yaml runs the wrong-account guard BEFORE goto_login.yaml, and goto_login is what invokes skip_onboarding.yaml — so the guard can run while the app is still on the onboarding carousel with no Profile to scroll. FIX (not yet applied, needs a free device to confirm): make the identity guarantee POSITIVE and terminal — after the sign-in block, assert profile-display-name matches Ahmad Karimi. Today every check is a silent no-op chain, and being signed in as the WRONG user is indistinguishable from being signed in as the right one. Worst case of the new assert is 156 flows failing loudly AT LOGIN, which is immediately visible and trivially revertible — strictly better than silent wrong-account corruption. | 2026-09-05 the IME covered the search result; the card tap landed on the keyboard (Maestro reports covered taps COMPLETED) so the app never left BROWSE and the failure surfaced later on 'Make an Offer'. hideKeyboard added after typing. |
 | `sales_screen_correct_quantity` | FAIL-assert | run-527 | 381 |  | [Failed] sales_screen_correct_quantity (6m) (Assertion is false: id: sales-tally is not visible) |
 | `sales_screen_reviewed_sale_refusal` | FAIL-assert | run-527 | 209 | flow — `seller-card-more-action` not found; the testID IS current (SellerListingCard.tsx:464), so this is a reach/timing failure, not selector rot. Ran AFTER the identity fix and shows no wrong-account signature. | [Failed] sales_screen_reviewed_sale_refusal (3m 7s) (Element not found: Id matching regex: seller-card-more-ac |
-| `sales_screen_void_row` | PASS | run-524 | 389 |  |  |
-| `save_draft` | FAIL-assert | run-524 | 303 | flow — asserts "Create Listing" and does not get it; the copy IS current (listing.json `create` = "Create Listing"). Reach/timing, not stale copy. Post-identity-fix. | [Failed] save_draft (4m 36s) (Assertion is false: "Create Listing" is visible) |
-| `sell_without_reserving` | FAIL-redbox | run-524 | 298 |  | [Failed] sell_without_reserving (4m 31s) (No visible element found: "Publish") |
-| `sold_quantity_reconciliation` | FAIL-assert | run-524 | 368 | flow (IME covers the field) — the app and the fixture are BOTH correct, checked before touching the flow. `showQuantityReopenNote = hasMultipleUnits && willReopenOnSave(...)` (ListingForm.tsx:481) needs a SOLD listing, and the API says listing 3274 "QA SF-M7 Reconcile Batch" is status=sold, quantity=5, sales_count=1 — so typing 8 yields exactly the "3 available" the next line asserts. The note IS rendered; it is simply not ON SCREEN. Typing into the quantity field raises the NUMERIC KEYPAD and the form ends up back at the top — run-527's screenshot is this form showing Photos and the Title with the keypad covering everything below, and the note sits directly under the quantity field. Added scrollUntilVisible DOWN with centerElement so it lands ABOVE the keypad (not hideKeyboard, which is Back on Android and would pop the form). | [Failed] sold_quantity_reconciliation (5m 41s) (Assertion is false: id: listing-form-quantity-reopen-note is v |
-| `undo_mark_sold` | PASS | run-524 | 343 | flow — `location-confirm` not visible; testID IS current (LocationRangePicker.tsx:470). Reach/timing — the location sheet had not opened or had not rendered. Post-identity-fix. |  |
-| `undo_mark_sold_with_buyer` | PASS | run-524 | 249 |  |  |
+| `sales_screen_void_row` | PASS | run-527 | 381 |  |  |
+| `save_draft` | FAIL-assert | run-527 | 283 | flow — asserts "Create Listing" and does not get it; the copy IS current (listing.json `create` = "Create Listing"). Reach/timing, not stale copy. Post-identity-fix. | [Failed] save_draft (4m 21s) (Assertion is false: "Create Listing" is visible) |
+| `sell_without_reserving` | PASS | run-527 | 318 |  |  |
+| `sold_quantity_reconciliation` | FAIL-assert ⟳stale | run-527 | 356 | flow (IME covers the field) — the app and the fixture are BOTH correct, checked before touching the flow. `showQuantityReopenNote = hasMultipleUnits && willReopenOnSave(...)` (ListingForm.tsx:481) needs a SOLD listing, and the API says listing 3274 "QA SF-M7 Reconcile Batch" is status=sold, quantity=5, sales_count=1 — so typing 8 yields exactly the "3 available" the next line asserts. The note IS rendered; it is simply not ON SCREEN. Typing into the quantity field raises the NUMERIC KEYPAD and the form ends up back at the top — run-527's screenshot is this form showing Photos and the Title with the keypad covering everything below, and the note sits directly under the quantity field. Added scrollUntilVisible DOWN with centerElement so it lands ABOVE the keypad (not hideKeyboard, which is Back on Android and would pop the form). | [Failed] sold_quantity_reconciliation (5m 34s) (Assertion is false: id: listing-form-quantity-reopen-note is v |
+| `undo_mark_sold` | PASS | run-527 | 319 | flow — `location-confirm` not visible; testID IS current (LocationRangePicker.tsx:470). Reach/timing — the location sheet had not opened or had not rendered. Post-identity-fix. |  |
+| `undo_mark_sold_with_buyer` | PASS | run-527 | 237 |  |  |
 
 ## `auth` — Sign up, login, logout, session persistence, guest gating
 
@@ -298,18 +298,18 @@ bug class a user reports as "nothing happened".
 
 ## `dark_mode` — Every main screen in dark theme + theme persistence
 
-5/8 passing · 3 open
+4/8 passing · 4 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `browse_dark` | PASS | s2/run-527 | 265 |  |  |
-| `chat_dark` | PASS | s2/run-527 | 255 |  |  |
-| `listing_detail_dark` | FAIL-? | s2/run-527 | 208 |  | [Failed] listing_detail_dark (3m 10s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `my_listings_dark` | PASS | s2/run-527 | 274 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed |  |
-| `profile_dark` | FAIL-assert | s2/run-527 | 270 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
-| `saved_tab_dark` | FAIL-assert | s2/run-527 | 226 |  | [Failed] saved_tab_dark (3m 27s) (Assertion is false: id: (browse-search-bar|my-listings-search-input) is visi |
-| `theme_light_all_screens` | PASS | s2/run-527 | 251 |  |  |
-| `theme_persists_after_navigate` | PASS | s2/run-527 | 306 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
+| `browse_dark` | PASS | s2/run-528 | 276 |  |  |
+| `chat_dark` | PASS | s2/run-528 | 269 |  |  |
+| `listing_detail_dark` | FAIL-? | s2/run-528 | 222 |  | [Failed] listing_detail_dark (3m 21s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `my_listings_dark` | PASS | s2/run-528 | 305 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed |  |
+| `profile_dark` | FAIL-assert | s2/run-528 | 282 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
+| `saved_tab_dark` | FAIL-assert | s2/run-528 | 247 |  | [Failed] saved_tab_dark (3m 44s) (Assertion is false: id: (browse-search-bar|my-listings-search-input) is visi |
+| `theme_light_all_screens` | FAIL-assert | s2/run-528 | 230 |  | [Failed] theme_light_all_screens (3m 31s) (Assertion is false: "Switch to .*" is visible) |
+| `theme_persists_after_navigate` | PASS | s2/run-528 | 398 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
 
 ## `reviews` — Double-blind reviews after a sold transaction
 
