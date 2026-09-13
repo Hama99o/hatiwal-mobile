@@ -10,15 +10,15 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**153 of 258 flows passing** · 103 still need attention
+**149 of 258 flows passing** · 106 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 153 | green, and no backend error underneath |
+| PASS | 149 | green, and no backend error underneath |
 | FAIL-assert | 78 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 22 | failed, cause unclear — read the log |
-| (rig) | 1 | rig broke mid-run — result meaningless, re-run |
+| FAIL-? | 25 | failed, cause unclear — read the log |
+| (rig) | 2 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 2 | never executed |
 
 ### Definition of done
@@ -183,21 +183,21 @@ bug class a user reports as "nothing happened".
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
-18/30 passing · 11 open
+16/30 passing · 11 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `account_delete_and_restore` | FAIL-assert | run-529 | 188 | TRIAGED, not fixed — 0/8, different cause from its sibling. Fails at step-59 on `tapOn id: register-email-input`, i.e. while trying to register a fresh account, not on the delete control. Needs its own screenshot. | [Failed] account_delete_and_restore (2m 47s) (Element not found: Id matching regex: register-email-input) |
-| `account_delete_cancel` | FAIL-? | run-529 | 244 | flow (centerElement on the LAST element) — 0/8, and the cause is one word. `scrollUntilVisible` used `centerElement: true` on "Delete account", which sits at the very BOTTOM of Profile. An element at the END of a scroll container cannot be centred — nothing below it to scroll past — so the constraint is unsatisfiable and the scroll burns its whole timeout on a control that is already on screen. run-529's screenshot shows "Delete account" plainly visible above the tab bar. The copy is current too (profile.json:160). Commit 66c3093 names this exact trap. CONTROL GROUP, and why this is a one-flow change: auth/logout, auth/logout_cancel and auth/login_deep all scroll to "Sign Out" with centerElement and are 4/4 each — Sign Out has "Delete account" below it, so it CAN be centred. Dropped centerElement here only. | [Failed] account_delete_cancel (3m 41s) (No visible element found: "Delete account") |
+| `account_delete_cancel` | FAIL-? ⟳stale | run-529 | 244 | flow (centerElement on the LAST element) — 0/8, and the cause is one word. `scrollUntilVisible` used `centerElement: true` on "Delete account", which sits at the very BOTTOM of Profile. An element at the END of a scroll container cannot be centred — nothing below it to scroll past — so the constraint is unsatisfiable and the scroll burns its whole timeout on a control that is already on screen. run-529's screenshot shows "Delete account" plainly visible above the tab bar. The copy is current too (profile.json:160). Commit 66c3093 names this exact trap. CONTROL GROUP, and why this is a one-flow change: auth/logout, auth/logout_cancel and auth/login_deep all scroll to "Sign Out" with centerElement and are 4/4 each — Sign Out has "Delete account" below it, so it CAN be centred. Dropped centerElement here only. | [Failed] account_delete_cancel (3m 41s) (No visible element found: "Delete account") |
 | `away_mode` | PASS | run-529 | 256 | app+flow — away row was untappable (no Pressable/testID); fixed cb68fa4 (live via Metro, no rebuild) |  |
 | `blocked_users` | PASS | run-529 | 200 |  |  |
 | `change_language_dari` | PASS | run-529 | 208 |  |  |
-| `change_language_english` | PASS | run-518 | 572 | rig (our own 600s cap), NOT a verdict — and deliberately not fixed. Durations creep: 278, 431, 578, 241, 572, then 601 in run-529, where it was recorded kind=rig_fail. Language flows call reloadApp() (applyLanguageFromUser on a direction change), which is why English is far slower than its Dari sibling at 172-208s. The in-flow marker exists — it runs `_helpers/await_language_restart.yaml` — but 26 flows carry that marker and doubling the cap for all of them to cover one flow's occasional timeout would make every genuinely hung flow burn 20 minutes instead of 10. The cost here is throughput, not correctness: cap timeouts classify as rig_fail and qa.sh flaky already excludes them, so no verdict is harmed. Left alone on purpose. |  |
-| `change_language_pashto` | PASS | run-518 | 175 |  |  |
-| `contact_visibility` | PASS | run-518 | 571 | flow | 2026-09-03: the failing assertion named the copied number but the cause was navigation. hideKeyboard is a Back press and popped Edit Profile to Profile; the next THREE commands reported COMPLETED against a stale hierarchy, so the assertNotVisible before it passed for the WRONG reason. Replaced with pressKey:Enter, which turned out to SUBMIT the form — both removed. Green at 360dp once the keypress was gone; now unstable again from my keyboardDismissMode=on-drag reflowing the form mid-scroll (board #313). NOT an app bug. |
-| `edit_profile` | PASS | run-518 | 166 | stale — toast assertion already replaced by durable name check |  |
-| `edit_profile_all_fields` | FAIL-assert | run-518 | 267 | flow+app | 2026-09-03: FOUR causes, two of them app bugs. (1) asserted text 'Save' on a button reading 'Save Changes'; (2) centerElement on the sticky save button; (3) APP — the sticky Save sat BEHIND the keyboard (d8edc9e), verified visually at 360dp; (4) APP — the keyboard swallowed the tap on the NEXT field, so 'UpdatedLast' landed in the First Name box (e36a6b4, keyboardDismissMode=on-drag). Also a pre-existing viewport assumption on the final derived-city assertion (no scroll). MY OWN regressions along the way: a pressKey:Enter that SUBMITTED the form (608ddda, reverted) and a scrollUntilVisible that is a no-op when the target is already 'visible'. Flow-side stability still open — board #313. |
-| `edit_profile_avatar` | PASS | run-518 | 185 |  |  |
+| `change_language_english` | (rig) | run-529 | 601 | rig (our own 600s cap), NOT a verdict — and deliberately not fixed. Durations creep: 278, 431, 578, 241, 572, then 601 in run-529, where it was recorded kind=rig_fail. Language flows call reloadApp() (applyLanguageFromUser on a direction change), which is why English is far slower than its Dari sibling at 172-208s. The in-flow marker exists — it runs `_helpers/await_language_restart.yaml` — but 26 flows carry that marker and doubling the cap for all of them to cover one flow's occasional timeout would make every genuinely hung flow burn 20 minutes instead of 10. The cost here is throughput, not correctness: cap timeouts classify as rig_fail and qa.sh flaky already excludes them, so no verdict is harmed. Left alone on purpose. |  |
+| `change_language_pashto` | PASS | run-529 | 213 |  |  |
+| `contact_visibility` | FAIL-? | run-529 | 546 | 3/9 — FLAKY, so NOT a verdict target, and its own comment already names the cause: `edit-profile-whatsapp-same-as-phone` renders only while a phone exists AND the WhatsApp value DIFFERS from it, so a previous run that SAVED the matching value makes the control correctly hide itself. Self-interference across runs, not a selector problem — the flow already carries an eraseText mitigation and it still recurred in run-529 (step-107, the scroll ran its full timeout). Needs the fixture reset to be made reliable, not another wait. | 2026-09-03: the failing assertion named the copied number but the cause was navigation. hideKeyboard is a Back press and popped Edit Profile to Profile; the next THREE commands reported COMPLETED against a stale hierarchy, so the assertNotVisible before it passed for the WRONG reason. Replaced with pressKey:Enter, which turned out to SUBMIT the form — both removed. Green at 360dp once the keypress was gone; now unstable again from my keyboardDismissMode=on-drag reflowing the form mid-scroll (board #313). NOT an app bug. |
+| `edit_profile` | PASS | run-529 | 199 | stale — toast assertion already replaced by durable name check |  |
+| `edit_profile_all_fields` | FAIL-assert | run-529 | 321 | flow (bio below the fold) — 0/6, and the two asserts ABOVE the failing one are the diagnosis: `"UpdatedFirst"` and `"UpdatedLast"` PASS because First and Last Name sit at the TOP of the re-opened edit form, then `"I sell quality items in Kabul."` fails because the Bio field is further down. assertVisible means ON SCREEN. Died at step-126 in run-529. Added scrollUntilVisible to `edit-profile-bio-input` by id (stable) before asserting the bio TEXT (the thing under test), direction DOWN, no centerElement. | 2026-09-03: FOUR causes, two of them app bugs. (1) asserted text 'Save' on a button reading 'Save Changes'; (2) centerElement on the sticky save button; (3) APP — the sticky Save sat BEHIND the keyboard (d8edc9e), verified visually at 360dp; (4) APP — the keyboard swallowed the tap on the NEXT field, so 'UpdatedLast' landed in the First Name box (e36a6b4, keyboardDismissMode=on-drag). Also a pre-existing viewport assumption on the final derived-city assertion (no scroll). MY OWN regressions along the way: a pressKey:Enter that SUBMITTED the form (608ddda, reverted) and a scrollUntilVisible that is a no-op when the target is already 'visible'. Flow-side stability still open — board #313. |
+| `edit_profile_avatar` | PASS | run-529 | 219 |  |  |
 | `edit_profile_bio_too_long` | PASS | run-518 | 289 | flow — 520 chars do type; error renders above viewport; now scrolls UP cb68fa4 |  |
 | `edit_profile_province` | FAIL-assert | run-518 | 260 | flow | 2026-09-02: DOWN + centerElement:true on profile-edit-button, which sits near the TOP of Profile — DOWN scrolls away from it and centring is impossible with too little content above. ORDER-DEPENDENT (siblings passed on the identical block). Now UP + visibilityPercentage 40, applied to all 8 flows carrying it. |
 | `edit_profile_validation` | PASS | run-518 | 199 |  |  |
@@ -296,6 +296,20 @@ bug class a user reports as "nothing happened".
 | `report_user_from_profile` | PASS | run-510 | 175 | rig — never opened the listing. The result card (Honda CG 125 Motorbike 2021) is rendered in the screenshot and the flow failed on `seller-profile-link` without tapping it. Also shows the inputText character drop: field holds '5 Motorbike 2021', leading 'Honda CG 12' dropped. open_listing_by_title.yaml's wait-on-listing-card + tap-by-testID is the pattern that fixes this. | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
 | `report_user_then_block` | FAIL-assert | run-510 | 195 | rig — ran UNAUTHENTICATED. The end-of-flow screenshot's tab bar reads Bazaar / Categories / Login, so `seller-profile-link` (which DOES exist, ListingDetail.tsx:797) was never reachable. Also shows the inputText character drop: the search field holds 'nch 4K Smart TV' — the leading 'Sony 55 i' was dropped. | Retargeted to maryam (40); now unblocks, which it never did. |
 
+## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
+
+4/7 passing · 3 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `create_listing_map_pin` | PASS | s2/run-530 | 410 |  |  |
+| `filter_map_default_kabul` | FAIL-? | s2/run-530 | 246 |  | [Failed] filter_map_default_kabul (3m 44s) (No visible element found: "Switch to .*") |
+| `filter_map_location_denied` | FAIL-? | s2/run-530 | 245 |  | [Failed] filter_map_location_denied (3m 45s) (No visible element found: "Switch to .*") |
+| `filter_map_use_my_location` | PASS | s2/run-530 | 250 |  |  |
+| `filter_map_use_my_location_granted` | PASS | s2/run-530 | 237 |  |  |
+| `map_location_outside_afghanistan` | PASS | s2/run-530 | 306 |  |  |
+| `zoom_controls_not_occluded` | FAIL-? | s2/run-530 | 250 |  | [Failed] zoom_controls_not_occluded (3m 48s) (No visible element found: "Toyota Corolla 2016 Automatic") |
+
 ## `reviews` — Double-blind reviews after a sold transaction
 
 1/3 passing · 2 open
@@ -314,20 +328,6 @@ bug class a user reports as "nothing happened".
 |---|---|---|---:|---|---|
 | `safety_tips_listing_detail` | UNTESTED | — |  |  |  |
 | `safety_tips_meetup_sheet` | UNTESTED | — |  |  |  |
-
-## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
-
-6/7 passing · 1 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `create_listing_map_pin` | PASS | s2/run-529 | 350 |  |  |
-| `filter_map_default_kabul` | PASS | s2/run-529 | 247 |  |  |
-| `filter_map_location_denied` | PASS | s2/run-529 | 282 |  |  |
-| `filter_map_use_my_location` | PASS | s2/run-529 | 266 |  |  |
-| `filter_map_use_my_location_granted` | PASS | s2/run-529 | 248 |  |  |
-| `map_location_outside_afghanistan` | PASS | s2/run-529 | 292 |  |  |
-| `zoom_controls_not_occluded` | FAIL-? | s2/run-529 | 209 |  | [Failed] zoom_controls_not_occluded (3m 8s) (No visible element found: "Toyota Corolla 2016 Automatic") |
 
 ## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
 

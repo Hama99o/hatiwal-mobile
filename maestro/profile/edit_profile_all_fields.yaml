@@ -256,6 +256,19 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible: "UpdatedFirst"
 - assertVisible: "UpdatedLast"
+# SCROLL TO THE BIO. The two asserts above PASS and this one fails, which is the
+# whole diagnosis: First and Last Name sit at the TOP of the re-opened edit form
+# and the Bio field is further down, below the fold. assertVisible means ON
+# SCREEN. run-529 died here at step-126, 0/6 for this flow.
+#
+# Scroll to the INPUT by id and then assert the TEXT: the id is stable, while the
+# bio string is the thing under test. No centerElement — the proven form from
+# 66c3093, and the same reason account_delete_cancel lost eight runs.
+- scrollUntilVisible:
+    element:
+      id: "edit-profile-bio-input"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "I sell quality items in Kabul."
 - assertVisible: "+93700000001"
 
