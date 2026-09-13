@@ -247,7 +247,10 @@
     "quantityOutOfRange": "له ۱ څخه تر {{max}} پورې یوه شمېره ولیکئ.",
     "quantityBelowSoldUnits": "تاسو دمخه د دې {{count}} دانې پلورلي دي. اندازه {{count}} یا تر هغه ډېره وټاکئ، یا لومړی یوه پلورنه لغوه کړئ.",
     "quantityBelowHeldUnits": "یو پیرودونکي ستاسو د دې {{count}} دانې ریزرو کړي دي. لومړی دا ریزرو لغوه کړئ، یا اندازه {{count}} یا تر هغه ډېره وټاکئ.",
-    "quantityReopensListing": "خوندي کول به دا اعلان بیا خرڅلاو ته راولي — د {{count}} شتون سره."
+    "quantityReopensListing": "خوندي کول به دا اعلان بیا خرڅلاو ته راولي — د {{count}} شتون سره.",
+    "noCategoryMatch": "هیڅ کټګورۍ له «{{query}}» سره نه خوري",
+    "noCategoryMatchHint": "لنډ کلمه وآزموئ — لټون په فرعي کټګوریو کې هم ګوري.",
+    "inCategory": "په {{name}} کې"
   },
   "shopCount_one": "{{count}} اعلان",
   "firmPrice": "ثابت قیمت",

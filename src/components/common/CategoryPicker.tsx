@@ -35,6 +35,24 @@ import { Separator } from "@/components/reusables/separator";
 import { Check, Search, X, ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 
+/** A visible row: the category, plus its parent when the row is a search hit
+ *  from one level down. */
+type Row = { cat: Category; parent: Category | null };
+
+/** Match across every localized name we carry, not just English.
+ *
+ *  `nameUr` is included because the API has always sent it and the client
+ *  ignored it — an Urdu-speaking seller could not find a category by typing its
+ *  Urdu name even though that name is exactly what the picker was showing them. */
+function matchesQuery(c: Category, q: string): boolean {
+  return (
+    c.nameEn.toLowerCase().includes(q) ||
+    (c.namePs ?? "").toLowerCase().includes(q) ||
+    (c.nameFa ?? "").toLowerCase().includes(q) ||
+    (c.nameUr ?? "").toLowerCase().includes(q)
+  );
+}
+
 export interface CategoryPickerProps {
   visible: boolean;
   selectedId: number | null;
@@ -54,18 +72,43 @@ export function CategoryPicker({ visible, selectedId, onSelect, onClose }: Categ
   const { data: categories = [], isLoading } = useCategories();
   const getCategoryName = useCategoryName();
 
-  const currentList = useMemo<Category[]>(() => {
-    const base =
-      step === "sub" && activeParent ? (activeParent.subcategories ?? []) : categories;
+  // A row is a category plus, for a search hit that lives one level down, the
+  // parent it belongs to — so the sheet can say WHERE the match is instead of
+  // showing a bare name with no context.
+  const rows = useMemo<Row[]>(() => {
+    const q = search.trim().toLowerCase();
 
-    if (!search.trim()) return base;
-    const q = search.toLowerCase();
-    return base.filter(
-      (c: Category) =>
-        c.nameEn.toLowerCase().includes(q) ||
-        (c.namePs ?? "").toLowerCase().includes(q) ||
-        (c.nameFa ?? "").toLowerCase().includes(q)
-    );
+    // No query: exactly the old behaviour, one level at a time.
+    if (!q) {
+      const base =
+        step === "sub" && activeParent ? (activeParent.subcategories ?? []) : categories;
+      return base.map((cat: Category) => ({ cat, parent: null }));
+    }
+
+    // Already drilled in: stay inside this parent. Searching the whole tree here
+    // would be surprising — the user explicitly narrowed to one branch.
+    if (step === "sub" && activeParent) {
+      return (activeParent.subcategories ?? [])
+        .filter((c: Category) => matchesQuery(c, q))
+        .map((cat: Category) => ({ cat, parent: activeParent }));
+    }
+
+    // Top level WITH a query: search the WHOLE tree, parents and children alike.
+    //
+    // This is the bug the owner hit. The filter used to run against the current
+    // level only, so a query typed here was matched against the 16 top-level
+    // names and nothing else — "Phones" exists, sits one level down, and the
+    // sheet said there was nothing. It got far worse with the gemstones work:
+    // all 18 stone types (Ruby, Lapis Lazuli, Emerald…) are SUBcategories, so
+    // searching the exact word a seller has in mind returned an empty sheet.
+    const out: Row[] = [];
+    for (const parent of categories as Category[]) {
+      if (matchesQuery(parent, q)) out.push({ cat: parent, parent: null });
+      for (const child of parent.subcategories ?? []) {
+        if (matchesQuery(child, q)) out.push({ cat: child, parent });
+      }
+    }
+    return out;
   }, [categories, step, activeParent, search]);
 
   const handleClose = useCallback(() => {
@@ -214,21 +257,49 @@ export function CategoryPicker({ visible, selectedId, onSelect, onClose }: Categ
             >
               {t("common.loading")}
             </Text>
-          ) : currentList.length === 0 ? (
-            <Text
-              className="text-sm"
-              style={{
-                color: colors.mutedForeground,
-                textAlign: "center",
-                paddingVertical: 32,
-              }}
-            >
-              {t("common.noResults")}
-            </Text>
+          ) : rows.length === 0 ? (
+            // A FIXED MINIMUM HEIGHT, deliberately. The sheet is content-sized
+            // (maxHeight 88%, list flexGrow 0), so when the query matched
+            // nothing the panel collapsed to a thin strip — which is what the
+            // owner described as the list "disappearing". The empty state was
+            // rendering the whole time; there was just nothing holding the
+            // sheet open around it.
+            <View style={styles.emptyState}>
+              <Search size={28} color={colors.mutedForeground} />
+              <Text
+                className="text-sm font-semibold"
+                style={{ color: colors.foreground, textAlign: "center", marginTop: 12 }}
+              >
+                {t("listing.form.noCategoryMatch", { query: search.trim() })}
+              </Text>
+              <Text
+                className="text-xs"
+                style={{
+                  color: colors.mutedForeground,
+                  textAlign: "center",
+                  marginTop: 6,
+                  paddingHorizontal: 24,
+                }}
+              >
+                {t("listing.form.noCategoryMatchHint")}
+              </Text>
+              <Button
+                variant="outline"
+                onPress={() => setSearch("")}
+                style={{ marginTop: 16 }}
+              >
+                <Text className="text-sm">{t("common.clear")}</Text>
+              </Button>
+            </View>
           ) : (
-            currentList.map((cat) => {
+            rows.map(({ cat, parent }) => {
               const isSelected = cat.id === selectedId;
-              const hasSubs = step === "parent" && (cat.subcategories?.length ?? 0) > 0;
+              // A row that came back as a search hit from inside a parent is a
+              // LEAF here: drilling into its parent would throw away the query
+              // the user just typed and make them find it a second time.
+              const isSearchHit = parent !== null;
+              const hasSubs =
+                step === "parent" && !isSearchHit && (cat.subcategories?.length ?? 0) > 0;
 
               return (
                 <Pressable
@@ -242,7 +313,9 @@ export function CategoryPicker({ visible, selectedId, onSelect, onClose }: Categ
                     isSelected && { backgroundColor: colors.muted },
                   ]}
                   onPress={() =>
-                    step === "parent" ? handleSelectParent(cat) : handlePick(cat)
+                    step === "parent" && !isSearchHit
+                      ? handleSelectParent(cat)
+                      : handlePick(cat)
                   }
                   android_ripple={{ color: colors.muted }}
                 >
@@ -259,17 +332,32 @@ export function CategoryPicker({ visible, selectedId, onSelect, onClose }: Categ
                     {cat.icon}
                   </Text>
 
-                  {/* Name */}
-                  <Text
-                    className={isSelected ? "text-sm font-semibold" : "text-sm font-normal"}
-                    style={{
-                      flex: 1,
-                      color: colors.foreground,
-                      textAlign: isRtl ? "right" : "left",
-                    }}
-                  >
-                    {getCategoryName(cat)}
-                  </Text>
+                  {/* Name, plus where the match lives when it came from a
+                      search across the tree. Without this a hit like "Ruby" is
+                      a bare word with no clue it sits under Gemstones. */}
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      className={isSelected ? "text-sm font-semibold" : "text-sm font-normal"}
+                      style={{
+                        color: colors.foreground,
+                        textAlign: isRtl ? "right" : "left",
+                      }}
+                    >
+                      {getCategoryName(cat)}
+                    </Text>
+                    {parent && (
+                      <Text
+                        className="text-xs"
+                        style={{
+                          color: colors.mutedForeground,
+                          textAlign: isRtl ? "right" : "left",
+                          marginTop: 2,
+                        }}
+                      >
+                        {t("listing.form.inCategory", { name: getCategoryName(parent) })}
+                      </Text>
+                    )}
+                  </View>
 
                   {/* Right indicator */}
                   {isSelected && <Check size={16} color={colors.primary} />}
@@ -340,6 +428,14 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 0,
+  },
+  emptyState: {
+    // minHeight is what stops the sheet collapsing to a strip on a no-match
+    // query; alignItems/justifyContent centre the state inside it.
+    minHeight: 240,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
   },
   row: {
     paddingVertical: 14,

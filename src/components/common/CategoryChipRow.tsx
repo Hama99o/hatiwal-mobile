@@ -119,6 +119,20 @@ export function CategoryChipRow({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        // HORIZONTAL-ONLY, stated explicitly. `horizontal` alone does not stop a
+        // ScrollView reacting to vertical drags: it still bounces on the cross
+        // axis, and a near-vertical swipe that starts on a chip gets partly
+        // eaten here instead of scrolling the feed underneath. Reported from the
+        // device as the bar "scrolling vertically".
+        //
+        // - alwaysBounceVertical={false} kills the cross-axis bounce.
+        // - directionalLockEnabled commits a drag to ONE axis once it starts, so
+        //   a slightly-diagonal swipe no longer drifts the row up and down.
+        // - showsVerticalScrollIndicator={false} because a scrollbar on an axis
+        //   that must not move is pure noise.
+        alwaysBounceVertical={false}
+        directionalLockEnabled
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           // 16, not 12 — the same page gutter the search bar and the card grid use,
           // so the first chip lines up with them instead of sitting closer to the

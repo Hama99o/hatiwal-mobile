@@ -247,7 +247,10 @@
     "quantityOutOfRange": "عددی بین ۱ تا {{max}} وارد کنید.",
     "quantityBelowSoldUnits": "شما قبلاً {{count}} عدد از این را فروخته‌اید. تعداد را به {{count}} یا بیشتر تنظیم کنید، یا ابتدا یک فروش را لغو کنید.",
     "quantityBelowHeldUnits": "یک خریدار {{count}} عدد از این را رزرو کرده است. ابتدا رزرو را لغو کنید، یا تعداد را به {{count}} یا بیشتر تنظیم کنید.",
-    "quantityReopensListing": "ذخیره کردن، این آگهی را دوباره به فروش می‌گذارد — با {{count}} عدد موجود."
+    "quantityReopensListing": "ذخیره کردن، این آگهی را دوباره به فروش می‌گذارد — با {{count}} عدد موجود.",
+    "noCategoryMatch": "هیچ دسته‌ای با «{{query}}» مطابقت ندارد",
+    "noCategoryMatchHint": "کلمهٔ کوتاه‌تری را امتحان کنید — جست‌وجو زیردسته‌ها را هم می‌بیند.",
+    "inCategory": "در {{name}}"
   },
   "shopCount_one": "{{count}} آگهی",
   "firmPrice": "قیمت ثابت",

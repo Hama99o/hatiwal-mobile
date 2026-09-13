@@ -7,6 +7,11 @@ export interface Category {
   nameEn: string;
   namePs: string;
   nameFa: string;
+  /** Urdu. The API has always sent `name_ur` (CategorySerializer renders it via
+   *  `name_for("ur")`, so it falls back to English rather than null) — the
+   *  client simply never declared or used it, which is why an Urdu user saw
+   *  English category names and could not search in Urdu. */
+  nameUr: string;
   icon: string;
   position: number;
   parentId?: number | null;
@@ -23,6 +28,7 @@ export interface LocalizedNames {
   nameEn: string;
   namePs?: string | null;
   nameFa?: string | null;
+  nameUr?: string | null;
 }
 
 /**
@@ -60,6 +66,7 @@ export type EmbeddedCategory = LocalizedNames & {
 export function localizedCategoryName(cat: LocalizedNames, lang: string): string {
   if (lang === "ps") return cat.namePs || cat.nameEn;
   if (lang === "fa") return cat.nameFa || cat.nameEn;
+  if (lang === "ur") return cat.nameUr || cat.nameEn;
   return cat.nameEn;
 }
 

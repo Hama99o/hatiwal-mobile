@@ -28,6 +28,7 @@ const MOCK_CATEGORIES: Category[] = [
     nameEn: "Electronics",
     namePs: "برقي توکي",
     nameFa: "الکترونیک",
+    nameUr: "Electronics",
     icon: "💻",
     position: 1,
     subcategories: [
@@ -37,6 +38,7 @@ const MOCK_CATEGORIES: Category[] = [
         nameEn: "Phones",
         namePs: "موبایلونه",
         nameFa: "گوشی‌ها",
+        nameUr: "Phones",
         icon: "📱",
         position: 1,
         parentId: 1,
@@ -49,6 +51,7 @@ const MOCK_CATEGORIES: Category[] = [
     nameEn: "Vehicles",
     namePs: "موټرونه",
     nameFa: "وسایل نقلیه",
+    nameUr: "Vehicles",
     icon: "🚗",
     position: 2,
     subcategories: [],
@@ -206,5 +209,71 @@ describe("CategoryPicker — no results", () => {
         />
       )
     ).not.toThrow();
+  });
+});
+
+// ── 9. Search that matches nothing ───────────────────────────────────────────
+//
+// The owner's report: "the search is broken in new list for category — when we
+// search and something is not there it disappear, it should show empty state".
+//
+// Note what was NOT covered before: section 8 tests an empty DATASET, which is a
+// different path. The reported case is a NON-EMPTY dataset filtered down to
+// nothing by the query, and nothing exercised it.
+describe("CategoryPicker — search with no matches", () => {
+  it("shows the empty state rather than a blank list", () => {
+    renderPicker();
+    expect(screen.getByText("Electronics")).toBeTruthy();
+
+    fireEvent.changeText(
+      screen.getByPlaceholderText("listing.form.searchCategories"),
+      "zzzzzz"
+    );
+
+    expect(screen.queryByText("Electronics")).toBeNull();
+    expect(screen.getByText("listing.form.noCategoryMatch")).toBeTruthy();
+  });
+
+  it("restores the list when the query is cleared", () => {
+    renderPicker();
+    const input = screen.getByPlaceholderText("listing.form.searchCategories");
+
+    fireEvent.changeText(input, "zzzzzz");
+    expect(screen.getByText("listing.form.noCategoryMatch")).toBeTruthy();
+
+    fireEvent.changeText(input, "");
+    expect(screen.getByText("Electronics")).toBeTruthy();
+    expect(screen.queryByText("listing.form.noCategoryMatch")).toBeNull();
+  });
+
+  it("matches on a substring, not only a prefix", () => {
+    renderPicker();
+    fireEvent.changeText(
+      screen.getByPlaceholderText("listing.form.searchCategories"),
+      "lectronic"
+    );
+    expect(screen.getByText("Electronics")).toBeTruthy();
+  });
+});
+
+// ── 10. Searching from the top level must reach SUBcategories ────────────────
+//
+// Reproducing the owner's actual complaint. The filter's `base` is the CURRENT
+// LEVEL only — `step === "sub" ? activeParent.subcategories : categories` — so
+// a query typed on the parent screen is matched against the 16 top-level names
+// and nothing else. "Phones" exists, sits one level down, and the picker says
+// there is nothing.
+//
+// This is much worse since the gemstones work: all 18 stone types (Ruby, Lapis
+// Lazuli, Emerald…) are SUBcategories of "Gemstones & Minerals", so searching
+// for the exact word a seller has in mind returns an empty sheet.
+describe("CategoryPicker — searching from the top level reaches subcategories", () => {
+  it("finds a subcategory by name without drilling in first", () => {
+    renderPicker();
+    fireEvent.changeText(
+      screen.getByPlaceholderText("listing.form.searchCategories"),
+      "Phones"
+    );
+    expect(screen.getByText("Phones")).toBeTruthy();
   });
 });
