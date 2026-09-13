@@ -359,6 +359,43 @@ So:
 - Rebuild only for native changes: a new native module, app.json/plugin changes,
   Android manifest or Gradle edits.
 
+## ...but a NEW DIRECTORY is invisible to Metro until you restart it
+
+The section above is true for edits to files that already exist. It is NOT true
+for a directory created after Metro started.
+
+Measured 2026-09-13. Adding `src/i18n/locales/ur/` (19 new JSON files) and
+importing them from `src/i18n/ur.ts` put a red error screen on **both**
+emulators at once:
+
+```
+UnableToResolveError
+Unable to resolve module ./locales/ur/common.json from /app/src/i18n/ur.ts
+```
+
+while `docker exec hatiwal-mobile-mobile-1 ls /app/src/i18n/locales/ur/` listed
+every one of those files. The bind mount was fine. Metro's watcher simply never
+registers a directory that did not exist when it started.
+
+```bash
+docker restart hatiwal-mobile-mobile-1     # fixes it in seconds
+```
+
+Why this matters more than a normal rig hiccup: **every flow on every emulator
+fails simultaneously**, and they fail in ways that look like app or flow bugs —
+`rig_fail`, `rig_devclient_crash`, even `app_bug_or_flow`. The rig does print
+`WARN ^ JS reloaded during this flow — verdict suspect`, which is the tell. Six
+flows were voided this way in one 20-minute window (draft_lifecycle, chat_rtl,
+listing_detail_rtl, my_listings_rtl, edit_listing, profile_quick_actions_rtl).
+
+Two rules follow:
+
+- **After adding any new directory under `src/`, restart Metro and fetch the
+  entry bundle before letting the testers run.** Files being present inside the
+  container is not evidence Metro can resolve them; only the bundle is.
+- **Quarantine the window.** Anything recorded between the commit and the
+  restart is not a verdict, whatever its status says.
+
 ## Two runs on one device void BOTH — and the exit code is the verdict now
 
 The rig detects a second run (`another QA run is driving the emulator right
