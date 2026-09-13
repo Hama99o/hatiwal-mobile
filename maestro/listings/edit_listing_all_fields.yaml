@@ -45,6 +45,24 @@ appId: com.hatiwal.app
 
 # Update description
 # The INPUT by testID — see the note on the title field.
+# SCROLL TO THE FIELD FIRST — the keyboard is up from the title.
+#
+# run-528 failed here with "Element not found: Id matching regex: listing-form-description-input",
+# and that testID is CURRENT (ListingForm.tsx). The field is simply below the
+# fold: typing the title raises the IME, which takes roughly half the window at
+# 360dp, and `tapOn` never scrolls.
+#
+# Identical shape and identical fix to create_listing_currency_eur, which is this
+# campaign's CONFIRMED fix (66c3093): it failed five consecutive runs at sha
+# 198aa2244b02 and passed in run-528 with exactly this scroll.
+#
+# No centerElement — a field near the end of a form cannot be centred, which is
+# how CENTERELEM findings are manufactured.
+- scrollUntilVisible:
+    element:
+      id: "listing-form-description-input"
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     id: "listing-form-description-input"
 - eraseText
