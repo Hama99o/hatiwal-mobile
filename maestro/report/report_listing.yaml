@@ -14,13 +14,31 @@ appId: com.hatiwal.app
 # A NAMED seeded listing, not "the first card": it does not depend on feed
 # ordering, it is active, and it belongs to seller@hatiwal.test — so the buyer
 # running this flow sees the contact affordance rather than their own listing.
-- scrollUntilVisible:
-    element:
-      text: "Wool Blanket Handmade King Size"
-    direction: DOWN
-    centerElement: true
-    timeout: 15000
-- tapOn: "Wool Blanket Handmade King Size"
+# SEARCH, DO NOT SCROLL. This used to be `scrollUntilVisible` on the title with
+# centerElement and a 15s timeout, and it failed at this very step in run-532 —
+# as did report_listing_no_reason and block_user, which carried the identical
+# opening. All three died on "No visible element found: Wool Blanket Handmade King Size".
+#
+# The fixture was never missing: verified over HTTP at feed position 15 of 69
+# browsable listings, status active, and the buyer holds ZERO blocks (the
+# "block_user_hides_listings poisoned the feed" theory was checked and killed).
+#
+# THE CONTROL, from the SAME RUN and the same feature: report_user_then_block
+# opens its listing by SEARCHING (browse-search-input + inputText) and got all
+# the way to the "Unblock User" assertion — i.e. past the opening — while the
+# three scrolling flows all died at it. Same box, same load, same moment. The
+# only difference in the opening is scroll versus search.
+#
+# Scrolling is also O(feed size) and the feed keeps growing: ~14% of it is
+# "QA Disposable ..." debris left by write-flows, and it sorts newest-first, so
+# every run pushes the real fixtures further down. Searching is O(1) in feed size.
+#
+# Nothing is lost by converting: this flow asserts nothing on the feed CARD — it
+# scrolled only in order to tap through to the detail screen.
+- runFlow:
+    file: ../_helpers/open_listing_by_title.yaml
+    env:
+      TITLE: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 # NOT tapping "Contact Seller" here: that opens the first-message sheet, which
 # then covers the detail screen the rest of this flow acts on. Opening the

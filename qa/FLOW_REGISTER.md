@@ -10,15 +10,15 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**139 of 258 flows passing** · 112 still need attention
+**135 of 258 flows passing** · 114 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 139 | green, and no backend error underneath |
-| FAIL-assert | 95 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 135 | green, and no backend error underneath |
+| FAIL-assert | 100 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 14 | failed, cause unclear — read the log |
-| (rig) | 7 | rig broke mid-run — result meaningless, re-run |
+| FAIL-? | 11 | failed, cause unclear — read the log |
+| (rig) | 9 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 2 | never executed |
 
 ### Definition of done
@@ -181,6 +181,21 @@ bug class a user reports as "nothing happened".
 | `my_listings_search` | FAIL-assert ⟳stale | run-528 | 218 | flow (the IME covers the TAB BAR) — a fifth face of "rendered but not on screen", and the first that is not a form field. "My Shop" is the BOTTOM TAB's label (sidebar.myListings — the string does not exist anywhere else in the app; src/ mentions it only in comments and a Storybook story). It fails at the SECOND of the flow's two identical asserts, after `eraseText` clears the search — eraseText does NOT dismiss the keyboard, so the tab bar stays covered. run-528's screenshot is that screen: search focused, keypad over the lower half, one card visible. Fixed with `pressKey: Enter` (never hideKeyboard, which is BACK on Android). Checked the spread first: exactly one flow asserts a tab label after typing. | Asserted a bare "No"; now asserts the absence of cards instead of empty-state copy. |
 | `price_drop_after_edit` | FAIL-assert | run-528 | 241 | flow | hideKeyboard is Back and popped the edit form — first of the five sites the handbook predicted. |
 
+## `report` — Report a listing or user, block, block side-effects
+
+0/8 passing · 7 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `block_prevents_message` | FAIL-assert | run-532 | 461 |  | [Failed] block_prevents_message (7m 5s) (No visible element found: "Blocked Users") |
+| `block_user` | FAIL-assert | run-532 | 412 | FIXED run-532 (0fa7390c6d5b/059e9030b846/805ae6b1b316 -> f1c2e80c9580/0dc7a83b3121/0ed779be84ca). The whole report feature went 0/8. Three flows shared one opening — scrollUntilVisible on "Wool Blanket Handmade King Size", centerElement, timeout 15000 — and all three died AT it. Fixture verified over HTTP: feed position 15 of 69, status active; buyer holds ZERO blocks, so the "block_user_hides_listings poisoned the feed" theory is KILLED. THE CONTROL, same run same feature: report_user_then_block opens by SEARCHING and reached the "Unblock User" assertion, i.e. past the opening, while all three scrollers failed at it — same box, same load, only scroll-vs-search differs. Converted to _helpers/open_listing_by_title.yaml. Safe: none of the three asserts anything on the feed CARD. Also O(1) in feed size, which matters because ~14%% of the feed is QA Disposable debris sorted newest-first. AWAITING VERDICT. | [Failed] block_user (5m 47s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `block_user_hides_listings` | (rig) | run-532 | 605 | PASS, but its logcat carries one `Network Error` line — worth watching, not a defect on its own. |  |
+| `report_listing` | FAIL-assert | run-532 | 320 | FIXED run-532 (0fa7390c6d5b/059e9030b846/805ae6b1b316 -> f1c2e80c9580/0dc7a83b3121/0ed779be84ca). The whole report feature went 0/8. Three flows shared one opening — scrollUntilVisible on "Wool Blanket Handmade King Size", centerElement, timeout 15000 — and all three died AT it. Fixture verified over HTTP: feed position 15 of 69, status active; buyer holds ZERO blocks, so the "block_user_hides_listings poisoned the feed" theory is KILLED. THE CONTROL, same run same feature: report_user_then_block opens by SEARCHING and reached the "Unblock User" assertion, i.e. past the opening, while all three scrollers failed at it — same box, same load, only scroll-vs-search differs. Converted to _helpers/open_listing_by_title.yaml. Safe: none of the three asserts anything on the feed CARD. Also O(1) in feed size, which matters because ~14%% of the feed is QA Disposable debris sorted newest-first. AWAITING VERDICT. | RIG-004; also gained the duplicate-rule assertion for listings, which nothing covered. |
+| `report_listing_no_reason` | FAIL-assert | run-532 | 183 | FIXED run-532 (0fa7390c6d5b/059e9030b846/805ae6b1b316 -> f1c2e80c9580/0dc7a83b3121/0ed779be84ca). The whole report feature went 0/8. Three flows shared one opening — scrollUntilVisible on "Wool Blanket Handmade King Size", centerElement, timeout 15000 — and all three died AT it. Fixture verified over HTTP: feed position 15 of 69, status active; buyer holds ZERO blocks, so the "block_user_hides_listings poisoned the feed" theory is KILLED. THE CONTROL, same run same feature: report_user_then_block opens by SEARCHING and reached the "Unblock User" assertion, i.e. past the opening, while all three scrollers failed at it — same box, same load, only scroll-vs-search differs. Converted to _helpers/open_listing_by_title.yaml. Safe: none of the three asserts anything on the feed CARD. Also O(1) in feed size, which matters because ~14%% of the feed is QA Disposable debris sorted newest-first. AWAITING VERDICT. | [Failed] report_listing_no_reason (2m 40s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `report_user` | FAIL-assert | run-532 | 196 | TRIAGED run-532 — NOT the same cause as the three converted flows. Fails later, on `id: seller-profile-link` on the DETAIL screen, so the listing opened fine. Deliberately left alone; needs its own screenshot. | RIG-004 part 2: retargeted to ahmad (36) so it cannot collide intra-cycle. |
+| `report_user_from_profile` | FAIL-assert | run-532 | 203 | TRIAGED run-532 — same as report_user: fails on `id: seller-profile-link`, a detail-screen step, not the feed opening. Left alone pending its own screenshot. | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
+| `report_user_then_block` | FAIL-assert | run-532 | 210 | rig — ran UNAUTHENTICATED. The end-of-flow screenshot's tab bar reads Bazaar / Categories / Login, so `seller-profile-link` (which DOES exist, ListingDetail.tsx:797) was never reachable. Also shows the inputText character drop: the search field holds 'nch 4K Smart TV' — the leading 'Sony 55 i' was dropped. | Retargeted to maryam (40); now unblocks, which it never did. |
+
 ## `auth` — Sign up, login, logout, session persistence, guest gating
 
 11/16 passing · 5 open
@@ -281,30 +296,15 @@ bug class a user reports as "nothing happened".
 | `view_profile_error` | PASS | run-529 | 287 |  | AxiosError |
 | `view_seller_profile_from_profile` | FAIL-assert ⟳stale | run-529 | 228 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] view_seller_profile_from_profile (3m 29s) (Assertion is false: "Ahmad Karimi" is visible) |
 
-## `report` — Report a listing or user, block, block side-effects
-
-3/8 passing · 5 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `block_prevents_message` | FAIL-assert | run-532 | 461 |  | [Failed] block_prevents_message (7m 5s) (No visible element found: "Blocked Users") |
-| `block_user` | FAIL-? | run-510 | 157 |  | [Failed] block_user (2m 23s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `block_user_hides_listings` | PASS | run-510 | 205 | PASS, but its logcat carries one `Network Error` line — worth watching, not a defect on its own. |  |
-| `report_listing` | FAIL-? | run-510 | 158 | rig — no cause line and its end-of-flow screenshot is a CORRUPT PNG (PIL: cannot identify image file), i.e. the flow was killed mid-screenshot. Re-run. | RIG-004; also gained the duplicate-rule assertion for listings, which nothing covered. |
-| `report_listing_no_reason` | FAIL-? | run-510 | 158 | rig — same auth/timing family as report_user (asserts `profile-tab`, i.e. a signed-in tab bar, and does not get one). No Network Error in its own logcat, so re-run before triaging further. | [Failed] report_listing_no_reason (2m 23s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `report_user` | PASS | run-510 | 178 | rig/env — login never completed. Screenshot is the LOGIN screen showing 'No connection. Check your internet and try again.' and the logcat carries `Network Error` against http://10.0.2.2:3007/api/v1. API verified healthy from the host (200 on listings and sign_in) and the emulator reaches the host (ping 0% loss), so this was a transient timeout — the driver started this pass while host load was ~13. NOT evidence about the hideKeyboard revert either way. | RIG-004 part 2: retargeted to ahmad (36) so it cannot collide intra-cycle. |
-| `report_user_from_profile` | PASS | run-510 | 175 | rig — never opened the listing. The result card (Honda CG 125 Motorbike 2021) is rendered in the screenshot and the flow failed on `seller-profile-link` without tapping it. Also shows the inputText character drop: field holds '5 Motorbike 2021', leading 'Honda CG 12' dropped. open_listing_by_title.yaml's wait-on-listing-card + tap-by-testID is the pattern that fixes this. | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
-| `report_user_then_block` | FAIL-assert | run-510 | 195 | rig — ran UNAUTHENTICATED. The end-of-flow screenshot's tab bar reads Bazaar / Categories / Login, so `seller-profile-link` (which DOES exist, ListingDetail.tsx:797) was never reachable. Also shows the inputText character drop: the search field holds 'nch 4K Smart TV' — the leading 'Sony 55 i' was dropped. | Retargeted to maryam (40); now unblocks, which it never did. |
-
 ## `dark_mode` — Every main screen in dark theme + theme persistence
 
-5/8 passing · 3 open
+4/8 passing · 3 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `browse_dark` | PASS | s2/run-531 | 275 |  |  |
-| `chat_dark` | PASS | s2/run-531 | 269 |  |  |
-| `listing_detail_dark` | FAIL-assert | s2/run-531 | 216 |  | [Failed] listing_detail_dark (3m 16s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `browse_dark` | (rig) | s2/run-533 | 601 |  |  |
+| `chat_dark` | PASS | s2/run-533 | 578 |  |  |
+| `listing_detail_dark` | FAIL-assert | s2/run-533 | 195 |  | [Failed] listing_detail_dark (2m 58s) (No visible element found: "Wool Blanket Handmade King Size") |
 | `my_listings_dark` | PASS | s2/run-531 | 290 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed |  |
 | `profile_dark` | FAIL-assert | s2/run-531 | 282 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
 | `saved_tab_dark` | FAIL-assert | s2/run-531 | 242 |  | [Failed] saved_tab_dark (3m 42s) (Assertion is false: id: (browse-search-bar|my-listings-search-input) is visi |
