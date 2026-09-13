@@ -262,6 +262,28 @@ appId: com.hatiwal.app
     id: "listing-form-quantity-input"
 - eraseText
 - inputText: "8"
+# SCROLL TO THE NOTE FIRST — it is rendered, just not on screen. Typing into the
+# quantity field raises the NUMERIC KEYPAD, which covers the lower half, and the
+# form ends up back at the top: run-527's end-of-flow screenshot is this form
+# showing Photos and the Title "QA SF-M7 Reconcile Batch" with the keypad over
+# everything below. The note lives directly under the quantity field, so it is
+# off-screen, and `assertVisible` means ON SCREEN.
+#
+# The app is RIGHT to render it and the fixture is RIGHT too, both checked:
+# `showQuantityReopenNote = hasMultipleUnits && willReopenOnSave(...)`
+# (ListingForm.tsx:481) needs a SOLD listing, and the API says listing 3274
+# "QA SF-M7 Reconcile Batch" is status=sold, quantity=5, sales_count=1 — so
+# typing 8 gives the "3 available" the next line asserts. Nothing is missing.
+#
+# centerElement so it lands ABOVE the keypad rather than just inside the
+# scroller's bounds, and NOT `hideKeyboard` — that is Back on Android and would
+# pop the form (qa/QA_HANDBOOK.md, "hideKeyboard").
+- scrollUntilVisible:
+    element:
+      id: "listing-form-quantity-reopen-note"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - assertVisible:
     id: "listing-form-quantity-reopen-note"
 - assertVisible: ".*3 available.*"
