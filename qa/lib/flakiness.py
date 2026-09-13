@@ -21,11 +21,42 @@ proof the inputs were unchanged -- check `git log` on the helper too.
 """
 import collections
 import glob
+import re
 import json
 import os
 import sys
 
 MIN_RUNS = 3
+
+
+def load_history(path="qa/history.jsonl"):
+    """Verdicts from runs whose directory is already gone.
+
+    `qa.sh prune` deletes run dirs and keeps only what archive_results.py folded
+    into history.jsonl first. This function reads that file so a prune cannot
+    silently shrink the evidence every verdict in the campaign rests on — the
+    same trap that once took the tracked-flow count from 209 to 127.
+
+    Rows predating flow_sha are skipped: without it a verdict cannot be tied to
+    a file version, which is the whole basis of this classification.
+    """
+    obs = collections.defaultdict(list)
+    if not os.path.exists(path):
+        return obs
+    for line in open(path):
+        try:
+            x = json.loads(line)
+        except ValueError:
+            continue
+        if x.get("kind") == "rig_fail" or not x.get("flow_sha"):
+            continue
+        label = x.get("run") or ""
+        m = re.search(r"run-(\d+)", label)
+        if not m:
+            continue
+        obs[x["flow"]].append((int(m.group(1)), x.get("result"),
+                               x.get("flow_sha"), x.get("feature", "?"), label))
+    return obs
 
 
 def load(reports="qa/reports"):
@@ -49,7 +80,16 @@ def load(reports="qa/reports"):
             if x.get("kind") == "rig_fail":
                 continue
             obs[x["flow"]].append((n, x.get("result"), x.get("flow_sha"),
-                                   x.get("feature", "?")))
+                                   x.get("feature", "?"), r.rsplit("/", 1)[-1]))
+    # Fold in archived runs whose directory has since been pruned. Live run dirs
+    # win: a run present in both is counted once, under the label it has on disk.
+    hist = load_history()
+    for flow, rows in hist.items():
+        seen = {o[4] for o in obs.get(flow, [])}
+        for row in rows:
+            if row[4] not in seen:
+                obs[flow].append(row)
+        obs[flow].sort()
     return obs
 
 
@@ -58,7 +98,7 @@ def classify(obs, min_runs=MIN_RUNS):
     sf, sp, fl, sk = [], [], [], []
     for flow, rows in obs.items():
         by_sha = collections.defaultdict(list)
-        for n, res, sha, feat in rows:
+        for n, res, sha, feat, label in rows:
             by_sha[sha].append((n, res, feat))
         # the version with the most observations = the one worth judging
         _, lst = max(by_sha.items(), key=lambda kv: len(kv[1]))
