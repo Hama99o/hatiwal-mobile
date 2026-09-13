@@ -73,7 +73,7 @@ export async function searchPlaces(query: string): Promise<GeocodeResult[]> {
 
   const url =
     `${NOMINATIM}/search?format=jsonv2&addressdetails=0&limit=8` +
-    `&accept-language=${acceptLanguage()}&countrycodes=af,pk&q=${encodeURIComponent(q)}`;
+    `&accept-language=${acceptLanguage()}&countrycodes=af,pk,ir&q=${encodeURIComponent(q)}`;
 
   try {
     const res = await fetch(url, { headers: nominatimHeaders() });

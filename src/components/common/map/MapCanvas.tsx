@@ -10,7 +10,8 @@
  *
  * Tiles + styles come from Hatiwal's own self-hosted basemap at
  * `map.hatiwal.com` (see `../../../../../hatiwal-map/README.md`) — vector
- * tiles covering Afghanistan, zoom 0-14 with smooth overzoom past that. No API
+ * tiles covering Afghanistan, Pakistan and Iran, zoom 0-14 with smooth overzoom
+ * past that. No API
  * key, no request cap, no third-party watermark, no OSM tile-policy risk.
  * This REPLACES two prior, both broken/borrowed setups:
  *   - Android read CARTO's "free" raster endpoints, which CARTO has since
@@ -26,15 +27,18 @@
  * start (see hatiwal-map's style palette), not a filter over a light image.
  *
  * The style is picked by BOTH the app's theme (light/dark, the `dark` prop)
- * AND its current language (en/ps/fa, read from i18n) — see `styleUrl()`
- * below. The ps/fa styles render Kabul's streets/districts in real joined
+ * AND its current language (en/ps/fa/ur, read from i18n) — see `styleUrl()`
+ * below. The ps/fa/ur styles render streets and districts in real joined
  * Arabic script (falling back name:ps -> name:fa -> name -> name:latin
  * server-side; see hatiwal-map/README.md §8) instead of a Latin
  * transliteration, which is the whole point of shipping them.
  *
- * The tileset only covers Afghanistan (see AFGHANISTAN_BOUNDS below, which
- * matches every style's own declared source bounds exactly) — outside it
- * there are no tiles to show, so the camera is bounds-locked to the country.
+ * The tileset covers Afghanistan, Pakistan and Iran (see SERVICE_AREA_BOUNDS
+ * below, which matches every style's own declared source bounds exactly) —
+ * outside it there are no tiles to show, so the camera is bounds-locked to the
+ * service area. It was Afghanistan-only until 2026-09-13; the owner reported
+ * the map showing nothing for Pakistan, and the fix was a rebuilt tileset, not
+ * a wider box — widening alone would have panned into grey.
  * Attribution is a licence condition of the underlying OpenMapTiles data, not
  * decoration — `attribution={true}` below keeps MapLibre's attribution
  * control on screen; do not disable it.
@@ -90,21 +94,32 @@ if (!isExpoGo) {
 // committed fallback is safe — it is not a secret.
 const MAP_BASE_URL = process.env.EXPO_PUBLIC_MAP_URL || "https://map.hatiwal.com";
 
-// The 3 languages that map.hatiwal.com has a pre-built style for. Any other
-// app language (there isn't one today) falls back to the English style.
-const STYLE_LANGUAGES = new Set(["en", "ps", "fa"]);
+// The languages map.hatiwal.com has a pre-built style for. Urdu joined when the
+// AF+PK+IR tileset was built with `--languages=ps,fa,en,ur` — before that there
+// was no `name:ur` in the tile data, so an Urdu style could not have worked even
+// if the file had existed, and an Urdu user silently got the English map.
+const STYLE_LANGUAGES = new Set(["en", "ps", "fa", "ur"]);
 
-/** `/styles/hatiwal-{light|dark}-{en|ps|fa}.json` — one of the 6 styles served by map.hatiwal.com. */
+/** `/styles/hatiwal-{light|dark}-{en|ps|fa|ur}.json` — one of the 8 styles served by map.hatiwal.com. */
 function styleUrl(dark: boolean, lang: string): string {
   const locale = STYLE_LANGUAGES.has(lang) ? lang : "en";
   return `${MAP_BASE_URL}/styles/hatiwal-${dark ? "dark" : "light"}-${locale}.json`;
 }
 
-// Afghanistan bounding box — matches the `bounds` declared on the `hatiwal`
-// vector source in every hatiwal-{light,dark}-{en,ps,fa} style exactly (west,
-// south, east, north). The tileset has no data outside it, and for a local
-// marketplace where every listing is in-country, locking the camera here is
-// better UX, not just a technical necessity.
+// Service-area bounding box — matches the `bounds` declared on the `hatiwal`
+// vector source in all 8 styles exactly (west, south, east, north).
+//
+// WAS Afghanistan-only: [60.48761, 29.368563, 74.90017, 38.50674]. The owner
+// reported the map showing nothing for Pakistan, and the cause was not this
+// constant — the TILESET had no data outside Afghanistan, so widening the box
+// on its own would only have let the camera pan into grey. Bounds and tiles had
+// to move together, and the tiles were rebuilt and deployed first (AF+PK+IR,
+// 862 MB, zoom 0-14) before this line changed.
+//
+// Iran is inside the box deliberately. It is supported TECHNICALLY — a listing
+// there is not blocked and its map renders — while no user-facing copy names
+// it. That is the owner's explicit instruction, and it is why the western edge
+// is 44.0 rather than the ~60.5 an Afghanistan-and-Pakistan box would need.
 //
 // This constrains the VIEWPORT only, not the data: `maxBounds` clamps where
 // the CAMERA can visually center, but never touches the `center`/`coords`
@@ -114,7 +129,7 @@ function styleUrl(dark: boolean, lang: string): string {
 // keep that working) still gets their true coordinate saved — the map may
 // simply be unable to visually pan all the way to it, an acceptable, rare
 // cosmetic tradeoff for keeping every in-country pan/zoom sane and on-tileset.
-const AFGHANISTAN_BOUNDS: LngLatBounds = [60.48761, 29.368563, 74.90017, 38.50674];
+const SERVICE_AREA_BOUNDS: LngLatBounds = [44.0, 23.6, 77.9, 39.8];
 
 const PIN_SIZE = 32;
 
@@ -355,7 +370,7 @@ export default function MapCanvas({
           initialViewState={{ center: centerLngLat, zoom: zoomRef.current }}
           minZoom={2}
           maxZoom={19}
-          maxBounds={AFGHANISTAN_BOUNDS}
+          maxBounds={SERVICE_AREA_BOUNDS}
         />
 
         {/* Search / selection radius */}
