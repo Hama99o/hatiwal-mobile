@@ -18,6 +18,29 @@ appId: com.hatiwal.app
 # Not "Edit" either, though that IS a real control here: it lives in
 # PersonalInfoCard, well below the fold, so asserting it without a scroll
 # just trades one guaranteed failure for another.
+# SCROLL BACK TO THE TOP FIRST. Profile KEEPS the scroll position the PREVIOUS
+# FLOW left it at — the app is not restarted between flows — so a flow that only
+# taps profile-tab can land at the BOTTOM of a screen it never scrolled itself.
+# The comment above assumes this label "needs no scroll"; that holds only when
+# Profile happens to be at the top.
+#
+# run-529's end-of-flow screenshot for view_profile is Profile showing Activity /
+# Privacy / Sign Out / Delete account, with the mode row off the top — and still
+# in dark mode, left by theme_switch earlier in the same suite.
+#
+# Kept-scroll at a NEW SCOPE: state carried BETWEEN flows, not within one.
+# seller_mode_toggle has this identical opening and PASSES, which is how we know
+# the flow is not wrong — it simply ran before anything scrolled Profile down.
+# Guarded, so an already-visible target costs nothing.
+- runFlow:
+    when:
+      notVisible: "Switch to .*"
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: "Switch to .*"
+          direction: UP
+          timeout: 20000
 - assertVisible: "Switch to .*"
 
 # Buyer-mode stats row: Items Bought (non-zero, sourced from transactions)

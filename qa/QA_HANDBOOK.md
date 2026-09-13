@@ -93,6 +93,51 @@ Two traps if you write this check yourself: maestro names selectors `idRegex` /
 "matches" for a flow it is wrong about), and the failure MESSAGE also contains the
 selector text, so match on the key/value pair rather than grepping the raw file.
 
+## Screen state carries BETWEEN flows — the app is not restarted
+
+The most expensive shape found so far, because it makes a CORRECT flow fail on a
+CORRECT app and leaves no trace in either.
+
+Six profile flows failed at the end of run-529, each on a different string
+("Edit Profile", "Ahmad Karimi", "Items Bought", `transaction-stats-badge`,
+"Active", "Switch to ..."). The screenshot explains all of them at once: Profile
+was scrolled to the BOTTOM — Activity / Privacy / Sign Out / Delete account —
+while every one of those targets sits near the TOP. None of those flows scrolled
+it there. An EARLIER flow in the same suite did, and the app is not restarted
+between flows, so the scroll position (and the theme: it was still in dark mode
+from `theme_switch`) persists.
+
+**The control is what proves it.** `seller_mode_toggle` has the byte-identical
+opening — `login.yaml` -> tap `profile-tab` -> `assertVisible: "Switch to .*"` —
+and PASSES. It simply runs earlier, before anything scrolls Profile down. So the
+failing flows are not wrong; they inherit a screen someone else left.
+
+Two hypotheses were killed on the way, both cheap to check and both wrong:
+
+- *Login helper.* Five of the six failures use `login.yaml`, exactly like all
+  five passing flows. The account does not separate them.
+- *Renamed fixture.* `edit_profile_all_fields` renames the user to
+  "UpdatedFirst/UpdatedLast" earlier in the suite, which would explain
+  `view_seller_profile_from_profile` asserting "Ahmad Karimi" — but only ONE of
+  the six asserts a name, so it cannot carry the cluster.
+
+Fix with a GUARDED scroll (`runFlow` + `when: notVisible`), which costs nothing
+when the target is already on screen:
+
+```yaml
+- runFlow:
+    when: { notVisible: "Switch to .*" }
+    commands:
+      - scrollUntilVisible:
+          element: { text: "Switch to .*" }
+          direction: UP
+          timeout: 20000
+```
+
+Suspect this whenever a flow asserts something near the top of a long screen
+right after tapping its tab, and whenever a flow's comment says a target "needs
+no scroll" — that claim is only true about the screen at rest.
+
 ## 37% of the suite is FLAKY — a single run is not evidence about a fix
 
 `./qa/qa.sh flaky [feature]` groups every flow's history by `flow_sha` and reports
