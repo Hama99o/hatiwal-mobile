@@ -17,18 +17,32 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
-# CLEAR INHERITED BROWSE FILTERS BEFORE SCROLLING THE FEED.
+# Defensive: clear any ACTIVE browse filters before scrolling the feed.
 #
-# Filters PERSIST between flows (the app is never restarted), so this flow
-# inherited "Electronics" + "Electronics - 5000-inf" from an earlier flow and then
-# scrolled a two-card filtered result set looking for a listing the filter had
-# excluded. That is why it failed 0/6 at this sha with "No visible element found"
-# on a fixture that is present and active (verified over HTTP: it sits at feed
-# position 20 of 69 browsable listings).
+# Browse filters persist between flows (the app is never restarted), and an
+# inherited price/category filter genuinely can hide a fixture — that is why
+# search_empty_state, search_listings, full_marketplace_cycle and mapqa all open
+# with this helper. Cheap insurance, kept for that reason.
 #
-# The end-of-flow screenshot in run-530 shows both chips active above the grid.
-# _helpers/clear_browse_filters.yaml names this exact filter in its own comment,
-# and four other flows already open with it.
+# WHAT IT IS **NOT**: the confirmed cause of this flow's 0/6 failure. An earlier
+# pass read run-530's end-of-flow screenshot as showing two ACTIVE filter chips
+# ("Electronics" and "Electronics - 5000-inf") narrowing the grid to two cards.
+# That reading was WRONG. Those chips are SAVED SEARCHES - BrowseHeader.tsx:419
+# renders <SavedSearches>, and SavedSearchItem.tsx:105 draws the "1 new" badge
+# and highlighted border from newMatchesCount. Saved searches do NOT filter the
+# feed. The API was probed directly and honours filters correctly
+# (category_id=1 -> 22 rows, 0 outside Electronics; category_id=1&price_min=5000
+# -> 9 rows, all >= 7800), so there is no filtering bug either.
+#
+# This helper is therefore INERT here: it taps browse-clear-filters, which only
+# exists while the "N filters active" pill is shown, and that pill is absent from
+# both screenshots.
+#
+# THE CAUSE IS STILL OPEN. Leading suspect is the one the API measurements
+# support: the target sits at feed position 20 of 69 (per_page is 20), i.e. the
+# LAST loaded row of page 1, and `centerElement: true` cannot centre an element
+# with nothing below it - so the scroll burns its whole timeout. Verify that
+# before changing the scroll.
 - runFlow: ../_helpers/clear_browse_filters.yaml
 
 # Happy path: a listing with a recent price drop shows the card badge (overlay)
