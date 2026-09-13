@@ -10,12 +10,12 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**150 of 258 flows passing** · 104 still need attention
+**151 of 258 flows passing** · 103 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 150 | green, and no backend error underneath |
-| FAIL-assert | 77 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 151 | green, and no backend error underneath |
+| FAIL-assert | 76 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-? | 24 | failed, cause unclear — read the log |
 | (rig) | 3 | rig broke mid-run — result meaningless, re-run |
@@ -31,21 +31,21 @@ bug class a user reports as "nothing happened".
 
 ## `listings` — Seller create/edit/delete + the 3-state lifecycle (Draft/Live/Sold) — Mark sold is always the one-tap primary, no Reserved tab
 
-19/40 passing · 17 open
+20/40 passing · 19 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `create_listing` | PASS | run-528 | 267 | PASS (run-525, 275s) — and it is the reference: it scrolls to each field before tapping, which is exactly what its three failing siblings were missing. |  |
-| `create_listing_all_fields` | FAIL-assert ⟳stale | run-525 | 239 | flow — the description scroll WORKED and the failure MOVED one field. run-525 died on `listing-form-description-input`; run-528 dies on `listing-form-price-input`, which is a different field and a different direction. Price sits ABOVE description in the form (ListingForm.tsx: price ~1400, description ~1785), so scrolling DOWN to the description leaves price above the viewport, and the price `tapOn` had no scroll at all — `tapOn` never scrolls. Added scrollUntilVisible direction UP with centerElement. Still 0/7, but one field further along. | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
-| `create_listing_category_search` | FAIL-assert ⟳stale | run-525 | 209 | flow — FIXED. Typed "Elect" then asserted "Electronics" after only a waitForAnimationToEnd, but FILTERING a category list is a data operation, not an animation. "Electronics" is not stale copy either — it comes from the API's categories, not i18n. Converted to extendedWaitUntil (15s). | [Failed] create_listing_category_search (3m 2s) (Assertion is false: "Electronics" is visible) |
-| `create_listing_currency_eur` | FAIL-assert ⟳stale | run-525 | 220 | flow — **FIXED, CONFIRMED**. Second fix of this campaign that holds. sha 198aa2244b02 FAILED five consecutive runs (498, 502, 506, 517, 525); commit 66c3093 (scroll to the field the keyboard covers) changed it to sha d1b204d29bd0; run-528 PASSED at 252s. Trustworthy because the flow was STABLE FAIL 0/5. | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
-| `create_listing_currency_usd` | FAIL-assert ⟳stale | run-525 | 255 | PASS in run-528 (272s) at the new sha 51c4e9ae9adf, but NOT claimable: at the old sha it was 1/5 — it had already passed once in run-517 — so it is FLAKY and a single pass proves nothing. Needs 3+ consecutive runs before the same fix can be credited here. | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
-| `create_listing_draft_discard` | PASS | run-517 | 158 |  |  |
-| `create_listing_draft_restore` | FAIL-assert | run-517 | 209 | flow | "Draft saved" is a toast from toast.success; a bare assert races it. Now polls. |
-| `create_listing_full_publish` | PASS | run-517 | 237 |  | AxiosError |
-| `create_listing_multi_quantity` | FAIL-assert | run-517 | 204 | fixed | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
-| `create_listing_price_edges` | PASS | run-517 | 193 |  |  |
-| `create_listing_publish_blocked` | FAIL-assert | run-517 | 221 | flow | Touched the form before the location sheet closed; the helper allows 45s for it. |
+| `create_listing_all_fields` | FAIL-assert ⟳stale | run-528 | 257 | flow — the description scroll WORKED and the failure MOVED one field. run-525 died on `listing-form-description-input`; run-528 dies on `listing-form-price-input`, which is a different field and a different direction. Price sits ABOVE description in the form (ListingForm.tsx: price ~1400, description ~1785), so scrolling DOWN to the description leaves price above the viewport, and the price `tapOn` had no scroll at all — `tapOn` never scrolls. Added scrollUntilVisible direction UP with centerElement. Still 0/7, but one field further along. | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
+| `create_listing_category_search` | FAIL-assert | run-528 | 206 | flow — FIXED. Typed "Elect" then asserted "Electronics" after only a waitForAnimationToEnd, but FILTERING a category list is a data operation, not an animation. "Electronics" is not stale copy either — it comes from the API's categories, not i18n. Converted to extendedWaitUntil (15s). | [Failed] create_listing_category_search (3m 4s) (Assertion is false: "Electronics" is visible) |
+| `create_listing_currency_eur` | PASS | run-528 | 252 | flow — **FIXED, CONFIRMED**. Second fix of this campaign that holds. sha 198aa2244b02 FAILED five consecutive runs (498, 502, 506, 517, 525); commit 66c3093 (scroll to the field the keyboard covers) changed it to sha d1b204d29bd0; run-528 PASSED at 252s. Trustworthy because the flow was STABLE FAIL 0/5. | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
+| `create_listing_currency_usd` | PASS | run-528 | 272 | PASS in run-528 (272s) at the new sha 51c4e9ae9adf, but NOT claimable: at the old sha it was 1/5 — it had already passed once in run-517 — so it is FLAKY and a single pass proves nothing. Needs 3+ consecutive runs before the same fix can be credited here. | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
+| `create_listing_draft_discard` | FAIL-assert | run-528 | 206 |  | [Failed] create_listing_draft_discard (3m 5s) (Assertion is false: "Discard changes?" is visible) |
+| `create_listing_draft_restore` | FAIL-assert | run-528 | 298 | flow | "Draft saved" is a toast from toast.success; a bare assert races it. Now polls. |
+| `create_listing_full_publish` | PASS | run-528 | 289 |  | AxiosError |
+| `create_listing_multi_quantity` | FAIL-assert | run-528 | 237 | flow (heading off screen) — the flow taps the inert "Create Listing" HEADING to blur a field, which is the right trick: `hideKeyboard` is BACK on Android and a dirty form intercepts BACK as "Discard changes?" (run-034). But the heading sits INSIDE the scroll view, not in a fixed header, so once the form has scrolled and the keypad covers the lower half it is off the top — and `tapOn` never scrolls. run-528 died at step-75 on `Element not found: Text matching regex: Create Listing`, a heading that is present and correct. Added scrollUntilVisible direction UP before BOTH heading taps. Kept the tap, not hideKeyboard. | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
+| `create_listing_price_edges` | PASS | run-528 | 241 |  |  |
+| `create_listing_publish_blocked` | FAIL-assert | run-517 | 221 | flow (heading off screen) — same cause, assert instead of tap. Died at step-96 on `"Create Listing" is visible`, the check that the form is STILL OPEN after a blocked publish. By then the flow has scrolled down to reach Publish, so the heading is above the viewport and assertVisible means ON SCREEN. The line above it (`assertNotVisible: "Your listing is live!"`) already proves the form is open, so this was never about state. Added scrollUntilVisible direction UP before it. | Touched the form before the location sheet closed; the helper allows 45s for it. |
 | `create_listing_publish_direct` | PASS | run-517 | 248 |  |  |
 | `create_listing_publish_requirements` | PASS | run-517 | 190 |  |  |
 | `create_listing_quantity_edges` | FAIL-assert | run-517 | 204 | flow | Field maps empty to 1, so eraseText appends. Blur-then-focus lets selectTextOnFocus replace. |
@@ -336,13 +336,13 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `create_listing_map_pin` | PASS | s2/run-527 | 315 |  |  |
-| `filter_map_default_kabul` | PASS | s2/run-527 | 229 |  |  |
-| `filter_map_location_denied` | PASS | s2/run-527 | 257 |  |  |
-| `filter_map_use_my_location` | PASS | s2/run-527 | 249 |  |  |
-| `filter_map_use_my_location_granted` | PASS | s2/run-527 | 224 |  |  |
-| `map_location_outside_afghanistan` | PASS | s2/run-527 | 289 |  |  |
-| `zoom_controls_not_occluded` | FAIL-? | s2/run-527 | 217 |  | [Failed] zoom_controls_not_occluded (3m 15s) (No visible element found: "Toyota Corolla 2016 Automatic") |
+| `create_listing_map_pin` | PASS | s2/run-529 | 350 |  |  |
+| `filter_map_default_kabul` | PASS | s2/run-529 | 247 |  |  |
+| `filter_map_location_denied` | PASS | s2/run-529 | 282 |  |  |
+| `filter_map_use_my_location` | PASS | s2/run-529 | 266 |  |  |
+| `filter_map_use_my_location_granted` | PASS | s2/run-529 | 248 |  |  |
+| `map_location_outside_afghanistan` | PASS | s2/run-529 | 292 |  |  |
+| `zoom_controls_not_occluded` | FAIL-? | s2/run-529 | 209 |  | [Failed] zoom_controls_not_occluded (3m 8s) (No visible element found: "Toyota Corolla 2016 Automatic") |
 
 ## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
 
@@ -372,8 +372,8 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `open_listing_deep_link` | PASS | s2/run-527 | 114 |  |  |
-| `open_seller_deep_link` | FAIL-assert | s2/run-527 | 124 |  | [Failed] open_seller_deep_link (1m 41s) (Assertion is false: id: more-options-button is visible) |
+| `open_listing_deep_link` | PASS | s2/run-529 | 112 |  |  |
+| `open_seller_deep_link` | FAIL-assert | s2/run-529 | 125 |  | [Failed] open_seller_deep_link (1m 43s) (Assertion is false: id: more-options-button is visible) |
 
 ## `onboarding` — First-run experience
 

@@ -140,6 +140,16 @@ appId: com.hatiwal.app
 
 # Nothing was created — still on the create form, not a success sheet.
 - assertNotVisible: "Your listing is live!"
+# SCROLL THE HEADING BACK ON SCREEN. It lives INSIDE the scroll view, not in a
+# fixed header, and by now the flow has scrolled down to reach Publish — so the
+# heading is above the viewport and `assertVisible` means ON SCREEN. run-528 died
+# on exactly this at step-96. The form really is still open; that is what the
+# assertNotVisible above already established.
+- scrollUntilVisible:
+    element:
+      text: "Create Listing"
+    direction: UP
+    timeout: 20000
 - assertVisible: "Create Listing"
 
 # Add a photo — the destructive message must clear immediately.

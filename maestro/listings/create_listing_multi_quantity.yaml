@@ -102,6 +102,18 @@ appId: com.hatiwal.app
 # "leave the screen" — so it raises "Discard changes?" over everything and the
 # next step fails on a dialog instead of the form (run-034). Tapping an inert
 # heading blurs the field with no navigation.
+#
+# SCROLL TO IT FIRST. The heading is INSIDE the scroll view, not a fixed header,
+# so once the form has scrolled (and the keypad is up over the lower half) it is
+# off the top — and `tapOn` never scrolls. run-528 died here at step-75 with
+# "Element not found: Text matching regex: Create Listing" on a heading that is
+# present and correct. Still the heading tap, NOT hideKeyboard: the comment above
+# is right that BACK raises "Discard changes?" on a dirty form.
+- scrollUntilVisible:
+    element:
+      text: "Create Listing"
+    direction: UP
+    timeout: 20000
 - tapOn: "Create Listing"
 
 - scrollUntilVisible:
@@ -147,6 +159,12 @@ appId: com.hatiwal.app
 - tapOn:
     id: "listing-form-quantity-input"
 - inputText: "15"
+# Same as above: scroll the heading back on screen before tapping it to blur.
+- scrollUntilVisible:
+    element:
+      text: "Create Listing"
+    direction: UP
+    timeout: 20000
 - tapOn: "Create Listing"
 # Prove the field holds 15 and not "215" — the pre-filled "2" must be replaced,
 # the same hazard that sold a whole batch in run-018.
