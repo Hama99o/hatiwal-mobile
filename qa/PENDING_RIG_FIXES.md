@@ -280,6 +280,21 @@ count is now EIGHT stable-fail flows, none of them app bugs:
 | a chat thread | seller-only UI (Mark Sold) or `quickReplies.seller.*` copy in the screenshot | the owner-notice grep — that string lives on ListingDetail and is absent from threads whatever the identity |
 | any request | `hatiwal-api/log/development.log` — the `UPDATE "users" ... WHERE "users"."id" = N` on each authenticated request names the CURRENT user | — |
 
+**Sweep the whole run in one line** — this is how the count went from 8 to 9;
+`start_conversation` had been filed under "my conversion did not work":
+
+```bash
+for f in qa/reports/run-NNN/*/*.logcat; do
+  grep -qa "This is your listing" "$f" && echo "  $(basename "$f" .logcat)"
+done
+```
+
+run-526: offer_counter_flow, offer_quantity_round_trip, offer_send_and_accept,
+offer_send_and_decline, reserve_after_accept, reserve_after_buyer_accepts_counter,
+start_conversation — **all seven failing**. Plus quick_replies and
+report_participant, caught by the other two probes, makes **NINE** stable-fail
+flows in this family, out of 59 stable-fail flows in the whole suite.
+
 The Rails-log probe is the strongest of the three: it names the authenticated
 user directly, needs no screenshot, and works for every flow that makes a request.
 
