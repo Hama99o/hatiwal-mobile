@@ -29,5 +29,20 @@ appId: com.hatiwal.app
 # Clear search
 - eraseText
 - waitForAnimationToEnd
+# CLOSE THE IME BEFORE LOOKING FOR THE TAB BAR. "My Shop" is the BOTTOM TAB's
+# label (sidebar.myListings), and `eraseText` does not dismiss the keyboard — so
+# the tab bar is still covered and assertVisible, which means ON SCREEN, fails on
+# a label that is exactly where it should be. run-528's end-of-flow screenshot is
+# this screen with the search field focused, the keypad over the lower half, and
+# one card showing.
+#
+# `pressKey: Enter`, never `hideKeyboard`: on Android hideKeyboard is BACK, which
+# would leave the screen entirely. This is the same technique
+# _helpers/open_listing_by_title.yaml settled on for the Bazaar grid.
+#
+# The identical assert at the TOP of this flow passes, because nothing has
+# focused the search field yet.
+- pressKey: Enter
+- waitForAnimationToEnd
 # The seller home tab is labelled "My Shop" (sidebar.myListings).
 - assertVisible: "My Shop"
