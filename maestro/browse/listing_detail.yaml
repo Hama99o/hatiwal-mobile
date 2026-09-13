@@ -33,7 +33,17 @@ appId: com.hatiwal.app
 # asserting on (my own first pass did exactly that and failed on "Description").
 # The contact affordance is checked by its PRESENCE — sending a message is
 # chat/start_conversation.yaml's job.
-- assertVisible: "Contact Seller"
+# WAIT FOR THE ACTION BAR. It is gated on the VIEWER resolving while the
+# listing's own data arrives first, so there is a window where the page looks
+# complete and carries no buttons — a bare assert lands inside it. run-530 failed
+# here on a control that is present and correct (listing.detail.contactSeller).
+# Same cause as lifecycle_reserve, fixed there in _helpers/open_thread_from_listing.yaml;
+# this flow deliberately does NOT use that helper (it checks PRESENCE without
+# tapping, since tapping opens the first-message sheet over the rest of the flow),
+# so it needs the wait inline.
+- extendedWaitUntil:
+    visible: "Contact Seller"
+    timeout: 20000
 # Section headings sit below the gallery and the price block, so they need a
 # scroll rather than a bare assertion.
 - scrollUntilVisible:

@@ -13,13 +13,26 @@ appId: com.hatiwal.app
 # A NAMED seeded listing, not "the first card": it does not depend on feed
 # ordering, it is active, and it belongs to seller@hatiwal.test — so the buyer
 # running this flow sees the contact affordance rather than their own listing.
-- scrollUntilVisible:
-    element:
-      text: "Wool Blanket Handmade King Size"
-    direction: DOWN
-    centerElement: true
-    timeout: 15000
-- tapOn: "Wool Blanket Handmade King Size"
+# SEARCH, DO NOT SCROLL THE FEED. run-530 failed here with "No visible element
+# found: Wool Blanket Handmade King Size" — and the listing is fine: the API says
+# 3366, status active, present in the browsable feed. Scrolling a virtualised grid
+# for a specific title is the fragile part, and `centerElement: true` makes it
+# worse, because an item that lands in the last loaded row cannot be centred (the
+# same unsatisfiable constraint that cost account_delete_cancel eight runs).
+#
+# This flow only needs the listing OPEN — it asserts nothing about the feed card —
+# so the proven helper fits exactly. It searches, closes the IME with a drag plus
+# `pressKey: Enter`, taps the card by testID, and proves navigation by waiting for
+# browse-search-input to be GONE rather than trusting a title, which would also
+# match the query still sitting in the search box.
+#
+# NOT converted for the same reason: listing_detail_price_drop_badge and
+# listing_detail_multi_quantity assert a FEED-CARD property before tapping
+# (the ↓N% badge, and "each"), so they must stay on the grid.
+- runFlow:
+    file: ../_helpers/open_listing_by_title.yaml
+    env:
+      TITLE: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 # NOT tapping "Contact Seller" here: that opens the first-message sheet, which
 # then covers the detail screen the rest of this flow acts on. Opening the

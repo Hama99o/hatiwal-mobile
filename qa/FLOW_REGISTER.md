@@ -10,14 +10,14 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**151 of 258 flows passing** · 105 still need attention
+**147 of 258 flows passing** · 109 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 151 | green, and no backend error underneath |
-| FAIL-assert | 77 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 147 | green, and no backend error underneath |
+| FAIL-assert | 82 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 25 | failed, cause unclear — read the log |
+| FAIL-? | 24 | failed, cause unclear — read the log |
 | (rig) | 2 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 2 | never executed |
 
@@ -31,7 +31,7 @@ bug class a user reports as "nothing happened".
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
 
-26/42 passing · 15 open
+24/42 passing · 16 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -43,16 +43,16 @@ bug class a user reports as "nothing happened".
 | `clear_all_filters` | PASS | run-530 | 187 |  |  |
 | `filter_active_sellers` | PASS | run-530 | 181 |  |  |
 | `filter_by_category` | PASS | run-530 | 177 |  |  |
-| `filter_condition` | PASS | run-519 | 224 |  |  |
-| `filter_price_range` | PASS | run-519 | 215 |  |  |
-| `full_marketplace_cycle` | FAIL-assert | run-519 | 254 | flow (IME swallowed the card tap; the title assert could not catch it) — 0/4. Died at step-230 on `.*3,500`, and the fixture is fine: the API says the listing is priced 3500.0 and the flow's `.*` regex correctly covers the non-breaking space. The screenshot shows the app STILL ON THE SEARCH SCREEN — query typed, keyboard over the lower half, one card barely visible. The tap is by testID and correctly targeted; the keyboard was simply over the card. THE TITLE ASSERT ABOVE IT PASSED SPURIOUSLY: Maestro matches text ANYWHERE ON SCREEN, including inside an INPUT FIELD, and the query sits in the search box — so only the price exposed the failure. Audited all five search sites in this flow: THREE tap a card with no IME dismissal (the failing one plus two later), so fixing only the first would have moved the failure down the file. All three now dismiss (drag + `pressKey: Enter`, since the drag alone does not close the IME on the Bazaar grid) and PROVE navigation with `notVisible: browse-search-input`. | Four taps with the same search-box collision; three now erase and re-search first. |
-| `listing_contact_whatsapp` | PASS | run-519 | 212 |  |  |
-| `listing_detail` | PASS | run-519 | 257 | flow — converted to open_listing_by_title.yaml (search instead of scrolling a ~98-listing feed). Helper is proven in run-496 via reserve_after_accept. |  |
-| `listing_detail_held_units_transparency` | FAIL-assert | run-519 | 473 | REVERT CONFIRMED — no longer exits the app (run-494 fails on `listing-card` not visible, not the Android home screen). The hideKeyboard->drag revert worked here. Remaining failure is the scroll race. | [Failed] listing_detail_held_units_transparency (7m 25s) (Assertion is false: "Switch to .*" is visible) |
-| `listing_detail_multi_quantity` | FAIL-? | run-519 | 233 | flow — scroll stopped at the clipped bottom row so the price row never showed; centred. API data verified correct | [Failed] listing_detail_multi_quantity (3m 28s) (No visible element found: "Phone Case Silicone Clear - Wholes |
-| `listing_detail_offer` | PASS | run-519 | 266 | flow — converted to open_listing_by_title.yaml. |  |
-| `listing_detail_offer_invalid` | FAIL-? | run-519 | 209 |  | [Failed] listing_detail_offer_invalid (2m 50s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `listing_detail_price_drop_badge` | FAIL-? | run-519 | 208 | flow — scroll race (Lenovo ThinkPad Laptop Core i5 8GB). Gated on open_listing_by_title rollout. | [Failed] listing_detail_price_drop_badge (3m) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8GB") |
+| `filter_condition` | PASS | run-530 | 181 |  |  |
+| `filter_price_range` | PASS | run-530 | 186 |  |  |
+| `full_marketplace_cycle` | FAIL-assert ⟳stale | run-530 | 585 | flow (IME swallowed the card tap; the title assert could not catch it) — 0/4. Died at step-230 on `.*3,500`, and the fixture is fine: the API says the listing is priced 3500.0 and the flow's `.*` regex correctly covers the non-breaking space. The screenshot shows the app STILL ON THE SEARCH SCREEN — query typed, keyboard over the lower half, one card barely visible. The tap is by testID and correctly targeted; the keyboard was simply over the card. THE TITLE ASSERT ABOVE IT PASSED SPURIOUSLY: Maestro matches text ANYWHERE ON SCREEN, including inside an INPUT FIELD, and the query sits in the search box — so only the price exposed the failure. Audited all five search sites in this flow: THREE tap a card with no IME dismissal (the failing one plus two later), so fixing only the first would have moved the failure down the file. All three now dismiss (drag + `pressKey: Enter`, since the drag alone does not close the IME on the Bazaar grid) and PROVE navigation with `notVisible: browse-search-input`. | Four taps with the same search-box collision; three now erase and re-search first. |
+| `listing_contact_whatsapp` | FAIL-assert | run-530 | 253 |  | [Failed] listing_contact_whatsapp (3m 53s) (No visible element found: id: seller-phone-reveal-button) |
+| `listing_detail` | FAIL-assert | run-530 | 273 | flow (racing the action bar) — bare `assertVisible: "Contact Seller"` on a row gated by the VIEWER resolving, while the listing's own data arrives first: there is a window where the page looks complete and has no buttons. The control is present and correct (listing.detail.contactSeller). Same cause as lifecycle_reserve, but this flow deliberately does NOT use open_thread_from_listing — it checks PRESENCE without tapping, because tapping opens the first-message sheet over the rest of the flow — so the wait went inline. | [Failed] listing_detail (4m 14s) (Assertion is false: "Contact Seller" is visible) |
+| `listing_detail_held_units_transparency` | FAIL-assert | run-530 | 257 | REVERT CONFIRMED — no longer exits the app (run-494 fails on `listing-card` not visible, not the Android home screen). The hideKeyboard->drag revert worked here. Remaining failure is the scroll race. | [Failed] listing_detail_held_units_transparency (3m 57s) (Assertion is false: id: stock-badge-detail is visibl |
+| `listing_detail_multi_quantity` | FAIL-assert | run-530 | 217 | TRIAGED, deliberately NOT converted — it asserts "each" on the FEED CARD before tapping, and its own comment documents a run-263 failure where without `centerElement` the title edged into the clipped bottom row and "each" was absent from the hierarchy. Sending it through the search helper would open the listing and destroy the thing it tests. It needs the target made REACHABLE on the grid (search to narrow the feed, dismiss the IME, then keep the centred scroll), not a conversion. | [Failed] listing_detail_multi_quantity (3m 17s) (No visible element found: "Phone Case Silicone Clear - Wholes |
+| `listing_detail_offer` | PASS | run-530 | 225 | flow — converted to open_listing_by_title.yaml. |  |
+| `listing_detail_offer_invalid` | FAIL-? | run-519 | 209 | flow — converted to `_helpers/open_listing_by_title.yaml`. Failed with `No visible element found: "Wool Blanket Handmade King Size"` while the listing is FINE (API: 3366, active, in the browsable feed). Scrolling a virtualised grid for one title is the fragile part, and `centerElement: true` compounds it — an item landing in the last loaded row cannot be centred, the same unsatisfiable constraint that cost account_delete_cancel eight runs. This flow asserts NOTHING about the feed card, so the search helper fits exactly. | [Failed] listing_detail_offer_invalid (2m 50s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `listing_detail_price_drop_badge` | FAIL-? | run-519 | 208 | TRIAGED, deliberately NOT converted — same reason as listing_detail_multi_quantity: it asserts the `↓N%` badge on the FEED CARD before tapping. Fixture verified fine (Lenovo ThinkPad 3356, active, in the feed). | [Failed] listing_detail_price_drop_badge (3m) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8GB") |
 | `listing_detail_quantity_intent` | FAIL-assert | run-519 | 280 | flow — both listing opens converted to open_listing_by_title.yaml. | [Failed] listing_detail_quantity_intent (4m 3s) (Assertion is false: "Phone Case Silicone Clear - Wholesale" i |
 | `listing_detail_report` | PASS | run-519 | 244 | flow — converted to open_listing_by_title.yaml. | RIG-004 tolerance; covers the detail-screen entry point. |
 | `listing_detail_reserved_contactable` | PASS | run-519 | 185 |  |  |
@@ -310,6 +310,21 @@ bug class a user reports as "nothing happened".
 | `map_location_outside_afghanistan` | PASS | s2/run-530 | 306 |  |  |
 | `zoom_controls_not_occluded` | FAIL-? | s2/run-530 | 250 |  | [Failed] zoom_controls_not_occluded (3m 48s) (No visible element found: "Toyota Corolla 2016 Automatic") |
 
+## `dark_mode` — Every main screen in dark theme + theme persistence
+
+5/8 passing · 3 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_dark` | PASS | s2/run-531 | 275 |  |  |
+| `chat_dark` | PASS | s2/run-531 | 269 |  |  |
+| `listing_detail_dark` | FAIL-assert | s2/run-531 | 216 |  | [Failed] listing_detail_dark (3m 16s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `my_listings_dark` | PASS | s2/run-531 | 290 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed |  |
+| `profile_dark` | FAIL-assert | s2/run-531 | 282 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
+| `saved_tab_dark` | FAIL-assert | s2/run-531 | 242 |  | [Failed] saved_tab_dark (3m 42s) (Assertion is false: id: (browse-search-bar|my-listings-search-input) is visi |
+| `theme_light_all_screens` | PASS | s2/run-531 | 277 |  |  |
+| `theme_persists_after_navigate` | PASS | s2/run-531 | 330 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
+
 ## `reviews` — Double-blind reviews after a sold transaction
 
 1/3 passing · 2 open
@@ -359,21 +374,6 @@ bug class a user reports as "nothing happened".
 |---|---|---|---:|---|---|
 | `open_listing_deep_link` | PASS | s2/run-530 | 119 |  |  |
 | `open_seller_deep_link` | FAIL-assert | s2/run-530 | 121 |  | [Failed] open_seller_deep_link (1m 39s) (Assertion is false: id: more-options-button is visible) |
-
-## `dark_mode` — Every main screen in dark theme + theme persistence
-
-7/8 passing · 1 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_dark` | PASS | s2/run-529 | 272 |  |  |
-| `chat_dark` | PASS | s2/run-529 | 275 |  |  |
-| `listing_detail_dark` | FAIL-assert | s2/run-529 | 193 |  | [Failed] listing_detail_dark (2m 51s) (Element not found: Id matching regex: profile-tab) |
-| `my_listings_dark` | PASS | s2/run-529 | 271 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed |  |
-| `profile_dark` | PASS | s2/run-529 | 281 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
-| `saved_tab_dark` | PASS | s2/run-529 | 255 |  |  |
-| `theme_light_all_screens` | PASS | s2/run-529 | 275 |  |  |
-| `theme_persists_after_navigate` | PASS | s2/run-529 | 329 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
 
 ## `rtl` — Pashto + Dari right-to-left layout across main screens
 
