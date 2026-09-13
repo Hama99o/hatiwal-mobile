@@ -280,6 +280,25 @@ count is now EIGHT stable-fail flows, none of them app bugs:
 | a chat thread | seller-only UI (Mark Sold) or `quickReplies.seller.*` copy in the screenshot | the owner-notice grep — that string lives on ListingDetail and is absent from threads whatever the identity |
 | any request | `hatiwal-api/log/development.log` — the `UPDATE "users" ... WHERE "users"."id" = N` on each authenticated request names the CURRENT user | — |
 
+**The probe needs the flow's LOGIN HELPER as context, or it lies.** A flow that
+runs `login_seller.yaml` and views its own listing SHOULD show
+"This is your listing" — that is correct behaviour, not a switch. run-527 flagged
+`publish_success` that way and it is a seller-only flow; it was excluded.
+
+And a whole-file grep does not say WHEN the notice appeared. Six of the flows in
+this family run BOTH helpers, so the notice could belong to their seller phase.
+Localise it before counting a flow in:
+
+```bash
+# seconds between the LAST "This is your listing" and the end of the logcat
+# 4-6s => it was on screen when the flow failed
+```
+
+All six measured 4-6s, while failing on a BUYER assertion ("Make an Offer" /
+"Contact Seller"), so they stay in. The three that run `login.yaml` ONLY
+(start_conversation, quick_replies, report_participant) need no such check — the
+notice can never be correct for them.
+
 **Sweep the whole run in one line** — this is how the count went from 8 to 9;
 `start_conversation` had been filed under "my conversion did not work":
 

@@ -223,6 +223,23 @@ appId: com.hatiwal.app
 - assertVisible: "Owner Detail Publish Regression Item"
 - tapOn: "Done"
 - waitForAnimationToEnd
+# SCROLL BACK UP before reading the badge. The status badge and the title live at
+# the TOP of the owner detail, and this screen KEEPS the scroll position the flow
+# left it at — down where the Publish button was. `assertVisible` means ON
+# SCREEN, so it fails on a badge that is simply above the viewport.
+#
+# run-527's end-of-flow screenshot is exactly that: the owner detail showing
+# "Views - last 7 days", "No views yet in the last 7 days", "Location" and the
+# map, with the badge off the top. The listing had published correctly. Same
+# cause as held_quantity_refusal, and this file already uses this idiom below.
+#
+# Scroll to the TITLE, not to "Active": the title is unique, while "Active" is a
+# short generic word that an anchored scroll could find in the wrong place.
+- scrollUntilVisible:
+    element:
+      text: "Owner Detail Publish Regression Item"
+    direction: UP
+    timeout: 20000
 - assertVisible: "Active"
 - assertVisible: "Owner Detail Publish Regression Item"
 
