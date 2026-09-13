@@ -29,10 +29,10 @@ import { Category } from "@/api/categories";
 import { useCategories } from "@/hooks/useCategories";
 import { useCategoryName } from "@/hooks/useCategoryName";
 import { Text } from "@/components/reusables/text";
-import { Input } from "@/components/reusables/input";
 import { Button } from "@/components/reusables/button";
 import { Separator } from "@/components/reusables/separator";
 import { Check, Search, X, ChevronLeft, ChevronRight } from "lucide-react-native";
+import { SearchBar } from "@/components/common/SearchBar";
 import { useColors } from "@/hooks/useColors";
 
 /** A visible row: the category, plus its parent when the row is a search hit
@@ -226,19 +226,26 @@ export function CategoryPicker({ visible, selectedId, onSelect, onClose }: Categ
 
         <Separator className="mb-3" />
 
-        {/* Search */}
-        <View
-          style={[styles.searchRow, { flexDirection: isRtl ? "row-reverse" : "row" }]}
-        >
-          <Search size={16} color={colors.mutedForeground} style={styles.searchIcon} />
-          <Input
-            value={search}
-            onChangeText={setSearch}
-            placeholder={t("listing.form.searchCategories")}
-            className="flex-1"
-            style={{ textAlign: isRtl ? "right" : "left" }}
-          />
-        </View>
+        {/* Search — the SHARED SearchBar, not a hand-rolled row.
+            
+            This used to compose its own `Search` icon + `Input` side by side,
+            which is precisely the duplication R15 created SearchBar to remove
+            (docs/REFACTOR_DUPLICATION.md), and it showed: the icon floated
+            OUTSIDE the field as a sibling, so this sheet's search looked
+            unlike the identical control on Browse and Conversations.
+            
+            Adopting it also brings the animated clear (X) button for free —
+            previously the only way out of a no-match query was the Clear button
+            buried in the empty state. */}
+        <SearchBar
+          value={search}
+          onChangeText={setSearch}
+          placeholder={t("listing.form.searchCategories")}
+          testID="category-picker-search"
+          inputTestID="category-picker-search-input"
+          clearTestID="category-picker-search-clear"
+          containerStyle={styles.searchRow}
+        />
 
         {/* List */}
         <ScrollView
@@ -422,9 +429,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginBottom: 12,
-  },
-  searchIcon: {
-    flexShrink: 0,
   },
   list: {
     flexGrow: 0,
