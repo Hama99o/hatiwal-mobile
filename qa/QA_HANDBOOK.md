@@ -93,6 +93,29 @@ Two traps if you write this check yourself: maestro names selectors `idRegex` /
 "matches" for a flow it is wrong about), and the failure MESSAGE also contains the
 selector text, so match on the key/value pair rather than grepping the raw file.
 
+## Disk: what prune and archive ACTUALLY cost (measured 2026-09-13)
+
+At 95% used with 24G free and 39 run dirs, the question is whether to
+`qa.sh prune`. It archives first, and the archive writes to two TRACKED paths, so
+the reflex is to refuse. Measure it instead — the numbers are small:
+
+| | |
+|---|---|
+| `qa/reports/` | **gitignored** (.gitignore:55) — the 27G is not in git |
+| `qa/history.jsonl` | tracked, tiny, and it is what `qa.sh flaky` falls back on |
+| `qa/evidence/` | tracked; the archive copies **275 screenshots, 33.8 MB** |
+| `qa.sh prune` (keep 20) | deletes 19 dirs, frees **10.8 GB** |
+
+`archive_results.py` does NOT copy "cited screenshots" as its docstring suggests.
+It extracts RUN IDS from FLOW_REGISTER.md's table and copies EVERY
+`screens/*.png` under each — 13 runs here. Measure with that logic, not by
+grepping the register for image paths, which finds zero.
+
+So the real trade is 34 MB committed once against 10.8 GB freed and the verdict
+history preserved. That is worth putting to the owner as a number, not as a
+vague warning about "a large pile of PNGs" — which is what this note used to say,
+before anyone measured it.
+
 ## Screen state carries BETWEEN flows — the app is not restarted
 
 The most expensive shape found so far, because it makes a CORRECT flow fail on a
