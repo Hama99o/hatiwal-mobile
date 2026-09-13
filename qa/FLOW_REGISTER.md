@@ -10,16 +10,16 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**134 of 258 flows passing** · 118 still need attention
+**131 of 258 flows passing** · 121 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 134 | green, and no backend error underneath |
-| FAIL-assert | 104 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-redbox | 2 | a red box / JS console error appeared — real app error |
-| FAIL-? | 10 | failed, cause unclear — read the log |
+| PASS | 131 | green, and no backend error underneath |
+| FAIL-assert | 99 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
+| FAIL-? | 4 | failed, cause unclear — read the log |
 | (rig) | 5 | rig broke mid-run — result meaningless, re-run |
-| UNTESTED | 2 | never executed |
+| UNTESTED | 17 | never executed |
 
 ### Definition of done
 
@@ -94,11 +94,11 @@ bug class a user reports as "nothing happened".
 | `create_listing` | FAIL-assert | run-535 | 227 | PASS (run-525, 275s) — and it is the reference: it scrolls to each field before tapping, which is exactly what its three failing siblings were missing. | [Failed] create_listing (3m 37s) (Assertion is false: "iPhone 12 Pro - 128GB" is visible) |
 | `create_listing_all_fields` | FAIL-assert | run-535 | 266 | flow — the description scroll WORKED and the failure MOVED one field. run-525 died on `listing-form-description-input`; run-528 dies on `listing-form-price-input`, which is a different field and a different direction. Price sits ABOVE description in the form (ListingForm.tsx: price ~1400, description ~1785), so scrolling DOWN to the description leaves price above the viewport, and the price `tapOn` had no scroll at all — `tapOn` never scrolls. Added scrollUntilVisible direction UP with centerElement. Still 0/7, but one field further along. | Leftover map steps opened the map, breaking set_listing_location's own scroll; helper does it. |
 | `create_listing_category_search` | FAIL-assert | run-535 | 213 | flow — FIXED. Typed "Elect" then asserted "Electronics" after only a waitForAnimationToEnd, but FILTERING a category list is a data operation, not an animation. "Electronics" is not stale copy either — it comes from the API's categories, not i18n. Converted to extendedWaitUntil (15s). | [Failed] create_listing_category_search (3m 6s) (Assertion is false: "Electronics" is visible) |
-| `create_listing_currency_eur` | FAIL-assert | run-535 | 222 | RETRACTED as a confirmed fix. Folding the archived history in shows it is 1/7 at the old sha 198aa2244b02, not 0/5 — it had already passed once in an older run (284/491) that had been pruned out of view. Against a ~14% base rate, ONE pass at the new sha d1b204d29bd0 is weak evidence, not proof. The scroll is still the right fix and matches the failure exactly, but it needs 3+ consecutive passes before it can be claimed — the same test that excluded create_listing_currency_usd. | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
-| `create_listing_currency_usd` | FAIL-redbox | run-535 | 300 | PASS in run-528 (272s) at the new sha 51c4e9ae9adf, but NOT claimable: at the old sha it was 1/5 — it had already passed once in run-517 — so it is FLAKY and a single pass proves nothing. Needs 3+ consecutive runs before the same fix can be credited here. | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
+| `create_listing_currency_eur` | FAIL-assert | run-535 | 222 | run-535 FAIL, but NOT caused by the PKR feature work — checked, because adding a currency row to the picker is exactly the kind of change that silently shifts an index-based selector. It does not here: ListingForm.tsx:1962 builds the id as a TEMPLATE LITERAL, testID={`listing-form-currency-${opt.value}`}, so it is VALUE-derived. `listing-form-currency-EUR` and `-USD` resolve exactly as before and the new `-PKR` row disturbs nothing. (A literal grep for the id finds nothing — this is the template-literal selector trap.) Record is 2/4 at the current sha (run-528 pass, run-535 fail, history mixed): FLAKY, and flaky BEFORE the PKR change. Do not patch. | My Shop list is virtualised, so an unrendered card is absent; now searches. Price is one node (€250.00). |
+| `create_listing_currency_usd` | FAIL-redbox | run-535 | 300 | run-535 FAIL, but NOT caused by the PKR feature work — checked, because adding a currency row to the picker is exactly the kind of change that silently shifts an index-based selector. It does not here: ListingForm.tsx:1962 builds the id as a TEMPLATE LITERAL, testID={`listing-form-currency-${opt.value}`}, so it is VALUE-derived. `listing-form-currency-EUR` and `-USD` resolve exactly as before and the new `-PKR` row disturbs nothing. (A literal grep for the id finds nothing — this is the template-literal selector trap.) Record is 2/4 at the current sha (run-528 pass, run-535 fail, history mixed): FLAKY, and flaky BEFORE the PKR change. Do not patch. | Asserted "$450" — `$` is a regex end-anchor, so it could never match. |
 | `create_listing_draft_discard` | FAIL-assert | run-535 | 231 |  | [Failed] create_listing_draft_discard (3m 20s) (Assertion is false: "Discard changes?" is visible) |
 | `create_listing_draft_restore` | FAIL-assert | run-535 | 310 | flow | "Draft saved" is a toast from toast.success; a bare assert races it. Now polls. |
-| `create_listing_full_publish` | PASS | run-528 | 289 |  | AxiosError |
+| `create_listing_full_publish` | PASS | run-535 | 574 |  | AxiosError |
 | `create_listing_multi_quantity` | FAIL-assert ⟳stale | run-528 | 237 | flow (heading off screen) — the flow taps the inert "Create Listing" HEADING to blur a field, which is the right trick: `hideKeyboard` is BACK on Android and a dirty form intercepts BACK as "Discard changes?" (run-034). But the heading sits INSIDE the scroll view, not in a fixed header, so once the form has scrolled and the keypad covers the lower half it is off the top — and `tapOn` never scrolls. run-528 died at step-75 on `Element not found: Text matching regex: Create Listing`, a heading that is present and correct. Added scrollUntilVisible direction UP before BOTH heading taps. Kept the tap, not hideKeyboard. | Found UI-011 (HIGH): quantity never reached the API on create/edit — typed 15, stored 1, because both multipart builders are field-by-field allow-lists that never appended it. Also UI-012: the toggle row's label was inert (only the 44x24 switch responded) and the shared Switch had no testID, so no flow could target any switch in the app. Flow needed: a leaf category (Electronics is a parent and leaves the picker over the form), no hide-keyboard on a dirty form (Android BACK → "Discard changes?"), and Save Draft tapped in the fixed toolbar rather than after a keyboard dance. run-042 green; DB confirms qty=15 multi=true. |
 | `create_listing_price_edges` | PASS | run-528 | 241 |  |  |
 | `create_listing_publish_blocked` | FAIL-assert ⟳stale | run-528 | 269 | flow (heading off screen) — same cause, assert instead of tap. Died at step-96 on `"Create Listing" is visible`, the check that the form is STILL OPEN after a blocked publish. By then the flow has scrolled down to reach Publish, so the heading is above the viewport and assertVisible means ON SCREEN. The line above it (`assertNotVisible: "Your listing is live!"`) already proves the form is open, so this was never about state. Added scrollUntilVisible direction UP before it. | Touched the form before the location sheet closed; the helper allows 45s for it. |
@@ -206,43 +206,20 @@ bug class a user reports as "nothing happened".
 | `undo_mark_sold` | FAIL-assert | run-534 | 219 | flow — `location-confirm` not visible; testID IS current (LocationRangePicker.tsx:470). Reach/timing — the location sheet had not opened or had not rendered. Post-identity-fix. | [Failed] undo_mark_sold (3m 28s) (Assertion is false: id: location-confirm is visible) |
 | `undo_mark_sold_with_buyer` | PASS | run-534 | 181 |  |  |
 
-## `auth` — Sign up, login, logout, session persistence, guest gating
-
-11/16 passing · 5 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `confirm_email_prompt` | PASS | run-514 | 193 |  |  |
-| `guest_browse` | PASS | run-514 | 171 |  |  |
-| `guest_offer_redirect` | FAIL-? | run-514 | 194 |  | [Failed] guest_offer_redirect (2m 49s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `guest_save_redirect` | FAIL-? | run-514 | 164 |  |  |
-| `login` | PASS | run-514 | 173 |  |  |
-| `login_deep` | PASS | run-514 | 225 |  |  |
-| `login_empty_fields` | PASS | run-514 | 139 |  | Request failed with status code Request failed with status code |
-| `login_navigate_to_register` | PASS | run-514 | 140 |  |  |
-| `login_wrong_password` | PASS | run-514 | 154 |  | Request failed with status code |
-| `logout` | PASS | run-514 | 224 | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
-| `logout_cancel` | PASS | run-514 | 222 |  |  |
-| `register_duplicate_email` | FAIL-? | run-514 | 185 | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
-| `register_navigate_to_login` | PASS | run-514 | 140 |  |  |
-| `session_persist` | PASS | run-514 | 210 |  |  |
-| `sign_up` | FAIL-? | run-514 | 202 |  | [Failed] sign_up (3m 2s) (No visible element found: id: register-confirm-password-input) |
-| `sign_up_validation` | FAIL-? | run-514 | 209 |  | [Failed] sign_up_validation (3m 11s) (No visible element found: id: register-confirm-password-input) |
-
 ## `saved` — Save / unsave a listing, saved tab, sold-while-saved
 
-3/8 passing · 5 open
+0/8 passing · 8 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `save_from_browse_feed` | PASS | run-512 | 199 |  |  |
-| `save_listing` | FAIL-? | run-512 | 155 |  | [Failed] save_listing (2m 21s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `save_multiple_listings` | FAIL-assert | run-512 | 167 |  | [Failed] save_multiple_listings (2m 33s) (Assertion is false: id: listing-card, Index: 2 is visible) |
-| `saved_empty_state` | PASS | run-512 | 157 |  |  |
-| `saved_listing_goes_sold` | FAIL-assert | run-512 | 426 |  | [Failed] saved_listing_goes_sold (6m 52s) (Element not found: Id matching regex: seller-card-primary-action) |
-| `saved_pagination` | FAIL-assert | run-512 | 211 |  | [Failed] saved_pagination (3m 17s) (Element not found: Id matching regex: listing-card) |
-| `unsave_from_browse_feed` | PASS | run-512 | 199 |  |  |
-| `unsave_listing` | FAIL-assert | run-512 | 211 |  | [Failed] unsave_listing (3m 16s) (Element not found: Text matching regex: Remove from saved) |
+| `save_from_browse_feed` | UNTESTED | — |  |  |  |
+| `save_listing` | UNTESTED | — |  |  |  |
+| `save_multiple_listings` | UNTESTED | — |  |  |  |
+| `saved_empty_state` | UNTESTED | — |  |  |  |
+| `saved_listing_goes_sold` | UNTESTED | — |  |  |  |
+| `saved_pagination` | UNTESTED | — |  |  |  |
+| `unsave_from_browse_feed` | UNTESTED | — |  |  |  |
+| `unsave_listing` | UNTESTED | — |  |  |  |
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
@@ -280,6 +257,17 @@ bug class a user reports as "nothing happened".
 | `view_profile` | FAIL-assert ⟳stale | run-529 | 233 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] view_profile (3m 35s) (Assertion is false: "Edit Profile" is visible) |
 | `view_profile_error` | PASS | run-529 | 287 |  | AxiosError |
 | `view_seller_profile_from_profile` | FAIL-assert ⟳stale | run-529 | 228 | flow (kept scroll BETWEEN flows) — the app is not restarted between flows, so Profile keeps the position an EARLIER flow left it at. run-529's screenshot is Profile scrolled to the bottom (Activity / Privacy / Sign Out / Delete account) with the mode row off the top, still in dark mode from theme_switch. The control proves the flow is not wrong: seller_mode_toggle has the byte-identical opening and PASSES — it just runs before anything scrolls Profile down. Killed two hypotheses first: the login helper (5 of 6 failures use login.yaml, same as all 5 passing flows) and the renamed fixture (only 1 of 6 asserts a name). Added a GUARDED scrollUntilVisible UP. | [Failed] view_seller_profile_from_profile (3m 29s) (Assertion is false: "Ahmad Karimi" is visible) |
+
+## `mode` — Buyer ↔ seller mode switch, tab bar, persistence
+
+0/4 passing · 4 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `seller_mode_my_listings_empty` | UNTESTED | — |  | candidate — one spurious 401 logged the app out; see UI_FINDINGS, needs 2nd sighting | new_seller@hatiwal.test was referenced by the flow and seeded nowhere. |
+| `seller_mode_persists` | UNTESTED | — |  |  |  |
+| `seller_mode_tab_bar_changes` | UNTESTED | — |  |  |  |
+| `seller_views_own_listing_buyer_mode` | UNTESTED | — |  | flow | Searched the feed for "seller"; search matches titles, so it found nothing. |
 
 ## `report` — Report a listing or user, block, block side-effects
 
@@ -327,13 +315,13 @@ bug class a user reports as "nothing happened".
 
 ## `reviews` — Double-blind reviews after a sold transaction
 
-1/3 passing · 2 open
+0/3 passing · 3 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `pending_reviews_nudge` | FAIL-redbox | run-511 | 262 |  | [Failed] pending_reviews_nudge (4m 8s) (Assertion is false: "Review saved" is visible) |
-| `profile_reviews_empty_state` | PASS | run-511 | 157 |  |  |
-| `rate_buyer_after_sale` | FAIL-assert | run-511 | 237 |  | [Failed] rate_buyer_after_sale (3m 43s) (Assertion is false: id: seller-listing-card is visible) |
+| `pending_reviews_nudge` | UNTESTED | — |  |  |  |
+| `profile_reviews_empty_state` | UNTESTED | — |  |  |  |
+| `rate_buyer_after_sale` | UNTESTED | — |  |  |  |
 
 ## `safety` — Safety tips on listing detail and in the meetup sheet
 
@@ -343,6 +331,14 @@ bug class a user reports as "nothing happened".
 |---|---|---|---:|---|---|
 | `safety_tips_listing_detail` | UNTESTED | — |  |  |  |
 | `safety_tips_meetup_sheet` | UNTESTED | — |  |  |  |
+
+## `onboarding` — First-run experience
+
+0/1 passing · 1 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `first_run` | FAIL-assert | s2/run-536 | 458 |  | [Failed] first_run (6m 33s) (Assertion is false: "Bazaar" is visible) |
 
 ## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
 
@@ -355,24 +351,28 @@ bug class a user reports as "nothing happened".
 | `listing_gallery_no_photo` | PASS | run-531 | 497 |  |  |
 | `listing_gallery_swipe` | PASS | run-531 | 401 |  |  |
 
-## `mode` — Buyer ↔ seller mode switch, tab bar, persistence
+## `auth` — Sign up, login, logout, session persistence, guest gating
 
-3/4 passing · 1 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `seller_mode_my_listings_empty` | FAIL-assert | run-513 | 178 | candidate — one spurious 401 logged the app out; see UI_FINDINGS, needs 2nd sighting | new_seller@hatiwal.test was referenced by the flow and seeded nowhere. |
-| `seller_mode_persists` | PASS | run-513 | 241 |  |  |
-| `seller_mode_tab_bar_changes` | PASS | run-513 | 154 |  |  |
-| `seller_views_own_listing_buyer_mode` | PASS | run-513 | 222 | flow | Searched the feed for "seller"; search matches titles, so it found nothing. |
-
-## `onboarding` — First-run experience
-
-1/1 passing · 0 open
+16/16 passing · 0 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `first_run` | PASS | s2/run-534 | 290 |  |  |
+| `confirm_email_prompt` | PASS | s2/run-285 | 140 |  |  |
+| `guest_browse` | PASS | s2/run-285 | 102 |  |  |
+| `guest_offer_redirect` | PASS | s2/run-285 | 157 |  |  |
+| `guest_save_redirect` | PASS | s2/run-285 | 158 |  |  |
+| `login` | PASS | s2/run-285 | 119 |  |  |
+| `login_deep` | PASS | s2/run-285 | 183 |  |  |
+| `login_empty_fields` | PASS | s2/run-285 | 93 |  | Request failed with status code Request failed with status code |
+| `login_navigate_to_register` | PASS | s2/run-285 | 89 |  |  |
+| `login_wrong_password` | PASS | s2/run-285 | 100 |  | Request failed with status code |
+| `logout` | PASS | s2/run-285 | 196 | rig | ENVIRONMENT, not the flow. run-241 aborted mid-feature: an openaleph-mobile Gradle build took the load average to 49 on 16 cores and this session's emulator died — the rig logged "CPU only 0% idle — refusing to boot" and "could not recover the emulator — aborting feature 'auth'". Re-run on a quiet machine before reading anything into it. logout is also the reference flow that showed sign-out lands on the Bazaar (see login_deep). |
+| `logout_cancel` | PASS | s2/run-285 | 194 |  |  |
+| `register_duplicate_email` | PASS | s2/run-285 | 119 | flow | APP IS CORRECT (422 + errors.full_messages surfaced) but the FLOW was wrong, and my first diagnosis blamed the wrong thing. Register.tsx renders each error as `<Text>{"• "}{msg}</Text>`, so the node reads "• Email has already been taken" and Maestro's anchored regex cannot match the bare literal. It would have failed on a quiet machine too — the `Refreshing…` banner in the first screenshot was real but incidental. Now asserts ".*Email has already been taken.*". |
+| `register_navigate_to_login` | PASS | s2/run-285 | 92 |  |  |
+| `session_persist` | PASS | s2/run-285 | 121 |  |  |
+| `sign_up` | PASS | s2/run-285 | 150 |  |  |
+| `sign_up_validation` | PASS | s2/run-285 | 132 |  |  |
 
 ## `share` — Deep links into a listing and a seller profile
 
