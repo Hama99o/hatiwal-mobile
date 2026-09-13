@@ -161,9 +161,33 @@ appId: com.hatiwal.app
 # place and left standing in four.
 # Card/row testIDs cannot collide with the query text, and they also survive the
 # list truncating a long title.
+# CLOSE THE IME BEFORE TAPPING THE CARD, AND PROVE THE NAVIGATION.
+#
+# run-530 died at step-230 on `.*3,500`, and the screenshot says why: the app was
+# still on the SEARCH SCREEN — query typed, keyboard over the lower half, one card
+# barely visible. The tap is by testID and correctly targeted, but the keyboard was
+# over the card, so it never landed and the listing detail never opened.
+#
+# The title assert below cannot catch that. Maestro matches text ANYWHERE ON
+# SCREEN, including inside an INPUT FIELD, and "Marketplace Cycle Phone" is sitting
+# in the search box — so it passes on the search screen exactly as it would on the
+# listing. Only the price exposed it. Never let a title prove navigation; assert
+# the search field is GONE.
+#
+# `pressKey: Enter` as well as the drag: the drag alone does NOT close the IME on
+# the Bazaar grid (that list does not opt into keyboardDismissMode="on-drag"), and
+# `hideKeyboard` is BACK on Android. Same sequence _helpers/open_listing_by_title.yaml
+# settled on, applied inline rather than restructuring a 340-line flow.
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
+- pressKey: Enter
+- waitForAnimationToEnd
 - tapOn:
     id: "listing-card"
     index: 0
+- extendedWaitUntil:
+    notVisible:
+      id: "browse-search-input"
+    timeout: 10000
 - waitForAnimationToEnd
 - assertVisible: "Marketplace Cycle Phone"
 # Amounts are rendered by Intl with style:"currency", so the element text is
@@ -228,9 +252,33 @@ appId: com.hatiwal.app
 - eraseText
 - inputText: "Marketplace Cycle Phone"
 - waitForAnimationToEnd
+# CLOSE THE IME BEFORE TAPPING THE CARD, AND PROVE THE NAVIGATION.
+#
+# run-530 died at step-230 on `.*3,500`, and the screenshot says why: the app was
+# still on the SEARCH SCREEN — query typed, keyboard over the lower half, one card
+# barely visible. The tap is by testID and correctly targeted, but the keyboard was
+# over the card, so it never landed and the listing detail never opened.
+#
+# The title assert below cannot catch that. Maestro matches text ANYWHERE ON
+# SCREEN, including inside an INPUT FIELD, and "Marketplace Cycle Phone" is sitting
+# in the search box — so it passes on the search screen exactly as it would on the
+# listing. Only the price exposed it. Never let a title prove navigation; assert
+# the search field is GONE.
+#
+# `pressKey: Enter` as well as the drag: the drag alone does NOT close the IME on
+# the Bazaar grid (that list does not opt into keyboardDismissMode="on-drag"), and
+# `hideKeyboard` is BACK on Android. Same sequence _helpers/open_listing_by_title.yaml
+# settled on, applied inline rather than restructuring a 340-line flow.
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
+- pressKey: Enter
+- waitForAnimationToEnd
 - tapOn:
     id: "listing-card"
     index: 0
+- extendedWaitUntil:
+    notVisible:
+      id: "browse-search-input"
+    timeout: 10000
 - waitForAnimationToEnd
 # Open a listing detail. THE STEP THAT OPENS ONE WAS MISSING: this flow tapped
 # "Contact Seller" — a DETAIL-screen button — while still on the Bazaar feed,
@@ -331,9 +379,33 @@ appId: com.hatiwal.app
 - eraseText
 - inputText: "Marketplace Cycle Phone"
 - waitForAnimationToEnd
+# CLOSE THE IME BEFORE TAPPING THE CARD, AND PROVE THE NAVIGATION.
+#
+# run-530 died at step-230 on `.*3,500`, and the screenshot says why: the app was
+# still on the SEARCH SCREEN — query typed, keyboard over the lower half, one card
+# barely visible. The tap is by testID and correctly targeted, but the keyboard was
+# over the card, so it never landed and the listing detail never opened.
+#
+# The title assert below cannot catch that. Maestro matches text ANYWHERE ON
+# SCREEN, including inside an INPUT FIELD, and "Marketplace Cycle Phone" is sitting
+# in the search box — so it passes on the search screen exactly as it would on the
+# listing. Only the price exposed it. Never let a title prove navigation; assert
+# the search field is GONE.
+#
+# `pressKey: Enter` as well as the drag: the drag alone does NOT close the IME on
+# the Bazaar grid (that list does not opt into keyboardDismissMode="on-drag"), and
+# `hideKeyboard` is BACK on Android. Same sequence _helpers/open_listing_by_title.yaml
+# settled on, applied inline rather than restructuring a 340-line flow.
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
+- pressKey: Enter
+- waitForAnimationToEnd
 - tapOn:
     id: "listing-card"
     index: 0
+- extendedWaitUntil:
+    notVisible:
+      id: "browse-search-input"
+    timeout: 10000
 - waitForAnimationToEnd
 # SF-M1 (Sell Flow Redesign) removed "Mark as Reserved" from every listing
 # surface — the primary action on a Live listing is now ALWAYS "Mark as
