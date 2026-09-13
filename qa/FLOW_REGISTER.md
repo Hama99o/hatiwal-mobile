@@ -10,14 +10,14 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**150 of 258 flows passing** · 106 still need attention
+**153 of 258 flows passing** · 103 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 150 | green, and no backend error underneath |
-| FAIL-assert | 79 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 153 | green, and no backend error underneath |
+| FAIL-assert | 78 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 24 | failed, cause unclear — read the log |
+| FAIL-? | 22 | failed, cause unclear — read the log |
 | (rig) | 1 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 2 | never executed |
 
@@ -136,7 +136,7 @@ bug class a user reports as "nothing happened".
 
 ## `listings` — Seller create/edit/delete + the 3-state lifecycle (Draft/Live/Sold) — Mark sold is always the one-tap primary, no Reserved tab
 
-17/40 passing · 12 open
+17/40 passing · 11 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -178,7 +178,7 @@ bug class a user reports as "nothing happened".
 | `listing_status_counts` | FAIL-assert | run-528 | 221 | TRIAGED, not yet fixed. Fails at step-79 on `"All" is visible`. NOT the tab-bar case — run-528's sibling screenshot shows the filter row rendering "All 40 / Draft 9 / Active 27 / Expired 1" normally, so the chips exist. Needs its own screenshot before a fix. | "Sold" is the last tab in a horizontal scroller; scrollUntilVisible swipes at screen centre. |
 | `my_listing_detail_view` | FAIL-assert | run-528 | 200 | flow | Same draft-gated analytics; Active tab first. |
 | `my_listings_filter_tabs` | PASS | run-528 | 198 | flow — same; executed step was pre-swipe scrollUntilVisible. Verdict stale | Same clipped last tab; coordinate swipe across the row. |
-| `my_listings_search` | FAIL-assert | run-528 | 218 | flow (the IME covers the TAB BAR) — a fifth face of "rendered but not on screen", and the first that is not a form field. "My Shop" is the BOTTOM TAB's label (sidebar.myListings — the string does not exist anywhere else in the app; src/ mentions it only in comments and a Storybook story). It fails at the SECOND of the flow's two identical asserts, after `eraseText` clears the search — eraseText does NOT dismiss the keyboard, so the tab bar stays covered. run-528's screenshot is that screen: search focused, keypad over the lower half, one card visible. Fixed with `pressKey: Enter` (never hideKeyboard, which is BACK on Android). Checked the spread first: exactly one flow asserts a tab label after typing. | Asserted a bare "No"; now asserts the absence of cards instead of empty-state copy. |
+| `my_listings_search` | FAIL-assert ⟳stale | run-528 | 218 | flow (the IME covers the TAB BAR) — a fifth face of "rendered but not on screen", and the first that is not a form field. "My Shop" is the BOTTOM TAB's label (sidebar.myListings — the string does not exist anywhere else in the app; src/ mentions it only in comments and a Storybook story). It fails at the SECOND of the flow's two identical asserts, after `eraseText` clears the search — eraseText does NOT dismiss the keyboard, so the tab bar stays covered. run-528's screenshot is that screen: search focused, keypad over the lower half, one card visible. Fixed with `pressKey: Enter` (never hideKeyboard, which is BACK on Android). Checked the spread first: exactly one flow asserts a tab label after typing. | Asserted a bare "No"; now asserts the absence of cards instead of empty-state copy. |
 | `price_drop_after_edit` | FAIL-assert | run-528 | 241 | flow | hideKeyboard is Back and popped the edit form — first of the five sites the handbook predicted. |
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
@@ -187,12 +187,12 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `account_delete_and_restore` | FAIL-? | run-518 | 184 |  | [Failed] account_delete_and_restore (2m 50s) (No visible element found: id: register-confirm-password-input) |
-| `account_delete_cancel` | FAIL-? | run-518 | 213 |  | [Failed] account_delete_cancel (3m 18s) (No visible element found: "Delete account") |
-| `away_mode` | PASS | run-518 | 212 | app+flow — away row was untappable (no Pressable/testID); fixed cb68fa4 (live via Metro, no rebuild) |  |
-| `blocked_users` | PASS | run-518 | 170 |  |  |
-| `change_language_dari` | PASS | run-518 | 176 |  |  |
-| `change_language_english` | PASS | run-518 | 572 | flow — toothless restart wait; helper+nav fixed cb68fa4 |  |
+| `account_delete_and_restore` | FAIL-assert | run-529 | 188 | TRIAGED, not fixed — 0/8, different cause from its sibling. Fails at step-59 on `tapOn id: register-email-input`, i.e. while trying to register a fresh account, not on the delete control. Needs its own screenshot. | [Failed] account_delete_and_restore (2m 47s) (Element not found: Id matching regex: register-email-input) |
+| `account_delete_cancel` | FAIL-? | run-529 | 244 | flow (centerElement on the LAST element) — 0/8, and the cause is one word. `scrollUntilVisible` used `centerElement: true` on "Delete account", which sits at the very BOTTOM of Profile. An element at the END of a scroll container cannot be centred — nothing below it to scroll past — so the constraint is unsatisfiable and the scroll burns its whole timeout on a control that is already on screen. run-529's screenshot shows "Delete account" plainly visible above the tab bar. The copy is current too (profile.json:160). Commit 66c3093 names this exact trap. CONTROL GROUP, and why this is a one-flow change: auth/logout, auth/logout_cancel and auth/login_deep all scroll to "Sign Out" with centerElement and are 4/4 each — Sign Out has "Delete account" below it, so it CAN be centred. Dropped centerElement here only. | [Failed] account_delete_cancel (3m 41s) (No visible element found: "Delete account") |
+| `away_mode` | PASS | run-529 | 256 | app+flow — away row was untappable (no Pressable/testID); fixed cb68fa4 (live via Metro, no rebuild) |  |
+| `blocked_users` | PASS | run-529 | 200 |  |  |
+| `change_language_dari` | PASS | run-529 | 208 |  |  |
+| `change_language_english` | PASS | run-518 | 572 | rig (our own 600s cap), NOT a verdict — and deliberately not fixed. Durations creep: 278, 431, 578, 241, 572, then 601 in run-529, where it was recorded kind=rig_fail. Language flows call reloadApp() (applyLanguageFromUser on a direction change), which is why English is far slower than its Dari sibling at 172-208s. The in-flow marker exists — it runs `_helpers/await_language_restart.yaml` — but 26 flows carry that marker and doubling the cap for all of them to cover one flow's occasional timeout would make every genuinely hung flow burn 20 minutes instead of 10. The cost here is throughput, not correctness: cap timeouts classify as rig_fail and qa.sh flaky already excludes them, so no verdict is harmed. Left alone on purpose. |  |
 | `change_language_pashto` | PASS | run-518 | 175 |  |  |
 | `contact_visibility` | PASS | run-518 | 571 | flow | 2026-09-03: the failing assertion named the copied number but the cause was navigation. hideKeyboard is a Back press and popped Edit Profile to Profile; the next THREE commands reported COMPLETED against a stale hierarchy, so the assertNotVisible before it passed for the WRONG reason. Replaced with pressKey:Enter, which turned out to SUBMIT the form — both removed. Green at 360dp once the keypress was gone; now unstable again from my keyboardDismissMode=on-drag reflowing the form mid-scroll (board #313). NOT an app bug. |
 | `edit_profile` | PASS | run-518 | 166 | stale — toast assertion already replaced by durable name check |  |
@@ -296,21 +296,6 @@ bug class a user reports as "nothing happened".
 | `report_user_from_profile` | PASS | run-510 | 175 | rig — never opened the listing. The result card (Honda CG 125 Motorbike 2021) is rendered in the screenshot and the flow failed on `seller-profile-link` without tapping it. Also shows the inputText character drop: field holds '5 Motorbike 2021', leading 'Honda CG 12' dropped. open_listing_by_title.yaml's wait-on-listing-card + tap-by-testID is the pattern that fixes this. | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
 | `report_user_then_block` | FAIL-assert | run-510 | 195 | rig — ran UNAUTHENTICATED. The end-of-flow screenshot's tab bar reads Bazaar / Categories / Login, so `seller-profile-link` (which DOES exist, ListingDetail.tsx:797) was never reachable. Also shows the inputText character drop: the search field holds 'nch 4K Smart TV' — the leading 'Sony 55 i' was dropped. | Retargeted to maryam (40); now unblocks, which it never did. |
 
-## `dark_mode` — Every main screen in dark theme + theme persistence
-
-4/8 passing · 4 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_dark` | PASS | s2/run-529 | 272 |  |  |
-| `chat_dark` | PASS | s2/run-529 | 275 |  |  |
-| `listing_detail_dark` | FAIL-? | s2/run-528 | 222 |  | [Failed] listing_detail_dark (3m 21s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `my_listings_dark` | PASS | s2/run-528 | 305 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed |  |
-| `profile_dark` | FAIL-assert | s2/run-528 | 282 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
-| `saved_tab_dark` | FAIL-assert | s2/run-528 | 247 |  | [Failed] saved_tab_dark (3m 44s) (Assertion is false: id: (browse-search-bar|my-listings-search-input) is visi |
-| `theme_light_all_screens` | FAIL-assert | s2/run-528 | 230 |  | [Failed] theme_light_all_screens (3m 31s) (Assertion is false: "Switch to .*" is visible) |
-| `theme_persists_after_navigate` | PASS | s2/run-528 | 398 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
-
 ## `reviews` — Double-blind reviews after a sold transaction
 
 1/3 passing · 2 open
@@ -374,6 +359,21 @@ bug class a user reports as "nothing happened".
 |---|---|---|---:|---|---|
 | `open_listing_deep_link` | PASS | s2/run-529 | 112 |  |  |
 | `open_seller_deep_link` | FAIL-assert | s2/run-529 | 125 |  | [Failed] open_seller_deep_link (1m 43s) (Assertion is false: id: more-options-button is visible) |
+
+## `dark_mode` — Every main screen in dark theme + theme persistence
+
+7/8 passing · 1 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_dark` | PASS | s2/run-529 | 272 |  |  |
+| `chat_dark` | PASS | s2/run-529 | 275 |  |  |
+| `listing_detail_dark` | FAIL-assert | s2/run-529 | 193 |  | [Failed] listing_detail_dark (2m 51s) (Element not found: Id matching regex: profile-tab) |
+| `my_listings_dark` | PASS | s2/run-529 | 271 | MY REGRESSION — restart helper waited for listing-card; seller mode returns to seller-listing-card. Fixed |  |
+| `profile_dark` | PASS | s2/run-529 | 281 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: ended on the Bazaar feed mid-flow, cause not established. Checkpointed. |
+| `saved_tab_dark` | PASS | s2/run-529 | 255 |  |  |
+| `theme_light_all_screens` | PASS | s2/run-529 | 275 |  |  |
+| `theme_persists_after_navigate` | PASS | s2/run-529 | 329 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
 
 ## `onboarding` — First-run experience
 

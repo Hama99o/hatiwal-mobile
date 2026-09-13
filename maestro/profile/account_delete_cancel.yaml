@@ -18,12 +18,25 @@ appId: com.hatiwal.app
     id: "profile-tab"
 - waitForAnimationToEnd
 
-# The control sits at the very bottom of Profile, below sign-out.
+# The control sits at the very bottom of Profile, below sign-out — which is
+# exactly why `centerElement: true` could never work here and has now cost eight
+# runs. Maestro scrolls until the element is CENTRED, and an element at the END of
+# a scroll container cannot be centred: there is nothing below it to scroll past,
+# so the constraint is unsatisfiable and the scroll burns its whole timeout on a
+# control that is already on screen. run-529's end-of-flow screenshot shows
+# "Delete account" plainly visible, centred horizontally, above the tab bar.
+#
+# Commit 66c3093 names this: "a field near the end of a form cannot be centred,
+# which is how CENTERELEM findings are manufactured."
+#
+# The three Sign Out flows are the control group and keep their centerElement:
+# auth/logout, auth/logout_cancel and auth/login_deep are 4/4 each, because
+# "Sign Out" has "Delete account" BELOW it and so can be centred. Only the last
+# element in the container is affected, so this is a one-flow change.
 - scrollUntilVisible:
     element:
       text: "Delete account"
     direction: DOWN
-    centerElement: true
     timeout: 15000
 - tapOn: "Delete account"
 - waitForAnimationToEnd
