@@ -15,10 +15,33 @@ appId: com.hatiwal.app
 # 20s and reported "No visible element found" for something never on this screen.
 # gallery/listing_edit_add_photos.yaml already had the working route from here: the
 # card's own ⋮ opens the same actions, by testID rather than the word "Edit".
-- scrollUntilVisible:
-    element:
+# TARGET A SPECIFIC LISTING, not whichever card happens to be first.
+#
+# run-528 proves why. This flow scrolled to `seller-listing-card` and opened the
+# FIRST card's menu, which landed on listing 3317 "Laptop HP" — status DRAFT with
+# exactly ONE photo. Two consequences, both fatal to what this flow is testing:
+# removing its only photo empties the gallery, and on a draft the toolbar is
+# [Save Draft | Publish], never the single [Save] this flow taps
+# (`isPublished` = existingListing.status !== "draft", ListingForm.tsx:451). The
+# end-of-flow screenshot is exactly that toolbar over an empty Photos section, so
+# "Element not found: Text matching regex: Save" was the app being right.
+#
+# Card order is not a fixture. The database is RE-SEEDED between cycles — the
+# seller's own id moved 420 -> 423 -> 426 within a few hours of this campaign —
+# so whatever sorts first changes underneath the suite.
+#
+# "School Backpack Bulk Restock - 20 Bags" is ACTIVE with THREE photos (checked
+# via the API), which is what removing and reordering both need. It is also
+# referenced by NO other flow, so mutating its photos cannot disturb anyone
+# else's fixture — unlike the Lenovo ThinkPad, which the seeder already uses as
+# the price-drop target.
+- runFlow:
+    file: ../_helpers/search_my_shop.yaml
+    env:
+      QUERY: "School Backpack Bulk Restock - 20 Bags"
+- extendedWaitUntil:
+    visible:
       id: "seller-listing-card"
-    direction: DOWN
     timeout: 20000
 - tapOn:
     id: "seller-card-more-action"

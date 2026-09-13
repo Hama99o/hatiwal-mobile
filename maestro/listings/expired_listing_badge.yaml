@@ -34,4 +34,20 @@ appId: com.hatiwal.app
 - assertVisible: "Expired"
 # Renew button available
 # `listing.renew` = "Renew". "Renew Listing" has never existed.
+#
+# SCROLL TO IT. "Renew" is the PRIMARY ACTION label on the owner detail's
+# "Manage Listing" row (useListingLifecycle.ts:475 — the same button that reads
+# "Publish" for a draft and "Mark as Sold" for a live listing), which sits below
+# the gallery, price, analytics and the location map. assertVisible means ON
+# SCREEN, so it fails on a button that is simply further down.
+#
+# Not a fixture problem and not a wrong screen: the API says listing 3279
+# "Expired Winter Coat Size L" is expired=true (expires_at 2026-09-10), and the
+# `assertVisible: "Expired"` two lines above PASSED — so the flow is on the right
+# listing with the right badge. Only "Renew" was out of view.
+- scrollUntilVisible:
+    element:
+      text: "Renew"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Renew"
