@@ -4,7 +4,11 @@ import i18n from "@/i18n";
  * OpenStreetMap Nominatim — keyless and covers villages, towns, landmarks and
  * marketplaces, not just the 34 provinces.
  *
- * Results are scoped to Afghanistan (countrycodes=af). Nominatim allows CORS
+ * Results are scoped to Afghanistan AND Pakistan (countrycodes=af,pk) — the two
+ * countries Hatiwal serves. Scoping to `af` alone made Peshawar and Islamabad
+ * literally unsearchable no matter what the basemap carried. Reverse geocoding
+ * below is deliberately UNSCOPED: a coordinate needs no country hint.
+ * Nominatim allows CORS
  * (works in the browser) and React Native fetch. For production-scale traffic a
  * dedicated geocoding provider with an API key should replace this.
  */
@@ -50,7 +54,7 @@ function nominatimHeaders(): Record<string, string> {
 
 export interface GeocodeResult {
   label: string; // short, human-friendly name (e.g. "Jalalabad")
-  detail: string; // fuller context (e.g. "Nangarhar, Afghanistan")
+  detail: string; // fuller context (e.g. "Nangarhar, Afghanistan" / "Khyber Pakhtunkhwa, Pakistan")
   latitude: number;
   longitude: number;
 }
@@ -69,7 +73,7 @@ export async function searchPlaces(query: string): Promise<GeocodeResult[]> {
 
   const url =
     `${NOMINATIM}/search?format=jsonv2&addressdetails=0&limit=8` +
-    `&accept-language=${acceptLanguage()}&countrycodes=af&q=${encodeURIComponent(q)}`;
+    `&accept-language=${acceptLanguage()}&countrycodes=af,pk&q=${encodeURIComponent(q)}`;
 
   try {
     const res = await fetch(url, { headers: nominatimHeaders() });

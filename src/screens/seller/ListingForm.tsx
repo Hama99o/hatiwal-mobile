@@ -140,7 +140,12 @@ const listingSchema = z.object({
     .number()
     .positive({ message: "Enter a valid price greater than 0" })
     .max(MAX_LISTING_PRICE, { message: "Price is too high" }),
-  currency: z.enum(["AFN", "USD", "EUR"]),
+  // AFN + PKR first: Hatiwal serves Afghanistan AND Pakistan, so a seller in
+  // either country finds their own currency at the top. Must match
+  // Listing::CURRENCIES in the API, which is the authority and rejects anything
+  // outside its list. No FX conversion anywhere - a price stays in the currency
+  // the seller chose.
+  currency: z.enum(["AFN", "PKR", "USD", "EUR"]),
   // Optional — sellers may leave it unset; mirrors the backend enum values.
   condition: z.enum(["brand_new", "like_new", "good", "fair"]).optional(),
   // coerce handles categoryId coming back as string from some API responses
@@ -1947,6 +1952,7 @@ export default function ListingFormScreen() {
           {(
             [
               { value: "AFN", label: t("listing.form.currencyAFN") },
+              { value: "PKR", label: t("listing.form.currencyPKR") },
               { value: "USD", label: t("listing.form.currencyUSD") },
               { value: "EUR", label: t("listing.form.currencyEUR") },
             ] as const
