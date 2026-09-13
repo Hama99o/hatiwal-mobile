@@ -8,6 +8,20 @@
 //   • Pashto  (ps) → Noto Sans Arabic
 //        Pashto has extended letters (ټ ډ ړ ږ ښ ګ ڼ ې) that Rubik/Zain do not
 //        reliably carry; Noto Sans Arabic does, so Pashto is guaranteed to render.
+//   • Urdu    (ur) → Noto Sans Arabic
+//        Urdu is Arabic script, so WITHOUT a branch here it fell through to the
+//        Latin default and every Urdu string would have rendered as tofu boxes —
+//        see the no-per-glyph-fallback note above, which is exactly why the
+//        default is not survivable for a non-Latin language. Noto Sans Arabic
+//        carries the Urdu-specific letters (ٹ ڈ ڑ ں ھ ہ ے) as well as the shared
+//        Arabic block.
+//
+//        CAVEAT worth knowing: this is NASKH, not NASTALIQ. Urdu is
+//        conventionally set in Nastaliq (Noto Nastaliq Urdu), and Pakistani
+//        readers notice the difference — Naskh reads as "correct but foreign".
+//        It is legible and it ships today with no new dependency; moving to
+//        Nastaliq means adding that font package and is a deliberate follow-up,
+//        not something to do silently here.
 //
 // The packages are installed in the Docker container (not resolvable on the host),
 // same as react-native-gesture-handler — hence the ts-ignore, matching _layout.tsx.
@@ -62,7 +76,7 @@ export function isBoldWeight(weight: unknown): boolean {
 export function fontFamilyForLang(lang: string | undefined, weight?: unknown): string {
   const l = (lang ?? "en").toLowerCase();
   const bold = isBoldWeight(weight);
-  if (l.startsWith("ps")) {
+  if (l.startsWith("ps") || l.startsWith("ur")) {
     return bold ? "NotoSansArabic_700Bold" : "NotoSansArabic_400Regular";
   }
   if (l.startsWith("fa") || l.startsWith("da")) {

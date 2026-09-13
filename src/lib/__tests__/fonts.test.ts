@@ -89,3 +89,21 @@ describe("FONT_ASSETS", () => {
     for (const f of returned) expect(Object.keys(FONT_ASSETS)).toContain(f);
   });
 });
+
+// Urdu. Without its own branch this fell through to the Latin default, and
+// because RN cannot fall back per glyph inside a text run, every Urdu string in
+// the app would have rendered as tofu boxes rather than mis-styled text. Caught
+// before the Urdu locale reached anyone.
+describe("fontFamilyForLang — Urdu", () => {
+  it("uses an Arabic-script face, never the Latin default", () => {
+    expect(fontFamilyForLang("ur")).toBe("NotoSansArabic_400Regular");
+    expect(fontFamilyForLang("ur", "700")).toBe("NotoSansArabic_700Bold");
+  });
+
+  it("does not fall back to Rubik for any RTL locale we ship", () => {
+    for (const lang of ["ps", "fa", "ur"]) {
+      expect(fontFamilyForLang(lang)).not.toMatch(/^Rubik/);
+      expect(fontFamilyForLang(lang, "bold")).not.toMatch(/^Rubik/);
+    }
+  });
+});
