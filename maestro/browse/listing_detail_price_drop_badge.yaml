@@ -17,6 +17,19 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
+# CLEAR INHERITED BROWSE FILTERS BEFORE SCROLLING THE FEED.
+#
+# Filters PERSIST between flows (the app is never restarted), so this flow
+# inherited "Electronics" + "Electronics - 5000-inf" from an earlier flow and then
+# scrolled a two-card filtered result set looking for a listing the filter had
+# excluded. That is why it failed 0/6 at this sha with "No visible element found"
+# on a fixture that is present and active (verified over HTTP: it sits at feed
+# position 20 of 69 browsable listings).
+#
+# The end-of-flow screenshot in run-530 shows both chips active above the grid.
+# _helpers/clear_browse_filters.yaml names this exact filter in its own comment,
+# and four other flows already open with it.
+- runFlow: ../_helpers/clear_browse_filters.yaml
 
 # Happy path: a listing with a recent price drop shows the card badge (overlay)
 # The CARD badge is `listing.priceDrop.badgeCardShort` = "↓{{percent}}%" — a DOWN

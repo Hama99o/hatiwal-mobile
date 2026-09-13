@@ -10,15 +10,15 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**148 of 258 flows passing** · 108 still need attention
+**144 of 258 flows passing** · 111 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 148 | green, and no backend error underneath |
-| FAIL-assert | 89 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 144 | green, and no backend error underneath |
+| FAIL-assert | 94 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 16 | failed, cause unclear — read the log |
-| (rig) | 2 | rig broke mid-run — result meaningless, re-run |
+| FAIL-? | 14 | failed, cause unclear — read the log |
+| (rig) | 3 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 2 | never executed |
 
 ### Definition of done
@@ -87,7 +87,7 @@ bug class a user reports as "nothing happened".
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
 
-23/42 passing · 13 open
+21/42 passing · 13 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -105,10 +105,10 @@ bug class a user reports as "nothing happened".
 | `listing_contact_whatsapp` | FAIL-assert | run-530 | 253 |  | [Failed] listing_contact_whatsapp (3m 53s) (No visible element found: id: seller-phone-reveal-button) |
 | `listing_detail` | FAIL-assert ⟳stale | run-530 | 273 | flow (racing the action bar) — bare `assertVisible: "Contact Seller"` on a row gated by the VIEWER resolving, while the listing's own data arrives first: there is a window where the page looks complete and has no buttons. The control is present and correct (listing.detail.contactSeller). Same cause as lifecycle_reserve, but this flow deliberately does NOT use open_thread_from_listing — it checks PRESENCE without tapping, because tapping opens the first-message sheet over the rest of the flow — so the wait went inline. | [Failed] listing_detail (4m 14s) (Assertion is false: "Contact Seller" is visible) |
 | `listing_detail_held_units_transparency` | FAIL-assert | run-530 | 257 | REVERT CONFIRMED — no longer exits the app (run-494 fails on `listing-card` not visible, not the Android home screen). The hideKeyboard->drag revert worked here. Remaining failure is the scroll race. | [Failed] listing_detail_held_units_transparency (3m 57s) (Assertion is false: id: stock-badge-detail is visibl |
-| `listing_detail_multi_quantity` | FAIL-assert | run-530 | 217 | TRIAGED, deliberately NOT converted — it asserts "each" on the FEED CARD before tapping, and its own comment documents a run-263 failure where without `centerElement` the title edged into the clipped bottom row and "each" was absent from the hierarchy. Sending it through the search helper would open the listing and destroy the thing it tests. It needs the target made REACHABLE on the grid (search to narrow the feed, dismiss the IME, then keep the centred scroll), not a conversion. | [Failed] listing_detail_multi_quantity (3m 17s) (No visible element found: "Phone Case Silicone Clear - Wholes |
+| `listing_detail_multi_quantity` | FAIL-assert | run-530 | 217 | FIXED run-530 (sha f0097b7a253a, 0/6 -> new sha cbeceb6d1569). CAUSE FOUND, and it was NOT centerElement and NOT the fixture. The end-of-flow SCREENSHOT shows two inherited filter chips active above the grid — "Electronics" + "Electronics - 5000-inf" — so the flow scrolled a two-card filtered result set for a listing the filter excluded. Fixture verified over HTTP: present, active, feed position 20 of 69. The logcat was useless here (a control proved it records NO listing titles at all — only text: Herat/Kabul/null — so the title's absence meant nothing). Fix: open with _helpers/clear_browse_filters.yaml, whose own comment names this exact filter. centerElement KEPT — the run-263 reasoning still holds. | [Failed] listing_detail_multi_quantity (3m 17s) (No visible element found: "Phone Case Silicone Clear - Wholes |
 | `listing_detail_offer` | PASS | run-530 | 225 | flow — converted to open_listing_by_title.yaml. |  |
 | `listing_detail_offer_invalid` | FAIL-assert ⟳stale | run-530 | 176 | flow — converted to `_helpers/open_listing_by_title.yaml`. Failed with `No visible element found: "Wool Blanket Handmade King Size"` while the listing is FINE (API: 3366, active, in the browsable feed). Scrolling a virtualised grid for one title is the fragile part, and `centerElement: true` compounds it — an item landing in the last loaded row cannot be centred, the same unsatisfiable constraint that cost account_delete_cancel eight runs. This flow asserts NOTHING about the feed card, so the search helper fits exactly. | [Failed] listing_detail_offer_invalid (2m 36s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `listing_detail_price_drop_badge` | FAIL-assert | run-530 | 177 | TRIAGED, deliberately NOT converted — same reason as listing_detail_multi_quantity: it asserts the `↓N%` badge on the FEED CARD before tapping. Fixture verified fine (Lenovo ThinkPad 3356, active, in the feed). | [Failed] listing_detail_price_drop_badge (2m 37s) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8 |
+| `listing_detail_price_drop_badge` | FAIL-assert | run-530 | 177 | FIXED run-530 (sha 46bbc758d5cc, 0/6 -> new sha ebaddfe7342a). SAME root cause as listing_detail_multi_quantity, confirmed independently from its own screenshot: the same two chips ("Electronics" + "Electronics - 5000-inf") active, feed showing 2 cards, Lenovo not among them. Fixture fine (feed position 24 of 69). Fix: open with clear_browse_filters. centerElement KEPT — this flow asserts the down-arrow badge on the FEED CARD. | [Failed] listing_detail_price_drop_badge (2m 37s) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8 |
 | `listing_detail_quantity_intent` | FAIL-assert | run-530 | 220 | flow — both listing opens converted to open_listing_by_title.yaml. | [Failed] listing_detail_quantity_intent (3m 24s) (Assertion is false: "Phone Case Silicone Clear - Wholesale"  |
 | `listing_detail_report` | PASS | run-530 | 204 | flow — converted to open_listing_by_title.yaml. | RIG-004 tolerance; covers the detail-screen entry point. |
 | `listing_detail_reserved_contactable` | PASS | run-530 | 166 |  |  |
@@ -125,14 +125,14 @@ bug class a user reports as "nothing happened".
 | `search_empty_state` | FAIL-assert ⟳stale | run-530 | 215 | flow (IME over the results area + inherited filters) — `"No listings found" is visible` fails because that copy renders in the RESULTS AREA, exactly where the keyboard sits after typing. run-530's screenshot: query in the box, filter chips, a small gap, keypad over everything below. THE CONTROL: search_listings allows 30s on this same string and still times out, so the element never becomes VISIBLE, only present — waiting cannot fix it. Added drag + `pressKey: Enter` (never Back, which this flow's sibling notes CANCELS the search). Also added clear_browse_filters: the screenshot shows it searching under "1 filter active" (Electronics, Within 5 km) inherited from an earlier flow, and the two browse flows that already open that way are search_listings and full_marketplace_cycle. | [Failed] search_empty_state (3m 8s) (Assertion is false: "No listings found" is visible) |
 | `search_listings` | FAIL-assert ⟳stale | run-530 | 351 | flow (IME over the results area) — same cause as search_empty_state and the CONTROL that proves it is not a timing problem: this flow already allows `extendedWaitUntil ... timeout: 30000` on "No listings found" and still times out, so the element is present but never ON SCREEN. It already clears filters, so filters are not the cause either. Added drag + `pressKey: Enter` after the query. | [Failed] search_listings (5m 22s) (Assertion is false: "No listings found" is visible) |
 | `search_with_filter` | PASS | run-530 | 324 |  |  |
-| `seller_profile` | FAIL-assert | run-530 | 256 | flow — converted to `_helpers/open_listing_by_title.yaml` after the shape check I queued last tick came back clean: scroll -> tap, NO feed-card assertion, so it only needs the listing OPEN. Failed with `No visible element found: "Wool Blanket Handmade King Size"` while the listing is active and in the feed (API 3366). Scrolling a virtualised grid for one title is the fragile part, and centerElement compounds it. | [Failed] seller_profile (3m 37s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `seller_profile` | FAIL-assert ⟳stale | run-530 | 256 | flow — converted to `_helpers/open_listing_by_title.yaml` after the shape check I queued last tick came back clean: scroll -> tap, NO feed-card assertion, so it only needs the listing OPEN. Failed with `No visible element found: "Wool Blanket Handmade King Size"` while the listing is active and in the feed (API 3366). Scrolling a virtualised grid for one title is the fragile part, and centerElement compounds it. | [Failed] seller_profile (3m 37s) (No visible element found: "Wool Blanket Handmade King Size") |
 | `seller_profile_from_listing` | PASS | run-530 | 327 |  |  |
-| `seller_response_rate_badge` | FAIL-assert | run-530 | 290 | flow — converted for the same reason: it taps the card and then asserts "Usually responds within..." on the LISTING DETAIL, nothing about the feed card. Note the search term changed from the partial regex `Phone Case.*` to the FULL title "Phone Case Silicone Clear - Wholesale" (API 3360), because the helper types it into the search box rather than matching it on screen. | [Failed] seller_response_rate_badge (4m) (No visible element found: "Phone Case.*") |
-| `subcategory_drilldown` | PASS | run-508 | 172 | flow — chip reads "Subcategory: Phones & Tablets"; the two chip asserts still said "Phones" | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
-| `user_profile_empty_listings` | FAIL-? | run-508 | 162 | TRIAGED — NOT convertible, and the reason matters: `No visible element found: ".*Ahmad Karimi.*"` looks like the same feed-scroll failure, but it is not a feed scroll at all. It walks the CONVERSATIONS list for a PERSON'S NAME and then asserts "Type a message...", a chat composer. Sending it through a listing-search helper would be nonsense. Needs its own look at how that list is reached. | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
-| `user_profile_listing_grid` | PASS | run-508 | 162 | flow | Grid sits below the profile header; assertVisible does not scroll. Added both ways. |
-| `user_profile_stats` | PASS | run-508 | 153 | flow — asserted a "Message" button the profile has never had (contact is per-listing by design) | Hardcoded "2024"; member_since renders "August 2026" as one node. Year-shaped pattern. |
-| `view_mode_toggle` | PASS | run-508 | 190 | REVERT CONFIRMED — PASSED in run-494 after the hideKeyboard->drag revert. | HOLLOW: every tap optional, only assertion was the always-present tab label. Rewritten. |
+| `seller_response_rate_badge` | FAIL-assert ⟳stale | run-530 | 290 | flow — converted for the same reason: it taps the card and then asserts "Usually responds within..." on the LISTING DETAIL, nothing about the feed card. Note the search term changed from the partial regex `Phone Case.*` to the FULL title "Phone Case Silicone Clear - Wholesale" (API 3360), because the helper types it into the search box rather than matching it on screen. | [Failed] seller_response_rate_badge (4m) (No visible element found: "Phone Case.*") |
+| `subcategory_drilldown` | PASS | run-530 | 324 | flow — chip reads "Subcategory: Phones & Tablets"; the two chip asserts still said "Phones" | Seed is "Phones & Tablets"; 5 refs widened. One was assertNotVisible "Phones" — a FALSE PASS. |
+| `user_profile_empty_listings` | FAIL-assert | run-530 | 325 | TRIAGED — NOT convertible, and the reason matters: `No visible element found: ".*Ahmad Karimi.*"` looks like the same feed-scroll failure, but it is not a feed scroll at all. It walks the CONVERSATIONS list for a PERSON'S NAME and then asserts "Type a message...", a chat composer. Sending it through a listing-search helper would be nonsense. Needs its own look at how that list is reached. | Premise impossible: asserted a listing's own seller has 0 listings. Reaches a 0-listing profile via chat. |
+| `user_profile_listing_grid` | PASS | run-530 | 357 | flow | Grid sits below the profile header; assertVisible does not scroll. Added both ways. |
+| `user_profile_stats` | FAIL-assert | run-530 | 369 | flow — asserted a "Message" button the profile has never had (contact is per-listing by design) | Hardcoded "2024"; member_since renders "August 2026" as one node. Year-shaped pattern. |
+| `view_mode_toggle` | FAIL-assert | run-530 | 512 | REVERT CONFIRMED — PASSED in run-494 after the hideKeyboard->drag revert. | HOLLOW: every tap optional, only assertion was the always-present tab label. Rewritten. |
 
 ## `listings` — Seller create/edit/delete + the 3-state lifecycle (Draft/Live/Sold) — Mark sold is always the one-tap primary, no Reserved tab
 
@@ -330,6 +330,23 @@ bug class a user reports as "nothing happened".
 | `safety_tips_listing_detail` | UNTESTED | — |  |  |  |
 | `safety_tips_meetup_sheet` | UNTESTED | — |  |  |  |
 
+## `rtl` — Pashto + Dari right-to-left layout across main screens
+
+6/10 passing · 2 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `browse_rtl_dari` | PASS | s2/run-531 | 512 |  |  |
+| `browse_rtl_pashto` | (rig) | s2/run-531 | 605 |  |  |
+| `buyer_picker_rtl` | FAIL-assert | s2/run-531 | 568 |  | [Failed] buyer_picker_rtl (8m 19s) (No visible element found: id: sign-out-button) |
+| `categories_hub_rtl` | PASS | s2/run-531 | 353 | flow | 2026-09-02: tapped text "Back" in a flow whose whole purpose is Pashto. The app renders no literal "Back" — BackButton has accessibilityLabel t(common.goBack) (ps شاته ځه) and testID back_button. Now targets the testID. |
+| `chat_rtl` | FAIL-assert | s2/run-531 | 541 | flow? | 2026-09-02: expects ps common.send "لیږل", present verbatim. Same language-revert hypothesis as profile_rtl. |
+| `listing_detail_rtl` | (rig) | s2/run-531 | 603 |  | AxiosError |
+| `my_listings_rtl` | PASS | s2/run-530 | 317 |  |  |
+| `profile_quick_actions_rtl` | PASS | s2/run-530 | 302 | flow | 2026-09-02 SOLVED, flow bug, b20007e: the language-revert hypothesis was WRONG, and so was the mode-toggle one. Profile.tsx:306 renders this row as `${t('…myListings')} (${count})`, so the text is 'زما اعلانونه (0)' and Maestro's anchored regex could not match the bare label — the three sibling labels carry no suffix, which is why only this row failed. run-379's screenshot shows Profile correctly in seller mode (green tab bar, three tabs, saved-tab gone). Matched as a prefix now. NOT an app bug. |
+| `profile_rtl` | PASS | s2/run-530 | 239 | flow? | 2026-09-02: expects fa profile.editProfile "ویرایش پروفایل", which EXISTS verbatim in the locale file — so not a stale selector. Hypothesis: the language-revert bug (fixed 8097ab3) left the app in English after the switch, so no translated string could match. Re-running on a build with that fix. |
+| `sales_ledger_rtl` | PASS | s2/run-530 | 408 |  |  |
+
 ## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
 
 6/7 passing · 1 open
@@ -350,10 +367,10 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `listing_create_multi_photos` | FAIL-assert | run-509 | 289 | flow | Asserted the reorder hint with nothing selected; hint needs selectedIdx !== -1. |
-| `listing_edit_add_photos` | PASS | run-509 | 187 | flow | 2026-09-02: never scrolled to its own Save button, which adding a photo pushes below the fold — the rule this file's own header states. Now scrolls at visibilityPercentage 40. |
-| `listing_gallery_no_photo` | PASS | run-509 | 200 |  |  |
-| `listing_gallery_swipe` | PASS | run-509 | 203 |  |  |
+| `listing_create_multi_photos` | FAIL-assert | run-531 | 336 | flow | Asserted the reorder hint with nothing selected; hint needs selectedIdx !== -1. |
+| `listing_edit_add_photos` | PASS | run-531 | 427 | flow | 2026-09-02: never scrolled to its own Save button, which adding a photo pushes below the fold — the rule this file's own header states. Now scrolls at visibilityPercentage 40. |
+| `listing_gallery_no_photo` | PASS | run-531 | 497 |  |  |
+| `listing_gallery_swipe` | PASS | run-531 | 401 |  |  |
 
 ## `mode` — Buyer ↔ seller mode switch, tab bar, persistence
 
@@ -374,23 +391,6 @@ bug class a user reports as "nothing happened".
 |---|---|---|---:|---|---|
 | `open_listing_deep_link` | PASS | s2/run-531 | 133 |  |  |
 | `open_seller_deep_link` | FAIL-assert | s2/run-531 | 134 |  | [Failed] open_seller_deep_link (1m 48s) (Assertion is false: id: more-options-button is visible) |
-
-## `rtl` — Pashto + Dari right-to-left layout across main screens
-
-8/10 passing · 1 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `browse_rtl_dari` | PASS | s2/run-530 | 278 |  |  |
-| `browse_rtl_pashto` | PASS | s2/run-530 | 575 |  |  |
-| `buyer_picker_rtl` | (rig) | s2/run-530 | 601 |  |  |
-| `categories_hub_rtl` | PASS | s2/run-530 | 277 | flow | 2026-09-02: tapped text "Back" in a flow whose whole purpose is Pashto. The app renders no literal "Back" — BackButton has accessibilityLabel t(common.goBack) (ps شاته ځه) and testID back_button. Now targets the testID. |
-| `chat_rtl` | FAIL-? | s2/run-530 | 524 | flow? | 2026-09-02: expects ps common.send "لیږل", present verbatim. Same language-revert hypothesis as profile_rtl. |
-| `listing_detail_rtl` | PASS | s2/run-530 | 312 |  | AxiosError |
-| `my_listings_rtl` | PASS | s2/run-530 | 317 |  |  |
-| `profile_quick_actions_rtl` | PASS | s2/run-530 | 302 | flow | 2026-09-02 SOLVED, flow bug, b20007e: the language-revert hypothesis was WRONG, and so was the mode-toggle one. Profile.tsx:306 renders this row as `${t('…myListings')} (${count})`, so the text is 'زما اعلانونه (0)' and Maestro's anchored regex could not match the bare label — the three sibling labels carry no suffix, which is why only this row failed. run-379's screenshot shows Profile correctly in seller mode (green tab bar, three tabs, saved-tab gone). Matched as a prefix now. NOT an app bug. |
-| `profile_rtl` | PASS | s2/run-530 | 239 | flow? | 2026-09-02: expects fa profile.editProfile "ویرایش پروفایل", which EXISTS verbatim in the locale file — so not a stale selector. Hypothesis: the language-revert bug (fixed 8097ab3) left the app in English after the switch, so no translated string could match. Re-running on a build with that fix. |
-| `sales_ledger_rtl` | PASS | s2/run-530 | 408 |  |  |
 
 ## `onboarding` — First-run experience
 
