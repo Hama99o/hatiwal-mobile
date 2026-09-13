@@ -260,6 +260,29 @@ flows (0/5–0/6 each) that are not app bugs and not timing:
 offer_counter_flow, offer_quantity_round_trip, offer_send_and_accept,
 offer_send_and_decline, reserve_after_accept, reserve_after_buyer_accepts_counter.
 
+**Wider than the offer family — update 02:0x.** run-526 adds two more, and the
+count is now EIGHT stable-fail flows, none of them app bugs:
+
+* `quick_replies` — the quick-reply row renders `quickReplies.SELLER.*`
+  ("Yes, it's available", "Let's meet at [place]", "The price is firm") while the
+  flow asserts `quickReplies.BUYER.stillAvailable`. The thread header also carries
+  **Mark Sold**, a seller-only action.
+* `report_participant` — the Rails log settles it from the server side. Both
+  reports carry `reportable_id: 419` (the BUYER), and devise_token_auth updates
+  the tokens of user **420** on each request, i.e. the CURRENT user is the seller.
+  The seller was reporting the buyer, backwards from the flow's intent.
+
+**Two probes, and they are not interchangeable:**
+
+| Screen | How to tell | Do NOT use |
+|---|---|---|
+| ListingDetail | `grep -a "This is your listing" <flow>.logcat` | — |
+| a chat thread | seller-only UI (Mark Sold) or `quickReplies.seller.*` copy in the screenshot | the owner-notice grep — that string lives on ListingDetail and is absent from threads whatever the identity |
+| any request | `hatiwal-api/log/development.log` — the `UPDATE "users" ... WHERE "users"."id" = N` on each authenticated request names the CURRENT user | — |
+
+The Rails-log probe is the strongest of the three: it names the authenticated
+user directly, needs no screenshot, and works for every flow that makes a request.
+
 **Not edited here:** `login.yaml` belongs to the 7d84539 session (see fixes 7
 and 9). It needs its owner, and it needs re-verifying rather than re-closing —
 the 09-05 entry closed it without a run that proved the switch had taken.
