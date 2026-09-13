@@ -1,0 +1,24 @@
+appId: com.hatiwal.app
+---
+# A category is findable by its URDU name.
+#
+# The API has always sent name_ur; the mobile client never declared it, so the
+# search matcher could not see it and an Urdu-speaking seller could not find a
+# category by typing the name the picker was literally showing them (6c1e30b).
+#
+# "یاقوت" is Ruby — a SUBcategory, so this also exercises the tree-wide search
+# on a non-Latin query.
+#
+# NOT ASSERTED HERE: that the glyphs render as Urdu rather than tofu boxes.
+# Maestro reads the accessibility tree, which carries the STRING, so a screen of
+# tofu passes every assertion available to it. That is a SCREENSHOT question and
+# is why fonts.ts got a unit test instead (e7df2da).
+
+- runFlow: _open_category_picker.yaml
+
+- tapOn: "Search categories..."
+- inputText: "یاقوت"
+- waitForAnimationToEnd
+
+- assertVisible: "Ruby"
+- assertVisible: ".*Gemstones & Minerals.*"

@@ -1,0 +1,44 @@
+appId: com.hatiwal.app
+---
+# Searching the category picker for a SUBcategory name finds it from the top
+# level, without drilling into its parent first.
+#
+# WHY THIS EXISTS. The owner searched "Rough" for "Rough & Raw Stone" and the
+# sheet came back empty. Two separate causes, and only unit tests plus an API
+# call had proved either — which is not the same as proving it on the device,
+# which is what this does:
+#   1. the picker's search matched only the level you were standing on, so any
+#      subcategory was invisible to it (fixed, 6c1e30b);
+#   2. the gemstone tree did not exist in the local dev database at all, so
+#      there was genuinely nothing to find (added, c17e2ed).
+#
+# "Rough & Raw Stone" is the exact case reported, and it is a good probe because
+# it can ONLY be reached by the tree-wide search: it is a leaf under
+# "Gemstones & Minerals" and its name shares no word with any top-level category.
+#
+# NO TEXT IS TYPED INTO THE FORM before the picker opens — deliberately, for the
+# same reason as create_listing_currency_pkr: typing raises the IME, which covers
+# roughly half a 360dp screen and is what makes the other create-listing flows
+# flaky. The search field inside the sheet is the only thing typed into.
+
+- runFlow: _open_category_picker.yaml
+
+- tapOn: "Search categories..."
+- inputText: "Rough"
+- waitForAnimationToEnd
+
+# THE ASSERTION THIS FLOW EXISTS FOR. Before the fix this returned nothing at
+# all: "Rough & Raw Stone" is a LEAF under "Gemstones & Minerals", and the
+# search never looked past the top level.
+- assertVisible: "Rough & Raw Stone"
+
+# And the parent breadcrumb, which is what tells the seller WHERE the match
+# lives — a bare "Rough & Raw Stone" with no context was half the complaint.
+- assertVisible: ".*Gemstones & Minerals.*"
+
+# Tapping a search hit must SELECT it, not drill into its parent. Drilling would
+# throw away the query and make the seller find it a second time.
+- tapOn: "Rough & Raw Stone"
+- waitForAnimationToEnd
+- assertVisible: "Rough & Raw Stone"
+- assertNotVisible: "Select Category"

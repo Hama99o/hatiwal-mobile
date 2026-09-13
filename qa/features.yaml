@@ -16,6 +16,18 @@
 # ─────────────────────────────────────────────────────────────────────────
 
 features:
+  newfeatures:
+    title: "Pakistan expansion — category search, PKR, Urdu (the CURRENT work)"
+    # A dedicated feature so both testers can be pointed at the new work rather
+    # than at the 213-flow regression. Everything here covers something shipped
+    # in the last few hours and therefore has NO recorded history to lean on —
+    # every result is a first verdict.
+    flows: newfeatures
+    smoke: [category_search_finds_subcategory, category_search_empty_state]
+    jest: ["src/components/common/__tests__/CategoryPicker*",
+           "src/components/common/__tests__/CategoryChipRow*",
+           "src/lib/__tests__/fonts*", "src/i18n/__tests__/*"]
+    api: ["/categories", "/my/listings"]
   auth:
     title: "Sign up, login, logout, session persistence, guest gating"
     flows: auth

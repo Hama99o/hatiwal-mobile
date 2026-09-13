@@ -1,0 +1,21 @@
+appId: com.hatiwal.app
+---
+# Clearing a no-match query brings the full list back.
+#
+# Worth its own flow rather than a tail on the empty-state one: a filter that
+# cannot be undone strands the seller in a dead sheet, and the two failures look
+# identical from the outside (an empty panel) while having different causes.
+
+- runFlow: _open_category_picker.yaml
+
+- tapOn: "Search categories..."
+- inputText: "zzzzqqq"
+- waitForAnimationToEnd
+- assertVisible: "Clear"
+- assertNotVisible: "Electronics"
+
+# Tapping Clear resets the query, not just the results.
+- tapOn: "Clear"
+- waitForAnimationToEnd
+- assertVisible: "Electronics"
+- assertNotVisible: "Clear"

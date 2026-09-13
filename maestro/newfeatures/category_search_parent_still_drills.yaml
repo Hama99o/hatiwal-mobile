@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# A PARENT found by search still drills into its children; only a SUBcategory
+# hit is selected directly.
+#
+# This is the guard on the fix's one risky edge. Search now returns parents and
+# children in one flat list, and the picker decides per row whether tapping
+# drills or selects. Get that backwards and tapping "Electronics" would file the
+# listing under a parent that has children — which the picker has always
+# deliberately prevented, because "Electronics" is not where a phone belongs.
+
+- runFlow: _open_category_picker.yaml
+
+- tapOn: "Search categories..."
+- inputText: "Electron"
+- waitForAnimationToEnd
+- assertVisible: "Electronics"
+
+# Tapping the PARENT must open its children, not select it and close.
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+# Still in the sheet, now one level down.
+- assertVisible: "Phones & Tablets"

@@ -1,0 +1,32 @@
+appId: com.hatiwal.app
+---
+# A query that matches nothing shows the empty state — it does not blank the
+# sheet.
+#
+# The owner's words: "when we search and something is not there it disappear,
+# it should show empty state not disappear". The empty state was in fact
+# rendering the whole time; the sheet is content-sized (maxHeight 88%,
+# list flexGrow 0) so it COLLAPSED to a thin strip around it, which is what
+# "disappear" described. Fixed with a 240px minHeight (6c1e30b).
+#
+# This asserts the visible consequence, not the CSS: the message, the echoed
+# query, and the Clear button all being on screen at once is only possible if
+# the panel actually stayed open.
+
+- runFlow: _open_category_picker.yaml
+
+- tapOn: "Search categories..."
+- inputText: "zzzzqqq"
+- waitForAnimationToEnd
+
+# The message interpolates the query, so matching it also proves the query was
+# echoed back rather than the message being a bare "no results".
+- assertVisible: ".*zzzzqqq.*"
+# The hint exists to tell a seller that search DOES cover subcategories — the
+# exact misunderstanding that produced the original report.
+- assertVisible: ".*subcategories.*"
+# Clear is the way out. If the sheet had collapsed this would not be reachable.
+- assertVisible: "Clear"
+
+# And no category row survived the filter.
+- assertNotVisible: "Electronics"

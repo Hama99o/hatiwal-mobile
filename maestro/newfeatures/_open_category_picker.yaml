@@ -1,0 +1,33 @@
+appId: com.hatiwal.app
+---
+# Shared opening for every category-picker flow: land on the create form and
+# open the picker sheet.
+#
+# NOTHING IS TYPED INTO THE FORM. Typing raises the IME, which covers roughly
+# half a 360dp screen, and that single fact is why create_listing_currency_usd
+# is 5/14 and create_listing_currency_eur is 2/14. These flows only need the
+# picker, so they pay none of that cost.
+#
+# A HELPER, deliberately: flow_sha is the SHA-1 of the flow FILE only, so edits
+# here do not reset the callers' recorded history. That is the right trade for
+# an opening shared by five flows.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+# scrollUntilVisible is a no-op when the element is already on screen, so this is
+# safe on taller devices. No centerElement — on a short screen this row can be
+# the lowest scrollable element, and an uncentrable target manufactures
+# CENTERELEM findings.
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- assertVisible: "Select Category"
