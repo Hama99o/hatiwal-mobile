@@ -97,6 +97,28 @@ unchanged too (`git log` on `_helpers/`, because `flow_sha` covers the flow file
 points on pure noise. `meetup_full_cycle` is 1/6 at that same sha, so its "pass" was the
 one-in-six draw, not the listing-opener conversion it would have been credited to.
 
+A `rig_fail` is not a verdict, and `qa.sh flaky` now drops those rows the way it
+drops a missing run. Almost every one is our own 600s cap firing — `classify()`
+maps exit 124 to `rig_fail` — which says the BOX was loaded, not that the flow
+behaves differently. Sixteen flows have hit that cap at least once. Correcting it
+moved real numbers: `send_message` 5/6 -> **6/6** (never flaky at all, just one
+timeout), `reserved_sold_dead_end_notice` 2/6 -> 3/4, `scroll_to_latest` 2/6 ->
+3/5, `lifecycle_from_chat` 3/7 -> 3/5. The headline barely moved (37% either
+way), so the flakiness is real — but the per-flow numbers were not.
+
+**`rig_fail` is NOT evidence of contention between sessions.** run-521 and
+run-523 each ran ONE session and carried 4 and 2 `rig_fail` rows. run-526 ran two
+sessions concurrently and carried **zero**. So a tripwire of "any rig_fail means
+stop the second session" would blame a second tester for something that is
+strictly worse without it; compare against the single-session baseline instead.
+
+The per-flow timeout doubling in `flows.sh` keys on a flow referencing BOTH login
+helpers (an account switch). That covers 2 of the 16 cap-hitters. The rest cannot
+be found by reading the flow — their median is 170-300s and they only reach 601s
+under load, so nothing in the yaml distinguishes them. Left alone deliberately:
+the cap is doing its job, the rows are classified correctly, and raising it
+globally would hide genuinely hung flows.
+
 **So:**
 
 - Judge a fix ONLY on a flow that `qa.sh flaky` calls STABLE FAIL (0/N). There, any

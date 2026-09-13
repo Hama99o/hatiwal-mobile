@@ -39,6 +39,15 @@ def load(reports="qa/reports"):
         except (OSError, ValueError):
             continue
         for x in rows:
+            # A rig_fail is NOT a verdict about the flow. Almost all of them are
+            # our own 600s timeout firing (classify() maps exit 124 -> rig_fail),
+            # which says the BOX was loaded, not that the flow behaves
+            # differently. Counting them as failures made flows look flaky that
+            # are not: scroll_to_latest read 2/6 with two of those four "fails"
+            # being 605s and 602s timeouts, and reserved_sold_dead_end_notice
+            # read 2/6 with THREE. Drop them the way a missing run is dropped.
+            if x.get("kind") == "rig_fail":
+                continue
             obs[x["flow"]].append((n, x.get("result"), x.get("flow_sha"),
                                    x.get("feature", "?")))
     return obs
