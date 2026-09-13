@@ -5,8 +5,28 @@ appId: com.hatiwal.app
 - runFlow: ../_helpers/login.yaml
 - assertVisible: "Bazaar"
 - waitForAnimationToEnd
+# CLEAR INHERITED FILTERS FIRST. run-530's screenshot shows this flow searching
+# with "1 filter active" — Electronics and Within 5 km — left behind by an earlier
+# flow, because the app is not restarted between them. search_listings and
+# full_marketplace_cycle already open this way; this flow did not.
+- runFlow: ../_helpers/clear_browse_filters.yaml
 - tapOn: "Search listings..."
 - inputText: "xyznonexistentitem99999"
+- waitForAnimationToEnd
+# CLOSE THE IME BEFORE LOOKING FOR THE EMPTY STATE. "No listings found" renders
+# in the RESULTS AREA, which is exactly where the keyboard sits after typing —
+# run-530's screenshot for search_empty_state shows the query in the box, the
+# filter chips, a small empty gap, and the keypad over everything below it.
+#
+# Waiting longer cannot fix this and search_listings proves it: that flow already
+# allows 30s on this very string and still times out, because the element never
+# becomes VISIBLE, only present.
+#
+# Drag + `pressKey: Enter`, never `hideKeyboard`/Back — this flow's own comment
+# notes Back CANCELS the search on this screen. Same pair
+# _helpers/open_listing_by_title.yaml settled on for the Bazaar search.
+- runFlow: ../_helpers/dismiss_keyboard_by_drag.yaml
+- pressKey: Enter
 - waitForAnimationToEnd
 - assertVisible: "No listings found"
 # Clear search
