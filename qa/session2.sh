@@ -113,7 +113,13 @@ rm -f "$STOP"
 say() { printf '%s  [s2] %s\n' "$(date '+%m-%d %H:%M')" "$*" | tee -a "$LOG"; }
 
 # Read-mostly only — see the note above on why this list is not "everything else".
-FEATURES=(rtl dark_mode maps share pagination onboarding)
+# Overridable so this session can be pointed at a subset without editing the
+# file — e.g. `QA_FEATURES="newfeatures maps" ./qa/session2.sh` to drive only the
+# work that just shipped. The default is unchanged, so a bare launch behaves
+# exactly as before.
+#
+# Read as a space-separated string rather than an array so it survives `export`.
+FEATURES=(${QA_FEATURES:-rtl dark_mode maps share pagination onboarding})
 
 host_is_pressured() {
   local load free
