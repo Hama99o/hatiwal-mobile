@@ -17,6 +17,26 @@ appId: com.hatiwal.app
 # This helper handles both paths and leaves the app in the thread either way.
 # Call it INSTEAD of `tapOn: "Contact Seller"`.
 
+# WAIT FOR THE ACTION BAR, DO NOT RACE IT. The contact row is gated on the
+# VIEWER being resolved, not on the listing: the listing's own data arrives
+# first, so there is a window where the page looks complete and has no buttons,
+# and a bare `tapOn` inside it fails with "Element not found: Text matching
+# regex: Contact Seller" on a control that is present and correct
+# (listing.detail.contactSeller). That is how lifecycle_reserve died in run-528.
+#
+# This is insurance, not a rewrite: four of this helper's six callers already
+# pass with the bare tap (message_long_text 9/10, send_multiple_messages 7/8,
+# start_conversation_and_reply 7/8, meetup_proposed_bubble_ui 6/8), so the wait
+# costs them nothing — it returns immediately when the button is already there.
+# It is the two that do NOT pass, lifecycle_reserve 0/5 and meetup_full_cycle
+# 1/6, that keep landing inside the window.
+#
+# If the viewer genuinely should not see this — owner, or a sold listing — the
+# flow still fails with the same message, just after giving the screen a fair
+# chance. Same reasoning chat/offer_counter_flow records for "Make an Offer".
+- extendedWaitUntil:
+    visible: "Contact Seller"
+    timeout: 20000
 - tapOn: "Contact Seller"
 - waitForAnimationToEnd
 
