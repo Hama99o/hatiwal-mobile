@@ -10,15 +10,15 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**142 of 258 flows passing** · 112 still need attention
+**137 of 258 flows passing** · 115 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 142 | green, and no backend error underneath |
-| FAIL-assert | 99 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 137 | green, and no backend error underneath |
+| FAIL-assert | 102 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
 | FAIL-? | 10 | failed, cause unclear — read the log |
-| (rig) | 3 | rig broke mid-run — result meaningless, re-run |
+| (rig) | 5 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 2 | never executed |
 
 ### Definition of done
@@ -183,7 +183,7 @@ bug class a user reports as "nothing happened".
 
 ## `seller` — One-tap Mark sold from any live listing (never reserve-first) + the Sales ledger (edit/void a row, reviewed-sale refusal, outside-buyer rows, undo-after-sold)
 
-10/18 passing · 6 open
+7/18 passing · 9 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -199,12 +199,12 @@ bug class a user reports as "nothing happened".
 | `reserved_buyer` | FAIL-assert | run-534 | 376 | flow — WRONG ACCOUNT, proven from logcat 2026-09-08. Corrects the earlier "never reached the listing detail" verdict: it DOES reach it, as the OWNER. The hierarchy dump holds `text: This is your listing` 105-140x per run across offer_counter_flow / offer_quantity_round_trip / offer_send_and_accept / offer_send_and_decline / reserve_after_accept / reserve_after_buyer_accepts_counter and seller/{listing_conversations,reserved_buyer}. So the app is signed in as seller@hatiwal.test while a buyer leg runs, isOwnListing is true, and canOfferOnListing correctly hides Make an Offer (ListingDetail.tsx:1120) — the APP IS RIGHT. Fixture is innocent: `Men Winter Jacket XL Black` is `user: seller`, `status: :active`, and the seed never sets `negotiable` so it defaults true. offer_send_and_accept fails BEFORE its own login_seller leg, so the dumps are the buyer leg, not the legitimate seller one. offer_in_existing_thread passes because it works inside an existing thread and never opens a listing detail. REPRODUCIBLE in both clean cycles (run-504..507, run-515..518), so 8a91b71's profile-tab wait did not close it. PROVEN 2026-09-12 from Maestro's step-screenshot trace (debug-<flow>/.maestro/tests/*/screenshots, one PNG per EXECUTED step). offer_send_and_accept ran: step-015/016 dev-menu, step-027 scrollUntilVisible sign-out-button, step-034 tapOn Skip (onboarding, in ps/fa), step-044 assertCondition login-email-input, step-048 Don't allow, step-098 Make an Offer (fail). The guard DID detect the wrong account and entered the sign-out branch at 027 — but there is NO tapOnElement sign-out-button and NO android:id/button1 between 027 and 034, so the scroll found nothing, `when: visible: sign-out-button` was FALSE and the tap was SILENTLY SKIPPED. No sign-out means no login form, so the sign-in block's `when: visible: login-email-input` gate at 044 was also false and skipped — the flow carried on as the seller and died 60 steps later. Note the ordering: login.yaml runs the wrong-account guard BEFORE goto_login.yaml, and goto_login is what invokes skip_onboarding.yaml — so the guard can run while the app is still on the onboarding carousel with no Profile to scroll. FIX (not yet applied, needs a free device to confirm): make the identity guarantee POSITIVE and terminal — after the sign-in block, assert profile-display-name matches Ahmad Karimi. Today every check is a silent no-op chain, and being signed in as the WRONG user is indistinguishable from being signed in as the right one. Worst case of the new assert is 156 flows failing loudly AT LOGIN, which is immediately visible and trivially revertible — strictly better than silent wrong-account corruption. | 2026-09-05 the IME covered the search result; the card tap landed on the keyboard (Maestro reports covered taps COMPLETED) so the app never left BROWSE and the failure surfaced later on 'Make an Offer'. hideKeyboard added after typing. |
 | `sales_screen_correct_quantity` | PASS | run-534 | 576 | run-534 PASS at 576s, but this is FLAKY not fixed: 3/10 at the current sha 85a34f4bc624 (failed 497, 501, 505, 516, 524, 527) against 0/4 at older shas. Today's pass is part of the existing 30% rate — do NOT read it as a verdict and do not patch it. |  |
 | `sales_screen_reviewed_sale_refusal` | FAIL-assert | run-534 | 326 | flow — `seller-card-more-action` not found; the testID IS current (SellerListingCard.tsx:464), so this is a reach/timing failure, not selector rot. Ran AFTER the identity fix and shows no wrong-account signature. | [Failed] sales_screen_reviewed_sale_refusal (4m 42s) (Element not found: Id matching regex: seller-card-more-a |
-| `sales_screen_void_row` | PASS | run-527 | 381 |  |  |
-| `save_draft` | FAIL-assert ⟳stale | run-527 | 283 | flow (heading inside the scroll view) — died at step-107 on the LATE `"Create Listing"` assert (line 178). The file has four occurrences including an assertNotVisible, so the message alone could not say which; the screenshot settled it — the form is scrolled to Title/Price showing "Title is required (max 150 characters)" with the numeric keypad up, which is the validation section at line 178, not the fresh form at line 122. Added scrollUntilVisible UP. Fourth flow of this face. | [Failed] save_draft (4m 21s) (Assertion is false: "Create Listing" is visible) |
-| `sell_without_reserving` | PASS | run-527 | 318 |  |  |
-| `sold_quantity_reconciliation` | FAIL-assert ⟳stale | run-527 | 356 | flow (IME covers the field) — the app and the fixture are BOTH correct, checked before touching the flow. `showQuantityReopenNote = hasMultipleUnits && willReopenOnSave(...)` (ListingForm.tsx:481) needs a SOLD listing, and the API says listing 3274 "QA SF-M7 Reconcile Batch" is status=sold, quantity=5, sales_count=1 — so typing 8 yields exactly the "3 available" the next line asserts. The note IS rendered; it is simply not ON SCREEN. Typing into the quantity field raises the NUMERIC KEYPAD and the form ends up back at the top — run-527's screenshot is this form showing Photos and the Title with the keypad covering everything below, and the note sits directly under the quantity field. Added scrollUntilVisible DOWN with centerElement so it lands ABOVE the keypad (not hideKeyboard, which is Back on Android and would pop the form). | [Failed] sold_quantity_reconciliation (5m 34s) (Assertion is false: id: listing-form-quantity-reopen-note is v |
-| `undo_mark_sold` | PASS | run-527 | 319 | flow — `location-confirm` not visible; testID IS current (LocationRangePicker.tsx:470). Reach/timing — the location sheet had not opened or had not rendered. Post-identity-fix. |  |
-| `undo_mark_sold_with_buyer` | PASS | run-527 | 237 |  |  |
+| `sales_screen_void_row` | FAIL-assert | run-534 | 499 |  | [Failed] sales_screen_void_row (7m 14s) (Element not found: Id matching regex: listing-form-quantity-switch) |
+| `save_draft` | (rig) | run-534 | 603 | flow (heading inside the scroll view) — died at step-107 on the LATE `"Create Listing"` assert (line 178). The file has four occurrences including an assertNotVisible, so the message alone could not say which; the screenshot settled it — the form is scrolled to Title/Price showing "Title is required (max 150 characters)" with the numeric keypad up, which is the validation section at line 178, not the fresh form at line 122. Added scrollUntilVisible UP. Fourth flow of this face. |  |
+| `sell_without_reserving` | (rig) | run-534 | 602 |  |  |
+| `sold_quantity_reconciliation` | FAIL-assert | run-534 | 572 | flow (IME covers the field) — the app and the fixture are BOTH correct, checked before touching the flow. `showQuantityReopenNote = hasMultipleUnits && willReopenOnSave(...)` (ListingForm.tsx:481) needs a SOLD listing, and the API says listing 3274 "QA SF-M7 Reconcile Batch" is status=sold, quantity=5, sales_count=1 — so typing 8 yields exactly the "3 available" the next line asserts. The note IS rendered; it is simply not ON SCREEN. Typing into the quantity field raises the NUMERIC KEYPAD and the form ends up back at the top — run-527's screenshot is this form showing Photos and the Title with the keypad covering everything below, and the note sits directly under the quantity field. Added scrollUntilVisible DOWN with centerElement so it lands ABOVE the keypad (not hideKeyboard, which is Back on Android and would pop the form). | [Failed] sold_quantity_reconciliation (8m 15s) (Assertion is false: "QA SF-M7 Reconcile Batch" is visible) |
+| `undo_mark_sold` | FAIL-assert | run-534 | 219 | flow — `location-confirm` not visible; testID IS current (LocationRangePicker.tsx:470). Reach/timing — the location sheet had not opened or had not rendered. Post-identity-fix. | [Failed] undo_mark_sold (3m 28s) (Assertion is false: id: location-confirm is visible) |
+| `undo_mark_sold_with_buyer` | PASS | run-534 | 181 |  |  |
 
 ## `auth` — Sign up, login, logout, session persistence, guest gating
 
@@ -311,6 +311,20 @@ bug class a user reports as "nothing happened".
 | `theme_light_all_screens` | PASS | s2/run-535 | 442 |  |  |
 | `theme_persists_after_navigate` | FAIL-assert | s2/run-535 | 497 | flow — same toothless restart wait; fixed cb68fa4 | UI-048 OPEN: same. Waited on profile-tab, which is visible on every tab. |
 
+## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
+
+4/7 passing · 3 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `create_listing_map_pin` | FAIL-assert | s2/run-535 | 480 |  | [Failed] create_listing_map_pin (7m) (Assertion is false: "Switch to .*" is visible) |
+| `filter_map_default_kabul` | PASS | s2/run-535 | 573 |  |  |
+| `filter_map_location_denied` | PASS | s2/run-535 | 564 |  |  |
+| `filter_map_use_my_location` | PASS | s2/run-535 | 266 |  |  |
+| `filter_map_use_my_location_granted` | PASS | s2/run-535 | 190 |  |  |
+| `map_location_outside_afghanistan` | FAIL-assert | s2/run-535 | 196 |  | [Failed] map_location_outside_afghanistan (3m 5s) (No visible element found: "Enter price") |
+| `zoom_controls_not_occluded` | FAIL-assert | s2/run-535 | 146 |  | [Failed] zoom_controls_not_occluded (2m 15s) (Assertion is false: "Switch to Seller Mode" is visible) |
+
 ## `reviews` — Double-blind reviews after a sold transaction
 
 1/3 passing · 2 open
@@ -329,20 +343,6 @@ bug class a user reports as "nothing happened".
 |---|---|---|---:|---|---|
 | `safety_tips_listing_detail` | UNTESTED | — |  |  |  |
 | `safety_tips_meetup_sheet` | UNTESTED | — |  |  |  |
-
-## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
-
-6/7 passing · 1 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `create_listing_map_pin` | PASS | s2/run-534 | 292 |  |  |
-| `filter_map_default_kabul` | PASS | s2/run-534 | 203 |  |  |
-| `filter_map_location_denied` | PASS | s2/run-534 | 221 |  |  |
-| `filter_map_use_my_location` | PASS | s2/run-534 | 206 |  |  |
-| `filter_map_use_my_location_granted` | PASS | s2/run-534 | 200 |  |  |
-| `map_location_outside_afghanistan` | PASS | s2/run-534 | 220 |  |  |
-| `zoom_controls_not_occluded` | FAIL-assert | s2/run-534 | 169 |  | [Failed] zoom_controls_not_occluded (2m 35s) (No visible element found: "Toyota Corolla 2016 Automatic") |
 
 ## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
 
@@ -372,8 +372,8 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `open_listing_deep_link` | PASS | s2/run-534 | 83 |  |  |
-| `open_seller_deep_link` | FAIL-assert | s2/run-534 | 99 |  | [Failed] open_seller_deep_link (1m 23s) (Assertion is false: id: more-options-button is visible) |
+| `open_listing_deep_link` | PASS | s2/run-536 | 72 |  |  |
+| `open_seller_deep_link` | FAIL-assert | s2/run-536 | 86 | FIXED run-536 (sha ca0d7f040e31, 0/9 -> new sha c1457c1f1b18). It asserted the WRONG SCREEN'S SELECTOR: `more-options-button` is defined ONLY in src/screens/shared/ListingDetail.tsx:1003, the LISTING detail screen, while this flow opens hatiwal://seller/<id> which renders UserProfile — a different screen that has never carried that testID. It could never pass. IT LOOKED LIKE A REGRESSION AND WAS NOT: 2/2 at older shas, 0/9 now. But 8cccda3's own commit message says this flow "was a test that could not fail", so those two passes were worthless; tightening it (8cccda3, then 0d7b45a for the hardcoded env ids) exposed a selector that had been wrong all along. A flow going from pass to fail after being MADE MEANINGFUL is not a regression. FIXTURE VERIFIED, NOT ASSUMED: the rig injects SELLER_ID=447 (it was 432 earlier — ids move on every re-seed, and 432 now 404s), and 447 really is "Omar Noori", the name this flow hardcodes. So the name assert was fine; only the id was wrong. Replaced with UserProfile.tsx:377 testID="more-menu", the Block/Report overflow, which renders when `!isMe` — a GUEST viewing someone else's profile, exactly this flow's case. AWAITING VERDICT. | [Failed] open_seller_deep_link (1m 14s) (Assertion is false: id: more-options-button is visible) |
 
 ## `onboarding` — First-run experience
 

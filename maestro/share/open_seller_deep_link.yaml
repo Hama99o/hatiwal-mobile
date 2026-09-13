@@ -46,7 +46,20 @@ appId: com.hatiwal.app
 # The id is now required, and the seller's NAME is asserted too, which is what proves
 # the RIGHT profile loaded rather than merely some screen.
 - assertVisible:
-    id: "more-options-button"
+    # WRONG SCREEN'S SELECTOR. `more-options-button` is defined ONLY in
+    # src/screens/shared/ListingDetail.tsx:1003 — the LISTING detail screen. This
+    # flow opens hatiwal://seller/<id>, which renders UserProfile, a different
+    # screen that has never had that testID. The assertion could therefore never
+    # pass: 0/9 at this sha.
+    #
+    # It looked like a regression (2/2 at older shas) but was not — 8cccda3's own
+    # message says this flow "was a test that could not fail", so those passes were
+    # worthless. Tightening it exposed a selector that was wrong all along.
+    #
+    # UserProfile.tsx:377 is the real control: testID="more-menu", the overflow
+    # menu holding Block/Report. It renders when `!isMe`, so a GUEST viewing
+    # someone else's profile — exactly this flow — does see it.
+    id: "more-menu"
     label: "Seller profile header visible after deep link"
 - assertVisible: "Omar Noori"
 
