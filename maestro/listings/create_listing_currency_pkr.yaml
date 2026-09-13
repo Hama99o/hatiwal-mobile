@@ -1,0 +1,66 @@
+appId: com.hatiwal.app
+---
+# PKR is offered as a listing currency and can be selected (Pakistan expansion).
+#
+# WHY THIS FLOW TYPES NOTHING. Its two siblings, create_listing_currency_usd
+# (5/14) and create_listing_currency_eur (2/14), both fill the title and the
+# price before touching the currency control, and both are flaky for the same
+# measured reason: typing raises the IME, which takes roughly half the window at
+# 360dp, and every control below the fold then fails to be "visible" even though
+# it is rendered. Cloning either would have manufactured a third flaky flow.
+#
+# What this flow has to prove is narrow — that PKR EXISTS in the sheet and that
+# choosing it sticks — and none of that needs a keyboard. No text input means no
+# IME, which removes the single largest source of failure in this family.
+#
+# Deliberately NOT asserted here: that a published PKR listing renders its price
+# with a rupee symbol. That would require the full publish path (photo, category,
+# location) whose flakiness this flow exists to avoid, and it is a DIFFERENT
+# claim — display formatting, not currency selection.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+# The currency trigger sits on the price row, which is below the fold on a fresh
+# form at 360dp. scrollUntilVisible is a no-op when the element is already on
+# screen, so this is safe on taller devices too.
+#
+# No centerElement: the price row has the category and location rows below it,
+# but on a short screen it can still end up as the lowest scrollable element,
+# and an uncentrable target is how CENTERELEM findings get manufactured.
+- scrollUntilVisible:
+    element:
+      id: "listing-form-currency-trigger"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "listing-form-currency-trigger"
+- waitForAnimationToEnd
+
+# By id, never by label. The rows read "PKR – Pakistani Rupee" in English but
+# "پاکستانۍ روپۍ" in Pashto and "روپیه پاکستان" in Dari — the code is not in the
+# translated string at all, so a text selector here would be English-only.
+#
+# assertVisible BEFORE tapOn is the point of the flow: if the PKR row were ever
+# dropped from the option list, this line names that directly instead of failing
+# further down as a confusing "element not found" on a tap.
+- assertVisible:
+    id: "listing-form-currency-PKR"
+- tapOn:
+    id: "listing-form-currency-PKR"
+- waitForAnimationToEnd
+
+# Selecting a row calls setCurrencyPickerVisible(false), so the sheet closes and
+# the trigger is on screen again.
+#
+# The trigger renders the raw CODE — `{currency}` in ListingForm.tsx, not the
+# translated name — so "PKR" is the one string here that is identical in all
+# four locales. That is why this assertion is on the code and not on the label.
+- assertVisible:
+    id: "listing-form-currency-trigger"
+- assertVisible: "PKR"
