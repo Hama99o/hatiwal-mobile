@@ -10,14 +10,14 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**147 of 258 flows passing** · 109 still need attention
+**148 of 258 flows passing** · 108 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 147 | green, and no backend error underneath |
-| FAIL-assert | 82 | an assertion failed — real bug OR a stale selector, triage it |
+| PASS | 148 | green, and no backend error underneath |
+| FAIL-assert | 87 | an assertion failed — real bug OR a stale selector, triage it |
 | FAIL-redbox | 1 | a red box / JS console error appeared — real app error |
-| FAIL-? | 24 | failed, cause unclear — read the log |
+| FAIL-? | 18 | failed, cause unclear — read the log |
 | (rig) | 2 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 2 | never executed |
 
@@ -31,7 +31,7 @@ bug class a user reports as "nothing happened".
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
 
-24/42 passing · 16 open
+23/42 passing · 15 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -47,21 +47,21 @@ bug class a user reports as "nothing happened".
 | `filter_price_range` | PASS | run-530 | 186 |  |  |
 | `full_marketplace_cycle` | FAIL-assert ⟳stale | run-530 | 585 | flow (IME swallowed the card tap; the title assert could not catch it) — 0/4. Died at step-230 on `.*3,500`, and the fixture is fine: the API says the listing is priced 3500.0 and the flow's `.*` regex correctly covers the non-breaking space. The screenshot shows the app STILL ON THE SEARCH SCREEN — query typed, keyboard over the lower half, one card barely visible. The tap is by testID and correctly targeted; the keyboard was simply over the card. THE TITLE ASSERT ABOVE IT PASSED SPURIOUSLY: Maestro matches text ANYWHERE ON SCREEN, including inside an INPUT FIELD, and the query sits in the search box — so only the price exposed the failure. Audited all five search sites in this flow: THREE tap a card with no IME dismissal (the failing one plus two later), so fixing only the first would have moved the failure down the file. All three now dismiss (drag + `pressKey: Enter`, since the drag alone does not close the IME on the Bazaar grid) and PROVE navigation with `notVisible: browse-search-input`. | Four taps with the same search-box collision; three now erase and re-search first. |
 | `listing_contact_whatsapp` | FAIL-assert | run-530 | 253 |  | [Failed] listing_contact_whatsapp (3m 53s) (No visible element found: id: seller-phone-reveal-button) |
-| `listing_detail` | FAIL-assert | run-530 | 273 | flow (racing the action bar) — bare `assertVisible: "Contact Seller"` on a row gated by the VIEWER resolving, while the listing's own data arrives first: there is a window where the page looks complete and has no buttons. The control is present and correct (listing.detail.contactSeller). Same cause as lifecycle_reserve, but this flow deliberately does NOT use open_thread_from_listing — it checks PRESENCE without tapping, because tapping opens the first-message sheet over the rest of the flow — so the wait went inline. | [Failed] listing_detail (4m 14s) (Assertion is false: "Contact Seller" is visible) |
+| `listing_detail` | FAIL-assert ⟳stale | run-530 | 273 | flow (racing the action bar) — bare `assertVisible: "Contact Seller"` on a row gated by the VIEWER resolving, while the listing's own data arrives first: there is a window where the page looks complete and has no buttons. The control is present and correct (listing.detail.contactSeller). Same cause as lifecycle_reserve, but this flow deliberately does NOT use open_thread_from_listing — it checks PRESENCE without tapping, because tapping opens the first-message sheet over the rest of the flow — so the wait went inline. | [Failed] listing_detail (4m 14s) (Assertion is false: "Contact Seller" is visible) |
 | `listing_detail_held_units_transparency` | FAIL-assert | run-530 | 257 | REVERT CONFIRMED — no longer exits the app (run-494 fails on `listing-card` not visible, not the Android home screen). The hideKeyboard->drag revert worked here. Remaining failure is the scroll race. | [Failed] listing_detail_held_units_transparency (3m 57s) (Assertion is false: id: stock-badge-detail is visibl |
 | `listing_detail_multi_quantity` | FAIL-assert | run-530 | 217 | TRIAGED, deliberately NOT converted — it asserts "each" on the FEED CARD before tapping, and its own comment documents a run-263 failure where without `centerElement` the title edged into the clipped bottom row and "each" was absent from the hierarchy. Sending it through the search helper would open the listing and destroy the thing it tests. It needs the target made REACHABLE on the grid (search to narrow the feed, dismiss the IME, then keep the centred scroll), not a conversion. | [Failed] listing_detail_multi_quantity (3m 17s) (No visible element found: "Phone Case Silicone Clear - Wholes |
 | `listing_detail_offer` | PASS | run-530 | 225 | flow — converted to open_listing_by_title.yaml. |  |
-| `listing_detail_offer_invalid` | FAIL-? | run-519 | 209 | flow — converted to `_helpers/open_listing_by_title.yaml`. Failed with `No visible element found: "Wool Blanket Handmade King Size"` while the listing is FINE (API: 3366, active, in the browsable feed). Scrolling a virtualised grid for one title is the fragile part, and `centerElement: true` compounds it — an item landing in the last loaded row cannot be centred, the same unsatisfiable constraint that cost account_delete_cancel eight runs. This flow asserts NOTHING about the feed card, so the search helper fits exactly. | [Failed] listing_detail_offer_invalid (2m 50s) (No visible element found: "Wool Blanket Handmade King Size") |
-| `listing_detail_price_drop_badge` | FAIL-? | run-519 | 208 | TRIAGED, deliberately NOT converted — same reason as listing_detail_multi_quantity: it asserts the `↓N%` badge on the FEED CARD before tapping. Fixture verified fine (Lenovo ThinkPad 3356, active, in the feed). | [Failed] listing_detail_price_drop_badge (3m) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8GB") |
-| `listing_detail_quantity_intent` | FAIL-assert | run-519 | 280 | flow — both listing opens converted to open_listing_by_title.yaml. | [Failed] listing_detail_quantity_intent (4m 3s) (Assertion is false: "Phone Case Silicone Clear - Wholesale" i |
-| `listing_detail_report` | PASS | run-519 | 244 | flow — converted to open_listing_by_title.yaml. | RIG-004 tolerance; covers the detail-screen entry point. |
-| `listing_detail_reserved_contactable` | PASS | run-519 | 185 |  |  |
-| `listing_detail_save_unsave` | FAIL-assert | run-519 | 272 | flow — CORRECTED DIAGNOSIS. Not a scroll-length problem: this flow calls the opener straight after login.yaml, and login.yaml ENDS ON THE PROFILE SCREEN (its last steps are ensure_english + ensure_buyer_mode, both working the profile's mode toggle). So the feed was never on screen and no scroll timeout could have helped. Now uses open_listing_by_title.yaml, which reaches the Bazaar feed itself. | [Failed] listing_detail_save_unsave (4m 11s) (Assertion is false: id: listing-card is visible) |
-| `listing_detail_saves_count` | FAIL-assert | run-519 | 192 | flow — tapped the save TOGGLE blind and unsaved it, so savesCount hit 0; now state-aware | [Failed] listing_detail_saves_count (2m 53s) (Assertion is false: "Saved by.*" is visible) |
-| `listing_detail_share` | PASS | run-519 | 167 |  |  |
-| `listing_detail_similar` | PASS | run-519 | 184 |  |  |
-| `listing_detail_sold_recovery` | FAIL-? | run-508 | 166 | rig — 'emulator died and could not be rebooted'. Host disk was 98% full and swap exhausted; pruned 2026-09-05. Re-run. | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
-| `listing_detail_sold_state` | FAIL-assert | run-508 | 151 | flow — same cold-start deep-link loss; fixed alongside sold_recovery | [Failed] listing_detail_sold_state (2m 17s) (Assertion is false: "Description" is visible) |
+| `listing_detail_offer_invalid` | FAIL-assert ⟳stale | run-530 | 176 | flow — converted to `_helpers/open_listing_by_title.yaml`. Failed with `No visible element found: "Wool Blanket Handmade King Size"` while the listing is FINE (API: 3366, active, in the browsable feed). Scrolling a virtualised grid for one title is the fragile part, and `centerElement: true` compounds it — an item landing in the last loaded row cannot be centred, the same unsatisfiable constraint that cost account_delete_cancel eight runs. This flow asserts NOTHING about the feed card, so the search helper fits exactly. | [Failed] listing_detail_offer_invalid (2m 36s) (No visible element found: "Wool Blanket Handmade King Size") |
+| `listing_detail_price_drop_badge` | FAIL-assert | run-530 | 177 | TRIAGED, deliberately NOT converted — same reason as listing_detail_multi_quantity: it asserts the `↓N%` badge on the FEED CARD before tapping. Fixture verified fine (Lenovo ThinkPad 3356, active, in the feed). | [Failed] listing_detail_price_drop_badge (2m 37s) (No visible element found: "Lenovo ThinkPad Laptop Core i5 8 |
+| `listing_detail_quantity_intent` | FAIL-assert | run-530 | 220 | flow — both listing opens converted to open_listing_by_title.yaml. | [Failed] listing_detail_quantity_intent (3m 24s) (Assertion is false: "Phone Case Silicone Clear - Wholesale"  |
+| `listing_detail_report` | PASS | run-530 | 204 | flow — converted to open_listing_by_title.yaml. | RIG-004 tolerance; covers the detail-screen entry point. |
+| `listing_detail_reserved_contactable` | PASS | run-530 | 166 |  |  |
+| `listing_detail_save_unsave` | FAIL-assert | run-530 | 227 | flow (raced the tab bar re-mounting) — the open_listing_by_title conversion WORKED: the flow reaches the detail, asserts "Contact Seller" and taps save-toggle-button before failing. It then pops back with two conditional backs, which is exactly `_helpers/pop_to_tab_bar.yaml`'s pattern MINUS its final step — an extendedWaitUntil on a tab id. `when: notVisible` evaluates immediately and `waitForAnimationToEnd` returns when the UI settles, so neither waits for the TAB LAYOUT to re-mount after leaving a pushed screen; the tap raced it and reported "Element not found: saved-tab" on a bar that was on its way. The pops are correct and stay (listing detail lives outside app/(main)/(tabs)). Added the missing wait. | [Failed] listing_detail_save_unsave (3m 28s) (Element not found: Id matching regex: saved-tab) |
+| `listing_detail_saves_count` | FAIL-assert | run-530 | 203 | TRIAGED — `"Saved by.*" is visible`. Likely below the fold on the detail, but unverified; needs its own screenshot. | [Failed] listing_detail_saves_count (3m 4s) (Assertion is false: "Saved by.*" is visible) |
+| `listing_detail_share` | PASS | run-530 | 182 |  |  |
+| `listing_detail_similar` | FAIL-assert | run-530 | 194 | TRIAGED — `"Similar Listings" is visible`. That section sits far down the detail screen; needs its own screenshot before a scroll is added. | [Failed] listing_detail_similar (2m 54s) (Assertion is false: "Similar Listings" is visible) |
+| `listing_detail_sold_recovery` | FAIL-assert | run-530 | 198 | TRIAGED — `No visible element found: id: seller-profile-link` (a scrollUntilVisible timeout). Needs its own screenshot; check for centerElement on a last element. | Optional tap paired with an optional assert checked nothing; now a when: conditional. |
+| `listing_detail_sold_state` | FAIL-assert | run-530 | 189 | TRIAGED — `"Seller" is visible`. Needs its own screenshot. | [Failed] listing_detail_sold_state (2m 45s) (Assertion is false: "Seller" is visible) |
 | `listing_detail_views_count` | PASS | run-508 | 210 |  |  |
 | `not_interested` | PASS | run-508 | 149 |  |  |
 | `saved_search_apply` | FAIL-assert | run-508 | 178 | flow — tapped the SHEET's "Clear" after closing the sheet; now the feed's clear-filters chip | [Failed] saved_search_apply (2m 44s) (Assertion is false: "Saved search" is visible) |
@@ -296,20 +296,6 @@ bug class a user reports as "nothing happened".
 | `report_user_from_profile` | PASS | run-510 | 175 | rig — never opened the listing. The result card (Honda CG 125 Motorbike 2021) is rendered in the screenshot and the flow failed on `seller-profile-link` without tapping it. Also shows the inputText character drop: field holds '5 Motorbike 2021', leading 'Honda CG 12' dropped. open_listing_by_title.yaml's wait-on-listing-card + tap-by-testID is the pattern that fixes this. | Retargeted to omar (37); stopped using nondeterministic listing-card index 0. |
 | `report_user_then_block` | FAIL-assert | run-510 | 195 | rig — ran UNAUTHENTICATED. The end-of-flow screenshot's tab bar reads Bazaar / Categories / Login, so `seller-profile-link` (which DOES exist, ListingDetail.tsx:797) was never reachable. Also shows the inputText character drop: the search field holds 'nch 4K Smart TV' — the leading 'Sony 55 i' was dropped. | Retargeted to maryam (40); now unblocks, which it never did. |
 
-## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
-
-4/7 passing · 3 open
-
-| Flow | Status | Last run | Secs | Triage | Notes |
-|---|---|---|---:|---|---|
-| `create_listing_map_pin` | PASS | s2/run-530 | 410 |  |  |
-| `filter_map_default_kabul` | FAIL-? | s2/run-530 | 246 |  | [Failed] filter_map_default_kabul (3m 44s) (No visible element found: "Switch to .*") |
-| `filter_map_location_denied` | FAIL-? | s2/run-530 | 245 |  | [Failed] filter_map_location_denied (3m 45s) (No visible element found: "Switch to .*") |
-| `filter_map_use_my_location` | PASS | s2/run-530 | 250 |  |  |
-| `filter_map_use_my_location_granted` | PASS | s2/run-530 | 237 |  |  |
-| `map_location_outside_afghanistan` | PASS | s2/run-530 | 306 |  |  |
-| `zoom_controls_not_occluded` | FAIL-? | s2/run-530 | 250 |  | [Failed] zoom_controls_not_occluded (3m 48s) (No visible element found: "Toyota Corolla 2016 Automatic") |
-
 ## `dark_mode` — Every main screen in dark theme + theme persistence
 
 5/8 passing · 3 open
@@ -344,6 +330,20 @@ bug class a user reports as "nothing happened".
 | `safety_tips_listing_detail` | UNTESTED | — |  |  |  |
 | `safety_tips_meetup_sheet` | UNTESTED | — |  |  |  |
 
+## `maps` — Location pickers — create-listing pin, Browse filter range, current location, permissions
+
+6/7 passing · 1 open
+
+| Flow | Status | Last run | Secs | Triage | Notes |
+|---|---|---|---:|---|---|
+| `create_listing_map_pin` | PASS | s2/run-531 | 323 |  |  |
+| `filter_map_default_kabul` | PASS | s2/run-531 | 232 |  |  |
+| `filter_map_location_denied` | PASS | s2/run-531 | 246 |  |  |
+| `filter_map_use_my_location` | PASS | s2/run-531 | 242 |  |  |
+| `filter_map_use_my_location_granted` | PASS | s2/run-531 | 240 |  |  |
+| `map_location_outside_afghanistan` | PASS | s2/run-531 | 299 |  |  |
+| `zoom_controls_not_occluded` | FAIL-assert | s2/run-531 | 213 |  | [Failed] zoom_controls_not_occluded (3m 9s) (No visible element found: "Toyota Corolla 2016 Automatic") |
+
 ## `gallery` — Listing photo upload, carousel, reorder, empty-photo state
 
 3/4 passing · 1 open
@@ -372,8 +372,8 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `open_listing_deep_link` | PASS | s2/run-530 | 119 |  |  |
-| `open_seller_deep_link` | FAIL-assert | s2/run-530 | 121 |  | [Failed] open_seller_deep_link (1m 39s) (Assertion is false: id: more-options-button is visible) |
+| `open_listing_deep_link` | PASS | s2/run-531 | 133 |  |  |
+| `open_seller_deep_link` | FAIL-assert | s2/run-531 | 134 |  | [Failed] open_seller_deep_link (1m 48s) (Assertion is false: id: more-options-button is visible) |
 
 ## `rtl` — Pashto + Dari right-to-left layout across main screens
 

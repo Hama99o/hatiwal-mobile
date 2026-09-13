@@ -61,6 +61,20 @@ appId: com.hatiwal.app
     commands:
       - back
       - waitForAnimationToEnd
+# WAIT FOR THE BAR TO MOUNT. The two conditional backs above are exactly
+# _helpers/pop_to_tab_bar.yaml's pattern MINUS its final step, and that step is
+# what this flow was missing: the helper ends with an extendedWaitUntil on a tab
+# id. `when: notVisible` evaluates immediately and `waitForAnimationToEnd`
+# returns when the UI settles — neither waits for the TAB LAYOUT to re-mount
+# after popping out of a pushed screen, so the tap below raced it and reported
+# "Element not found: Id matching regex: saved-tab" on a bar that was on its way.
+#
+# The pops themselves are right and stay: listing detail lives outside
+# app/(main)/(tabs), so the bar genuinely is not in the tree there.
+- extendedWaitUntil:
+    visible:
+      id: "saved-tab"
+    timeout: 15000
 # Navigate to Saved tab to confirm the listing is there
 - tapOn:
     id: "saved-tab"
