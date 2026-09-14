@@ -55,13 +55,28 @@ appId: com.hatiwal.app
 # OPEN A LISTING FIRST. The heart is a listing-DETAIL control and the step above
 # only taps the Bazaar TAB, so this was looking for it on the FEED — hence
 # `Element not found: save-toggle-button` on an app that renders it fine.
-- scrollUntilVisible:
-    element:
-      text: "Wool Blanket Handmade King Size"
-    direction: DOWN
-    centerElement: true
-    timeout: 15000
-- tapOn: "Wool Blanket Handmade King Size"
+# Reaching the fixture by SEARCH, not by scrolling the feed.
+#
+# This used to `scrollUntilVisible` on the title with a 15s timeout, which is a
+# race against the size of the feed — and one the suite keeps losing, because
+# roughly 14% of the feed is "QA Disposable" debris sorted NEWEST-FIRST, so a
+# seeded fixture drifts further down every cycle. It failed with exactly the
+# symptom _helpers/open_listing_by_title.yaml documents: "No visible element
+# found: <title>" while the listing is present and active and the feed renders
+# perfectly.
+#
+# CONTROL for this change: report/block_user.yaml targets the SAME fixture and
+# was converted to this helper earlier — it went 1/12 to 1/1.
+#
+# The helper is safe for a GUEST, which every one of its 23 existing callers is
+# not (all of them log in first), so this was checked rather than assumed:
+# BrowseHeader renders `browse-search-input` with no auth gate at all, and the
+# helper's own entry step is conditional — it taps `browse-tab` only when the
+# search input is not already visible, and assumes no session.
+- runFlow:
+    file: ../_helpers/open_listing_by_title.yaml
+    env:
+      TITLE: "Wool Blanket Handmade King Size"
 - waitForAnimationToEnd
 # Tap the save heart as a guest — should redirect to login
 - tapOn:
