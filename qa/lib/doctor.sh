@@ -34,8 +34,37 @@ elif [ "$LOAD" -gt $((CORES / 2)) ]; then
 else ok "load $LOAD of $CORES cores"; fi
 SWAP_USED=$(free | awk '/Swap:/{if($2>0) printf "%.0f", $3/$2*100; else print 0}')
 [ "${SWAP_USED:-0}" -gt 90 ] && warn "swap ${SWAP_USED}% full — the emulator will thrash" || ok "swap ${SWAP_USED:-0}%"
-MEM_AVAIL=$(free -g | awk '/Mem:/{print $7}')
-[ "$MEM_AVAIL" -lt 4 ] && BLOCK "only ${MEM_AVAIL}GB RAM available (emulator needs ~3GB)" || ok "${MEM_AVAIL}GB RAM available"
+# MEMORY — the floor depends on whether an emulator is ALREADY UP.
+#
+# This used to be one flat `free -g < 4`, with a message that said "emulator
+# needs ~3GB". Three things were wrong with that at once:
+#
+#   1. `free -g` TRUNCATES, so 3.9GB reported as "3" and the check became a hard
+#      cliff at exactly 4.0GB — it blocked while printing a figure that looked
+#      like plenty.
+#   2. The message stated 3GB while the code demanded 4.
+#   3. Worst: it asked for room to BOOT an emulator even when one was already
+#      running. The emulator is ~3.7GB resident, so on a 8GB-usable box that is
+#      a demand for headroom equal to a SECOND emulator nobody wants. On
+#      2026-09-14 this aborted pass after pass with `rc=3` and zero verdicts
+#      recorded — including the `seller` suite, the one that would have
+#      exercised that day's UniversalList migration.
+#
+# So: if no emulator is up we still need room to start one (4GB). If one is
+# already up, what remains has to cover Metro, the app and maestro — not
+# another emulator — and 1.5GB is the measured working figure.
+#
+# Measured in MB throughout, so there is no truncation cliff and the printed
+# number is the number the decision used.
+MEM_AVAIL_MB=$(free -m | awk '/Mem:/{print $7}')
+if adb devices 2>/dev/null | grep -q "emulator-.*device"; then
+  MEM_FLOOR_MB=1536; MEM_WHY="an emulator is already up — this is headroom for Metro/app/maestro"
+else
+  MEM_FLOOR_MB=4096; MEM_WHY="no emulator up — need room to boot one (~3.7GB resident)"
+fi
+[ "$MEM_AVAIL_MB" -lt "$MEM_FLOOR_MB" ] \
+  && BLOCK "only ${MEM_AVAIL_MB}MB RAM available, need ${MEM_FLOOR_MB}MB — ${MEM_WHY}" \
+  || ok "${MEM_AVAIL_MB}MB RAM available (floor ${MEM_FLOOR_MB}MB — ${MEM_WHY})"
 
 # DISK. Run artifacts grow without bound — screenshots, hierarchy dumps, logcats
 # and a debug dir per flow — and reached 9.6GB across 185 runs on this machine
