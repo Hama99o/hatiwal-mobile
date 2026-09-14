@@ -100,6 +100,11 @@ function getLocale(lang: string): string {
   switch (lang) {
     case "ps": return "fa-AF";
     case "fa": return "fa-IR";
+    // Without this, Urdu fell through to en-US and a fully translated locale
+    // still showed English dates. `ur-PK` resolves identically in Node and
+    // Chromium (measured), and its digits are LATIN — correct for Pakistani
+    // Urdu, which does not use the Arabic-Indic digits ps/fa do.
+    case "ur": return "ur-PK";
     default:   return "en-US";
   }
 }
