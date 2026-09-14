@@ -56,7 +56,25 @@ function keysOf(lang: string): Set<string> {
   return keys;
 }
 
-/** `t("ns.key")` occurrences — namespaced only, so bare strings aren't mistaken for keys. */
+/**
+ * `t("ns.key")` occurrences — namespaced only, so bare strings aren't mistaken
+ * for keys.
+ *
+ * KNOWN BLIND SPOT: this only sees STRING LITERALS. A call built from a
+ * template literal — `t(\`listing.status.${status}\`)` — is invisible here, and
+ * the app has ~17 of them. They are usually safe, because the code iterates a
+ * value set whose members all exist under one parent in en, and the catalogs
+ * are checked against each other key for key.
+ *
+ * They are NOT safe when the value set is defined somewhere else and grows.
+ * That is exactly how `profile.edit.language.ur` shipped broken: the catalog
+ * held en/ps/fa while `SUPPORTED_LANGUAGES` had gained `ur`, so EditProfile
+ * rendered the raw key path for the Urdu row in ALL FOUR locales, and nothing
+ * here could see it. Fixed 2026-09-14.
+ *
+ * So when you add a member to a set that feeds a template-literal `t()`, add
+ * its key by hand — this audit will not remind you.
+ */
 function usedKeys(): Set<string> {
   const used = new Set<string>();
   for (const file of walk(SRC)) {
