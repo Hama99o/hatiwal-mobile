@@ -28,9 +28,19 @@ import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { whatsappUrl } from "@/utils/whatsapp";
+import { dialCodeForProvince } from "@/data/afghan_provinces";
 
 interface SellerPhoneRevealProps {
   phone: string;
+  /**
+   * The listing's province, used ONLY to decide which dial code a number
+   * written in national form ("0300 1234567") means. Not rendered.
+   *
+   * Without it every such number resolved to +93, so a Pakistani seller's
+   * WhatsApp button opened a chat with whoever holds that number in
+   * Afghanistan.
+   */
+  province?: string | null;
   /**
    * The seller's separate WhatsApp number, when they set one. The WhatsApp row
    * prefers it and falls back to `phone`.
@@ -54,6 +64,7 @@ export function SellerPhoneReveal({
   isOwnListing,
   isContactable,
   authReturnTo,
+  province,
 }: SellerPhoneRevealProps) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
@@ -84,7 +95,10 @@ export function SellerPhoneReveal({
   // are written +93…, 0093…, 070… and 70… interchangeably.
   // Prefer the dedicated number; fall back to the phone so a seller who never
   // set one keeps the button they already had.
-  const waUrl = whatsappUrl(whatsappNumber?.trim() || phone);
+  const waUrl = whatsappUrl(
+    whatsappNumber?.trim() || phone,
+    dialCodeForProvince(province)
+  );
   const handleWhatsApp = () => {
     if (waUrl) Linking.openURL(waUrl);
   };

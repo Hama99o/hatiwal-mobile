@@ -831,6 +831,9 @@ export default function ListingDetailScreen() {
             <SellerPhoneReveal
               phone={listing.seller.phone}
               whatsappNumber={listing.seller.whatsappNumber}
+              // Disambiguates a national-form number ("0300…") to the right
+              // dial code. Never rendered — see the prop's own comment.
+              province={listing.location}
               isOwnListing={isOwnListing}
               // SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.2.1, flagged for
               // feature-builder to resolve): reserved is now contactable via

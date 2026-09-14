@@ -69,10 +69,10 @@ export const AFGHAN_PROVINCES: Province[] = [
   // and the two administered territories. Coordinates are each unit's capital,
   // matching the Afghan rows and what `nearestProvince` compares against.
   //
-  // NO COUNTRY NAME IS RENDERED ANYWHERE. The `country` field below is internal —
-  // used for nearest-province logic and defaults, never drawn as a section
-  // header. The list the seller sees is one flat set of places they can pick
-  // from, which is the owner's explicit instruction.
+  // NO COUNTRY NAME IS RENDERED ANYWHERE, and no `country` field exists on the
+  // rows — an earlier draft added one and it was removed on the owner's
+  // instruction. The list the seller sees is one flat set of places they can
+  // pick from, with no grouping and no headers.
   { value: "Punjab",             en: "Punjab",             ps: "پنجاب",          fa: "پنجاب",          ur: "پنجاب", aliases: ["PB"],              lat: 31.5204, lng: 74.3587 },
   { value: "Sindh",              en: "Sindh",              ps: "سند",            fa: "سند",            ur: "سندھ", aliases: ["SD"],              lat: 24.8607, lng: 67.0011 },
   { value: "Khyber Pakhtunkhwa", en: "Khyber Pakhtunkhwa", ps: "خیبر پښتونخوا",  fa: "خیبر پختونخوا",  ur: "خیبر پختونخوا", aliases: ["KPK", "KP", "NWFP", "Pakhtunkhwa"], lat: 34.0151, lng: 71.5249 },
@@ -81,6 +81,37 @@ export const AFGHAN_PROVINCES: Province[] = [
   { value: "Gilgit-Baltistan",   en: "Gilgit-Baltistan",   ps: "ګلګت بلتستان",   fa: "گلگت بلتستان",   ur: "گلگت بلتستان", aliases: ["GB", "Gilgit"],    lat: 35.9208, lng: 74.3082 },
   { value: "Azad Kashmir",       en: "Azad Kashmir",       ps: "آزاد کشمیر",     fa: "آزاد کشمیر",     ur: "آزاد جموں و کشمیر", aliases: ["AJK", "Kashmir"],  lat: 34.3700, lng: 73.4711 },
 ];
+
+/**
+ * Provinces whose sellers dial +92 rather than +93.
+ *
+ * This is a ROUTING table, not a country label: nothing here is rendered, and
+ * the picker stays one flat list exactly as before. It exists because a phone
+ * number in national form is ambiguous on its own — a Pakistani seller writes
+ * "0300 1234567" and an Afghan one writes "0700 000001", and both are just "a
+ * number starting with 0". Guessing Afghanistan for both sent every Pakistani
+ * seller's WhatsApp link to a stranger.
+ *
+ * Keyed on `value`, which is what a listing stores in `location`.
+ */
+const PK_DIALLING_PROVINCES = new Set([
+  "Punjab",
+  "Sindh",
+  "Khyber Pakhtunkhwa",
+  "Balochistan",
+  "Islamabad",
+  "Gilgit-Baltistan",
+  "Azad Kashmir",
+]);
+
+/**
+ * The dial code to assume for a number written in national form by a seller in
+ * this province. Falls back to Afghanistan, which is both the historical
+ * default and the right answer for every row that is not listed above.
+ */
+export function dialCodeForProvince(province?: string | null): string {
+  return province && PK_DIALLING_PROVINCES.has(province) ? "92" : "93";
+}
 
 export function getProvinceName(
   province: Province,
