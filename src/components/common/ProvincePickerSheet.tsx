@@ -5,7 +5,16 @@
  */
 
 import React, { useState, useMemo } from "react";
-import { View, Modal, Pressable, ScrollView, StyleSheet } from "react-native";
+import {
+  View,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  useWindowDimensions,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
@@ -15,6 +24,7 @@ import { Separator } from "@/components/reusables/separator";
 import { Check, X } from "lucide-react-native";
 import { SearchBar } from "@/components/common/SearchBar";
 import { useColors } from "@/hooks/useColors";
+import { useKeyboardHeight } from "@/hooks/useKeyboardVisible";
 import {
   AFGHAN_PROVINCES,
   getProvinceName,
@@ -37,6 +47,14 @@ export function ProvincePickerSheet({
   const { t, i18n } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  // See the KEYBOARD note in the render below.
+  const keyboardHeight = useKeyboardHeight();
+  const androidLift = Platform.OS === "android" ? keyboardHeight : 0;
+  const { height: windowH } = useWindowDimensions();
+  const sheetMaxHeight =
+    Platform.OS === "android"
+      ? Math.max(240, (windowH - androidLift) * 0.8)
+      : "80%";
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
 
@@ -73,12 +91,23 @@ export function ProvincePickerSheet({
       transparent
       onRequestClose={handleClose}
     >
+      {/* KEYBOARD — same defect and same fix as CategoryPicker: a raw <Modal>
+          does not move for the IME on iOS, so typing in the province search left
+          the keyboard covering the results. iOS gets behavior="padding"; Android
+          lifts and SHRINKS the sheet itself, for the reasons documented in
+          ReportSheet. */}
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
       <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={handleClose} />
       <View
         style={[
           styles.sheet,
           {
             backgroundColor: colors.card,
+            marginBottom: androidLift,
+            maxHeight: sheetMaxHeight,
             // Clear the Android system nav bar — Math.max keeps the existing
             // 32pt minimum on devices with no bottom inset.
             paddingBottom: Math.max(insets.bottom, 32) + 12,
@@ -184,11 +213,15 @@ export function ProvincePickerSheet({
           <Text>{t("common.cancel")}</Text>
         </Button>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
     // backgroundColor is applied inline via colors.darkScrim (useColors token)

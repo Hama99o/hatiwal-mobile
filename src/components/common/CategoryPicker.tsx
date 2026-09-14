@@ -17,6 +17,9 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import {
+  useWindowDimensions,
+  Platform,
+  KeyboardAvoidingView,
   View,
   ScrollView,
   Pressable,
@@ -25,6 +28,7 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useLocalization } from "@/hooks/useLocalization";
+import { useKeyboardHeight } from "@/hooks/useKeyboardVisible";
 import { Category } from "@/api/categories";
 import { useCategories } from "@/hooks/useCategories";
 import { useCategoryName } from "@/hooks/useCategoryName";
@@ -64,6 +68,14 @@ export function CategoryPicker({ visible, selectedId, onSelect, onClose }: Categ
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const colors = useColors();
+  // See the KEYBOARD note in the render below.
+  const keyboardHeight = useKeyboardHeight();
+  const androidLift = Platform.OS === "android" ? keyboardHeight : 0;
+  const { height: windowH } = useWindowDimensions();
+  const sheetMaxHeight =
+    Platform.OS === "android"
+      ? Math.max(240, (windowH - androidLift) * 0.88)
+      : "88%";
 
   const [step, setStep] = useState<"parent" | "sub">("parent");
   const [activeParent, setActiveParent] = useState<Category | null>(null);
@@ -154,6 +166,23 @@ export function CategoryPicker({ visible, selectedId, onSelect, onClose }: Categ
       transparent
       onRequestClose={handleClose}
     >
+      {/* KEYBOARD. Without this the sheet is a raw <Modal>, which on iOS does not
+          move for the IME — so typing in the search box left the keyboard sitting
+          over the ENTIRE results list. Reported on an iPhone: the sheet showed the
+          handle, "Select Category" and the search field, and nothing else. The
+          feature was unusable while being used.
+
+          Same pair ReportSheet/MeetupSheet use, for the reasons documented at
+          length in ReportSheet: iOS gets behavior="padding"; Android lifts the
+          sheet itself by the IME height from the event payload, because under
+          edge-to-edge (SDK 54) adjustResize no longer shrinks anything and a
+          native Modal is its own window regardless. The static maxHeight is
+          overridden on Android so the sheet SHRINKS to the room above the
+          keyboard rather than staying tall and pushing its list out of view. */}
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
       {/* Backdrop — tap to close */}
       <Pressable style={[styles.backdrop, { backgroundColor: colors.darkScrim }]} onPress={handleClose} />
 
@@ -161,7 +190,12 @@ export function CategoryPicker({ visible, selectedId, onSelect, onClose }: Categ
       <View
         style={[
           styles.sheet,
-          { backgroundColor: colors.card, borderTopColor: colors.border },
+          {
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
+            marginBottom: androidLift,
+            maxHeight: sheetMaxHeight,
+          },
         ]}
       >
         {/* Drag handle */}
@@ -385,11 +419,15 @@ export function CategoryPicker({ visible, selectedId, onSelect, onClose }: Categ
           <Text>{t("common.cancel")}</Text>
         </Button>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
     // backgroundColor is applied inline via colors.darkScrim (useColors token)

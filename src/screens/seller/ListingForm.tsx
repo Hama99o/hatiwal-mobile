@@ -1352,7 +1352,7 @@ export default function ListingFormScreen() {
         {/* 2. Title                                                            */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field} onLayout={registerSectionY("title")} testID="listing-form-field-title">
-          <FieldLabel nativeID="title-label" required className="mb-1">
+          <FieldLabel nativeID="title-label" required className="mb-2">
             {t("listing.title")}
           </FieldLabel>
           <Controller
@@ -1403,7 +1403,7 @@ export default function ListingFormScreen() {
         {/* 3. Price + Currency                                                 */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field} onLayout={registerSectionY("price")} testID="listing-form-field-price">
-          <FieldLabel nativeID="price-label" required className="mb-1">
+          <FieldLabel nativeID="price-label" required className="mb-2">
             {t("common.price")}
           </FieldLabel>
           <View style={[styles.priceRow, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
@@ -1702,7 +1702,7 @@ export default function ListingFormScreen() {
         {/* 4. Category                                                         */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field} onLayout={registerSectionY("category")} testID="listing-form-field-category">
-          <FieldLabel nativeID="category-label" required className="mb-1">
+          <FieldLabel nativeID="category-label" required className="mb-2">
             {t("common.category")}
           </FieldLabel>
           <Controller
@@ -1761,7 +1761,7 @@ export default function ListingFormScreen() {
         {/* 4b. Condition                                                       */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field}>
-          <Label className="mb-1">{t("listing.condition.label")}</Label>
+          <Label className="mb-2">{t("listing.condition.label")}</Label>
           <Controller
             control={control}
             name="condition"
@@ -1778,7 +1778,7 @@ export default function ListingFormScreen() {
         {/* 5. Description                                                      */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field}>
-          <Label className="mb-1">{t("common.description")}</Label>
+          <Label className="mb-2">{t("common.description")}</Label>
           <Controller
             control={control}
             name="description"
@@ -1800,7 +1800,7 @@ export default function ListingFormScreen() {
         {/* 6. Location — exact point on the map (search or drop a pin)         */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field} onLayout={registerSectionY("location")} testID="listing-form-field-location">
-          <FieldLabel nativeID="location-label" required className="mb-1">
+          <FieldLabel nativeID="location-label" required className="mb-2">
             {t("common.location")}
           </FieldLabel>
           <Pressable
@@ -1867,7 +1867,7 @@ export default function ListingFormScreen() {
         {/* 7. Address                                                          */}
         {/* ------------------------------------------------------------------ */}
         <View style={styles.field}>
-          <Label className="mb-1">{t("listing.form.addressLabel")}</Label>
+          <Label className="mb-2">{t("listing.form.addressLabel")}</Label>
           <Controller
             control={control}
             name="address"
@@ -2033,6 +2033,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   field: {
+    // 20 between field GROUPS, against 8 (`mb-2`) under each label. All seven
+    // labels were on `mb-1` — 4 — which reads as almost touching their input;
+    // the owner flagged exactly that on Title, Price, Category, Condition and
+    // Description. At 4-vs-20 a label floats between two fields and visually
+    // belongs to neither. At 8-vs-20 it groups with the field below it, which
+    // is the whole job of a field label. Move both numbers together or the
+    // grouping breaks.
     marginBottom: 20,
   },
   priceRow: {
