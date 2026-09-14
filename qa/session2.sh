@@ -52,6 +52,27 @@
 # if `free -h` shows swap anywhere near full with one emulator up, a second one
 # will not add throughput, it will invalidate BOTH sessions' verdicts. Do not
 # trust any pass/fail recorded while swap is exhausted — re-run it.
+#
+# ── THIRD MEASUREMENT, 2026-09-14: IT NO LONGER EVEN SURVIVES THE BOOT ────────
+# Asked for again by the owner, and launched — `qa.sh up` booted qa_phone4 on
+# 5582 cleanly and it reached `device`. It was DEAD roughly two minutes later,
+# OOM-killed by the host along with the shell that launched it.
+#
+# The numbers, one emulator up beforehand: 4063MB free, swap 2047/2047 (100%).
+# After 5582 came online: 1001MB free. qemu alone wants ~3.7GB RESIDENT per
+# emulator, so two need ~7.4GB against ~4GB of headroom on a box whose swap is
+# already gone. There is nothing left to reclaim — the kernel picked the newer
+# emulator and killed it.
+#
+# What survived is the useful part: session 1's emulator lived (it was the
+# 2026-09-05 run where session 1 died instead and had to be rebooted mid-pass),
+# and free RAM returned to 4099MB the moment 5582 went.
+#
+# So this is now measured three times, in three different ways, and the answer
+# has not changed. The honest reading is not "two is risky" — it is that on THIS
+# host a second emulator cannot be kept alive at all while swap is exhausted.
+# Fix the swap/memory pressure first; the script below is correct and will work
+# the day the box has the headroom.
 # ─────────────────────────────────────────────────────────────────────────────
 # ─────────────────────────────────────────────────────────────────────────────
 # SECOND QA TESTER — runs beside qa/overnight.sh, on its own emulator.
