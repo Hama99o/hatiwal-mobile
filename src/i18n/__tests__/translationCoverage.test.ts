@@ -19,7 +19,7 @@ import path from "path";
 
 const SRC = path.resolve(__dirname, "../..");
 const LOCALES = path.join(SRC, "i18n/locales");
-const LANGS = ["en", "ps", "fa"] as const;
+const LANGS = ["en", "ps", "fa", "ur"] as const;
 const PLURAL = /_(zero|one|two|few|many|other)$/;
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -140,54 +140,34 @@ describe("translation coverage", () => {
 
   // Drift in either direction is worth knowing: a key added to en and forgotten
   // elsewhere renders as the raw key for those users.
-  it.each(["ps", "fa"] as const)("%s carries every en key", (lang) => {
+  it.each(["ps", "fa", "ur"] as const)("%s carries every en key", (lang) => {
     const missing = [...catalogs.en].filter((k) => !catalogs[lang].has(k)).sort();
     expect(missing).toEqual([]);
   });
   // ── Urdu (Pakistan expansion) ─────────────────────────────────────────────
   //
-  // Urdu is DELIBERATELY NOT in LANGS above. It is being filled namespace by
-  // namespace, and i18next's `fallbackLng: "en"` means a key it does not carry
-  // yet renders the English string rather than a raw key — so partial Urdu is
-  // usable, where partial ps/fa would not be. (The web client cannot do this:
-  // next-intl loads one locale file with no per-key fallback.)
+  // Urdu is a FIRST-CLASS LOCALE as of 2026-09-14 — it is in LANGS above and is
+  // held to every bar ps and fa are. It used to be exempted namespace by
+  // namespace through a `UR_OUTSTANDING` allowlist, because i18next's
+  // `fallbackLng: "en"` renders the English string for a key Urdu does not
+  // carry, which makes a partial catalog merely unpolished rather than broken.
+  // That was a reason to SHIP early, never a reason to stop: the last three
+  // namespaces (chat 203, listing 264, profile 143) are now translated, the
+  // allowlist is gone, and re-adding it would be a regression, not a step.
   //
-  // What is enforced instead is that Urdu can only ever get BETTER:
-  //   - a namespace is all-or-nothing, so nobody lands half a screen;
-  //   - the outstanding namespaces are named here, so finishing one means
-  //     deleting its name from this list and the test then holds it complete;
-  //   - no English may masquerade as Urdu, the same quality bar as ps/fa.
-  const UR_OUTSTANDING = new Set(["chat", "listing", "profile"]);
-
-  it("ur carries every en key outside the outstanding namespaces", () => {
-    const missing = [...catalogs.en]
-      .filter((k) => !UR_OUTSTANDING.has(k.split(".")[0]))
-      .filter((k) => !keysOf("ur").has(k))
-      .sort();
-    expect(missing).toEqual([]);
-  });
+  // The one check below is kept beyond what ps/fa get, because Urdu was built
+  // against en by hand and a stray key would sit in the catalog unused and
+  // invisible.
 
   it("ur adds no key that en does not have", () => {
     const stray = [...keysOf("ur")].filter((k) => !catalogs.en.has(k)).sort();
     expect(stray).toEqual([]);
   });
 
-  it("ur has no untranslated English left in it", () => {
-    const en = valuesOf("en");
-    const ur = valuesOf("ur");
-    const untranslated = [...ur.entries()]
-      .filter(([k, v]) => en.get(k) === v)
-      .filter(([, v]) => /[A-Za-z]/.test(v))
-      .map(([k]) => k)
-      .filter((k) => !IDENTICAL_BY_DESIGN.has(k) && !AWAITING_TRANSLATION.has(k))
-      .sort();
-    expect(untranslated).toEqual([]);
-  });
-
   // Key PRESENCE is not translation. A key can sit in ps/fa holding the English
   // string and every check above still passes, while a Pashto-speaking seller reads
   // English at the exact moment something has gone wrong.
-  it.each(["ps", "fa"] as const)("%s has no untranslated English left in it", (lang) => {
+  it.each(["ps", "fa", "ur"] as const)("%s has no untranslated English left in it", (lang) => {
     const en = valuesOf("en");
     const other = valuesOf(lang);
     const untranslated = [...en.entries()]

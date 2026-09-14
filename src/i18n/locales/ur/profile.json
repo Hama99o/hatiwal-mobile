@@ -1,1 +1,178 @@
-{}
+{
+  "title": "پروفائل",
+  "editProfile": "پروفائل میں ترمیم کریں",
+  "myListings": "میرے اشتہارات",
+  "savedListings": "محفوظ شدہ اشتہارات",
+  "switchToBuyer": "خریدار موڈ پر جائیں",
+  "switchToSeller": "بیچنے والے کے موڈ پر جائیں",
+  "buyerMode": "خریدار موڈ",
+  "sellerMode": "بیچنے والے کا موڈ",
+  "language": "زبان",
+  "theme": "ظاہری شکل",
+  "themeLight": "روشن",
+  "themeDark": "تاریک",
+  "themeSystem": "سسٹم",
+  "logout": "سائن آؤٹ",
+  "memberSince": "{{date}} سے رکن",
+  "logoutConfirm": "کیا آپ واقعی سائن آؤٹ کرنا چاہتے ہیں؟",
+  "privacy": "رازداری",
+  "blockedUsers": "بلاک کیے گئے صارفین",
+  "blocked": {
+    "unblocked": "صارف کو ان بلاک کر دیا گیا",
+    "unblockTitle": "صارف کو ان بلاک کریں؟",
+    "unblockMessage": "{{name}} دوبارہ آپ کو پیغام بھیج سکیں گے اور آپ کے اشتہارات کے بارے میں رابطہ کر سکیں گے۔",
+    "unblockAction": "ان بلاک کریں",
+    "unblockConfirm": "جی ہاں، ان بلاک کریں",
+    "emptyTitle": "کوئی بلاک شدہ صارف نہیں",
+    "emptyDescription": "جن لوگوں کو آپ بلاک کرتے ہیں وہ آپ کو پیغام نہیں بھیج سکتے اور نہ آپ کے اشتہارات کے بارے میں رابطہ کر سکتے ہیں۔ آپ نے ابھی تک کسی کو بلاک نہیں کیا۔"
+  },
+  "bio": "تعارف",
+  "city": "شہر",
+  "setLocation": "نقشے پر اپنا مقام مقرر کریں",
+  "locationSet": "مقام مقرر ہو گیا",
+  "info": "ذاتی معلومات",
+  "noInfo": "ابھی تک کوئی معلومات شامل نہیں",
+  "sellerProfile": {
+    "title": "بیچنے والے کا پروفائل",
+    "soldCount": "{{count}} فروخت ہوئے",
+    "soldCountZero": "ابھی تک کوئی فروخت نہیں",
+    "activeListings": "{{count}} فعال اشتہارات",
+    "memberSince": "{{date}} سے رکن",
+    "trustScore": "بیچنے والے کی ساکھ",
+    "viewListings": "اشتہارات دیکھیں",
+    "noListings": "کوئی فعال اشتہار نہیں",
+    "loadFailed": "پروفائل لوڈ نہیں ہو سکا۔",
+    "responseTime": {
+      "within_one_hour": "عموماً 1 گھنٹے کے اندر جواب دیتے ہیں",
+      "within_a_day": "عموماً ایک دن کے اندر جواب دیتے ہیں",
+      "within_a_few_days": "عموماً چند دنوں میں جواب دیتے ہیں"
+    },
+    "responseRate": "{{percent}}% جواب کی شرح",
+    "share": {
+      "title": "بیچنے والے کا پروفائل شیئر کریں",
+      "body": "Hatiwal پر {{name}} کو دیکھیں\n{{url}}"
+    }
+  },
+  "userProfile": {
+    "title": "بیچنے والے کا پروفائل",
+    "activeListings": "فعال اشتہارات",
+    "soldItems": "فروخت شدہ اشیاء",
+    "joined": "شامل ہوئے",
+    "noListings": "کوئی فعال اشتہار نہیں",
+    "noListingsDescription": "اس بیچنے والے کے پاس اس وقت کوئی فعال اشتہار نہیں ہے۔",
+    "loadFailed": "پروفائل لوڈ نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔",
+    "reportUser": "صارف کی اطلاع دیں",
+    "blockUser": "صارف کو بلاک کریں",
+    "unblockUser": "صارف کو ان بلاک کریں",
+    "blockConfirmTitle": "اس صارف کو بلاک کریں؟",
+    "blockConfirmMessage": "بلاک شدہ صارفین آپ سے رابطہ نہیں کر سکتے اور ان کے اشتہارات چھپا دیے جائیں گے۔",
+    "blockSuccess": "صارف بلاک ہو گیا",
+    "blockFailed": "صارف بلاک نہیں ہو سکا",
+    "unblockSuccess": "صارف کو ان بلاک کر دیا گیا",
+    "unblockFailed": "صارف ان بلاک نہیں ہو سکا",
+    "searchListings": "اشتہارات تلاش کریں...",
+    "listingsCount": "{{count}} اشتہارات",
+    "tabs": {
+      "active": "فعال",
+      "sold": "فروخت شدہ"
+    },
+    "sold": {
+      "emptyTitle": "ابھی تک کوئی فروخت شدہ چیز نہیں",
+      "emptyDescription": "اس بیچنے والے کی فروخت کردہ اشیاء یہاں ظاہر ہوں گی۔",
+      "emptyTitleHidden": "اس وقت کوئی فروخت شدہ چیز نہیں دکھائی جا رہی",
+      "emptyDescriptionHidden": "اس بیچنے والے نے سودے مکمل کیے ہیں، لیکن وہ اشتہارات اب یہاں دکھانے کے لیے دستیاب نہیں ہیں۔"
+    },
+    "activeToday": "آج فعال",
+    "activeThisWeek": "اس ہفتے فعال",
+    "activeThisMonth": "اس مہینے فعال"
+  },
+  "sellerDashboard": "بیچنے والے کا ڈیش بورڈ",
+  "buyerProfile": "خریدار کا پروفائل",
+  "stats": {
+    "sold": "فروخت شدہ",
+    "active": "فعال",
+    "sales": "کل فروخت"
+  },
+  "transactionStats": {
+    "sold": "{{value}} فروخت ہوئے",
+    "bought": "{{value}} خریدے"
+  },
+  "quickActions": {
+    "postNew": "نئی چیز شائع کریں",
+    "myListings": "میرے اشتہارات",
+    "messages": "پیغامات",
+    "reviews": "درجہ بندی اور جائزے",
+    "browse": "اشتہارات دیکھیں",
+    "saved": "محفوظ شدہ اشیاء"
+  },
+  "recentActivity": "حالیہ سرگرمی",
+  "recentListings": "آپ کے فعال اشتہارات",
+  "viewAll": "سب دیکھیں",
+  "itemsBought": "خریدی گئی اشیاء",
+  "itemsBought_one": "خریدی گئی چیز",
+  "itemsBought_other": "خریدی گئی اشیاء",
+  "itemsSaved": "محفوظ شدہ اشیاء",
+  "itemsSaved_one": "محفوظ شدہ چیز",
+  "itemsSaved_other": "محفوظ شدہ اشیاء",
+  "purchaseActivity": "خریداری کی سرگرمی",
+  "edit": {
+    "title": "پروفائل میں ترمیم کریں",
+    "saved": "پروفائل محفوظ ہو گیا",
+    "saveError": "پروفائل محفوظ نہیں ہو سکا",
+    "sections": {
+      "identity": "شناخت",
+      "contact": "رابطہ",
+      "location": "مقام",
+      "language": "ترجیحی زبان"
+    },
+    "fields": {
+      "firstname": "پہلا نام",
+      "lastname": "آخری نام",
+      "phone": "فون نمبر",
+      "bio": "تعارف",
+      "bioPlaceholder": "خریداروں کو اپنے بارے میں کچھ بتائیں…",
+      "city": "شہر",
+      "province": "صوبہ",
+      "setLocation": "نقشے پر اپنا مقام مقرر کریں",
+      "locationSet": "مقام مقرر ہو گیا",
+      "whatsapp": "واٹس ایپ نمبر",
+      "whatsappSameAsPhone": "میرے فون نمبر جیسا",
+      "showPhonePublicly": "خریداروں کو میرا فون اور واٹس ایپ دیکھنے دیں",
+      "showAddressPublicly": "میرا شہر اور صوبہ میرے پروفائل پر دکھائیں",
+      "visibilityNote": "یہ آپ کی اپنی رابطہ معلومات ہیں۔ اشتہار کا مقام الگ سے، اس کے نقشے پر مقرر ہوتا ہے۔"
+    },
+    "validation": {
+      "firstnameRequired": "پہلا نام درکار ہے",
+      "lastnameRequired": "آخری نام درکار ہے",
+      "phoneTooLong": "فون نمبر بہت لمبا ہے",
+      "bioTooLong": "تعارف 500 حروف یا اس سے کم ہونا چاہیے"
+    },
+    "language": {
+      "en": "انگریزی",
+      "ps": "پشتو (پښتو)",
+      "fa": "دری",
+      "ur": "اردو"
+    },
+    "saveButton": "تبدیلیاں محفوظ کریں",
+    "saving": "محفوظ کیا جا رہا ہے…",
+    "province": "صوبہ"
+  },
+  "dangerZone": "خطرے کا علاقہ",
+  "deleteAccount": "اکاؤنٹ حذف کریں",
+  "deleteAccountTitle": "اپنا اکاؤنٹ حذف کریں؟",
+  "deleteAccountMessage": "آپ کا اکاؤنٹ حذف کرنے کے لیے مقرر ہو جائے گا اور فوراً چھپا دیا جائے گا، پھر 30 دن بعد مستقل طور پر حذف ہو جائے گا۔ آپ 30 دن کے اندر دوبارہ لاگ ان کر کے اسے بحال کر سکتے ہیں۔",
+  "deleteAccountConfirm": "اکاؤنٹ حذف کریں",
+  "deleteAccountSuccess": "آپ کا اکاؤنٹ حذف کر دیا گیا ہے۔",
+  "deleteAccountError": "آپ کا اکاؤنٹ حذف نہیں ہو سکا۔ براہ کرم دوبارہ کوشش کریں۔",
+  "privacyPolicy": "رازداری کی پالیسی",
+  "myReports": "میری رپورٹس",
+  "activity": "سرگرمی",
+  "recentlyViewed": "حال ہی میں دیکھے گئے",
+  "hiddenListings": "پوشیدہ اشتہارات",
+  "away": {
+    "toggle": "میں دستیاب نہیں ہوں (عارضی طور پر)",
+    "untilLabel": "اس تاریخ تک غیر حاضر (YYYY-MM-DD)",
+    "sectionTitle": "غیر حاضری کا موڈ",
+    "youAreAway": "آپ {{date}} تک غیر حاضر ہیں — خریداروں کو غیر حاضری کا نوٹس نظر آتا ہے"
+  }
+}
