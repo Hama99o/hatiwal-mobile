@@ -4,11 +4,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShoppingBag, Plus, LayoutGrid, List, Search, X } from "lucide-react-native";
+import { ShoppingBag, Plus, LayoutGrid, List } from "lucide-react-native";
 import { ListingsIllustration } from "@/components/common/empty-illustrations";
+import { SearchBar } from "@/components/common/SearchBar";
 
 import { Text } from "@/components/reusables/text";
-import { Input } from "@/components/reusables/input";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { ListingFeed, type ListingFeedViewMode } from "@/components/common/ListingFeed";
 import { listingsAPI, type Listing } from "@/api/listings";
@@ -124,57 +124,23 @@ function CompactHeader({
           </Text>
         )}
 
-        {/* Search input */}
-        <View
-          style={{
-            flex: 1,
-            flexDirection: isRtl ? "row-reverse" : "row",
-            alignItems: "center",
-            backgroundColor: colors.muted,
-            borderRadius: 10,
-            paddingHorizontal: 10,
-            gap: 6,
-            height: 38,
-          }}
-        >
-          <Search size={15} color={colors.mutedForeground} />
-          <Input
-            value={search}
-            onChangeText={onSearchChange}
-            placeholder={t("listing.searchPlaceholder")}
-            returnKeyType="search"
-            // QA (card #296/SF-QA1): the only handle on this field was its
-            // TRANSLATED placeholder, so no Pashto/Dari flow could reach My
-            // Shop's search at all — which is why the sell flow had no RTL
-            // coverage on any screen behind it. The buyer feed's equivalent
-            // has had `browse-search-input` all along; this one is named to
-            // match. Additive, behaviour-neutral.
-            testID="my-listings-search-input"
-            accessibilityLabel={t("listing.searchPlaceholder")}
-            style={{
-              flex: 1,
-              fontSize: 13,
-              borderWidth: 0,
-              backgroundColor: "transparent",
-              paddingHorizontal: 0,
-              paddingVertical: 0,
-              minHeight: 0,
-              textAlign: isRtl ? "right" : "left",
-            }}
-            placeholderTextColor={colors.mutedForeground}
-          />
-          {search.length > 0 && (
-            <Pressable
-              onPress={() => onSearchChange("")}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityRole="button"
-              accessibilityLabel={t("common.clear")}
-              testID="my-listings-search-clear"
-            >
-              <X size={14} color={colors.mutedForeground} />
-            </Pressable>
-          )}
-        </View>
+        {/* Search input — the shared SearchBar (R15). This screen was the last
+            of five to hand-roll the same muted row: icon + borderless Input +
+            conditional X. Both testIDs are carried over unchanged, so the
+            Maestro flows and the RTL coverage behind them keep working.
+
+            One deliberate behaviour change comes with it: the hand-rolled row
+            was a fixed 38px, under the 44px touch floor the design system sets
+            and every other search row already meets. SearchBar's MIN_TAP_TARGET
+            applies here now, so the header row is slightly taller. */}
+        <SearchBar
+          value={search}
+          onChangeText={onSearchChange}
+          placeholder={t("listing.searchPlaceholder")}
+          inputTestID="my-listings-search-input"
+          clearTestID="my-listings-search-clear"
+          containerStyle={{ flex: 1 }}
+        />
 
         {/* Grid / list toggle — segmented control, compact */}
         <View
