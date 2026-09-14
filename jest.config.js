@@ -1,6 +1,8 @@
 /** @type {import('jest').Config} */
 module.exports = {
   preset: "jest-expo",
+  // Must run BEFORE the framework and before any import — see the file.
+  setupFiles: ["<rootDir>/src/__tests__/env.ts"],
   setupFilesAfterEnv: [
     "@testing-library/jest-native/extend-expect",
     "<rootDir>/src/__tests__/setup.ts",
