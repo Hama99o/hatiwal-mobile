@@ -65,7 +65,7 @@
  * below is what Android has always shipped and is fully native/gesture-driven.)
  */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Pressable, type GestureResponderEvent } from "react-native";
 import { Text } from "@/components/reusables/text";
 import Constants, { ExecutionEnvironment } from "expo-constants";
@@ -230,6 +230,41 @@ export default function MapCanvas({
   // live, so toggling either updates the map without remounting it.
   const mapStyle = useMemo(() => styleUrl(dark, i18n.language), [dark, i18n.language]);
 
+  // ── Recover from a failed style load ───────────────────────────────────────
+  //
+  // MapLibre does not retry on its own. When the style request fails the map is
+  // left permanently blank with no affordance — and the failure is real, not
+  // theoretical: the QA emulators record it verbatim,
+  //
+  //   E Mbgl: {com.hatiwal.app}[Setup]: loading style failed:
+  //           Unable to resolve host "map.hatiwal.com"
+  //
+  // which is a transient DNS/network miss, not a broken tileset. On a phone with
+  // two bars of 4G that is a normal Tuesday, and today it costs the user the
+  // whole map until they leave the screen and come back.
+  //
+  // Remounting the map by key is the blunt instrument that works: it re-issues
+  // the style request from scratch. Bounded to a few attempts with a backoff so
+  // a genuinely unreachable host does not become a request loop, and reset
+  // whenever the style url itself changes (theme or language switch).
+  //
+  // NOTE this covers the STYLE, which is all MapLibre reports to JS. Individual
+  // TILE failures inside a loaded style raise no event here, and those are the
+  // blank-band symptom the owner reported — still unsolved, tracked separately.
+  const [reloadKey, setReloadKey] = useState(0);
+  const styleRetriesRef = useRef(0);
+  useEffect(() => {
+    styleRetriesRef.current = 0;
+  }, [mapStyle]);
+
+  const handleStyleLoadFailed = useCallback(() => {
+    if (styleRetriesRef.current >= 3) return;
+    const attempt = styleRetriesRef.current + 1;
+    styleRetriesRef.current = attempt;
+    const delay = 1000 * attempt;
+    setTimeout(() => setReloadKey((k: number) => k + 1), delay);
+  }, []);
+
   // Recenter only on EXTERNAL center changes.
   useEffect(() => {
     if (isExpoGo) return;
@@ -338,8 +373,10 @@ export default function MapCanvas({
       style={{ width: "100%", height, overflow: "hidden", backgroundColor: colors.background }}
     >
       <Map
+        key={reloadKey}
         style={{ width: "100%", height: "100%" }}
         mapStyle={mapStyle}
+        onDidFailLoadingMap={handleStyleLoadFailed}
         onPress={handlePress}
         onRegionDidChange={handleRegionDidChange}
         dragPan={gesturesOn}
