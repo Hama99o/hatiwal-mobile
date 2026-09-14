@@ -1,10 +1,9 @@
 import React, { useRef, useState } from "react";
 import { View, StyleSheet, Pressable, FlatList, useWindowDimensions } from "react-native";
 import { RemoteImage } from "@/components/common/RemoteImage";
+import { Skeleton } from "@/components/reusables/skeleton";
 import type { ListingFeedViewMode } from "@/components/common/ListingFeed";
-import Animated from "react-native-reanimated";
 import { Eye, MessageCircle, Camera, MoreHorizontal } from "lucide-react-native";
-import { usePulse } from "@/lib/animation";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "expo-router";
 
@@ -23,13 +22,34 @@ import { useListingLifecycle } from "@/hooks/useListingLifecycle";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 
-/** Animated shimmer shown behind each photo until it finishes loading.
- *  Uses usePulse() so the shimmer is skipped when Reduce Motion is enabled. */
+/** Shimmer shown OVER each photo until it finishes loading.
+ *
+ * This used to be a hand-rolled `Animated.View` carrying `usePulse()` and
+ * nothing else — no background colour at all. An animated view with no colour
+ * is invisible, so the "skeleton" pulsed transparency over empty space and no
+ * loading state was ever visible on this card. It was also rendered BEFORE
+ * <RemoteImage>, and later siblings paint on top, so even a coloured one would
+ * have been hidden behind the image's blurhash placeholder — which is the pale
+ * square a seller actually sees while a photo loads.
+ *
+ * Both are fixed: the shared <Skeleton> supplies the pulse AND a real surface
+ * (so there is no second shimmer implementation to keep in step), it is tinted
+ * with `imagePlaceholder` so it reads against the tile's `muted` backing, and
+ * it is rendered LAST so it covers the photo until `onLoad` fires. */
 function PhotoSkeleton({ width }: { width: number }) {
-  const animStyle = usePulse();
+  const colors = useColors();
   return (
-    <Animated.View
-      style={[animStyle, { position: "absolute", top: 0, left: 0, width, aspectRatio: 4 / 3 }]}
+    <Skeleton
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width,
+        aspectRatio: 4 / 3,
+        // Square: this fills a photo tile, not a rounded text placeholder.
+        borderRadius: 0,
+        backgroundColor: colors.imagePlaceholder,
+      }}
     />
   );
 }
@@ -44,13 +64,16 @@ function PhotoSlide({ uri, width, bgColor }: PhotoSlideProps) {
   const [loaded, setLoaded] = useState(false);
   return (
     <View style={{ width, aspectRatio: 4 / 3, backgroundColor: bgColor }}>
-      {!loaded && <PhotoSkeleton width={width} />}
       <RemoteImage
         uri={uri}
         style={[styles.galleryImage, { width }]}
         transition={200}
         onLoad={() => setLoaded(true)}
       />
+      {/* AFTER the image, not before: absolutely-positioned siblings paint in
+          document order, so the skeleton has to come last to actually cover the
+          photo (and its blurhash) while it loads. */}
+      {!loaded && <PhotoSkeleton width={width} />}
     </View>
   );
 }

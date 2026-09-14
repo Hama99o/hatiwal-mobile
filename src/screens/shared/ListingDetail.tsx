@@ -20,7 +20,7 @@
  * Sub-components live in ./listing-detail/ to keep this file under ~300 lines.
  */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   FlatList,
@@ -388,8 +388,7 @@ export default function ListingDetailScreen() {
     });
   }, [offerMutation, listing, offerQuantity, t]);
 
-  const handleShare = useCallback(async () => {
-    setShowMoreSheet(false);
+  const doShare = useCallback(async () => {
     if (!listing) return;
     try {
       // Prefer the server-supplied https share URL; fall back to a hatiwal:// deep link
@@ -419,8 +418,46 @@ export default function ListingDetailScreen() {
           ? { title: listing.title, message }
           : { title: listing.title, message, url }
       );
-    } catch {}
+    } catch (err) {
+      // NOT swallowed. This was `catch {}`, so every failure — including the
+      // presentation race below — looked exactly like a working button that did
+      // nothing, which is what the owner reported: "no action, no reaction".
+      // A cancelled share does NOT reach here (Share.share RESOLVES with
+      // dismissedAction), so anything caught is a real failure worth showing.
+      toast.error(apiErrorMessage(err, t));
+    }
   }, [listing, formatCurrency, t]);
+
+  /**
+   * Share fires AFTER the more-sheet has finished dismissing, not alongside it.
+   *
+   * THE BUG: `setShowMoreSheet(false)` only STARTS the Modal's slide-out.
+   * Calling `Share.share()` in the same tick asks iOS to present the activity
+   * sheet while a modal is still dismissing from the same presenting
+   * controller. iOS refuses, the promise rejects, and the empty `catch {}` made
+   * that indistinguishable from success — so the button did nothing, every
+   * time, silently.
+   *
+   * iOS gives an exact "the modal is really gone" signal in the Modal's
+   * `onDismiss`, so the share is queued and fired from there. Android has no
+   * such presentation conflict (and no `onDismiss`), so it shares immediately.
+   */
+  const pendingShareRef = useRef(false);
+
+  const handleShare = useCallback(() => {
+    setShowMoreSheet(false);
+    if (Platform.OS === "ios") {
+      pendingShareRef.current = true;
+      return;
+    }
+    void doShare();
+  }, [doShare]);
+
+  const handleMoreSheetDismissed = useCallback(() => {
+    if (!pendingShareRef.current) return;
+    pendingShareRef.current = false;
+    void doShare();
+  }, [doShare]);
 
   const handleReport = useCallback(() => {
     setShowMoreSheet(false);
@@ -1221,6 +1258,9 @@ export default function ListingDetailScreen() {
         transparent
         animationType="slide"
         onRequestClose={() => setShowMoreSheet(false)}
+        // iOS-only, and the whole point: fires once the sheet is actually gone,
+        // which is the only safe moment to present the share sheet.
+        onDismiss={handleMoreSheetDismissed}
       >
         <Pressable
           style={[styles.backdrop, { backgroundColor: colors.overlay }]}
