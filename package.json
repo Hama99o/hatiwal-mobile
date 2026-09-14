@@ -7,6 +7,7 @@
     "android": "expo start --android --port 3008",
     "ios": "expo start --ios --port 3008",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "storybook": "STORYBOOK_ENABLED=true expo start --port 3008",
     "test": "jest --watchAll=false",
     "test:watch": "jest --watchAll",
@@ -97,6 +98,7 @@
     "@storybook/react-native": "^8.4.7",
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^29.5.14",
     "@types/react": "~19.1.0",
     "babel-preset-expo": "~54.0.10",
     "eslint": "^8.57.0",
@@ -106,7 +108,7 @@
     "msw": "^2.14.6",
     "react-refresh": "^0.14.2",
     "react-test-renderer": "^19.1.0",
-    "typescript": "~5.3.3"
+    "typescript": "~5.9.2"
   },
   "private": true
 }

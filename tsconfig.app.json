@@ -1,0 +1,27 @@
+// What `npm run typecheck` actually checks: the app that ships.
+//
+// WHY NOT JUST `tsc -p tsconfig.json`. That reports 277 errors today and would
+// be red from the day it was added. A gate that is always red is worth exactly
+// as much as one that is always green — which is the lesson `npm run lint`
+// taught here: the script existed, had no config, failed every time, and so
+// nobody ran it and nothing was ever linted.
+//
+// The excluded 277 are NOT app defects and are NOT dismissed:
+//   * ~222 in *.stories.tsx — Storybook 8 moved `Meta`/`StoryObj` to the
+//     renderer package `@storybook/react`, which is not installed here. A
+//     dependency question, not a type error in our code.
+//   * ~55 in __tests__ — real looseness in test code (unsafe casts, fixtures
+//     missing required props). Worth fixing, on its own pass.
+//
+// Both are tracked work. Narrow the exclusions as they are cleared; do not
+// widen them to make a build pass.
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    "**/__tests__/**",
+    "**/__mocks__/**"
+  ]
+}

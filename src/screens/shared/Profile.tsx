@@ -763,7 +763,15 @@ export default function ProfileScreen() {
       {/* Unconfirmed email — informs and offers a resend, never blocks. The API is
           non-blocking too (allow_unconfirmed_access_for = nil), so this must not
           pretend otherwise. Renders nothing once confirmed. */}
-      <ConfirmEmailBanner email={user.email} confirmed={user.emailConfirmed} />
+      {/* Guarded like every other consumer of `user` on this screen. `user` is
+          undefined until auth bootstrap resolves, which the away block above
+          (`user?.isAway`) and the content block below (`{user && …}`) both
+          already account for — this one line did not, so an unresolved session
+          read `.email` off undefined and took the Profile screen down. Found by
+          the typecheck the moment it started working again. */}
+      {user && (
+        <ConfirmEmailBanner email={user.email} confirmed={user.emailConfirmed} />
+      )}
 
       <PendingReviewsNudge />
 
