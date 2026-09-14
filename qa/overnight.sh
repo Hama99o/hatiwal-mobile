@@ -122,7 +122,20 @@ apk_is_bundled() {
 # tipping into swap; MIN_FREE_GB 3 is the point below which this host started
 # swapping, and swap death is what OOM-killed an emulator in an earlier session.
 LOAD_CEILING=9
-MIN_FREE_GB=3
+# MEASURED IN MB, NOT GB — `free -g` TRUNCATES, and that turned this gate into a
+# 4GB requirement instead of the 3GB it reads like.
+#
+# The old pair was `MIN_FREE_GB=3` compared against `free -g`, blocking when
+# `free <= 3`. 3.75GB free reports as "3", so it blocked. Everything from 3.00 to
+# 3.99GB was rejected by a gate whose own message printed "3G free" while
+# refusing to run.
+#
+# That is not academic on this host: one emulator is ~3.7GB resident and free
+# sits at 3.7-4.1GB, so the gate flipped on ~250MB of noise and spent the
+# evening of 2026-09-14 blocked — including aborting a `seller` pass with zero
+# verdicts recorded. Real pressure has its own gate (`swap_thrashing`), which is
+# the one that actually protects the verdicts.
+MIN_FREE_MB=3072
 
 # SWAP NEEDS ITS OWN GATE — added 2026-09-07 after three campaigns were voided.
 #
@@ -164,11 +177,12 @@ swap_thrashing() {
 }
 
 host_is_pressured() {
-  local load free
+  local load free_mb
   swap_thrashing && return 0
   load=$(awk '{print int($1)}' /proc/loadavg)
-  free=$(free -g | awk '/Mem:/{print $7}')
-  [ "${load:-0}" -ge "$LOAD_CEILING" ] || [ "${free:-99}" -le "$MIN_FREE_GB" ]
+  free_mb=$(free -m | awk '/Mem:/{print $7}')
+  # `-lt`, not `-le`: "needs 3GB" means block BELOW 3GB, not AT it.
+  [ "${load:-0}" -ge "$LOAD_CEILING" ] || [ "${free_mb:-99999}" -lt "$MIN_FREE_MB" ]
 }
 
 # Capped at 10 minutes, not 30: a long back-off is indistinguishable from a
@@ -177,7 +191,9 @@ host_is_pressured() {
 wait_for_headroom() {
   local waited=0 cap=600
   while host_is_pressured; do
-    [ $waited -eq 0 ] && say "backing off: load $(cut -d' ' -f1 /proc/loadavg), $(free -g | awk '/Mem:/{print $7}')G free — running now would produce false failures"
+    # Prints MB. The GB form rounded 3.75G to "3G free", which read as a
+    # comfortable margin in the log while being the exact reason it stopped.
+    [ $waited -eq 0 ] && say "backing off: load $(cut -d' ' -f1 /proc/loadavg), $(free -m | awk '/Mem:/{print $7}')MB free (need ${MIN_FREE_MB}MB) — running now would produce false failures"
     sleep 60; waited=$((waited + 60))
     if [ $waited -ge $cap ]; then
       # Load and swap are NOT the same bet. Proceeding under load costs some slow
