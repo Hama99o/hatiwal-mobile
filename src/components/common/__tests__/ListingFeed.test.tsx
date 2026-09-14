@@ -29,7 +29,8 @@
 
 import React from "react";
 import { Text as RNText } from "react-native";
-import { render, screen, waitFor, act, fireEvent } from "@testing-library/react-native";
+import { screen, waitFor, act, fireEvent } from "@testing-library/react-native";
+import { renderWithQuery as render } from "@/__tests__/renderWithQuery";
 import { ListingFeed } from "../ListingFeed";
 import type { ListingFeedProps } from "../ListingFeed";
 import type { Listing } from "@/api/listings";

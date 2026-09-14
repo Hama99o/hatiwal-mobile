@@ -16,7 +16,7 @@
  *        GET /api/v1/users/:id/sold_listings        (sold tab)
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { View, Pressable, Platform, Share } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
@@ -25,6 +25,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreVertical } from "lucide-react-native";
 import * as Linking from "expo-linking";
 import { toast } from "@/lib/toast";
+import { apiErrorMessage } from "@/utils/apiError";
 
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
@@ -203,8 +204,7 @@ export function UserProfileScreen() {
     setReportVisible(true);
   }, []);
 
-  const handleShareProfile = useCallback(async () => {
-    setMenuVisible(false);
+  const doShareProfile = useCallback(async () => {
     if (!profile) return;
     try {
       // Prefer the server-supplied https share URL; fall back to a hatiwal://seller/<id>
@@ -224,10 +224,39 @@ export function UserProfileScreen() {
           ? { title: t("profile.sellerProfile.share.title"), message }
           : { title: t("profile.sellerProfile.share.title"), message, url }
       );
-    } catch {
-      // User dismissed the share sheet — no-op.
+    } catch (err) {
+      // NOT a dismissal. The old comment here said "user dismissed the share
+      // sheet — no-op", but a dismissal RESOLVES with `dismissedAction`; it
+      // never throws. So this branch only ever hid REAL failures — including
+      // the presentation race below, which made the button look dead.
+      toast.error(apiErrorMessage(err, t));
     }
   }, [profile, userId, t]);
+
+  /**
+   * Same deferral as the listing detail's share, and the same bug underneath:
+   * `setMenuVisible(false)` only STARTS the sheet's slide-out, and iOS refuses
+   * to present the native share sheet while another modal is dismissing from
+   * the same presenting controller. The promise rejected into a silent catch,
+   * so "Share Seller Profile" did nothing at all. Queue on iOS and fire from
+   * the menu's `onDismiss`; Android has no such conflict.
+   */
+  const pendingShareRef = useRef(false);
+
+  const handleShareProfile = useCallback(() => {
+    setMenuVisible(false);
+    if (Platform.OS === "ios") {
+      pendingShareRef.current = true;
+      return;
+    }
+    void doShareProfile();
+  }, [doShareProfile]);
+
+  const handleMenuDismissed = useCallback(() => {
+    if (!pendingShareRef.current) return;
+    pendingShareRef.current = false;
+    void doShareProfile();
+  }, [doShareProfile]);
 
   const isMe = !!currentUser && currentUser.id === userId;
 
@@ -443,6 +472,7 @@ export function UserProfileScreen() {
         onBlock={handleBlockPress}
         onReport={handleReportPress}
         onShare={!isMe ? handleShareProfile : undefined}
+        onDismiss={handleMenuDismissed}
       />
 
       {/* Report sheet (G1) */}

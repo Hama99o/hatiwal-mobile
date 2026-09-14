@@ -46,7 +46,8 @@
  *   real example (TASK-Z684).
  */
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { View, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
 import { FlashList, type FlashListRef, type ListRenderItemInfo } from "@shopify/flash-list";
 import { ScrollToTopButton } from "@/components/common/ScrollToTopButton";
@@ -57,13 +58,6 @@ import { EmptyState } from "./EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { useTranslation } from "react-i18next";
 import { WifiOff, RotateCcw } from "lucide-react-native";
-
-// How many concurrent requests `refreshLoadedPages` fires at once, instead of
-// `Promise.all`-ing every loaded page in one unbounded burst. Kept small so a
-// list that auto-paged deep (e.g. a narrow `filterItems` search that walked
-// many pages looking for a match) doesn't turn every subsequent focus event
-// into a huge parallel request spike.
-const REFRESH_CONCURRENCY = 5;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -240,205 +234,122 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     scrollToTop,
   } = useScrollToTop<FlashListRef<T>>();
 
-  // ── State ──────────────────────────────────────────────────────────────────
-  const [items, setItems] = useState<T[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // ── Data (React Query) ─────────────────────────────────────────────────────
+  //
+  // WHY THIS IS A QUERY AND NOT `useState` ANY MORE.
+  //
+  // Every list in the app is this component, and its pages used to live in
+  // component state. State dies with the component, so leaving a screen and
+  // coming back threw away everything that had been fetched — the list
+  // remounted, `isLoading` went true, the skeleton came back and every page
+  // the user had scrolled for was requested again. The owner's report:
+  // "each time when I come to my shop, it recall it... this is very bad user
+  // experience". CLAUDE.md has required React Query for server data all along
+  // ("cached data must never be lost on navigation"); this component was the
+  // one that never got it.
+  //
+  // `useInfiniteQuery` is a near-exact fit for what was hand-rolled here, and
+  // replacing it deletes four pieces of machinery rather than adding any:
+  //
+  //   * the stale-response guard (`requestIdRef`) — React Query already drops
+  //     results from superseded fetches;
+  //   * `refreshLoadedPages`, which re-fetched every loaded page in bounded
+  //     batches so a focus refresh could not truncate the list back to page 1 —
+  //     `refetch()` refetches exactly the loaded pages, by design;
+  //   * the `pendingRefreshRef` / `idLoadingRef` dance that queued a refresh
+  //     arriving mid-initial-load — the query layer dedupes and sequences;
+  //   * `loadedPageRef`'s synchronous page RESERVATION, which existed because
+  //     `currentPage` state commits a render late and a stale closure could
+  //     re-request the same page — the next page param now comes from the last
+  //     resolved page instead. NOTE the burst guard below is a different
+  //     problem and is still needed: `fetchNextPage` is NOT de-bursted by the
+  //     query layer.
+  //
+  // The keyed cache is what fixes the bug: `id` already changes only when
+  // filters or tabs change, so it is exactly the right cache key. Returning to
+  // a list you have seen renders from cache on the first frame and revalidates
+  // behind it.
+  const queryKey = useMemo(() => ["universalList", id] as const, [id]);
 
-  // Use a ref to track the config `id` — when it changes (refetchKey bump)
-  // we reset to page 1.
-  const idRef = useRef(id);
+  const {
+    data,
+    error: queryError,
+    isPending,
+    isRefetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam }) => fetcher({ page: pageParam, perPage }),
+    initialPageParam: 1,
+    getNextPageParam: (last: ListFetchResult<T>) =>
+      last.currentPage < last.totalPages ? last.currentPage + 1 : undefined,
+    // Focus already drives an explicit refresh through `refreshKey`; this keeps
+    // a remount inside that window from firing a second identical request.
+    // Cached pages still render INSTANTLY once stale — staleTime only decides
+    // whether to revalidate behind them, never whether to show them.
+    staleTime: 30_000,
+    // How long the pages survive with nobody looking at them. The default is 5
+    // minutes, which is the difference between "I came back to My Shop and it
+    // was there" and "I came back after a chat and it reloaded from scratch" —
+    // the exact complaint this change exists to fix. 30 minutes covers a
+    // realistic session of moving between tabs without pinning memory
+    // indefinitely: entries are dropped on a normal LRU once unobserved.
+    gcTime: 30 * 60_000,
+  });
 
-  // Stale-response guard: a monotonically-increasing counter, one tick per
-  // fetchPage call. If a second request is issued before the first settles
-  // (e.g. a fast refreshKey bump racing the initial load, or pull-to-refresh
-  // overlapping a focus refetch), only the LAST-issued request's result is
-  // ever committed to state — an older response that resolves late can never
-  // clobber fresher data.
-  const requestIdRef = useRef(0);
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-  const fetchPage = useCallback(
-    async (page: number, reset = false) => {
-      const requestId = ++requestIdRef.current;
-      try {
-        const query: ListQuery = { page, perPage };
-        const result = await fetcher(query);
-
-        // A newer request has been issued since this one started — drop this
-        // (now stale) result instead of overwriting more recent state.
-        if (requestId !== requestIdRef.current) return;
-
-        if (reset) {
-          setItems(result.items);
-        } else {
-          setItems((prev) => [...prev, ...result.items]);
-        }
-        setTotalPages(result.totalPages);
-        setCurrentPage(result.currentPage);
-        setError(null);
-      } catch (err) {
-        if (requestId !== requestIdRef.current) return;
-        // A 401 means the session ended (e.g. the user logged out) — the auth
-        // layer handles the redirect, so don't log it or flash a list error.
-        const status = (err as { response?: { status?: number } } | undefined)?.response?.status;
-        if (status === 401) return;
-        // warn, not error: in a dev build `console.error` raises a FULL-SCREEN
-        // LogBox overlay, which covers the very error state the next line
-        // renders — the list's own inline error, with its retry, is what the
-        // user (and the flows) are supposed to see. A failed request is a
-        // network condition, not a bug in this component.
-        console.warn("[UniversalList] fetch error", err);
-        setError(t("common.error"));
-      }
-    },
+  const pages = data?.pages ?? [];
+  const items = useMemo(
+    () => pages.flatMap((pg) => pg.items),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fetcher, perPage]
+    [data]
   );
+  const lastPage = pages[pages.length - 1];
+  const currentPage = lastPage?.currentPage ?? 1;
+  const totalPages = lastPage?.totalPages ?? 1;
 
-  // Mirrors `currentPage` in a ref so background-refresh logic always reads
-  // the LATEST loaded-page count, never a value captured by a stale closure.
-  const currentPageRef = useRef(currentPage);
+  // `isPending` is true ONLY with no cached data, which is precisely when a
+  // skeleton is the right answer. A revalidation behind cached pages must not
+  // show one — that flicker is the thing being fixed.
+  const isLoading = isPending;
+  const isFetchingMore = isFetchingNextPage;
+  const isRefreshing = isRefetching && !isFetchingNextPage;
+
+  // A 401 means the session ended; the auth layer redirects, so it is not a
+  // list error. And a failure behind an already-usable list must never blank
+  // it — both rules are carried over from the code this replaced.
+  const errorStatus = (queryError as { response?: { status?: number } } | null)
+    ?.response?.status;
+  const error =
+    queryError && errorStatus !== 401 && items.length === 0 ? t("common.error") : null;
+
   useEffect(() => {
-    currentPageRef.current = currentPage;
-  }, [currentPage]);
-
-  // Tracks "the highest page a fetch has been ISSUED for" — written
-  // SYNCHRONOUSLY the instant a fetch is decided on, unlike `currentPage`
-  // (React state, committed one render behind). See `handleEndReached`
-  // below for the race this closes.
-  const loadedPageRef = useRef(1);
-
-  // Re-fetches every page ALREADY loaded, then replaces
-  // `items` with the freshly-merged result in one shot.
-  //
-  // REGRESSION FIX (cycle-3 CR): a silent background refresh used to always
-  // call `fetchPage(1, true)` — which *replaces* `items` with just page 1's
-  // worth of results. If the user had scrolled and loaded pages 2, 3, ...
-  // before navigating away, coming back (any `useFocusEffect` bump) silently
-  // truncated the list back down to a single page. Re-fetching every
-  // currently-loaded page keeps exactly what was visible (now refreshed)
-  // instead of throwing away pages the user already paid a scroll-and-wait
-  // for.
-  //
-  // REGRESSION FIX (review): pages are now fetched in bounded-size batches
-  // (`REFRESH_CONCURRENCY`) rather than one unbounded `Promise.all` over
-  // every loaded page — a list that auto-paged deep (e.g. a narrow
-  // `filterItems` search walking many pages looking for a match) used to
-  // turn every subsequent focus into one giant parallel request burst.
-  const refreshLoadedPages = useCallback(async () => {
-    const pagesLoaded = Math.max(1, currentPageRef.current);
-    const requestId = ++requestIdRef.current;
-    try {
-      const results: ListFetchResult<T>[] = [];
-      for (let start = 0; start < pagesLoaded; start += REFRESH_CONCURRENCY) {
-        const batchSize = Math.min(REFRESH_CONCURRENCY, pagesLoaded - start);
-        const batch = await Promise.all(
-          Array.from({ length: batchSize }, (_, i) => fetcher({ page: start + i + 1, perPage }))
-        );
-        // A newer request (e.g. another refresh, or the user paging
-        // further) was issued while this batch was in flight — bail before
-        // firing any further (now-pointless) batches.
-        if (requestId !== requestIdRef.current) return;
-        results.push(...batch);
-      }
-
-      const merged = results.flatMap((r) => r.items);
-      const last = results[results.length - 1];
-      setItems(merged);
-      setTotalPages(last.totalPages);
-      setCurrentPage(last.currentPage);
-      loadedPageRef.current = last.currentPage;
-      setError(null);
-    } catch (err) {
-      if (requestId !== requestIdRef.current) return;
-      const status = (err as { response?: { status?: number } } | undefined)?.response?.status;
-      if (status === 401) return;
-      // A background refresh failing (e.g. device went offline) must not
-      // blank an already-loaded, perfectly usable list — leave it as-is.
-      //
-      // Which is exactly why this is warn and not error: `console.error` pops a
-      // full-screen LogBox in dev, so the line below tolerated the failure while
-      // the log itself blanked the list anyway. Seen on device — a transient
-      // "AxiosError: Network Error" replaced the whole app with a red Console
-      // Error page pointing at this line.
-      console.warn("[UniversalList] background refresh error", err);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetcher, perPage]);
-
-  // ── Initial load / config id change ────────────────────────────────────────
-  // idLoadingRef is a ref (not state) that tracks whether loadFirst is running.
-  // The refreshKey effect reads it to avoid a double-fetch race: on fast
-  // networks the initial load can complete and set isLoading=false before the
-  // refreshKey effect's closure sees the update, causing both effects to fire.
-  // A ref is always the current value — no stale closure problem.
-  const idLoadingRef = useRef(false);
-  // Set when a refresh arrives while the initial load is still in flight —
-  // otherwise that refresh is silently dropped (refreshKeyRef already marks it
-  // "seen") and the list is stuck showing whatever the initial load returned
-  // until the next focus bump. Consumed by loadFirst once it completes.
-  const pendingRefreshRef = useRef(false);
-  useEffect(() => {
-    const loadFirst = async () => {
-      idLoadingRef.current = true;  // synchronous — refreshKey effect reads this instantly
-      setIsLoading(true);
-      setItems([]);
-      setCurrentPage(1);
-      setTotalPages(1);
-      loadedPageRef.current = 1;
-      setError(null);
-      await fetchPage(1, true);
-      idLoadingRef.current = false;
-      setIsLoading(false);
-      if (pendingRefreshRef.current) {
-        pendingRefreshRef.current = false;
-        refreshLoadedPages().catch(() => {});
-      }
-    };
-
-    idRef.current = id;
-    loadFirst();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    if (!queryError || errorStatus === 401) return;
+    // warn, not error: `console.error` raises a full-screen LogBox in dev,
+    // which covers the very error state rendered below (and, on a background
+    // failure, replaces a perfectly usable list). Seen on device.
+    console.warn("[UniversalList] fetch error", queryError);
+  }, [queryError, errorStatus]);
 
   // ── Silent background refresh (useFocusEffect) ─────────────────────────────
-  // refreshKey is bumped on screen focus. Unlike an id change, this keeps the
-  // current items visible and re-fetches every page ALREADY loaded (via
-  // `refreshLoadedPages`) in the background, then swaps in the freshly-merged
-  // data once it arrives — no skeleton, no flicker, and no truncation of
-  // pages the user had already scrolled to load.
+  // `refreshKey` is bumped on screen focus. `refetch()` re-runs every page
+  // already loaded and swaps the result in without clearing — no skeleton, no
+  // flicker, and no truncation of pages the user scrolled to load.
   const refreshKeyRef = useRef(refreshKey);
   useEffect(() => {
-    // Skip the very first render (initial load already handled by id effect).
     if (refreshKey === refreshKeyRef.current) return;
     refreshKeyRef.current = refreshKey;
     if (refreshKey == null || refreshKey === 0) return;
-    // Guard with idLoadingRef (a ref, always current) instead of the isLoading
-    // state value (captured by closure, can be stale on fast networks).
-    if (idLoadingRef.current) {
-      // Initial load is still running — queue this refresh instead of
-      // dropping it, so the list still picks up fresh data once it finishes.
-      pendingRefreshRef.current = true;
-      return;
-    }
-    // Re-fetch every page already loaded (not just page 1) — see
-    // `refreshLoadedPages` JSDoc for the truncation regression this avoids.
-    refreshLoadedPages().catch(() => {});
+    refetch().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
   // ── Pull-to-refresh ────────────────────────────────────────────────────────
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    loadedPageRef.current = 1;
-    await fetchPage(1, true);
-    setIsRefreshing(false);
-  }, [fetchPage]);
+  const handleRefresh = useCallback(() => {
+    refetch().catch(() => {});
+  }, [refetch]);
 
   // ── Client-side filter (e.g. instant search) ───────────────────────────────
   // Applied to whatever `items` are already loaded, purely at render time —
@@ -455,50 +366,31 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   }, [currentPage, totalPages]);
 
   // ── Infinite scroll ────────────────────────────────────────────────────────
-  // REGRESSION FIX (cycle-4 design review): the previous guard compared the
-  // POST-filter `visibleItems.length` against a PRE-filter budget
-  // (`perPage * currentPage`). A `filterItems` consumer (e.g. Conversations,
-  // TASK-Z684) almost always narrows the rendered count below that budget, so
-  // the guard returned early FOREVER — any active search/filter permanently
-  // killed infinite scroll, even when many more unloaded pages existed on the
-  // server. `visibleItems` is a filtered VIEW of what's loaded, not a measure
-  // of how much is left to fetch — it must never gate pagination.
+  // The SYNCHRONOUS ref stays, and it is load-bearing. Moving to
+  // `useInfiniteQuery` removed the need to compute the next page number by hand
+  // (that comes from the last RESOLVED page now, so a stale closure can no
+  // longer re-request a page and append duplicate rows), but it does NOT
+  // de-burst `onEndReached`.
   //
-  // The real problem the old heuristic was reaching for (`onEndReached` firing
-  // in a burst before state catches up — a well-known FlashList/FlatList
-  // quirk) is solved correctly with a synchronous ref instead: `isFetchingMore`
-  // (state) can still read stale/false for a tick after the first call kicks
-  // off, letting a second burst call slip through; `fetchingMoreRef` is
-  // updated synchronously so every call after the first is rejected
-  // immediately, with no reliance on a re-render having landed yet.
+  // Measured, not assumed: guarding on `isFetchingNextPage` alone turned the
+  // existing burst test from 2 fetcher calls into 4. That flag is React state
+  // and commits a render late, so every call in a synchronous burst reads it as
+  // false and fires its own `fetchNextPage`. The ref is written before the
+  // request starts, so every call after the first is rejected immediately.
   //
-  // REGRESSION FIX (review): computing `nextPage` from `currentPage` (React
-  // state) instead of `loadedPageRef` used to leave a real — if tight — race:
-  // `fetchingMoreRef` was released in the `finally` block the instant
-  // `fetchPage`'s promise settled, but `currentPage`'s NEW value is committed
-  // by React on the following render, not synchronously at that point. A
-  // re-entrant `onEndReached` firing inside that gap would read the guard as
-  // "free" and recompute `currentPage + 1` from the STALE (pre-increment)
-  // closure value, re-fetching the same page and appending duplicate rows
-  // (`setItems(prev => [...prev, ...result.items])`). `loadedPageRef` is
-  // written synchronously the moment a page is reserved — before the network
-  // call even starts — so a re-entrant call always sees the already-reserved
-  // page and correctly requests the NEXT one instead of repeating it.
+  // FlashList/FlatList firing `onEndReached` in a burst is the well-known quirk
+  // this defends against; the original comment here was right and the removal
+  // was mine to undo.
   const fetchingMoreRef = useRef(false);
-  const handleEndReached = useCallback(async () => {
-    if (fetchingMoreRef.current || isLoading) return;
-    const nextPage = loadedPageRef.current + 1;
-    if (nextPage > totalPages) return;
+  const handleEndReached = useCallback(() => {
+    if (fetchingMoreRef.current || !hasNextPage || isFetchingNextPage || isLoading) return;
     fetchingMoreRef.current = true;
-    loadedPageRef.current = nextPage; // reserved synchronously — no render-commit delay
-    setIsFetchingMore(true);
-    try {
-      await fetchPage(nextPage, false);
-    } finally {
-      fetchingMoreRef.current = false;
-      setIsFetchingMore(false);
-    }
-  }, [isLoading, totalPages, fetchPage]);
+    fetchNextPage()
+      .catch(() => {})
+      .finally(() => {
+        fetchingMoreRef.current = false;
+      });
+  }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage]);
 
   // ── Auto-continue when a filtered/narrowed view is empty but more pages
   //    exist (HIGH review fix) ────────────────────────────────────────────

@@ -6,7 +6,8 @@
  */
 import React from "react";
 import { Text as RNText } from "react-native";
-import { render, screen, waitFor, act } from "@testing-library/react-native";
+import { screen, waitFor, act } from "@testing-library/react-native";
+import { renderWithQuery as render } from "@/__tests__/renderWithQuery";
 import { FlashList } from "@shopify/flash-list";
 import { UniversalList } from "../UniversalList";
 import type { UniversalListConfig, ListQuery } from "../UniversalList";

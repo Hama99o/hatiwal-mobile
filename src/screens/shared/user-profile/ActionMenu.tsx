@@ -19,6 +19,12 @@ interface ActionMenuProps {
   onBlock: () => void;
   onReport: () => void;
   onShare?: () => void;
+  /**
+   * Fires once the sheet has FINISHED dismissing (iOS only — RN's Modal has no
+   * Android equivalent). The share action needs it: presenting the native share
+   * sheet while this modal is still animating out is refused by iOS.
+   */
+  onDismiss?: () => void;
 }
 
 export function ActionMenu({
@@ -28,6 +34,7 @@ export function ActionMenu({
   onBlock,
   onReport,
   onShare,
+  onDismiss,
 }: ActionMenuProps) {
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
@@ -40,6 +47,7 @@ export function ActionMenu({
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      onDismiss={onDismiss}
     >
       <View
         style={{ flex: 1, backgroundColor: colors.darkScrim }}

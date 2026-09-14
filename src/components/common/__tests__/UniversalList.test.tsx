@@ -18,10 +18,12 @@
 
 import React from "react";
 import { Text as RNText } from "react-native";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { screen, fireEvent, waitFor, act } from "@testing-library/react-native";
 import { FlashList } from "@shopify/flash-list";
 import { UniversalList } from "../UniversalList";
 import type { UniversalListConfig, ListFetchResult, ListQuery } from "../UniversalList";
+
+import { renderWithQuery as render } from "@/__tests__/renderWithQuery";
 
 // ─── Mock lucide-react-native ─────────────────────────────────────────────────
 // The icons are native SVG modules that can't render in Jest.
