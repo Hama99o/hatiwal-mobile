@@ -39,3 +39,43 @@ describe("nearestProvince", () => {
     expect(nearestProvince(48.86, 2.35)).not.toBeNull();
   });
 });
+
+// Pakistan's provinces and territories, added 2026-09-14 after the owner
+// reported that KPK could not be picked at all — on an app that already shipped
+// Pakistan's map tiles and PKR.
+describe("Pakistan's provinces and territories", () => {
+  const PK = ["Punjab", "Sindh", "Khyber Pakhtunkhwa", "Balochistan",
+              "Islamabad", "Gilgit-Baltistan", "Azad Kashmir"];
+
+  it("all seven are present", () => {
+    for (const v of PK) {
+      expect(AFGHAN_PROVINCES.find((p) => p.value === v)).toBeDefined();
+    }
+  });
+
+  it("each carries a capital coordinate that nearestProvince can rank", () => {
+    for (const v of PK) {
+      const p = AFGHAN_PROVINCES.find((x) => x.value === v)!;
+      expect(Number.isFinite(p.lat)).toBe(true);
+      expect(Number.isFinite(p.lng)).toBe(true);
+    }
+  });
+
+  it("nearestProvince resolves real Pakistani cities to the right unit", () => {
+    // The whole point of the coordinates: a pin dropped in these cities must
+    // name the province a seller would recognise, not the closest Afghan one.
+    expect(nearestProvince(31.5204, 74.3587)?.value).toBe("Punjab");        // Lahore
+    expect(nearestProvince(24.8607, 67.0011)?.value).toBe("Sindh");         // Karachi
+    expect(nearestProvince(34.0151, 71.5249)?.value).toBe("Khyber Pakhtunkhwa"); // Peshawar
+    expect(nearestProvince(30.1798, 66.9750)?.value).toBe("Balochistan");   // Quetta
+  });
+
+  it("Kabul still resolves to Kabul — Afghanistan is unaffected", () => {
+    expect(nearestProvince(34.5553, 69.2075)?.value).toBe("Kabul");
+  });
+
+  it("carries the initialisms a seller actually types", () => {
+    const kp = AFGHAN_PROVINCES.find((p) => p.value === "Khyber Pakhtunkhwa")!;
+    expect(kp.aliases).toContain("KPK");
+  });
+});

@@ -7,7 +7,9 @@ describe("ProvincePickerSheet", () => {
   it("offers all 34 provinces", () => {
     // The sheet existed for months wired to nothing (UI-041). Pin the count so a
     // silently truncated list is caught.
-    expect(AFGHAN_PROVINCES).toHaveLength(34);
+    // 34 Afghan + 7 Pakistani. The count is asserted so that adding a place
+    // without thinking about it is a failing test rather than a silent change.
+    expect(AFGHAN_PROVINCES).toHaveLength(41);
   });
 
   it("returns the canonical value, not the localized label", () => {

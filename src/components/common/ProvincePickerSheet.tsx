@@ -47,7 +47,12 @@ export function ProvincePickerSheet({
       (p) =>
         p.en.toLowerCase().includes(q) ||
         p.ps.includes(search) ||
-        p.fa.includes(search)
+        p.fa.includes(search) ||
+        (p.ur ?? "").includes(search) ||
+        // Initialisms. A seller types "KPK", not "Khyber Pakhtunkhwa", and
+        // without this the picker told them their own province did not exist —
+        // which is exactly the report that prompted this.
+        (p.aliases ?? []).some((a) => a.toLowerCase().includes(q))
     );
   }, [search]);
 

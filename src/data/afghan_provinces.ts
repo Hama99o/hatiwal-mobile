@@ -1,9 +1,26 @@
-/** All 34 provinces of Afghanistan with EN / PS / FA names and capital coords. */
+/** All 34 provinces of Afghanistan with EN / PS / FA names and capital coords,
+ *  plus Pakistan's 7 provinces and territories. */
 export interface Province {
   value: string; // stored in the listing.location field
   en: string;
   ps: string;
   fa: string;
+  /**
+   * Urdu. Present on the PAKISTANI entries, which is where it matters — for the
+   * Afghan ones `getProvinceName` falls back to `fa`, and that is a deliberate
+   * choice rather than an omission: Dari and Urdu share the Arabic script and
+   * the Afghan province names are spelled near-identically in both, so an Urdu
+   * reader sees a name they recognise. Machine-transliterating 34 more strings
+   * to look complete would add risk, not meaning.
+   */
+  ur?: string;
+  /**
+   * Extra strings the search should match. Pakistani provinces are commonly
+   * written as initialisms — a seller types "KPK", not "Khyber Pakhtunkhwa",
+   * and without this the picker would tell them their own province does not
+   * exist. That is exactly the report that prompted this.
+   */
+  aliases?: string[];
   lat: number; // provincial capital latitude — attached to listings for map search
   lng: number; // provincial capital longitude
 }
@@ -43,6 +60,26 @@ export const AFGHAN_PROVINCES: Province[] = [
   { value: "Farah",       en: "Farah",       ps: "فراه",      fa: "فراه",      lat: 32.3742, lng: 62.1135 },
   { value: "Kapisa",      en: "Kapisa",      ps: "کاپیسا",    fa: "کاپیسا",    lat: 34.9810, lng: 69.3220 },
   { value: "Panjshir",    en: "Panjshir",    ps: "پنجشیر",    fa: "پنجشیر",    lat: 35.3105, lng: 69.5400 },
+  // ── Pakistan's provinces and territories ────────────────────────────────────
+  //
+  // Added 2026-09-14 after the owner reported that KPK — a province of a country
+  // whose map and currency we already ship — could not be picked at all.
+  //
+  // Seven entries covers ALL of Pakistan: four provinces, the capital territory,
+  // and the two administered territories. Coordinates are each unit's capital,
+  // matching the Afghan rows and what `nearestProvince` compares against.
+  //
+  // NO COUNTRY NAME IS RENDERED ANYWHERE. The `country` field below is internal —
+  // used for nearest-province logic and defaults, never drawn as a section
+  // header. The list the seller sees is one flat set of places they can pick
+  // from, which is the owner's explicit instruction.
+  { value: "Punjab",             en: "Punjab",             ps: "پنجاب",          fa: "پنجاب",          ur: "پنجاب", aliases: ["PB"],              lat: 31.5204, lng: 74.3587 },
+  { value: "Sindh",              en: "Sindh",              ps: "سند",            fa: "سند",            ur: "سندھ", aliases: ["SD"],              lat: 24.8607, lng: 67.0011 },
+  { value: "Khyber Pakhtunkhwa", en: "Khyber Pakhtunkhwa", ps: "خیبر پښتونخوا",  fa: "خیبر پختونخوا",  ur: "خیبر پختونخوا", aliases: ["KPK", "KP", "NWFP", "Pakhtunkhwa"], lat: 34.0151, lng: 71.5249 },
+  { value: "Balochistan",        en: "Balochistan",        ps: "بلوچستان",       fa: "بلوچستان",       ur: "بلوچستان", aliases: ["BL"],              lat: 30.1798, lng: 66.9750 },
+  { value: "Islamabad",          en: "Islamabad",          ps: "اسلام آباد",     fa: "اسلام‌آباد",     ur: "اسلام آباد", aliases: ["ICT", "Capital Territory"], lat: 33.6844, lng: 73.0479 },
+  { value: "Gilgit-Baltistan",   en: "Gilgit-Baltistan",   ps: "ګلګت بلتستان",   fa: "گلگت بلتستان",   ur: "گلگت بلتستان", aliases: ["GB", "Gilgit"],    lat: 35.9208, lng: 74.3082 },
+  { value: "Azad Kashmir",       en: "Azad Kashmir",       ps: "آزاد کشمیر",     fa: "آزاد کشمیر",     ur: "آزاد جموں و کشمیر", aliases: ["AJK", "Kashmir"],  lat: 34.3700, lng: 73.4711 },
 ];
 
 export function getProvinceName(
@@ -51,6 +88,9 @@ export function getProvinceName(
 ): string {
   if (lang === "ps") return province.ps;
   if (lang === "fa") return province.fa;
+  // Urdu falls back to Dari for the Afghan rows on purpose — same script, and
+  // the names are spelled near-identically, so the reader recognises them.
+  if (lang === "ur") return province.ur || province.fa;
   return province.en;
 }
 
