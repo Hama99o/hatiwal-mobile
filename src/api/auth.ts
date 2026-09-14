@@ -2,6 +2,17 @@ import { http } from "./http";
 import { secureStorage } from "@/utils/secure-storage";
 import { convertKeysToCamel, convertKeysToSnake } from "@/utils/case-styles";
 
+/**
+ * Locales a user may pick. Mirrors the `preferred_language` inclusion
+ * validation on the API's User model, which has allowed `ur` since the
+ * Pakistan expansion. This union had not followed, so saving an Urdu profile
+ * did not typecheck.
+ *
+ * Kept as a literal union rather than imported from `@/i18n`: i18n already
+ * imports authAPI, and pointing this the other way would close the cycle.
+ */
+export type PreferredLanguage = "en" | "ps" | "fa" | "ur";
+
 export interface User {
   id: number;
   email: string;
@@ -15,7 +26,7 @@ export interface User {
   latitude: number | null;
   longitude: number | null;
   avatarUrl: string | null;
-  preferredLanguage: "en" | "ps" | "fa";
+  preferredLanguage: PreferredLanguage;
   /** A SEPARATE WhatsApp number — often a different SIM from `phone`. */
   whatsappNumber?: string | null;
   /** Gates BOTH phone and whatsapp in a listing's seller hash. Server default: true. */
@@ -84,7 +95,7 @@ export interface RegisterParams {
    * English landed on an RTL Pashto Bazaar with no explanation. The API has always
    * permitted `preferred_language` on sign-up; the client simply never sent it.
    */
-  preferredLanguage?: "en" | "ps" | "fa";
+  preferredLanguage?: PreferredLanguage;
   whatsappNumber?: string | null;
   showPhonePublicly?: boolean;
   showAddressPublicly?: boolean;

@@ -58,7 +58,13 @@ const schema = z.object({
   province: z.string().optional().or(z.literal("")),
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
-  preferredLanguage: z.enum(["en", "ps", "fa"]),
+  // Derived from SUPPORTED_LANGUAGES, never re-listed. As a hardcoded
+  // ["en","ps","fa"] this silently rejected the Urdu option the picker below
+  // was already OFFERING, so an Urdu user could not save their profile at all
+  // — the form failed validation with no field to point at.
+  preferredLanguage: z.enum(
+    SUPPORTED_LANGUAGES.map((l) => l.code) as [LanguageCode, ...LanguageCode[]]
+  ),
   // Away mode — ISO date string (e.g. "2026-07-15") or null to clear
   awayUntilDate: z.string().optional().or(z.literal("")),
   isAwayToggle: z.boolean().optional(),

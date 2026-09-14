@@ -85,12 +85,27 @@ export interface ListingSale {
   conversationId: number | null;
 }
 
+/**
+ * Currencies a listing may be priced in. Mirrors `Listing::CURRENCIES` in the
+ * API (`app/models/listing.rb`), which validates inclusion server-side.
+ *
+ * PKR was added for the Pakistan expansion and the backend accepted it from
+ * day one, but this union was left at the Afghanistan-era three — so
+ * ListingForm, whose zod schema DID offer PKR, could not typecheck a PKR
+ * submission. Declared once here rather than inline at each call site, which
+ * is how the three copies drifted apart in the first place.
+ *
+ * There is no FX conversion anywhere: a price stays in the currency the seller
+ * chose.
+ */
+export type ListingCurrency = "AFN" | "PKR" | "USD" | "EUR";
+
 export interface Listing {
   id: number;
   title: string;
   description: string | null;
   price: number;
-  currency: "AFN" | "USD" | "EUR";
+  currency: ListingCurrency;
   condition?: ListingCondition | null;
   status: "draft" | "active" | "reserved" | "sold";
   categoryId: number;
@@ -373,7 +388,7 @@ export const listingsAPI = {
       title: string;
       description?: string;
       price: number;
-      currency: "AFN" | "USD" | "EUR";
+      currency: ListingCurrency;
       condition?: ListingCondition;
       categoryId: number;
       location?: string;
@@ -422,7 +437,7 @@ export const listingsAPI = {
       title: string;
       description?: string;
       price: number;
-      currency: "AFN" | "USD" | "EUR";
+      currency: ListingCurrency;
       condition?: ListingCondition;
       categoryId: number;
       location?: string;
