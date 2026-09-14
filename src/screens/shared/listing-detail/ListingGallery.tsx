@@ -96,7 +96,23 @@ export function ListingGallery({ photos, aspectRatio = 4 / 3 }: ListingGalleryPr
   // this component in an animated container sized by the same function, and if
   // the two ever disagree the screen below the hero is pushed out of view.
   const heroHeight = galleryHeight(winW, winH, aspectRatio);
-  const galleryContentHeight = winH - 120;
+  // MEASURED, not guessed. This was `winH - 120` — a hardcoded allowance for the
+  // fullscreen header — while the real header is `insets.top + 8` of padding,
+  // 14 below, a hairline border and its content. `insets.top` alone is 20 on an
+  // older phone and 59 on a Dynamic Island one, so the constant was wrong on
+  // every device and wrong by a different amount on each.
+  //
+  // Each slide is given an EXPLICIT height and centres the photo inside it, so
+  // when that height does not match the space the slide actually occupies the
+  // photo is centred against the wrong box — it sits low and its bottom runs
+  // off the screen, which is what the owner saw. Measuring the container makes
+  // the two agree by construction on every device.
+  //
+  // `winH - 120` stays only as the first-frame fallback, before onLayout has
+  // reported: it is the previous behaviour, so nothing renders worse than it
+  // did, and it is replaced within a frame.
+  const [measuredContentH, setMeasuredContentH] = useState(0);
+  const galleryContentHeight = measuredContentH || winH - 120;
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: { index: number | null }[] }) => {
@@ -223,7 +239,10 @@ export function ListingGallery({ photos, aspectRatio = 4 / 3 }: ListingGalleryPr
           </View>
 
           {/* Photo carousel — scaleX trick keeps scroll direction LTR in RTL locales */}
-          <View style={[styles.galleryContent, isRtl ? { transform: [{ scaleX: -1 }] } : undefined]}>
+          <View
+            style={[styles.galleryContent, isRtl ? { transform: [{ scaleX: -1 }] } : undefined]}
+            onLayout={(e) => setMeasuredContentH(e.nativeEvent.layout.height)}
+          >
             <FlatList
               ref={modalFlatListRef}
               data={photos}
