@@ -248,9 +248,130 @@ def walk(node, path, findings):
             walk(v, f"{path}[{i}]", findings)
 
 
+# ── REVIEW CHECKS (report, never gate) ───────────────────────────────────────
+# These two find the shape that has caused SIX flow failures — a scroll that
+# succeeds, leaves the list where it stopped, and a later command that inherits
+# that offset (assertVisible and tapOn never scroll). See QA_HANDBOOK.md.
+#
+# They REPORT and do not affect the exit code, deliberately. Neither can be
+# decided without reading render order out of the component: scrolling to
+# `lifecycle-primary-action` and then asserting "Mark as Sold" is asserting that
+# button's OWN label and is perfectly correct, while scrolling to Sign Out and
+# then asserting "Edit Profile" reaches back to the top of the screen and cannot
+# pass. Nothing in the YAML distinguishes those.
+#
+# That distinction is also why this is NOT a flow_lint rule. The same idea was
+# prototyped there as a gating check and measured first: it fired 31 times across
+# 311 flows with the majority legitimate, which is a rate that gets muted within a
+# week — and a muted check hides the real ones. Measured, rejected, recorded here
+# so nobody re-proposes it.
+SCROLL_RESETS = {"tapOn", "launchApp", "runFlow", "back", "pressKey", "swipe",
+                 "scroll", "openLink", "clearState"}
+RESTART_HELPERS = ("await_theme_restart", "await_language_restart")
+PROFILE_ONLY = ("theme-option-", "language-option-", "sign-out-button",
+                "edit-profile-", "Appearance", "Language", "Edit Profile",
+                "Delete account", "profile-")
+# The Profile tab's LABEL in every shipped locale. Tapping it IS navigating back,
+# and missing that is what made this check's first run report
+# language_switch_all_screens — whose step 24 taps 'من', the Profile tab in Farsi,
+# and which passes. A localized tab tap is navigation, not a selector.
+PROFILE_TAB_LABELS = {"Me", "زه", "من", "میں"}
+
+
+def _step_key(step):
+    if isinstance(step, str):
+        return step, None
+    if isinstance(step, dict):
+        k = next(iter(step))
+        return k, step[k]
+    return None, None
+
+
+def _target(value):
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        el = value.get("element")
+        if isinstance(el, str):
+            return el
+        if isinstance(el, dict):
+            return str(el.get("text") or el.get("id") or el)
+        return str(value.get("text") or value.get("id") or value)
+    return str(value)
+
+
+def check_scroll_pairs(steps, where, review):
+    """Two scrollUntilVisible in the same direction with nothing between them
+    that re-navigates. The second inherits the first's offset."""
+    prev = None
+    for i, step in enumerate(steps):
+        k, v = _step_key(step)
+        if k == "scrollUntilVisible":
+            tgt = _target(v)
+            direction = ((v.get("direction") if isinstance(v, dict) else None) or "DOWN").upper()
+            if prev and prev[1] == direction and prev[2] != tgt:
+                # Direction-aware wording: scrolling DOWN twice is only correct when
+                # the second target is BELOW the first; scrolling UP twice, above it.
+                expect = "BELOW" if direction == "DOWN" else "ABOVE"
+                review.append((where, f"scrolls {direction} to {prev[2]!r} (step {prev[0]}) then "
+                                      f"{direction} to {tgt!r} (step {i}) — the second inherits the "
+                                      f"first's offset; confirm {tgt!r} renders {expect} {prev[2]!r}"))
+            prev = (i, direction, tgt)
+        elif k in SCROLL_RESETS:
+            prev = None
+
+
+def check_restart_nav(steps, where, review, spec_path=None):
+    """A theme/language restart returns the app to its INITIAL route. Touching a
+    Profile-only selector afterwards, with no navigation back, searches the feed."""
+    pending = None
+    for i, step in enumerate(steps):
+        k, v = _step_key(step)
+        if k == "runFlow":
+            tgt = v if isinstance(v, str) else str((v or {}).get("file") or "")
+            if any(h in tgt for h in RESTART_HELPERS):
+                pending = i
+                continue
+            if "goto_profile_tab" in tgt or "login" in tgt or "pop_to_tab_bar" in tgt:
+                pending = None
+                continue
+            if isinstance(v, dict) and v.get("commands"):
+                check_restart_nav(v["commands"], where, review, spec_path)
+            continue
+        if k in ("tapOn", "doubleTapOn", "longPressOn"):
+            sel = _target(v)
+            if sel.endswith("-tab") or sel in PROFILE_TAB_LABELS:
+                pending = None
+                continue
+        if pending is not None and k in ("scrollUntilVisible", "tapOn", "assertVisible",
+                                         "extendedWaitUntil"):
+            sel = _target(v)
+            if any(q in sel for q in PROFILE_ONLY):
+                review.append((where, f"restart helper at step {pending}, then step {i} {k} {sel!r} "
+                                      f"with no navigation back — a restart returns to the INITIAL "
+                                      f"route, not to Profile"))
+                pending = None
+
+
+def _register_status():
+    """Best-effort: a flow that currently PASSES has already proven its own pair,
+    so say so and save the reviewer the trip."""
+    status = {}
+    try:
+        reg = pathlib.Path(__file__).resolve().parent.parent / "FLOW_REGISTER.md"
+        for line in reg.read_text(encoding="utf-8").split("\n"):
+            m = re.match(r"\|\s*`([^`]+)`\s*\|\s*([A-Za-z_-]+)\s*\|", line)
+            if m:
+                status[m.group(1)] = m.group(2)
+    except Exception:
+        pass
+    return status
+
+
 def main() -> int:
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "maestro")
     findings = []
+    review = []
     files = 0
     for p in sorted(root.rglob("*.yaml")):
         try:
@@ -267,11 +388,31 @@ def main() -> int:
                 check_menus(doc, "", local)
         findings += [(f"{p}{w}", msg) for w, msg in local]
 
+        rev = []
+        for doc in docs:
+            if isinstance(doc, list):
+                check_scroll_pairs(doc, "", rev)
+                check_restart_nav(doc, "", rev, p)
+        review += [(str(p), msg) for _w, msg in rev]
+
     print(f"audit_structure: {files} flows walked")
+
+    if review:
+        status = _register_status()
+        print(f"\n  {len(review)} for REVIEW (not defects, exit code unaffected):")
+        print("  A pair is only a bug when the SECOND target renders ABOVE the first —")
+        print("  read the component, not the YAML. A flow marked PASS has already")
+        print("  proven its own pair; skip it.")
+        for where, msg in review:
+            name = pathlib.Path(where).stem
+            st = status.get(name)
+            tag = f"  [register: {st}]" if st else ""
+            print(f"    {where}: {msg}{tag}")
+
     if not findings:
-        print("  no structural defects")
+        print("\n  no structural defects")
         return 0
-    print(f"  {len(findings)} structural defects:")
+    print(f"\n  {len(findings)} structural defects:")
     for where, msg in findings:
         print(f"    {where}: {msg}")
     return 1
