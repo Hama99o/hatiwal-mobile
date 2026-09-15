@@ -337,6 +337,34 @@ def check_restart_nav(steps, where, review, spec_path=None):
                 continue
             if isinstance(v, dict) and v.get("commands"):
                 check_restart_nav(v["commands"], where, review, spec_path)
+                continue
+            # FOLLOW A HELPER FILE. Without this the check only saw selectors the
+            # flow names itself, so a restart followed by `runFlow: some_helper.yaml`
+            # that touches Profile went unreported — and helpers are exactly where
+            # that happens. chat_rtl's real failure is a non-optional scroll to
+            # `sign-out-button` living at open_language_picker.yaml:65, which this
+            # check walked straight past in its first version.
+            if isinstance(v, str) and spec_path:
+                helper = (pathlib.Path(spec_path).parent / v).resolve()
+                if helper.is_file():
+                    try:
+                        hdocs = list(yaml.safe_load_all(helper.read_text(encoding="utf-8")))
+                    except yaml.YAMLError:
+                        hdocs = []
+                    for hdoc in hdocs:
+                        if isinstance(hdoc, list) and pending is not None:
+                            for hstep in hdoc:
+                                hk, hv = _step_key(hstep)
+                                if hk in ("scrollUntilVisible", "tapOn", "assertVisible",
+                                          "extendedWaitUntil"):
+                                    hsel = _target(hv)
+                                    if any(q in hsel for q in PROFILE_ONLY):
+                                        review.append((where,
+                                            f"restart helper at step {pending}, then step {i} "
+                                            f"runFlow {v} which touches {hsel!r} with no navigation "
+                                            f"back — a restart returns to the INITIAL route"))
+                                        pending = None
+                                        break
             continue
         if k in ("tapOn", "doubleTapOn", "longPressOn"):
             sel = _target(v)
