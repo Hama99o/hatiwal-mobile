@@ -24,7 +24,43 @@ The success path closes the sheet first, so its toast lands on the plain screen
 and works. The error path leaves the sheet open, which is exactly when a toast
 cannot be seen. **Every confirmed case below has that asymmetry.**
 
-## Confirmed
+## CORRECTION, 2026-09-15 — four of the eight are NOT reachable
+
+The first pass of this audit asked "does an error path toast while the sheet is
+open?" and got eight yeses. It did not ask the second question: **can a user
+reach that path at all?** For four of them the answer is no, and the reason is
+that someone had already fixed it a better way.
+
+`OfferSheet` DISABLES its Send button when the amount or the quantity is
+invalid:
+
+```tsx
+disabled={isBusy || !isAmountValid || (showQuantity && parsedQuantity.errorKey !== null)}
+```
+
+`isAmountValid` is `parseOfferAmount(offerAmount) != null`, and its comment says
+it is "the exact same positive-number guard as the send handlers themselves". So
+the parent's `if (!amount || amount <= 0) { toast.error(...); return; }` cannot
+be reached by pressing Send — the button is disabled in exactly that state. The
+sheet also already renders an inline quantity error (`offer-quantity-error`), and
+its comment spells out the intent: without the disable "the buyer would get a
+toast for something the sheet already knew was wrong".
+
+All three OfferSheet call sites — ListingDetail and Conversation's two — are the
+same component, so this covers all four validation paths. They remain as
+defensive guards behind a disabled control, which is correct, and adding inline
+UI for them would be dead code.
+
+**Reachable, and genuinely silent (fix these):** ReportSheet's submit errors
+(done, c479dcd), `ListingDetail.offerMutation.onError`,
+`Conversation.handleProposeMeetup`'s catch, and `Browse.handleToggleNearest`'s
+geo failure. All four are SERVER or DEVICE failures — the user did nothing wrong
+and there is no control to disable.
+
+The lesson is the audit's own: a toast behind a modal is only a bug if a user can
+get there. Check the control's `disabled` before counting a path.
+
+## Confirmed (first pass — read the correction above first)
 
 | # | Where | Path | What the user sees |
 |---|---|---|---|
