@@ -199,6 +199,66 @@ describe("ReportSheet — note textarea", () => {
 
 // ─── Close ────────────────────────────────────────────────────────────────────
 
+describe("ReportSheet — submit errors are visible INLINE, not only as a toast", () => {
+  // <Toaster> is mounted at app/_layout.tsx:115, at the root of the tree, and on
+  // Android a RN <Modal> is a SEPARATE NATIVE WINDOW — so a root-level toast
+  // renders behind this sheet and the user sees nothing. Every error path here
+  // leaves the sheet OPEN, which is exactly when that happens. report_participant
+  // proved it: the backend returned 422 (run-526's Rails log) and the flow then
+  // polled 10 seconds for a toast that was never visible.
+  it("renders the duplicate message inline when the API rejects with 422 already-reported", async () => {
+    (reportsAPI.createReport as jest.Mock).mockRejectedValueOnce({
+      response: { status: 422, data: { errors: ["User has already been reported"] } },
+    });
+    renderSheet();
+    fireEvent.press(screen.getByText("report.reasons.spam"));
+    await act(async () => {
+      fireEvent.press(screen.getByText("report.submit"));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("report-submit-error")).toBeTruthy();
+    });
+    expect(screen.getByTestId("report-submit-error").props.children).toBe(
+      "report.errors.duplicate",
+    );
+  });
+
+  it("still fires the toast as well, for the paths where the sheet has closed", async () => {
+    (reportsAPI.createReport as jest.Mock).mockRejectedValueOnce({
+      response: { status: 500, data: {} },
+    });
+    renderSheet();
+    fireEvent.press(screen.getByText("report.reasons.spam"));
+    await act(async () => {
+      fireEvent.press(screen.getByText("report.submit"));
+    });
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("report.errors.generic");
+    });
+    expect(screen.getByTestId("report-submit-error")).toBeTruthy();
+  });
+
+  it("clears the inline error when the user submits again", async () => {
+    (reportsAPI.createReport as jest.Mock).mockRejectedValueOnce({
+      response: { status: 422, data: { errors: ["already reported"] } },
+    });
+    renderSheet();
+    fireEvent.press(screen.getByText("report.reasons.spam"));
+    await act(async () => {
+      fireEvent.press(screen.getByText("report.submit"));
+    });
+    await waitFor(() => expect(screen.getByTestId("report-submit-error")).toBeTruthy());
+
+    (reportsAPI.createReport as jest.Mock).mockResolvedValueOnce({ id: 1 });
+    await act(async () => {
+      fireEvent.press(screen.getByText("report.submit"));
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("report-submit-error")).toBeNull();
+    });
+  });
+});
+
 describe("ReportSheet — close", () => {
   it("calls onClose when Cancel button is pressed", () => {
     const { onClose } = renderSheet();

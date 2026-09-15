@@ -126,12 +126,22 @@ export function ReportSheet({
   const [selectedReason, setSelectedReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
   const [reasonError, setReasonError] = useState(false);
+  // Submit errors are ALSO shown inline, not only as a toast. <Toaster> is mounted
+  // at app/_layout.tsx:115, i.e. at the root of the tree — and on Android a RN
+  // <Modal> is a SEPARATE NATIVE WINDOW, so a root-level toast renders behind this
+  // sheet and the user sees nothing at all. The success path is fine because it
+  // closes the sheet first; the error paths keep it open, which is exactly when the
+  // toast is invisible. Proven on the duplicate path: the backend returns 422
+  // (run-526's Rails log, POST /api/v1/reports -> 422) and report_participant then
+  // polled 10s for the toast and never saw it.
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // ── reset state when sheet opens ──────────────────────────────────────────
   const handleOpen = useCallback(() => {
     setSelectedReason(null);
     setNote("");
     setReasonError(false);
+    setSubmitError(null);
   }, []);
 
   // ── close + reset ─────────────────────────────────────────────────────────
@@ -203,18 +213,24 @@ export function ReportSheet({
       const status = axiosErr?.response?.status;
       const messages: string[] = axiosErr?.response?.data?.errors ?? [];
 
+      // Resolve the message ONCE, then surface it both ways: the toast for the
+      // case where this sheet has closed, and inline for the case where it has
+      // not — which is every error path here.
+      let message: string;
       if (status === 422) {
         const joined = messages.join(" ").toLowerCase();
         if (joined.includes("own") || joined.includes("yourself")) {
-          toast.error(t("report.errors.selfReport"));
+          message = t("report.errors.selfReport");
         } else if (joined.includes("already") || joined.includes("duplicate")) {
-          toast.error(t("report.errors.duplicate"));
+          message = t("report.errors.duplicate");
         } else {
-          toast.error(messages[0] ?? t("report.errors.generic"));
+          message = messages[0] ?? t("report.errors.generic");
         }
       } else {
-        toast.error(t("report.errors.generic"));
+        message = t("report.errors.generic");
       }
+      toast.error(message);
+      setSubmitError(message);
     },
   });
 
@@ -225,6 +241,7 @@ export function ReportSheet({
       return;
     }
     setReasonError(false);
+    setSubmitError(null);
     mutation.mutate();
   }, [selectedReason, mutation]);
 
@@ -408,6 +425,27 @@ export function ReportSheet({
               }}
             >
               {t("report.reasonRequired")}
+            </Text>
+          )}
+
+          {/* Submit error, INLINE — see the note on `submitError` above. The toast
+              fired alongside this one is invisible while this sheet is open,
+              because <Toaster> lives at the root of the tree and an Android
+              <Modal> is a separate native window drawn over it. Without this the
+              duplicate-report path was a silent no-op to the user: they tap
+              Submit, the backend returns 422, and nothing on screen changes. */}
+          {submitError && (
+            <Text
+              testID="report-submit-error"
+              className="text-xs"
+              style={{
+                color: colors.destructive,
+                marginTop: 4,
+                marginBottom: 8,
+                textAlign: isRtl ? "right" : "left",
+              }}
+            >
+              {submitError}
             </Text>
           )}
 

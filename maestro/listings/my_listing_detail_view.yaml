@@ -57,10 +57,28 @@ appId: com.hatiwal.app
     id: "analytics-conversations"
 
 # Verify lifecycle action button is present (state-dependent label)
+# SCROLL TO IT. The scroll above stops the instant `analytics-views` appears, which
+# parks the page in the analytics block — and the action row is further down, below
+# the views chart and the location map. run-559's hierarchy is exactly that: status
+# badge, "Expires in 30 days", price, title, location, "Posted September 15 2026",
+# Views/Chats and "Views — last 7 days", with the action row nowhere on screen.
+# draft_lifecycle reaches the same button this way and passes.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - assertVisible:
     id: "lifecycle-primary-action"
 
 # Verify "View Conversations" link is present
+# Below the action row — its own scroll, same reason.
+- scrollUntilVisible:
+    element:
+      id: "view-conversations-link"
+    direction: DOWN
+    timeout: 20000
 - assertVisible:
     id: "view-conversations-link"
 
@@ -72,10 +90,26 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # Should be back on owner detail
+# BACK UP to the analytics block. Returning from the conversations screen leaves
+# this page at whatever offset it had — the bottom, after the two scrolls above —
+# and analytics-views is near the TOP. Every command here now carries its own
+# scroll, because the page keeps its position across all of them.
+- scrollUntilVisible:
+    element:
+      id: "analytics-views"
+    direction: UP
+    timeout: 20000
 - assertVisible:
     id: "analytics-views"
 
-# Tap the lifecycle action button and dismiss the confirm dialog (cancel)
+# Tap the lifecycle action button and dismiss the confirm dialog (cancel).
+# Down again — the scroll above just moved away from it, and `tapOn` never scrolls.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - tapOn:
     id: "lifecycle-primary-action"
 - waitForAnimationToEnd
