@@ -11,12 +11,34 @@ appId: com.hatiwal.app
 # Verified present: profile.json:58 has "activeListings": "Active Listings".
 # The stats block renders below the fold, so the assertion fired against a screen
 # that had it, just not on view.
-# Guarded, so an already-visible target costs nothing. DOWN, because the Profile
-# screen puts this section under the avatar / mode / appearance blocks.
+# NORMALISE TO THE TOP FIRST, THEN COME DOWN. Guarded, so an already-visible
+# target costs nothing.
+#
+# The note above is right that the stats sit UNDER the avatar/mode blocks — but
+# that only tells you which way to scroll if you know where the screen already is,
+# and you do not. Profile KEEPS ITS SCROLL POSITION between flows (the tab
+# navigator leaves it mounted and the app is not restarted), so this flow can
+# arrive anywhere the previous one left it.
+#
+# run-560 arrived at the BOTTOM: the hierarchy is ACTIVITY, Recently Viewed,
+# Hidden Listings, PRIVACY, Blocked Users, My Reports, Privacy Policy, Sign Out,
+# Delete account. "Active Listings" was ABOVE all of it, so scrolling DOWN walked
+# away from the target and spent the full 20s budget reaching the end of the page.
+#
+# Same arrival problem view_profile hit on this same screen, and the same fix:
+# scroll UP to a known TOP anchor first — `Switch to .*` is the mode toggle, which
+# renders above the stats — and only then scroll DOWN to the target. That works
+# from either end.
 - runFlow:
     when:
       notVisible: "Active Listings"
     commands:
+      - scrollUntilVisible:
+          element:
+            text: "Switch to .*"
+          direction: UP
+          timeout: 20000
+          optional: true
       - scrollUntilVisible:
           element:
             text: "Active Listings"
