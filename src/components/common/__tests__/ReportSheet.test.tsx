@@ -199,7 +199,21 @@ describe("ReportSheet — note textarea", () => {
 
 // ─── Close ────────────────────────────────────────────────────────────────────
 
-describe("ReportSheet — submit errors are visible INLINE, not only as a toast", () => {
+describe("ReportSheet — submit errors are visible INLINE on Android", () => {
+  // ANDROID ONLY, and the platform gate is the point of these tests.
+  //
+  // sonner-native wraps its Toaster in FullWindowOverlay when Platform.OS === 'ios'
+  // (toaster.tsx:60-76), so on iOS the toast already renders in its own UIWindow
+  // ABOVE this sheet and is perfectly visible. Android gets no wrapper, the toast
+  // sits in the root tree, and this <Modal> — its own native window — covers it.
+  // So the inline copy exists to fix Android, and must NOT double up on iOS.
+  const setPlatform = (os: "android" | "ios") => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Platform } = require("react-native");
+    Object.defineProperty(Platform, "OS", { configurable: true, get: () => os });
+  };
+  afterEach(() => setPlatform("ios"));
+
   // <Toaster> is mounted at app/_layout.tsx:115, at the root of the tree, and on
   // Android a RN <Modal> is a SEPARATE NATIVE WINDOW — so a root-level toast
   // renders behind this sheet and the user sees nothing. Every error path here
@@ -210,6 +224,7 @@ describe("ReportSheet — submit errors are visible INLINE, not only as a toast"
     (reportsAPI.createReport as jest.Mock).mockRejectedValueOnce({
       response: { status: 422, data: { errors: ["User has already been reported"] } },
     });
+    setPlatform("android");
     renderSheet();
     fireEvent.press(screen.getByText("report.reasons.spam"));
     await act(async () => {
@@ -227,6 +242,7 @@ describe("ReportSheet — submit errors are visible INLINE, not only as a toast"
     (reportsAPI.createReport as jest.Mock).mockRejectedValueOnce({
       response: { status: 500, data: {} },
     });
+    setPlatform("android");
     renderSheet();
     fireEvent.press(screen.getByText("report.reasons.spam"));
     await act(async () => {
@@ -238,10 +254,28 @@ describe("ReportSheet — submit errors are visible INLINE, not only as a toast"
     expect(screen.getByTestId("report-submit-error")).toBeTruthy();
   });
 
+  it("does NOT render the inline error on iOS — the toast is already visible there", async () => {
+    setPlatform("ios");
+    (reportsAPI.createReport as jest.Mock).mockRejectedValueOnce({
+      response: { status: 422, data: { errors: ["already reported"] } },
+    });
+    renderSheet();
+    fireEvent.press(screen.getByText("report.reasons.spam"));
+    await act(async () => {
+      fireEvent.press(screen.getByText("report.submit"));
+    });
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("report.errors.duplicate");
+    });
+    // The toast fired; the inline copy must not, or iOS shows the message twice.
+    expect(screen.queryByTestId("report-submit-error")).toBeNull();
+  });
+
   it("clears the inline error when the user submits again", async () => {
     (reportsAPI.createReport as jest.Mock).mockRejectedValueOnce({
       response: { status: 422, data: { errors: ["already reported"] } },
     });
+    setPlatform("android");
     renderSheet();
     fireEvent.press(screen.getByText("report.reasons.spam"));
     await act(async () => {

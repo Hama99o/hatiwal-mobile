@@ -126,10 +126,18 @@ export function ReportSheet({
   const [selectedReason, setSelectedReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState("");
   const [reasonError, setReasonError] = useState(false);
-  // Submit errors are ALSO shown inline, not only as a toast. <Toaster> is mounted
-  // at app/_layout.tsx:115, i.e. at the root of the tree — and on Android a RN
-  // <Modal> is a SEPARATE NATIVE WINDOW, so a root-level toast renders behind this
-  // sheet and the user sees nothing at all. The success path is fine because it
+  // Submit errors are ALSO shown inline on ANDROID ONLY, not just as a toast.
+  //
+  // sonner-native wraps its Toaster in react-native-screens' FullWindowOverlay when
+  // Platform.OS === 'ios' (node_modules/sonner-native/src/toaster.tsx:60-76), which
+  // renders in a separate UIWindow ABOVE presented modals — so on iOS the toast is
+  // already visible over this sheet and an inline copy would be duplicate feedback.
+  // Android gets no wrapper: the toast sits in the root tree and this <Modal>, its
+  // own native window, covers it. So the defect — and the fix — are Android-only.
+  //
+  // Verified on Android; iOS reasoned from that platform branch, NOT tested — there
+  // is no Mac or simulator on this machine, the same constraint the
+  // KeyboardAvoidingView note below records. The success path is fine because it
   // closes the sheet first; the error paths keep it open, which is exactly when the
   // toast is invisible. Proven on the duplicate path: the backend returns 422
   // (run-526's Rails log, POST /api/v1/reports -> 422) and report_participant then
@@ -434,7 +442,7 @@ export function ReportSheet({
               <Modal> is a separate native window drawn over it. Without this the
               duplicate-report path was a silent no-op to the user: they tap
               Submit, the backend returns 422, and nothing on screen changes. */}
-          {submitError && (
+          {submitError && Platform.OS === "android" && (
             <Text
               testID="report-submit-error"
               className="text-xs"
