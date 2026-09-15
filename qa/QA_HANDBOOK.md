@@ -305,6 +305,37 @@ selectors and only this one was broken; the other six (`↓\d+%`,
 where a full match is correct. Do not blanket-wrap them — check what the
 component actually renders.
 
+## A tap that lands on the keyboard is reported COMPLETED
+
+This one fact explains why the whole occlusion class is invisible, so it belongs
+near the front rather than buried.
+
+**Maestro taps an element's BOUNDS.** If the IME (or any overlay) is drawn over
+those bounds, the touch goes to the keyboard, the app never receives it — and
+Maestro reports:
+
+    Tap on "Tap to set exact location on map"   COMPLETED
+
+The flow believes it tapped. The log agrees. Nothing is wrong until several steps
+later, when an assertion fails against a screen that never changed, and the
+failure names a selector that has nothing to do with the real fault.
+
+`listing_actions_sheet` sat at 0/20 through FOUR proposed patches because of this.
+Every patch aimed at the sheet and the tap, and each was correctly rejected — the
+fault was two steps earlier: `set_listing_location.yaml` tapped a location row
+covered by the IME, the map picker never opened, and the flow then failed on
+`location-confirm is visible`. Four people looked at the right symptom and the
+symptom was two screens away from the cause.
+
+**So a COMPLETED tap is not evidence the tap worked.** When a flow fails on
+something that should obviously be there, look at the hierarchy for the step BEFORE
+the failure and check whether `keyboard_holder` is mounted. If the screen never
+changed after a "successful" tap, the tap is the suspect, not the assertion.
+
+Same mechanic with a different cover: a modal, a bottom sheet, or the dev-menu FAB
+over the target. The tell is identical — a COMPLETED command and an unchanged
+screen.
+
 ## Guard `hideKeyboard` on the IME's own node, not on hope
 
 `hideKeyboard` is Android BACK. It is safe only while the IME is genuinely up —

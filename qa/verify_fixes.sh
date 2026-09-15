@@ -48,6 +48,8 @@ listings/edit_listing_reorder_photos	-	same helper fix
 saved/saved_listing_goes_sold	-	same helper fix
 seller/listing_actions_sheet	-	set_listing_location left the IME over the location row
 seller/undo_mark_sold	-	same helper fix
+profile/user_profile_sold_tab	42d8d3bdcf6c	tab row sits below the profile header
+listings/price_drop_after_edit	2d94efa8ac42	badge is above; page was at the bottom
 EOF
 )
 

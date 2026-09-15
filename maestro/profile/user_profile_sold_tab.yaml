@@ -42,6 +42,25 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 
 # ── Active tab (default) ─────────────────────────────────────────────────────
+# SCROLL TO THE TAB ROW FIRST — it is below the profile header, not missing.
+#
+# These were bare asserts and the flow was 0/13 on "Active". UserProfile.tsx:357
+# puts the Active/Sold TabBar inside ListHeaderComponent AFTER <ProfileHeader/>,
+# so on arrival the screen shows the header and the tabs sit just below the fold.
+# run-560's hierarchy is exactly that: "Fatima Rahimi", "Herat", "No reviews yet",
+# "1 Active Listings", "Joined", "Active today", "E2E test account.", "Ratings &
+# Reviews" — 19 nodes ending right where the tab row would start. assertVisible
+# never scrolls.
+#
+# Note "Active Listings" and "Active today" are BOTH on that header and neither
+# satisfies this assert: Maestro matches `text` against the WHOLE node, so
+# "Active" matches only a node whose entire text is "Active" — the tab itself.
+# The stat label is not a false positive here, it is simply not a match.
+- scrollUntilVisible:
+    element:
+      text: "Active"
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Active"
 - assertVisible: "Sold"
 

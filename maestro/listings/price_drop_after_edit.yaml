@@ -90,7 +90,23 @@ appId: com.hatiwal.app
 - tapOn: "Save"
 - waitForAnimationToEnd
 
-# Confirm the listing stayed Active — not moved to draft
+# Confirm the listing stayed Active — not moved to draft.
+# SCROLL BACK UP TO THE BADGE. Saving the edit returns to the owner detail at
+# whatever offset it was left at, and run-559's hierarchy is the BOTTOM of that
+# screen — "10th District, Kabul", "Get Directions", "Manage Listing", "Mark as
+# Sold", "More", "View Conversations", "0 conversations". The status badge is
+# MyListingDetail.tsx:336 of 705 lines, well above all of that, so the bare
+# assert below could not pass. assertVisible never scrolls.
+#
+# Scrolling to the BADGE's testID rather than to the word: "Active" as text is
+# ambiguous on this screen family (an "Active Listings" stat carries it too),
+# while listing-status-badge is the element whose status this step is actually
+# checking.
+- scrollUntilVisible:
+    element:
+      id: "listing-status-badge"
+    direction: UP
+    timeout: 20000
 - assertVisible: "Active"
 
 # Navigate back to My Listings; the card should now show the price-drop badge
