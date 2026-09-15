@@ -28,6 +28,9 @@ profile/view_profile	1d643b3d484b	0/5 — asserted the top after scrolling to th
 browse/seller_response_rate_badge	f67ff204863b	0/5 — unwrapped regex, whole-node match
 listings/edit_listing_all_fields	-	0/16 — scroll fix 07bf502, still unproven
 profile/account_delete_and_restore	-	0/21 — register-scroll fix b3f5a93, still unproven
+listings/create_listing_publish_blocked	cf6438eeef6a	lost the tab bar after the success sheet
+listings/create_listing_quantity_edges	6a5e082bcc1c	asserted the error from the top, keyboard up
+listings/draft_lifecycle	7279a69379dc	watched for the sheet; publish fires a toast
 EOF
 )
 

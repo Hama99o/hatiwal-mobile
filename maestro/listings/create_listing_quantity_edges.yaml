@@ -143,6 +143,25 @@ appId: com.hatiwal.app
 # inline error until today, so the only feedback was the generic "Please check the
 # highlighted fields before continuing" with nothing highlighted — refused, but
 # unexplained. Asserting the specific message is what stops that regressing.
+#
+# COME BACK DOWN TO THE MESSAGE, and drop the keyboard first.
+#
+# This was a bare assertVisible and it could not pass from here. The scroll just
+# above deliberately goes UP to "Create Listing" (to prove Save Draft kept the
+# seller ON the form instead of navigating away) — which parks the viewport at the
+# TOP, while the error renders down at the quantity field. run-559's hierarchy at
+# this step shows exactly that: Photos, "Add at least one photo to attract buyers."
+# and the title field, with quantity nowhere on screen.
+#
+# The same hierarchy also shows the IME still up, occupying y=770-1184 of a 1280
+# screen — over a third of it — so even the right scroll position could have left
+# the message hidden behind the keyboard.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: "Enter a number between 1 and 999."
+    direction: DOWN
+    timeout: 20000
 - assertVisible: "Enter a number between 1 and 999."
 
 # ── Toggling back off hides the field again ─────────────────────────────────

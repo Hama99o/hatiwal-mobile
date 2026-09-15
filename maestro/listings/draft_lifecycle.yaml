@@ -134,12 +134,35 @@ appId: com.hatiwal.app
 - assertVisible: "Publish this listing?"
 - runFlow: ../_helpers/confirm_dialog.yaml
 - waitForAnimationToEnd
-# Publishing lands on the owner detail with PublishSuccessSheet.
-# "Listing posted" was removed along with the old card (TASK-J952); this matches
-# full_marketplace_cycle.yaml, which was already corrected.
-- assertVisible: "Your listing is live!"
+# A TOAST, NOT THE SUCCESS SHEET. Publishing IN PLACE from the owner detail runs
+# useListingLifecycle.ts:252 — `toast.success(t("listing.publishSuccess"))` =
+# "Listing published!". It does NOT raise PublishSuccessSheet.
+#
+# That sheet is `listing.form.publishSuccess.title` ("Your listing is live!") and
+# MyListingDetail only shows it when the route param `published=1` arrives, which
+# is set once by ListingForm right after a publish from the CREATE FORM
+# (MyListingDetail.tsx:97-117). Publishing an existing draft from its own detail
+# never re-navigates, so the param never arrives and the sheet correctly never
+# opens. run-559's hierarchy at the old assert shows the owner detail with no
+# sheet — the publish had SUCCEEDED, the flow was watching for the wrong thing.
+#
+# The two keys are almost the same name — `listing.publishSuccess` (toast) versus
+# `listing.form.publishSuccess.title` (sheet) — which is how the wrong one got
+# written down. lifecycle_publish.yaml already asserts the toast correctly.
+#
+# extendedWaitUntil, not assertVisible: a toast lives ~3s, so a single check is a
+# race and any fixed wait in front of it loses that race.
+- extendedWaitUntil:
+    visible: "Listing published!"
+    timeout: 15000
 
 # 3) Mark as Sold — the one-tap primary, no reserve step in between
+# POP FIRST. This tap is issued FROM the owner detail, a pushed screen with no tab
+# bar, so it would fail "Element not found: browse-tab" — the same defect fixed in
+# create_listing_publish_blocked. Reached here by `tapOn: "Lifecycle Test Item"`, a
+# TEXT selector, which is why audit_structure's Check 3 cannot see it: PUSHERS is
+# matched by testID only.
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd
