@@ -3,11 +3,16 @@ appId: com.hatiwal.app
 #
 # ── WHY THE POSITIVE ASSERTIONS SCROLL (and what the negative ones do NOT prove)
 #
-# These two threads sit at positions 10 and 11 of a 24-thread seller inbox — the
-# seed adds six more Lenovo threads for the response-rate badge, which land at
-# 18-22 — so neither is ever on the first screen. Bare `assertVisible` therefore
-# failed on fixtures that were present and correct, which is how this flow failed
-# in run-299.
+# These two threads sit at rows 6 and 7 of a 19-thread seller inbox — the seed
+# adds five more Lenovo threads for the response-rate badge, which land at 14-18
+# — so neither is ever on the first screen. Bare `assertVisible` therefore failed
+# on fixtures that were present and correct, which is how this flow failed in
+# run-299.
+#
+# (Re-measured 2026-09-15 against the live dev inbox. The previous figures here —
+# "10 and 11 of a 24-thread inbox", Lenovos at "18-22" — were stale, and the gap
+# mattered: the real adjacency of rows 6 and 7 is exactly why the scroll order
+# below has to be bike-then-Lenovo. Counts in a comment age like screenshots.)
 #
 # The `assertNotVisible` assertions below are WEAKER than they look, and that is
 # left as-is deliberately rather than papered over: a row that was filtered out
@@ -81,15 +86,30 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - assertVisible:
     id: "role-chip-selling"
+# SCROLL IN LIST ORDER — Mountain Bike BEFORE Lenovo. Do not swap these back.
+#
+# Measured against the live inbox 2026-09-15 (19 threads, seller@hatiwal.test):
+# Mountain Bike is row 6 and the FIRST Lenovo is row 7 — adjacent, bike ABOVE.
+# The old order scrolled DOWN to Lenovo, which parks the viewport with Lenovo at
+# the top and Mountain Bike just off the TOP edge, then scrolled DOWN again for
+# the bike — away from it. The second command then dragged the list to the very
+# bottom over its 20s budget and reported "No visible element found" for a row
+# that is present and correct. run-575 step 096: the failure screenshot shows
+# rows 18-19 (role-pill-2928 / role-pill-2929), i.e. the end of the list.
+#
+# Going bike-then-Lenovo means both commands travel DOWN in the list's own order
+# and neither has to reverse direction. Note there are SIX Lenovo rows (2923,
+# 2924-2928); "scroll to Lenovo" is only well-defined as "the first one", which
+# is what a top-down traversal gives.
 - scrollUntilVisible:
     element:
-      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+      text: "Mountain Bike 26-inch Steel Frame"
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
 - scrollUntilVisible:
     element:
-      text: "Mountain Bike 26-inch Steel Frame"
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
@@ -144,13 +164,13 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      text: "Lenovo ThinkPad Laptop Core i5 8GB"
+      text: "Mountain Bike 26-inch Steel Frame"
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
 - scrollUntilVisible:
     element:
-      text: "Mountain Bike 26-inch Steel Frame"
+      text: "Lenovo ThinkPad Laptop Core i5 8GB"
     direction: DOWN
     visibilityPercentage: 40
     timeout: 20000
