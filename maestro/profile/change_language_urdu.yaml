@@ -1,0 +1,50 @@
+appId: com.hatiwal.app
+---
+# Switch to Urdu — RTL layout, Urdu strings visible.
+#
+# WHY THIS FLOW EXISTS. Urdu shipped as the app's fourth locale for the Pakistan
+# expansion and had NO end-to-end coverage at all: there were flows for English,
+# Dari and Pashto and nobody wrote the fourth. That gap was not theoretical — on
+# 2026-09-14 the language picker OFFERED Urdu while EditProfile's zod schema
+# still read `z.enum(["en","ps","fa"])`, so choosing it failed validation with no
+# field error and the profile simply would not save. A locale with three sibling
+# flows and none of its own is exactly where that hides.
+
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+# Scroll to "Language" ITSELF, never to "Appearance" — `profile.theme` renders
+# ABOVE `profile.language`, and scrollUntilVisible stops the moment its target
+# appears, which parks the list with Language still below the fold. That cost
+# change_language_pashto a clean-rig failure (run-503); same trap, same fix.
+- scrollUntilVisible:
+    element:
+      text: "Language"
+- assertVisible: "Language"
+# The option list is COLLAPSED on mount and its row sits below the fold, so the
+# helper scrolls to it and expands it before anything can be tapped.
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-ur"
+- waitForAnimationToEnd
+# Urdu is RTL, so the switch flips direction and RESTARTS the app. Wait for it
+# to come back; a no-op when it did not restart.
+- runFlow: ../_helpers/await_language_restart.yaml
+# ASSERT THE TAB LABEL, NOT THE LANGUAGE NAME. The restart returns the app to its
+# INITIAL route — the Bazaar feed, not Profile where the switch was made — so the
+# language name is not on screen at all. Polling for it burns the whole flow
+# budget and then fails, which is what happened to the Pashto flow (8m9s).
+#
+# `sidebar.profile` is in the tab bar wherever the app lands and changes with the
+# locale: "Me" / "زه" (ps) / "من" (fa) / "میں" (ur). It is the one label that
+# distinguishes Urdu from its two RTL siblings — "بازار" is IDENTICAL in ps, fa
+# and ur, so asserting that would pass even if the app had switched to Pashto.
+- extendedWaitUntil:
+    visible: "میں"
+    timeout: 40000
+# Bazaar tab still navigable under the new locale.
+- tapOn:
+    text: "بازار"
+    optional: true
+- waitForAnimationToEnd
