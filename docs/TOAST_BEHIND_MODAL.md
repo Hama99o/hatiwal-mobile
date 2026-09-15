@@ -24,6 +24,29 @@ The success path closes the sheet first, so its toast lands on the plain screen
 and works. The error path leaves the sheet open, which is exactly when a toast
 cannot be seen. **Every confirmed case below has that asymmetry.**
 
+## STATUS — all four reachable paths are fixed (2026-09-15)
+
+| Path | Commit | Inline testID |
+|---|---|---|
+| `ReportSheet` submit errors | c479dcd, gated aaae2b4 | `report-submit-error` |
+| `ListingDetail.offerMutation.onError` | 9705335 | `offer-send-error` |
+| `Conversation.handleProposeMeetup` catch | ba14494 | `meetup-send-error` |
+| `Browse.handleToggleNearest` geo failure | 07427df | `filter-nearest-error` |
+
+All four are **Android-only**, and every one keeps its control usable so the
+action can be retried without retyping. Each has tests asserting the inline
+message appears on Android, does NOT appear on iOS, and is absent when there is
+no error — so the no-duplication rule is enforced by a test rather than a
+comment.
+
+**Verified on Android; iOS reasoned from sonner-native's platform branch, not
+tested — there is no Mac or simulator on this machine and all four Maestro
+devices are Android emulators.**
+
+The flows that were failing on an invisible toast can now assert the visible
+thing instead, which closes the loop: the next regression here fails a test
+rather than a user.
+
 ## CORRECTION, 2026-09-15 — four of the eight are NOT reachable
 
 The first pass of this audit asked "does an error path toast while the sheet is
