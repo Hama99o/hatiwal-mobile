@@ -388,6 +388,19 @@ skip it. Verify the rest, do not patch on the signature:
    FIRST restart had `goto_profile_tab`, the second did not), 1 false positive
    (`language_switch_all_screens` taps 'من', which IS the Profile tab in Farsi).
 
+**A structural check that reads only what a flow names ITSELF walks past
+`runFlow:` — and helpers are where this class lives.** The restart check above
+shipped with exactly that hole: it inspected the flow's own steps and treated
+`runFlow: some_helper.yaml` as opaque, so anything the helper did after a restart
+was invisible. `chat_rtl`'s real failure is a non-optional scroll to
+`sign-out-button` at `open_language_picker.yaml:65`, and the checker walked
+straight past it. It now resolves the helper file and reads its steps.
+
+Worth noting HOW that was found: by triaging one more flow, not by re-reading the
+checker. A checker that returns clean looks identical whether it is correct or
+blind, so the thing that exposes it is real input — which is an argument for
+triaging the next flow rather than polishing the tool.
+
 Beware the flow's own comments while doing this. `theme_switch` carried a comment
 asserting "this flow happens to want the feed next, so it passed without
 waiting", which was true of an older version and is exactly why the missing
