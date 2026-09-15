@@ -78,6 +78,31 @@ interface OfferSheetProps {
   /** Defaults to `"offer"` — every pre-existing call site is unchanged. */
   mode?: OfferSheetMode;
   /**
+   * A SEND FAILURE to show inside the sheet — a server or network fault, not a
+   * mistake the buyer made.
+   *
+   * It has to render here rather than as a toast alone. <Toaster> is mounted at
+   * app/_layout.tsx:115, at the root of the tree, and on Android a RN <Modal> is a
+   * separate native window drawn over that root — so a toast fired while this
+   * sheet is open is behind it and nobody sees it. The sheet stays open on a send
+   * failure (deliberately: the buyer should not lose what they typed), which is
+   * exactly when the toast is invisible. See docs/TOAST_BEHIND_MODAL.md.
+   *
+   * NOT for invalid input. The Send button is already disabled while the amount or
+   * quantity is unusable, and the quantity gets its own inline message above, so a
+   * validation error can never reach this.
+   *
+   * RENDERED ON ANDROID ONLY. sonner-native wraps its Toaster in
+   * react-native-screens' FullWindowOverlay when Platform.OS === 'ios'
+   * (node_modules/sonner-native/src/toaster.tsx:60-76), which draws in a separate
+   * UIWindow ABOVE presented modals — so on iOS the toast is already visible over
+   * this sheet and an inline copy would be duplicate feedback for one event.
+   * Android gets no wrapper, so the defect and the fix are both Android-only.
+   * Verified on Android; iOS reasoned from that branch, not tested — there is no
+   * Mac on this machine.
+   */
+  sendError?: string | null;
+  /**
    * Multi-quantity: the listing has several identical units, so the reference
    * price above the input is PER UNIT (docs/SPIKE_LISTING_QUANTITY.md).
    *
@@ -137,6 +162,7 @@ export function OfferSheet({
   quantity,
   onChangeQuantity,
   availableUnits,
+  sendError,
 }: OfferSheetProps) {
   const { t } = useTranslation();
   const { isRtl, formatCurrency, formatNumber } = useLocalization();
@@ -445,6 +471,25 @@ export function OfferSheet({
               : "listing.detail.noPaymentNote"
           )}
         </Text>
+
+        {/* Send failure — a server or network fault, shown HERE because a toast
+            fired while this sheet is open renders behind it (the Toaster is at the
+            root of the tree; an Android <Modal> is its own window). The sheet stays
+            open on failure so the buyer keeps what they typed, which is precisely
+            when the toast cannot be seen. */}
+        {sendError && Platform.OS === "android" ? (
+          <Text
+            testID="offer-send-error"
+            style={{
+              fontSize: 12,
+              color: colors.destructive,
+              marginTop: 12,
+              textAlign: isRtl ? "right" : "left",
+            }}
+          >
+            {sendError}
+          </Text>
+        ) : null}
 
         <Button
           variant="default"

@@ -194,6 +194,50 @@ describe("OfferSheet — cancel/close callback", () => {
 
 // ─── Disabled states ──────────────────────────────────────────────────────────
 
+describe("OfferSheet — sendError renders inline, on Android only", () => {
+  // A send FAILURE (server/network) leaves this sheet OPEN so the buyer keeps what
+  // they typed — and that is exactly when a toast cannot be seen on Android, because
+  // <Toaster> sits at the root of the tree and an Android <Modal> is its own native
+  // window over it. On iOS sonner-native wraps the Toaster in FullWindowOverlay
+  // (toaster.tsx:60-76), so the toast is already visible above the sheet and an
+  // inline copy would be duplicate feedback. Hence the platform gate.
+  const setPlatform = (os: "android" | "ios") => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Platform } = require("react-native");
+    Object.defineProperty(Platform, "OS", { configurable: true, get: () => os });
+  };
+  afterEach(() => setPlatform("ios"));
+
+  it("shows the message inline on Android", () => {
+    setPlatform("android");
+    render(<OfferSheet {...buildProps({ sendError: "Could not send your offer." })} />);
+    expect(screen.getByTestId("offer-send-error")).toBeTruthy();
+    expect(screen.getByText("Could not send your offer.")).toBeTruthy();
+  });
+
+  it("does NOT show it on iOS — the toast is already visible there", () => {
+    setPlatform("ios");
+    render(<OfferSheet {...buildProps({ sendError: "Could not send your offer." })} />);
+    expect(screen.queryByTestId("offer-send-error")).toBeNull();
+  });
+
+  it("renders nothing when there is no send error", () => {
+    setPlatform("android");
+    render(<OfferSheet {...buildProps({ sendError: null })} />);
+    expect(screen.queryByTestId("offer-send-error")).toBeNull();
+  });
+
+  it("leaves Send enabled so the buyer can retry without retyping", () => {
+    setPlatform("android");
+    render(<OfferSheet {...buildProps({ sendError: "Could not send your offer.", offerAmount: "20000" })} />);
+    // A send failure is not the buyer's mistake: the amount is still valid, so the
+    // button must stay pressable. Contrast the validation path, where Send is
+    // deliberately disabled and no inline send-error can ever appear.
+    expect(screen.getByTestId("offer-send-error")).toBeTruthy();
+    expect(screen.getByText("listing.detail.sendOffer")).toBeTruthy();
+  });
+});
+
 describe("OfferSheet — disabled states", () => {
   it("submit button is disabled when offerAmount is empty", () => {
     render(<OfferSheet {...buildProps({ offerAmount: "" })} />);

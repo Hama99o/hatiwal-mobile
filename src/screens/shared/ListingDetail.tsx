@@ -164,6 +164,11 @@ export default function ListingDetailScreen() {
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [showMessageSheet, setShowMessageSheet] = useState(false);
   const [showOfferSheet, setShowOfferSheet] = useState(false);
+  // A send FAILURE renders inside the sheet as well as in a toast. The sheet
+  // stays open on failure so the buyer keeps what they typed — and that is exactly
+  // when a toast cannot be seen, because <Toaster> sits at the root of the tree and
+  // an Android <Modal> is its own window over it (docs/TOAST_BEHIND_MODAL.md).
+  const [offerSendError, setOfferSendError] = useState<string | null>(null);
   const [showReportSheet, setShowReportSheet] = useState(false);
   const [showSafetyTips, setShowSafetyTips] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
@@ -335,11 +340,16 @@ export default function ListingDetailScreen() {
     },
     onSuccess: (conversation) => {
       setShowOfferSheet(false);
+      setOfferSendError(null);
       setOfferAmount("");
       setOfferQuantity("");
       router.push(`/(main)/conversation/${conversation.id}` as never);
     },
-    onError: (err) => toast.error(apiErrorMessage(err, t)),
+    onError: (err) => {
+      const message = apiErrorMessage(err, t);
+      toast.error(message);
+      setOfferSendError(message);
+    },
   });
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -362,10 +372,13 @@ export default function ListingDetailScreen() {
   }, [requireAuth, authReturnTo, saveMutation, isSaved]);
 
   const handleOpenOffer = useCallback(() => {
+    setOfferSendError(null);
     requireAuth(() => setShowOfferSheet(true), authReturnTo, AUTH_INTENT.offer);
   }, [requireAuth, authReturnTo]);
 
   const handleSendOffer = useCallback((inputAmount: string) => {
+    // Clear any previous failure so a retry does not show a stale message.
+    setOfferSendError(null);
     const amount = Number(inputAmount);
     if (!amount || amount <= 0) {
       toast.error(t("listing.detail.offerInvalid"));
@@ -1306,6 +1319,7 @@ export default function ListingDetailScreen() {
       {/* ── Make an offer sheet — only rendered when listing is negotiable ─── */}
       {isNegotiable && <OfferSheet
         visible={showOfferSheet}
+        sendError={offerSendError}
         perUnit={hasStockToShow(listing)}
         onClose={() => setShowOfferSheet(false)}
         onSend={handleSendOffer}
