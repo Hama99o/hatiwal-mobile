@@ -83,8 +83,25 @@ appId: com.hatiwal.app
     id: "sale-edit-delete"
 - assertNotVisible:
     id: "sale-edit-change-buyer"
-# The tally is UNCHANGED — the refused void touched nothing server-side.
-- assertVisible: ".*3 of 10 sold.*"
+# THE TALLY IS NOT CHECKABLE FROM HERE — and it does not need to be.
+#
+# This used to be `assertVisible: ".*3 of 10 sold.*"`, repeating the check from
+# the top of the flow to show the refused void changed nothing server-side. Right
+# intent, impossible position: the tally lives on the Sales screen BEHIND this
+# sheet, and the sheet is deliberately still open — the assert eleven lines up
+# ("Edit this sale") exists precisely to prove the refusal does NOT dismiss it.
+# run-576's hierarchy is the open sheet: sale-edit-backdrop, "Edit this sale",
+# sale-edit-current-buyer, the quantity stepper at 3, "Final price (optional)".
+#
+# The claim survives without it. The tally is asserted as "3 of 10 sold" at the
+# TOP of this flow with no sheet open, and as "2 of 10 sold" at the BOTTOM after
+# one legitimate decrement commits — each behind its own wait on `sales-tally`,
+# i.e. each with the sheet gone. If the refused void had reached the server the
+# count would already have moved before that decrement, and the closing assert
+# would read something other than 2.
+#
+# So the refusal is proven by the pair that brackets it, not by a reading taken
+# through a sheet that is covering the number.
 
 # ── THE ALLOWANCE: a quantity-only correction still succeeds ────────────
 # ON THE NUMBER'S OWN NODE (`-value-text`), NOT the control (`-value`).
