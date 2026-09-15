@@ -186,9 +186,24 @@ appId: com.hatiwal.app
 # The save had SUCCEEDED. The API says listing 3246 is active, quantity 15,
 # held_units 10 — exactly what the asserts below expect. Nothing was wrong but
 # where the screen was pointing.
+# SCROLL TO THE BADGE ITSELF, NOT TO THE TITLE.
+#
+# This scrolled UP to the listing title and then asserted `stock-badge-owner`, and
+# run-576 shows why that cannot hold: scrollUntilVisible STOPS the instant its
+# target appears, which parks the title at the BOTTOM of the viewport with
+# everything above it still off-screen. The badge renders at
+# MyListingDetail.tsx:357, ABOVE the price and title, so it stays off the top.
+#
+# run-576's hierarchy is exactly that: "AFN 350", "each", the title, the location,
+# "Posted September 15 2026", Views/Chats and "Views — last 7 days" — i.e. scrolled
+# down as far as analytics-views (:405), with the badge nowhere on screen.
+#
+# Identical trap and identical fix to change_language_pashto and view_profile:
+# scroll to the element you are about to assert, never to a landmark near it. The
+# title assert below still holds because the title sits just under the badge.
 - scrollUntilVisible:
     element:
-      text: "Winter Gloves Wholesale Box - 15 Pairs"
+      id: "stock-badge-owner"
     direction: UP
     timeout: 20000
 - extendedWaitUntil:
