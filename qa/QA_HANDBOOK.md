@@ -343,6 +343,52 @@ because the IME takes roughly half a 360dp window.
 So: screenshot, then component source, then flow order. Only after all three
 should "stale selector" be the verdict.
 
+### Case 3 is the most common failure in this suite — order every flow top-down
+
+It has now been the sole cause in FOUR separate flows, and each one looked like
+a different bug:
+
+| Flow | What it did |
+|---|---|
+| `edit_listing_all_fields` (07bf502) | scrolled DOWN to the description, then tapped the price field above it |
+| five register flows (b3f5a93) | scrolled to confirm-password, leaving email and password above the fold |
+| `conversations_role_filter` (3db2973) | scrolled DOWN to Lenovo (inbox row 7), which pushes Mountain Bike (row 6) off the TOP, then scrolled DOWN again for the bike |
+| `view_profile` (cb8dd1e) | scrolled to Sign Out at the bottom, then bare-asserted "Edit Profile", whose labels all render above it |
+
+**The mechanic: a `scrollUntilVisible` that SUCCEEDS leaves the list wherever it
+stopped, and every later command on that screen inherits that offset.**
+`assertVisible` and `tapOn` never scroll. So the fix is not a longer timeout and
+not a different selector — it is putting the steps in the order the screen
+renders them, so nothing has to travel back up.
+
+Two signatures tell you it is this and not a stale selector:
+- the flow spends its FULL scroll budget (a 20s timeout burning the whole 20s)
+  and the end-of-step hierarchy shows the END of the list; and
+- some sibling assert against the SAME element passes earlier in the same run.
+
+**Do not hand-check flows for this — sweep.** Two mechanical sweeps find it, and
+both need their hits verified rather than patched:
+
+1. *Consecutive same-direction `scrollUntilVisible` with no intervening reset*
+   (a `tapOn`, `runFlow`, `back`, `swipe`, `launchApp`). Ran 2026-09-15: 22 pairs
+   in 14 files. A pair is only a bug when the SECOND target renders ABOVE the
+   first — check the component's line numbers, not your intuition. Eight of those
+   files pass, which already proves their pairs; `account_delete_and_restore`'s
+   sign-out -> "Delete account" is correct because Delete renders at
+   Profile.tsx:1221, below sign-out at :1197.
+2. *A restart helper (`await_theme_restart` / `await_language_restart`) followed
+   by a Profile-only selector with no navigation back.* A theme or language
+   switch calls `reloadApp` and the app returns on its INITIAL route, not where
+   the switch was made. Ran 2026-09-15: 2 hits, 1 real (`theme_switch` — the
+   FIRST restart had `goto_profile_tab`, the second did not), 1 false positive
+   (`language_switch_all_screens` taps 'من', which IS the Profile tab in Farsi).
+
+Beware the flow's own comments while doing this. `theme_switch` carried a comment
+asserting "this flow happens to want the feed next, so it passed without
+waiting", which was true of an older version and is exactly why the missing
+navigation read as deliberate for so long. Comments age like screenshots and
+seed counts do — verify before trusting one.
+
 ## Run flows against a BUNDLED apk
 
     ./qa/qa.sh build bundled     # embeds the JS as a FALLBACK
