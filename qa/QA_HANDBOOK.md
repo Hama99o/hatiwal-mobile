@@ -366,8 +366,13 @@ Two signatures tell you it is this and not a stale selector:
   and the end-of-step hierarchy shows the END of the list; and
 - some sibling assert against the SAME element passes earlier in the same run.
 
-**Do not hand-check flows for this — sweep.** Two mechanical sweeps find it, and
-both need their hits verified rather than patched:
+**Do not hand-check flows for this — `./qa/qa.sh audit` does it.** Both sweeps
+below now live in `qa/lib/audit_structure.py` and run with the other audits.
+They print under `for REVIEW (not defects)` and do NOT affect the exit code,
+because neither can be decided from the YAML — only the component's render
+order separates a real hit from a correct one. Each line is annotated with the
+flow's register status; a flow marked PASS has already proven its own pair, so
+skip it. Verify the rest, do not patch on the signature:
 
 1. *Consecutive same-direction `scrollUntilVisible` with no intervening reset*
    (a `tapOn`, `runFlow`, `back`, `swipe`, `launchApp`). Ran 2026-09-15: 22 pairs
