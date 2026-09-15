@@ -360,6 +360,19 @@ covered by the IME, the map picker never opened, and the flow then failed on
 `location-confirm is visible`. Four people looked at the right symptom and the
 symptom was two screens away from the cause.
 
+**The failure names the wrong thing, every time.** `listing_actions_sheet`
+reported `Element not found: Text matching regex: Electronics`. There was nothing
+wrong with the category, the category list, or that selector: the price had been
+typed two steps earlier, the IME was covering the "Tap to select category" row,
+the tap landed on the keyboard and was reported COMPLETED, and the picker never
+opened — so the flow died on a category that only exists INSIDE the picker.
+
+> The failure named a category; the cause was a keyboard.
+
+That is the whole class in one sentence, and it is why the four patches proposed
+for this flow were all correctly declined: every one of them aimed at the thing
+the message named.
+
 **So a COMPLETED tap is not evidence the tap worked.** When a flow fails on
 something that should obviously be there, look at the hierarchy for the step BEFORE
 the failure and check whether `keyboard_holder` is mounted. If the screen never
