@@ -233,11 +233,27 @@ appId: com.hatiwal.app
 # map, with the badge off the top. The listing had published correctly. Same
 # cause as held_quantity_refusal, and this file already uses this idiom below.
 #
-# Scroll to the TITLE, not to "Active": the title is unique, while "Active" is a
-# short generic word that an anchored scroll could find in the wrong place.
+# SCROLL TO THE BADGE'S ID, which answers the concern below AND lands it on screen.
+#
+# The note here was right that "Active" is too generic to scroll to by text — and
+# the title it chose instead is unique, but it is the WRONG ANCHOR:
+# scrollUntilVisible stops the instant its target appears, so it parks the title at
+# the BOTTOM of the viewport with everything above it still off screen. The status
+# badge renders at MyListingDetail.tsx:336, ABOVE the price and title, so it stayed
+# off the top and the assert could not pass.
+#
+# run-576's hierarchy is that exact screen: "AFN 8,000", the title, "Kabul, Kabul
+# District, Kabul Province", "Posted September 15 2026", Views/Chats and "Views —
+# last 7 days" — scrolled down to analytics-views, badge nowhere on it.
+#
+# `listing-status-badge` is both unique (no text ambiguity) and the thing being
+# asserted, which is the rule the handbook states: scroll to the element you are
+# about to assert, never to a landmark near it. Fourth flow on this same screen to
+# make this mistake today, after price_drop_after_edit, my_listing_detail_view and
+# held_quantity_refusal.
 - scrollUntilVisible:
     element:
-      text: "Owner Detail Publish Regression Item"
+      id: "listing-status-badge"
     direction: UP
     timeout: 20000
 - assertVisible: "Active"
