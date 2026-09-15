@@ -305,6 +305,39 @@ selectors and only this one was broken; the other six (`↓\d+%`,
 where a full match is correct. Do not blanket-wrap them — check what the
 component actually renders.
 
+## Tapping a field that already has text puts the caret WHERE YOU TAPPED
+
+Maestro taps an element's centre. On an EMPTY field that is harmless — the caret
+has nowhere to go but position 0. On a field that already holds text, the caret
+lands mid-string, and the next `inputText` INSERTS there instead of appending.
+
+`quick_replies` sent this, verbatim, and then failed asserting the sentence it
+meant to send:
+
+    Is this still availa Please let me know.ble?
+
+"Is this still available?" split after "availa", with " Please let me know."
+spliced into the gap. Not an app bug — a tap in the middle of a text field is
+supposed to move the caret there.
+
+The flow tapped the quick-reply chip (which fills the composer), then tapped the
+SAME TEXT again to "focus" the field before typing. Both taps matched: after the
+first one, that string is on screen twice — once as the chip, once as the
+composer's contents — so the assert between them could not tell you which a tap
+would hit. Removing the second tap fixed it, and it was never needed:
+`handleQuickReplySelect` (Conversation.tsx:1434) focuses the input itself and its
+own comment says "cursor lands at the end".
+
+**Rule: never tap a field's CONTENT to focus it.** Tap it once, or use `eraseText`
+first, or type straight after whatever already focused it.
+
+A sweep for `tapOn <text>` followed by `inputText` with no `eraseText` between
+returns 38 sites — and 37 are fine, because they tap a PLACEHOLDER ("Type a
+message...", "Search listings...", "Min Price", and `FilterSheet`'s
+`placeholder="0"`, which looks like a value and is not). The placeholder means the
+field is empty. Check what the tapped string actually is before treating a hit as
+a defect.
+
 ## A tap that lands on the keyboard is reported COMPLETED
 
 This one fact explains why the whole occlusion class is invisible, so it belongs

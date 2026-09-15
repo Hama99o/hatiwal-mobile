@@ -50,6 +50,7 @@ seller/listing_actions_sheet	-	set_listing_location left the IME over the locati
 seller/undo_mark_sold	-	same helper fix
 profile/user_profile_sold_tab	42d8d3bdcf6c	tab row sits below the profile header
 listings/price_drop_after_edit	2d94efa8ac42	badge is above; page was at the bottom
+chat/quick_replies	5d6e88a4aa34	re-tap moved the caret into the middle of the draft
 EOF
 )
 

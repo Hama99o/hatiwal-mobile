@@ -32,7 +32,28 @@ appId: com.hatiwal.app
 - assertVisible: "Is this still available?"
 
 # The user can edit the draft — add extra text
-- tapOn: "Is this still available?"
+# DO NOT RE-TAP THE TEXT TO FOCUS IT. This step used to be
+# `- tapOn: "Is this still available?"` a second time, and it CORRUPTED the draft.
+#
+# Maestro taps an element's CENTRE. Tapping the middle of a field that already
+# contains text puts the CARET THERE, and the inputText below then inserts at that
+# caret instead of appending. run-575 sent this, verbatim:
+#
+#     Is this still availa Please let me know.ble?
+#
+# — "Is this still available?" split after "availa", with the new text spliced in.
+# The flow then failed asserting the sentence it meant to send. Not an app bug: a
+# tap in the middle of a text field is SUPPOSED to move the caret there.
+#
+# The re-tap was also unnecessary. handleQuickReplySelect (Conversation.tsx:1434)
+# appends the phrase to the draft and then focuses the input itself — its own
+# comment says "cursor lands at the end" — so the field is already focused with the
+# caret in the right place when the chip tap returns. Typing straight after it
+# appends, which is what this flow wants.
+#
+# Note the assert above is satisfied by BOTH the chip and the composer's contents,
+# so it cannot tell you which one a tap would hit. That ambiguity is exactly what
+# made the re-tap look safe.
 - inputText: " Please let me know."
 - waitForAnimationToEnd
 
