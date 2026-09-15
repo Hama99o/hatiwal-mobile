@@ -61,9 +61,11 @@
   "activeSellersHint": "Show only listings from sellers who signed in within the last 7 days",
   "newMatches_one": "{{count}} new",
   "newMatches_other": "{{count}} new",
+  "newMatches": "{{count}} new",
   "subcategoryFilter": "Subcategory: {{name}}",
   "clearSubcategory": "Clear subcategory",
   "filtersActive_one": "{{count}} filter active",
   "filtersActive_other": "{{count}} filters active",
+  "filtersActive": "{{count}} filters active",
   "clearAllFilters": "Clear all"
 }

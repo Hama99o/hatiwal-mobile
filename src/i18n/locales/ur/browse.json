@@ -61,9 +61,11 @@
   "activeSellersHint": "صرف اُن بیچنے والوں کے اشتہارات دکھائیں جنہوں نے پچھلے 7 دن میں سائن ان کیا",
   "newMatches_one": "{{count}} نیا",
   "newMatches_other": "{{count}} نئے",
+  "newMatches": "{{count}} نئے",
   "subcategoryFilter": "ذیلی زمرہ: {{name}}",
   "clearSubcategory": "ذیلی زمرہ صاف کریں",
   "filtersActive_one": "{{count}} فلٹر فعال",
   "filtersActive_other": "{{count}} فلٹرز فعال",
+  "filtersActive": "{{count}} فلٹرز فعال",
   "clearAllFilters": "سب صاف کریں"
 }

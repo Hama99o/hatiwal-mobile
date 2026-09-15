@@ -104,6 +104,7 @@
   },
   "postListing": "اعلان خپرول",
   "shopCount_other": "{{count}} اعلانونه",
+  "shopCount": "{{count}} اعلانونه",
   "noPhoto": "انځور نشته",
   "seen": "لیدل شوی",
   "share": {

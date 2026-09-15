@@ -104,6 +104,7 @@
   },
   "postListing": "Post a listing",
   "shopCount_other": "{{count}} listings",
+  "shopCount": "{{count}} listings",
   "noPhoto": "No photo",
   "seen": "Seen",
   "priceDrop": {

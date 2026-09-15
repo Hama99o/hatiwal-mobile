@@ -406,6 +406,31 @@ Pick the dismissal to match the screen:
   the drag does nothing there.
 - **anything else** → guarded `hideKeyboard` as above.
 
+## In this codebase, the correct implementation is usually already nearby
+
+Not a mood — a measurement. On 2026-09-15 this was true SEVEN times, and in every
+case the answer sat within a few lines or one file of the bug:
+
+| Bug | Where the answer already was |
+|---|---|
+| Four offer flows showing a lone Ban pill | `login.yaml`'s own comment describes that exact screen as the symptom of its missing guard — and NAMES three victim flows, all three later confirmed |
+| `seller_response_rate_badge`'s unmatchable regex | the assert two steps above it, `.*Usually responds within.*`, passes on the same node in the same run |
+| `theme_switch` scrolling the feed | the FIRST restart in the same flow is followed by `goto_profile_tab`; only the second was not |
+| `report_participant` blamed on the backend | a previous author had already pasted run-526's Rails log: `201`, then `422` |
+| `unread_badge_survives_navigation` tapping a modal to open it | `mark_read.yaml` taps `conversation-options-\d+` to open and uses the modal id only as a guard |
+| `quick_replies` corrupting its own draft | `handleQuickReplySelect` focuses the input itself, commented "cursor lands at the end" — the re-tap was never needed |
+| `listing.savesCount` printing its own key | `listing.conversationsCount`, TWO KEYS ABOVE it, passes `count` for plural selection AND `display` for interpolation, with a base key |
+
+**So look sideways before you theorise.** Read the helper you are calling, the
+sibling assert, the neighbouring key, the flow that already passes. It is faster
+than forming a hypothesis and much faster than testing one.
+
+The counterweight, equally measured: a nearby comment can be STALE and still be
+believed. `theme_switch` carried one asserting its missing navigation was
+deliberate, and `conversations_role_filter`'s header gave three wrong inbox
+numbers. **Read first, verify second** — against the code or the live API, never
+against another comment.
+
 ## Read the helper's own comments BEFORE forming a hypothesis
 
 Three separate times on 2026-09-15 the answer to a failure was already written

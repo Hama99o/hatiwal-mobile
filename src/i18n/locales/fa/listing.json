@@ -104,6 +104,7 @@
   },
   "postListing": "ثبت آگهی",
   "shopCount_other": "{{count}} آگهی",
+  "shopCount": "{{count}} آگهی",
   "noPhoto": "عکس ندارد",
   "seen": "دیده‌شده",
   "share": {

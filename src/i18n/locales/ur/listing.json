@@ -104,6 +104,7 @@
   },
   "postListing": "اشتہار لگائیں",
   "shopCount_other": "{{count}} اشتہارات",
+  "shopCount": "{{count}} اشتہارات",
   "noPhoto": "کوئی تصویر نہیں",
   "seen": "دیکھا گیا",
   "priceDrop": {
