@@ -96,6 +96,10 @@ export default function BrowseScreen() {
   // fight over the same point; sort=nearest always uses a fresh GPS fix.
   const [nearestCoords, setNearestCoords] = useState<MapCanvasCoords | null>(null);
   const [nearestLoading, setNearestLoading] = useState(false);
+  // A geo failure renders inside FilterSheet as well as in a toast: the "Nearest"
+  // chip lives inside that <Modal>, and on Android a toast fired while it is open is
+  // drawn behind it (docs/TOAST_BEHIND_MODAL.md).
+  const [nearestError, setNearestError] = useState<string | null>(null);
   const [sellerActiveDays, setSellerActiveDays] = useState<number | null>(null);
   // TASK-B384: "Deals" filter — session-local only (not persisted/saved-search).
   const [priceDropped, setPriceDropped] = useState(false);
@@ -301,6 +305,7 @@ export default function BrowseScreen() {
       return;
     }
 
+    setNearestError(null);
     setNearestLoading(true);
     const result = await getCurrentLocation();
     setNearestLoading(false);
@@ -316,7 +321,14 @@ export default function BrowseScreen() {
     } else {
       // Non-permission errors (timeout/unavailable/unsupported) — Settings wouldn't
       // help, so a transient toast is the right, non-blocking signal here.
-      toast.error(t(geoErrorMessageKey(result.error)));
+      // Surfaced BOTH ways: the toast for when the sheet is closed, and inline inside
+      // FilterSheet for when it is open — which on Android is the only time it is
+      // visible at all. The chip itself is already honest: setNearestLoading(false)
+      // above stops the spinner and `sort` is only set on success, so it stays
+      // unselected. Only the explanation was missing.
+      const message = t(geoErrorMessageKey(result.error));
+      toast.error(message);
+      setNearestError(message);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sort, t]);
@@ -547,6 +559,7 @@ export default function BrowseScreen() {
         sort={sort}
         onSortChange={handleSortChange}
         nearestLoading={nearestLoading}
+        nearestError={nearestError}
         onToggleNearest={handleToggleNearest}
         sellerActiveDays={sellerActiveDays}
         onSellerActiveDaysChange={setSellerActiveDays}

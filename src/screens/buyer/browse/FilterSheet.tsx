@@ -76,8 +76,22 @@ interface FilterSheetProps {
   onSortChange: (val: ListingSort | null) => void;
   /** True while the "Nearest" chip is acquiring the device's GPS location. */
   nearestLoading: boolean;
-  /** Tapping the "Nearest" chip — parent acquires location, sets/clears sort=nearest, toasts on failure. */
+  /** Tapping the "Nearest" chip — the parent acquires location and sets/clears
+      sort=nearest. On failure it passes `nearestError` below; the toast it also
+      fires is invisible on Android while this sheet is open. */
   onToggleNearest: () => void;
+  /**
+   * A geolocation FAILURE to show inside this sheet — timeout, unavailable or
+   * unsupported. Not a permission denial: that path raises the localized
+   * permission alert instead, which is a native window and visible over a modal.
+   *
+   * The "Nearest" chip lives INSIDE this <Modal>, so a toast fired when the geo
+   * call fails renders behind it on Android — <Toaster> is at the root of the
+   * tree. On iOS sonner-native wraps the Toaster in FullWindowOverlay
+   * (toaster.tsx:60-76), so the toast is already visible there and an inline copy
+   * would duplicate it. Android-only; see docs/TOAST_BEHIND_MODAL.md.
+   */
+  nearestError?: string | null;
   /** When non-null, only listings from sellers active within this many days are shown. */
   sellerActiveDays: number | null;
   onSellerActiveDaysChange: (val: number | null) => void;
@@ -105,6 +119,7 @@ export function FilterSheet({
   sort,
   onSortChange,
   nearestLoading,
+  nearestError,
   onToggleNearest,
   sellerActiveDays,
   onSellerActiveDaysChange,
@@ -446,6 +461,18 @@ export function FilterSheet({
                 </Pressable>
               </ScrollView>
             </View>
+            {/* Geolocation failure — the chip is inside this modal, so on Android the
+                toast the parent also fires is drawn behind the sheet and never seen. The
+                chip itself is honest: it stops spinning and stays unselected. */}
+            {nearestError && Platform.OS === "android" ? (
+              <Text
+                testID="filter-nearest-error"
+                style={{ fontSize: 12, color: colors.destructive, textAlign: isRtl ? "right" : "left" }}
+              >
+                {nearestError}
+              </Text>
+            ) : null}
+
 
             {/* Active sellers chip */}
             <View style={{ gap: 6 }}>
