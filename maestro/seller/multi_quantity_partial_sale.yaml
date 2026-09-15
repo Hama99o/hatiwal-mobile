@@ -199,6 +199,29 @@ appId: com.hatiwal.app
 # (buyerPicker.json `finalPricePerUnitHint` = "The price for one item"), so it is
 # the sheet still rendering rather than a renamed string. The quantity control
 # asserted just above can be present before this hint is.
+# CORRECTED 2026-09-15 — IT IS BELOW THE FOLD, NOT LATE.
+#
+# The note above concluded "the sheet still rendering" and waited. Waiting cannot
+# work, and run-576's hierarchy shows why: `buyer-picker-final-price` is reported
+# at bounds [32,985][688,990] — FIVE PIXELS tall. That is the price input clipped
+# at the bottom edge of the sheet's own ScrollView (BuyerPickerSheet.tsx:408-701).
+# Confirm sold and Cancel sit BELOW it at y=1016-1186 because they are a pinned
+# footer outside that scroll, which is what makes the clip easy to misread as a
+# fully-rendered sheet.
+#
+# The hint renders immediately under that input (`asksQuantity && !priceError`,
+# BuyerPickerSheet.tsx:686), so it is entirely outside the scroll viewport and
+# never enters the hierarchy at all. No amount of polling brings it in — the
+# earlier diagnosis was reasonable from a log, and wrong from the bounds.
+#
+# Scroll the sheet instead. Keeping extendedWaitUntil AFTER the scroll, because
+# the original observation still holds: this sheet does fill in progressively, so
+# the row can exist and be scrolled to slightly before its text settles.
+- scrollUntilVisible:
+    element:
+      text: "The price for one item"
+    direction: DOWN
+    timeout: 20000
 - extendedWaitUntil:
     visible: "The price for one item"
     timeout: 15000
