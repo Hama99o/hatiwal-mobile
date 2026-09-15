@@ -32,6 +32,19 @@ appId: com.hatiwal.app
 - tapOn:
     id: "register-phone-input"
 - inputText: "0700000042"
+# SCROLL FIRST. Email is the FOURTH field (first name, last name, phone, email),
+# so by now three fields have been typed and the IME is up — which is exactly the
+# condition the comments further down already describe for confirm-password and
+# the submit button: "below the fold once the keyboard is up. `tapOn` does not
+# scroll." That fix was applied to the last two controls and never to the two
+# above them, which is why this flow is 10/26 rather than stable: whether email
+# clears the fold depends on keyboard height and timing.
+- scrollUntilVisible:
+    element:
+      id: "register-email-input"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - tapOn:
     id: "register-email-input"
 # Maestro's built-in — a constant address would collide with the account this
@@ -43,6 +56,13 @@ appId: com.hatiwal.app
 # rubbish. Use the idiom that already works in account_delete_and_restore.
 - evalScript: ${output.email = 'qaempty_' + Date.now() + '@hatiwal.test'}
 - inputText: ${output.email}
+# Same reason as email above — password is the fifth field, further down still.
+- scrollUntilVisible:
+    element:
+      id: "register-password-input"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - tapOn:
     id: "register-password-input"
 - inputText: "Password123!"

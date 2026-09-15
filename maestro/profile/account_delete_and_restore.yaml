@@ -38,9 +38,30 @@ appId: com.hatiwal.app
 - tapOn:
     id: "register-phone-input"
 - inputText: "0700999123"
+# SCROLL BEFORE EACH — this flow is 0/21 and these two taps are why. Its own
+# failures name them: "Element not found: register-email-input" and "No visible
+# element found: register-confirm-password-input".
+#
+# Email is the fourth field and password the fifth, so by here three or four
+# fields have been typed and the IME is up. That is precisely the condition the
+# comment below already spells out for confirm-password — "below the fold once
+# the keyboard is up. `tapOn` does not scroll." The fix was applied to the LAST
+# field and never to the two above it.
+- scrollUntilVisible:
+    element:
+      id: "register-email-input"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - tapOn:
     id: "register-email-input"
 - inputText: ${output.email}
+- scrollUntilVisible:
+    element:
+      id: "register-password-input"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - tapOn:
     id: "register-password-input"
 - inputText: "Password123!"
