@@ -46,6 +46,8 @@ seller/sales_screen_reviewed_sale_refusal	-	search_my_shop left the IME over the
 listings/edit_listing_remove_photo	-	same helper fix
 listings/edit_listing_reorder_photos	-	same helper fix
 saved/saved_listing_goes_sold	-	same helper fix
+seller/listing_actions_sheet	-	set_listing_location left the IME over the location row
+seller/undo_mark_sold	-	same helper fix
 EOF
 )
 

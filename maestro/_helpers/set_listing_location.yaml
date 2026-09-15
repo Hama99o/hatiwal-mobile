@@ -15,6 +15,40 @@ appId: com.hatiwal.app
 # The row's LABEL is used to open the picker because that row has no testID; the
 # picker's own confirm button does (`location-confirm`), and that is what proves the
 # sheet actually opened rather than the tap landing on nothing.
+# DROP THE KEYBOARD FIRST — BUT ONLY IF IT IS ACTUALLY UP.
+#
+# listing_actions_sheet and undo_mark_sold both sat on "Assertion is false: id:
+# location-confirm is visible", and neither had anything to do with the map.
+# run-534's hierarchy for the first shows the CREATE LISTING FORM still on screen
+# — price 50003, currency, negotiable, category "Phones & Tablets", condition —
+# with `keyboard_holder` mounted. The picker never opened: the tap below landed on
+# the IME covering the location row, and Maestro reports such a tap COMPLETED
+# because it taps the element's bounds.
+#
+# GUARDED, and that is the whole point. `hideKeyboard` is Android BACK. Fired
+# unconditionally it would be a no-op for the eight callers that already pass — and
+# a disaster for them if their IME happens to be down, because Back on this screen
+# leaves the form (and can raise the discard dialog). Guarding on the IME's own
+# node makes it act only in the state that is broken.
+#
+# The id comes from the failing hierarchy itself:
+# `com.google.android.inputmethod.latin:id/keyboard_holder`. Matched by regex on
+# the suffix so a different IME package still trips it. If it ever fails to match,
+# the guard is simply false and the helper behaves exactly as it does today — the
+# failure mode is "no change", never "Back at the wrong moment".
+#
+# NOT dismiss_keyboard_by_drag: that only works where the list opts into
+# keyboardDismissMode="on-drag", and ListingForm's ScrollView (line 1206) sets
+# keyboardShouldPersistTaps="handled" and no dismiss mode at all. NOT pressKey
+# Enter: the field in focus here is the numeric price input, not a search field
+# with returnKeyType="search".
+- runFlow:
+    when:
+      visible:
+        id: ".*keyboard_holder"
+    commands:
+      - hideKeyboard
+      - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
       text: "Tap to set exact location on map"

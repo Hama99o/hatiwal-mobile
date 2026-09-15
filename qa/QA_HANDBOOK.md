@@ -305,6 +305,43 @@ selectors and only this one was broken; the other six (`↓\d+%`,
 where a full match is correct. Do not blanket-wrap them — check what the
 component actually renders.
 
+## Guard `hideKeyboard` on the IME's own node, not on hope
+
+`hideKeyboard` is Android BACK. It is safe only while the IME is genuinely up —
+with no keyboard it closes a modal, leaves a form, or exits the app. This repo has
+paid for that twice: `open_listing_by_title` used it until 2026-09-05 and walked
+out to the Android home screen, and `create_listing_map_pin` broke the same way.
+
+But the IME is IN the hierarchy, so the condition is checkable rather than assumed:
+
+```yaml
+- runFlow:
+    when:
+      visible:
+        id: ".*keyboard_holder"     # com.google.android.inputmethod.latin:id/keyboard_holder
+    commands:
+      - hideKeyboard
+      - waitForAnimationToEnd
+```
+
+This matters most in a SHARED helper, where some callers arrive with the keyboard
+up and some do not. `set_listing_location.yaml` has 16 callers, 8 passing: an
+unguarded `hideKeyboard` would have fixed the two broken ones and risked sending
+the eight healthy ones Back out of the listing form. Guarded, it acts only in the
+state that is broken, and if the id ever stops matching the guard is false and the
+helper behaves exactly as before — the failure mode is "no change", never "Back at
+the wrong moment".
+
+Pick the dismissal to match the screen:
+- **search field** → `pressKey: Enter`. Commits the query, closes the IME, cannot
+  leave the app. Requires a single-line input (check `returnKeyType`, and that it
+  is not `multiline`, or Enter injects a newline into the query).
+- **a list that sets `keyboardDismissMode="on-drag"`** → `dismiss_keyboard_by_drag.yaml`,
+  which sends no key event at all. Check the component actually sets it:
+  `ListingForm`'s ScrollView sets only `keyboardShouldPersistTaps="handled"`, so
+  the drag does nothing there.
+- **anything else** → guarded `hideKeyboard` as above.
+
 ## Read the helper's own comments BEFORE forming a hypothesis
 
 Three separate times on 2026-09-15 the answer to a failure was already written
