@@ -268,6 +268,44 @@ app by design — `rtl/chat_rtl` hit it repeatedly and finished UNMEASURED after
 retries, which is the correct outcome: it is not an app bug and must not be
 triaged as one.
 
+## "Element not found" does NOT mean the selector is stale — check three things first
+
+A grep for the testID is the usual first move, and on its own it is wrong often
+enough to be dangerous. Triaging `create_listing_draft_restore` and
+`edit_listing_all_fields` on 2026-09-15 — 0/17 and 0/16, both failing with an
+identical "Element not found" — produced two DIFFERENT answers, and neither was
+a stale selector. Pattern-matching on the message would have rewritten a working
+flow and left a real app bug unreported.
+
+**1. The testID may be built at runtime, so grep cannot see it.**
+`browse-tab` returns ZERO matches for `grep 'testID="browse-tab"'`. It is not
+stale — `FloatingTabBar` builds every tab handle as:
+
+    testID={options.tabBarButtonTestID ?? `${route.name}-tab`}
+
+so the literal string exists nowhere, while `browse-tab`, `saved-tab`,
+`profile-tab` and the rest all resolve at runtime from the route names in
+`app/(main)/(tabs)/_layout.tsx`. A zero-match grep on a tab, badge or list-row
+handle means "grep cannot see it", not "it is gone". Read the component and look
+for a template literal before believing the count.
+
+**2. The element may exist and be COVERED.** `create_listing_draft_restore`
+fails because a full-screen LogBox sits over the form —
+`MapLibre Native [ERROR] [ReactTagResolver] reactTag N resolved to view null`.
+The form underneath is perfect. Maestro cannot see through an overlay, and the
+flow log says only "Element not found". THE SCREENSHOT IS THE EVIDENCE; the log
+never is. Same shape as the dev-menu FAB crash above.
+
+**3. The element may exist and be OFF-SCREEN — including above.**
+`edit_listing_all_fields` scrolls DOWN to the description field, then taps the
+price field, which sits ABOVE it in the form. `tapOn` never scrolls, so a
+perfectly current testID reports "not found". Scrolling DOWN to reach one field
+can put an earlier field out of reach; scroll back UP, and `hideKeyboard` first,
+because the IME takes roughly half a 360dp window.
+
+So: screenshot, then component source, then flow order. Only after all three
+should "stale selector" be the verdict.
+
 ## Run flows against a BUNDLED apk
 
     ./qa/qa.sh build bundled     # embeds the JS as a FALLBACK

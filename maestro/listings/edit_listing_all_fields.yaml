@@ -69,7 +69,31 @@ appId: com.hatiwal.app
 - inputText: "Updated description for deep test."
 
 # Update price
-# The INPUT by testID — see the note on the title field.
+#
+# SCROLL BACK **UP** FIRST — and this is the whole reason this flow was 0/16.
+#
+# Price sits ABOVE description in the form (Photos, Title, Price, ... Category,
+# Condition, Description). The scrollUntilVisible above walked DOWN to reach the
+# description field, so by this point price is off the TOP of the viewport — and
+# the IME is still up from typing the description, taking roughly half the window
+# at 360dp. `tapOn` never scrolls, so it reported "Element not found: Id matching
+# regex: listing-form-price-input" against a testID that is perfectly current.
+#
+# The evidence is unambiguous: the run-559 screenshot shows Category, Condition
+# and Description all correctly filled, keyboard open, and no price field on
+# screen at all. The fix the previous author wrote directly above — "SCROLL TO
+# THE FIELD FIRST" — was simply never applied to this field.
+#
+# hideKeyboard before the scroll, because the IME is what shrank the viewport in
+# the first place, and this repo has lost flows to a tap landing on the keyboard
+# while Maestro reported it COMPLETED (it taps the element's bounds).
+- hideKeyboard
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "listing-form-price-input"
+    direction: UP
+    timeout: 20000
 - tapOn:
     id: "listing-form-price-input"
 - eraseText
