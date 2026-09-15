@@ -32,6 +32,7 @@ listings/create_listing_publish_blocked	cf6438eeef6a	lost the tab bar after the 
 listings/create_listing_quantity_edges	6a5e082bcc1c	asserted the error from the top, keyboard up
 listings/draft_lifecycle	7279a69379dc	watched for the sheet; publish fires a toast
 chat/unread_badge_survives_navigation	bf3303bc2371	tapped the modal to open the modal
+chat/offer_in_existing_thread	4a427e87ef61	asserted Send Offer under the autofocus keyboard
 EOF
 )
 

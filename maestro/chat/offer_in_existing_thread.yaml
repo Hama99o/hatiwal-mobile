@@ -39,7 +39,22 @@ appId: com.hatiwal.app
 - tapOn:
     id: "composer-action-offer"
 - waitForAnimationToEnd
-- assertVisible: "Send Offer"
+# PROVE THE SHEET OPENED VIA THE FIELD, NOT THE SUBMIT BUTTON.
+#
+# This was `assertVisible: "Send Offer"` and it could not pass here. OfferSheet
+# AUTOFOCUSES the amount input as it opens, so the IME is already up by the time
+# this line runs — and "Send Offer" (OfferSheet.tsx:459) is the submit at the
+# BOTTOM of the sheet, behind it. run-575 step 93's hierarchy has the keyboard
+# mounted (input_method_nav_*, y=1184-1280) with the sheet's own rows — "Make an
+# Offer", "Listed price: AFN 400 (each)", "Your offer", "Quick amounts" — all
+# present above it. The sheet was open and correct; the button was covered.
+#
+# listing_detail_offer, which passes, never asserts the button early: it taps the
+# field, types, and only then taps Send Offer. Asserting the INPUT keeps the
+# "sheet actually opened" check while targeting something the keyboard cannot
+# cover, and it is the element the very next step taps anyway.
+- assertVisible:
+    id: "offer-amount-input"
 # CR fix: the amount input has no visible "Offer Amount" label (same defect
 # already fixed in offer_send_and_accept.yaml) — target its testID instead.
 - tapOn:
