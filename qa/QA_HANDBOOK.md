@@ -305,6 +305,28 @@ selectors and only this one was broken; the other six (`↓\d+%`,
 where a full match is correct. Do not blanket-wrap them — check what the
 component actually renders.
 
+## Read the helper's own comments BEFORE forming a hypothesis
+
+Three separate times on 2026-09-15 the answer to a failure was already written
+down in the file that caused it, by whoever hit it last:
+
+| Failure | Where the answer already was |
+|---|---|
+| Four offer flows showing a lone Ban pill instead of the action row | `login.yaml`: *"reserve_after_accept's screenshot is that branch: a lone Ban pill where the action row belongs"* — the helper documents the symptom of its own missing guard |
+| `seller_response_rate_badge` 0/5 on a regex | The assert TWO STEPS ABOVE it in the same file is `.*Usually responds within.*` and passes on the same node in the same run |
+| `theme_switch` scrolling the feed for a Profile testID | The FIRST restart in that same flow is followed by `goto_profile_tab`; only the second was not |
+
+This suite is heavily commented because it has been debugged for a long time, and
+those comments encode real, expensive findings. **Grep the helper and the flow for
+the selector, the symptom and the screen name before you theorise.** It is faster
+than forming a hypothesis and cheaper than testing one.
+
+The same habit has a second edge: a comment can be STALE and still be believed —
+`theme_switch` carried one asserting the missing navigation was deliberate, and
+`conversations_role_filter`'s header gave inbox positions that were three numbers
+wrong. Read them first, then verify them against the code or the live API. Read
+first, trust second.
+
 ## "Element not found" does NOT mean the selector is stale — check three things first
 
 A grep for the testID is the usual first move, and on its own it is wrong often
