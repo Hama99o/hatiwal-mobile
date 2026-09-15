@@ -722,7 +722,17 @@ export default function ListingDetailScreen() {
             >
               <Heart size={12} color={colors.mutedForeground} />
               <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
-                {t("listing.savesCount", { count: formatNumber(listing.savesCount) })}
+                {/* `count` must be the NUMBER — i18next selects the plural form from it, and a
+    formatted STRING cannot be classified. It was `count: formatNumber(...)`,
+    so no plural form resolved, and because this key has ONLY savesCount_one /
+    savesCount_other and no base key, i18next rendered the key itself: buyers
+    saw the literal text "listing.savesCount" on the listing page.
+    `display` carries the localized digits the strings interpolate, so ps/fa/ur
+    keep their own numerals. */}
+                {t("listing.savesCount", {
+                  count: listing.savesCount,
+                  display: formatNumber(listing.savesCount),
+                })}
               </Text>
             </View>
           ) : null}

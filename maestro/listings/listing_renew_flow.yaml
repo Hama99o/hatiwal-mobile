@@ -30,6 +30,24 @@ appId: com.hatiwal.app
     index: 0
 - waitForAnimationToEnd
 - assertVisible: "Expired"
+# SCROLL TO THE ACTION ROW. "Renew" is the lifecycle-primary-action's LABEL for an
+# expired listing — the same button that reads Publish on a draft and Mark as Sold
+# on a live one — and it renders below the photo, description and views chart. The
+# detail opens at the TOP, so both the assert and the tap below were reaching for
+# something off-screen, and neither command scrolls.
+#
+# run-559's hierarchy is the top of that page: the status badge, "Expired", price,
+# "Expired Winter Coat Size L", "Kabul, Karte Naw", "Posted September 14, 2026",
+# Views/Chats and "Views — last 7 days", with no action row on it.
+#
+# One scroll serves both the assert and the tap: nothing between them navigates,
+# so the offset carries.
+- scrollUntilVisible:
+    element:
+      id: "lifecycle-primary-action"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 # `listing.renew` = "Renew". "Renew Listing" has never existed.
 - assertVisible: "Renew"
 
