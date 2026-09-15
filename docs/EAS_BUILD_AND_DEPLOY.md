@@ -8,21 +8,78 @@ real iPhones — for staging tests today and the App Store later.
 
 ---
 
-## 0. TL;DR — the commands you'll use
+## 0. ⭐ Use the helper: `bin/mobile` — and PRODUCTION builds only
+
+There is a helper so we never fumble this again. It auto-selects Node 20 and always
+uses the **production** profile:
+
+```bash
+bin/mobile build ios        # build the iOS store .ipa
+bin/mobile build android    # build the Android store .aab
+bin/mobile build all        # both
+bin/mobile submit ios       # upload the latest finished iOS build to App Store Connect
+bin/mobile status           # list the last 10 builds
+bin/mobile version          # app.json version + git HEAD
+bin/mobile help
+```
+
+### Golden rules (learned the hard way)
+1. **Production/store builds ONLY. Never `--profile preview`.** The owner deploys the
+   store build and tests it through **TestFlight (iOS)** and the **Play testing tracks
+   (Android)** — a separate preview/ad-hoc build is wasted effort and made him lose two
+   builds once. Do not build preview unless he *explicitly* asks for a direct-install build.
+2. **EAS free-tier builds are METERED** — every build spends one. Build deliberately;
+   never chain multiple builds on an ambiguous request. Confirm platform + intent first.
+3. **`submit` is a production deploy.** Claude's permission system blocks it, so run it
+   yourself with the `!` prefix (`! bin/mobile submit ios`) or approve the prompt.
+4. **Bump `app.json` `version`** before a store release (e.g. `1.1.0 → 1.1.1`).
+
+### The deploy flow
+**iOS:** `bin/mobile build ios` → wait for it to finish → `bin/mobile submit ios`
+(uploads to App Store Connect) → in ASC create the version, **select the build**, fill
+**"What's New" (Nouveautés)**, submit for review.
+
+**Android:** `bin/mobile build android` → open the build link, **Download the .aab** and
+**save it** → upload it in **Play Console → Production → Create new release** (there is no
+Play service account, so this upload is manual). If a production release is already in
+review, **wait until it's accepted** before uploading the next one.
+
+### Raw commands (what the helper runs)
 
 ```bash
 cd hatiwal-mobile
-nvm use 22                                              # MUST be Node 20+ (see Gotcha #1)
-
-# Staging / test build (installs on registered devices)
-npx eas-cli build --platform ios --profile preview
-
-# Production build (for the App Store)
-npx eas-cli build --platform ios --profile production
-
-# After a production build finishes — push to TestFlight / App Store
+nvm use 20                                              # MUST be Node 20+ (see Gotcha #1)
+npx eas-cli build --platform ios --profile production --no-wait
+npx eas-cli build --platform android --profile production --no-wait
 npx eas-cli submit --platform ios --profile production --latest
 ```
+
+> A `--profile preview` (internal/ad-hoc) build exists in `eas.json` but is **not our
+> deploy flow** — only use it if someone explicitly asks for a direct-install build.
+
+### Play service account (one-time) — to automate Android `submit`
+
+Right now iOS `submit` is automated (the ASC API key lives on EAS's servers) but
+**Android `submit` is NOT** — there is no Google Play service account, so the `.aab` is
+uploaded by hand. To make `bin/mobile submit android` work like iOS, set this up ONCE:
+
+1. **Google Cloud Console** (same Google account that owns the Play Console):
+   - Enable the **Google Play Android Developer API**.
+   - Create a **Service account**, then create a **JSON key** for it and download it.
+2. **Play Console → Users and permissions → Invite new users**: invite the service
+   account's email and grant it access to release the Hatiwal app (Admin, or a custom
+   role with "Release to production/testing").
+3. Save the JSON key **outside git** (it is a secret) and point `eas.json` at it:
+   ```jsonc
+   // eas.json → submit → production → add an "android" block:
+   "android": { "serviceAccountKeyPath": "./google-play-key.json", "track": "production" }
+   ```
+   `google-play-key.json` is already in `.gitignore` — **never commit it** (see
+   [[feedback_no_hardcoded_infra_in_repo]] rule: secrets never enter the repo).
+4. After that, `bin/mobile submit android` uploads the latest build straight to Play.
+
+Until this is done, Android stays manual: download the `.aab` from its build link and
+upload it in **Play Console → Production → Create new release**.
 
 That's it once the project is set up (it now is — see §2).
 

@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# bin/mobile — Hatiwal mobile build/deploy helper (EAS).
+#
+# Design rules (learned the hard way):
+#   * PRODUCTION builds only. Preview / ad-hoc "expo dev" builds are intentionally
+#     NOT offered here — the owner deploys the store build and tests via
+#     TestFlight (iOS) + Play tracks (Android).
+#   * EAS free-tier builds are METERED. Each `build` spends one. Build on purpose.
+#   * Auto-selects Node 20 (EAS/metro break on Node 18).
+#
+# Usage: bin/mobile <command> [args]   (run `bin/mobile help`)
+
+RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[1;33m'; CYN='\033[0;36m'; NC='\033[0m'
+
+# This script lives in <project>/bin — resolve the project dir and work from it.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_DIR" || { echo -e "${RED}cannot cd to project dir${NC}"; exit 1; }
+
+use_node20() {
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  # shellcheck disable=SC1091
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+  nvm use 20 >/dev/null 2>&1 || { echo -e "${YLW}installing Node 20...${NC}"; nvm install 20 >/dev/null 2>&1; nvm use 20 >/dev/null 2>&1; }
+  command -v eas >/dev/null 2>&1 || { echo -e "${YLW}installing eas-cli...${NC}"; npm i -g eas-cli >/dev/null 2>&1; }
+  echo -e "${CYN}node $(node -v) · eas $(eas --version 2>/dev/null) · HEAD $(git log --oneline -1 2>/dev/null)${NC}"
+}
+
+help() {
+cat <<EOF
+$(echo -e "${CYN}Hatiwal mobile — EAS build/deploy helper${NC}")
+$(echo -e "${YLW}Usage:${NC} bin/mobile <command>")
+
+$(echo -e "${GRN}Build  (production/store only — never preview)${NC}")
+  build ios          Build the iOS store build (.ipa)
+  build android      Build the Android store build (.aab)
+  build all          Build both iOS + Android
+                     (run with --no-wait; prints the expo.dev build links)
+
+$(echo -e "${GRN}Ship${NC}")
+  submit ios         Upload the LATEST finished iOS build to App Store Connect
+  submit ios <id>    Upload a specific iOS build id to App Store Connect
+                     (Android: no Play service account — download the .aab from its
+                      build link and upload it in Play Console → Production)
+
+$(echo -e "${GRN}Info${NC}")
+  status             List the last 10 EAS builds
+  version            Show app.json version + git HEAD
+  help               This message
+
+$(echo -e "${YLW}Notes${NC}")
+  - 'submit' is a production deploy. When Claude runs it the permission system may
+    block it — run it yourself with the '!' prefix, or approve the prompt.
+  - Bump the version in app.json before a store release (e.g. 1.1.0 -> 1.1.1).
+EOF
+}
+
+cmd="${1:-help}"; [ $# -gt 0 ] && shift
+
+case "$cmd" in
+  build)
+    target="${1:-all}"
+    use_node20
+    echo -e "${GRN}Building '${target}' (production)…${NC}"
+    case "$target" in
+      ios)     eas build -p ios --profile production --non-interactive --no-wait ;;
+      android) eas build -p android --profile production --non-interactive --no-wait ;;
+      all)     eas build --platform all --profile production --non-interactive --no-wait ;;
+      *) echo -e "${RED}unknown build target: $target (use: ios | android | all)${NC}"; exit 1 ;;
+    esac
+    ;;
+  submit)
+    target="${1:-ios}"; id="${2:-}"
+    case "$target" in
+      ios)
+        use_node20
+        if [ -n "$id" ]; then
+          echo -e "${GRN}Submitting iOS build $id to App Store Connect…${NC}"
+          eas submit -p ios --profile production --id "$id"
+        else
+          echo -e "${GRN}Submitting the LATEST iOS build to App Store Connect…${NC}"
+          eas submit -p ios --profile production --latest
+        fi
+        ;;
+      android)
+        use_node20
+        echo -e "${CYN}Trying automated submit (needs a Play service account — see docs/EAS_BUILD_AND_DEPLOY.md § 'Play service account').${NC}"
+        if [ -n "$id" ]; then
+          eas submit -p android --profile production --id "$id"; ok=$?
+        else
+          eas submit -p android --profile production --latest; ok=$?
+        fi
+        if [ "${ok:-1}" -ne 0 ]; then
+          echo
+          echo -e "${YLW}Automated submit unavailable (no service account yet) — do it manually:${NC}"
+          echo "  1. Open the Android build link and Download the .aab"
+          echo "  2. Play Console -> Production -> Create new release -> upload it"
+        fi
+        ;;
+      *) echo -e "${RED}unknown submit target: $target (only: ios)${NC}"; exit 1 ;;
+    esac
+    ;;
+  status)
+    use_node20
+    eas build:list --limit 10 --non-interactive
+    ;;
+  version)
+    echo "app.json version: $(grep -E '"version"' app.json | head -1 | sed -E 's/.*: *"([^"]+)".*/\1/')"
+    echo "git HEAD:         $(git log --oneline -1 2>/dev/null)"
+    ;;
+  help|-h|--help) help ;;
+  *) echo -e "${RED}unknown command: $cmd${NC}"; echo; help; exit 1 ;;
+esac

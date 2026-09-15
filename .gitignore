@@ -61,3 +61,8 @@ qa/evidence/
 
 # Python bytecode from the qa/ tooling — flow_lint.py --selftest imports itself
 __pycache__/
+
+# Google Play service-account key for `eas submit -p android` — SECRET, never commit.
+google-play-key.json
+*service-account*.json
+*play*service*.json
