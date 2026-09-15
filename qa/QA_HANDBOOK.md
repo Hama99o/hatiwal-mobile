@@ -389,6 +389,14 @@ waiting", which was true of an older version and is exactly why the missing
 navigation read as deliberate for so long. Comments age like screenshots and
 seed counts do — verify before trusting one.
 
+**Measure fixture positions against the live API, never against a comment.**
+`conversations_role_filter`'s header stated its two threads sat at rows 10 and 11
+of a 24-thread inbox. A `GET /conversations` as that fixture user returned 19
+threads with the rows at 6 and 7 — adjacent. The correction changed the
+diagnosis, not just the numbers: distant rows would mean "the scroll fell short",
+whereas adjacent rows mean "the first scroll parked the second target one row off
+the top and the second scroll overshot to the bottom". One curl settles it.
+
 ## Run flows against a BUNDLED apk
 
     ./qa/qa.sh build bundled     # embeds the JS as a FALLBACK
