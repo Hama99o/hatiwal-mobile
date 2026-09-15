@@ -29,9 +29,23 @@ interface MeetupSheetProps {
    * sheets never stack as two simultaneous native <Modal>s.
    */
   onOpenSafetyTips?: () => void;
+  /**
+   * A SEND FAILURE to show inside the sheet — the proposal did not reach the
+   * server. NOT a validation message: this sheet gates Propose on `isSubmitting`
+   * alone, so nothing shown here is the user's mistake.
+   *
+   * Needed because the sheet stays OPEN when onPropose rejects, so the place and
+   * time already typed survive — and on Android a toast fired at that moment is
+   * invisible, since <Toaster> sits at the root of the tree and this <Modal> is
+   * its own native window over it. On iOS sonner-native wraps the Toaster in
+   * FullWindowOverlay (toaster.tsx:60-76), so the toast already shows above this
+   * sheet and the inline copy would duplicate it. Android-only by design; see
+   * docs/TOAST_BEHIND_MODAL.md.
+   */
+  sendError?: string | null;
 }
 
-export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenSafetyTips }: MeetupSheetProps) {
+export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenSafetyTips, sendError }: MeetupSheetProps) {
   const { t } = useTranslation();
   const colors = useColors();
   const { isRtl } = useLocalization();
@@ -296,6 +310,23 @@ export function MeetupSheet({ visible, onClose, onPropose, isSubmitting, onOpenS
 
           {/* testID because the label swaps to "Sending…" while submitting, so the
               words cannot identify this button for its whole lifetime. */}
+          {/* Send failure — the proposal never reached the server. Inline because the
+              sheet stays open so the typed place and time survive, and that is exactly
+              when an Android toast is behind this modal. */}
+          {sendError && Platform.OS === "android" ? (
+            <Text
+              testID="meetup-send-error"
+              style={{
+                fontSize: 12,
+                color: colors.destructive,
+                marginBottom: 8,
+                textAlign: isRtl ? "right" : "left",
+              }}
+            >
+              {sendError}
+            </Text>
+          ) : null}
+
           <Button
             testID="meetup-propose-submit"
             onPress={handlePropose}

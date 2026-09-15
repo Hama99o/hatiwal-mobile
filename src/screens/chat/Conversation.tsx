@@ -194,6 +194,11 @@ export function ConversationScreen() {
   const [isSending, setIsSending] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [meetupSheetVisible, setMeetupSheetVisible] = useState(false);
+  // A FAILED proposal renders inside the sheet as well as in a toast. The sheet
+  // stays open on failure so the typed place and time survive — and on Android that
+  // is exactly when a toast cannot be seen, because <Toaster> sits at the root of
+  // the tree and this <Modal> is its own native window over it.
+  const [meetupSendError, setMeetupSendError] = useState<string | null>(null);
   // TASK-K487: single "+" bottom sheet replacing the four composer icons
   // (Photo / File / Propose meetup / Make an offer).
   const [actionsSheetVisible, setActionsSheetVisible] = useState(false);
@@ -928,6 +933,7 @@ export function ConversationScreen() {
     if (!convId) return;
     const body = encodeMeetupBody(place, time, coords);
 
+    setMeetupSendError(null);
     try {
       const sent = await conversationsAPI.sendMessage(convId, body, "meetup_proposal");
       scrollThreadToEnd();
@@ -935,7 +941,12 @@ export function ConversationScreen() {
       setMeetupSheetVisible(false);
       toast.success(t("chat.thread.meetupSent"));
     } catch {
-      toast.error(t("chat.thread.meetupFailed"));
+      // The sheet is still OPEN here — which is the whole reason this must also render
+      // inline. The success path above closes it FIRST, which is why its toast is
+      // visible and this one is not (on Android).
+      const message = t("chat.thread.meetupFailed");
+      toast.error(message);
+      setMeetupSendError(message);
     }
   }, [currentConversationId, t]);
 
@@ -2294,6 +2305,7 @@ export function ConversationScreen() {
       {/* Meetup proposal sheet */}
       <MeetupSheet
         visible={meetupSheetVisible}
+        sendError={meetupSendError}
         onClose={() => setMeetupSheetVisible(false)}
         onPropose={handleProposeMeetup}
         onOpenSafetyTips={() => {
