@@ -15,6 +15,15 @@
 # different file is not evidence about this fix — the same rule the register
 # applies to every verdict.
 #
+# A sha of "-" means the sha CANNOT pin this one. flow_sha hashes the flow file
+# only, so a fix made in a HELPER leaves every caller's sha unchanged: a run from
+# before the helper change and a run from after are indistinguishable by sha. The
+# last four entries are exactly that — one `pressKey: Enter` added to
+# search_my_shop.yaml. For those, judge by the RUN DATE against the helper's commit
+# (git log -1 -- maestro/_helpers/search_my_shop.yaml), or read commands.json in
+# the debug dir, which inlines helpers and is the only authoritative record of what
+# actually executed.
+#
 # Uses patient_flow.sh, never bare `qa.sh flow`: a chain loses one flow to every
 # transient RAM dip and comes back exit 3 having never run.
 set -u
@@ -33,6 +42,10 @@ listings/create_listing_quantity_edges	6a5e082bcc1c	asserted the error from the 
 listings/draft_lifecycle	7279a69379dc	watched for the sheet; publish fires a toast
 chat/unread_badge_survives_navigation	bf3303bc2371	tapped the modal to open the modal
 chat/offer_in_existing_thread	4a427e87ef61	asserted Send Offer under the autofocus keyboard
+seller/sales_screen_reviewed_sale_refusal	-	search_my_shop left the IME over the card actions
+listings/edit_listing_remove_photo	-	same helper fix
+listings/edit_listing_reorder_photos	-	same helper fix
+saved/saved_listing_goes_sold	-	same helper fix
 EOF
 )
 

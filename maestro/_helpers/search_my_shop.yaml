@@ -65,3 +65,27 @@ appId: com.hatiwal.app
 - waitForAnimationToEnd
 - inputText: ${QUERY}
 - waitForAnimationToEnd
+# PUT THE KEYBOARD AWAY. The IME is up from the field above and covers the bottom
+# of the screen — which is where a seller card's ACTION ROW renders
+# (seller-card-primary-action / seller-card-more-action, SellerListingCard.tsx:487).
+# Every caller that acts on those buttons was failing on "Element not found: Id
+# matching regex: seller-card-…" for a control that is present and merely covered:
+# sales_screen_reviewed_sale_refusal, edit_listing_remove_photo,
+# edit_listing_reorder_photos and saved_listing_goes_sold all share that exact
+# message. run-534's hierarchy for the first shows the numeric keypad mounted at
+# y=1184-1280 with the card's own rows ("7 of 10 left", "Active", "163 views")
+# present above it.
+#
+# The seven callers that pass act on things HIGHER up the screen — the card itself,
+# a status chip — which is why this went unnoticed in a helper used by seventeen
+# flows.
+#
+# `pressKey: Enter`, NOT `hideKeyboard`. hideKeyboard is Android BACK, and this
+# repo has already been bitten by it: open_listing_by_title used it until
+# 2026-09-05, when it EXITED THE APP to the Android home screen because the field
+# had quietly lost focus (run-494's screenshot). Enter commits the query and closes
+# the IME and cannot walk out of the app. Safe on this field specifically: MyListings
+# renders SearchBar, whose Input is single-line with returnKeyType="search", so
+# Enter submits rather than inserting a newline into ${QUERY}.
+- pressKey: Enter
+- waitForAnimationToEnd
