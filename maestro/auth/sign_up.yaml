@@ -36,6 +36,17 @@ appId: com.hatiwal.app
 - tapOn:
     id: "register-phone-input"
 - inputText: "0700000001"
+# SCROLL BEFORE EACH. Email and password sit mid-form, so by the time they are
+# reached the fields above them are typed and the IME is up — the exact condition
+# the comment on confirm-password below already describes. That fix was applied to
+# the last two controls and never to these. Same half-applied pattern as
+# edit_listing_all_fields (07bf502) and account_delete_and_restore (43a2b53).
+- scrollUntilVisible:
+    element:
+      id: "register-email-input"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - tapOn:
     id: "register-email-input"
 # `${random}` is NOT a Maestro variable. Maestro evaluates ${...} as JavaScript,
@@ -50,6 +61,12 @@ appId: com.hatiwal.app
 # rubbish. Use the idiom that already works in account_delete_and_restore.
 - evalScript: ${output.email = 'qasignup_' + Date.now() + '@hatiwal.test'}
 - inputText: ${output.email}
+- scrollUntilVisible:
+    element:
+      id: "register-password-input"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
 - tapOn:
     id: "register-password-input"
 - inputText: "Password123!"
