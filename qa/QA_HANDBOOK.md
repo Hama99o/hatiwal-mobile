@@ -338,6 +338,39 @@ message...", "Search listings...", "Min Price", and `FilterSheet`'s
 field is empty. Check what the tapped string actually is before treating a hit as
 a defect.
 
+## Read the BOUNDS, not just the node names
+
+A hierarchy dump that lists node text and testIDs will tell you an element is
+"there" when it is clipped to nothing. The bounds are the only part that says
+whether a human could see it.
+
+`multi_quantity_partial_sale` failed on `"The price for one item" is visible`,
+and a previous author reasonably concluded the sheet was still rendering — the
+dump showed the whole sheet, header to Cancel button, so nothing looked missing.
+They added `extendedWaitUntil`. It could never have worked.
+
+The bounds say why:
+
+    buyer-picker-final-price   [32,985][688,990]     <- FIVE pixels tall
+
+That is the price input clipped at the bottom edge of the sheet's own ScrollView.
+The hint renders immediately below it, so it was entirely outside the viewport and
+never entered the hierarchy. **Polling cannot bring in something that is not on
+screen.**
+
+What made the wrong reading so natural is worth knowing, because the same shape
+recurs: "Confirm sold" and "Cancel" appear BELOW the clipped input, at y=1016-1186
+— because they are a PINNED FOOTER outside the ScrollView. A sheet with a pinned
+footer always looks complete in a screenshot and in a text-only dump, however far
+its scrollable middle is cut off.
+
+So when something "should obviously be there":
+1. Print the bounds, not only the text and ids.
+2. A height under ~10px means clipped, not rendered.
+3. Check whether the container is a ScrollView with a pinned footer — if it is,
+   the footer being visible proves nothing about the content above it.
+4. A wait is the wrong tool for anything off-screen. Scroll to it instead.
+
 ## A tap that lands on the keyboard is reported COMPLETED
 
 This one fact explains why the whole occlusion class is invisible, so it belongs
