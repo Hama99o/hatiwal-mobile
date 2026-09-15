@@ -268,6 +268,43 @@ app by design — `rtl/chat_rtl` hit it repeatedly and finished UNMEASURED after
 retries, which is the correct outcome: it is not an app bug and must not be
 triaged as one.
 
+## Maestro matches `text` against the WHOLE node — a substring can never pass
+
+`assertVisible: {text: "..."}` is a regex matched against the ENTIRE text of a
+node, not a substring search. A pattern that describes only PART of a rendered
+label is unsatisfiable, however correct the app is.
+
+`seller_response_rate_badge` sat at 0/5 on exactly this. It asserted:
+
+```yaml
+- assertVisible:
+    text: ".*Usually responds within.*"   # passed
+- assertVisible:
+    text: "[0-9]+% reply rate"            # failed, same node, same run
+```
+
+`ResponseRateBadge.tsx:41` builds ONE Text node —
+`` `${ratePart} · ${timePart}` `` → `"94% reply rate · Usually responds within an
+hour"`. The wrapped pattern matched it; the bare one matched only a prefix. The
+API was returning `response_rate_percent=94` the whole time and the badge was on
+screen in every failing run.
+
+**Wrap any partial pattern in `.*` on both sides.** The tell that a flow has this
+bug is a pair of asserts against the same node where the `.*`-wrapped one passes
+and the bare one fails — that is not two different elements, it is one element
+and one bad regex.
+
+**Before calling it a flow bug, confirm the data.** Hit the API and look at the
+field (`curl .../listings/<id>` → `seller.response_rate_percent`). If the value
+is there, the app is right and the pattern is wrong. If it is null, the app is
+correctly rendering nothing and the FIXTURE is wrong — a different fix entirely.
+
+A sweep for this shape across all 213 flows turned up seven regex-bearing
+selectors and only this one was broken; the other six (`↓\d+%`,
+`\d+% price drop`, `Add \(\d+\)`, `\d+ held.*`) describe standalone labels,
+where a full match is correct. Do not blanket-wrap them — check what the
+component actually renders.
+
 ## "Element not found" does NOT mean the selector is stale — check three things first
 
 A grep for the testID is the usual first move, and on its own it is wrong often

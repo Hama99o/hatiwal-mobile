@@ -73,7 +73,18 @@ appId: com.hatiwal.app
 
 # The response-rate percent must also be rendered (e.g. "100% reply rate")
 - assertVisible:
-    text: "[0-9]+% reply rate"
+    # WRAPPED IN .* ON PURPOSE. Maestro matches `text` as a regex against the
+    # WHOLE node, not as a substring search, and ResponseRateBadge.tsx:41 builds
+    # ONE Text node: `${ratePart} · ${timePart}` -> "94% reply rate · Usually
+    # responds within an hour". The bare pattern "[0-9]+% reply rate" matches only
+    # a prefix of that, so it can never be true. This is why the sibling asserts
+    # two steps up already read ".*Usually responds within.*" and passed while
+    # this one failed — same node, same run, only the wrapper differed.
+    #
+    # NOT an app bug and NOT missing data: the API returns
+    # response_rate_percent=94 and response_time_label="within_one_hour" for
+    # listing 5062, and the badge was on screen and correct in every failing run.
+    text: ".*[0-9]+% reply rate.*"
 
 # ── Seller Profile: both badge rows visible ──────────────────────────────────
 # Tap the seller identity row to open their public profile
@@ -107,7 +118,18 @@ appId: com.hatiwal.app
 
 # The response-rate percent must appear on the seller profile too
 - assertVisible:
-    text: "[0-9]+% reply rate"
+    # WRAPPED IN .* ON PURPOSE. Maestro matches `text` as a regex against the
+    # WHOLE node, not as a substring search, and ResponseRateBadge.tsx:41 builds
+    # ONE Text node: `${ratePart} · ${timePart}` -> "94% reply rate · Usually
+    # responds within an hour". The bare pattern "[0-9]+% reply rate" matches only
+    # a prefix of that, so it can never be true. This is why the sibling asserts
+    # two steps up already read ".*Usually responds within.*" and passed while
+    # this one failed — same node, same run, only the wrapper differed.
+    #
+    # NOT an app bug and NOT missing data: the API returns
+    # response_rate_percent=94 and response_time_label="within_one_hour" for
+    # listing 5062, and the badge was on screen and correct in every failing run.
+    text: ".*[0-9]+% reply rate.*"
 
 # Back to listing detail — sticky bar should still be visible
 - back
