@@ -31,6 +31,7 @@ profile/account_delete_and_restore	-	0/21 — register-scroll fix b3f5a93, still
 listings/create_listing_publish_blocked	cf6438eeef6a	lost the tab bar after the success sheet
 listings/create_listing_quantity_edges	6a5e082bcc1c	asserted the error from the top, keyboard up
 listings/draft_lifecycle	7279a69379dc	watched for the sheet; publish fires a toast
+chat/unread_badge_survives_navigation	bf3303bc2371	tapped the modal to open the modal
 EOF
 )
 

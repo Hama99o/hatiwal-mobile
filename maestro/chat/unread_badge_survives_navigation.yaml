@@ -29,8 +29,23 @@ appId: com.hatiwal.app
 
 # Guarantee at least one unread, whatever earlier flows left behind: reading is the one
 # thing many flows do, so an inbox with nothing unread is the normal state by this point.
+#
+# TAP THE KEBAB, NOT THE MENU. This was `conversation-action-menu`, and that is the
+# MODAL ITSELF — ConversationRow.tsx:404 renders `<Modal visible={menuVisible}
+# testID="conversation-action-menu">`, so it exists only AFTER something opens it.
+# Tapping it to open it can never work, which is why this flow was 0/15 on
+# "Element not found: Id matching regex: conversation-action-menu".
+#
+# The opener is the kebab Pressable at ConversationRow.tsx:396,
+# `conversation-options-${item.id}`. run-573's hierarchy has six of them on screen
+# (conversation-options-2863 through -2861, each beside its row) and no
+# conversation-action-menu anywhere — exactly what a closed modal looks like.
+#
+# Not a stale selector: `conversation-action-menu` is live and correct, and
+# mark_read.yaml uses it properly as a VISIBILITY guard to detect an already-open
+# menu and `back` out of it. Same file taps `conversation-options-\d+` to OPEN.
 - tapOn:
-    id: "conversation-action-menu"
+    id: "conversation-options-\\d+"
     index: 0
 - waitForAnimationToEnd
 - runFlow:
