@@ -106,6 +106,17 @@ appId: com.hatiwal.app
     direction: DOWN
     centerElement: true
     timeout: 20000
+# DROP THE KEYBOARD BEFORE TAPPING THE CATEGORY ROW.
+#
+# run-576: the picker never opened. The hierarchy at the failure is the create
+# form with "Tap to select category" STILL on it and keyboard_holder mounted —
+# the price was typed two steps up, so the IME was covering the row. Maestro taps
+# an element's bounds and reports a covered tap as COMPLETED, so the flow carried
+# on and died on `tapOn: "Electronics"`, which only exists INSIDE the picker. The
+# failure named a category; the cause was a keyboard.
+#
+# Guarded, so it is a no-op whenever the IME is already down.
+- runFlow: ../_helpers/dismiss_keyboard_if_open.yaml
 - tapOn: "Tap to select category"
 - waitForAnimationToEnd
 # EVERY top-level category has children, so tapping one DRILLS IN and never

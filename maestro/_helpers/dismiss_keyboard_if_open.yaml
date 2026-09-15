@@ -1,0 +1,40 @@
+appId: com.hatiwal.app
+---
+# Drop the IME, but ONLY if it is actually up.
+#
+# WHY GUARDED. `hideKeyboard` is Android's BACK button. With no keyboard up it
+# reaches the app instead — closing a modal, leaving a form, or exiting entirely.
+# This repo has paid for that twice: open_listing_by_title used it until
+# 2026-09-05 and walked out to the ANDROID HOME SCREEN (run-494's screenshot),
+# and it broke create_listing_map_pin the same way.
+#
+# The IME is IN the accessibility hierarchy, so the condition is checkable rather
+# than assumed. `.*keyboard_holder` matches
+# `com.google.android.inputmethod.latin:id/keyboard_holder` and the equivalent on
+# any other IME package.
+#
+# FAILURE MODE IS "NO CHANGE". If the id ever stops matching, the guard is simply
+# false and the caller behaves exactly as it does today — it never becomes "Back at
+# the wrong moment". That asymmetry is the whole reason to guard rather than to
+# fire it unconditionally in a helper with many callers.
+#
+# WHAT IT FIXES. Maestro taps an element's BOUNDS and reports a tap that lands on
+# the keyboard as COMPLETED (QA_HANDBOOK, "A tap that lands on the keyboard is
+# reported COMPLETED"). So a covered row is tapped, nothing opens, and the flow
+# fails several steps later on something that only exists behind that row — a
+# picker, a sheet, a map. The symptom never names the real cause.
+#
+# NOT a substitute for the other two dismissals — pick by screen:
+#   * a SEARCH field           -> `pressKey: Enter` (commits and closes; cannot
+#                                 leave the app even if focus was lost)
+#   * a list with
+#     keyboardDismissMode="on-drag" -> _helpers/dismiss_keyboard_by_drag.yaml
+#                                 (sends no key event at all)
+#   * anything else            -> this
+- runFlow:
+    when:
+      visible:
+        id: ".*keyboard_holder"
+    commands:
+      - hideKeyboard
+      - waitForAnimationToEnd
