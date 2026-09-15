@@ -467,6 +467,35 @@ case the answer sat within a few lines or one file of the bug:
 | `quick_replies` corrupting its own draft | `handleQuickReplySelect` focuses the input itself, commented "cursor lands at the end" — the re-tap was never needed |
 | `listing.savesCount` printing its own key | `listing.conversationsCount`, TWO KEYS ABOVE it, passes `count` for plural selection AND `display` for interpolation, with a base key |
 
+### …and a correct premise can still reach a wrong fix
+
+The nine above are cases where the note in the file was RIGHT and nobody read it.
+This one is the opposite failure, and it is worth knowing because it looks
+identical from a distance.
+
+`publish_from_owner_detail` carried this:
+
+> Scroll to the TITLE, not to "Active": the title is unique, while "Active" is a
+> short generic word that an anchored scroll could find in the wrong place.
+
+Every word of that is true. "Active" IS too generic to scroll to by text. But the
+fix chosen to avoid ambiguity introduced a different failure: `scrollUntilVisible`
+stops the instant its target appears, so scrolling to the title parks it at the
+BOTTOM of the viewport with the status badge — which renders ABOVE the price and
+title — still off the top. The flow then failed asserting a badge that was
+genuinely there.
+
+The resolution satisfies both constraints at once: scroll to `listing-status-badge`
+by ID. Unique, so no ambiguity; and it is the element being asserted, so the
+handbook's own rule holds.
+
+**So a comment can be wrong in three different ways and each needs a different
+response:** stale (verify it), absent (write it), or CORRECT BUT SUPERSEDED — the
+reasoning still holds and only the implementation has to change. The third is the
+easy one to get wrong, because dismissing the note loses a real constraint and
+keeping the note loses the fix. Read what the author was defending against, then
+find the option that defends against it AND works.
+
 **So look sideways before you theorise.** Read the helper you are calling, the
 sibling assert, the neighbouring key, the flow that already passes. It is faster
 than forming a hypothesis and much faster than testing one.
