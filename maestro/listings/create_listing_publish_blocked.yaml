@@ -172,6 +172,17 @@ appId: com.hatiwal.app
 - assertVisible: "Publish Blocked No Photo Item"
 - tapOn: "Done"
 - waitForAnimationToEnd
+# POP BACK TO THE TAB BAR FIRST. Dismissing the success sheet leaves the seller on
+# their OWN OWNER DETAIL — a pushed screen with no tab bar — so the `browse-tab`
+# tap below failed with "Element not found: Id matching regex: browse-tab" and the
+# whole of scenario 2 never ran. That is what made this flow read as 0/N.
+#
+# The screen underneath is correct and expected, not a bug: run-559's hierarchy at
+# the failing step shows my-listing-detail-scroll, listing-status-badge "Active",
+# "Expires in 30 days" and the new title, and create_listing_publish_direct.yaml
+# documents the same landing ("the seller stays on their own owner detail
+# underneath, now showing Active"). Seventeen other flows already pop here.
+- runFlow: ../_helpers/pop_to_tab_bar.yaml
 
 # ── 2) A field missing off-screen still blocks + auto-scrolls back to it ────
 

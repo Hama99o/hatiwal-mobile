@@ -78,6 +78,24 @@ def check_selector(value, where, findings):
 PUSHERS = ("listing-card", "seller-profile-link", "conversation-row", "seller-listing-card")
 TAB_IDS = {"browse-tab", "categories-tab", "saved-tab", "chat-tab", "profile-tab"}
 
+# A TEXT-selector push. Everything in PUSHERS is matched by testID, and
+# `selector_id()` returns None for a text selector, so a screen entered by tapping
+# a LABEL was invisible to this check.
+#
+# That is how create_listing_publish_blocked went unreported while failing on
+# exactly what Check 3 exists to find: "Element not found: Id matching regex:
+# browse-tab". Dismissing the publish success sheet with "Done" leaves the seller
+# on their own owner detail, which has no tab bar — run-559's hierarchy at the
+# failing step shows my-listing-detail-scroll and listing-status-badge "Active".
+#
+# Keyed on the SHEET, not on the word "Done". "Done" is also the iOS keyboard
+# accessory, a date picker's confirm and a multi-select's close, none of which push
+# anything; treating every "Done" as a push would bury the real hits. The sheet is
+# identified by the assertion flows already make right before dismissing it, so the
+# rule only arms once a flow has proven that sheet is on screen.
+SHEET_MARKERS = ("Your listing is live!",)
+SHEET_DISMISS = ("Done",)
+
 
 def selector_id(value):
     if isinstance(value, dict):
@@ -138,10 +156,24 @@ def check_menus(steps, where, findings):
 def check_navigation(steps, where, findings, spec_path=None):
     """`steps` is one flow's ordered step list."""
     pushed = None
+    sheet_seen = False
     for step in steps:
         if step == "back" or (isinstance(step, dict) and "back" in step):
             pushed = None
             continue
+        # Arm the text-push rule when the flow proves the success sheet is up.
+        if isinstance(step, dict):
+            for _k in ("assertVisible", "extendedWaitUntil"):
+                _v = step.get(_k)
+                _t = _v if isinstance(_v, str) else None
+                if isinstance(_v, dict):
+                    _vis = _v.get("visible", _v)
+                    _t = _vis if isinstance(_vis, str) else (
+                        _vis.get("text") if isinstance(_vis, dict) else None)
+                if _t and any(m in _t for m in SHEET_MARKERS):
+                    sheet_seen = True
+        elif isinstance(step, str) and any(m in step for m in SHEET_MARKERS):
+            sheet_seen = True
         if isinstance(step, str):
             continue
         if not isinstance(step, dict):
@@ -184,7 +216,16 @@ def check_navigation(steps, where, findings, spec_path=None):
         for key in ("tapOn", "doubleTapOn", "longPressOn"):
             if key not in step:
                 continue
-            sel = selector_id(step[key])
+            raw = step[key]
+            text = raw if isinstance(raw, str) else (
+                raw.get("text") if isinstance(raw, dict) else None)
+            if sheet_seen and text in SHEET_DISMISS:
+                # Dismissing the sheet drops onto the owner detail — a pushed
+                # screen with no tab bar.
+                pushed = "the publish success sheet"
+                sheet_seen = False
+                continue
+            sel = selector_id(raw)
             if not sel:
                 continue
             if any(sel.startswith(q) for q in PUSHERS):
