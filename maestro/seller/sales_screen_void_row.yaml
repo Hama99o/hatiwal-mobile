@@ -245,8 +245,24 @@ appId: com.hatiwal.app
 - tapOn:
     id: "back_button"
 - waitForAnimationToEnd
-- assertNotVisible:
-    id: "sales-tally"
+# POLL, DO NOT ASSERT INSTANTLY. The intent above is right — "we are still on
+# Sales" is exactly what a broken back button looks like, and catching it here
+# beats surfacing it three steps later as a missing badge. But a bare
+# assertNotVisible reads the screen ONCE, and `waitForAnimationToEnd` returns
+# before a stack transition has finished, so a back that works but is merely slow
+# reads identically to one that did nothing.
+#
+# run-576 is exactly that: the hierarchy at the failure is the Sales screen with
+# `back_button` PRESENT at [32,107][96,171] and its tap COMPLETED — the control is
+# there, correctly sized, and was pressed. The screen just had not changed yet.
+#
+# extendedWaitUntil keeps the check at full strength and drops the timing
+# dependency, the same treatment this suite already gives toasts. A genuinely
+# broken back button still fails, after 10s.
+- extendedWaitUntil:
+    notVisible:
+      id: "sales-tally"
+    timeout: 10000
 # SCROLL UP AFTER `back_button` (run-270). Back returns to the owner detail at
 # the scroll position it was left at — which is down at the Manage Listing row,
 # because that is where this flow opened the More sheet. The badges are section 2,
