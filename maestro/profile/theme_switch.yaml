@@ -80,11 +80,25 @@ appId: com.hatiwal.app
 - tapOn:
     id: "theme-option-light"
 # Theme switches RESTART the app (theme.store.ts:26 -> reloadApp -> RNRestart), so it
-# returns on the Bazaar feed. This flow happens to want the feed next, so it passed
-# without waiting — but the tap after a switch was racing a restarting app. UI-048
-# is what that race looks like when a flow needs to stay on the profile screen.
+# comes back on the Bazaar feed — the INITIAL route, not Profile where the switch was
+# made. The tap after a switch was also racing a restarting app; UI-048 is what that
+# race looks like.
 - runFlow: ../_helpers/await_theme_restart.yaml
 - waitForAnimationToEnd
+# GO BACK TO PROFILE. This line used to be missing and it is why the flow was 0/5 at
+# sha 61aac9849467.
+#
+# The comment here previously read "this flow happens to want the feed next, so it
+# passed without waiting" — which was simply not true of this position in the flow.
+# What comes next is a scroll for `theme-option-system`, which only exists on Profile.
+# run-560 step 110's screen hierarchy settles it: at the moment of failure the screen
+# is the browse feed (browse-search-bar, browse-view-grid, listing-card rows, "AFN
+# 350"), so the scroll was hunting a Profile testID on the Bazaar list and spent its
+# full 20s budget there.
+#
+# The FIRST theme restart above is followed by goto_profile_tab; the second was not.
+# Same restart, same consequence — the flow just lost its place.
+- runFlow: ../_helpers/goto_profile_tab.yaml
 # Switch back to System
 # Scroll first. The Appearance card is near the BOTTOM of Profile — below the
 # stats, quick actions, pending-reviews nudge and PERSONAL INFO — and `tapOn`
