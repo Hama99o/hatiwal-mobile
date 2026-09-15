@@ -192,6 +192,27 @@ appId: com.hatiwal.app
 # ── 3) The pin-less draft round trip: edit still shows no pin; Publish   ────
 # ──    from there still fully requires a photo AND a map pin.           ────
 
+# LEAVE THE FORM FIRST — Create Listing is a PUSHED screen with no tab bar.
+#
+# A BLOCKED draft correctly stays on the form: the asserts just above prove the
+# save was refused and the seller is still here. So unlike scenario 1, which
+# lands on the owner detail and only needs a `back`, this exit has to get out of
+# the form itself before any tab id exists. run-576 failed on "Element not found:
+# Id matching regex: browse-tab" with the hierarchy showing this very form —
+# "Create Listing", "Add Photos", "Title *" — and the keypad still up.
+#
+# Back raises the DISCARD CONFIRM here, because the form is dirty (price and
+# category were filled even though Title was left blank on purpose). Guarded, so
+# a non-dirty form that pops straight out costs nothing. Same shape
+# create_listing_draft_discard already uses: back, confirm, then the tab.
+- back
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Discard changes?"
+    commands:
+      - tapOn: "Discard"
+      - waitForAnimationToEnd
 - tapOn:
     id: "browse-tab"
 - waitForAnimationToEnd

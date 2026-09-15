@@ -408,6 +408,21 @@ appId: com.hatiwal.app
       visible: "Discard changes?"
     commands:
       - runFlow: ../_helpers/confirm_dialog.yaml
+# SCROLL UP FIRST — `back` restores the owner detail at the offset it was left
+# at, which here is the BOTTOM (this flow opened Manage Listing from down there).
+# run-576 failed on the title with the hierarchy showing exactly that: "10th
+# District, Kabul", "Get Directions", "Manage Listing", "Mark as Sold", "More",
+# "View Conversations". The title and status badge are above all of it, and
+# extendedWaitUntil polls for something ON SCREEN — it cannot scroll to it, so
+# 20s of waiting was never going to help.
+#
+# The sibling wait earlier in this same flow already does this, scrolling UP to
+# listing-status-badge before its own extendedWaitUntil. This one was missed.
+- scrollUntilVisible:
+    element:
+      id: "listing-status-badge"
+    direction: UP
+    timeout: 20000
 - extendedWaitUntil:
     visible: "QA SF-M7 Reconcile Batch"
     timeout: 20000
