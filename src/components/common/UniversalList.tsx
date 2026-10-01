@@ -300,11 +300,24 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   });
 
   const pages = data?.pages ?? [];
-  const items = useMemo(
-    () => pages.flatMap((pg) => pg.items),
+  // Pages are offset-based, so a post or message that arrives after page 1
+  // loaded shifts every row down one: page 2 then starts with the row page 1
+  // ended on. Keep the first copy only — a duplicate key makes FlashList
+  // recycle the wrong cell, and the user would see the row twice.
+  const items = useMemo(() => {
+    const seen = new Set<string>();
+    const out: T[] = [];
+    pages.forEach((pg) =>
+      pg.items.forEach((item) => {
+        const key = keyExtractor(item, out.length);
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push(item);
+      })
+    );
+    return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data]
-  );
+  }, [data]);
   const lastPage = pages[pages.length - 1];
   const currentPage = lastPage?.currentPage ?? 1;
   const totalPages = lastPage?.totalPages ?? 1;

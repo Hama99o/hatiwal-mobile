@@ -867,3 +867,36 @@ describe("UniversalList — onPageInfoChange", () => {
     );
   });
 });
+
+// ─── New item arrives between pages — no duplicate row ───────────────────────
+//
+// Pages are offset-based. A post/message created after page 1 loaded shifts
+// every row down one, so page 2 starts with the row page 1 ended on. The list
+// must show that row once and still keep paging.
+
+describe("UniversalList — a new item shifting the pages never duplicates a row", () => {
+  it("shows the shifted row once and keeps loading more on scroll", async () => {
+    const fetcher = jest.fn((query: ListQuery) => {
+      if (query.page === 1) {
+        return Promise.resolve({ items: [{ id: 1, label: "A" }, { id: 2, label: "B" }], totalCount: 4, totalPages: 2, currentPage: 1 });
+      }
+      // A new item (id 9) landed at the top meanwhile: B moved onto page 2.
+      return Promise.resolve({ items: [{ id: 2, label: "B" }, { id: 3, label: "C" }], totalCount: 5, totalPages: 3, currentPage: 2 });
+    });
+
+    render(<UniversalList config={buildConfig({ fetcher, perPage: 2 })} />);
+    await waitFor(() => expect(screen.getByText("A")).toBeTruthy());
+
+    await act(async () => {
+      const node = screen.UNSAFE_getByType(FlashList as never) as unknown as {
+        props: { onEndReached?: () => void; data?: SimpleItem[] };
+      };
+      node.props.onEndReached?.();
+    });
+    await waitFor(() => expect(screen.getByText("C")).toBeTruthy());
+
+    expect(screen.getAllByText("B")).toHaveLength(1);
+    const node = screen.UNSAFE_getByType(FlashList as never) as unknown as { props: { data: SimpleItem[] } };
+    expect(node.props.data.map((i) => i.id)).toEqual([1, 2, 3]);
+  });
+});
