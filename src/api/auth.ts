@@ -58,6 +58,12 @@ export interface User {
   boughtCount?: number;
   createdAt: string;
   pushToken?: string | null;
+  /**
+   * Write-only: why this device could not register for push, as
+   * "<stage>: <message>". The server caps/sanitizes it, shows it on the admin
+   * dashboard, and clears it itself when a pushToken is saved.
+   */
+  pushRegistrationError?: string | null;
   /** REV2 — combined double-blind rating across both seller/buyer roles. null when reviewCount is 0. */
   avgRating?: number | null;
   reviewCount?: number;

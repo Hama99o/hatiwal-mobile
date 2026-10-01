@@ -27,19 +27,23 @@ import { authAPI } from "@/api/auth";
 
 const PUSH_TOKEN_STORAGE_KEY = "hatiwal_push_token";
 
-export type PushRegistrationStage = "token" | "backend" | "unexpected";
+// Stage names match what the admin dashboard groups by (hatiwal-api c61abaf).
+export type PushRegistrationStage = "token" | "save" | "unexpected";
 
 /**
- * Where a push-registration failure goes. The app has no crash/error service,
- * so this is the device log: `console.warn` reaches logcat (`ReactNativeJS`)
- * and the iOS device console in RELEASE builds too, under a stable `[push]`
- * prefix you can grep. One function so a real sink can replace it in one
- * place. Never throws.
+ * Where a push-registration failure goes — two places, so it reaches a person:
+ *   1. the device log: a `[push]`-prefixed `console.warn`, which lands in
+ *      logcat (`ReactNativeJS`) / the iOS device console in release builds;
+ *   2. the server: `push_registration_error` on PUT /users/me, which the admin
+ *      dashboard groups by reason. Sent raw — the server sanitizes and caps it,
+ *      and clears it itself once a token is saved, so success needs no report.
+ * Best-effort and fire-and-forget: never throws, never awaited by login.
  */
 export function reportPushRegistrationFailure(stage: PushRegistrationStage, error: unknown): void {
   try {
     const message = error instanceof Error ? error.message : String(error);
     console.warn(`[push] registration failed at ${stage} (${Platform.OS}): ${message}`);
+    authAPI.updateMe({ pushRegistrationError: `${stage}: ${message}` }).catch(() => undefined);
   } catch {
     // reporting must never be the thing that breaks login
   }
@@ -100,7 +104,7 @@ export async function registerPushToken(): Promise<string | null> {
     try {
       await authAPI.updateMe({ pushToken: token });
     } catch (error) {
-      reportPushRegistrationFailure("backend", error);
+      reportPushRegistrationFailure("save", error);
       return null;
     }
 

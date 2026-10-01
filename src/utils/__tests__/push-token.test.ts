@@ -119,10 +119,21 @@ describe("registerPushToken", () => {
     const result = await registerPushToken();
 
     expect(result).toBeNull();
-    expect(mockUpdateMe).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledTimes(1);
     expect(warnSpy.mock.calls[0][0]).toMatch(/^\[push\] registration failed at token/);
     expect(warnSpy.mock.calls[0][0]).toContain("Default FirebaseApp is not initialized");
+    // …and to the server, so the admin dashboard can say WHY.
+    expect(mockUpdateMe).toHaveBeenCalledWith({
+      pushRegistrationError: "token: Default FirebaseApp is not initialized in this process com.hatiwal.app.",
+    });
+  });
+
+  it("never lets a failing report break registration", async () => {
+    mockRequestPermissions.mockResolvedValue({ status: "granted" });
+    mockGetExpoPushToken.mockRejectedValue(new Error("boom"));
+    mockUpdateMe.mockRejectedValue(new Error("offline"));
+
+    await expect(registerPushToken()).resolves.toBeNull();
   });
 
   it("returns null silently when updateMe throws a network error", async () => {
@@ -135,7 +146,7 @@ describe("registerPushToken", () => {
 
     expect(result).toBeNull();
     expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy.mock.calls[0][0]).toMatch(/registration failed at backend.*Network Error/);
+    expect(warnSpy.mock.calls[0][0]).toMatch(/registration failed at save.*Network Error/);
     // A failed PUT must not be cached, or the next login would skip the retry.
     expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   });
