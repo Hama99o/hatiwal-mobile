@@ -1,4 +1,4 @@
-// Brand fonts, loaded at startup via expo-font (see app/_layout.tsx).
+// Brand fonts, embedded at build time by the expo-font config plugin (app.json).
 //
 // Unlike the browser, React Native cannot fall back per-glyph within a single
 // text run — one Text renders in exactly one fontFamily. So instead of a CSS
@@ -23,28 +23,31 @@
 //        Nastaliq means adding that font package and is a deliberate follow-up,
 //        not something to do silently here.
 //
-// The packages are installed in the Docker container (not resolvable on the host),
-// same as react-native-gesture-handler — hence the ts-ignore, matching _layout.tsx.
-
-// @ts-ignore — installed in the Docker container; not resolvable on host
-import { Rubik_400Regular, Rubik_700Bold } from "@expo-google-fonts/rubik";
-// @ts-ignore — installed in the Docker container; not resolvable on host
-import { Zain_400Regular, Zain_700Bold } from "@expo-google-fonts/zain";
-// @ts-ignore — installed in the Docker container; not resolvable on host
-import {
-  NotoSansArabic_400Regular,
-  NotoSansArabic_700Bold,
-} from "@expo-google-fonts/noto-sans-arabic";
-
-// Passed to useFonts(); the KEY becomes the registered fontFamily name.
-export const FONT_ASSETS = {
-  Rubik_400Regular,
-  Rubik_700Bold,
-  Zain_400Regular,
-  Zain_700Bold,
-  NotoSansArabic_400Regular,
-  NotoSansArabic_700Bold,
-};
+// HOW THE FONTS GET INTO THE APP — build time, not runtime.
+//
+// They are EMBEDDED by the expo-font config plugin (app.json → plugins →
+// "expo-font"): on Android each language's 400 + 700 files become ONE native
+// font family (res/font XML, registered with ReactFontManager), on iOS the
+// files are added to the bundle and resolved by their internal family name.
+// So JS asks for a FAMILY ("Noto Sans Arabic") plus a real fontWeight, and the
+// platform picks the face — for measuring AND for drawing.
+//
+// That is the fix for a measure-vs-draw bug that runtime loading caused
+// (useFonts registered every file as its own single-weight family, e.g.
+// "NotoSansArabic_700Bold"). On Android the layout then measured with
+// different metrics than it drew with: shrink-wrapped Pashto labels at weight
+// 600 lost their last word ("د هتیوال ملاتړ" drew as "د هتیوال"), regular +
+// 600 clipped too, and weight 700 on the bold file silently fell back to a thin
+// system face. Measured on device 2026-10-01 across 7 weight/family variants;
+// the same class of bug produced the first-run "Nex"/"Ski" clipping earlier.
+//
+// Family names are the fonts' own internal family names (fc-scan), so the same
+// string works on both platforms.
+export const BRAND_FAMILIES = {
+  latin: "Rubik",
+  dari: "Zain",
+  arabic: "Noto Sans Arabic",
+} as const;
 
 // Weights that mean "bold" once RN has resolved className/style. RN accepts
 // numeric strings, plain numbers and the keywords.
@@ -54,33 +57,26 @@ export function isBoldWeight(weight: unknown): boolean {
   return weight != null && BOLD_WEIGHTS.has(weight as string);
 }
 
-/**
- * The font family for the active language AND weight.
- *
- * The weight argument is not a nicety — it is a correctness fix. RN cannot
- * synthesize a bold face for a CUSTOM font family on Android: given
- * `fontFamily: "Rubik_400Regular"` + `fontWeight: "700"` it fake-bolds by
- * smearing the glyphs, which widens their advances WITHOUT the text measurement
- * accounting for it. The last character then falls outside the measured box and
- * is clipped — visibly, in any tightly-measured container.
- *
- * That shipped: the first-run onboarding button read "Nex" and its skip link
- * read "Ski" (QA run-045, the first screen every new user sees). Long headings
- * looked fine only because they had slack to spare.
- *
- * The `*_700Bold` faces were already bundled and registered in FONT_ASSETS
- * below — they were simply never referenced, so every bold label in the app was
- * fake-bold. Asking for the real face fixes the metrics rather than padding
- * around the symptom.
- */
-export function fontFamilyForLang(lang: string | undefined, weight?: unknown): string {
+/** The brand font FAMILY for the active language (weight is chosen separately). */
+export function fontFamilyForLang(lang: string | undefined): string {
   const l = (lang ?? "en").toLowerCase();
-  const bold = isBoldWeight(weight);
-  if (l.startsWith("ps") || l.startsWith("ur")) {
-    return bold ? "NotoSansArabic_700Bold" : "NotoSansArabic_400Regular";
-  }
-  if (l.startsWith("fa") || l.startsWith("da")) {
-    return bold ? "Zain_700Bold" : "Zain_400Regular";
-  }
-  return bold ? "Rubik_700Bold" : "Rubik_400Regular";
+  if (l.startsWith("ps") || l.startsWith("ur")) return BRAND_FAMILIES.arabic;
+  if (l.startsWith("fa") || l.startsWith("da")) return BRAND_FAMILIES.dari;
+  return BRAND_FAMILIES.latin;
+}
+
+/**
+ * Family + a weight that exists as a REAL face. Each family ships exactly 400
+ * and 700, so every bold spelling (600, 800, "bold", NativeWind's
+ * font-semibold) is pinned to "700" — asking a platform for a weight the
+ * family lacks invites it to synthesize one, which is how text measured at one
+ * width and drew at another. Non-bold weights are left to resolve to 400.
+ * Spread AFTER the caller's style so the normalized weight wins.
+ */
+export function brandTextStyle(
+  lang: string | undefined,
+  weight?: unknown
+): { fontFamily: string; fontWeight?: "700" } {
+  const fontFamily = fontFamilyForLang(lang);
+  return isBoldWeight(weight) ? { fontFamily, fontWeight: "700" } : { fontFamily };
 }

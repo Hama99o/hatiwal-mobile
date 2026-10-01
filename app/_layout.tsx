@@ -12,9 +12,6 @@ import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner-native";
 import { bootstrapAuth } from "@/stores/auth.bootstrap";
-// @ts-ignore — expo-font is installed in the Docker container; not resolvable on host
-import { useFonts } from "expo-font";
-import { FONT_ASSETS } from "@/lib/fonts";
 
 // A LogBox OVERLAY covers the app and makes controls unreachable — it is dev-only
 // (LogBox is inert in release), but while it is up neither a person nor a test can
@@ -63,11 +60,9 @@ function ThemeManager({ onReady }: { onReady: () => void }) {
 export default function RootLayout() {
   const [themeReady, setThemeReady] = useState(false);
   const [authReady, setAuthReady] = useState(false);
-  // Load brand fonts before showing UI so text never flashes in the system font.
-  // useFonts also returns an error we tolerate — if a font fails, RN falls back
-  // to system rather than blocking the app forever.
-  const [fontsLoaded, fontError] = useFonts(FONT_ASSETS);
-  const ready = themeReady && authReady && (fontsLoaded || !!fontError);
+  // No font gate: the brand fonts are embedded at build time (expo-font config
+  // plugin, app.json) so they exist before the first frame — see src/lib/fonts.ts.
+  const ready = themeReady && authReady;
 
   // Restore the auth session on EVERY app load (any route) before showing the
   // UI — so a logged-in user reloading on a deep route is never flashed the
@@ -99,11 +94,12 @@ export default function RootLayout() {
               its skip link "Ski" (QA run-045/046); later screens were fine
               because they mount after the fonts are already loaded.
 
-              So the Stack is not rendered until `ready`, which is the pattern
-              Expo's own font example uses (`if (!loaded) return null`). We cannot
+              Fonts are now embedded at build time, so that race is gone at the
+              root; the gate stays because the Stack still must not render
+              before theme/auth are resolved. We cannot
               return null from the whole component — ThemeManager below has to stay
               mounted to report themeReady — so the gate goes here instead. This
-              also means screens mount ONCE, after fonts, rather than mounting
+              also means screens mount ONCE, after theme/auth, rather than mounting
               invisibly and remounting. */}
           <View style={{ flex: 1, opacity: ready ? 1 : 0 }}>
             {ready && (

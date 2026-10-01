@@ -67,7 +67,7 @@ export default function LanguageSwitcher({ size = "sm" }: LanguageSwitcherProps)
                 // extended letters (ټ ډ ړ ږ ښ ګ ڼ ې). "پښتو" contains ښ, so it rendered
                 // broken in English and Dari and correctly only once the app was
                 // already in Pashto. Reported from the device.
-                fontFamily: fontFamilyForLang(lang.code, active ? "700" : "400"),
+                fontFamily: fontFamilyForLang(lang.code),
               }}
             >
               {lang.label}

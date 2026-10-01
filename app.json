@@ -79,7 +79,65 @@
           "sounds": []
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-font",
+        {
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "Rubik",
+                "fontDefinitions": [
+                  {
+                    "path": "./node_modules/@expo-google-fonts/rubik/400Regular/Rubik_400Regular.ttf",
+                    "weight": 400
+                  },
+                  {
+                    "path": "./node_modules/@expo-google-fonts/rubik/700Bold/Rubik_700Bold.ttf",
+                    "weight": 700
+                  }
+                ]
+              },
+              {
+                "fontFamily": "Zain",
+                "fontDefinitions": [
+                  {
+                    "path": "./node_modules/@expo-google-fonts/zain/400Regular/Zain_400Regular.ttf",
+                    "weight": 400
+                  },
+                  {
+                    "path": "./node_modules/@expo-google-fonts/zain/700Bold/Zain_700Bold.ttf",
+                    "weight": 700
+                  }
+                ]
+              },
+              {
+                "fontFamily": "Noto Sans Arabic",
+                "fontDefinitions": [
+                  {
+                    "path": "./node_modules/@expo-google-fonts/noto-sans-arabic/400Regular/NotoSansArabic_400Regular.ttf",
+                    "weight": 400
+                  },
+                  {
+                    "path": "./node_modules/@expo-google-fonts/noto-sans-arabic/700Bold/NotoSansArabic_700Bold.ttf",
+                    "weight": 700
+                  }
+                ]
+              }
+            ]
+          },
+          "ios": {
+            "fonts": [
+              "./node_modules/@expo-google-fonts/rubik/400Regular/Rubik_400Regular.ttf",
+              "./node_modules/@expo-google-fonts/rubik/700Bold/Rubik_700Bold.ttf",
+              "./node_modules/@expo-google-fonts/zain/400Regular/Zain_400Regular.ttf",
+              "./node_modules/@expo-google-fonts/zain/700Bold/Zain_700Bold.ttf",
+              "./node_modules/@expo-google-fonts/noto-sans-arabic/400Regular/NotoSansArabic_400Regular.ttf",
+              "./node_modules/@expo-google-fonts/noto-sans-arabic/700Bold/NotoSansArabic_700Bold.ttf"
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useColors } from "@/hooks/useColors";
 import { useButtonTextColor } from "@/components/reusables/button";
-import { fontFamilyForLang } from "@/lib/fonts";
+import { brandTextStyle } from "@/lib/fonts";
 
 interface Props extends TextProps {
   className?: string;
@@ -16,19 +16,21 @@ export function Text({ className, style, ...props }: Props) {
   // Brand font for the active language (Rubik / Zain / Noto Sans Arabic — see
   // src/lib/fonts.ts). Placed before `style` so a caller can still override.
   //
-  // The WEIGHT has to be resolved here, not left to RN: Android cannot
-  // synthesize a bold face for a custom family, so `Rubik_400Regular` +
-  // fontWeight 700 gets fake-bolded and the last glyph is clipped (the
-  // onboarding button rendered "Nex"). Flattened because `style` may be an
+  // The WEIGHT is normalized here, not left to RN: each brand family ships
+  // only 400 and 700, and asking for 600 made Android measure and draw the
+  // text with different metrics — shrink-wrapped Pashto labels lost their last
+  // word. brandTextStyle pins every bold spelling to "700" (a real face), and
+  // it goes AFTER `style` so it wins. Flattened because `style` may be an
   // array, and because NativeWind merges `font-bold`/`font-semibold` from
   // className into it before we see it — so both spellings are covered.
+  // See src/lib/fonts.ts.
   const { i18n } = useTranslation();
   const flat = StyleSheet.flatten(style) as { fontWeight?: unknown } | undefined;
-  const fontFamily = fontFamilyForLang(i18n.language, flat?.fontWeight);
+  const { fontFamily, fontWeight } = brandTextStyle(i18n.language, flat?.fontWeight);
   return (
     <RNText
       className={cn(className)}
-      style={[{ color: baseColor, fontFamily }, style]}
+      style={[{ color: baseColor, fontFamily }, style, fontWeight ? { fontWeight } : null]}
       {...props}
     />
   );
