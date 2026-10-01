@@ -275,7 +275,6 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     data,
     error: queryError,
     isPending,
-    isRefetching,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
@@ -315,7 +314,13 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
   // show one — that flicker is the thing being fixed.
   const isLoading = isPending;
   const isFetchingMore = isFetchingNextPage;
-  const isRefreshing = isRefetching && !isFetchingNextPage;
+  // The spinner belongs to the user's pull ONLY. Driving it from
+  // `isRefetching` also flipped it on for the silent focus refetch; on iOS a
+  // RefreshControl turned on and off from code can leave its content inset
+  // behind — the inbox then sat under an empty band, looking stuck loading
+  // (seen on device, 1.1.0). `isRefetching` stays the signal for nothing else.
+  const [isPulling, setIsPulling] = useState(false);
+  const isRefreshing = isPulling;
 
   // A 401 means the session ended; the auth layer redirects, so it is not a
   // list error. And a failure behind an already-usable list must never blank
@@ -348,7 +353,10 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
 
   // ── Pull-to-refresh ────────────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
-    refetch().catch(() => {});
+    setIsPulling(true);
+    refetch()
+      .catch(() => {})
+      .finally(() => setIsPulling(false));
   }, [refetch]);
 
   // ── Client-side filter (e.g. instant search) ───────────────────────────────
