@@ -1,4 +1,6 @@
 import axios from "axios";
+import { Platform } from "react-native";
+import Constants from "expo-constants";
 import { secureStorage } from "@/utils/secure-storage";
 import { useAuthStore } from "@/stores/auth.store";
 
@@ -39,6 +41,21 @@ if (!__DEV__ && isProdUnsafeApiUrl(BASE_URL)) {
   );
 }
 
+/**
+ * Which build of the app is talking. The API cannot otherwise tell an old
+ * store build from a new one — every response goes to both — so a feature
+ * that needs a new client had to wait for everyone to update. With this, the
+ * server can serve each version what it can render. The version is app.json's
+ * `version` (baked into the binary), not a runtime value, so it is exactly
+ * the build the user installed.
+ */
+export function clientVersionHeaders(): Record<string, string> {
+  return {
+    "X-App-Version": Constants.expoConfig?.version ?? "unknown",
+    "X-App-Platform": Platform.OS,
+  };
+}
+
 export const http = axios.create({
   baseURL: BASE_URL,
   // Fail fast instead of spinning forever when the API is unreachable (e.g. a
@@ -47,6 +64,7 @@ export const http = axios.create({
   timeout: 20000,
   headers: {
     "Content-Type": "application/json",
+    ...clientVersionHeaders(),
   },
 });
 
