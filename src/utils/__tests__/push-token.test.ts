@@ -49,8 +49,12 @@ const mockUpdateMe = authAPI.updateMe as jest.Mock;
 const STORAGE_KEY = "hatiwal_push_token";
 
 describe("registerPushToken", () => {
+  let warnSpy: jest.SpyInstance;
+  afterEach(() => warnSpy.mockRestore());
+
   beforeEach(() => {
     jest.clearAllMocks();
+    warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
     (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
     (AsyncStorage.removeItem as jest.Mock).mockResolvedValue(undefined);
@@ -63,6 +67,8 @@ describe("registerPushToken", () => {
 
     expect(result).toBeNull();
     expect(mockUpdateMe).not.toHaveBeenCalled();
+    // Notifications switched off is the user's choice, not a failure.
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it("registers the token and stores it when permission is granted and no cached token exists", async () => {
@@ -103,16 +109,20 @@ describe("registerPushToken", () => {
     expect(AsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY, newToken);
   });
 
-  it("returns null silently when getExpoPushTokenAsync throws (e.g. simulator)", async () => {
+  it("returns null AND reports the error, message intact, when getExpoPushTokenAsync throws", async () => {
+    // The exact failure every Android build hit for months, unseen.
     mockRequestPermissions.mockResolvedValue({ status: "granted" });
     mockGetExpoPushToken.mockRejectedValue(
-      new Error("projectId is required to retrieve an Expo push token")
+      new Error("Default FirebaseApp is not initialized in this process com.hatiwal.app.")
     );
 
     const result = await registerPushToken();
 
     expect(result).toBeNull();
     expect(mockUpdateMe).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0][0]).toMatch(/^\[push\] registration failed at token/);
+    expect(warnSpy.mock.calls[0][0]).toContain("Default FirebaseApp is not initialized");
   });
 
   it("returns null silently when updateMe throws a network error", async () => {
@@ -124,6 +134,10 @@ describe("registerPushToken", () => {
     const result = await registerPushToken();
 
     expect(result).toBeNull();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0][0]).toMatch(/registration failed at backend.*Network Error/);
+    // A failed PUT must not be cached, or the next login would skip the retry.
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   });
 });
 

@@ -10,8 +10,13 @@
  * - If permission is denied, the function returns null silently — no error,
  *   no toast, no crash.
  * - If the token matches the cached value it is NOT re-sent to the backend.
- * - Physical device only: the Expo push token is unavailable in simulators
- *   without a projectId; we catch and swallow that error gracefully.
+ * - A FAILURE to get or store the token never blocks login, but it is never
+ *   silent either: it is reported via `reportPushRegistrationFailure` with the
+ *   underlying message intact. Swallowing it hid, for months, that Android
+ *   could not register at all — "Default FirebaseApp is not initialized" was
+ *   thrown on every Android login and nobody saw it (docs/PUSH_NOTIFICATIONS.md
+ *   in hatiwal-api). Permission denied is the user's choice, not a failure,
+ *   and is not reported.
  */
 
 import * as Notifications from "expo-notifications";
@@ -21,6 +26,24 @@ import { Platform } from "react-native";
 import { authAPI } from "@/api/auth";
 
 const PUSH_TOKEN_STORAGE_KEY = "hatiwal_push_token";
+
+export type PushRegistrationStage = "token" | "backend" | "unexpected";
+
+/**
+ * Where a push-registration failure goes. The app has no crash/error service,
+ * so this is the device log: `console.warn` reaches logcat (`ReactNativeJS`)
+ * and the iOS device console in RELEASE builds too, under a stable `[push]`
+ * prefix you can grep. One function so a real sink can replace it in one
+ * place. Never throws.
+ */
+export function reportPushRegistrationFailure(stage: PushRegistrationStage, error: unknown): void {
+  try {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[push] registration failed at ${stage} (${Platform.OS}): ${message}`);
+  } catch {
+    // reporting must never be the thing that breaks login
+  }
+}
 
 /**
  * Request push notification permission, get the Expo push token, and register
@@ -60,9 +83,10 @@ export async function registerPushToken(): Promise<string | null> {
         projectId ? { projectId } : undefined
       );
       token = tokenResponse.data;
-    } catch {
-      // getExpoPushTokenAsync throws in simulators / when projectId is absent.
-      // This is expected in development — fail silently.
+    } catch (error) {
+      // Throws when the platform cannot issue a token — no projectId, a
+      // simulator, or (Android) Firebase not configured in the build.
+      reportPushRegistrationFailure("token", error);
       return null;
     }
 
@@ -73,15 +97,21 @@ export async function registerPushToken(): Promise<string | null> {
     }
 
     // Persist the new token to the backend.
-    await authAPI.updateMe({ pushToken: token });
+    try {
+      await authAPI.updateMe({ pushToken: token });
+    } catch (error) {
+      reportPushRegistrationFailure("backend", error);
+      return null;
+    }
 
     // Cache it locally so subsequent logins skip the PUT.
     await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
 
     return token;
-  } catch {
-    // Any unexpected error (network, AsyncStorage, etc.) must not crash the
-    // app or block the auth flow — just return null.
+  } catch (error) {
+    // Any unexpected error (channel setup, AsyncStorage, etc.) must not crash
+    // the app or block the auth flow — report it and return null.
+    reportPushRegistrationFailure("unexpected", error);
     return null;
   }
 }
