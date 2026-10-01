@@ -27,8 +27,11 @@ import { toast } from "@/lib/toast";
 import {
   conversationsAPI,
   getUnreadTotal,
+  isSupportThread,
   type Conversation,
 } from "@/api/conversations";
+import { useOpenSupport } from "@/hooks/useOpenSupport";
+import { SupportEntryRow } from "@/screens/chat/conversations/SupportEntryRow";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { Text } from "@/components/reusables/text";
@@ -120,6 +123,11 @@ export default function ConversationsScreen() {
 
   // Bump to trigger UniversalList silent background refresh (no skeleton, no setItems([])).
   const [refreshKey, setRefreshKey] = useState(0);
+  // Whether the user already has a support thread, read off page 1 of the
+  // full inbox (the server pins it first, so page 1 is enough). null until
+  // known, so the permanent Support entry never flashes in and out.
+  const [hasSupportThread, setHasSupportThread] = useState<boolean | null>(null);
+  const { openSupport, isOpening: isOpeningSupport } = useOpenSupport();
 
   // Only for invalidating ["me"] after a read: the chat tab badge reads
   // unreadMessageCount off that query. This screen still fetches its own list through
@@ -219,6 +227,9 @@ export default function ConversationsScreen() {
           // would incorrectly drop the badge to that subset. Skip the sync
           // entirely while a role filter is active — the badge keeps
           // whatever the last unfiltered fetch reported.
+          if (query.page === 1 && !roleParam && !searchParam) {
+            setHasSupportThread(page.some(isSupportThread));
+          }
           if (query.page === 1 && !roleParam) {
             allConversationsRef.current = page;
             const total = getUnreadTotal(page);
@@ -411,6 +422,14 @@ export default function ConversationsScreen() {
         onUnarchive={handleUnarchive}
       />
     ),
+    // Permanent Hatiwal Support entry, until a real support thread exists (then
+    // the server pins that thread first and ConversationRow renders it). Only
+    // on the plain inbox view — a role scope, read filter or search narrows
+    // the list to something Support is not part of.
+    ListHeaderComponent:
+      tabMode === "inbox" && !role && filter === "all" && !hasSearchTerm && hasSupportThread === false ? (
+        <SupportEntryRow onPress={openSupport} isOpening={isOpeningSupport} />
+      ) : null,
     skeletonCount:     5,
     SkeletonComponent: ConversationRowSkeleton,
     // Review fix: the icon/title/description/action below are now ordered

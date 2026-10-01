@@ -262,6 +262,16 @@ export const conversationsAPI = {
     return convertKeysToCamel(response.data.conversation) as Conversation;
   },
 
+  /**
+   * The caller's own Hatiwal Support thread — created on first call, the same
+   * thread every call after (POST is idempotent server-side). Also brings an
+   * archived/deleted support thread back into the inbox.
+   */
+  openSupportConversation: async (): Promise<Conversation> => {
+    const response = await http.post("/support_conversation");
+    return convertKeysToCamel(response.data.conversation) as Conversation;
+  },
+
   startConversation: async (
     listingId: number,
     message: string

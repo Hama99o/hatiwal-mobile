@@ -8,7 +8,9 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useFocusEffect } from "expo-router";
 import { toast } from "@/lib/toast";
+import { useOpenSupport } from "@/hooks/useOpenSupport";
 import {
+  LifeBuoy,
   Sun,
   Moon,
   Smartphone,
@@ -288,6 +290,16 @@ function ProfileQuickActions({ user, isSeller }: { user: User; isSeller: boolean
   const { t } = useTranslation();
   const { isRtl } = useLocalization();
   const router = useRouter();
+  // Second way into Support (the first is the pinned row at the top of
+  // Messages) — some people look for help in their profile. Same function.
+  const { openSupport } = useOpenSupport();
+  const contactSupport = (
+    <QuickActionCard
+      icon={LifeBuoy}
+      label={t("profile.quickActions.contactSupport")}
+      onPress={openSupport}
+    />
+  );
 
   return (
     <SectionCard>
@@ -318,6 +330,7 @@ function ProfileQuickActions({ user, isSeller }: { user: User; isSeller: boolean
               label={t("profile.quickActions.reviews")}
               onPress={() => router.push(`/(main)/user/${user.id}/reviews` as never)}
             />
+            {contactSupport}
           </>
         ) : (
           <>
@@ -342,6 +355,7 @@ function ProfileQuickActions({ user, isSeller }: { user: User; isSeller: boolean
               label={t("profile.quickActions.reviews")}
               onPress={() => router.push(`/(main)/user/${user.id}/reviews` as never)}
             />
+            {contactSupport}
           </>
         )}
       </View>
@@ -992,7 +1006,7 @@ function SettingsSection({
                         // LanguageSwitcher: this list shows all three languages at once,
                         // and Rubik (en) / Zain (fa) do not cover Pashto's extended
                         // letters, so "پښتو" broke unless the app was already in Pashto.
-                        fontFamily: fontFamilyForLang(code, isActive ? "700" : "400"),
+                        fontFamily: fontFamilyForLang(code),
                       }}
                     >
                       {label}

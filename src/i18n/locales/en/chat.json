@@ -3,7 +3,9 @@
   "title": "Messages",
   "support": {
     "name": "Hatiwal Support",
-    "headerNote": "Official messages from the Hatiwal team"
+    "headerNote": "Official messages from the Hatiwal team",
+    "entrySubtitle": "Questions or a problem? Message our team",
+    "openError": "Couldn't open Support. Check your connection and try again."
   },
   "day": {
     "today": "Today",
