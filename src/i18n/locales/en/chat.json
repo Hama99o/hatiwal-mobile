@@ -1,6 +1,10 @@
 {
   "listingDeleted": "This listing has been removed",
   "title": "Messages",
+  "support": {
+    "name": "Hatiwal Support",
+    "headerNote": "Official messages from the Hatiwal team"
+  },
   "day": {
     "today": "Today",
     "yesterday": "Yesterday"

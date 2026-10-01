@@ -1,6 +1,10 @@
 {
   "listingDeleted": "این آگهی حذف شده است",
   "title": "پیام‌ها",
+  "support": {
+    "name": "پشتیبانی هتیوال",
+    "headerNote": "پیام‌های رسمی تیم هتیوال"
+  },
   "day": {
     "today": "امروز",
     "yesterday": "دیروز"

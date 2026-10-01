@@ -1008,3 +1008,59 @@ describe("ConversationRow — search highlight", () => {
     expect(screen.getByText("Is this still available?")).toBeTruthy();
   });
 });
+
+// ── Support thread (kind: "support") ──────────────────────────────────────────
+// A support thread has no listing; the API sends `listing: null` AND
+// `listingDeleted: true` for it, exactly like an orphaned thread, so the row
+// must key off `kind`, never off the missing listing.
+
+describe("ConversationRow — support thread", () => {
+  const supportItem = () =>
+    makeConversation({
+      id: 7,
+      kind: "support",
+      listing: null,
+      listingDeleted: true,
+      viewerRole: null,
+      otherParticipant: { id: 1, name: "Support Account DB Name", city: null },
+    });
+
+  it("is titled with the localized Support label, never the listing fallback", () => {
+    render(<ConversationRow item={supportItem()} onDelete={jest.fn()} />);
+    expect(screen.getByText("chat.support.name")).toBeTruthy();
+    expect(screen.queryByText("chat.title")).toBeNull();
+  });
+
+  it("never shows the Support account's DB name", () => {
+    render(<ConversationRow item={supportItem()} onDelete={jest.fn()} />);
+    expect(screen.queryByText("Support Account DB Name")).toBeNull();
+  });
+
+  it("leads with the brand mark instead of the camera placeholder", () => {
+    render(<ConversationRow item={supportItem()} onDelete={jest.fn()} />);
+    expect(screen.getByTestId("support-thumb-7")).toBeTruthy();
+  });
+
+  it("shows no Buying/Selling role pill even if the server sends a role", () => {
+    render(<ConversationRow item={{ ...supportItem(), viewerRole: "buyer" }} onDelete={jest.fn()} />);
+    expect(screen.queryByTestId("role-pill-7")).toBeNull();
+  });
+
+  it("offers archive but never delete", () => {
+    render(<ConversationRow item={supportItem()} onDelete={jest.fn()} />);
+    fireEvent(screen.getByText("chat.support.name"), "longPress");
+    expect(screen.getByTestId("menu-archive")).toBeTruthy();
+    expect(screen.queryByTestId("menu-delete")).toBeNull();
+  });
+
+  it("a listing-less thread WITHOUT kind still renders as an ordinary orphaned thread", () => {
+    render(
+      <ConversationRow
+        item={makeConversation({ id: 8, listing: null, listingDeleted: true })}
+        onDelete={jest.fn()}
+      />
+    );
+    expect(screen.getByText("chat.title")).toBeTruthy();
+    expect(screen.queryByTestId("support-thumb-8")).toBeNull();
+  });
+});

@@ -35,7 +35,8 @@ import { toast } from "@/lib/toast";
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
 import { Input } from "@/components/reusables/input";
-import { conversationsAPI, type Conversation, type Message } from "@/api/conversations";
+import { conversationsAPI, isSupportThread, type Conversation, type Message } from "@/api/conversations";
+import { SupportSenderLabel, startsIncomingRun } from "@/screens/chat/conversation/SupportSenderLabel";
 import { usersAPI } from "@/api/users";
 import { authAPI } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth.store";
@@ -265,6 +266,13 @@ export function ConversationScreen() {
     !!currentUser &&
     !!conversation?.seller &&
     Number(conversation.seller.id) === Number(currentUser.id);
+
+  // A thread with Hatiwal Support rather than another user about a listing.
+  // Gates everything marketplace-specific off (listing-removed banner,
+  // block/report, the profile link, quick replies, meetup) and relabels the
+  // other side as "Hatiwal Support". `isSupportThread` is the one derivation —
+  // never test `listing == null` here, which also means "listing deleted".
+  const isSupport = isSupportThread(conversation);
 
   // ── Composer draft persistence ───────────────────────────────────────────
   // The draft hook owns AsyncStorage persistence keyed per conversation.
@@ -1609,7 +1617,20 @@ export function ConversationScreen() {
 
         {/* Tappable participant info → seller profile */}
         <View style={[styles.navCenter, { flexDirection: isRtl ? "row-reverse" : "row" }]}>
-          {otherParticipant ? (
+          {isSupport ? (
+            // Not tappable: there is no public profile behind Support, and the
+            // Support account's DB name is never shown — always the localized
+            // label, so a Pashto inbox never carries an English word.
+            <UserIdentity
+              name={t("chat.support.name")}
+              subtitle={t("chat.support.headerNote")}
+              variant="support"
+              verified
+              size={32}
+              layout="row"
+              testID="support-thread-identity"
+            />
+          ) : otherParticipant ? (
             <UserIdentity
               name={otherParticipant.name}
               avatarUrl={otherParticipant.avatarUrl}
@@ -1639,8 +1660,8 @@ export function ConversationScreen() {
           <Search size={18} color={searchVisible ? colors.primary : colors.mutedForeground} />
         </Pressable>
 
-        {/* Block / unblock */}
-        {otherParticipant && (
+        {/* Block / unblock — never on Support */}
+        {otherParticipant && !isSupport && (
           <Pressable
             onPress={handleBlockToggle}
             disabled={blockMutation.isPending || unblockMutation.isPending}
@@ -1660,7 +1681,7 @@ export function ConversationScreen() {
 
         {/* Report participant — only shown when there is another participant
             and it is not the current user (defensive guard against self-report) */}
-        {otherParticipant && currentUser && Number(otherParticipant.id) !== Number(currentUser.id) && (
+        {otherParticipant && !isSupport && currentUser && Number(otherParticipant.id) !== Number(currentUser.id) && (
           <Pressable
             onPress={() => setReportSheetVisible(true)}
             hitSlop={8}
@@ -1717,7 +1738,7 @@ export function ConversationScreen() {
       {!isLoading && <>
 
       {/* Listing-deleted notice — shown when the listing has been removed */}
-      {conversation?.listingDeleted && (
+      {conversation?.listingDeleted && !isSupport && (
         <View
           style={{
             paddingHorizontal: 16,
@@ -1868,7 +1889,7 @@ export function ConversationScreen() {
           ref={flatListRef}
           data={threadRows}
           keyExtractor={threadRowKey}
-          renderItem={({ item: row }) => {
+          renderItem={({ item: row, index }) => {
             // TASK-D428: non-message rows (day separators, unread divider)
             // render DaySeparator and stop — all bubble logic below only
             // ever runs for `{ type: "message" }` rows.
@@ -1908,7 +1929,7 @@ export function ConversationScreen() {
             // guard below use the exact same value (TASK-C381).
             const itemIsMine = !!currentUser && Number(item.sender.id) === Number(currentUser.id);
 
-            return (
+            const bubble = (
               <MessageBubble
                 message={item}
                 isMine={itemIsMine}
@@ -1980,6 +2001,17 @@ export function ConversationScreen() {
                 }
               />
             );
+            // Support threads name the sender above each incoming run, so a
+            // reply reads as "Hatiwal Support", never as an anonymous bubble.
+            if (isSupport && startsIncomingRun(threadRows, index, currentUser?.id)) {
+              return (
+                <>
+                  <SupportSenderLabel />
+                  {bubble}
+                </>
+              );
+            }
+            return bubble;
           }}
           // No bar clearance here any more — the CONTAINER above stops at the
           // bar's top edge, so the content needs nothing but its own breathing
@@ -2186,10 +2218,14 @@ export function ConversationScreen() {
           // Normal send input with meetup button and quick-reply chips
           <>
             {/* Quick-reply chip row — above the composer, hidden when closed */}
-            <QuickReplies
-              role={isOwner ? "seller" : "buyer"}
-              onSelect={handleQuickReplySelect}
-            />
+            {/* Buyer/seller phrase sets ("Is it still available?") mean
+                nothing to Support. */}
+            {!isSupport && (
+              <QuickReplies
+                role={isOwner ? "seller" : "buyer"}
+                onSelect={handleQuickReplySelect}
+              />
+            )}
           <View
             style={[
               styles.inputBar,
@@ -2285,7 +2321,8 @@ export function ConversationScreen() {
         onClose={() => setActionsSheetVisible(false)}
         onPhoto={handlePhotoAttachment}
         onFile={handleAttachment}
-        onProposeMeetup={() => setMeetupSheetVisible(true)}
+        // No in-person meetup with Support — omitting the handler hides the row.
+        onProposeMeetup={isSupport ? undefined : () => setMeetupSheetVisible(true)}
         onMakeOffer={() => setThreadOfferSheetVisible(true)}
         canMakeOffer={canOfferInThread}
         offerUnavailableReason={offerUnavailableReason}
@@ -2402,7 +2439,7 @@ export function ConversationScreen() {
       {/* Report participant sheet — surfaces the existing ReportSheet pre-targeted
           at the other participant. Only renders when we have a valid participant id
           that is not the current user (the guard is also on the trigger button). */}
-      {otherParticipant && currentUser && Number(otherParticipant.id) !== Number(currentUser.id) && (
+      {otherParticipant && !isSupport && currentUser && Number(otherParticipant.id) !== Number(currentUser.id) && (
         <ReportSheet
           visible={reportSheetVisible}
           onClose={() => setReportSheetVisible(false)}

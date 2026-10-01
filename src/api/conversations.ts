@@ -64,9 +64,19 @@ export interface Message {
   deletedAt?: string | null;
 }
 
+/**
+ * What kind of thread a conversation is. A support thread (`"support"`) has no
+ * listing — one side is the user, the other a dedicated Hatiwal Support
+ * account. A string, not a boolean, so further system accounts (announcements)
+ * slot in without a second flag. Absent/null on an ordinary listing thread and
+ * on API builds that predate the field.
+ */
+export type ConversationKind = "support";
+
 export interface Conversation {
   id: number;
   status: "open" | "closed";
+  kind?: ConversationKind | null;
   lastMessageAt: string | null;
   createdAt: string;
   /** True when the associated listing has been removed or deleted. */
@@ -169,7 +179,20 @@ export interface Conversation {
    * listing. `undefined` only for callers that don't pass a current_user
    * (never expected from the mobile app, which is always authenticated).
    */
-  viewerRole?: "buyer" | "seller";
+  viewerRole?: "buyer" | "seller" | null;
+}
+
+/**
+ * The ONE place that decides whether a conversation is a support thread. Every
+ * support-specific branch (inbox row, thread header, composer, bubbles) reads
+ * this — never `kind` directly, and never `listing == null`: a nil listing
+ * also means "the listing was deleted" (`listingDeleted`), so it cannot tell
+ * the two apart.
+ */
+export function isSupportThread(
+  conversation: Pick<Conversation, "kind"> | null | undefined
+): boolean {
+  return conversation?.kind === "support";
 }
 
 export interface ConversationsResponse {

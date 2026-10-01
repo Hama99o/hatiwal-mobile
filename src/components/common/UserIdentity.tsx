@@ -32,6 +32,8 @@ interface UserIdentityProps {
   /** testID for E2E taps + unit queries. Lands on the pressable wrapper when
    * `onPress` is set, otherwise on the root row — so it is always queryable. */
   testID?: string;
+  /** Forwarded to UserAvatar — "support" renders the Hatiwal Logomark. */
+  variant?: "user" | "support";
 }
 
 /**
@@ -53,6 +55,7 @@ export function UserIdentity({
   showAvatar = true,
   onPress,
   testID,
+  variant = "user",
 }: UserIdentityProps) {
   const colors = useColors();
   const { isRtl } = useLocalization();
@@ -99,7 +102,7 @@ export function UserIdentity({
         gap: stacked ? 8 : 12,
       }}
     >
-      {showAvatar && <UserAvatar name={name} avatarUrl={avatarUrl} size={size} />}
+      {showAvatar && <UserAvatar name={name} avatarUrl={avatarUrl} size={size} variant={variant} />}
       {showName && (
         <View style={{ flex: stacked ? undefined : 1, gap: 2, alignItems: stacked ? "center" : undefined }}>
           {nameRow}

@@ -58,8 +58,9 @@ export interface ComposerActionsSheetProps {
   onPhoto: () => void;
   /** Opens the document picker — Conversation.tsx's `handleAttachment`. */
   onFile: () => void;
-  /** Opens the meetup proposal sheet. */
-  onProposeMeetup: () => void;
+  /** Opens the meetup proposal sheet. Omit to hide the row (support threads —
+   *  there is no in-person meetup with Hatiwal Support). */
+  onProposeMeetup?: () => void;
   /** Opens the make/counter-an-offer sheet. */
   onMakeOffer: () => void;
   /**
@@ -149,14 +150,17 @@ export function ComposerActionsSheet({
       onPress: () => runAndClose(onFile),
       testID: "composer-action-file",
     },
-    {
+  ];
+
+  if (onProposeMeetup) {
+    rows.push({
       key: "meetup",
       icon: <Calendar size={20} color={colors.foreground} />,
       label: t("chat.proposeMeetup"),
       onPress: () => runAndClose(onProposeMeetup),
       testID: "composer-action-meetup",
-    },
-  ];
+    });
+  }
 
   // TASK-C381 / TASK-K487: only shown when the pinned listing still supports
   // an in-thread offer — see `canMakeOffer` doc above.

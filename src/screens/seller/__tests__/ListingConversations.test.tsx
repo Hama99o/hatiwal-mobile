@@ -103,6 +103,9 @@ jest.mock("sonner-native", () => ({
 }));
 
 jest.mock("@/api/conversations", () => ({
+  // The real predicate — ConversationRow reads it for support threads, and a
+  // hand-copied stand-in here could drift from the one the app runs.
+  isSupportThread: jest.requireActual("@/api/conversations").isSupportThread,
   conversationsAPI: {
     getConversations: jest.fn(),
     deleteConversation: jest.fn(),

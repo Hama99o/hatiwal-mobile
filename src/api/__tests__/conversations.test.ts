@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { server } from "../../__tests__/mocks/server";
-import { conversationsAPI, getUnreadTotal } from "../conversations";
+import { conversationsAPI, getUnreadTotal, isSupportThread } from "../conversations";
 import { MOCK_CONVERSATION, MOCK_MESSAGE, MOCK_PAGINATION } from "../../__tests__/mocks/handlers";
 
 jest.mock("@/utils/secure-storage", () => ({
@@ -760,5 +760,22 @@ describe("conversationsAPI.deleteMessage", () => {
     // deleted_at → deletedAt
     expect(result.deletedAt).toBeDefined();
     expect((result as Record<string, unknown>)["deleted_at"]).toBeUndefined();
+  });
+});
+
+describe("isSupportThread", () => {
+  it("is true only for kind: \"support\"", () => {
+    expect(isSupportThread({ kind: "support" })).toBe(true);
+  });
+
+  it("is false for an ordinary thread, a missing kind, or no conversation", () => {
+    expect(isSupportThread({ kind: null })).toBe(false);
+    expect(isSupportThread({})).toBe(false);
+    expect(isSupportThread(null)).toBe(false);
+    expect(isSupportThread(undefined)).toBe(false);
+  });
+
+  it("does NOT infer support from a missing listing (that also means deleted)", () => {
+    expect(isSupportThread({ ...MOCK_CONVERSATION, listing: null, listingDeleted: true } as never)).toBe(false);
   });
 });

@@ -1,6 +1,10 @@
 {
   "listingDeleted": "یہ اشتہار ہٹا دیا گیا ہے",
   "title": "پیغامات",
+  "support": {
+    "name": "ہتیوال سپورٹ",
+    "headerNote": "ہتیوال ٹیم کے سرکاری پیغامات"
+  },
   "day": {
     "today": "آج",
     "yesterday": "کل"

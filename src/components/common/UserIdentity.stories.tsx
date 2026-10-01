@@ -135,6 +135,18 @@ export const LargeRow: Story = {
   },
 };
 
+// Support thread header — brand mark + verified tick + the header note.
+export const Support: Story = {
+  args: {
+    name: "Hatiwal Support",
+    verified: true,
+    subtitle: "Official messages from the Hatiwal team",
+    layout: "row",
+    size: 32,
+    variant: "support",
+  },
+};
+
 // Multiple rows showing the component in a list context
 export const ListContext: Story = {
   render: () => (

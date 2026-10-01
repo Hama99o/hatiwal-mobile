@@ -504,6 +504,50 @@ export const ListingContextDark: Story = {
   ],
 };
 
+// ── Support thread (kind: "support") — no listing; the API also sends
+//    listingDeleted: true for it. Brand-mark thumb, localized "Hatiwal
+//    Support" title, no price, no role pill. ──────────────────────────────
+
+const supportConversation = () =>
+  makeConversation({
+    kind: "support",
+    listing: null,
+    listingDeleted: true,
+    viewerRole: null,
+    unreadCount: 1,
+    lastMessageBody: "Your listing was approved.",
+  });
+
+export const SupportThread: Story = {
+  args: { item: supportConversation(), onDelete: action("delete") },
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("en");
+      return <View style={{ backgroundColor: "#fff" }}><Story /></View>;
+    },
+  ],
+};
+
+export const SupportThreadPashtoRtl: Story = {
+  args: { item: supportConversation(), onDelete: action("delete") },
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("ps");
+      return <View style={{ backgroundColor: "#fff" }}><Story /></View>;
+    },
+  ],
+};
+
+export const SupportThreadUrduRtl: Story = {
+  args: { item: supportConversation(), onDelete: action("delete") },
+  decorators: [
+    (Story) => {
+      i18n.changeLanguage("ur");
+      return <View style={{ backgroundColor: "#fff" }}><Story /></View>;
+    },
+  ],
+};
+
 // Full list of rows stacked
 export const ConversationList: Story = {
   render: () => (

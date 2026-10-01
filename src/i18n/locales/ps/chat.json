@@ -1,6 +1,10 @@
 {
   "listingDeleted": "دا خپرونه لرې شوې ده",
   "title": "پیغامونه",
+  "support": {
+    "name": "د هتیوال ملاتړ",
+    "headerNote": "د هتیوال ټیم رسمي پیغامونه"
+  },
   "day": {
     "today": "نن",
     "yesterday": "پرون"

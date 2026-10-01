@@ -82,4 +82,10 @@ describe("UserIdentity", () => {
     // But the name should still be present
     expect(screen.getByText("Omar Noori")).toBeTruthy();
   });
+
+  it("forwards variant=\"support\" to the avatar", () => {
+    render(<UserIdentity name="Hatiwal Support" variant="support" />);
+    expect(screen.getByTestId("support-avatar")).toBeTruthy();
+    expect(screen.getByText("Hatiwal Support")).toBeTruthy();
+  });
 });

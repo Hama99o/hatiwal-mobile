@@ -56,6 +56,17 @@ export const SingleInitial: Story = {
   },
 };
 
+// The official Hatiwal Support account — always the brand mark, even when the
+// account has an uploaded photo.
+export const Support: Story = {
+  args: {
+    name: "Hatiwal Support",
+    avatarUrl: "https://picsum.photos/seed/user1/100/100",
+    size: 44,
+    variant: "support",
+  },
+};
+
 // Multiple sizes side by side
 export const SizeComparison: Story = {
   render: () => (

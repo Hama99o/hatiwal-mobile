@@ -99,6 +99,13 @@ describe("ComposerActionsSheet — always-present rows", () => {
     expect(screen.getByTestId("composer-action-meetup")).toBeTruthy();
   });
 
+  it("hides the Propose meetup row when no handler is passed (support threads)", () => {
+    render(<ComposerActionsSheet {...baseProps()} onProposeMeetup={undefined} />);
+    expect(screen.queryByTestId("composer-action-meetup")).toBeNull();
+    expect(screen.getByTestId("composer-action-photo")).toBeTruthy();
+    expect(screen.getByTestId("composer-action-file")).toBeTruthy();
+  });
+
   it("renders the sheet title", () => {
     render(<ComposerActionsSheet {...baseProps()} />);
     expect(screen.getByText("chat.composer.actionsTitle")).toBeTruthy();

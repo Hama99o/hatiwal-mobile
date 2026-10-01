@@ -56,3 +56,16 @@ describe("UserAvatar — sizes", () => {
     expect(screen.getByText("T")).toBeTruthy();
   });
 });
+
+describe("UserAvatar — support variant", () => {
+  it("renders the brand mark, not an initial", () => {
+    render(<UserAvatar name="Hatiwal Support" variant="support" />);
+    expect(screen.getByTestId("support-avatar")).toBeTruthy();
+    expect(screen.queryByText("H")).toBeNull();
+  });
+
+  it("ignores an uploaded photo — Support can never look like a user", () => {
+    render(<UserAvatar name="Hatiwal Support" avatarUrl="https://example.com/a.jpg" variant="support" />);
+    expect(screen.getByTestId("support-avatar")).toBeTruthy();
+  });
+});

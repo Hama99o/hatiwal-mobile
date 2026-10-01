@@ -14,7 +14,8 @@ import Animated, {
 import { Camera, Trash2, CheckCheck, MailOpen, MoreVertical, Archive, ArchiveRestore, Store, ShoppingBag } from "lucide-react-native";
 import { useReduceMotion } from "@/lib/animation";
 
-import { type Conversation } from "@/api/conversations";
+import { type Conversation, isSupportThread } from "@/api/conversations";
+import { Logomark } from "@/components/common/Logomark";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 import { Text } from "@/components/reusables/text";
@@ -112,7 +113,11 @@ export function ConversationRow({
   const [menuVisible, setMenuVisible]               = useState(false);
 
   const other     = item.otherParticipant;
-  const otherName = other?.name ?? "";
+  // A support thread has no listing and no counterpart in the marketplace
+  // sense: it is labelled "Hatiwal Support" (localized — never the Support
+  // account's DB name), leads with the brand mark, and carries no role pill.
+  const isSupport = isSupportThread(item);
+  const otherName = isSupport ? "" : other?.name ?? "";
   const unread    = item.unreadCount ?? 0;
   // Design review fix — SF-M3 (docs/SELL_FLOW_REDESIGN.md §4.4.3) explicitly
   // calls for dropping "reserved" from this exact condition ("a held
@@ -134,7 +139,7 @@ export function ConversationRow({
     item.viewerRole === "seller" ? "selling" : item.viewerRole === "buyer" ? "buying" : null;
   // Skip the pill when the active role scope already tells the user which
   // side every row is on (review fix) — see the `role` prop doc comment.
-  const showRolePill = Boolean(viewerRoleMode) && role !== viewerRoleMode;
+  const showRolePill = !isSupport && Boolean(viewerRoleMode) && role !== viewerRoleMode;
 
   // ── Preview ───────────────────────────────────────────────────────────────
   // Shared with `filterConversations` (TASK-Z684 list search) — the row must
@@ -222,7 +227,13 @@ export function ConversationRow({
           <View
             style={[styles.thumb, { backgroundColor: colors.muted }]}
           >
-            {item.listing?.thumbnailUrl ? (
+            {isSupport ? (
+              // The brand mark is itself a rounded square (rx 18/100 ≈ this
+              // thumb's radius), so it fills the listing-photo slot exactly.
+              <View testID={`support-thumb-${item.id}`}>
+                <Logomark size={THUMB} />
+              </View>
+            ) : item.listing?.thumbnailUrl ? (
               <Image
                 source={{ uri: item.listing.thumbnailUrl }}
                 contentFit="cover"
@@ -271,7 +282,7 @@ export function ConversationRow({
                     { color: isInactive ? colors.mutedForeground : colors.foreground },
                   ]}
                 >
-                  {item.listing?.title ?? t("chat.title")}
+                  {isSupport ? t("chat.support.name") : item.listing?.title ?? t("chat.title")}
                 </Text>
               )}
             </View>
@@ -508,10 +519,13 @@ export function ConversationRow({
                 </Pressable>
               )}
 
-              {/* Divider */}
+              {/* Delete — destructive. Not offered on a support thread: it can
+                  be archived (a new Support reply brings it back), never
+                  deleted, so a reply can never land somewhere invisible. */}
+              {!isSupport && (
+              <>
               <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 4 }} />
 
-              {/* Delete — destructive */}
               <Pressable
                 onPress={handleDelete}
                 testID="menu-delete"
@@ -529,6 +543,8 @@ export function ConversationRow({
                   {t("chat.deleteConversation")}
                 </RNText>
               </Pressable>
+              </>
+              )}
             </View>
           </View>
         </View>
