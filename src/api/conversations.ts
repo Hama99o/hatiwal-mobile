@@ -68,10 +68,10 @@ export interface Message {
  * What kind of thread a conversation is. A support thread (`"support"`) has no
  * listing — one side is the user, the other a dedicated Hatiwal Support
  * account. A string, not a boolean, so further system accounts (announcements)
- * slot in without a second flag. Absent/null on an ordinary listing thread and
- * on API builds that predate the field.
+ * slot in without a second flag. `"listing"` on an ordinary thread; absent on
+ * API builds that predate the field.
  */
-export type ConversationKind = "support";
+export type ConversationKind = "listing" | "support";
 
 export interface Conversation {
   id: number;

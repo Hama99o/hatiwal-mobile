@@ -769,6 +769,7 @@ describe("isSupportThread", () => {
   });
 
   it("is false for an ordinary thread, a missing kind, or no conversation", () => {
+    expect(isSupportThread({ kind: "listing" })).toBe(false);
     expect(isSupportThread({ kind: null })).toBe(false);
     expect(isSupportThread({})).toBe(false);
     expect(isSupportThread(null)).toBe(false);
