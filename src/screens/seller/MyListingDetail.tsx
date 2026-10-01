@@ -588,11 +588,11 @@ export default function MyListingDetailScreen() {
                 </Text>
               </View>
             </View>
-            <ChevronRight
-              size={18}
-              color={colors.mutedForeground}
-              style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined}
-            />
+            {/* Mirror on a wrapping View — a transform on the <Svg> itself
+                draws nothing on Android (same bug as the chat send button). */}
+            <View style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined}>
+              <ChevronRight size={18} color={colors.mutedForeground} />
+            </View>
           </Pressable>
         </Section>
       </ScrollView>

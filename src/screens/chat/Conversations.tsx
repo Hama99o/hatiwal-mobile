@@ -575,16 +575,20 @@ export default function ConversationsScreen() {
           * looking for, and clearing it brings both straight back.
           */}
         {trimmedSearchTerm ? null : (
+        // Compact segmented control: a thin muted track with the active
+        // segment raised on the card colour. It used to be a full-height bar
+        // with a solid primary fill, 48dp tall — the loudest thing above the
+        // list on a screen whose content is the list.
         <View
           style={{
             flexDirection:   isRtl ? "row-reverse" : "row",
-            marginTop:       12,
-            borderRadius:    10,
-            overflow:        "hidden",
+            marginTop:       10,
+            padding:         3,
+            borderRadius:    999,
             backgroundColor: colors.muted,
           }}
         >
-          {(["inbox", "archived"] as TabMode[]).map((tab, i) => {
+          {(["inbox", "archived"] as TabMode[]).map((tab) => {
             const isActive = tabMode === tab;
             const labelKey = tab === "inbox" ? "chat.tabs.inbox" : "chat.tabs.archived";
             return (
@@ -599,30 +603,37 @@ export default function ConversationsScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: isActive }}
                 accessibilityLabel={t(labelKey)}
-                style={{
-                  flex:            1,
-                  flexDirection:   isRtl ? "row-reverse" : "row",
-                  alignItems:      "center",
-                  justifyContent:  "center",
-                  gap:             6,
-                  paddingVertical: 12,
-                  backgroundColor: isActive ? colors.primary : "transparent",
-                  borderRadius:    isActive ? 10 : 0,
-                  borderLeftWidth: i > 0 && !isActive ? 1 : 0,
-                  borderLeftColor: colors.border,
-                }}
+                style={[
+                  {
+                    flex:            1,
+                    flexDirection:   isRtl ? "row-reverse" : "row",
+                    alignItems:      "center",
+                    justifyContent:  "center",
+                    gap:             5,
+                    paddingVertical: 6,
+                    borderRadius:    999,
+                    backgroundColor: isActive ? colors.card : "transparent",
+                  },
+                  isActive && {
+                    shadowColor:   colors.shadow,
+                    shadowOpacity: 0.08,
+                    shadowRadius:  3,
+                    shadowOffset:  { width: 0, height: 1 },
+                    elevation:     1,
+                  },
+                ]}
               >
                 {tab === "archived" && (
                   <Archive
-                    size={13}
-                    color={isActive ? colors.primaryForeground : colors.mutedForeground}
+                    size={12}
+                    color={isActive ? colors.primary : colors.mutedForeground}
                   />
                 )}
                 <Text
                   style={{
-                    fontSize:   13,
-                    fontWeight: "600",
-                    color:      isActive ? colors.primaryForeground : colors.foreground,
+                    fontSize:   12,
+                    fontWeight: "700",
+                    color:      isActive ? colors.primary : colors.mutedForeground,
                   }}
                 >
                   {t(labelKey)}

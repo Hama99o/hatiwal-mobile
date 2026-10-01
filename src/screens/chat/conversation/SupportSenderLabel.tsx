@@ -57,7 +57,7 @@ export function SupportSenderLabel() {
       }}
     >
       <UserAvatar name={name} size={16} variant="support" />
-      <Text style={{ fontSize: 11, fontWeight: "600", color: colors.mutedForeground }}>{name}</Text>
+      <Text style={{ fontSize: 11, fontWeight: "700", color: colors.mutedForeground }}>{name}</Text>
     </View>
   );
 }

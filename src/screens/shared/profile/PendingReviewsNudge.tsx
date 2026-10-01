@@ -121,15 +121,12 @@ export function PendingReviewsNudge() {
                   subtitle={transaction.listing?.title ?? undefined}
                 />
               </View>
-              <ChevronRight
-                size={16}
-                color={colors.mutedForeground}
-                // Never let the affordance be the thing that gets squeezed out.
-                style={[
-                  { flexShrink: 0 },
-                  isRtl ? { transform: [{ scaleX: -1 }] } : null,
-                ]}
-              />
+              {/* Never let the affordance be the thing that gets squeezed out.
+                  Mirror on the wrapping View — a transform on the <Svg> itself
+                  draws nothing on Android (same bug as the chat send button). */}
+              <View style={[{ flexShrink: 0 }, isRtl ? { transform: [{ scaleX: -1 }] } : null]}>
+                <ChevronRight size={16} color={colors.mutedForeground} />
+              </View>
             </Pressable>
           );
         })}

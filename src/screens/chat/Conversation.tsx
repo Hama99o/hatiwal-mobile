@@ -2206,11 +2206,12 @@ export function ConversationScreen() {
               {isStarting ? (
                 <ActivityIndicator color={colors.primaryForeground} size="small" />
               ) : (
-                <Send
-                  size={20}
-                  color={colors.primaryForeground}
-                  style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined}
-                />
+                // The RTL mirror goes on a wrapping View, never on the SVG:
+                // a transform on the lucide <Svg> itself rendered NOTHING on
+                // Android in ps/fa/ur — an empty blue send button.
+                <View style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined}>
+                  <Send size={20} color={colors.primaryForeground} />
+                </View>
               )}
             </Button>
           </View>
@@ -2268,11 +2269,12 @@ export function ConversationScreen() {
               {isSending ? (
                 <ActivityIndicator color={colors.primaryForeground} size="small" />
               ) : (
-                <Send
-                  size={20}
-                  color={colors.primaryForeground}
-                  style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined}
-                />
+                // The RTL mirror goes on a wrapping View, never on the SVG:
+                // a transform on the lucide <Svg> itself rendered NOTHING on
+                // Android in ps/fa/ur — an empty blue send button.
+                <View style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined}>
+                  <Send size={20} color={colors.primaryForeground} />
+                </View>
               )}
             </Button>
           </View>
