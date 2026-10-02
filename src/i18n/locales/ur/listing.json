@@ -256,6 +256,7 @@
   },
   "shopCount_one": "{{count}} اشتہار",
   "firmPrice": "طے شدہ قیمت",
+  "firmPriceShort": "طے شدہ",
   "card": {
     "verifiedSeller": "تصدیق شدہ بیچنے والا",
     "ago": {

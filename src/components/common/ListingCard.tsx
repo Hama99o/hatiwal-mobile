@@ -464,9 +464,15 @@ export function ListingCard({
           {/* StatusBadge overlay (top-left / top-right depending on RTL) */}
           {showStatus && (
             <View
+              testID="listing-card-status-overlay"
               style={[
                 styles.statusOverlay,
                 isRtl ? styles.statusOverlayRtl : styles.statusOverlayLtr,
+                // StatusBadge's fill is a translucent tint made for a card
+                // surface. Straight on a photo the photo showed through and
+                // "Active" was close to invisible (UI-056): give the pill the
+                // card surface it was designed against.
+                { backgroundColor: colors.card, borderRadius: 999 },
               ]}
             >
               <StatusBadge status={listing.status} />
@@ -571,8 +577,17 @@ export function ListingCard({
               lineHeight={24}
             />
             {listing.negotiable === false && (
-              <View testID="firm-price-badge" style={{ flexShrink: 1 }}>
-                <Badge label={t("listing.firmPrice")} variant="muted" />
+              // The SHORT label in the grid: beside a six-digit price the full
+              // "Firm price" was cut to "Firm …" in its fixed 24dp row (UI-054).
+              // The list card has room and keeps the full one; screen readers
+              // get the full one here too.
+              <View
+                testID="firm-price-badge"
+                style={{ flexShrink: 1 }}
+                accessible
+                accessibilityLabel={t("listing.firmPrice")}
+              >
+                <Badge label={t("listing.firmPriceShort")} variant="muted" />
               </View>
             )}
           </View>

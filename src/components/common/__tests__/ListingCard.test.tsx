@@ -209,6 +209,15 @@ describe("ListingCard — StatusBadge with showStatus=true", () => {
     render(<ListingCard listing={makeListing({ status: "active" })} />);
     expect(screen.queryByText("listing.status.active")).toBeNull();
   });
+  it("on the grid photo the pill sits on an opaque card surface, not the photo (UI-056)", () => {
+    // The pill's fill is a translucent tint: straight on a busy photo "Active"
+    // was close to invisible (QA 2026-10-02, My Shop grid).
+    render(<ListingCard listing={makeListing({ status: "active" })} showStatus />);
+    const overlay = screen.getByTestId("listing-card-status-overlay");
+    const bg = StyleSheet.flatten(overlay.props.style).backgroundColor;
+    expect(bg).toBeTruthy();
+    expect(bg).not.toMatch(/rgba|transparent/);
+  });
 });
 
 // ── 4. Save heart toggle ──────────────────────────────────────────────────────
@@ -466,6 +475,19 @@ describe("ListingCard — firm-price badge (negotiable)", () => {
   it("renders firm-price badge when negotiable is false (list variant)", () => {
     render(<ListingCard listing={makeListing({ negotiable: false })} variant="list" />);
     expect(screen.getByTestId("firm-price-badge")).toBeTruthy();
+  });
+
+  it("grid shows the SHORT label (fixed 24dp price row), full label for screen readers (UI-054)", () => {
+    // Beside "AFN 150,000" the full "Firm price" was cut to "Firm …" (QA 2026-10-02).
+    render(<ListingCard listing={makeListing({ negotiable: false, price: 150000 })} />);
+    expect(screen.getByText("listing.firmPriceShort")).toBeTruthy();
+    expect(screen.queryByText("listing.firmPrice")).toBeNull();
+    expect(screen.getByTestId("firm-price-badge").props.accessibilityLabel).toBe("listing.firmPrice");
+  });
+
+  it("list keeps the full label (it has room)", () => {
+    render(<ListingCard listing={makeListing({ negotiable: false })} variant="list" />);
+    expect(screen.getByText("listing.firmPrice")).toBeTruthy();
   });
 
   it("does NOT render firm-price badge when negotiable is true (list variant)", () => {
