@@ -2,9 +2,8 @@ import "../src/styles/global.css";
 import "../src/i18n";
 
 import { useEffect, useState } from "react";
-import { LogBox, View, useColorScheme } from "react-native";
-import { StatusBar } from "expo-status-bar";
-import { useThemeStore, loadSavedTheme } from "@/stores/theme.store";
+import { LogBox, View } from "react-native";
+import { loadSavedTheme } from "@/stores/theme.store";
 // @ts-ignore — module is installed in Docker container; not resolvable on host
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
@@ -12,6 +11,7 @@ import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner-native";
 import { AppTransitionOverlay } from "@/components/common/AppTransitionOverlay";
+import { ThemedSystemBars } from "@/components/common/ThemedSystemBars";
 import { bootstrapAuth } from "@/stores/auth.bootstrap";
 
 // A LogBox OVERLAY covers the app and makes controls unreachable — it is dev-only
@@ -36,13 +36,6 @@ const queryClient = new QueryClient({
     queries: { staleTime: 1000 * 60 * 5, retry: 1 },
   },
 });
-
-function ThemedStatusBar() {
-  const theme = useThemeStore((s) => s.theme);
-  const osScheme = useColorScheme();
-  const isDark = theme === "system" ? osScheme === "dark" : theme === "dark";
-  return <StatusBar style={isDark ? "light" : "dark"} translucent />;
-}
 
 function ThemeManager({ onReady }: { onReady: () => void }) {
   const [loaded, setLoaded] = useState(false);
@@ -79,9 +72,10 @@ export default function RootLayout() {
           (tab bar, headers, sheets, footers) returns zeros without it, which
           silently disables all notch / home-indicator spacing. */}
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-        {/* StatusBar — reads the app's own theme store (not just system scheme)
-            so icons are correct even when the user has overridden light/dark. */}
-        <ThemedStatusBar />
+        {/* Status bar + native root background — read the app's own theme store
+            (not just the system scheme), so the strips behind the status bar and
+            the navigation bar match when the user overrides light/dark. */}
+        <ThemedSystemBars />
         <QueryClientProvider client={queryClient}>
           <ThemeManager onReady={() => setThemeReady(true)} />
           {/* Hide everything until theme is resolved to avoid flash of wrong colors.
