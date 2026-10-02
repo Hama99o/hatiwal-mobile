@@ -257,7 +257,16 @@
   "shopCount_one": "{{count}} اشتہار",
   "firmPrice": "طے شدہ قیمت",
   "card": {
-    "verifiedSeller": "تصدیق شدہ بیچنے والا"
+    "verifiedSeller": "تصدیق شدہ بیچنے والا",
+    "ago": {
+      "now": "ابھی",
+      "minutes": "{{n}} منٹ",
+      "hours": "{{n}} گھنٹے",
+      "days": "{{n}} دن",
+      "weeks": "{{n}} ہفتے",
+      "months": "{{n}} ماہ",
+      "years": "{{n}} سال"
+    }
   },
   "notInterested": "دلچسپی نہیں",
   "hiddenUndo": "اشتہار آپ کی فہرست سے چھپا دیا گیا",

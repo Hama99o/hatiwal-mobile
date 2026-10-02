@@ -257,7 +257,16 @@
   "shopCount_one": "{{count}} listing",
   "firmPrice": "Firm price",
   "card": {
-    "verifiedSeller": "Verified seller"
+    "verifiedSeller": "Verified seller",
+    "ago": {
+      "now": "now",
+      "minutes": "{{n}}m",
+      "hours": "{{n}}h",
+      "days": "{{n}}d",
+      "weeks": "{{n}}w",
+      "months": "{{n}}mo",
+      "years": "{{n}}y"
+    }
   },
   "notInterested": "Not interested",
   "hiddenUndo": "Listing hidden from your feed",

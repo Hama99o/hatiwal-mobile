@@ -257,7 +257,16 @@
   "shopCount_one": "{{count}} آگهی",
   "firmPrice": "قیمت ثابت",
   "card": {
-    "verifiedSeller": "فروشنده تأیید شده"
+    "verifiedSeller": "فروشنده تأیید شده",
+    "ago": {
+      "now": "همین حالا",
+      "minutes": "{{n}} دقیقه",
+      "hours": "{{n}} ساعت",
+      "days": "{{n}} روز",
+      "weeks": "{{n}} هفته",
+      "months": "{{n}} ماه",
+      "years": "{{n}} سال"
+    }
   },
   "notInterested": "علاقه‌مند نیستم",
   "hiddenUndo": "آگهی از فید شما پنهان شد",

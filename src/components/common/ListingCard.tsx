@@ -21,6 +21,7 @@ import { StatusBadge } from "./StatusBadge";
 import { PriceDropBadge } from "./PriceDropBadge";
 import { VerifiedBadge } from "./VerifiedBadge";
 import { Badge } from "@/components/reusables/badge";
+import { agoParts, shortLocation } from "@/lib/listingMeta";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useColors } from "@/hooks/useColors";
 
@@ -76,7 +77,7 @@ export function ListingCard({
 }: ListingCardProps) {
   const router = useRouter();
   const { t } = useTranslation();
-  const { formatDate, isRtl } = useLocalization();
+  const { formatNumber, isRtl } = useLocalization();
   const colors = useColors();
   const reduceMotion = useReduceMotion();
   // Reduce-motion aware entering animation factory — returns undefined when
@@ -161,8 +162,15 @@ export function ListingCard({
   // ── Derived values ───────────────────────────────────────────────────────
   // Show the LISTING's own location — not the seller's profile city. An item
   // can be listed in a different place than where the seller lives.
-  const listingLocation = listing.location ?? null;
-  const postedAgo = listing.createdAt ? formatDate(listing.createdAt) : null;
+  // Shortened ("10th District, Kabul, Kabul District" → "10th District, Kabul")
+  // and led by the listing's age, as Nextdoor and Facebook Marketplace do:
+  // "2d · 10th District, Kabul" (docs/design/LISTING_CARDS.md).
+  const listingLocation = shortLocation(listing.location);
+  const ago = agoParts(listing.createdAt);
+  const agoLabel = ago
+    ? t(`listing.card.ago.${ago.unit}`, { n: formatNumber(ago.n) })
+    : null;
+  const metaText = [agoLabel, listingLocation].filter(Boolean).join(" · ") || null;
   // "Seen" state — the buyer has already opened this listing.
   const isViewed = listing.isViewed ?? false;
 
@@ -309,7 +317,7 @@ export function ListingCard({
             </Text>
 
             {/* Meta row: location + VerifiedBadge + StatusBadge */}
-            {(listingLocation || showStatus || listing.seller?.verified) ? (
+            {(metaText || showStatus || listing.seller?.verified) ? (
               <View
                 style={{
                   flexDirection: metaRowDirection,
@@ -319,20 +327,22 @@ export function ListingCard({
                   marginTop: 2,
                 }}
               >
-                {listingLocation ? (
+                {metaText ? (
                   <View
                     style={{
                       flexDirection: metaRowDirection,
                       alignItems: "center",
                       gap: 2,
+                      flexShrink: 1,
                     }}
                   >
-                    <MapPin size={10} color={colors.mutedForeground} />
+                    {listingLocation ? <MapPin size={10} color={colors.mutedForeground} /> : null}
                     <Text
-                      style={{ fontSize: 11, color: colors.mutedForeground }}
+                      style={{ fontSize: 11, color: colors.mutedForeground, flexShrink: 1 }}
                       numberOfLines={1}
+                      testID="listing-card-meta"
                     >
-                      {listingLocation}
+                      {metaText}
                     </Text>
                   </View>
                 ) : null}
@@ -589,7 +599,7 @@ export function ListingCard({
               gap: 4,
             }}
           >
-            {listingLocation ? (
+            {metaText ? (
               <View
                 style={{
                   flexDirection: metaRowDirection,
@@ -598,12 +608,13 @@ export function ListingCard({
                   flex: 1,
                 }}
               >
-                <MapPin size={10} color={colors.mutedForeground} />
+                {listingLocation ? <MapPin size={10} color={colors.mutedForeground} /> : null}
                 <Text
-                  style={{ fontSize: 11, color: colors.mutedForeground, flex: 1 }}
+                  style={{ fontSize: 11, color: colors.mutedForeground, flex: 1, textAlign: isRtl ? "right" : "left" }}
                   numberOfLines={1}
+                  testID="listing-card-meta"
                 >
-                  {listingLocation}
+                  {metaText}
                 </Text>
               </View>
             ) : null}
