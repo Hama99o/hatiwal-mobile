@@ -13,7 +13,9 @@
 
 import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
-import { useRouter, type Router } from "expo-router";
+import { useRouter } from "expo-router";
+
+type Router = ReturnType<typeof useRouter>;
 
 // Show the banner/sound even when the app is open (default would suppress it).
 Notifications.setNotificationHandler({

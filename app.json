@@ -7,12 +7,6 @@
     "icon": "./assets/icon.png",
     "scheme": "hatiwal",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#12224F"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hatiwal.app",
@@ -138,7 +132,9 @@
             ]
           }
         }
-      ]
+      ],
+      "expo-image",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

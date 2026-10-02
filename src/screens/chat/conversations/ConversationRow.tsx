@@ -239,7 +239,7 @@ export function ConversationRow({
                 contentFit="cover"
                 transition={200}
                 style={[
-                  StyleSheet.absoluteFillObject,
+                  StyleSheet.absoluteFill,
                   isInactive && styles.thumbFaded,
                 ]}
               />

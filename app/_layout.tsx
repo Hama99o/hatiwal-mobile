@@ -40,7 +40,7 @@ function ThemedStatusBar() {
   const theme = useThemeStore((s) => s.theme);
   const osScheme = useColorScheme();
   const isDark = theme === "system" ? osScheme === "dark" : theme === "dark";
-  return <StatusBar style={isDark ? "light" : "dark"} translucent />;
+  return <StatusBar style={isDark ? "light" : "dark"} />;
 }
 
 function ThemeManager({ onReady }: { onReady: () => void }) {
