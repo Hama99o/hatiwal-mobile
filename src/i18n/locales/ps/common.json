@@ -57,5 +57,9 @@
   "splash": {
     "validating": "ستاسو ناستې ازمایل کیږي…"
   },
-  "scrollToTop": "بېرته سر ته"
+  "scrollToTop": "بېرته سر ته",
+  "appChange": {
+    "language": "ژبه بدلېږي…",
+    "theme": "بڼه بدلېږي…"
+  }
 }

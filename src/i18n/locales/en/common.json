@@ -57,5 +57,9 @@
   "splash": {
     "validating": "Checking your session…"
   },
-  "scrollToTop": "Back to top"
+  "scrollToTop": "Back to top",
+  "appChange": {
+    "language": "Changing language…",
+    "theme": "Applying theme…"
+  }
 }

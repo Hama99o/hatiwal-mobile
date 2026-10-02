@@ -52,6 +52,7 @@ import { fontFamilyForLang } from "@/lib/fonts";
 import { confirmAlert } from "@/utils/alert";
 import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/permissions";
 import { setLanguage, resetLanguage, SUPPORTED_LANGUAGES, LanguageCode } from "@/i18n";
+import { runAppTransition } from "@/stores/appTransition.store";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { apiErrorMessage } from "@/utils/apiError";
 
@@ -880,7 +881,10 @@ function SettingsSection({
               return (
                 <Pressable
                   key={value}
-                  onPress={() => setTheme(value)}
+                  onPress={() => {
+                    if (value === theme) return;
+                    void runAppTransition(t("common.appChange.theme"), () => setTheme(value));
+                  }}
                   hitSlop={8}
                   android_ripple={{ color: colors.muted, borderless: false }}
                   accessibilityRole="button"
@@ -980,7 +984,15 @@ function SettingsSection({
                 <React.Fragment key={code}>
                   <Button
                     variant="ghost"
-                    onPress={() => setLanguage(code as LanguageCode)}
+                    onPress={() => {
+                      if (isActive) return;
+                      // Said in the language being switched TO: that is the
+                      // language the user is reading for.
+                      void runAppTransition(
+                        i18n.t("common.appChange.language", { lng: code }),
+                        () => setLanguage(code as LanguageCode)
+                      );
+                    }}
                     // The three labels are native names ("English"/"پښتو"/"دری"),
                     // identical in every locale, but the ACTIVE one is marked only
                     // by a colour and a check icon. `selected` is what a screen
