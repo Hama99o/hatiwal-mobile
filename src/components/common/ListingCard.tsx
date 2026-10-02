@@ -191,10 +191,10 @@ export function ListingCard({
       >
       <Animated.View
         style={[
-          // No bordered box: the photo carries the card (Depop, Nextdoor, eBay
-          // on Mobbin, docs/design/LISTING_CARDS.md). A box around a dark card
-          // read as a large empty panel once the text block was short.
-          { borderRadius: 12 },
+          // Soft surface, no border: photo + text on one slightly lighter panel
+          // so it is obvious which text belongs to which photo on the dark
+          // background (owner's choice, 2026-10-02; docs/design/LISTING_CARDS.md).
+          { borderRadius: 12, backgroundColor: colors.card, overflow: "hidden" },
           cardAnimStyle,
         ]}
       >
@@ -211,7 +211,7 @@ export function ListingCard({
             flexDirection: isRtl ? "row-reverse" : "row",
             alignItems: "center",
             gap: 12,
-            paddingVertical: 4,
+            padding: 8,
           }}
         >
           {/* ── Thumbnail ──────────────────────────────────────────── */}
@@ -411,7 +411,13 @@ export function ListingCard({
       entering={hasEntering ? getEntering(index!) : undefined}
       style={style}
     >
-    <Animated.View style={[{ borderRadius: 12 }, cardAnimStyle]}>
+    <Animated.View
+      style={[
+        // Soft surface (see the list variant): one lighter panel, no border.
+        { borderRadius: 12, backgroundColor: colors.card, overflow: "hidden" },
+        cardAnimStyle,
+      ]}
+    >
       <Pressable
         onPress={handlePress}
         onPressIn={handlePressIn}
@@ -544,7 +550,7 @@ export function ListingCard({
           every grid row bottom-aligned is to give every card the SAME total
           height, regardless of content.
         */}
-        <View style={{ paddingTop: 8, paddingHorizontal: 2, gap: 2 }}>
+        <View style={{ paddingTop: 8, paddingHorizontal: 10, paddingBottom: 10, gap: 2 }}>
           {/* Price row — the hero, with the firm-price chip beside it. Fixed
               height so every card in a FlashList row stays the same height
               (no columnWrapperStyle there), but nothing is reserved empty. */}
@@ -717,8 +723,6 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 1,
     position: "relative",
-    borderRadius: 12,
-    overflow: "hidden",
   },
   image: {
     width: "100%",

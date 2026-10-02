@@ -38,3 +38,13 @@ Deliveroo https://mobbin.com/screens/f80ff1d6-36d5-4a08-8024-55ed0adbccd7
 Every grid row keeps a fixed height, because FlashList's numColumns has no
 `columnWrapperStyle`, so neighbours must be equally tall. None of those rows is
 reserved empty any more.
+
+## Follow-up the same day: soft surface
+
+On the phone (dark mode) the borderless card did not group well: the owner
+could not tell whether a title belonged to the photo above it or the one
+below, even with a 24dp row gap. He chose a **soft surface**: photo and text
+on one slightly lighter rounded panel (`colors.card`), still **no border**,
+text 8dp under the photo with 10dp side and bottom padding. The row gap is
+back to 12dp, because the panel now does the grouping. List rows got the same
+panel, with 8dp padding around the 96dp photo.
