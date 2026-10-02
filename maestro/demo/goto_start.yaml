@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# Put the persistent demo device back at the start of the tutorial WITHOUT
+# signing out or wiping anything. Safe to run before every take.
+- tapOn:
+    text: "Continue"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    text: "Close"
+    optional: true
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "browse-tab"
+    timeout: 60000
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd

@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# BEAT 3 — "Write what you are selling, and your price"
+# eraseText between tap and typing: Maestro drops the FIRST character otherwise.
+- tapOn: "What are you selling?"
+- eraseText
+- inputText: "Renault Clio Baccara 1994 - 13,730 km, all original"
+# The IME must come DOWN before the next scroll/tap. A tap whose bounds are
+# covered by the keyboard is reported COMPLETED while the touch lands on the
+# keyboard — that is how the description text ended up in the PRICE field on
+# the first Clio take. Guarded on keyboard_holder, so it is a no-op when the
+# IME is already down and can never send a stray Back.
+- runFlow: ../../_helpers/dismiss_keyboard_if_open.yaml
+- scrollUntilVisible:
+    element:
+      text: "Enter price"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Enter price"
+- eraseText
+- inputText: "150000"
+- runFlow: ../../_helpers/dismiss_keyboard_if_open.yaml

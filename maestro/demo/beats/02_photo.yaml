@@ -1,0 +1,11 @@
+appId: com.hatiwal.app
+---
+# BEAT 2 — "Add your photos"
+# Photos are the form's FIRST section; filling other fields first scrolls this
+# button off screen and the tap then fails (see create_listing_full_publish.yaml).
+- assertVisible:
+    id: "photos-add-button"
+- tapOn:
+    id: "photos-add-button"
+- waitForAnimationToEnd
+- runFlow: ../../_helpers/attach_photo_from_gallery.yaml

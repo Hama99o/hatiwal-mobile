@@ -1,0 +1,14 @@
+appId: com.hatiwal.app
+---
+# BEAT 2 — search for the thing you actually want.
+- tapOn:
+    id: "browse-search-input"
+- eraseText
+- inputText: "Electric Bicycle"
+- runFlow: ../../_helpers/dismiss_keyboard_by_drag.yaml
+- pressKey: Enter
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000

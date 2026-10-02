@@ -1,0 +1,13 @@
+appId: com.hatiwal.app
+---
+# BEAT 6 — ask your question.
+- extendedWaitUntil:
+    visible: "Type a message..."
+    timeout: 25000
+- tapOn: "Type a message..."
+- eraseText
+- inputText: "Salam. Is the bicycle still available?"
+- tapOn: "Send"
+- waitForAnimationToEnd
+- assertVisible: ".*still available.*"
+- runFlow: ../../_helpers/dismiss_keyboard_if_open.yaml

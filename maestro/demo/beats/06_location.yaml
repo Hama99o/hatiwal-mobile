@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# The IME must come DOWN before the next scroll/tap. A tap whose bounds are
+# covered by the keyboard is reported COMPLETED while the touch lands on the
+# keyboard — that is how the description text ended up in the PRICE field on
+# the first Clio take. Guarded on keyboard_holder, so it is a no-op when the
+# IME is already down and can never send a stray Back.
+- runFlow: ../../_helpers/dismiss_keyboard_if_open.yaml
+# BEAT 6 — "Set where buyers can meet you"
+# A publish blocker: a live listing needs a map pin AND a photo.
+- scrollUntilVisible:
+    element:
+      text: "Tap to set exact location on map"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Tap to set exact location on map"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "location-confirm"
+- tapOn:
+    id: "location-confirm"
+- extendedWaitUntil:
+    notVisible:
+      id: "location-confirm"
+    timeout: 45000
+- assertNotVisible: "Tap to set exact location on map"

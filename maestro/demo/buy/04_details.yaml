@@ -1,0 +1,12 @@
+appId: com.hatiwal.app
+---
+# BEAT 4 — read the detail and check who you are dealing with.
+- runFlow: ../../_helpers/dismiss_keyboard_if_open.yaml
+- swipe:
+    start: 50%, 70%
+    end: 50%, 35%
+- waitForAnimationToEnd
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+- waitForAnimationToEnd

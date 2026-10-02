@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# The IME must come DOWN before the next scroll/tap. A tap whose bounds are
+# covered by the keyboard is reported COMPLETED while the touch lands on the
+# keyboard — that is how the description text ended up in the PRICE field on
+# the first Clio take. Guarded on keyboard_holder, so it is a no-op when the
+# IME is already down and can never send a stray Back.
+- runFlow: ../../_helpers/dismiss_keyboard_if_open.yaml
+# BEAT 7 — "Publish. It is live."
+# Scroll-then-tap, never hideKeyboard: on a pushed screen hideKeyboard is Back
+# and pops the form.
+- scrollUntilVisible:
+    element:
+      text: "Publish"
+    direction: DOWN
+    timeout: 20000
+- waitForAnimationToEnd
+- tapOn: "Publish"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Renault Clio Baccara 1994.*"
+    timeout: 60000
+- assertNotVisible: "Draft"

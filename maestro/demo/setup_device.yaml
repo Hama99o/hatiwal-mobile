@@ -1,0 +1,88 @@
+appId: com.hatiwal.app
+env:
+  EMAIL: seller@hatiwal.test
+  PASSWORD: Password123!
+---
+# ONE-TIME setup for the PERSISTENT demo device (emulator-5596 / hatiwal_demo).
+#
+# Deliberately NOT ../_helpers/login_seller.yaml: that helper does
+# `launchApp: stopApp: true` whenever it cannot see the tab bar, which on a
+# dev-client build drops back to the Expo dev-launcher and needs the Metro deep
+# link again — an endless loop. It is written for the rig, which reinstalls and
+# re-seeds every run. This device keeps its session, so the login only has to
+# work ONCE and must never restart the app.
+
+- tapOn:
+    text: "Skip"
+    optional: true
+- waitForAnimationToEnd
+
+# Onboarding can be several pages; Next until Skip/Get started is gone.
+- repeat:
+    times: 4
+    commands:
+      - tapOn:
+          text: "Next|Get Started|Get started"
+          optional: true
+      - waitForAnimationToEnd
+
+- tapOn:
+    text: "Skip"
+    optional: true
+- waitForAnimationToEnd
+
+# Sign in if the form is up. testIDs, not translated labels.
+- runFlow:
+    when:
+      visible:
+        id: "login-email-input"
+    commands:
+      - tapOn:
+          id: "login-email-input"
+      - eraseText
+      - inputText: ${EMAIL}
+      - tapOn:
+          id: "login-password-input"
+      - eraseText
+      - inputText: ${PASSWORD}
+      - hideKeyboard
+      - waitForAnimationToEnd
+      - tapOn:
+          id: "login-submit"
+      - waitForAnimationToEnd
+
+# The notification prompt covers the tab bar right after a first login.
+- extendedWaitUntil:
+    visible: "Allow Hatiwal to send you notifications?"
+    timeout: 25000
+    optional: true
+- tapOn:
+    text: "Don.t allow"
+    optional: true
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-tab"
+    timeout: 60000
+
+# Seller mode, so the device is ready to film listing tutorials.
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Switch to .*"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Switch to Seller Mode"
+    commands:
+      - tapOn:
+          id: "mode-toggle-button"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Switch to Buyer Mode"
+    timeout: 20000
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd

@@ -1,0 +1,8 @@
+appId: com.hatiwal.app
+---
+# NOT RECORDED. Puts the app in a known, clean state before filming:
+# seller signed in, English, seller mode, sitting on the Bazaar tab.
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd

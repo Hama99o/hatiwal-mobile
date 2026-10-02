@@ -1,0 +1,10 @@
+appId: com.hatiwal.app
+---
+# BEAT 3 — open it: photos, price, condition.
+- tapOn:
+    id: "listing-card"
+    index: 0
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Electric Bicycle 48V Foldable"
+    timeout: 25000

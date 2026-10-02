@@ -1,0 +1,23 @@
+appId: com.hatiwal.app
+---
+# The IME must come DOWN before the next scroll/tap. A tap whose bounds are
+# covered by the keyboard is reported COMPLETED while the touch lands on the
+# keyboard — that is how the description text ended up in the PRICE field on
+# the first Clio take. Guarded on keyboard_holder, so it is a no-op when the
+# IME is already down and can never send a stray Back.
+- runFlow: ../../_helpers/dismiss_keyboard_if_open.yaml
+# BEAT 4 — "Pick a category"
+# Must end on a LEAF: all 16 top-level categories have children, so tapping a
+# parent only drills in and the sheet stays open.
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Vehicles"
+- waitForAnimationToEnd
+- tapOn: "Cars"
+- waitForAnimationToEnd

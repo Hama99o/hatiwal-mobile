@@ -1,0 +1,4 @@
+appId: com.hatiwal.app
+---
+# BEAT 5 — message the seller. No payment, no delivery: you just talk.
+- runFlow: ../../_helpers/open_thread_from_listing.yaml

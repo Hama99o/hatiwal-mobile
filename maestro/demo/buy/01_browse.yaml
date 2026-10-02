@@ -1,0 +1,15 @@
+appId: com.hatiwal.app
+---
+# BEAT 1 — the Bazaar. Everything near you, in one feed.
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 30000
+- swipe:
+    start: 50%, 70%
+    end: 50%, 35%
+- waitForAnimationToEnd
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+- waitForAnimationToEnd

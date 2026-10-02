@@ -1,0 +1,14 @@
+appId: com.hatiwal.app
+---
+# BEAT 1 — "Tap Post a listing"
+- tapOn: "Post a listing"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+# A previous take leaves a half-filled draft, so the form opens with
+# "You have an unsaved listing. Restore it?" across the top. Harmless for a test,
+# but it is on camera for the whole tutorial. Discard it and start clean.
+- tapOn:
+    text: "Discard"
+    optional: true
+- waitForAnimationToEnd

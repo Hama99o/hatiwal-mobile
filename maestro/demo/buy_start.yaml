@@ -1,0 +1,15 @@
+appId: com.hatiwal.app
+---
+# NOT RECORDED. Puts the persistent demo device into BUYER mode on the Bazaar.
+# The device lives in seller mode for the listing tutorial, and "Contact Seller"
+# never renders on your own listing — so the buy story has to be told as a buyer
+# looking at somebody else's item.
+- tapOn:
+    text: "Continue"
+    optional: true
+- waitForAnimationToEnd
+- runFlow: ../_helpers/ensure_buyer_mode.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/clear_browse_filters.yaml

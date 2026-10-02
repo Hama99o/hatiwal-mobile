@@ -1,0 +1,24 @@
+appId: com.hatiwal.app
+---
+# The IME must come DOWN before the next scroll/tap. A tap whose bounds are
+# covered by the keyboard is reported COMPLETED while the touch lands on the
+# keyboard — that is how the description text ended up in the PRICE field on
+# the first Clio take. Guarded on keyboard_holder, so it is a no-op when the
+# IME is already down and can never send a stray Back.
+- runFlow: ../../_helpers/dismiss_keyboard_if_open.yaml
+# BEAT 5 — "Describe it"
+- scrollUntilVisible:
+    element:
+      text: "Describe your item..."
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Describe your item..."
+- eraseText
+- inputText: "Renault Clio Baccara, 1994. Metallic grey, only 13,730 km. Collector condition, completely original, never restored. Manual gearbox, petrol engine. Everything works. Viewing in Kabul."
+- runFlow: ../../_helpers/dismiss_keyboard_if_open.yaml
+# PROVE the text went into the description and not somewhere else. On the first
+# Clio take it landed in the PRICE field and the flow still reported ok, because
+# nothing checked. The price must also still be intact.
+- assertVisible: ".*Viewing in Kabul.*"
+- assertVisible: ".*150000.*"

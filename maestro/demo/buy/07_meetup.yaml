@@ -1,0 +1,5 @@
+appId: com.hatiwal.app
+---
+# BEAT 7 — agree a place and a time, inside the app.
+- runFlow: ../../_helpers/dismiss_keyboard_if_open.yaml
+- runFlow: ../../_helpers/propose_meetup.yaml
