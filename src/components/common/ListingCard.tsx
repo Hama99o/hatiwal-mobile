@@ -568,6 +568,7 @@ export function ListingCard({
               currency={listing.currency}
               size="md"
               perUnit={listing.multiUnit === true}
+              lineHeight={24}
             />
             {listing.negotiable === false && (
               <View testID="firm-price-badge" style={{ flexShrink: 1 }}>
@@ -599,7 +600,7 @@ export function ListingCard({
               when absent would shrink that card versus its row neighbor. */}
           <View
             style={{
-              height: 16,
+              height: 18,
               flexDirection: metaRowDirection,
               alignItems: "center",
               gap: 4,
@@ -615,13 +616,37 @@ export function ListingCard({
                 }}
               >
                 {listingLocation ? <MapPin size={10} color={colors.mutedForeground} /> : null}
-                <Text
-                  style={{ fontSize: 11, color: colors.mutedForeground, flex: 1, textAlign: isRtl ? "right" : "left" }}
-                  numberOfLines={1}
+                {/* lineHeight 18 = the slot's fixed height: Noto Sans Arabic's
+                    natural line box is taller, and the old 16dp slot cut the
+                    descenders off ("," drew as ".", ې lost its dots).
+                    Age and location are two Texts, not one string: the age must
+                    never be the part that gets cut. As one mixed-direction
+                    string ("۲ ورځې · 10th District, Kabul") Android put the
+                    ellipsis on the Pashto/Urdu age and kept the place in full. */}
+                <View
                   testID="listing-card-meta"
+                  accessible
+                  accessibilityLabel={metaText ?? undefined}
+                  // Plain "row", NOT metaRowDirection: with native RTL on, "row"
+                  // already puts the age first (right) in ps/fa/ur; row-reverse
+                  // flipped it back and the age's digit ran into the place
+                  // ("2" + "10th District" read as "210th District").
+                  style={{ flexDirection: "row", alignItems: "center", flexShrink: 1, minWidth: 0 }}
                 >
-                  {metaText}
-                </Text>
+                  {agoLabel ? (
+                    <Text style={{ fontSize: 11, lineHeight: 18, color: colors.mutedForeground, flexShrink: 0 }} numberOfLines={1}>
+                      {listingLocation ? `${agoLabel} · ` : agoLabel}
+                    </Text>
+                  ) : null}
+                  {listingLocation ? (
+                    <Text
+                      style={{ fontSize: 11, lineHeight: 18, color: colors.mutedForeground, flexShrink: 1, textAlign: isRtl ? "right" : "left" }}
+                      numberOfLines={1}
+                    >
+                      {listingLocation}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
             ) : null}
             {listing.seller?.verified && (
