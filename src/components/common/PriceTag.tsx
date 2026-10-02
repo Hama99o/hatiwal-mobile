@@ -38,6 +38,14 @@ interface PriceTagProps {
    * the price, it does not compete with it.
    */
   perUnit?: boolean;
+  /**
+   * Pin the amount's line box. For a caller that lays the price out in a
+   * FIXED-height row (the grid ListingCard, 24dp, so both cards in a row stay
+   * the same height): without it the line box is the font's natural one, and
+   * Noto Sans Arabic (ps, ur) makes that 38.5dp for 17sp — the row then clipped
+   * the bottom of the price. Rubik fits 24 already, so English is unchanged.
+   */
+  lineHeight?: number;
 }
 
 // lg: hero price on Listing Detail (24sp — most prominent text after the photo)
@@ -52,6 +60,7 @@ export function PriceTag({
   size = "md",
   tone = "default",
   perUnit = false,
+  lineHeight,
 }: PriceTagProps) {
   const { formatCurrency, isRtl } = useLocalization();
   const { t } = useTranslation();
@@ -64,7 +73,7 @@ export function PriceTag({
 
   const amount = (
     <Text
-      style={{ color, fontSize: fontSize[size], fontWeight: fontWeight[size] }}
+      style={{ color, fontSize: fontSize[size], fontWeight: fontWeight[size], ...(lineHeight ? { lineHeight } : null) }}
       numberOfLines={1}
       accessibilityRole="text"
     >

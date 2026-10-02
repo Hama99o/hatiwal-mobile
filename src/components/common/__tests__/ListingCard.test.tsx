@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { ListingCard } from "../ListingCard";
 import type { Listing } from "@/api/listings";
@@ -142,20 +143,42 @@ describe("ListingCard — meta row (location + date)", () => {
   it("renders the listing location city", () => {
     render(<ListingCard listing={makeListing({ location: "Kabul, Share Naw" })} />);
     // The meta line leads with the listing's age: "<age> · Kabul, Share Naw".
-    expect(screen.getByTestId("listing-card-meta").props.children).toMatch(/Kabul, Share Naw$/);
+    expect(screen.getByTestId("listing-card-meta").props.accessibilityLabel).toMatch(/Kabul, Share Naw$/);
   });
 
   it("shortens a location that repeats its city", () => {
     render(<ListingCard listing={makeListing({ location: "10th District, Kabul, Kabul District" })} />);
-    expect(screen.getByTestId("listing-card-meta").props.children).toMatch(/· 10th District, Kabul$/);
+    expect(screen.getByTestId("listing-card-meta").props.accessibilityLabel).toMatch(/· 10th District, Kabul$/);
   });
 
   it("leads the meta line with a short age, never a full date", () => {
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
     render(<ListingCard listing={makeListing({ createdAt: twoDaysAgo, location: "Herat" })} />);
-    const meta = screen.getByTestId("listing-card-meta").props.children as string;
+    const meta = screen.getByTestId("listing-card-meta").props.accessibilityLabel as string;
     // The test translator returns keys; the unit picked is what matters here.
     expect(meta).toBe("listing.card.ago.days · Herat");
+  });
+
+  it("grid: the age is its own Text that never shrinks — only the place can be cut", () => {
+    // As one mixed-direction string ("۲ ورځې · 10th District, Kabul") Android
+    // put the ellipsis on the Pashto/Urdu age and kept the place (QA 2026-10-02).
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    render(<ListingCard listing={makeListing({ createdAt: twoDaysAgo, location: "10th District, Kabul" })} />);
+    const age = screen.getByText("listing.card.ago.days · ");
+    const place = screen.getByText("10th District, Kabul");
+    expect(StyleSheet.flatten(age.props.style).flexShrink).toBe(0);
+    expect(StyleSheet.flatten(place.props.style).flexShrink).toBe(1);
+    expect(place.props.numberOfLines).toBe(1);
+    // Both pinned to the 18dp slot, so a tall script's descenders are not cut.
+    expect(StyleSheet.flatten(age.props.style).lineHeight).toBe(18);
+    expect(StyleSheet.flatten(place.props.style).lineHeight).toBe(18);
+  });
+
+  it("grid: the price gets a fixed 24 line box, so a tall script cannot overflow its 24dp row", () => {
+    // Noto Sans Arabic (ps, ur) gives 17sp a 38.5dp natural line: the row
+    // clipped the bottom of the price (QA 2026-10-02).
+    render(<ListingCard listing={makeListing({ price: 150000, currency: "AFN" })} />);
+    expect(StyleSheet.flatten(screen.getByText("AFN 150000").props.style).lineHeight).toBe(24);
   });
 
   it("does not render the posted date on the card (date removed to keep cards clean)", () => {
