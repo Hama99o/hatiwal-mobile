@@ -141,7 +141,21 @@ describe("ListingCard — title and price", () => {
 describe("ListingCard — meta row (location + date)", () => {
   it("renders the listing location city", () => {
     render(<ListingCard listing={makeListing({ location: "Kabul, Share Naw" })} />);
-    expect(screen.getByText("Kabul, Share Naw")).toBeTruthy();
+    // The meta line leads with the listing's age: "<age> · Kabul, Share Naw".
+    expect(screen.getByTestId("listing-card-meta").props.children).toMatch(/Kabul, Share Naw$/);
+  });
+
+  it("shortens a location that repeats its city", () => {
+    render(<ListingCard listing={makeListing({ location: "10th District, Kabul, Kabul District" })} />);
+    expect(screen.getByTestId("listing-card-meta").props.children).toMatch(/· 10th District, Kabul$/);
+  });
+
+  it("leads the meta line with a short age, never a full date", () => {
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    render(<ListingCard listing={makeListing({ createdAt: twoDaysAgo, location: "Herat" })} />);
+    const meta = screen.getByTestId("listing-card-meta").props.children as string;
+    // The test translator returns keys; the unit picked is what matters here.
+    expect(meta).toBe("listing.card.ago.days · Herat");
   });
 
   it("does not render the posted date on the card (date removed to keep cards clean)", () => {
@@ -571,7 +585,7 @@ describe("ListingCard — list variant", () => {
 
   it("renders location in list mode", () => {
     render(<ListingCard listing={makeListing({ location: "Kabul, Share Naw" })} variant="list" />);
-    expect(screen.getByText("Kabul, Share Naw")).toBeTruthy();
+    expect(screen.getByTestId("listing-card-meta").props.children).toMatch(/Kabul, Share Naw$/);
   });
 
   it("renders save heart toggle in list mode when isSaved is provided", () => {

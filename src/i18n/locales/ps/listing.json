@@ -257,7 +257,16 @@
   "shopCount_one": "{{count}} اعلان",
   "firmPrice": "ثابت قیمت",
   "card": {
-    "verifiedSeller": "تایید شوی خرڅوونکی"
+    "verifiedSeller": "تایید شوی خرڅوونکی",
+    "ago": {
+      "now": "اوس",
+      "minutes": "{{n}} دقیقې",
+      "hours": "{{n}} ساعته",
+      "days": "{{n}} ورځې",
+      "weeks": "{{n}} اونۍ",
+      "months": "{{n}} میاشتې",
+      "years": "{{n}} کاله"
+    }
   },
   "notInterested": "لیوالتیا نلرم",
   "hiddenUndo": "اعلان له تاسو فید نه پټ شو",
