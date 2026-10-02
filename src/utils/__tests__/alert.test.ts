@@ -6,6 +6,9 @@
 
 jest.mock("react-native", () => ({
   Alert: { alert: jest.fn() },
+  // expo-modules-core (loaded by jest-expo's fetch global since SDK 57) reads
+  // Platform at import time, so a bare stand-in must still provide it.
+  Platform: { OS: "ios", select: (o: Record<string, unknown>) => o.ios ?? o.default },
 }));
 
 import { Alert } from "react-native";

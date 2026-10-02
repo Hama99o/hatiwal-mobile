@@ -12,6 +12,9 @@ jest.mock("@/utils/alert", () => ({
 
 jest.mock("react-native", () => ({
   Linking: { openSettings: jest.fn() },
+  // expo-modules-core (loaded by jest-expo's fetch global since SDK 57) reads
+  // Platform at import time, so a bare stand-in must still provide it.
+  Platform: { OS: "ios", select: (o: Record<string, unknown>) => o.ios ?? o.default },
 }));
 
 import { Linking } from "react-native";

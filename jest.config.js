@@ -1,6 +1,16 @@
+// Force NODE_ENV=test. Jest only sets it when unset, so a shell or container
+// exporting NODE_ENV=development leaks in; Reanimated 4.5 then decides it is not
+// under Jest (it checks NODE_ENV === "test") and boots its native module, so
+// every suite importing it fails to load. Set here so the workers inherit it.
+process.env.NODE_ENV = "test";
+
 /** @type {import('jest').Config} */
 module.exports = {
   preset: "jest-expo",
+  // Reanimated 4.5 runs on react-native-worklets, whose resolver drops the
+  // `.native` variants under Jest so its JS implementation loads instead of
+  // the native module (otherwise: "reading 'loadUnpackers'" in every suite).
+  resolver: "react-native-worklets/jest/resolver.js",
   // Must run BEFORE the framework and before any import — see the file.
   setupFiles: ["<rootDir>/src/__tests__/env.ts"],
   setupFilesAfterEnv: [
@@ -59,6 +69,7 @@ module.exports = {
       "@expo|" +
       "expo-router|" +
       "expo-modules-core|" +
+      "expo-asset|" +
       "expo-secure-store|" +
       "expo-image|" +
       "expo-haptics|" +
