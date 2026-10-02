@@ -51,7 +51,7 @@ import { useColors } from "@/hooks/useColors";
 import { fontFamilyForLang } from "@/lib/fonts";
 import { confirmAlert } from "@/utils/alert";
 import { showPermissionDeniedAlert, showLimitedPhotoAccessAlert } from "@/lib/permissions";
-import { setLanguage, resetLanguage, SUPPORTED_LANGUAGES, LanguageCode } from "@/i18n";
+import appI18n, { setLanguage, resetLanguage, SUPPORTED_LANGUAGES, LanguageCode } from "@/i18n";
 import { runAppTransition } from "@/stores/appTransition.store";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { apiErrorMessage } from "@/utils/apiError";
@@ -989,7 +989,7 @@ function SettingsSection({
                       // Said in the language being switched TO: that is the
                       // language the user is reading for.
                       void runAppTransition(
-                        i18n.t("common.appChange.language", { lng: code }),
+                        appI18n.t("common.appChange.language", { lng: code }),
                         () => setLanguage(code as LanguageCode)
                       );
                     }}
