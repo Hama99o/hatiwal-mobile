@@ -36,10 +36,11 @@ export function ListingCardSkeleton() {
 
   // Mirrors ListingCard variant="grid": square rounded photo, no box, then a
   // 24dp price row, an 18dp one-line title and a 16dp meta row.
+  const colors = useColors();
   return (
-    <View>
-      <SkeletonBlock style={{ aspectRatio: 1, borderRadius: 12 }} />
-      <View style={{ paddingTop: 8, paddingHorizontal: 2, gap: 2 }}>
+    <View style={{ borderRadius: 12, backgroundColor: colors.card, overflow: "hidden" }}>
+      <SkeletonBlock style={{ aspectRatio: 1, borderRadius: 0 }} />
+      <View style={{ paddingTop: 8, paddingHorizontal: 10, paddingBottom: 10, gap: 2 }}>
         <View style={{ height: 24, justifyContent: "center" }}>
           <SkeletonBlock width={80} height={17} />
         </View>
@@ -59,7 +60,7 @@ export function ListingCardSkeleton() {
 export function ListingCardListSkeleton() {
   // Mirrors ListingCard variant="list": 96dp rounded square photo, no box.
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 8, borderRadius: 12, backgroundColor: colors.card }}>
       <SkeletonBlock width={96} height={96} style={{ borderRadius: 10, flexShrink: 0 }} />
       <View style={{ flex: 1, gap: 6, justifyContent: "center" }}>
         <SkeletonBlock width={80} height={16} />
