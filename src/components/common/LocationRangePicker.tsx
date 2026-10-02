@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Modal,
   View,
@@ -23,7 +23,9 @@ import { showPermissionDeniedAlert } from "@/lib/permissions";
 import { searchPlaces, reverseGeocode, type GeocodeResult } from "@/utils/geocoding";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MapCanvas from "./map/MapCanvas";
-import { DEFAULT_CENTER, type MapCanvasCoords } from "./map/MapCanvas.types";
+import { type MapCanvasCoords } from "./map/MapCanvas.types";
+import { useAuthStore } from "@/stores/auth.store";
+import { fallbackCenter, sameCoords } from "@/lib/mapDefaults";
 
 /** Preset search radii (km). Shared with Browse so the chips stay in sync. */
 export const RADIUS_PRESETS = [1, 5, 10, 25, 50] as const;
@@ -78,7 +80,18 @@ export function LocationRangePicker({
   const dark = colors.isDark;
   const insets = useSafeAreaInsets();
 
-  const [coords, setCoords] = useState<MapCanvasCoords>(initialCoords ?? DEFAULT_CENTER);
+  // Start point when there is no saved pin: the user's PROFILE address (their
+  // map point, else their province capital), else Kabul. GPS, when already
+  // permitted, then refines it (effect below). Owner's order, 2026-10-02:
+  // GPS → profile address → Kabul (src/lib/mapDefaults.ts).
+  const user = useAuthStore((s) => s.user);
+  const { latitude: uLat, longitude: uLng, province: uProv, city: uCity } = user ?? {};
+  // Stable between renders: it is compared and used inside the effects below.
+  const startCenter = useMemo(
+    () => fallbackCenter({ latitude: uLat, longitude: uLng, province: uProv, city: uCity }),
+    [uLat, uLng, uProv, uCity]
+  );
+  const [coords, setCoords] = useState<MapCanvasCoords>(initialCoords ?? startCenter);
   const [radiusKm, setRadiusKm] = useState<number>(initialRadius || 5);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [geoError, setGeoError] = useState<GeoErrorCode | null>(null);
@@ -153,7 +166,7 @@ export function LocationRangePicker({
   // Re-sync when the modal is re-opened with new initial values.
   useEffect(() => {
     if (visible) {
-      setCoords(initialCoords ?? DEFAULT_CENTER);
+      setCoords(initialCoords ?? startCenter);
       setRadiusKm(initialRadius || 5);
       setGeoError(null);
       // Prefill the search box with the current place name (don't auto-search it).
@@ -162,11 +175,11 @@ export function LocationRangePicker({
       setResults([]);
       setSelectedLabel(initialLabel);
     }
-  }, [visible, initialCoords, initialRadius, initialLabel]);
+  }, [visible, initialCoords, initialRadius, initialLabel, startCenter]);
 
   // Centre on the user BY DEFAULT when we already have permission.
   //
-  // DEFAULT_CENTER is Kabul city centre. Before this, the map always opened
+  // The start point is the profile address or Kabul (see startCenter). Before this, the map always opened
   // there and "Use my location" was the ONLY way to move it — so a seller in
   // Herat or Kandahar who had already granted location permission still got a
   // Kabul pin, and if they did not notice they published a listing pinned to the
@@ -188,15 +201,13 @@ export function LocationRangePicker({
       // fix was in flight, leave it alone.
       if (cancelled || !c) return;
       setCoords((prev) =>
-        prev.latitude === DEFAULT_CENTER.latitude && prev.longitude === DEFAULT_CENTER.longitude
-          ? { latitude: c.latitude, longitude: c.longitude }
-          : prev
+        sameCoords(prev, startCenter) ? { latitude: c.latitude, longitude: c.longitude } : prev
       );
     });
     return () => {
       cancelled = true;
     };
-  }, [visible, initialCoords]);
+  }, [visible, initialCoords, startCenter]);
 
   const handleUseMyLocation = async () => {
     setGpsLoading(true);
