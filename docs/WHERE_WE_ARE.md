@@ -1,5 +1,11 @@
 # Where we are — sell flow redesign, and what comes next
 
+> **Latest (2026-10-02): see [RELEASE_1.1.4.md](RELEASE_1.1.4.md).** It covers
+> the card redesign, the instant grid/list switch, the language/theme overlay,
+> the welcome message, and the **deploy order**: web is live; the API is safe to
+> deploy, with the welcome message off until mobile 1.1.4 is on both stores. The rest of this file is the 2026-08-31
+> sell-flow handover.
+
 **Written 2026-08-31.** Handover log so the next session can pick this up cold.
 Read this, then the board (FlowApp project 5), then whichever spec applies.
 
