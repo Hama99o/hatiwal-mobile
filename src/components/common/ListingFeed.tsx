@@ -145,7 +145,7 @@ export function ListingFeed({
       if (viewMode === "list") {
         if (renderListItem) return renderListItem(info);
         return (
-          <View style={{ paddingBottom: 8 }}>
+          <View style={{ paddingBottom: 12 }}>
             <ListingCard
               listing={item}
               index={index}
@@ -160,9 +160,13 @@ export function ListingFeed({
         );
       }
 
-      // Grid mode — symmetric paddingHorizontal keeps gaps identical in LTR and RTL
+      // Grid mode — symmetric paddingHorizontal keeps gaps identical in LTR and RTL.
+      // The row gap (24) must be clearly bigger than the photo-to-text gap (8):
+      // cards have no box (docs/design/LISTING_CARDS.md), so spacing alone tells
+      // the eye which photo a price belongs to. At 10 the owner could not tell
+      // whether a title went with the photo above or below (2026-10-02).
       return (
-        <View style={{ flex: 1, paddingHorizontal: 5, paddingBottom: 10 }}>
+        <View style={{ flex: 1, paddingHorizontal: 5, paddingBottom: 24 }}>
           <ListingCard
             listing={item}
             index={index}
