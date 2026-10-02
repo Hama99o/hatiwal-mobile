@@ -379,9 +379,10 @@ export default function BrowseScreen() {
   }, []);
 
   // ── UniversalList fetcher key (triggers page reset on filter/mode change) ──
-  // viewMode is included so FlashList re-mounts cleanly when switching grid↔list
-  // (numColumns change requires a full re-layout, not just a re-render).
-  const fetcherKey = `${debouncedSearch}|${categoryId}|${condition}|${priceMin}|${priceMax}|${coordinates?.latitude}|${coordinates?.longitude}|${distance}|${location}|${sort}|${nearestCoords?.latitude}|${nearestCoords?.longitude}|${sellerActiveDays}|${priceDropped}|${viewMode}`;
+  // Filters only. The grid/list mode is NOT here: it changes the layout, not the
+  // results, and ListingFeed remounts the layout itself (layoutKey). Having it
+  // here refetched every page on each toggle.
+  const fetcherKey = `${debouncedSearch}|${categoryId}|${condition}|${priceMin}|${priceMax}|${coordinates?.latitude}|${coordinates?.longitude}|${distance}|${location}|${sort}|${nearestCoords?.latitude}|${nearestCoords?.longitude}|${sellerActiveDays}|${priceDropped}`;
 
   const isNearest = sort === "nearest";
 

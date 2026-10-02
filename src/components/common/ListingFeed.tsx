@@ -37,8 +37,8 @@ export type ListingFeedViewMode = "grid" | "list";
 export interface ListingFeedProps {
   /**
    * Unique id — must change when filters change to trigger a full re-mount.
-   * Include viewMode in this id if the fetcher result differs by view mode.
-   * Usually: id={`screen-name-${filterKey}-${viewMode}`}
+   * Do NOT put viewMode in this id: grid ↔ list is layout only (ListingFeed sets layoutKey).
+   * Usually: id={`screen-name-${filterKey}`}
    */
   id: string;
 
@@ -206,10 +206,11 @@ export function ListingFeed({
   // ── UniversalList config ──────────────────────────────────────────────────
 
   const config: UniversalListConfig<Listing> = {
-    // viewMode AND the column count are in the id so FlashList fully remounts
-    // when either changes — numColumns changes require a clean re-layout, not
-    // just a re-render (and that now includes a tablet rotation).
-    id: `${id}-${viewMode}-${gridColumns}`,
+    // The view mode and column count change the LAYOUT only, so they go in
+    // layoutKey (FlashList remounts for the new numColumns) and NOT in id,
+    // which keys the data: in id they made every grid ↔ list tap refetch.
+    id,
+    layoutKey: `${viewMode}-${gridColumns}`,
     refreshKey,
     fetcher,
     keyExtractor: (item) => String(item.id),

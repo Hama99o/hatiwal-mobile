@@ -366,7 +366,10 @@ describe("ListingFeed — renderListItem override", () => {
 // UniversalList to re-mount (new config id) and re-fetch.
 
 describe("ListingFeed — config id viewMode suffix", () => {
-  it("re-fetches when viewMode changes (id suffix changes, triggering re-mount)", async () => {
+  // Grid ↔ list is layout only. It used to be part of the data id, so every tap
+  // threw away the loaded pages and refetched them behind a skeleton; the owner
+  // reported tapping and waiting with nothing happening (2026-10-02).
+  it("switches grid ↔ list instantly: no refetch, items stay on screen", async () => {
     const fetcher = jest.fn(resolvingFetcher(LISTINGS));
 
     const { rerender } = render(
@@ -377,10 +380,7 @@ describe("ListingFeed — config id viewMode suffix", () => {
 
     await waitFor(() => expect(screen.getByText("Samsung Galaxy S24")).toBeTruthy());
     const callsAfterGrid = fetcher.mock.calls.length;
-    expect(callsAfterGrid).toBeGreaterThanOrEqual(1);
 
-    // Switch to list mode — the config id changes from "feed-id-grid" to
-    // "feed-id-list", which causes UniversalList to reset and re-fetch.
     await act(async () => {
       rerender(
         <ListingFeed
@@ -389,8 +389,9 @@ describe("ListingFeed — config id viewMode suffix", () => {
       );
     });
 
-    // Fetcher must have been called again after the id change
-    await waitFor(() => expect(fetcher.mock.calls.length).toBeGreaterThan(callsAfterGrid));
+    // Same items, rendered in the new layout, with no new request.
+    expect(screen.getByText("Samsung Galaxy S24")).toBeTruthy();
+    expect(fetcher.mock.calls.length).toBe(callsAfterGrid);
   });
 
   it("re-fetches when the outer id changes (filters changed)", async () => {

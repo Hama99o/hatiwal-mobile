@@ -91,6 +91,16 @@ export interface UniversalListConfig<T> {
   id: string;
 
   /**
+   * Remounts the list's LAYOUT (FlashList) without touching its data. Use it
+   * for anything that only changes how items are arranged, such as grid ↔ list
+   * or the column count: numColumns needs a clean re-layout, but putting the
+   * mode into `id` made every toggle throw away the loaded pages and refetch
+   * them behind a skeleton (owner report 2026-10-02: "you click and wait and
+   * wait"). Items already loaded stay on screen and the switch is instant.
+   */
+  layoutKey?: string;
+
+  /**
    * Bump this on useFocusEffect to silently refetch every page ALREADY
    * loaded (1..currentPage) in the background WITHOUT clearing items or
    * showing a skeleton. Displayed data updates smoothly when the new data
@@ -222,6 +232,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     showScrollToTop = true,
     filterItems,
     onPageInfoChange,
+    layoutKey,
   } = config;
 
   const colors = useColors();
@@ -607,6 +618,7 @@ export function UniversalList<T>({ config }: UniversalListProps<T>) {
     // full device width while list items still get the 12px outer padding.
     return (
       <FlashList
+        key={layoutKey}
         ref={listRef}
         onScroll={handleScrollForTopButton}
         // 16ms would fire every frame; 100ms is still well inside the time it

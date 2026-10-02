@@ -340,7 +340,8 @@ export function UserProfileScreen() {
   }
 
   // ── derived feed key — changes whenever any filter or tab changes ─────────
-  const activeFeedId = `user-profile-active-${userId}-${debouncedSearch}-${categoryId}-${viewMode}`;
+  // No viewMode here: it is layout only (ListingFeed layoutKey), and in the id it refetched on every toggle.
+  const activeFeedId = `user-profile-active-${userId}-${debouncedSearch}-${categoryId}`;
   const soldFeedId   = `user-profile-sold-${userId}`;
 
   // TASK-TX02 review fix (MAJOR): don't let the Sold tab's empty state say
