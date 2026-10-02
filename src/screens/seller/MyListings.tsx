@@ -454,7 +454,7 @@ export default function MyListingsScreen() {
           keeps the search Input mounted so the keyboard never drops mid-typing. */}
       {ListHeader}
       <ListingFeed
-        id={`my-listings-${activeTab}-${debouncedSearch}-${viewMode}`}
+        id={`my-listings-${activeTab}-${debouncedSearch}`}
         refreshKey={refetchKey}
         fetcher={fetcher}
         viewMode={viewMode}
