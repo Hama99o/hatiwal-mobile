@@ -16,7 +16,9 @@
  */
 
 import React, { useCallback, useDeferredValue, useRef } from "react";
-import { View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, StyleSheet, View, useWindowDimensions } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { useColors } from "@/hooks/useColors";
 import type { ListRenderItemInfo } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
 
@@ -139,6 +141,12 @@ export function ListingFeed({
   // Before, the rebuild ran inside the tap: the button seemed dead, a second tap
   // landed, and the feed flipped back (owner report, 2026-10-02).
   const layoutMode = useDeferredValue(viewMode);
+  // True exactly while the new layout is still being built: the urgent render
+  // already has the new viewMode, the deferred one not yet. Same promise as the
+  // language/theme overlay (runAppTransition): a tap is always answered on
+  // screen. Here it is local to the list, a dim + spinner, not full screen.
+  const isSwitching = layoutMode !== viewMode;
+  const colors = useColors();
 
   // Cards fade in when results arrive, not when the same results are merely
   // re-arranged: replaying the entrance on a layout switch looked like a reload.
@@ -248,5 +256,26 @@ export function ListingFeed({
     perPage,
   };
 
-  return <UniversalList<Listing> config={config} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <UniversalList<Listing> config={config} />
+      {isSwitching && (
+        <Animated.View
+          entering={FadeIn.duration(80)}
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, styles.switching]}
+          testID="listing-feed-switching"
+          accessibilityLiveRegion="polite"
+        >
+          {/* Dim on its own layer: the entering fade owns the wrapper's opacity. */}
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, opacity: 0.7 }]} />
+          <ActivityIndicator size="large" color={colors.primary} />
+        </Animated.View>
+      )}
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  switching: { alignItems: "center", paddingTop: 120 },
+});

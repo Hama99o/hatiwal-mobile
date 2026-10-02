@@ -31,6 +31,13 @@ interface AnimatedPressableProps extends PressableProps {
    */
   entering?: EntryOrExitLayoutType;
   exiting?: EntryOrExitLayoutType;
+  /**
+   * Press feedback. "scale" (default) shrinks to 0.97; "opacity" only dims.
+   * Use "opacity" for anything that is mostly TEXT and stays on screen, such
+   * as chips: on iOS (new architecture, SDK 57) text inside a view whose scale
+   * was animated was left blurry afterwards (owner report, 2026-10-02).
+   */
+  pressFeedback?: "scale" | "opacity";
 }
 
 export function AnimatedPressable({
@@ -41,8 +48,10 @@ export function AnimatedPressable({
   style,
   entering,
   exiting,
+  pressFeedback = "scale",
   ...props
 }: AnimatedPressableProps) {
+  const useScale = pressFeedback === "scale";
   const reduceMotion = useReduceMotion();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
@@ -56,6 +65,8 @@ export function AnimatedPressable({
   const hasEnterExit = Boolean(entering || exiting);
 
   const animatedStyle = useAnimatedStyle(() => {
+    // "opacity" feedback never writes a transform, so the view is never scaled.
+    if (!useScale) return hasEnterExit ? {} : { opacity: opacity.value };
     if (hasEnterExit) {
       return { transform: [{ scale: scale.value }] };
     }
@@ -67,7 +78,7 @@ export function AnimatedPressable({
 
   const handlePressIn = () => {
     if (!reduceMotion) {
-      scale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
+      if (useScale) scale.value = withSpring(0.97, { damping: 15, stiffness: 300 });
       if (!hasEnterExit) {
         opacity.value = withSpring(0.85, { damping: 15, stiffness: 300 });
       }
@@ -79,7 +90,7 @@ export function AnimatedPressable({
 
   const handlePressOut = () => {
     if (!reduceMotion) {
-      scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+      if (useScale) scale.value = withSpring(1, { damping: 15, stiffness: 300 });
       if (!hasEnterExit) {
         opacity.value = withSpring(1, { damping: 15, stiffness: 300 });
       }
