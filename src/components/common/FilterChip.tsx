@@ -4,6 +4,8 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withSequence,
+  withTiming,
 } from "react-native-reanimated";
 import type { LucideIcon } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
@@ -64,7 +66,13 @@ export function FilterChip({
 
   useEffect(() => {
     if (reduceMotion) return;
-    scale.value = withSpring(isActive ? 1.06 : 1, { damping: 14, stiffness: 260 });
+    // A brief pop on SELECT, then rest at exactly 1. The chip used to stay at
+    // 1.06x while selected, and iOS draws a scaled layer's text as a stretched
+    // bitmap, so every selected chip's label looked blurry (owner report,
+    // 2026-10-02). Deselecting just settles at 1.
+    scale.value = isActive
+      ? withSequence(withTiming(1.06, { duration: 90 }), withSpring(1, { damping: 14, stiffness: 260 }))
+      : withSpring(1, { damping: 14, stiffness: 260 });
   }, [isActive, reduceMotion, scale]);
 
   const animatedStyle = useAnimatedStyle(() => ({
