@@ -27,6 +27,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withSequence,
+  withTiming,
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { LayoutGrid } from "lucide-react-native";
@@ -63,10 +65,13 @@ function AnimatedChip({
 
   useEffect(() => {
     if (reduceMotion) return;
-    scale.value = withSpring(isActive ? 1.08 : 1, {
-      damping: 12,
-      stiffness: 280,
-    });
+    // A brief pop on SELECT, then rest at exactly 1. The chip used to stay at
+    // 1.08x while selected, and iOS draws a scaled layer's text as a stretched
+    // bitmap, so every selected chip's label looked blurry (owner report,
+    // 2026-10-02). Deselecting just settles at 1.
+    scale.value = isActive
+      ? withSequence(withTiming(1.08, { duration: 90 }), withSpring(1, { damping: 12, stiffness: 280 }))
+      : withSpring(1, { damping: 12, stiffness: 280 });
   }, [isActive, reduceMotion, scale]);
 
   const animatedStyle = useAnimatedStyle(() => ({
