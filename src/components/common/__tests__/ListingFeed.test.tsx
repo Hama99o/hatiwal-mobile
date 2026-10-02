@@ -856,3 +856,27 @@ describe("ListingFeed — smoke tests", () => {
     ).not.toThrow();
   });
 });
+
+describe("ListingFeed — grid ↔ list feedback", () => {
+  it("shows no switching indicator at rest", async () => {
+    const fetcher = jest.fn(resolvingFetcher(LISTINGS));
+    render(<ListingFeed {...buildProps({ id: "feed-x", fetcher, viewMode: "grid" })} />);
+    await waitFor(() => expect(screen.getByText("Samsung Galaxy S24")).toBeTruthy());
+    expect(screen.queryByTestId("listing-feed-switching")).toBeNull();
+  });
+
+  it("settles after a switch: indicator gone, same items, no refetch", async () => {
+    const fetcher = jest.fn(resolvingFetcher(LISTINGS));
+    const { rerender } = render(
+      <ListingFeed {...buildProps({ id: "feed-x", fetcher, viewMode: "grid" })} />
+    );
+    await waitFor(() => expect(screen.getByText("Samsung Galaxy S24")).toBeTruthy());
+    const calls = fetcher.mock.calls.length;
+    await act(async () => {
+      rerender(<ListingFeed {...buildProps({ id: "feed-x", fetcher, viewMode: "list" })} />);
+    });
+    await waitFor(() => expect(screen.queryByTestId("listing-feed-switching")).toBeNull());
+    expect(screen.getByText("Samsung Galaxy S24")).toBeTruthy();
+    expect(fetcher.mock.calls.length).toBe(calls);
+  });
+});

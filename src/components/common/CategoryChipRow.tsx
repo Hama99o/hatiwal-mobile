@@ -21,22 +21,15 @@
  * marginRight. The "All" chip uses a neutral Lucide LayoutGrid icon.
  */
 
-import React, { useEffect } from "react";
+import React from "react";
 import { View, ScrollView } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
 import { LayoutGrid } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { useColors } from "@/hooks/useColors";
 import type { Category } from "@/api/categories";
 import { useCategoryName } from "@/hooks/useCategoryName";
-import { AnimatedPressable, useReduceMotion } from "@/lib/animation";
+import { AnimatedPressable } from "@/lib/animation";
 
 /**
  * AnimatedChip — wraps an AnimatedPressable child in a spring-scale Animated.View
@@ -60,27 +53,15 @@ function AnimatedChip({
   accessibilityRole?: "button";
   accessibilityState?: { selected?: boolean };
 }) {
-  const reduceMotion = useReduceMotion();
-  const scale = useSharedValue(1);
 
-  useEffect(() => {
-    if (reduceMotion) return;
-    // A brief pop on SELECT, then rest at exactly 1. The chip used to stay at
-    // 1.08x while selected, and iOS draws a scaled layer's text as a stretched
-    // bitmap, so every selected chip's label looked blurry (owner report,
-    // 2026-10-02). Deselecting just settles at 1.
-    scale.value = isActive
-      ? withSequence(withTiming(1.08, { duration: 90 }), withSpring(1, { damping: 12, stiffness: 280 }))
-      : withSpring(1, { damping: 12, stiffness: 280 });
-  }, [isActive, reduceMotion, scale]);
+  // No select-pop: selection is shown by colour. Animating a chip's scale left
+  // its label blurry on iOS after the animation (owner report, 2026-10-02).
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
 
   return (
-    <Animated.View style={animatedStyle}>
+    <View>
       <AnimatedPressable
+        pressFeedback="opacity"
         onPress={onPress}
         haptic={haptic}
         style={style}
@@ -89,7 +70,7 @@ function AnimatedChip({
       >
         {children}
       </AnimatedPressable>
-    </Animated.View>
+    </View>
   );
 }
 

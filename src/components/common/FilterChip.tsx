@@ -1,16 +1,9 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
 import type { LucideIcon } from "lucide-react-native";
 import { Text } from "@/components/reusables/text";
 import { useColors } from "@/hooks/useColors";
-import { AnimatedPressable, useReduceMotion } from "@/lib/animation";
+import { AnimatedPressable } from "@/lib/animation";
 
 /**
  * FilterChip — the single, shared pill used by every horizontally-scrollable
@@ -61,27 +54,15 @@ export function FilterChip({
   accessibilityLabel,
 }: FilterChipProps) {
   const colors = useColors();
-  const reduceMotion = useReduceMotion();
-  const scale = useSharedValue(1);
 
-  useEffect(() => {
-    if (reduceMotion) return;
-    // A brief pop on SELECT, then rest at exactly 1. The chip used to stay at
-    // 1.06x while selected, and iOS draws a scaled layer's text as a stretched
-    // bitmap, so every selected chip's label looked blurry (owner report,
-    // 2026-10-02). Deselecting just settles at 1.
-    scale.value = isActive
-      ? withSequence(withTiming(1.06, { duration: 90 }), withSpring(1, { damping: 14, stiffness: 260 }))
-      : withSpring(1, { damping: 14, stiffness: 260 });
-  }, [isActive, reduceMotion, scale]);
+  // No select-pop: selection is shown by colour. Animating a chip's scale left
+  // its label blurry on iOS after the animation (owner report, 2026-10-02).
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
 
   return (
-    <Animated.View style={animatedStyle}>
+    <View>
       <AnimatedPressable
+        pressFeedback="opacity"
         onPress={onPress}
         haptic
         testID={testID}
@@ -128,6 +109,6 @@ export function FilterChip({
           </Text>
         </View>
       </AnimatedPressable>
-    </Animated.View>
+    </View>
   );
 }
