@@ -1,0 +1,7 @@
+appId: com.hatiwal.app
+---
+# support_rtl.yaml in fa (the rig passes no per-flow --env, so one file per locale).
+- runFlow:
+    file: _support_rtl.yaml
+    env:
+      LANG: fa

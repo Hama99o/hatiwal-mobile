@@ -1,0 +1,19 @@
+appId: com.hatiwal.app
+---
+# The second way into Support (dd84cf5): Profile's "Contact support" quick
+# action opens the same thread as the pinned Messages row.
+- runFlow: ../_helpers/login.yaml
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- scrollUntilVisible:
+    element: "Contact support"
+    direction: DOWN
+    visibilityPercentage: 80
+    timeout: 20000
+- tapOn: "Contact support"
+- extendedWaitUntil:
+    visible:
+      id: "support-thread-identity"
+    timeout: 20000
+- takeScreenshot: support_from_profile
+- back
+- waitForAnimationToEnd

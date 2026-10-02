@@ -2471,7 +2471,15 @@ does not settle who serves the tiles at scale.
 
 ---
 
-## UI-050 — a guest gets a SELLER tab bar ("My Shop") after their token is revoked — OPEN (found run-268)
+## UI-050 — a guest gets a SELLER tab bar ("My Shop") after their token is revoked — FIXED c28b238 (found run-268, seen again 2026-10-02)
+
+> **FIXED 2026-10-02, c28b238.** Half of this was already gone: 6519fe7 made the
+> 401 branch call `clearUser()`. The mode half was not — seen again on device in
+> the 1.1.2 QA pass (tab bar `My Shop` · `Login`, and every login.yaml flow then
+> failed `"Login" is not visible`). `mode.store.ts` now resets to buyer on ANY
+> signed-in → signed-out transition of the auth store, which covers the 401
+> interceptor, `auth.bootstrap.ts`, the blocked branch and the logout button in
+> one place. Test: `src/stores/__tests__/mode.store.test.ts` (fails on the old code).
 
 Caught incidentally, from a live screenshot taken between QA batches. Re-seeding
 the database destroys and recreates the e2e users, which invalidates their tokens
@@ -2607,3 +2615,30 @@ Left for a human: on a small screen the chips are the first thing under the
 clock, and they are unreadable in that moment. A gradient scrim behind the top
 inset, or a top padding on the scroll content, would both address it — but both
 change a deliberate look.
+
+## UI-053 — RTL: the chip-row scroll hint covers the selected "All" chip and points the wrong way — OPEN (1.1.2 QA, 2026-10-02)
+
+Messages inbox, ps / fa / ur. The filter chip row (`conversations-filter-chip-row`)
+overflows, and its "more chips" chevron renders at the PHYSICAL right edge, on top
+of the first, selected chip — "ټول" / "همه" is cut off under it — and it is a
+`ChevronRight`, pointing away from the hidden chips. In English the same hint sits
+over the trailing chip, where it belongs.
+
+Evidence: `qa/evidence/qa-1.1.2/device/rtl_fa/rtl_inbox_fa.png`,
+`rtl_ps/rtl_inbox_ps.png`, `rtl_ur/rtl_inbox_ur.png` vs English
+`device/run-595_conversations_list.png`.
+
+Cause (`src/screens/chat/Conversations.tsx`): the hints are placed with
+`left: 0` / `right: 0` (`chipEdgeHintLeft/Right`, ~line 774), which React Native
+does NOT mirror in RTL, and the initial `onContentSizeChange={(w) =>
+updateChipRowOverflow(0, w)}` assumes offset 0 is the reading-start edge, so on
+first render the "end" hint is drawn on the right — which in RTL is the start.
+
+Not fixed in the QA pass on purpose: a correct fix depends on how each platform
+reports a horizontal ScrollView's `contentOffset.x` under `I18nManager.isRTL`
+(Android reports physical scrollX; iOS was not verifiable from this host), and a
+wrong guess would move the hint onto the wrong edge on one platform the night
+before store builds. Recommended: compute the initial overflow from the first
+`onScroll`/layout rather than assuming offset 0, and choose the chevron
+direction and edge from that geometry; verify on an iPhone in ps before shipping.
+Severity: cosmetic, the chip is still tappable.

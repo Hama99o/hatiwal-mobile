@@ -1,0 +1,60 @@
+appId: com.hatiwal.app
+# No env default for LANG: a default here OVERRIDES the caller's runFlow env
+# (run-593 "ur" ran in ps). The support_rtl_<lang>.yaml wrappers set it.
+---
+# 94e7ef4 + d78e7b5 in an RTL locale (via support_rtl_ps|fa|ur.yaml): the
+# inbox's compact tabs and the pinned Support row, the Support label drawn in
+# full (it used to lose its last word), and the send icon visible once text is
+# typed (it used to be invisible). Screenshots are the evidence — judge them.
+- runFlow: ../_helpers/login.yaml
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-${LANG}"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/await_language_restart.yaml
+- tapOn:
+    id: "chat-tab"
+- extendedWaitUntil:
+    visible:
+      id: "(support-entry-row|support-thumb-\\d+)"
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
+- takeScreenshot: rtl_inbox_${LANG}
+- tapOn:
+    id: "(support-entry-row|support-thumb-\\d+)"
+- extendedWaitUntil:
+    visible:
+      id: "support-thread-identity"
+    timeout: 20000
+- takeScreenshot: rtl_support_thread_${LANG}
+- back
+- waitForAnimationToEnd
+# A marketplace thread: the composer's send icon, with text typed. Row 0 is
+# the pinned Support thread once one exists, so take the next row.
+- tapOn:
+    id: "conversation-row-\\d+"
+    index: 1
+- extendedWaitUntil:
+    visible:
+      id: "messages-list"
+    timeout: 20000
+# The composer placeholder ends in "..." in every locale; ASCII text because
+# Android input cannot type Arabic script — the icon does not depend on it.
+- waitForAnimationToEnd
+- tapOn: ".*\\.\\.\\."
+- waitForAnimationToEnd
+- inputText: "QA 112"
+- takeScreenshot: rtl_thread_${LANG}
+- runFlow: ../_helpers/dismiss_keyboard_if_open.yaml
+- back
+- waitForAnimationToEnd
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-en"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/await_language_restart.yaml

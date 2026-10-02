@@ -1,0 +1,44 @@
+appId: com.hatiwal.app
+---
+# Contact Support (dd84cf5 + 972e574): a permanent row pinned at the top of
+# Messages opens the user's Support thread, which drops every marketplace
+# control and lets them write to the team. Written for the 1.1.2 QA pass —
+# the feature shipped with Jest + Storybook only, no device flow.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "chat-tab"
+- waitForAnimationToEnd
+# Before the user has a Support thread this is the permanent entry row (a list
+# header); once one exists the server pins the real thread first and it renders
+# as a conversation row with a support thumbnail. Either is "Support on top".
+- extendedWaitUntil:
+    visible:
+      id: "(support-entry-row|support-thumb-\\d+)"
+    timeout: 20000
+- tapOn:
+    id: "(support-entry-row|support-thumb-\\d+)"
+- extendedWaitUntil:
+    visible:
+      id: "support-thread-identity"
+    timeout: 20000
+# No listing card, no report/block of "Hatiwal Support", no offers/meetups.
+- assertNotVisible:
+    id: "report-participant-button"
+- assertNotVisible:
+    id: "block-user-button"
+# Wait out the push animation first: tapping mid-slide missed the field, and in
+# a dev build two "r" keys with nothing focused RELOAD the app (run-588).
+- waitForAnimationToEnd
+- tapOn: "Type a message..."
+- waitForAnimationToEnd
+- inputText: "QA support hello 112"
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "QA support hello 112"
+    timeout: 15000
+- takeScreenshot: support_thread_after_send
+- back
+- waitForAnimationToEnd
+# Still on top on return — now as the pinned thread, since this flow created it.
+- assertVisible:
+    id: "(support-entry-row|support-thumb-\\d+)"

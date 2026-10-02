@@ -1,0 +1,40 @@
+appId: com.hatiwal.app
+---
+# 60638d5: the focus refetch on returning to a tab is SILENT — the cached
+# list stays on screen, no skeleton, no pull spinner. Bounce Bazaar <-> Chats
+# and require the rows to be there the instant the tab shows.
+#
+# The original report was an iOS-only blank band (RefreshControl inset left
+# behind). Android cannot reproduce that symptom; this flow proves the Android
+# side of the same change: no skeleton and no blanking after the first load.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "chat-tab"
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row-\\d+"
+    timeout: 20000
+- tapOn:
+    id: "browse-tab"
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- repeat:
+    times: 4
+    commands:
+      - tapOn:
+          id: "chat-tab"
+      # No extendedWaitUntil: the rows must already be there (cached).
+      - assertVisible:
+          id: "conversation-row-\\d+"
+      - assertNotVisible:
+          id: "universal-list-fallback-skeleton"
+      - takeScreenshot: focus_chats
+      - tapOn:
+          id: "browse-tab"
+      - assertVisible:
+          id: "listing-card"
+      - assertNotVisible:
+          id: "universal-list-fallback-skeleton"
+      - takeScreenshot: focus_bazaar
