@@ -15,7 +15,7 @@
  *   list mode while grid mode still shows the standard compact ListingCard.
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useDeferredValue, useRef } from "react";
 import { View, useWindowDimensions } from "react-native";
 import type { ListRenderItemInfo } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
@@ -132,6 +132,25 @@ export function ListingFeed({
 }: ListingFeedProps) {
   const router = useRouter();
 
+  // ── Grid ↔ list without blocking the tap ─────────────────────────────────
+  // The toggle button reads `viewMode` and repaints at once; the expensive part
+  // (rebuilding every card in the new layout) follows from this DEFERRED copy,
+  // which React renders at low priority and abandons if the user taps again.
+  // Before, the rebuild ran inside the tap: the button seemed dead, a second tap
+  // landed, and the feed flipped back (owner report, 2026-10-02).
+  const layoutMode = useDeferredValue(viewMode);
+
+  // Cards fade in when results arrive, not when the same results are merely
+  // re-arranged: replaying the entrance on a layout switch looked like a reload.
+  // Reset whenever the data id (filters/search) changes.
+  const entranceRef = useRef({ id, layout: layoutMode, switched: false });
+  if (entranceRef.current.id !== id) {
+    entranceRef.current = { id, layout: layoutMode, switched: false };
+  } else if (entranceRef.current.layout !== layoutMode) {
+    entranceRef.current = { id, layout: layoutMode, switched: true };
+  }
+  const animateEntrance = !entranceRef.current.switched;
+
   // ── renderItem — single source of truth for spacing ───────────────────────
 
   const renderItem = useCallback(
@@ -142,13 +161,13 @@ export function ListingFeed({
         ? () => onPressListing(item)
         : () => router.push({ pathname: "/(main)/listing/[id]", params: { id: String(item.id) } });
 
-      if (viewMode === "list") {
+      if (layoutMode === "list") {
         if (renderListItem) return renderListItem(info);
         return (
           <View style={{ paddingBottom: 10 }}>
             <ListingCard
               listing={item}
-              index={index}
+              index={animateEntrance ? index : undefined}
               variant="list"
               showStatus={showStatus}
               isSaved={saved}
@@ -167,7 +186,7 @@ export function ListingFeed({
         <View style={{ flex: 1, paddingHorizontal: 5, paddingBottom: 12 }}>
           <ListingCard
             listing={item}
-            index={index}
+            index={animateEntrance ? index : undefined}
             variant="grid"
             showStatus={showStatus}
             isSaved={saved}
@@ -178,7 +197,7 @@ export function ListingFeed({
         </View>
       );
     },
-    [viewMode, showStatus, savedMap, onSaveToggle, onHide, onPressListing, renderListItem, router]
+    [layoutMode, animateEntrance, showStatus, savedMap, onSaveToggle, onHide, onPressListing, renderListItem, router]
   );
 
   // ── Combined header: pass through caller's header ────────────────────────
@@ -210,15 +229,15 @@ export function ListingFeed({
     // layoutKey (FlashList remounts for the new numColumns) and NOT in id,
     // which keys the data: in id they made every grid ↔ list tap refetch.
     id,
-    layoutKey: `${viewMode}-${gridColumns}`,
+    layoutKey: `${layoutMode}-${gridColumns}`,
     refreshKey,
     fetcher,
     keyExtractor: (item) => String(item.id),
     renderItem,
-    numColumns: viewMode === "grid" ? gridColumns : 1,
+    numColumns: layoutMode === "grid" ? gridColumns : 1,
     skeletonCount,
     SkeletonComponent:
-      viewMode === "list" ? ListingCardListSkeleton : ListingCardSkeleton,
+      layoutMode === "list" ? ListingCardListSkeleton : ListingCardSkeleton,
     emptyIcon,
     emptyIllustration,
     emptyTitle,
