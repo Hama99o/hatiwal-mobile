@@ -256,6 +256,7 @@
   },
   "shopCount_one": "{{count}} اعلان",
   "firmPrice": "ثابت قیمت",
+  "firmPriceShort": "ثابت",
   "card": {
     "verifiedSeller": "تایید شوی خرڅوونکی",
     "ago": {

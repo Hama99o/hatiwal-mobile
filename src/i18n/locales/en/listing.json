@@ -256,6 +256,7 @@
   },
   "shopCount_one": "{{count}} listing",
   "firmPrice": "Firm price",
+  "firmPriceShort": "Firm",
   "card": {
     "verifiedSeller": "Verified seller",
     "ago": {
