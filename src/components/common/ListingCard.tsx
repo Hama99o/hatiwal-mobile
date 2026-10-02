@@ -176,13 +176,10 @@ export function ListingCard({
       <Animated.View
         entering={hasEntering ? getEntering(index!) : undefined}
         style={[
-          {
-            overflow: "hidden",
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: colors.border,
-            backgroundColor: colors.card,
-          },
+          // No bordered box: the photo carries the card (Depop, Nextdoor, eBay
+          // on Mobbin, docs/design/LISTING_CARDS.md). A box around a dark card
+          // read as a large empty panel once the text block was short.
+          { borderRadius: 12 },
           cardAnimStyle,
           style,
         ]}
@@ -198,7 +195,9 @@ export function ListingCard({
           testID="listing-card"
           style={{
             flexDirection: isRtl ? "row-reverse" : "row",
-            minHeight: 96,
+            alignItems: "center",
+            gap: 12,
+            paddingVertical: 4,
           }}
         >
           {/* ── Thumbnail ──────────────────────────────────────────── */}
@@ -249,19 +248,25 @@ export function ListingCard({
           <View
             style={{
               flex: 1,
-              paddingHorizontal: 12,
-              paddingVertical: 10,
               gap: 3,
               justifyContent: "center",
             }}
           >
-            {/* Price — hero in list mode too */}
-            <PriceTag
-              price={listing.price}
-              currency={listing.currency}
-              size="md"
-              perUnit={listing.multiUnit === true}
-            />
+            {/* Price — hero in list mode too, with the firm-price chip on the
+                same line instead of a row of its own. */}
+            <View style={{ flexDirection: metaRowDirection, alignItems: "center", gap: 8 }}>
+              <PriceTag
+                price={listing.price}
+                currency={listing.currency}
+                size="md"
+                perUnit={listing.multiUnit === true}
+              />
+              {listing.negotiable === false && (
+                <View testID="firm-price-badge">
+                  <Badge label={t("listing.firmPrice")} variant="muted" />
+                </View>
+              )}
+            </View>
 
             {/* Price-drop badge in list mode — tiny pill after price. Suppressed when
                 the per-buyer saved badge below is already showing a drop signal for
@@ -281,19 +286,6 @@ export function ListingCard({
                 newPrice={listing.price}
                 currency={listing.currency}
               />
-            )}
-
-            {/* Firm-price badge in list mode */}
-            {listing.negotiable === false && (
-              <View
-                testID="firm-price-badge"
-                style={{ alignSelf: isRtl ? "flex-end" : "flex-start" }}
-              >
-                <Badge
-                  label={t("listing.firmPrice")}
-                  variant="muted"
-                />
-              </View>
             )}
 
             {/* Title */}
@@ -399,13 +391,7 @@ export function ListingCard({
     <Animated.View
       entering={hasEntering ? getEntering(index!) : undefined}
       style={[
-        {
-          overflow: "hidden",
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: colors.border,
-          backgroundColor: colors.card,
-        },
+        { borderRadius: 12 },
         cardAnimStyle,
         style,
       ]}
@@ -465,23 +451,32 @@ export function ListingCard({
             </View>
           )}
 
-          {/* Price-drop corner badge — bottom-right (LTR) / bottom-left (RTL) overlay.
-              Suppressed when the per-buyer saved badge in the card body is already
-              showing a drop signal for this card (TASK-Y316 review) — two green
-              "price dropped" cues on one card reads as clutter and undermines the
-              single clear signal the north star wants. */}
-          {listing.priceDropPercent != null &&
-            listing.priceDropPercent > 0 &&
-            !listing.priceDropped && (
-              <View
-                style={[
-                  styles.priceDropOverlay,
-                  isRtl ? styles.priceDropOverlayRtl : styles.priceDropOverlayLtr,
-                ]}
-              >
-                <PriceDropBadge percent={listing.priceDropPercent} variant="card" />
-              </View>
-            )}
+          {/* Price-drop corner badge — bottom-right (LTR) / bottom-left (RTL).
+              One corner, one signal: the per-buyer "dropped since you saved it"
+              badge (Saved screen, TASK-Y316) when present, else the listing's own
+              percent drop. It lived in a fixed 26dp body row before, which sat
+              empty on almost every card (the gap the owner reported 2026-10-02). */}
+          {(listing.priceDropped ||
+            (listing.priceDropPercent != null && listing.priceDropPercent > 0)) && (
+            <View
+              style={[
+                styles.priceDropOverlay,
+                isRtl ? styles.priceDropOverlayRtl : styles.priceDropOverlayLtr,
+              ]}
+            >
+              {listing.priceDropped ? (
+                <PriceDropBadge
+                  variant="saved"
+                  compact
+                  oldPrice={listing.priceAtSave ?? undefined}
+                  newPrice={listing.price}
+                  currency={listing.currency}
+                />
+              ) : (
+                <PriceDropBadge percent={listing.priceDropPercent!} variant="card" />
+              )}
+            </View>
+          )}
 
           {/* Save heart — outer 44px Pressable (touch target), inner 36px scrim circle */}
           {isSaved !== undefined && onSaveToggle && (
@@ -533,66 +528,45 @@ export function ListingCard({
           every grid row bottom-aligned is to give every card the SAME total
           height, regardless of content.
         */}
-        <View style={{ padding: 10, paddingTop: 8, gap: 3 }}>
-          {/* Price — hero element: larger, bolder, more vertical space */}
-          <PriceTag
-            price={listing.price}
-            currency={listing.currency}
-            size="md"
-            perUnit={listing.multiUnit === true}
-          />
-
-          {/* Badge slot — fixed height, always rendered, holds AT MOST one badge:
-                1. The per-buyer "price dropped since you saved it" badge (Saved
-                   screen only, TASK-Y316) takes priority when present — it's the
-                   more time-sensitive signal.
-                2. Otherwise the static firm-price tag (negotiable === false).
-              Stacking both would reintroduce the height variance this slot exists
-              to prevent, and would put two competing badges on one card — the
-              same clutter the corner price-drop overlay above already avoids by
-              suppressing itself when this per-buyer badge is showing. */}
+        <View style={{ paddingTop: 8, paddingHorizontal: 2, gap: 2 }}>
+          {/* Price row — the hero, with the firm-price chip beside it. Fixed
+              height so every card in a FlashList row stays the same height
+              (no columnWrapperStyle there), but nothing is reserved empty. */}
           <View
             style={{
-              height: 26,
-              justifyContent: "center",
-              alignItems: isRtl ? "flex-end" : "flex-start",
+              height: 24,
+              flexDirection: metaRowDirection,
+              alignItems: "center",
+              gap: 6,
+              overflow: "hidden",
             }}
           >
-            {listing.priceDropped ? (
-              // compact: the grid card is narrow (2-column) and the PriceTag
-              // hero right above already shows the current price, so the
-              // compact form drops the label text + duplicated current price
-              // to avoid wrapping/clutter.
-              <PriceDropBadge
-                variant="saved"
-                compact
-                oldPrice={listing.priceAtSave ?? undefined}
-                newPrice={listing.price}
-                currency={listing.currency}
-              />
-            ) : listing.negotiable === false ? (
-              <View testID="firm-price-badge">
-                <Badge
-                  label={t("listing.firmPrice")}
-                  variant="muted"
-                />
+            <PriceTag
+              price={listing.price}
+              currency={listing.currency}
+              size="md"
+              perUnit={listing.multiUnit === true}
+            />
+            {listing.negotiable === false && (
+              <View testID="firm-price-badge" style={{ flexShrink: 1 }}>
+                <Badge label={t("listing.firmPrice")} variant="muted" />
               </View>
-            ) : null}
+            )}
           </View>
 
-          {/* Title — secondary to price. Fixed to exactly 2 lines of height
-              (18 lineHeight × 2 = 36) always, so a short 1-line title doesn't
-              leave the card shorter than a 2-line neighbor. */}
+          {/* Title — one line, like Depop, Nextdoor and Facebook Marketplace.
+              The full title is one tap away; two fixed lines left a blank line
+              under every short title. */}
           <Text
             style={{
               fontSize: 13,
               fontWeight: "400",
               lineHeight: 18,
-              height: 36,
+              height: 18,
               textAlign: isRtl ? "right" : "left",
               color: isViewed ? colors.mutedForeground : colors.foreground,
             }}
-            numberOfLines={2}
+            numberOfLines={1}
           >
             {listing.title}
           </Text>
@@ -723,8 +697,10 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: "100%",
-    aspectRatio: 4 / 3,
+    aspectRatio: 1,
     position: "relative",
+    borderRadius: 12,
+    overflow: "hidden",
   },
   image: {
     width: "100%",
@@ -732,11 +708,12 @@ const styles = StyleSheet.create({
   },
   // ── List variant ───────────────────────────────────────────────────
   listImageContainer: {
-    width: 108,
-    aspectRatio: 4 / 3,
+    width: 96,
+    aspectRatio: 1,
     position: "relative",
     flexShrink: 0,
-    borderRadius: 0,
+    borderRadius: 10,
+    overflow: "hidden",
   },
   listImage: {
     width: "100%",

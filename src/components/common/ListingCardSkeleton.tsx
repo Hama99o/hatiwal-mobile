@@ -33,34 +33,20 @@ function SkeletonBlock({
 }
 
 export function ListingCardSkeleton() {
-  const colors = useColors();
 
+  // Mirrors ListingCard variant="grid": square rounded photo, no box, then a
+  // 24dp price row, an 18dp one-line title and a 16dp meta row.
   return (
-    <View
-      style={{
-        backgroundColor: colors.card,
-        borderRadius: 12,
-        overflow: "hidden",
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      {/* Photo placeholder — 4:3 ratio */}
-      <SkeletonBlock style={{ aspectRatio: 4 / 3, borderRadius: 0 }} />
-
-      <View style={{ padding: 10, paddingTop: 8, gap: 5 }}>
-        {/* Price — 17sp bold, matches PriceTag md */}
-        <SkeletonBlock width={80} height={17} />
-        {/* Badge-slot placeholder — mirrors the real card's fixed-height badge
-            slot (firm-price / price-drop badge) so the loading→loaded swap
-            doesn't jump in height. */}
-        <SkeletonBlock width={64} height={18} style={{ borderRadius: 999 }} />
-        {/* Title line 1 */}
-        <SkeletonBlock height={13} style={{ marginTop: 1 }} />
-        {/* Title line 2 — shorter */}
-        <SkeletonBlock width="68%" height={13} />
-        {/* Location meta */}
-        <View style={{ flexDirection: "row", gap: 4, marginTop: 2, alignItems: "center" }}>
+    <View>
+      <SkeletonBlock style={{ aspectRatio: 1, borderRadius: 12 }} />
+      <View style={{ paddingTop: 8, paddingHorizontal: 2, gap: 2 }}>
+        <View style={{ height: 24, justifyContent: "center" }}>
+          <SkeletonBlock width={80} height={17} />
+        </View>
+        <View style={{ height: 18, justifyContent: "center" }}>
+          <SkeletonBlock width="85%" height={13} />
+        </View>
+        <View style={{ height: 16, flexDirection: "row", gap: 4, alignItems: "center" }}>
           <SkeletonBlock width={10} height={10} style={{ borderRadius: 999 }} />
           <SkeletonBlock width={56} height={11} />
         </View>
@@ -71,25 +57,11 @@ export function ListingCardSkeleton() {
 
 /** Horizontal skeleton that mirrors ListingCard variant="list" */
 export function ListingCardListSkeleton() {
-  const colors = useColors();
+  // Mirrors ListingCard variant="list": 96dp rounded square photo, no box.
   return (
-    <View
-      style={{
-        backgroundColor: colors.card,
-        borderRadius: 12,
-        overflow: "hidden",
-        borderWidth: 1,
-        borderColor: colors.border,
-        flexDirection: "row",
-        minHeight: 96,
-      }}
-    >
-      {/* Thumbnail — matches listImageContainer: width 108, 4:3 ratio */}
-      <SkeletonBlock
-        width={108}
-        style={{ aspectRatio: 4 / 3, borderRadius: 0, flexShrink: 0 } as object}
-      />
-      <View style={{ flex: 1, padding: 10, gap: 6, justifyContent: "center" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 }}>
+      <SkeletonBlock width={96} height={96} style={{ borderRadius: 10, flexShrink: 0 }} />
+      <View style={{ flex: 1, gap: 6, justifyContent: "center" }}>
         <SkeletonBlock width={80} height={16} />
         <SkeletonBlock height={13} />
         <SkeletonBlock width="70%" height={13} />
