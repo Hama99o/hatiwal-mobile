@@ -66,3 +66,7 @@ __pycache__/
 google-play-key.json
 *service-account*.json
 *play*service*.json
+
+# Firebase config holds an API key: never commit it (see app.config.js).
+google-services.json
+GoogleService-Info.plist
