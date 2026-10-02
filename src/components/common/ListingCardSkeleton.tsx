@@ -58,6 +58,7 @@ export function ListingCardSkeleton() {
 
 /** Horizontal skeleton that mirrors ListingCard variant="list" */
 export function ListingCardListSkeleton() {
+  const colors = useColors();
   // Mirrors ListingCard variant="list": 96dp rounded square photo, no box.
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 8, borderRadius: 12, backgroundColor: colors.card }}>
