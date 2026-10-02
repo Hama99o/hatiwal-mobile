@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authAPI } from "@/api/auth";
+import { useAuthStore } from "@/stores/auth.store";
 
 type Mode = "buyer" | "seller";
 
@@ -47,3 +48,14 @@ export async function resetMode(): Promise<void> {
   useModeStore.setState({ mode: "buyer" });
   await AsyncStorage.removeItem(STORAGE_KEY).catch(() => null);
 }
+
+// A session can end WITHOUT the logout button: a dead token (401 in
+// api/http.ts or auth.bootstrap.ts) or a blocked account clears the user
+// directly. Those paths never called resetMode, so a seller whose session died
+// became a guest with the SELLER tab bar — "My Shop" + "Login", no Bazaar.
+// A guest cannot sell, so any signed-in → signed-out transition resets here.
+useAuthStore.subscribe((state, prev) => {
+  if (prev.isAuthenticated && !state.isAuthenticated) {
+    resetMode().catch(() => null);
+  }
+});
