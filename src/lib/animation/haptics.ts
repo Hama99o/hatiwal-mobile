@@ -17,6 +17,16 @@ export type HapticType =
  *                  requested type. This avoids disorienting feedback for users who
  *                  have opted out of motion.
  */
+/**
+ * The expo-haptics calls return PROMISES, so a `try/catch` around them never
+ * sees a failure — it escapes as an unhandled rejection. On Android it always
+ * fails: app.json blocks android.permission.VIBRATE, so every call rejects
+ * with a SecurityException, which in a dev build is a full-screen red box.
+ */
+function fire(p: Promise<unknown>): void {
+  p.catch(() => undefined);
+}
+
 export function triggerHaptic(
   type: HapticType = "light",
   reduceMotion = false
@@ -24,28 +34,28 @@ export function triggerHaptic(
   try {
     // When Reduce Motion is enabled always fire only the lightest impact.
     if (reduceMotion) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      fire(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
       return;
     }
 
     switch (type) {
       case "light":
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        fire(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
         break;
       case "medium":
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        fire(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
         break;
       case "heavy":
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        fire(Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
         break;
       case "success":
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        fire(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
         break;
       case "error":
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        fire(Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error));
         break;
       case "selection":
-        Haptics.selectionAsync();
+        fire(Haptics.selectionAsync());
         break;
     }
   } catch {
