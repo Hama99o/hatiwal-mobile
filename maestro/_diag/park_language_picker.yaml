@@ -1,0 +1,6 @@
+appId: com.hatiwal.app
+---
+# QA helper: leave the device on Profile with the language picker open, for
+# adb-timed taps.
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- runFlow: ../_helpers/open_language_picker.yaml

@@ -10,13 +10,13 @@ The QA board for every Maestro flow in the app. **Regenerated** by
 
 ## Progress
 
-**174 of 273 flows passing** · 96 still need attention
+**179 of 274 flows passing** · 92 still need attention
 
 | Status | Count | Meaning |
 |---|---:|---|
-| PASS | 174 | green, and no backend error underneath |
-| FAIL-assert | 88 | an assertion failed — real bug OR a stale selector, triage it |
-| FAIL-redbox | 5 | a red box / JS console error appeared — real app error |
+| PASS | 179 | green, and no backend error underneath |
+| FAIL-assert | 85 | an assertion failed — real bug OR a stale selector, triage it |
+| FAIL-redbox | 4 | a red box / JS console error appeared — real app error |
 | FAIL-crash | 1 | the app crashed (FATAL EXCEPTION in logcat) |
 | (rig) | 3 | rig broke mid-run — result meaningless, re-run |
 | UNTESTED | 2 | never executed |
@@ -31,12 +31,12 @@ bug class a user reports as "nothing happened".
 
 ## `browse` — Buyer browse, search, filters, sort, listing detail, seller profile — a reserved listing stays searchable + messageable, and a held batch shows its hold
 
-28/42 passing · 13 open
+29/42 passing · 12 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `browse_all_categories` | PASS | run-561 | 174 |  |  |
-| `browse_listings` | PASS | run-561 | 126 |  |  |
+| `browse_listings` | PASS | run-598 | 182 |  |  |
 | `browse_sort_most_viewed` | PASS | run-561 | 134 |  |  |
 | `browse_sort_nearest` | PASS | run-561 | 146 |  |  |
 | `categories_hub` | PASS | run-561 | 141 |  |  |
@@ -76,11 +76,11 @@ bug class a user reports as "nothing happened".
 | `user_profile_empty_listings` | FAIL-assert | run-561 | 138 |  | [Failed] user_profile_empty_listings (2m 10s) (No visible element found: ".*Ahmad Karimi.*") |
 | `user_profile_listing_grid` | PASS | run-561 | 134 |  |  |
 | `user_profile_stats` | PASS | run-561 | 127 |  |  |
-| `view_mode_toggle` | FAIL-assert | run-561 | 163 |  | [Failed] view_mode_toggle (2m 35s) (Assertion is false: "No listings found" is visible) |
+| `view_mode_toggle` | PASS | run-599 | 266 |  |  |
 
 ## `chat` — Conversations, messages, offers, meetup arrangement, read state — mark-sold one-tap from the thread, place/release a hold with the buyer you're already talking to
 
-35/51 passing · 12 open
+36/51 passing · 12 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -93,9 +93,9 @@ bug class a user reports as "nothing happened".
 | `conversation_read_status` | PASS | run-575 | 190 |  |  |
 | `conversations-search` | PASS | run-575 | 205 |  |  |
 | `conversations_empty_state` | FAIL-assert ⟳stale | run-575 | 164 |  | [Failed] conversations_empty_state (2m 31s) (Element not found: Id matching regex: register-email-input) |
-| `conversations_filter` | PASS | run-575 | 233 |  |  |
-| `conversations_list` | PASS | run-595 | 180 |  |  |
-| `conversations_role_filter` | FAIL-assert ⟳stale | run-575 | 258 |  | [Failed] conversations_role_filter (4m 2s) (No visible element found: "Mountain Bike 26-inch Steel Frame") |
+| `conversations_filter` | PASS | run-608 | 182 |  |  |
+| `conversations_list` | PASS | run-607 | 193 |  |  |
+| `conversations_role_filter` | PASS | run-609 | 270 |  |  |
 | `dead_end_notice_absent_when_active` | PASS | run-575 | 252 |  |  |
 | `dead_end_notice_sold` | FAIL-assert | run-575 | 251 |  | [Failed] dead_end_notice_sold (3m 53s) (Assertion is false: id: listing-unavailable-notice is visible) |
 | `delete_message` | PASS | run-575 | 256 |  |  |
@@ -186,13 +186,13 @@ bug class a user reports as "nothing happened".
 
 ## `rtl` — Pashto + Dari right-to-left layout across main screens
 
-2/14 passing · 9 open
+3/14 passing · 8 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
 | `_support_rtl` | UNTESTED | — |  |  |  |
 | `browse_rtl_dari` | FAIL-redbox | run-586 | 527 |  | [Failed] browse_rtl_dari (8m 31s) (Element not found: Id matching regex: profile-tab) |
-| `browse_rtl_pashto` | FAIL-redbox | run-585 | 243 |  | [Failed] browse_rtl_pashto (3m 48s) (Assertion is false: "زه" is visible) |
+| `browse_rtl_pashto` | PASS | run-611 | 526 |  | Network request failed |
 | `buyer_picker_rtl` | (rig) | s2/run-536 | 601 |  |  |
 | `categories_hub_rtl` | PASS | s2/run-536 | 297 |  |  |
 | `chat_rtl` | FAIL-redbox | run-583 | 232 |  | [Failed] chat_rtl (3m 33s) (Assertion is false: id: conversation-row-\d+ is visible) |
@@ -207,7 +207,7 @@ bug class a user reports as "nothing happened".
 
 ## `profile` — Profile view/edit, language + theme switch, stats, blocked users
 
-20/32 passing · 7 open
+22/33 passing · 7 open
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
@@ -215,9 +215,9 @@ bug class a user reports as "nothing happened".
 | `account_delete_cancel` | PASS | run-560 | 187 |  |  |
 | `away_mode` | PASS | run-560 | 176 |  |  |
 | `blocked_users` | PASS | run-560 | 142 |  |  |
-| `change_language_dari` | PASS | run-560 | 147 |  |  |
-| `change_language_english` | PASS | run-560 | 529 |  |  |
-| `change_language_pashto` | PASS | run-560 | 148 |  |  |
+| `change_language_dari` | PASS | run-617 | 186 |  |  |
+| `change_language_english` | PASS | run-618 | 574 |  |  |
+| `change_language_pashto` | PASS | run-603 | 205 |  |  |
 | `change_language_urdu` | UNTESTED | — |  |  |  |
 | `contact_support_profile` | PASS | run-589 | 178 |  |  |
 | `contact_visibility` | FAIL-assert | run-560 | 483 |  | [Failed] contact_visibility (7m 55s) (Assertion is false: id: edit-profile-whatsapp-same-as-phone is not visib |
@@ -234,7 +234,8 @@ bug class a user reports as "nothing happened".
 | `recently_viewed` | PASS | run-560 | 151 |  |  |
 | `recently_viewed_empty_state` | PASS | run-560 | 143 |  |  |
 | `seller_mode_toggle` | PASS | run-560 | 155 |  |  |
-| `theme_switch` | FAIL-assert ⟳stale | run-560 | 202 |  | [Failed] theme_switch (3m 14s) (No visible element found: id: theme-option-system) |
+| `theme_switch` | PASS | run-616 | 220 |  |  |
+| `theme_switch_light` | PASS | run-615 | 207 |  |  |
 | `transaction_stats_hidden_when_zero` | PASS | run-560 | 132 |  |  |
 | `transaction_stats_own_profile` | FAIL-assert | run-560 | 165 |  | [Failed] transaction_stats_own_profile (2m 37s) (Assertion is false: "Items Bought" is visible) |
 | `transaction_stats_public_profile` | FAIL-assert | run-560 | 172 |  | [Failed] transaction_stats_public_profile (2m 44s) (Assertion is false: id: transaction-stats-badge is visible |
@@ -413,7 +414,7 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `browse_pagination` | PASS | run-580 | 178 |  |  |
+| `browse_pagination` | PASS | run-600 | 187 |  |  |
 | `conversations_pagination` | PASS | run-596 | 164 |  |  |
 | `filter_combined_pagination` | PASS | run-571 | 130 |  |  |
 | `my_listings_pagination` | PASS | run-571 | 173 |  |  |
@@ -426,7 +427,7 @@ bug class a user reports as "nothing happened".
 
 | Flow | Status | Last run | Secs | Triage | Notes |
 |---|---|---|---:|---|---|
-| `browse_dark` | PASS | run-558 | 207 |  |  |
+| `browse_dark` | PASS | run-613 | 194 |  |  |
 | `chat_dark` | PASS | run-558 | 175 |  |  |
 | `listing_detail_dark` | PASS | run-558 | 170 |  |  |
 | `my_listings_dark` | PASS | run-558 | 200 |  |  |

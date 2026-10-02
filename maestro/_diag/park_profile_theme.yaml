@@ -1,0 +1,11 @@
+appId: com.hatiwal.app
+---
+# QA helper: leave the device on Profile with the theme options on screen, for
+# adb-timed taps (Maestro cannot tap faster than its settle wait).
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- scrollUntilVisible:
+    element:
+      id: "theme-option-system"
+    direction: DOWN
+    visibilityPercentage: 100
+    timeout: 20000

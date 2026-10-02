@@ -2642,3 +2642,43 @@ before store builds. Recommended: compute the initial overflow from the first
 `onScroll`/layout rather than assuming offset 0, and choose the chevron
 direction and edge from that geometry; verify on an iPhone in ps before shipping.
 Severity: cosmetic, the chip is still tappable.
+
+## UI-054 — grid card: the "Firm price" chip truncates to "Firm …" beside a six-digit price — FIXED c3a6cb0 (card QA, 2026-10-02)
+
+> **FIXED c3a6cb0.** The grid uses a short label (`listing.firmPriceShort`: Firm / ثابت / ثابت / طے شدہ, each the key word of the existing full label) with the full "Firm price" as the accessibility label; the list keeps the full label. Verified: `qa/evidence/qa-cards-2026-10-02/fixes/fx_en_grid.png`. A seven-digit price can still squeeze it.
+
+Bazaar / My Shop grid, 411dp phone, English: "AFN 150,000 [Firm …]"; Urdu shows
+"طے ش…". The node holds the full "Firm price"; the chip shrinks to fit the 24dp
+price row. Pashto and Dari happen to fit. Design call, not changed: drop to a
+shorter label in the grid ("Firm"), let the chip take its own line in grid only,
+or make the price shrink first. Evidence: `qa/evidence/qa-cards-2026-10-02/feed/g01_grid_top.png`,
+`theme_lang/r_ur_grid_after_fix3_zoom.png`.
+
+## UI-055 — right after an in-app language switch, some labels are clipped until the app restarts — OPEN (dev-build only per owner)
+
+> Owner, 2026-10-02: store builds do a full app restart on a language change, so this is a dev-build (JS reload) artefact — documented, not fixed.
+
+ps → fa via Profile: Bazaar's "Recent searches" heading drew only "جستجوهای" of
+"جستجوهای اخیر" — the node has the full text in a box one word too narrow. After a
+cold launch in fa the same label draws in full. Transient (gone on next start),
+but every user who switches language sees it. Likely a text measurement kept
+from before the switch's JS reload (the families differ per language since
+d78e7b5). Not fixed: needs a reproduction and a look at the transition's reload
+path (e57f35a). Evidence: `theme_lang/r_fa_grid.png` vs `theme_lang/r_fa_cold_heading.png`.
+
+## UI-056 — My Shop grid: the "Active" status pill on the photo is nearly unreadable — FIXED c3a6cb0
+
+> **FIXED c3a6cb0.** The photo overlay gives the pill an opaque `colors.card` base under its translucent tint. Verified: `fixes/fx_shop_grid.png`.
+
+Green text on a translucent green pill, over the photo: on busy photos (the
+Renault interior) "Active" is close to invisible; on the placeholder it reads.
+Contrast, not taste — but the fix (solid pill, scrim, or moving it off the
+photo) is a design choice. Evidence: `shop/m02_shop_grid.png`.
+
+## UI-057 (design observation) — a saved-search chip looks exactly like an active-filter pill
+
+Bazaar: the buyer's saved search "Electronics ×" sits under the category chips
+in the same shape and colour an active filter would use; during QA it read as a
+stale filter left behind after "All" was tapped. Not a bug (it is
+`saved-search-chip`, and it was there before any tap). Evidence:
+`chips/k0_start.png`, `chips/k2_after_all.png`.

@@ -1,0 +1,128 @@
+appId: com.hatiwal.app
+---
+# QA 2026-10-02 (card redesign bb477ac..ccc0d9c): screenshots of the feed in
+# grid and list, slow and fast scrolls (invisible-row hunt, e4b7163), the
+# one-tap / double-tap toggle, chips, Saved and a seller profile. Run directly
+# with --debug-output so takeScreenshot survives; judged by eye.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "browse-tab"
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: "browse-view-grid"
+    commands:
+      - tapOn:
+          id: "browse-view-grid"
+- waitForAnimationToEnd
+- takeScreenshot: g01_grid_top
+# Slow scroll, grid.
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          direction: UP
+          duration: 900
+      - waitForAnimationToEnd
+      - takeScreenshot: g02_grid_slow
+# Fast flings, grid — then look at what is on screen immediately.
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          direction: UP
+          duration: 120
+- takeScreenshot: g03_grid_fast_now
+- waitForAnimationToEnd
+- takeScreenshot: g04_grid_fast_settled
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          direction: DOWN
+          duration: 120
+- takeScreenshot: g05_grid_fast_back_now
+- scrollUntilVisible:
+    element:
+      id: "browse-view-list"
+    direction: UP
+    timeout: 20000
+# ONE tap to list; capture straight away (switching state) and settled.
+- tapOn:
+    id: "browse-view-list"
+- takeScreenshot: l01_list_immediately
+- waitForAnimationToEnd
+- takeScreenshot: l02_list_top
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          direction: UP
+          duration: 900
+      - waitForAnimationToEnd
+      - takeScreenshot: l03_list_slow
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          direction: UP
+          duration: 120
+- takeScreenshot: l04_list_fast_now
+- waitForAnimationToEnd
+- takeScreenshot: l05_list_fast_settled
+- scrollUntilVisible:
+    element:
+      id: "browse-view-grid"
+    direction: UP
+    timeout: 20000
+# Fast double tap grid -> list: must end in LIST, not flip back.
+- tapOn:
+    id: "browse-view-grid"
+    waitToSettleTimeoutMs: 0
+- tapOn:
+    id: "browse-view-list"
+    waitToSettleTimeoutMs: 0
+- waitForAnimationToEnd
+- takeScreenshot: t01_after_double_tap_expect_list
+- tapOn:
+    id: "browse-view-grid"
+- waitForAnimationToEnd
+- takeScreenshot: t02_back_to_grid
+# Category chips: tap several, then look at label sharpness.
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- takeScreenshot: c01_chip_electronics
+- tapOn: "All"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "All"
+- waitForAnimationToEnd
+- takeScreenshot: c02_chips_after_several_taps
+# Saved.
+- tapOn:
+    id: "saved-tab"
+- waitForAnimationToEnd
+- takeScreenshot: s01_saved
+# A seller's profile (Omar Noori, the e2e seller).
+- openLink: "hatiwal://seller/603"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- takeScreenshot: p01_profile_grid
+- scrollUntilVisible:
+    element: "List view"
+    direction: DOWN
+    timeout: 15000
+    optional: true
+- tapOn:
+    text: "List view"
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: p02_profile_list

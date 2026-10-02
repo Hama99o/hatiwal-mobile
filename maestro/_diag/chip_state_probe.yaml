@@ -1,0 +1,27 @@
+appId: com.hatiwal.app
+---
+# QA 2026-10-02: chip vs active-filter pill state after Electronics -> All.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "browse-tab"
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- takeScreenshot: k0_start
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- takeScreenshot: k1_after_electronics
+- tapOn:
+    text: "All"
+    retryTapIfNoChange: false
+- waitForAnimationToEnd
+- takeScreenshot: k2_after_all
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- takeScreenshot: k3_after_electronics_again
+- tapOn:
+    text: "All"
+    retryTapIfNoChange: false
+- waitForAnimationToEnd
+- takeScreenshot: k4_after_all_again

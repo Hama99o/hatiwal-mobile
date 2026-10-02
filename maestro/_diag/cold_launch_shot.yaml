@@ -1,0 +1,12 @@
+appId: com.hatiwal.app
+---
+# QA helper: cold-launch the app in whatever language it is in and screenshot Bazaar.
+- runFlow: ../_helpers/login.yaml
+- tapOn:
+    id: "browse-tab"
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: cold_bazaar

@@ -1,0 +1,121 @@
+appId: com.hatiwal.app
+---
+# QA 2026-10-02 (e57f35a/8538046 transition overlay + card redesign in dark/RTL).
+# Direct run with --debug-output; screenshots judged by eye.
+- runFlow: ../_helpers/login.yaml
+- runFlow: ../_helpers/goto_profile_tab.yaml
+# ── Theme: tap the ACTIVE option first — nothing must happen.
+- scrollUntilVisible:
+    element:
+      id: "theme-option-light"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "theme-option-light"
+- takeScreenshot: th00_tap_active_light_expect_no_overlay
+# light -> dark: overlay at once; a tap during it (system) must be ignored.
+- tapOn:
+    id: "theme-option-dark"
+    waitToSettleTimeoutMs: 0
+- takeScreenshot: th01_dark_overlay_immediately
+- tapOn:
+    id: "theme-option-system"
+    waitToSettleTimeoutMs: 0
+    optional: true
+- runFlow: ../_helpers/await_theme_restart.yaml
+- takeScreenshot: th02_after_dark_expect_dark
+- tapOn:
+    id: "browse-tab"
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- tapOn:
+    id: "browse-view-grid"
+- waitForAnimationToEnd
+- takeScreenshot: d01_dark_grid
+- tapOn:
+    id: "browse-view-list"
+- waitForAnimationToEnd
+- takeScreenshot: d02_dark_list
+- tapOn:
+    id: "browse-view-grid"
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- scrollUntilVisible:
+    element:
+      id: "theme-option-system"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "theme-option-system"
+    waitToSettleTimeoutMs: 0
+- takeScreenshot: th03_system_overlay_immediately
+- runFlow: ../_helpers/await_theme_restart.yaml
+- takeScreenshot: th04_after_system
+# ── Language: active option first (en) — nothing must happen.
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-en"
+- takeScreenshot: la00_tap_active_en_expect_no_overlay
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-ps"
+    waitToSettleTimeoutMs: 0
+- takeScreenshot: la01_ps_overlay_immediately
+- runFlow: ../_helpers/await_language_restart.yaml
+- tapOn:
+    id: "browse-tab"
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- takeScreenshot: r01_ps_grid
+- tapOn:
+    id: "browse-view-list"
+- waitForAnimationToEnd
+- takeScreenshot: r02_ps_list
+- tapOn:
+    id: "browse-view-grid"
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-fa"
+    waitToSettleTimeoutMs: 0
+- takeScreenshot: la02_fa_overlay_immediately
+- runFlow: ../_helpers/await_language_restart.yaml
+- tapOn:
+    id: "browse-tab"
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- takeScreenshot: r03_fa_grid
+- tapOn:
+    id: "browse-view-list"
+- waitForAnimationToEnd
+- takeScreenshot: r04_fa_list
+- tapOn:
+    id: "browse-view-grid"
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-ur"
+    waitToSettleTimeoutMs: 0
+- takeScreenshot: la03_ur_overlay_immediately
+- runFlow: ../_helpers/await_language_restart.yaml
+- tapOn:
+    id: "browse-tab"
+- extendedWaitUntil:
+    visible:
+      id: "listing-card"
+    timeout: 20000
+- takeScreenshot: r05_ur_grid
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- runFlow: ../_helpers/open_language_picker.yaml
+- tapOn:
+    id: "language-option-en"
+    waitToSettleTimeoutMs: 0
+- takeScreenshot: la04_en_overlay_immediately
+- runFlow: ../_helpers/await_language_restart.yaml
+- takeScreenshot: la05_back_in_en

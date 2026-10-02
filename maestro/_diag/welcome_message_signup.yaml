@@ -1,0 +1,114 @@
+appId: com.hatiwal.app
+---
+# QA 2026-10-02 (hatiwal-api 26816da): a NEW account gets exactly one unread
+# welcome from verified "Hatiwal Support", pinned first in Chats; still one after
+# sign out / in. Direct run with --debug-output.
+#
+# The address is a plus-alias of the owner's own sender (infohama99o@gmail.com):
+# sign-up sends a REAL confirmation email from local dev (Gmail SMTP), and this
+# keeps it inside the owner's own mailbox instead of bouncing off a fake domain.
+- launchApp:
+    clearState: true
+- runFlow: ../_helpers/open_bundle.yaml
+- runFlow: ../_helpers/goto_login.yaml
+- extendedWaitUntil:
+    visible: "Buy and sell locally.*"
+    timeout: 60000
+- tapOn:
+    id: "go-to-register"
+- assertVisible: "Create Account"
+- tapOn:
+    id: "register-firstname-input"
+- inputText: "Welcome"
+- tapOn:
+    id: "register-lastname-input"
+- inputText: "Probe"
+- tapOn:
+    id: "register-phone-input"
+- inputText: "0700000112"
+- scrollUntilVisible:
+    element:
+      id: "register-email-input"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "register-email-input"
+- evalScript: ${output.email = 'infohama99o+qa' + Date.now() + '@gmail.com'}
+- inputText: ${output.email}
+- scrollUntilVisible:
+    element:
+      id: "register-password-input"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "register-password-input"
+- inputText: "Password123!"
+- scrollUntilVisible:
+    element:
+      id: "register-confirm-password-input"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    id: "register-confirm-password-input"
+- inputText: "Password123!"
+- scrollUntilVisible:
+    element:
+      id: "register-submit"
+    direction: DOWN
+    timeout: 20000
+- waitForAnimationToEnd
+- tapOn:
+    id: "register-submit"
+- extendedWaitUntil:
+    visible: "Allow Hatiwal to send you notifications?"
+    timeout: 30000
+    optional: true
+- tapOn:
+    text: "Allow"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "chat-tab"
+    timeout: 30000
+- tapOn:
+    id: "chat-tab"
+- extendedWaitUntil:
+    visible:
+      id: "support-thumb-\\d+"
+    timeout: 30000
+- takeScreenshot: w01_chats_after_signup
+- tapOn:
+    id: "support-thumb-\\d+"
+- extendedWaitUntil:
+    visible:
+      id: "support-thread-identity"
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: w02_welcome_thread
+- back
+- waitForAnimationToEnd
+# Sign out and back in as the same new account.
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- scrollUntilVisible:
+    element:
+      id: "sign-out-button"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "sign-out-button"
+- runFlow: ../_helpers/confirm_dialog.yaml
+- runFlow:
+    file: ../_helpers/login.yaml
+    env:
+      EMAIL: ${output.email}
+      PASSWORD: "Password123!"
+- tapOn:
+    id: "chat-tab"
+- extendedWaitUntil:
+    visible:
+      id: "support-thumb-\\d+"
+    timeout: 30000
+- takeScreenshot: w03_chats_after_relogin

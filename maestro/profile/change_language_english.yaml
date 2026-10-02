@@ -6,39 +6,27 @@ appId: com.hatiwal.app
 - tapOn:
     id: "profile-tab"
 - waitForAnimationToEnd
-# First switch to Pashto
-- scrollUntilVisible:
-    element:
-      text: "Language"
-# The option list is COLLAPSED on mount and its row is below the fold, so
-# tapping an option straight away could never work — the helper scrolls to the
-# row and expands it first.
 - runFlow: ../_helpers/open_language_picker.yaml
-- tapOn:
-    id: "language-option-ps"
-- waitForAnimationToEnd
-# The switch restarts the app when the direction flips; wait for it to come back
-# before touching anything. A no-op when it did not restart.
-- runFlow: ../_helpers/await_language_restart.yaml
-# The language switch flips direction and RELOADS the app (applyLanguageFromUser ->
-# forceRTL -> reloadApp), so it comes back on the Bazaar feed. The assertions below are
-# profile rows, so return there explicitly — waiting for `browse-tab`, as the helper does,
-# only proves the app is back, not which screen is showing.
-- runFlow: ../_helpers/goto_profile_tab.yaml
-# Now switch back to English — text may be in Pashto but English option exists
-- scrollUntilVisible:
-    element:
-      text: "English"
-    optional: true
-# The option list is COLLAPSED on mount and its row is below the fold, so
-# tapping an option straight away could never work — the helper scrolls to the
-# row and expands it first.
-- runFlow: ../_helpers/open_language_picker.yaml
+# Only when English is ALREADY active: switch to Pashto first, so that tapping
+# English below is a real change. Since e57f35a tapping the active language does
+# nothing (no overlay, no restart), and a flow that always did both switches ran
+# past the rig's 600s cap (run-605, rig_fail — both switches had worked). When
+# the app is in another language this costs one restart instead of two.
+- runFlow:
+    when:
+      visible:
+        id: "language-option-en"
+        selected: true
+    commands:
+      - tapOn:
+          id: "language-option-ps"
+      - waitForAnimationToEnd
+      - runFlow: ../_helpers/await_language_restart.yaml
+      - runFlow: ../_helpers/goto_profile_tab.yaml
+      - runFlow: ../_helpers/open_language_picker.yaml
 - tapOn:
     id: "language-option-en"
 - waitForAnimationToEnd
-# The switch restarts the app when the direction flips; wait for it to come back
-# before touching anything. A no-op when it did not restart.
 - runFlow: ../_helpers/await_language_restart.yaml
 # The language switch flips direction and RELOADS the app (applyLanguageFromUser ->
 # forceRTL -> reloadApp), so it comes back on the Bazaar feed. The assertions below are

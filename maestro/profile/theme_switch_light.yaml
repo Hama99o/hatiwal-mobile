@@ -1,0 +1,51 @@
+appId: com.hatiwal.app
+---
+# Light half of the theme switch (split out of theme_switch.yaml: three dev-build
+# restarts plus login ran past the rig's 600s per-flow cap — run-612). Ends on
+# System, the state every dark_mode/* flow assumes it starts from.
+- runFlow: ../_helpers/login.yaml
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- scrollUntilVisible:
+    element:
+      id: "theme-option-light"
+    direction: DOWN
+    centerElement: false
+    timeout: 20000
+# Tapping the ALREADY-active option does nothing since e57f35a (no overlay, no
+# restart), and the theme survives between flows: move off Light first if it is on.
+- runFlow:
+    when:
+      visible:
+        id: "theme-option-light"
+        selected: true
+    commands:
+      - tapOn:
+          id: "theme-option-system"
+      - runFlow: ../_helpers/await_theme_restart.yaml
+      - runFlow: ../_helpers/goto_profile_tab.yaml
+      - scrollUntilVisible:
+          element:
+            id: "theme-option-light"
+          direction: DOWN
+          centerElement: false
+          timeout: 20000
+- tapOn:
+    id: "theme-option-light"
+# A theme switch restarts the app onto the Bazaar feed.
+- runFlow: ../_helpers/await_theme_restart.yaml
+- waitForAnimationToEnd
+- runFlow: ../_helpers/goto_profile_tab.yaml
+- scrollUntilVisible:
+    element:
+      id: "theme-option-light"
+    direction: DOWN
+    centerElement: false
+    timeout: 20000
+# Light is now the active option.
+- assertVisible:
+    id: "theme-option-light"
+    selected: true
+- tapOn:
+    id: "theme-option-system"
+- runFlow: ../_helpers/await_theme_restart.yaml
+- waitForAnimationToEnd

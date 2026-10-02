@@ -1,0 +1,30 @@
+appId: com.hatiwal.app
+---
+# QA 2026-10-02: My Shop in grid and list (seller). Direct run, judged by eye.
+- runFlow: ../_helpers/login_seller.yaml
+# login_seller leaves the device on Profile; in seller mode the first tab
+# ("My Shop") keeps the id browse-tab.
+- tapOn:
+    id: "browse-tab"
+- extendedWaitUntil:
+    visible:
+      id: "seller-listing-card"
+    timeout: 30000
+- takeScreenshot: m01_shop_default
+- tapOn:
+    text: "Grid view"
+- waitForAnimationToEnd
+- takeScreenshot: m02_shop_grid
+- swipe:
+    direction: UP
+    duration: 900
+- waitForAnimationToEnd
+- takeScreenshot: m03_shop_grid_scrolled
+- scrollUntilVisible:
+    element: "List view"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    text: "List view"
+- waitForAnimationToEnd
+- takeScreenshot: m04_shop_list
