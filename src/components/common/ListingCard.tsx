@@ -173,15 +173,21 @@ export function ListingCard({
     // In RTL the photo sits on the right — achieved by row-reverse.
     return (
       <>
+      {/* Two nodes on purpose: the entering layout animation (fade + slide)
+          on the wrapper, the press scale on the inner view. On one node,
+          Reanimated 4.5 lets the press transform overwrite the entering one,
+          and rows were left invisible mid-list (owner report, 2026-10-02). */}
       <Animated.View
         entering={hasEntering ? getEntering(index!) : undefined}
+        style={style}
+      >
+      <Animated.View
         style={[
           // No bordered box: the photo carries the card (Depop, Nextdoor, eBay
           // on Mobbin, docs/design/LISTING_CARDS.md). A box around a dark card
           // read as a large empty panel once the text block was short.
           { borderRadius: 12 },
           cardAnimStyle,
-          style,
         ]}
       >
         <Pressable
@@ -374,6 +380,7 @@ export function ListingCard({
           )}
         </Pressable>
       </Animated.View>
+      </Animated.View>
       {onHide && (
         <NotInterestedMenu
           visible={menuVisible}
@@ -388,14 +395,13 @@ export function ListingCard({
   // ── Grid variant (default — vertical card) ───────────────────────────────
   return (
     <>
+    {/* Wrapper owns the entering animation, inner view the press scale:
+        see the list variant above for why they must not share a node. */}
     <Animated.View
       entering={hasEntering ? getEntering(index!) : undefined}
-      style={[
-        { borderRadius: 12 },
-        cardAnimStyle,
-        style,
-      ]}
+      style={style}
     >
+    <Animated.View style={[{ borderRadius: 12 }, cardAnimStyle]}>
       <Pressable
         onPress={handlePress}
         onPressIn={handlePressIn}
@@ -607,6 +613,7 @@ export function ListingCard({
           </View>
         </View>
       </Pressable>
+    </Animated.View>
     </Animated.View>
     {onHide && (
       <NotInterestedMenu
