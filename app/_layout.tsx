@@ -11,6 +11,7 @@ import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-c
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner-native";
+import { AppTransitionOverlay } from "@/components/common/AppTransitionOverlay";
 import { bootstrapAuth } from "@/stores/auth.bootstrap";
 
 // A LogBox OVERLAY covers the app and makes controls unreachable — it is dev-only
@@ -110,6 +111,8 @@ export default function RootLayout() {
             )}
             <Toaster position="top-center" richColors />
           </View>
+          {/* Above everything: app-wide changes (language, theme) show here. */}
+          <AppTransitionOverlay />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

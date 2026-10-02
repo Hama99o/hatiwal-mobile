@@ -7,24 +7,23 @@ export type ThemePreference = "light" | "dark" | "system";
 
 interface ThemeState {
   theme: ThemePreference;
-  setTheme: (theme: ThemePreference) => void;
+  /** Resolves after the choice is saved (and the app is restarting, if it changed). */
+  setTheme: (theme: ThemePreference) => Promise<void>;
 }
 
 const STORAGE_KEY = "app-theme";
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
   theme: "system",
-  setTheme: (theme) => {
+  setTheme: async (theme) => {
     const changed = get().theme !== theme;
     set({ theme });
     authAPI.updateMe({ preferredTheme: theme }).catch(() => null);
     // Persist BEFORE reloading so the saved theme matches on next launch, then
     // reload for a clean apply (Android's live theme swap can be janky).
-    AsyncStorage.setItem(STORAGE_KEY, theme)
-      .catch(() => {})
-      .finally(() => {
-        if (changed) reloadApp();
-      });
+    // Awaitable so runAppTransition keeps its overlay up until the restart.
+    await AsyncStorage.setItem(STORAGE_KEY, theme).catch(() => {});
+    if (changed) reloadApp();
   },
 }));
 

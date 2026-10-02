@@ -57,5 +57,9 @@
   "splash": {
     "validating": "در حال بررسی نشست شما…"
   },
-  "scrollToTop": "بازگشت به بالا"
+  "scrollToTop": "بازگشت به بالا",
+  "appChange": {
+    "language": "در حال تغییر زبان…",
+    "theme": "در حال تغییر پوسته…"
+  }
 }
