@@ -1,0 +1,51 @@
+appId: com.hatiwal.app
+# The rig injects LISTING_ID (qa/lib/flows.sh); no env default on purpose — see
+# open_listing_deep_link.yaml for why a default silently shadows the real id.
+---
+# Owner, 2026-10-03: "when i share list or profile it did not work… it should
+# have well share system to whatsapp".
+#
+# Root cause was server-side: production had no PUBLIC_SHARE_BASE_URL, so the
+# API returned no share_url and the app fell back to `hatiwal://listing/<id>`,
+# which WhatsApp (and every chat app) shows as dead text. This flow pins the
+# CLIENT half: listing detail → ⋯ → Share opens the Android share sheet, and the
+# text it hands over carries the https link, never the custom scheme.
+#
+# Requires the API to run with PUBLIC_SHARE_BASE_URL=https://hatiwal.com (as
+# production now does). Without it this flow fails on the https assertion — by
+# design, since that is exactly the bug the owner hit.
+
+# Logged in as the buyer, in English and buyer mode (login.yaml settles all
+# three), so the run does not depend on what the previous session left behind.
+- runFlow: ../_helpers/login.yaml
+
+- openLink: "hatiwal://listing/${LISTING_ID}"
+- extendedWaitUntil:
+    visible:
+      id: "more-options-button"
+    timeout: 20000
+
+- tapOn:
+    id: "more-options-button"
+# The more-sheet row, by testID: the label is translated and the device keeps
+# whatever language the last session left (it was Dari on the first run).
+- tapOn:
+    id: "more-sheet-share"
+
+# Android's share sheet (system UI) previews the shared TEXT. Its body is
+# "<title> — <price>\n<url>", so match the url anywhere inside it.
+- extendedWaitUntil:
+    visible: ".*https://hatiwal\\.com/l/${LISTING_ID}.*"
+    timeout: 15000
+- assertNotVisible: ".*hatiwal://.*"
+- takeScreenshot: share_listing_sheet_open
+
+# Cancel: back out of the sheet. A dismissal RESOLVES Share.share (it does not
+# throw), so no error toast may appear and the detail screen must still be there.
+- back
+- extendedWaitUntil:
+    visible:
+      id: "more-options-button"
+    timeout: 10000
+- assertNotVisible: ".*[Ss]omething went wrong.*"
+- takeScreenshot: share_listing_sheet_cancelled

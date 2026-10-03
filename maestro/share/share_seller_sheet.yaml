@@ -1,0 +1,43 @@
+appId: com.hatiwal.app
+# The rig injects SELLER_ID (qa/lib/flows.sh); no env default on purpose.
+---
+# Owner, 2026-10-03: sharing a profile "did not work". Seller profile → ⋯ →
+# Share must open the Android share sheet with an https profile link
+# (https://hatiwal.com/u/<id>), never the hatiwal:// custom scheme that chat
+# apps show as dead text. See share_listing_sheet.yaml for the root cause.
+#
+# Only SOMEONE ELSE'S profile has this menu (UserProfile renders `more-menu`
+# when !isMe), so this runs as the buyer. Your OWN profile has no share action at
+# all — a gap, recorded in qa/evidence/qa-share/SUMMARY.md, not tested here.
+
+# Logged in as the BUYER, so the seller's profile is someone else's and has the
+# ⋯ menu. A device left signed in as seller@hatiwal.test (it was, on the first
+# run) shows NO menu on this profile — correctly, since it is their own.
+- runFlow: ../_helpers/login.yaml
+
+- openLink: "hatiwal://seller/${SELLER_ID}"
+- extendedWaitUntil:
+    visible:
+      id: "more-menu"
+    timeout: 20000
+
+- tapOn:
+    id: "more-menu"
+# By testID: the label is translated, and the device keeps whatever language
+# the last session left.
+- tapOn:
+    id: "profile-menu-share"
+
+# The share sheet previews the text: "<invite line>\n<url>".
+- extendedWaitUntil:
+    visible: ".*https://hatiwal\\.com/u/${SELLER_ID}.*"
+    timeout: 15000
+- assertNotVisible: ".*hatiwal://.*"
+
+# Cancel: a dismissal resolves Share.share, so no error toast, still on the profile.
+- back
+- extendedWaitUntil:
+    visible:
+      id: "more-menu"
+    timeout: 10000
+- assertNotVisible: ".*[Ss]omething went wrong.*"

@@ -100,6 +100,8 @@ export function ActionMenu({
                   borderColor: colors.border,
                 }}
                 android_ripple={{ color: colors.muted }}
+                // Locale-proof handle for the share row (QA: the label is translated).
+                testID="profile-menu-share"
               >
                 <Share2 size={20} color={colors.foreground} />
                 <Text

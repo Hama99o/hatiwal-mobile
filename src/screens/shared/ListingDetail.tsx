@@ -1293,6 +1293,8 @@ export default function ListingDetailScreen() {
           <Pressable
             style={[styles.sheetRow, { borderBottomColor: colors.border }]}
             onPress={handleShare}
+            // Locale-proof handle for the share row (QA: the label is translated).
+            testID="more-sheet-share"
           >
             <Text style={{ fontSize: 16, color: colors.foreground }}>
               {t("listing.detail.share")}

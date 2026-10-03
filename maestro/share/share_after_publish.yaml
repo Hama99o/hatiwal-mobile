@@ -1,0 +1,85 @@
+appId: com.hatiwal.app
+---
+# Owner, 2026-10-03: sharing "did not work". The third share entry point is the
+# PublishSuccessSheet's Share button ("Your listing is live!" -> Share), shown
+# right after publishing. It must hand the Android share sheet the new
+# listing's https link, never hatiwal://. Requires the API to run with
+# PUBLIC_SHARE_BASE_URL=https://hatiwal.com (as production does).
+#
+# SELF-CONTAINED: creates its own listing (same creation steps as
+# ../seller/sell_without_reserving.yaml), so no fixture is shared.
+
+- runFlow: ../_helpers/login_seller.yaml
+- tapOn:
+    id: "browse-tab"
+- waitForAnimationToEnd
+
+# ── Create + publish a fresh single-item listing ─────────────────────────────
+- tapOn: "New"
+- waitForAnimationToEnd
+- assertVisible: "Create Listing"
+
+- assertVisible:
+    id: "photos-add-button"
+- tapOn:
+    id: "photos-add-button"
+- waitForAnimationToEnd
+- runFlow: ../_helpers/attach_photo_from_gallery.yaml
+
+- tapOn: "What are you selling?"
+- eraseText
+- inputText: "QA Share After Publish"
+- scrollUntilVisible:
+    element:
+      text: "Enter price"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Enter price"
+- eraseText
+- inputText: "5000"
+
+- scrollUntilVisible:
+    element:
+      text: "Tap to select category"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Tap to select category"
+- waitForAnimationToEnd
+- tapOn: "Electronics"
+- waitForAnimationToEnd
+- tapOn: "Accessories"
+- waitForAnimationToEnd
+
+- runFlow: ../_helpers/set_listing_location.yaml
+
+- scrollUntilVisible:
+    element:
+      text: "Publish"
+    direction: DOWN
+    timeout: 20000
+- waitForAnimationToEnd
+- tapOn: "Publish"
+- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "Your listing is live!"
+    timeout: 60000
+- tapOn:
+    id: "publish-success-share"
+- extendedWaitUntil:
+    visible: ".*QA Share After Publish.*https://hatiwal\\.com/l/[0-9]+.*"
+    timeout: 15000
+- assertNotVisible: ".*hatiwal://.*"
+
+# Cancel the share sheet: the success sheet must still be there (Share does not
+# close it) and no error toast may appear.
+- back
+- extendedWaitUntil:
+    visible:
+      id: "publish-success-done"
+    timeout: 10000
+- assertNotVisible: ".*[Ss]omething went wrong.*"
+- tapOn:
+    id: "publish-success-done"
