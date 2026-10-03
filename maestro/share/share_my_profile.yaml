@@ -1,0 +1,36 @@
+appId: com.hatiwal.app
+---
+# "Share my profile" on your OWN Profile tab (owner, 2026-10-03). Before it,
+# only someone else's profile had Share (in its ⋯ menu, rendered when !isMe),
+# so a seller had no way to send people their shop.
+#
+# The card fetches the user's PUBLIC profile for the https link (the :me view
+# carries none), then opens the share sheet: "<invite line>\n
+# https://hatiwal.com/u/<id>". Never hatiwal://. Cancelling must leave the
+# Profile tab with no error toast.
+#
+# Requires the API to run with PUBLIC_SHARE_BASE_URL=https://hatiwal.com (as
+# production does).
+
+- runFlow: ../_helpers/login.yaml
+- runFlow: ../_helpers/goto_profile_tab.yaml
+
+- scrollUntilVisible:
+    element:
+      id: "profile-share-mine"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "profile-share-mine"
+
+- extendedWaitUntil:
+    visible: ".*https://hatiwal\\.com/u/[0-9]+.*"
+    timeout: 15000
+- assertNotVisible: ".*hatiwal://.*"
+
+- back
+- extendedWaitUntil:
+    visible:
+      id: "profile-share-mine"
+    timeout: 10000
+- assertNotVisible: ".*[Ss]omething went wrong.*"

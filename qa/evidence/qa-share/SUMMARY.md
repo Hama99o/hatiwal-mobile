@@ -96,7 +96,7 @@ keeps whatever language the previous session left (it was Dari on the first run)
    "Hatiwal", with the generic site description and generic image. WhatsApp
    builds its card from `og:*`, so a shared profile shows no name and no
    avatar. The listing link is fine (title, description, photo).
-3. **You cannot share your OWN profile.** The share action lives only in the ⋯
+3. ~~**You cannot share your OWN profile.**~~ **BUILT** (see "Share my profile" below). The share action lives only in the ⋯
    menu on someone else's profile (`UserProfile` renders it when `!isMe`), and
    the Profile tab has no share action at all. A seller who wants to send people
    their shop has no button. This is likely part of what the owner hit.
@@ -105,3 +105,25 @@ keeps whatever language the previous session left (it was Dari on the first run)
    owner's open decision, so it was left as is.
 5. **Listing og:image is an Active Storage disk URL.** Worth checking that it
    does not expire before WhatsApp fetches it; not tested.
+
+## "Share my profile" — built (2026-10-03, gap 3)
+
+The Profile tab gained a **Share my profile** quick action (testID
+`profile-share-mine`) in both buyer and seller modes, beside Ratings & Reviews.
+It fetches the user's PUBLIC profile through the same `["user-profile", id]`
+query the seller page uses (the private `:me` view deliberately has no share
+link), then shares "<invite line>\nhttps://hatiwal.com/u/<id>". A failed fetch
+shows an error; it is never silent.
+
+- One implementation: `src/screens/shared/user-profile/useShareProfile.ts`, now
+  used by both someone else's profile (⋯ → Share) and your own. The copy that
+  lived in UserProfile was removed.
+- Label in all four locales (`profile.quickActions.shareMyProfile`).
+- Jest: `useShareProfile.test.ts` (5 tests: https link + name, iOS link only
+  in the message, hatiwal:// fallback only without a server url, a dismissal is
+  not an error, a failure is shown).
+- Maestro: `share/share_my_profile` PASS (run-640). Also checked by hand in
+  seller mode (`https://hatiwal.com/u/603`) and in Pashto (RTL card, Pashto
+  text plus https link).
+- Evidence: `11-share-my-profile-card-en.jpg`, `12-share-my-profile-card-ps.jpg`,
+  `13-share-my-profile-sheet.jpg`.

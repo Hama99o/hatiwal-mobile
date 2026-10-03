@@ -17,15 +17,13 @@
  */
 
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { View, Pressable, Platform, Share } from "react-native";
+import { View, Pressable, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreVertical } from "lucide-react-native";
-import * as Linking from "expo-linking";
 import { toast } from "@/lib/toast";
-import { apiErrorMessage } from "@/utils/apiError";
 
 import { Text } from "@/components/reusables/text";
 import { Button } from "@/components/reusables/button";
@@ -45,7 +43,7 @@ import { useColors } from "@/hooks/useColors";
 import { useLocalization } from "@/hooks/useLocalization";
 import { useAuthStore } from "@/stores/auth.store";
 import { confirmAlert } from "@/utils/alert";
-import { resolveProfileShareUrl } from "@/utils/shareUtils";
+import { useShareProfile } from "./user-profile/useShareProfile";
 
 import { usersAPI } from "@/api/users";
 import { listingsAPI, type Listing } from "@/api/listings";
@@ -204,34 +202,13 @@ export function UserProfileScreen() {
     setReportVisible(true);
   }, []);
 
+  // The one share-a-profile implementation (also used by "Share my profile"
+  // on your own Profile tab) — see user-profile/useShareProfile.ts.
+  const shareProfile = useShareProfile(userId);
   const doShareProfile = useCallback(async () => {
     if (!profile) return;
-    try {
-      // Prefer the server-supplied https share URL; fall back to a hatiwal://seller/<id>
-      // deep link so the share always carries a tappable link regardless of backend config.
-      const url = resolveProfileShareUrl(
-        profile.shareUrl,
-        userId,
-        (path) => Linking.createURL(path)
-      );
-      const name = profile.name;
-      const message = t("profile.sellerProfile.share.body", { name, url });
-      // On iOS, passing both `message` (which already embeds the URL) and a
-      // separate `url` field causes some share targets to render the link twice
-      // or drop the message body. Pass `url` only on Android.
-      await Share.share(
-        Platform.OS === "ios"
-          ? { title: t("profile.sellerProfile.share.title"), message }
-          : { title: t("profile.sellerProfile.share.title"), message, url }
-      );
-    } catch (err) {
-      // NOT a dismissal. The old comment here said "user dismissed the share
-      // sheet — no-op", but a dismissal RESOLVES with `dismissedAction`; it
-      // never throws. So this branch only ever hid REAL failures — including
-      // the presentation race below, which made the button look dead.
-      toast.error(apiErrorMessage(err, t));
-    }
-  }, [profile, userId, t]);
+    await shareProfile(profile);
+  }, [profile, shareProfile]);
 
   /**
    * Same deferral as the listing detail's share, and the same bug underneath:

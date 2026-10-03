@@ -31,7 +31,10 @@ import {
   Flag,
   History,
   EyeOff,
+  Share2,
 } from "lucide-react-native";
+import { usersAPI } from "@/api/users";
+import { useShareProfile } from "@/screens/shared/user-profile/useShareProfile";
 import * as ImagePicker from "expo-image-picker";
 import { clearCachedPushToken } from "@/utils/push-token";
 import { authAPI, type User } from "@/api/auth";
@@ -164,12 +167,14 @@ function QuickActionCard({
   onPress,
   badge,
   primary = false,
+  testID,
 }: {
   icon: typeof Plus;
   label: string;
   onPress: () => void;
   badge?: number | string;
   primary?: boolean;
+  testID?: string;
 }) {
   const colors = useColors();
   // RTL fix: flip row direction and alignment so icon/label/badge mirror correctly
@@ -179,6 +184,7 @@ function QuickActionCard({
     <Button
       variant={primary ? "default" : "outline"}
       onPress={onPress}
+      testID={testID}
       style={{
         flex: 1,
         flexDirection: isRtl ? "row-reverse" : "row",
@@ -302,6 +308,33 @@ function ProfileQuickActions({ user, isSeller }: { user: User; isSeller: boolean
     />
   );
 
+  // "Share my profile" — send people your shop (owner, 2026-10-03: there was
+  // no way to share your OWN profile; only someone else's ⋯ menu had Share).
+  // The share link lives on the PUBLIC profile (the :me view deliberately has
+  // none), so fetch it on tap through the SAME query the seller page uses —
+  // usually already cached. A failed fetch is shown, never silent.
+  const qc = useQueryClient();
+  const shareProfile = useShareProfile(user.id);
+  const handleShareMine = async () => {
+    try {
+      const mine = await qc.fetchQuery({
+        queryKey: ["user-profile", user.id],
+        queryFn: () => usersAPI.getPublicProfile(user.id),
+      });
+      await shareProfile(mine);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, t));
+    }
+  };
+  const shareMine = (
+    <QuickActionCard
+      icon={Share2}
+      label={t("profile.quickActions.shareMyProfile")}
+      onPress={handleShareMine}
+      testID="profile-share-mine"
+    />
+  );
+
   return (
     <SectionCard>
       <View style={{ padding: 12, gap: 10 }}>
@@ -331,6 +364,7 @@ function ProfileQuickActions({ user, isSeller }: { user: User; isSeller: boolean
               label={t("profile.quickActions.reviews")}
               onPress={() => router.push(`/(main)/user/${user.id}/reviews` as never)}
             />
+            {shareMine}
             {contactSupport}
           </>
         ) : (
@@ -356,6 +390,7 @@ function ProfileQuickActions({ user, isSeller }: { user: User; isSeller: boolean
               label={t("profile.quickActions.reviews")}
               onPress={() => router.push(`/(main)/user/${user.id}/reviews` as never)}
             />
+            {shareMine}
             {contactSupport}
           </>
         )}
